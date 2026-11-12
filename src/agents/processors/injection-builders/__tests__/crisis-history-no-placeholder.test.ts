@@ -174,7 +174,6 @@ describe('the crisis writer: never a shared bucket, no words without an account'
     [...fake.stores.entries()].filter(([k]) => k.endsWith('/crisis_signals'));
   const count = () => crisisDocs().reduce((n, [, docs]) => n + docs.length, 0);
   const signals = () => detectCrisisSignals(CRISIS_LINE);
-  const NINETY_DAYS_MS = 90 * 86_400_000;
 
   it('a placeholder id, plain or disguised, writes nothing', async () => {
     const before = count();
@@ -194,16 +193,12 @@ describe('the crisis writer: never a shared bucket, no words without an account'
     expect(count()).toBe(before);
   });
 
-  it("a non-member's signal keeps no words and expires in 90 days", async () => {
-    const t0 = Date.now();
+  it("a non-member's signal keeps no words and no session, and is kept permanently", async () => {
     await logCrisisSignal('anon:caller-nowords', signals(), CRISIS_LINE, 'session-AJ_nw-1');
     const [doc] = fake.stores.get('anon:caller-nowords/crisis_signals') ?? [];
     expect(doc).toBeDefined();
-    expect(Object.keys(doc).sort()).toEqual(['expireAt', 'sessionId', 'signals', 'timestamp']);
+    expect(Object.keys(doc).sort()).toEqual(['signals', 'timestamp']);
     expect(JSON.stringify(doc)).not.toMatch(/pills|kill/i);
-    const expireAt = (doc.expireAt as Date).getTime();
-    expect(expireAt).toBeGreaterThanOrEqual(t0 + NINETY_DAYS_MS);
-    expect(expireAt).toBeLessThanOrEqual(Date.now() + NINETY_DAYS_MS);
   });
 
   it('an id-less caller on the live turn path gets the same no-words record', async () => {
@@ -214,7 +209,7 @@ describe('the crisis writer: never a shared bucket, no words without an account'
     const [[key, [doc]]] = crisisDocs().filter(([k]) => !before.has(k));
     expect(key).toMatch(/^anon:./);
     expect(doc).not.toHaveProperty('transcriptSnippet');
-    expect(doc.expireAt).toBeInstanceOf(Date);
+    expect(doc).not.toHaveProperty('expireAt');
   });
 
   it("a try-first visitor's live crisis turn still writes the signal, with no words", async () => {
@@ -225,7 +220,7 @@ describe('the crisis writer: never a shared bucket, no words without an account'
     expect(visitor).toEqual(member); // crisis handling, the reply and resources are unchanged
     await vi.waitFor(() => expect(fake.stores.get(`${demo}/crisis_signals`)).toHaveLength(1));
     const [doc] = fake.stores.get(`${demo}/crisis_signals`)!;
-    expect(Object.keys(doc).sort()).toEqual(['expireAt', 'sessionId', 'signals', 'timestamp']);
+    expect(Object.keys(doc).sort()).toEqual(['signals', 'timestamp']);
     expect(JSON.stringify(doc)).not.toMatch(/pills|kill|myself/i);
     expect((doc.signals as { severity: number }).severity).toBeGreaterThan(0);
   });

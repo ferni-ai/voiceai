@@ -251,8 +251,8 @@ import { isAnonymousDemoUser, isSharedPlaceholderId } from '../../utils/syntheti
 
 export { followUpCrisis } from './crisis-signals.js';
 
-/** A non-member's signal is kept 90 days, like a crisis event (#2872): a TTL on expireAt. */
-const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+/** Every field a non-member's crisis_signals doc may hold: tier and time, nothing that names the call. */
+export const NON_MEMBER_SIGNAL_FIELDS = ['timestamp', 'signals', 'turn'] as const;
 
 /**
  * Log crisis signal detection (even without transfer)
@@ -261,9 +261,11 @@ const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
  *
  * PRIVACY: never under a shared placeholder id ('unknown', a disguised one, a bare
  * 'anon:'): that bucket would pool every id-less caller's crises. A non-member
- * (anon:<id>) has no account to erase or export it under, so like #2872's crisis
- * record it keeps no words, only the signal flags and ids, and expires in 90 days. So does a
- * try-first visitor (isAnonymousDemoUser), who was told nothing from the call is kept.
+ * (anon:<id>) or try-first visitor (isAnonymousDemoUser) has no account to erase or export
+ * it under, so theirs is a minimal safety note: the time, the crisis flags and severity, and
+ * the caller turn (NON_MEMBER_SIGNAL_FIELDS); never words, never a session id.
+ * Every crisis record is kept permanently, a member's or not (2026-11-11): none carries an
+ * expireAt, and crisis_signals has no TTL policy. Signing in copies it to the account as is.
  */
 export async function logCrisisSignal(
   userId: string,
@@ -321,12 +323,14 @@ export async function logCrisisSignal(
           domesticViolence: signals.domesticViolence,
           severity: signals.severity,
         },
-        // A member's truncated transcript for context; a non-member's or visitor's never are
+        // A member's truncated transcript and session for context; a non-member's or visitor's
+        // record keeps tier and time only. Firestore rejects an undefined field.
         ...(keepsWords
-          ? { transcriptSnippet: transcript ? transcript.slice(0, 200) : null }
-          : { expireAt: new Date(Date.now() + NON_MEMBER_SIGNAL_RETENTION_MS) }),
-        // Firestore rejects an undefined field, which dropped every signal logged without one
-        ...(sessionId ? { sessionId } : {}),
+          ? {
+              transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
+              ...(sessionId ? { sessionId } : {}),
+            }
+          : {}),
         // CRISIS_SAME_CALL_NOTE_FADES: the caller turn, so the same-call note can fade
         ...(turn !== undefined && flagOn('CRISIS_SAME_CALL_NOTE_FADES') ? { turn } : {}),
       });

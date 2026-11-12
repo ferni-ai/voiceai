@@ -221,6 +221,19 @@ function isNewer(target: unknown, source: unknown): boolean {
 }
 
 /**
+ * A crisis record is kept permanently (2026-11-11): one written before that rule, under an
+ * anon: or try-first id, still carries a 90-day expireAt, which the account's copy drops.
+ */
+function copiedFields(
+  collectionId: string,
+  data: FirebaseFirestore.DocumentData
+): FirebaseFirestore.DocumentData {
+  if (collectionId !== 'crisis_signals') return data;
+  const { expireAt: _expiry, ...rest } = data;
+  return rest;
+}
+
+/**
  * Copy every document of `source` to the same id under `target`, and every
  * subcollection under each of them, at any depth. Returns the documents copied.
  */
@@ -244,7 +257,11 @@ async function copyTree(
     // Same document id, so references keep working
     batch.set(
       target.doc(doc.id),
-      { ...doc.data(), _migratedFrom: sourceUserId, _migratedAt: new Date().toISOString() },
+      {
+        ...copiedFields(source.id, doc.data()),
+        _migratedFrom: sourceUserId,
+        _migratedAt: new Date().toISOString(),
+      },
       { merge: true }
     );
     copied++;
