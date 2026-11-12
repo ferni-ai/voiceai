@@ -7,16 +7,22 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   callerAsksToHangUp,
   callerSaysGoodbye,
+  callerSignsOff,
   clearFarewell,
   farewellSaid,
   ferniSaysGoodbye,
   IDLE_AFTER_GOODBYE_MS,
   markFarewell,
-  MAX_CALLER_CHARS,
   stayQuiet,
   stayQuietOn,
   watchFarewell,
 } from '../call-farewell.js';
+import type { GoodbyeWatchTallyOptions } from '../goodbye-watch-summary.js';
+
+/** How far back callerSaysGoodbye looks (goodbye-phrases.ts). */
+const MAX_CALLER_CHARS = 200;
+
+type GoodbyeWatchSummary = Parameters<NonNullable<GoodbyeWatchTallyOptions['report']>>[0];
 import { clearSessionClosing, markSessionClosing } from '../session-closing-tracker.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
@@ -127,6 +133,13 @@ describe('callerSaysGoodbye on long or hostile turns', () => {
     expect(callerSaysGoodbye(`bye, ${'ok, '.repeat(60)}`)).toBe(false);
   });
 
+  it('the cap is exactly MAX_CALLER_CHARS: a sign-off that long counts, one more does not', () => {
+    const atCap = 'bye. '.repeat(MAX_CALLER_CHARS / 5);
+    expect(atCap.length).toBe(MAX_CALLER_CHARS);
+    expect(callerSignsOff(atCap)).toBe(true);
+    expect(callerSignsOff(`${atCap}.`)).toBe(false);
+  });
+
   it('drops the word the length cap cut through', () => {
     // The last MAX_CALLER_CHARS characters start at "later", inside "translater".
     const tail = `${', ok'.repeat(48)},ok`;
@@ -160,7 +173,13 @@ describe('stayQuiet', () => {
 });
 
 /** A fake session plus a manual clock for the idle timer. */
-function call(opts: { crisis?: () => boolean } = {}) {
+function call(
+  opts: {
+    crisis?: () => boolean;
+    report?: (summary: GoodbyeWatchSummary) => void;
+    now?: () => number;
+  } = {}
+) {
   const session = new EventEmitter();
   const sessionId = newId();
   const timers = new Map<number, { fn: () => void; ms: number }>();
@@ -175,6 +194,7 @@ function call(opts: { crisis?: () => boolean } = {}) {
     },
     clearTimer: (h) => void timers.delete(h as number),
     ...(opts.crisis && { crisis: opts.crisis }),
+    summary: { report: opts.report, now: opts.now },
   });
   const say = (role: 'user' | 'assistant', text: string) =>
     session.emit('conversation_item_added', { item: { type: 'message', role, textContent: text } });
@@ -347,5 +367,106 @@ describe('watchFarewell', () => {
     c.session.emit('close', {});
     expect(farewellSaid(c.sessionId)).toBe(false);
     expect(c.session.listenerCount('conversation_item_added')).toBe(0);
+  });
+});
+
+describe('GOODBYE_WATCH_SUMMARY: one line per call, no words', () => {
+  function watched() {
+    const summaries: GoodbyeWatchSummary[] = [];
+    let clock = 1_000;
+    const c = call({ report: (r) => void summaries.push(r), now: () => clock });
+    const close = () => c.session.emit('close', {});
+    return { ...c, summaries, close, tick: (ms: number) => void (clock += ms) };
+  }
+
+  it('reports a call with no goodbye as such', () => {
+    const c = watched();
+    c.say('user', 'The bakery on Elm Street opens at six.');
+    c.say('assistant', 'Early start, then.');
+    c.close();
+    expect(c.summaries).toEqual([
+      {
+        sessionId: c.sessionId,
+        callerBye: false,
+        ferniBye: false,
+        farewell: false,
+        armed: 0,
+        fired: 0,
+        held: { crisis: 0, unread: 0 },
+        blocked: {},
+        openAfterFarewellMs: null,
+      },
+    ]);
+  });
+
+  it('counts what kept the quiet window from starting, then the end', () => {
+    const c = watched();
+    c.agent('speaking');
+    c.say('user', 'okay, bye');
+    c.say('assistant', 'Bye, take care!');
+    c.user('speaking'); // noise on the line after the goodbyes
+    c.agent('listening');
+    c.user('listening');
+    c.tick(4_000);
+    c.fire();
+    c.close();
+    const [r] = c.summaries;
+    expect(r).toMatchObject({ callerBye: true, ferniBye: true, farewell: true, fired: 1 });
+    expect(r?.blocked.agent_speaking).toBeGreaterThanOrEqual(1);
+    expect(r?.blocked.user_speaking).toBeGreaterThanOrEqual(1);
+    expect(r?.armed).toBe(1);
+    expect(r?.openAfterFarewellMs).toBe(4_000);
+    expect(c.idle()).toBe(1);
+  });
+
+  it('shows a caller goodbye Ferni never answered with one', () => {
+    const c = watched();
+    c.agent('listening');
+    c.say('user', 'alright, talk soon');
+    c.say('assistant', 'Before you go, how did the interview land?');
+    c.close();
+    expect(c.summaries[0]).toMatchObject({ callerBye: true, ferniBye: false, farewell: false });
+  });
+
+  it('counts a crisis hold and never an end', () => {
+    const summaries: GoodbyeWatchSummary[] = [];
+    const c = call({ crisis: () => true, report: (r) => void summaries.push(r) });
+    c.agent('listening');
+    c.say('user', 'bye');
+    c.say('assistant', 'Bye.');
+    c.fire();
+    c.session.emit('close', {});
+    expect(summaries[0]).toMatchObject({
+      farewell: true,
+      fired: 0,
+      held: { crisis: 1, unread: 0 },
+    });
+    expect(c.idle()).toBe(0);
+  });
+
+  it('a broken clock and report never touch the ending: the call still ends, teardown completes', () => {
+    const broken = () => {
+      throw new Error('broken');
+    };
+    const c = call({ report: broken, now: broken });
+    c.agent('listening');
+    c.say('user', 'okay, bye');
+    c.say('assistant', 'Bye, take care!');
+    expect(c.timers.size).toBe(1); // the quiet window started despite the clock
+    c.fire();
+    expect(c.idle()).toBe(1);
+    expect(() => c.session.emit('close', {})).not.toThrow();
+    expect(farewellSaid(c.sessionId)).toBe(false); // teardown ran past the failed report
+  });
+
+  it('reports once, and carries no words from the call', () => {
+    const c = watched();
+    c.agent('listening');
+    c.say('user', 'Marigold says bye now');
+    c.say('assistant', 'Bye Marigold!');
+    c.stop();
+    c.close();
+    expect(c.summaries).toHaveLength(1);
+    expect(JSON.stringify(c.summaries)).not.toMatch(/marigold|says bye now/i);
   });
 });
