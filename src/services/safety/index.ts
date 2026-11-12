@@ -29,6 +29,7 @@ export {
   IN_DANGER_NOW,
 } from './crisis-guard.js';
 export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
+export { SELF_HARM_911_LINE } from './crisis-script-lines.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';

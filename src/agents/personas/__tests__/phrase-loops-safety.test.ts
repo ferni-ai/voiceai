@@ -30,7 +30,7 @@ const SAFETY_SOURCES = [
 const IMPORTED = [
   {
     name: 'SELF_HARM_911_LINE',
-    from: '../../services/safety/crisis-script-lines.js',
+    from: '../../services/safety/index.js',
     line: SELF_HARM_911_LINE,
   },
 ] as const;

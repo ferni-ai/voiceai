@@ -1,4 +1,4 @@
-import { SELF_HARM_911_LINE } from '../../services/safety/crisis-script-lines.js';
+import { SELF_HARM_911_LINE } from '../../services/safety/index.js';
 
 /**
  * Every line of wording in the crisis and safety scripts (7 files), which
