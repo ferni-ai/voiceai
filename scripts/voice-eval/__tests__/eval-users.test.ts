@@ -38,9 +38,15 @@ describe('selectEvalUsers with only (--ids)', () => {
     expect(sel.kept).toContainEqual({ id: fresh, reason: 'too-recent' });
   });
 
-  it('never selects voice-eval-sam, even when listed', () => {
-    const sel = selectEvalUsers(['voice-eval-sam'], { ...base, only: new Set(['voice-eval-sam']) });
+  it('never selects voice-eval-sam, even when listed with legacy users included', () => {
+    const sel = selectEvalUsers(['voice-eval-sam'], {
+      ...base,
+      includeLegacy: true,
+      only: new Set(['voice-eval-sam']),
+    });
     expect(sel.generated).toEqual([]);
+    expect(sel.legacy).toEqual([]);
+    expect(sel.kept).toEqual([{ id: 'voice-eval-sam', reason: 'always-kept' }]);
   });
 
   it('without only, behaves as before (other generated users selected)', () => {
