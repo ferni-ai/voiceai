@@ -329,33 +329,4 @@ test.describe('Landing Page Accessibility', () => {
 
     expect(results.violations).toHaveLength(0);
   });
-
-  // ============================================================================
-  // AI CHAT WIDGET (if present)
-  // ============================================================================
-
-  test('AI chat widget is accessible', async ({ page }) => {
-    // Check if chat widget exists
-    const chatWidget = page.locator('#ferni-live-chat, .ferni-chat-trigger');
-    const exists = (await chatWidget.count()) > 0;
-
-    if (!exists) {
-      test.skip();
-      return;
-    }
-
-    // Chat trigger should be accessible
-    const trigger = page.locator('.ferni-chat-trigger');
-    if ((await trigger.count()) > 0) {
-      const ariaLabel = await trigger.getAttribute('aria-label');
-      expect(ariaLabel).toBeTruthy();
-    }
-
-    // Messages area should have aria-live
-    const messages = page.locator('.ferni-chat-panel__messages');
-    if ((await messages.count()) > 0) {
-      const ariaLive = await messages.getAttribute('aria-live');
-      expect(ariaLive).toBe('polite');
-    }
-  });
 });

@@ -55,7 +55,6 @@ const PERSONA_IDS = [
   'jordan-taylor',
   'nayan-patel',
   'joel-dickson',
-  'peter-lynch',
   'john-bogle',
   'generic-advisor',
 ];

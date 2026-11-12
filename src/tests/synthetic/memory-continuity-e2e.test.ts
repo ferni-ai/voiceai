@@ -137,6 +137,19 @@ describe('Session continuity writes', () => {
 
     expect(result.capsuleUpdated).toBe(false);
   });
+
+  it('writes no graph thread or anchor for a full, significant session', async () => {
+    const data = createTestSessionData();
+    expect(data.mainTopics.length).toBeGreaterThan(0);
+    expect(data.insights.length).toBeGreaterThan(0);
+
+    const result = await writeSessionContinuity(data);
+
+    expect(result.threadsUpdated).toBe(0);
+    expect(result.anchorsCreated).toBe(0);
+    expect(upsertMemoryThread).not.toHaveBeenCalled();
+    expect(insertMemoryAnchor).not.toHaveBeenCalled();
+  });
 });
 
 // ============================================================================

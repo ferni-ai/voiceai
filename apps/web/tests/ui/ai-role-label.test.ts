@@ -32,7 +32,6 @@ const EXPECTED: Record<string, string> = {
   'alex-chen': 'Communication coach',
   'nayan-patel': 'Wisdom guide',
   'john-bogle': 'Investing mentor', // Henry Caldwell
-  'peter-lynch': 'Stock-picking guide', // Tom Brannigan
   'joel-dickson': 'Life mentor', // Nate Holloway
 };
 
@@ -91,12 +90,12 @@ describe('AI role label on handoff', () => {
 
     appState.set('activePersona', PERSONAS['maya-santos']);
     expect(pill().textContent).toBe('Habits coach');
-    appState.set('activePersona', LEGENDS['peter-lynch']);
-    expect(pill().textContent).toBe('Stock-picking guide');
+    appState.set('activePersona', LEGENDS['john-bogle']);
+    expect(pill().textContent).toBe('Investing mentor');
 
     // The static-DOM translator re-reads data-i18n on a locale change
     translateStaticDom();
-    expect(pill().textContent).toBe('Stock-picking guide');
+    expect(pill().textContent).toBe('Investing mentor');
     appState.set('activePersona', PERSONAS.ferni);
     expect(pill().textContent).toBe('Life coach');
     dispose();

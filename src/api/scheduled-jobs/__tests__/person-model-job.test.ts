@@ -3,7 +3,8 @@
  * build and render, and the real cohort-flag lookups. Pre/post on the stored docs:
  * build then store and a rerun writes nothing; prev rotates; the server flag and the
  * person's own flag gate it; a dry run writes nothing; no scheduler token, no run;
- * erasure takes the sheet with the record; contact data never reaches what is stored.
+ * erasure takes the sheet with the record; contact data never reaches what is stored; a
+ * MINOR_CARE hold skips the person before any read and leaves their stored sheet as it is.
  * Every name, number and address here is invented (555-01xx, example.com).
  */
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -110,6 +111,7 @@ function depsFor(fake: ReturnType<typeof world>, over: Partial<PersonModelJobDep
     read: (uid) => readPersonModel(fake.db, uid),
     load: vi.fn((uid: string) => loadPersonModelInputs(fake.db, uid)),
     save: vi.fn((uid: string, m, h: string) => savePersonModel(fake.db, uid, m, h)),
+    held: vi.fn(async () => false),
     ...over,
   };
   return deps;
@@ -219,6 +221,28 @@ describe('person-model job', () => {
     expect(body).not.toContain('Rowan');
     expect(body).not.toContain(OWNER);
     expect(fake.stats.writes).toBe(0);
+  });
+
+  it('a MINOR_CARE-held person is skipped before any read; their stored sheet stays', async () => {
+    const fake = world();
+    await runPersonModelJob(async () => depsFor(fake), { env: ON, now: NOW });
+    const before = structuredClone(fake.docs.get(current(OWNER)));
+    expect(before).toMatchObject({ userId: OWNER }); // pre: built and stored while unheld
+    const writes = fake.stats.writes;
+    for (const held of [async () => true, async () => Promise.reject(new Error('unreadable'))]) {
+      const deps = depsFor(fake, { held: vi.fn(held) });
+      // eslint-disable-next-line no-await-in-loop -- one case at a time on one store
+      const result = await runPersonModelJob(async () => deps, { env: ON, now: NEXT_DAY });
+      expect(result).toMatchObject({ built: 0, written: 0, skipped: { 'minor-care': 1 } });
+      expect(deps.ownFlag).not.toHaveBeenCalled();
+      expect(deps.load).not.toHaveBeenCalled();
+      expect(deps.save).not.toHaveBeenCalled();
+    }
+    expect(fake.stats.writes).toBe(writes);
+    expect(fake.docs.get(current(OWNER))).toEqual(before);
+    // post: the same person, unheld, is rebuilt for the new day
+    const unheld = await runPersonModelJob(async () => depsFor(fake), { env: ON, now: NEXT_DAY });
+    expect(unheld).toMatchObject({ built: 1, written: 1 });
   });
 
   it('caps a run and defers the rest, stalest sheet first', async () => {

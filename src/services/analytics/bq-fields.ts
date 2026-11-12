@@ -14,7 +14,7 @@ export const OTHER = 'other';
 // the persona module into every process that writes a row)
 const PERSONAS = [
   ...['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'],
-  ...['joel-dickson', 'peter-lynch', 'john-bogle'],
+  ...['joel-dickson', 'john-bogle'],
 ] as const;
 
 export const BQ_ENUMS = {

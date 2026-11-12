@@ -138,7 +138,7 @@ describe('Memory Pipeline Integration', () => {
   });
 
   describe('UnifiedStore with All Adapters', () => {
-    it('should initialize all adapters including Spanner', async () => {
+    it('should initialize every adapter, with no Spanner store', async () => {
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
       const store = new UnifiedMemoryStoreFacade({
         features: {
@@ -151,14 +151,14 @@ describe('Memory Pipeline Integration', () => {
       await store.initialize();
       const health = await store.health();
 
-      expect(health.stores.spanner).toBeDefined();
+      expect(health.stores).not.toHaveProperty('spanner');
       expect(health.stores.firestore).toBeDefined();
       expect(health.stores.vector).toBeDefined();
 
       await store.shutdown();
     });
 
-    it('should store memory with Spanner sync for high-importance', async () => {
+    it('should store a high-importance memory with no graph write', async () => {
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
       const store = new UnifiedMemoryStoreFacade({
         features: {
@@ -174,14 +174,19 @@ describe('Memory Pipeline Integration', () => {
       expect(memory.id).toBeDefined();
       expect(memory.emotionalWeight).toBe(0.85);
       
-      // High-importance memories should trigger immediate Spanner sync
-      // The sync is async, so we just verify the memory was stored
       expect(memory.peopleMentioned).toContain('Sarah');
+      // No Spanner sync, now or later: let any queued async work run, then check the graph.
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+      expect(mockUpsertEntity).not.toHaveBeenCalled();
+      expect(mockInsertFact).not.toHaveBeenCalled();
+      expect(mockInsertRelationship).not.toHaveBeenCalled();
 
       await store.shutdown();
     });
 
-    it('should handle Spanner unavailability gracefully', async () => {
+    it('should not depend on Spanner being available', async () => {
       mockSpannerReady.mockReturnValue(false);
 
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
@@ -200,8 +205,8 @@ describe('Memory Pipeline Integration', () => {
       expect(memory.id).toBeDefined();
 
       const health = await store.health();
-      expect(health.stores.spanner.healthy).toBe(false);
-      expect(health.recommendations).toBeDefined();
+      expect(health.stores).not.toHaveProperty('spanner');
+      expect((health.recommendations ?? []).some((r) => /spanner/i.test(r))).toBe(false);
 
       await store.shutdown();
     });
@@ -478,9 +483,6 @@ describe('Memory Pipeline Integration', () => {
 
       // The memory should be in Firestore
       expect(mockFirestoreStore).toHaveBeenCalled();
-
-      // High-importance should trigger Spanner sync
-      // (we can't verify this easily in mocks, but the pathway is tested)
 
       await store.shutdown();
     });

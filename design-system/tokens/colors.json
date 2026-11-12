@@ -452,19 +452,6 @@
       "_note": "Burgundy red - distinguished, trustworthy mentor (Nate, id joel-dickson)",
       "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
-    "lynch": {
-      "primary": "#1a5f2a",
-      "onPrimary": "#ffffff",
-      "secondary": "#154c22",
-      "text": "#ffffff",
-      "textOnDark": "#dde7df",
-      "glow": "rgba(26, 95, 42, 0.28)",
-      "tint": "rgba(26, 95, 42, 0.06)",
-      "subtle": "rgba(26, 95, 42, 0.06)",
-      "light": "#5f8f6a",
-      "_note": "Tom Brannigan (Financial Legend, id peter-lynch) - forest green, from his bundle avatar colour",
-      "_textOnDarkContrast": "4.7:1 on #352e28 - WCAG AA compliant"
-    },
     "bogle": {
       "primary": "#8b0000",
       "onPrimary": "#ffffff",

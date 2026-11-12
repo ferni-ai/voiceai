@@ -229,13 +229,13 @@ export interface AdvisorConfig {
   /** Unique advisor ID (used for routing) */
   id: string;
 
-  /** Full display name (e.g., "Tom Brannigan") */
+  /** Full display name (e.g., "Henry Caldwell") */
   name: string;
 
-  /** Initials for avatar (e.g., "PL") */
+  /** Initials for avatar (e.g., "HC") */
   initials: string;
 
-  /** Short tagline (e.g., "The Stock Picker") */
+  /** Short tagline (e.g., "The Index Investor") */
   tagline: string;
 
   /** Description of their specialty */

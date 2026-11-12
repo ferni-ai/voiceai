@@ -212,7 +212,11 @@ function isFetchResponse(value: unknown): value is Response {
 let guardedAgent: Agent | undefined;
 /** Undici dispatcher whose sockets resolve through guardedLookup. */
 export function getGuardedAgent(): Agent {
-  guardedAgent ??= new Agent({ connect: { lookup: guardedLookup, timeout: DEFAULT_TIMEOUT_MS } });
+  guardedAgent ??= new Agent({
+    // Keep outbound requests on HTTP/1.1 across undici majors: undici 8 offers h2 by default.
+    allowH2: false,
+    connect: { lookup: guardedLookup, timeout: DEFAULT_TIMEOUT_MS },
+  });
   return guardedAgent;
 }
 
