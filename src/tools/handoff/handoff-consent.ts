@@ -24,10 +24,9 @@ import type { llm } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
 import { crisisGuidedTurn } from '../../services/safety/index.js';
-import { isCoach } from '../../personas/index.js';
 import { aliasesInTransfer } from './transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
-import { pronounOffered, yesToJoin } from './pronoun-offer.js';
+import { bareYes } from './bare-yes.js';
 
 export function handoffAskFirstEnabled(
   env: Record<string, string | undefined> = process.env
@@ -107,75 +106,6 @@ function agentLinesBefore(chatCtx: llm.ChatContext, count: number): string[] {
 }
 
 /**
- * The exchange a pronoun offer points back to, before the caller's latest turn: Ferni's
- * lines since the caller last spoke (the offer among them, latest first) and that caller
- * turn. "what's Alex up to?" / "want me to bring him in?" / "Sure." Further back, "him"
- * may be someone else.
- */
-function offerExchange(chatCtx: llm.ChatContext): { caller: string[]; ferni: string[] } {
-  const caller: string[] = [];
-  const ferni: string[] = [];
-  let reached: 'after' | 'latest' | 'ferni' | 'caller' = 'after';
-  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
-    const item = chatCtx.items[i];
-    if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
-    const user = item.role === 'user';
-    if (reached === 'after' || (reached === 'latest' && user)) {
-      if (user) reached = 'latest';
-      continue;
-    }
-    if (reached !== 'caller' && !user) {
-      reached = 'ferni';
-      ferni.push(item.textContent ?? '');
-      continue;
-    }
-    if (!user) break;
-    reached = 'caller';
-    caller.push(item.textContent ?? '');
-  }
-  return { caller, ferni };
-}
-
-/**
- * Whether `agentName` is the one teammate named in `lines`, by Ferni or the caller (any
- * other teammate's first name, or its STT spelling, as a whole word). With two named
- * ("Alex or Maya?" / "want me to bring them in?") a yes is for no one we can tell.
- */
-function soleTeammateNamed(lines: string[], agentName: string): boolean {
-  if (!lines.some((line) => names(line, agentName))) return false;
-  const target = teammateHeardAs(agentName.split(/\s+/)[0] ?? '');
-  const other = (word: string): boolean => {
-    const id = teammateHeardAs(word);
-    return id !== null && id !== target && !isCoach(id);
-  };
-  return !lines.some((line) => (line.match(/[a-z]+/gi) ?? []).some(other));
-}
-
-/** "I don't want to talk to Alex right now", "Not Alex", "Skip Alex": the caller turned them down. */
-const TURNS_DOWN = /\b(not|no|nah|nope|never|don'?t|skip)\b/i;
-
-/**
- * HANDOFF_HELD_TRUTHFUL: the caller's whole turn is a yes (yesToJoin) to Ferni's last
- * sentence offering to bring "him", "her" or "them" into the call (pronounOffered), and
- * `agentName` is the one teammate named in that exchange, not turned down there. Whether
- * "her" fits the teammate is not checked: the pronoun table (personas/persona-pronouns.ts)
- * is not exported from the personas context's index.ts.
- */
-function yesToPronounOffer(
-  chatCtx: llm.ChatContext,
-  said: string,
-  agentName: string,
-  env: Env
-): boolean {
-  if (!heldTruthful(env) || !yesToJoin(said)) return false;
-  const { caller, ferni } = offerExchange(chatCtx);
-  const pronoun = pronounOffered(ferni.find((line) => line.trim() !== '') ?? '');
-  if (pronoun === null) return false;
-  const turnedDown = caller.some((line) => names(line, agentName) && TURNS_DOWN.test(line));
-  return !turnedDown && soleTeammateNamed([...caller, ...ferni], agentName);
-}
-
-/**
  * Whether the caller asked to talk to `agentName`, said yes to an offer of them,
  * or neither. With `allowAliases`, a transfer-only alias ("talk to 9") may count,
  * read with `env`; never allow it on a call with crisis handling.
@@ -194,7 +124,6 @@ export function handoffConsent(
     agentLinesBefore(chatCtx, NAMED_LATELY_LINES).some((line) => names(line, agentName));
   if (heldTruthful(env) && ASKS_BY_PRONOUN.test(said) && namedLately()) return 'asked';
   if (YES.test(said) && !NO.test(said) && names(previous, agentName)) return 'agreed';
-  if (yesToPronounOffer(chatCtx, said, agentName, env)) return 'agreed';
   return 'none';
 }
 
@@ -206,9 +135,21 @@ type HeldHandoff =
  * HANDOFF_HELD_TRUTHFUL it never says `unavailable`: Ferni read that as the teammate
  * being away and said so ("Nate's away from his desk", #2387), and the director, which
  * sees each tool result's start (director-tool-state.ts), wrote "Alex is unavailable".
+ * After a bare yes (`said`), Ferni's offer didn't say who ("want me to bring him in?",
+ * #3755), and who "him" is can't be read from the words, so Ferni asks by name.
  */
-function heldHandoff(agentName: string, env: Env = process.env): HeldHandoff {
+function heldHandoff(agentName: string, said: string, env: Env = process.env): HeldHandoff {
   const first = agentName.split(/\s+/)[0];
+  if (heldTruthful(env) && bareYes(said)) {
+    return {
+      transferred: false,
+      instruction:
+        `Not transferred yet: they said yes, but your last line didn't say who, so don't guess. ` +
+        `${first} is free, so never say ${first} is away, busy or unavailable. If you were ` +
+        `offering ${first}, ask in a few words with the name, like "${first}, yeah?", and ` +
+        `transfer when they say yes. If you weren't, answer what they said yes to.`,
+    };
+  }
   if (heldTruthful(env)) {
     return {
       transferred: false,
@@ -252,5 +193,5 @@ export function holdUnaskedHandoff(
   // A transfer-only alias counts only on a call with no crisis handling (transfer-aliases.ts).
   const guided = crisisGuidedTurn((runCtx as { userData?: unknown } | undefined)?.userData);
   const consent = handoffConsent(chatCtx, agentName, env, !guided);
-  return consent === 'none' ? heldHandoff(agentName, env) : null;
+  return consent === 'none' ? heldHandoff(agentName, latestUserText(chatCtx) ?? '', env) : null;
 }
