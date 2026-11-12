@@ -47,7 +47,7 @@ export async function handleSpeechMetricsRoutes(
   }
 
   // Apply rate limiting (generous for dashboard)
-  if (rateLimit(req, res, { maxRequests: 200, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 200, windowMs: 60000, keyPrefix: 'speech-metrics' })) {
     return true;
   }
 
