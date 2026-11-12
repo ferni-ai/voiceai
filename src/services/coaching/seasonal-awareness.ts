@@ -487,20 +487,3 @@ function importSeasonalProfile(profile: UserSeasonalProfile): void {
   userProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported seasonal profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  getCurrentSeason,
-  getDayLength,
-  getUpcomingHolidays,
-  getSeasonalContext,
-  recordDifficultTime,
-  isCurrentlyDifficultTime,
-  buildSeasonalContext,
-  setHolidayPreferences,
-  exportSeasonalProfile,
-  importSeasonalProfile,
-};

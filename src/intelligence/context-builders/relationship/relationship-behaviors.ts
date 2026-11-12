@@ -449,5 +449,3 @@ function shuffleArray<T>(array: T[]): T[] {
   }
   return shuffled;
 }
-
-export default getRelationshipBehaviors;

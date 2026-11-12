@@ -443,18 +443,3 @@ function importStyleProfile(profile: CoachingStyleProfile): void {
   styleProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId, style: profile.primaryStyle }, 'Imported style profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectStyleSignals,
-  setExplicitStylePreference,
-  getStyleGuidance,
-  buildStyleContext,
-  getStyleProfile,
-  getPreferredStyle,
-  exportStyleProfile,
-  importStyleProfile,
-};

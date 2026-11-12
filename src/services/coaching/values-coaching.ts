@@ -465,20 +465,3 @@ function importValuesProfile(profile: ValuesProfile): void {
   valuesProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported values profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  getValuesExplorationPrompt,
-  recordValuesExplorationResponse,
-  identifyValue,
-  suggestValuesFromConversation,
-  recordValueAlignment,
-  getLowAlignmentValues,
-  generateValuesCheck,
-  buildValuesContext,
-  exportValuesProfile,
-  importValuesProfile,
-};

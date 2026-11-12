@@ -286,5 +286,3 @@ export function clearEmotionalArc(sessionId: string): void {
 
 // Register on module load
 registerContextBuilder(advancedVoiceEmotionBuilder);
-
-export default advancedVoiceEmotionBuilder;

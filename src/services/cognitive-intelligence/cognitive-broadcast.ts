@@ -252,25 +252,6 @@ class CognitiveBroadcastService extends EventEmitter {
 export const cognitiveBroadcast = new CognitiveBroadcastService();
 
 /**
- * Broadcast voice emotion detection
- */
-export function broadcastVoiceEmotion(
-  userId: string,
-  emotion: string,
-  confidence: number,
-  trend: 'improving' | 'worsening' | 'stable' = 'stable'
-): void {
-  cognitiveBroadcast.broadcast({
-    type: 'voice_emotion',
-    userId,
-    emotion,
-    confidence,
-    trend,
-    timestamp: new Date(),
-  });
-}
-
-/**
  * Broadcast performance metrics
  */
 export function broadcastMetrics(metrics: Omit<MetricsEvent, 'type' | 'timestamp'>): void {

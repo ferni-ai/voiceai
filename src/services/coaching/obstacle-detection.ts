@@ -649,21 +649,3 @@ function importObstacleProfile(profile: ObstacleProfile): void {
   obstacleProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported obstacle profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectObstacle,
-  getObstacleSupport,
-  generateObstacleResponse,
-  markObstacleAddressed,
-  markObstacleResolved,
-  getActiveObstacles,
-  getObstaclePatterns,
-  getMostCommonObstacle,
-  buildObstacleContext,
-  exportObstacleProfile,
-  importObstacleProfile,
-};

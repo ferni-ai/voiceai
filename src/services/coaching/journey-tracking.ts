@@ -413,19 +413,3 @@ function importJourneyProfile(profile: JourneyProfile): void {
   journeyProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported journey profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  recordSession,
-  recordGoalCompletion,
-  recordBreakthrough,
-  markMilestoneCelebrated,
-  generateJourneyReflection,
-  getJourneySummary,
-  buildJourneyContext,
-  exportJourneyProfile,
-  importJourneyProfile,
-};

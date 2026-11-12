@@ -190,5 +190,3 @@ const toolTimingContextBuilder: ContextBuilder = {
 // ============================================================================
 
 registerContextBuilder(toolTimingContextBuilder);
-
-export default toolTimingContextBuilder;

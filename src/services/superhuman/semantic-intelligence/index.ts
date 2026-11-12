@@ -307,7 +307,6 @@ export {
   temporalPatterns,
   recordSnapshot as recordTemporalSnapshot,
   getTemporalContext,
-  detectAnomaly as detectTemporalAnomaly,
   formatTemporalContext,
   clearTemporalCache,
   type TemporalContext,

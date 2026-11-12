@@ -478,20 +478,3 @@ function importGranularityProfile(profile: GranularityProfile): void {
   granularityProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported granularity profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectVagueExpression,
-  recordExpansionAccepted,
-  recordExpansionOffered,
-  getVocabularySuggestions,
-  getEmotionTeaching,
-  buildGranularityContext,
-  getGranularityScore,
-  getTopEmotionWords,
-  exportGranularityProfile,
-  importGranularityProfile,
-};

@@ -1578,7 +1578,7 @@ export async function loadEnergyMatching(personaId = 'ferni'): Promise<EnergyMat
  * Load backchannels content for a specific persona
  * Used for natural listening sounds ("mm-hmm", "yeah")
  */
-export async function loadBackchannels(personaId = 'ferni'): Promise<Backchannels | null> {
+async function loadBackchannels(personaId = 'ferni'): Promise<Backchannels | null> {
   const content = await loadPersonaContent<Backchannels>(personaId, 'backchannels');
   if (content) return content;
 
@@ -1593,7 +1593,7 @@ export async function loadBackchannels(personaId = 'ferni'): Promise<Backchannel
  * Load catchphrases content for a specific persona
  * Used for signature phrases (rare, earned moments)
  */
-export async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrases | null> {
+async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrases | null> {
   const content = await loadPersonaContent<Catchphrases>(personaId, 'catchphrases');
   if (content) return content;
 
@@ -1608,7 +1608,7 @@ export async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrase
  * Load goodbyes content for a specific persona
  * Used for warm session endings
  */
-export async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null> {
+async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null> {
   const content = await loadPersonaContent<Goodbyes>(personaId, 'goodbyes');
   if (content) return content;
 
@@ -1623,7 +1623,7 @@ export async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null
  * Load pet peeves content for a specific persona
  * Used for authentic personality triggers
  */
-export async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | null> {
+async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | null> {
   const content = await loadPersonaContent<PetPeeves>(personaId, 'pet_peeves');
   if (content) return content;
 
@@ -1638,7 +1638,7 @@ export async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | nu
  * Load witty remarks content for a specific persona
  * Used for humor and self-deprecation
  */
-export async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemarks | null> {
+async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemarks | null> {
   const content = await loadPersonaContent<WittyRemarks>(personaId, 'witty_remarks');
   if (content) return content;
 
@@ -1653,7 +1653,7 @@ export async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemark
  * Load affirmation content for a specific persona
  * Used for earned encouragement and celebration
  */
-export async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation | null> {
+async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation | null> {
   const content = await loadPersonaContent<Affirmation>(personaId, 'affirmation');
   if (content) return content;
 
@@ -1668,7 +1668,7 @@ export async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation 
  * Load breath sounds content for a specific persona
  * Used for grounding presence and Wyoming stillness
  */
-export async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSounds | null> {
+async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSounds | null> {
   const content = await loadPersonaContent<BreathSounds>(personaId, 'breath_sounds');
   if (content) return content;
 
@@ -1683,7 +1683,7 @@ export async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSound
  * Load coaching modes content for a specific persona
  * Used for adaptive coaching style transitions
  */
-export async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingModes | null> {
+async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingModes | null> {
   const content = await loadPersonaContent<CoachingModes>(personaId, 'coaching_modes');
   if (content) return content;
 
@@ -1698,7 +1698,7 @@ export async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingMo
  * Load outreach voice content for a specific persona
  * Used for proactive messaging voice profile
  */
-export async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVoice | null> {
+async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVoice | null> {
   const content = await loadPersonaContent<OutreachVoice>(personaId, 'outreach_voice');
   if (content) return content;
 
@@ -1713,7 +1713,7 @@ export async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVo
  * Load voice DNA content for a specific persona
  * Used for core character essence (WHO Ferni is, not WHAT he says)
  */
-export async function loadVoiceDNA(personaId = 'ferni'): Promise<VoiceDNA | null> {
+async function loadVoiceDNA(personaId = 'ferni'): Promise<VoiceDNA | null> {
   const content = await loadPersonaContent<VoiceDNA>(personaId, 'voice_dna');
   if (content) return content;
 
@@ -1748,7 +1748,7 @@ export async function loadPredictiveIntelligence(
  * Load sensory moments content for a specific persona
  * Used for embodied awareness and grounding
  */
-export async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMoments | null> {
+async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMoments | null> {
   const content = await loadPersonaContent<SensoryMoments>(personaId, 'sensory_moments');
   if (content) return content;
 

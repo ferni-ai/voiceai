@@ -484,18 +484,3 @@ function importTeamExperience(experience: UserTeamExperience): void {
   userExperiences.set(experience.userId, experience);
   log.debug({ userId: experience.userId }, 'Imported team experience');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectHandoffOpportunity,
-  getBestPersonaForTopic,
-  recordHandoff,
-  getUnmetTeamMembers,
-  generateTeamIntroduction,
-  buildHandoffContext,
-  exportTeamExperience,
-  importTeamExperience,
-};

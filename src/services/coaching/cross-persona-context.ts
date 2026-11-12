@@ -396,19 +396,3 @@ function importTeamContext(context: UserTeamContext): void {
   userContexts.set(context.userId, context);
   log.debug({ userId: context.userId }, 'Imported team context');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  shareContext,
-  recordPersonaInteraction,
-  updateCurrentSituation,
-  addCrossPersonaItem,
-  getContextForPersona,
-  getHandoffSummary,
-  buildCrossPersonaContext,
-  exportTeamContext,
-  importTeamContext,
-};

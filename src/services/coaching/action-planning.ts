@@ -570,24 +570,3 @@ function importActionProfile(profile: ActionProfile): void {
     'Imported action profile'
   );
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectActionOpportunity,
-  generateActionSuggestions,
-  createAction,
-  completeAction,
-  skipAction,
-  deferAction,
-  getPendingActions,
-  getActionsNeedingFollowUp,
-  getActionStats,
-  generateActionFollowUp,
-  getActionToFollowUp,
-  buildActionContext,
-  exportActionProfile,
-  importActionProfile,
-};

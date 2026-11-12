@@ -1177,5 +1177,3 @@ const domainFluencyBuilder: ContextBuilder = {
 
 // Register on module load
 registerContextBuilder(domainFluencyBuilder);
-
-export default domainFluencyBuilder;

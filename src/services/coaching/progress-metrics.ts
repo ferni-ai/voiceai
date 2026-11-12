@@ -396,19 +396,3 @@ function importProgressProfile(profile: ProgressProfile): void {
   progressProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported progress profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  recordProgressSession,
-  recordHighlight,
-  resetStreak,
-  generateProgressSummary,
-  generateProgressReflection,
-  getStreakInfo,
-  buildProgressContext,
-  exportProgressProfile,
-  importProgressProfile,
-};

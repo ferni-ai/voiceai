@@ -392,7 +392,7 @@ export async function getTemporalContext(userId: string): Promise<TemporalContex
 /**
  * Detect if current behavior is unusual.
  */
-export async function detectAnomaly(
+async function detectAnomaly(
   userId: string,
   current: {
     emotion?: string;

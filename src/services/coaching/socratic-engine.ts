@@ -390,15 +390,3 @@ export function buildSocraticContext(
 
   return lines.join('\n');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  selectQuestionType,
-  generateSocraticQuestion,
-  generateQuestionSequence,
-  generateSocraticResponse,
-  buildSocraticContext,
-};

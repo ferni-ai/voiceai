@@ -39,6 +39,66 @@
       ]
     }
   },
+  "ignoreIssues": {
+    // R8: safety and coaching builders kept for the crisis-lane delete PR (R8). Remove these
+    // entries in that PR, by 2026-11-19 at the latest.
+    "src/intelligence/context-builders/coaching/coaching-context.ts": ["files"],
+    "src/intelligence/context-builders/safety/crisis.ts": ["files"],
+    "src/intelligence/context-builders/safety/principal-alignment.ts": ["files"],
+    "src/intelligence/context-builders/safety/wellbeing-context.ts": ["files"],
+    // R8: code-owned files whose exports only the R8 builders above, or tests, still use.
+    // Remove with R8, by 2026-11-19.
+    "src/intelligence/context-builders/coaching/scientific-coaching.ts": ["exports"],
+    "src/intelligence/context-builders/intelligence/predictive-context.ts": ["exports"],
+    "src/intelligence/context-builders/relationship/arc/first-meeting-magic.ts": ["exports"],
+    "src/intelligence/context-builders/safety/honesty-guardrail.ts": ["exports", "types"],
+    "src/personality/emotional-data-shape.ts": ["exports"],
+    "src/services/principal-alignment/agent-transparency.ts": ["exports"],
+    "src/services/principal-alignment/human-referral.ts": ["exports"],
+    "src/services/principal-alignment/index.ts": ["exports", "types"],
+    "src/services/principal-alignment/manipulation-check.ts": ["exports"],
+    "src/services/principal-alignment/metrics.ts": ["exports", "types"],
+    "src/services/principal-alignment/truth-obligation.ts": ["exports"],
+    "src/services/principal-alignment/unhealthy-attachment.ts": ["exports"],
+    "src/services/principal-alignment/values-surfacing.ts": ["exports"],
+    "src/services/safety/abuse-disclosure-turn.ts": ["exports"],
+    "src/services/safety/crisis-detection.ts": ["exports"],
+    "src/services/safety/crisis-means-shadow.ts": ["exports"],
+    "src/services/safety/crisis-response.ts": ["exports"],
+    "src/services/safety/escalation-pathways.ts": ["exports", "types"],
+    "src/services/safety/index.ts": ["exports", "types"],
+    "src/services/safety/minor-abuse-disclosure.ts": ["exports", "types"],
+    "src/services/safety/safety-talk.ts": ["exports"],
+    "src/services/superhuman/user-corrections.ts": ["exports"],
+    "src/services/trust-systems/commitment-tracking.ts": ["exports"],
+    "src/utils/safety-whole-word.ts": ["exports"],
+    // R8: exports that only the R8 builders, code-owned files or tooling scripts use. Remove
+    // with R8, by 2026-11-19.
+    "src/intelligence/context-builders/intelligence/deep-understanding.ts": ["exports"],
+    "src/intelligence/context-builders/relationship/arc/types.ts": ["types"],
+    "src/services/coaching/handoff-intelligence.ts": ["exports", "types"],
+    "src/services/coaching/index.ts": ["exports", "types"],
+    "src/services/coaching/journey-tracking.ts": ["exports"],
+    "src/services/coaching/obstacle-detection.ts": ["exports", "types"],
+    "src/services/coaching/semantic-confidence-tracker.ts": ["exports"],
+    "src/services/persona/persona-content-loader.ts": ["exports", "types"],
+    "src/services/wellbeing-tracking/index.ts": ["exports", "types"],
+    // Test-only after the registry delete: caller-trust and AI-disclosure tests read these
+    // call-context builders. Follow-up moves those tests to the live path and deletes the
+    // builders, by 2026-11-19.
+    "src/intelligence/context-builders/external/inbound-call-context.ts": ["exports"],
+    "src/intelligence/context-builders/external/outbound-call-context.ts": ["exports"],
+    // Test-only after the registry delete; their tests guard behaviour or content
+    // (no-real-person shares, minor care, pick feedback, cooldowns). Follow-up deletes or
+    // rewires them, by 2026-11-19.
+    "src/intelligence/context-builders/personas/spontaneous-vulnerability.ts": ["exports"],
+    "src/intelligence/context-builders/relationship/deep-relationship.ts": ["exports"],
+    "src/services/coach-media/feedback.ts": ["exports"],
+    "src/services/contacts/outreach-nudges.ts": ["exports"],
+    "src/services/superhuman/commitment-checkin-cooldown.ts": ["exports"],
+    "src/types/user-profile.ts": ["types"],
+    "src/utils/cognitive-metrics.ts": ["exports"]
+  },
   "ignoreDependencies": [".*"],
   "ignoreBinaries": [".*"],
   "ignoreUnresolved": [".*"]
