@@ -288,5 +288,8 @@ describe('a grief clause never outweighs a word of now in its sentence (deny by 
     'my dad collapsed and died last year, there was so much blood',
     // A second fall, even told with "he".
     'my dad collapsed and died in 2019, my brother says he fainted',
+    // "hard", after the fall or later in the sentence: a hard fall may be now.
+    'my dad went down hard and died last year',
+    'my mom collapsed and passed away in march, she hit the counter so hard',
   ])('reads 911 first, first and mid-call: %s', expectEmergencyForThem);
 });
