@@ -16,7 +16,7 @@ import { smsConsentRefusal, type TextConsentReaders } from '../text-consent.js';
 const log = createLogger({ module: 'SmsUnverified' });
 
 /** Seth, 2026-11-11, word for word. */
-export const SMS_UNVERIFIED_REPLY =
+const SMS_UNVERIFIED_REPLY =
   'Hi, this is Ferni, an AI friend. I can only text with people who have set up Ferni with this number. Reply STOP to opt out.';
 const ONCE_EVERY_MS = 24 * 3_600_000;
 

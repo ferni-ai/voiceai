@@ -31,12 +31,11 @@ vi.mock('../../../../utils/firestore-utils.js', () => ({
         },
 }));
 
-import {
-  SMS_UNVERIFIED_REPLY,
-  smsUnverifiedReply,
-  type UnverifiedDeps,
-} from '../sms-unverified.js';
+import { smsUnverifiedReply, type UnverifiedDeps } from '../sms-unverified.js';
 
+// The test's own copy, word for word, so the module keeps the text private.
+const SMS_UNVERIFIED_REPLY =
+  'Hi, this is Ferni, an AI friend. I can only text with people who have set up Ferni with this number. Reply STOP to opt out.';
 const PHONE = '+15555550188';
 const HOUR = 3_600_000;
 const start = new Date('2026-11-12T18:00:00Z');
