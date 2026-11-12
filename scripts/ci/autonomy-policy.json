@@ -187,6 +187,7 @@
         "src/services/monetization/persistence.ts",
         "src/services/monetization/tip-jar.ts",
         "src/services/monetization/value-capture.ts",
+        "src/services/outreach/morning-brief/freshness.ts",
         "src/services/outreach/outreach-intelligence.ts",
         "src/services/outreach/proactive-channels/pondered-triggers.ts",
         "src/services/outreach/proactive-channels/triggers.ts",

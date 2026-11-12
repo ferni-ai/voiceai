@@ -145,6 +145,8 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   milestone_outreach: SCHEDULING,
   goals_outreach: SCHEDULING,
   proactive_outreach_log: SCHEDULING,
+  item_mentions:
+    "a derived, short-lived ledger of when a todo was mentioned; dev needs no one's mention history",
   family_checkin_schedules: SCHEDULING,
   meeting_followup_tasks: SCHEDULING,
   family_checkin_calls: `${OTHERS}: family members' phones`,

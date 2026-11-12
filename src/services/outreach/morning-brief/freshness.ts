@@ -23,12 +23,8 @@
  * @module services/outreach/morning-brief/freshness
  */
 
-import {
-  ASK_SPACING_MS,
-  isClosed,
-  isSafetyItem,
-  type FollowUp,
-} from '../../follow-through/index.js';
+import { ASK_SPACING_MS, isClosed, type FollowUp } from '../../follow-through/index.js';
+import { isSafetyItem } from '../../safety/safety-item.js';
 import type { ItemMention } from '../../stores/item-mentions.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
