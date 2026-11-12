@@ -31,7 +31,7 @@ const HOURS = (n: number) => new Date(EIGHT_AM.getTime() - n * 3_600_000).toISOS
 
 const PLANTS = { store: 'reminders', ref: 'r1', version: '2026-10-18T20:00:00.000Z' } as const;
 const DENTIST = { store: 'tasks', ref: 't1', version: '2026-10-10T00:00:00Z' } as const;
-const CHECK_IN = { store: 'reminders', ref: 'r9', version: '2026-10-18T22:00:00.000Z', kind: 'crisis_follow_up' } as const; // prettier-ignore
+const CHECK_IN = { store: 'reminders', ref: 'r9', version: '2026-10-18T22:00:00.000Z', kinds: ['crisis_follow_up'] } as const; // prettier-ignore
 
 function day(withSafety = false): DayItems {
   return {

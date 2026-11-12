@@ -42,8 +42,8 @@ export interface BriefRef extends SourceRef {
   readonly store: 'reminders' | 'tasks' | 'commitments';
   /** A reminder's due time, a task's updatedAt: changes when the item is edited. */
   readonly version?: string;
-  /** The store's type for it, if any; a safety type is never dropped. */
-  readonly kind?: string;
+  /** Each type field the store set on it (kind, type, category); any safety one: never dropped. */
+  readonly kinds?: readonly string[];
 }
 
 const BRIEF_LISTS = ['reminders', 'tasks', 'commitments'] as const;
@@ -56,7 +56,7 @@ export type DropReason =
   'source-closed' | 'source-changed' | 'ledger-closed' | 'ledger-recent' | 'mentioned';
 
 export interface FreshnessReads {
-  /** The version ('' if none) of every listed item still open, by keyOf; null when unreadable. */
+  /** Each listed item still open: its version ('' if none) by keyOf; null if a store is unread. */
   current: (
     userId: string,
     refs: readonly BriefRef[]
@@ -87,7 +87,7 @@ function lastTouched(f: FollowUp): number {
 }
 
 function staleBy(r: BriefRef, facts: Facts, now: Date): DropReason | null {
-  if (isSafetyItem(r.kind)) return null;
+  if (r.kinds?.some((k) => isSafetyItem(k))) return null;
   const key = keyOf(r);
   if (facts.current) {
     const version = facts.current.get(key);

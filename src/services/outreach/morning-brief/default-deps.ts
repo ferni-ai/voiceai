@@ -82,10 +82,21 @@ interface BriefItem {
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 
-/** Their pending reminders meant for them (not a contact), soonest first. */
-async function pendingReminderItems(userId: string): Promise<BriefItem[]> {
+// Each type field set on an item (reminders: kind, type; tasks: category), read on its own:
+// a safety value in any of them keeps the item in the brief (freshness.ts).
+const kindsOf = (d: Record<string, unknown>): { kinds?: string[] } => {
+  const kinds = ['kind', 'type', 'category'].flatMap((field) => str(d[field]) ?? []);
+  return kinds.length ? { kinds } : {};
+};
+
+// For them, with words, due at a time that parses: one bad due time threw and lost all of Due.
+const listable = (r: ReturnType<typeof reminderFromDoc>): boolean =>
+  !r.isDirectToContact && r.message.trim() !== '' && !Number.isNaN(r.scheduledFor.getTime());
+
+/** Their pending reminders meant for them (not a contact), soonest first; null with no store. */
+async function pendingReminderItems(userId: string): Promise<BriefItem[] | null> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) return null;
   const snap = await db
     .collection('bogle_users')
     .doc(userId)
@@ -94,18 +105,13 @@ async function pendingReminderItems(userId: string): Promise<BriefItem[]> {
     .limit(50)
     .get();
   return snap.docs
-    .map((d) => ({
-      r: reminderFromDoc(d.id, d.data()),
-      kind: str(d.data().kind) ?? str(d.data().type),
-    })) // prettier-ignore
-    .filter(
-      ({ r }) => !r.isDirectToContact && r.message.trim() && !Number.isNaN(r.scheduledFor.getTime())
-    ) // prettier-ignore
+    .map((d) => ({ r: reminderFromDoc(d.id, d.data()), kinds: kindsOf(d.data()) }))
+    .filter(({ r }) => listable(r))
     .sort((a, b) => a.r.scheduledFor.getTime() - b.r.scheduledFor.getTime())
-    .map(({ r, kind }) => ({
+    .map(({ r, kinds }) => ({
       text: r.message,
       dueAt: r.scheduledFor,
-      ref: { store: 'reminders', ref: r.id, version: r.scheduledFor.toISOString(), ...(kind ? { kind } : {}) }, // prettier-ignore
+      ref: { store: 'reminders', ref: r.id, version: r.scheduledFor.toISOString(), ...kinds },
     }));
 }
 
@@ -124,7 +130,7 @@ function openTaskItems(user: Record<string, unknown>): BriefItem[] {
     .sort((a, b) => due(a) - due(b))
     .map((t) => ({
       text: t.title as string,
-      ref: { store: 'tasks', ref: String(t.id), version: str(t.updatedAt) ?? '', ...(str(t.category) ? { kind: str(t.category) } : {}) }, // prettier-ignore
+      ref: { store: 'tasks', ref: String(t.id), version: str(t.updatedAt) ?? '', ...kindsOf(t) },
     }));
 }
 
@@ -135,9 +141,10 @@ export function openTasks(user: Record<string, unknown>): string[] {
     .map((t) => t.text);
 }
 
-async function openCommitments(userId: string): Promise<BriefItem[]> {
+/** Open commitments, less forgotten topics; null when the forget list can't be read. */
+async function openCommitments(userId: string): Promise<BriefItem[] | null> {
   const forgotten = await forgottenTopicsOrNull(userId);
-  if (!forgotten) return [];
+  if (!forgotten) return null;
   // COMMITMENT_SINGLE_WRITER (per person, this server serves many): only judged rows,
   // checked against forget requests on every field, person included (judged-commitments.ts).
   const judgedOnly = await singleWriterFor(userId);
@@ -172,11 +179,14 @@ export async function readDay(
   const [events, reminders, commitments] = await Promise.all([
     orNone('calendar', userId, () => todaysEvents(userId, zone, now)),
     orNone('reminders', userId, async () =>
-      (await pendingReminderItems(userId)).filter(
+      ((await pendingReminderItems(userId)) ?? []).filter(
         (r) => r.dueAt && sameLocalDay(r.dueAt, now, zone)
       )
     ),
-    withCommitments ? orNone('commitments', userId, () => openCommitments(userId)) : [],
+    // No forget list, no commitments: the privacy-safe side, as on main.
+    withCommitments
+      ? orNone('commitments', userId, async () => (await openCommitments(userId)) ?? [])
+      : [],
   ]);
   // OWNER_OUTREACH_STORED_TEXT_SCREEN: what calls stored goes in only if it passes the screen
   const screened = (items: BriefItem[]): BriefItem[] =>
@@ -203,20 +213,28 @@ export async function readDay(
   };
 }
 
-/** The open items behind `refs`, read again at send time: each one's current version by keyOf. */
+// Open items' current versions by keyOf, read at send time. Null if any store is unread:
+// an unread store must not look like every item in it was closed.
 async function currentVersions(
   userId: string,
   refs: readonly BriefRef[]
-): Promise<Map<string, string>> {
+): Promise<Map<string, string> | null> {
   const wanted = new Set(refs.map((r) => r.store));
-  const reads: Array<Promise<BriefItem[]>> = [];
+  const reads: Array<Promise<BriefItem[] | null>> = [];
   if (wanted.has('reminders')) reads.push(pendingReminderItems(userId));
   if (wanted.has('tasks'))
-    reads.push(firestoreTextStore.userDoc(userId).then((u) => openTaskItems(u ?? {})));
+    reads.push(firestoreTextStore.userDoc(userId).then((u) => (u ? openTaskItems(u) : null)));
   if (wanted.has('commitments')) reads.push(openCommitments(userId));
-  const items = (await Promise.all(reads)).flat();
-  return new Map(items.map((i) => [keyOf(i.ref), i.ref.version ?? '']));
+  const lists = await Promise.all(reads);
+  const known = lists.filter((l): l is BriefItem[] => l !== null);
+  if (known.length < lists.length) return null;
+  return new Map(known.flat().map((i) => [keyOf(i.ref), i.ref.version ?? '']));
 }
+
+// The whole ledger. changedBetween compares ISO strings: the largest Date prints '+275760-…',
+// which sorts before '2026-…', so with it as the end no follow-up was ever in range.
+const LEDGER_FROM = new Date(0);
+const LEDGER_TO = new Date('9999-12-31T23:59:59.999Z');
 
 /** The freshness gate's reads (freshness.ts); each failure is that rule not applying. */
 function freshnessReads(): FreshnessReads {
@@ -225,8 +243,7 @@ function freshnessReads(): FreshnessReads {
     current: (userId, refs) => currentVersions(userId, refs),
     // Everything they have, closed included: a follow-up closed in a call keeps its todo out.
     ledger: async (userId) =>
-      (await firestoreFollowUpStore()?.changedBetween(userId, new Date(0), new Date(8.64e15))) ??
-      null,
+      (await firestoreFollowUpStore()?.changedBetween(userId, LEDGER_FROM, LEDGER_TO)) ?? null,
     mentions: async (userId, since) => (await mentions?.recent(userId, since)) ?? null,
     consume: async (userId, sources) => mentions?.consume(userId, sources),
   };
