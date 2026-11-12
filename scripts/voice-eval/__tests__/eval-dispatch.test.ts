@@ -22,7 +22,7 @@ describe('signEvalMeta', () => {
   });
 
   it('never signs a real user or signs without a secret', () => {
-    expect(() => signEvalMeta({ ...META, user_id: 'vdSfkCCXaiXpnVCvgKxHMYrNFr72' }, 's')).toThrow(
+    expect(() => signEvalMeta({ ...META, user_id: 'testOwnerUid0000000000000000' }, 's')).toThrow(
       /voice-eval-/
     );
     expect(() => signEvalMeta({ ...META, user_id: 'voice-eval-' }, 's')).toThrow(/voice-eval-/);

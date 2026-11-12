@@ -63,10 +63,6 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      - name: Build
-        run: pnpm build:fast
-        continue-on-error: true
-
       # These steps used continue-on-error and pointed at src/services/bth-validation,
       # which moved to better-than-human-validation long ago; the benchmark found
       # no tests and could not import its module, yet reported success nightly.
