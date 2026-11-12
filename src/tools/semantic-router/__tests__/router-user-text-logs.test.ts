@@ -24,6 +24,7 @@ const h = vi.hoisted(() => ({
   preRoutingError: undefined as unknown,
   strategyError: undefined as unknown,
   bridged: undefined as undefined | (() => Promise<unknown>),
+  routedTurns: [] as Array<{ crisisTurn?: boolean }>,
 }));
 
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
@@ -46,6 +47,12 @@ vi.mock('../integration/init.js', () => ({ initializeSemanticRouter: async () =>
 vi.mock('../integration/routing-analytics.js', () => ({
   recordRoutingEvent: () => 'evt',
   recordRoutingOutcome: () => undefined,
+}));
+vi.mock('../integration/routed-turn.js', () => ({
+  recordRoutedTurn: (_result: unknown, turn: { crisisTurn?: boolean }) => {
+    h.routedTurns.push(turn);
+    return turn.crisisTurn ? undefined : 'evt';
+  },
 }));
 vi.mock('../learning/implicit-correction-capture.js', () => ({
   recordRoutingPrediction: () => undefined,
@@ -109,6 +116,7 @@ import {
   startSemanticRouting,
 } from '../integration/turn-processor-integration.js';
 import { executeDomainTool } from '../domain-bridge/executor.js';
+import { clearMetrics, getRecentMetrics } from '../integration/metrics.js';
 import { routeTranscript } from '../integration/transcript-integration.js';
 import { recordImplicitCorrection, recordSOTAOutcome } from '../integration/sota-integration.js';
 
@@ -598,5 +606,33 @@ describe('router logs never carry the caller words', () => {
     const everything = JSON.stringify(h.logged, expanded).toLowerCase();
     expect(everything).not.toContain(SENTINEL.toLowerCase());
     expect(everything).not.toContain('dolores');
+  });
+});
+
+describe('a crisis turn through startSemanticRouting', () => {
+  beforeEach(() => {
+    h.routedTurns.length = 0;
+    h.routeError = undefined;
+    clearMetrics();
+  });
+
+  it('reaches the routing analytics as a crisis turn and leaves no metric', async () => {
+    h.routeResult = { matches: [match], action: { type: 'conversation' } };
+    await startSemanticRouting(SENTINEL, { ...routing, crisisTurn: true });
+    h.routeError = new Error('router choked');
+    await startSemanticRouting(SENTINEL, { ...routing, crisisTurn: true });
+
+    expect(h.routedTurns).toEqual([expect.objectContaining({ crisisTurn: true })]);
+    expect(getRecentMetrics()).toEqual([]);
+  });
+
+  it('an ordinary turn keeps its conversation and error metrics', async () => {
+    h.routeResult = { matches: [match], action: { type: 'conversation' } };
+    await startSemanticRouting(SENTINEL, routing);
+    h.routeError = new Error('router choked');
+    await startSemanticRouting(SENTINEL, routing);
+
+    expect(h.routedTurns).toEqual([expect.objectContaining({ crisisTurn: undefined })]);
+    expect(getRecentMetrics()).toHaveLength(2);
   });
 });

@@ -33,7 +33,8 @@ import {
   recordConversation,
   recordRoutingError,
 } from './metrics.js';
-import { recordRoutingEvent, recordRoutingOutcome } from './routing-analytics.js';
+import { recordRoutingOutcome } from './routing-analytics.js';
+import { recordRoutedTurn } from './routed-turn.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
 
 // Phase 5: Adversarial Defense - sanitize inputs before routing
@@ -48,9 +49,6 @@ import {
   type SOTARoutingContext,
   type SOTARoutingResult,
 } from './sota-integration.js';
-
-// Phase 3: Implicit correction capture for learning loop closure
-import { recordRoutingPrediction } from '../learning/implicit-correction-capture.js';
 
 const log = createLogger({ module: 'semantic-router-integration' });
 
@@ -163,6 +161,9 @@ export interface RoutingContext {
   // SOTA: Optional complexity signals
   inputComplexity?: number;
   urgencySignal?: number;
+
+  /** hasCrisisSignal on the turn's pattern read: a crisis turn leaves only a count */
+  crisisTurn?: boolean;
 }
 
 // ============================================================================
@@ -204,6 +205,11 @@ export type RoutingPath =
   | 'json_fallback' // Fell back to JSON workaround
   | 'disabled' // Semantic routing disabled
   | 'error'; // Routing error
+
+/** recordRoutingError, except on a crisis turn, which leaves only a count (routed-turn.ts) */
+function recordErrorMetric(context: RoutingContext, text: string, error: string, ms: number) {
+  if (!context.crisisTurn) recordRoutingError(context.userId, context.sessionId, text, error, ms);
+}
 
 /**
  * Start semantic routing in parallel with turn processing
@@ -248,9 +254,8 @@ export async function startSemanticRouting(
       },
       '🛡️ INPUT BLOCKED by adversarial defense (high threat detected)'
     );
-    recordRoutingError(
-      context.userId,
-      context.sessionId,
+    recordErrorMetric(
+      context,
       userText,
       `Input blocked: ${sanitizationResult.threats.map((t) => t.type).join(', ')}`,
       latencyMs
@@ -359,21 +364,21 @@ export async function startSemanticRouting(
     );
     const latencyMs = Math.round(performance.now() - startTime);
 
-    // Phase 3: Record prediction for implicit correction tracking
-    recordRoutingPrediction(context.sessionId, userText, routeResult);
-
-    // Record to advanced analytics (Firestore persistence + outcome tracking)
-    const analyticsEventId = recordRoutingEvent(routeResult, {
+    // The prediction for implicit correction tracking, and the analytics event (Firestore
+    // persistence + outcome tracking). A crisis turn leaves only a count.
+    const analyticsEventId = recordRoutedTurn(routeResult, {
       userId: context.userId,
       sessionId: context.sessionId,
       personaId: context.personaId,
       inputText: userText,
+      crisisTurn: context.crisisTurn,
     });
 
     // If no match or conversation, don't execute
     if (!routeResult.action || routeResult.action.type === 'conversation') {
-      // Record conversation metric
-      recordConversation(context.userId, context.sessionId, userText, latencyMs);
+      if (!context.crisisTurn) {
+        recordConversation(context.userId, context.sessionId, userText, latencyMs);
+      }
 
       log.info(
         { userTextLength: userText.length, confidence: topMatch?.confidence || 0 },
@@ -496,13 +501,7 @@ export async function startSemanticRouting(
           errorFields(execError),
           '❌ SEMANTIC → EXECUTION ERROR (falling back to JSON workaround)'
         );
-        recordRoutingError(
-          context.userId,
-          context.sessionId,
-          userText,
-          String(execError),
-          latencyMs
-        );
+        recordErrorMetric(context, userText, String(execError), latencyMs);
 
         // Record execution error to advanced analytics
         recordRoutingOutcome(analyticsEventId, {
@@ -577,7 +576,7 @@ export async function startSemanticRouting(
   } catch (error) {
     const latencyMs = Math.round(performance.now() - startTime);
     log.warn(errorFields(error), '❌ SEMANTIC → ROUTING ERROR (falling back to JSON workaround)');
-    recordRoutingError(context.userId, context.sessionId, userText, String(error), latencyMs);
+    recordErrorMetric(context, userText, String(error), latencyMs);
     // No analytics event ID in error case since we failed before recording
     // sotaResult may be undefined if error occurred before SOTA pre-routing
     return {
