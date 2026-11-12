@@ -1,6 +1,8 @@
 /**
  * The source writers close an item only while it is still open (compare-and-set
- * in a transaction), with each store's own statuses. Fictional data.
+ * in a transaction), with each store's own statuses. A safety item is never
+ * closed, and this process's cached copy of a task is only updated when it is
+ * the same user's (the cache is keyed by task id alone). Fictional data.
  */
 import type { Firestore } from '@google-cloud/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +40,8 @@ function fakeDb(): Firestore {
 }
 
 const { firestoreSourceClosers } = await import('../source-closers.js');
+const { getProductivityStore } = await import('../productivity-store.js');
+type CachedTask = Parameters<ReturnType<typeof getProductivityStore>['setTask']>[1];
 const closers = firestoreSourceClosers()!;
 const U = 'owner-1';
 const task = (id: string, over: Record<string, unknown> = {}) => ({ id, title: 'Book the dentist', status: 'pending', isRecurring: false, updatedAt: '2026-10-10T00:00:00Z', ...over }); // prettier-ignore
@@ -76,5 +80,28 @@ describe('source closers', () => {
     expect(tasks()[1].status).toBe('pending');
     expect(await closers.close(U, { store: 'tasks', ref: 'nope' }, 'done')).toBe('missing');
     expect(await closers.close(U, { store: 'reminders', ref: 'nope' }, 'done')).toBe('missing');
+  });
+
+  it('a safety reminder or task is never closed', async () => {
+    docs.set(`bogle_users/${U}/reminders/r1`, { status: 'pending', kind: '988-follow-up' });
+    docs.set(`bogle_users/${U}`, { productivityData: { tasks: [task('t1', { category: 'crisis-check-in' })] } }); // prettier-ignore
+    expect(await closers.close(U, { store: 'reminders', ref: 'r1' }, 'done')).toBe('safety');
+    expect(await closers.close(U, { store: 'tasks', ref: 't1' }, 'release')).toBe('safety');
+    expect(docs.get(`bogle_users/${U}/reminders/r1`)?.status).toBe('pending');
+    expect(tasks()[0].status).toBe('pending');
+  });
+
+  it("closing a task never overwrites another user's cached task with the same id", async () => {
+    const cache = getProductivityStore();
+    vi.spyOn(cache, 'markDirty').mockImplementation(() => undefined); // no debounced save
+    const theirs = { ...task('t1'), title: 'Renew the library card' } as unknown as CachedTask;
+    cache.setTask('owner-2', theirs);
+    expect(await closers.close(U, { store: 'tasks', ref: 't1' }, 'done')).toBe('closed');
+    expect(cache.getTask('t1')).toMatchObject({ userId: 'owner-2', status: 'pending', title: 'Renew the library card' }); // prettier-ignore
+    // And this user's own cached copy is updated, so its next save doesn't reopen it.
+    docs.set(`bogle_users/${U}`, { productivityData: { tasks: [task('t1')] } });
+    cache.setTask(U, task('t1') as unknown as CachedTask);
+    expect(await closers.close(U, { store: 'tasks', ref: 't1' }, 'done')).toBe('closed');
+    expect(cache.getTask('t1')).toMatchObject({ userId: U, status: 'completed' });
   });
 });

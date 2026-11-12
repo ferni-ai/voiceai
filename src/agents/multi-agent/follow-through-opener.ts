@@ -17,7 +17,8 @@
  *   the caller's next final transcript, and only that one, goes through
  *   closeFromReply: done (kept), replan (moved a day on) or release (dropped).
  *   Done or dropped closes the todo it came from too, behind
- *   FOLLOW_THROUGH_CLOSE_SOURCE (close-to-source.ts), so the brief stops texting it.
+ *   FOLLOW_THROUGH_CLOSE_SOURCE (close-to-source.ts), so the brief stops texting it,
+ *   but only when the answer names the todo and never a safety item.
  *   Ferni's own words never close anything: they only arm the listener.
  * - A follow-up about a topic the caller asked Ferni to forget is never
  *   picked (the same forgotten-topic list and match recall uses), and when
@@ -36,13 +37,18 @@
 import {
   apply,
   closeFromReply,
-  closeSourceItem,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
   type ReplyVerdict,
-  type SourceClosers,
 } from '../../services/follow-through/index.js';
+import {
+  closeSourceItem,
+  type SourceClosers,
+} from '../../services/follow-through/close-to-source.js';
+import { contentWords, mentionsItem, namesItem } from '../../services/follow-through/item-match.js';
+import { envForCaller } from '../../services/platform/cohort-flags.js';
+import type { CohortStore } from '../../services/platform/cohort-firestore.js';
 import { firestoreSourceClosers } from '../../services/stores/source-closers.js';
 import { firestoreFollowUpStore } from '../../services/stores/follow-through-store.js';
 import { forgottenInProcess, isForgotten } from '../../memory/recall/forget.js';
@@ -65,36 +71,14 @@ const DAY_MS = 86_400_000;
 /** A raise lapses after this, so one call's ask never reaches the next call (as opener-claim.ts). */
 export const RAISED_MS = 10 * 60_000;
 
-const STOP = new Set(
-  `the and you your yours she her him his they them their its it's that this those these was were
-  are have has had haven't hasn't didn't did done not yet yes yeah yep yup nope okay just really
-  actually already finally still maybe about with from for but got get getting went go going
-  today tonight tomorrow yesterday last night morning afternoon evening week weekend later soon
-  monday tuesday wednesday thursday friday saturday sunday forget never mind drop skip remind
-  finished handled sorted took care called call calling ugh hmm umm well honestly man gosh wow
-  nah sure alright thanks thank sorry good great fine totally definitely probably`.split(/\s+/)
-);
-
-/** Content words, crudely stemmed: "calling Mom's" → call, mom. Answer and time words don't count. */
-function words(text: string): Set<string> {
-  const out = new Set<string>();
-  for (const raw of text.toLowerCase().match(/[a-z][a-z']+/g) ?? []) {
-    const w = raw.replace(/'s$/, '');
-    const stem = w.length > 4 ? w.replace(/(ing|ed|s)$/, '') : w;
-    if (w.length >= 3 && !STOP.has(w) && !STOP.has(stem)) out.add(stem);
-  }
-  return out;
-}
-
 /** Shares a content word with the follow-up ("did you ring your mom?" ~ "call mom"). */
 export function mentions(text: string, f: FollowUp): boolean {
-  const theirs = words(f.text);
-  return [...words(text)].some((w) => theirs.has(w));
+  return mentionsItem(text, f.text);
 }
 
 /** The caller's answer is about this follow-up: it names it, or it is a bare answer ("yeah, I did"). */
 export function answersIt(reply: string, f: FollowUp): boolean {
-  return mentions(reply, f) || words(reply).size === 0;
+  return mentions(reply, f) || contentWords(reply).size === 0;
 }
 
 export function eventFor(verdict: NonNullable<ReplyVerdict>, now: Date): FollowUpEvent {
@@ -228,7 +212,9 @@ export function followThroughReplyListeners(deps: {
   store?: FollowUpStore | null;
   /** Closes the todo itself too (FOLLOW_THROUGH_CLOSE_SOURCE, close-to-source.ts). */
   closers?: SourceClosers | null;
+  /** The agent's env; the flag is read for this caller from it (envForCaller). */
   env?: Record<string, string | undefined>;
+  cohorts?: CohortStore;
   now?: () => Date;
 }): { onItemAdded: (event: unknown) => void; onTranscript: (event: unknown) => void } {
   const now = deps.now ?? (() => new Date());
@@ -258,8 +244,17 @@ export function followThroughReplyListeners(deps: {
         .then(async (next) => {
           log.info({ verdict, kind: f.kind, saved: next !== null }, 'FOLLOW_THROUGH_REPLY');
           if (!next || verdict === 'replan') return;
+          // A bare "yep, done" closes the follow-up Ferni asked about, but writing
+          // to the todo's own store needs the answer to name it.
+          if (!namesItem(transcript, f.text)) {
+            log.info({ verdict, kind: f.kind }, 'FOLLOW_THROUGH_SOURCE_NOT_NAMED');
+            return;
+          }
           const closers = deps.closers === undefined ? firestoreSourceClosers() : deps.closers;
-          if (closers) await closeSourceItem(closers, deps.userId, f.source, verdict, deps.env ?? process.env); // prettier-ignore
+          if (!closers) return;
+          // This caller's flags, not process.env's: by now another caller's call may have set them.
+          const env = await envForCaller(deps.userId, { env: deps.env ?? process.env, store: deps.cohorts }); // prettier-ignore
+          await closeSourceItem(closers, deps.userId, f.source, verdict, env);
         })
         .catch((error: unknown) => log.warn({ error: String(error) }, 'Follow-up not closed'));
     },

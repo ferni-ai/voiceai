@@ -13,13 +13,19 @@
  *   the task tool's completeTask, which only an in-call tool can run.
  * - commitments: done → 'completed', let go → 'dismissed' (closeCommitmentOrThrow).
  *
+ * A safety item (a 988 follow-up, a crisis check-in: isSafetyItem, by the
+ * reminder's kind or the task's category) is never closed from conversation:
+ * a stale one costs a line, a closed one can cost far more. Commitments have
+ * no safety types (CommitmentType).
+ *
  * @module services/stores/source-closers
  */
 
-import type { Firestore } from '@google-cloud/firestore';
+import type { DocumentReference, Firestore } from '@google-cloud/firestore';
 import type { CloseWrite, SourceClosers } from '../follow-through/close-to-source.js';
 import { removeCalendarSyncedItem } from '../calendar/calendar-bridge.js';
 import { closeCommitmentOrThrow } from '../superhuman/commitment-store.js';
+import { isSafetyItem } from '../follow-through/safety-item.js';
 import { getProductivityStore, type TaskData } from './productivity-store.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -28,14 +34,21 @@ const log = createLogger({ module: 'source-closers' });
 
 const OPEN_TASK = new Set(['pending', 'in_progress']);
 
+/** The cached task is this user's: setTask stamps the owner; no owner means unknown, so no. */
+function ownedBy(cached: TaskData | undefined, userId: string): boolean {
+  return (cached as { userId?: string } | undefined)?.userId === userId;
+}
+
 function createSourceClosers(db: Firestore): SourceClosers {
-  const user = (userId: string) => db.collection('bogle_users').doc(userId);
+  const user = (userId: string): DocumentReference => db.collection('bogle_users').doc(userId);
 
   async function closeReminder(userId: string, id: string): Promise<CloseWrite> {
     const ref = user(userId).collection('reminders').doc(id);
     const outcome = await db.runTransaction(async (tx): Promise<CloseWrite> => {
       const snap = await tx.get(ref);
       if (!snap.exists) return 'missing';
+      if (isSafetyItem((snap.get('kind') ?? snap.get('type')) as string | undefined))
+        return 'safety';
       if (snap.get('status') !== 'pending') return 'already';
       tx.update(ref, { status: 'cancelled' });
       return 'closed';
@@ -50,20 +63,22 @@ function createSourceClosers(db: Firestore): SourceClosers {
   async function closeTask(userId: string, id: string, status: string): Promise<CloseWrite> {
     const ref = user(userId);
     const at = new Date().toISOString();
-    let closed: TaskData | null = null;
+    let closed = null as TaskData | null; // set inside the transaction
     const outcome = await db.runTransaction(async (tx): Promise<CloseWrite> => {
       const snap = await tx.get(ref);
       const tasks = (snap.get('productivityData.tasks') ?? []) as TaskData[];
       const task = Array.isArray(tasks) ? tasks.find((t) => t?.id === id) : undefined;
       if (!task) return 'missing';
+      if (isSafetyItem(task.category)) return 'safety';
       if (!OPEN_TASK.has(task.status) || task.isRecurring) return 'already';
       closed = { ...task, status, updatedAt: at, ...(status === 'completed' ? { completedAt: at } : {}) }; // prettier-ignore
       tx.update(ref, { 'productivityData.tasks': tasks.map((t) => (t.id === id ? closed : t)) });
       return 'closed';
     });
-    // This process's copy, when it holds one, so its next save doesn't write the task back open.
+    // This process's copy, when it holds this user's, so its next save doesn't write the task
+    // back open. The cache is keyed by task id alone: never overwrite another user's task.
     const store = getProductivityStore();
-    if (closed && store.getTask(id)) store.setTask(userId, closed);
+    if (closed && ownedBy(store.getTask(id), userId)) store.setTask(userId, closed);
     return outcome;
   }
 

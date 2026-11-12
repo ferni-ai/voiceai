@@ -22,8 +22,11 @@ export interface SourceRef {
   readonly ref: string;
 }
 export type SourceClose = 'done' | 'release';
-/** closed: this write closed it; already: it was not open any more; missing: no such item. */
-export type CloseWrite = 'closed' | 'already' | 'missing';
+/**
+ * closed: this write closed it; already: it was not open any more; missing: no
+ * such item; safety: a safety item (safety-item.ts), which conversation never closes.
+ */
+export type CloseWrite = 'closed' | 'already' | 'missing' | 'safety';
 
 /** One writer per store, each with its own compare-and-set (stores/source-closers.ts). */
 export interface SourceClosers {

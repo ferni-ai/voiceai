@@ -6,6 +6,6 @@ export const FOLLOW_THROUGH_CLOSE_SOURCE = {
   owner: 'outreach',
   kind: 'experiment',
   expires: '2027-02-10',
-  issue: 'TBD',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3793',
   context: 'Turn on in dev, read FOLLOW_THROUGH_CLOSE counts for a week, then prod.',
 } as const satisfies FlagSpec;

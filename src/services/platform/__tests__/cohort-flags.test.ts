@@ -186,6 +186,7 @@ describe('the switches a cohort may set', () => {
     'REVIVED_INTELLIGENCE',
     'CALL_JOURNAL',
     'FOLLOW_THROUGH_IMPORT',
+    'FOLLOW_THROUGH_CLOSE_SOURCE',
     'PONDERING',
     'LIVE_SUMMARIES',
     'PERSONA_VOICE',

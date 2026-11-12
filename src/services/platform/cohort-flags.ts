@@ -134,6 +134,7 @@ export const COHORT_FLAGS = [
   'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
+  'FOLLOW_THROUGH_CLOSE_SOURCE', // on the caller's answer, through envForCaller (follow-through-opener.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
   'PERSON_MODEL', // UI server's nightly call-sheet job only: usersWithFlag + flagForUser (person-model-job.ts)
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
