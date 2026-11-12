@@ -135,6 +135,9 @@ import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
 
+/** Whether a crisis is self-harm: code outside the kernel asks this, never the type name. */
+export const isSelfHarm = (type: CrisisType | undefined): boolean => type === 'self_harm';
+
 // ============================================================================
 // FIRESTORE SETUP
 // ============================================================================

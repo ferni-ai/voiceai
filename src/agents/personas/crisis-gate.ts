@@ -106,8 +106,7 @@ const log = createLogger({ module: 'CrisisGate' });
 
 export type CrisisGateDecision =
   | { action: 'pass' }
-  // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
-  // crisis: decisionFor's full guidance for the caller's own crisis (CRISIS_QUIET_FROM_GATE).
+  // about: someone the caller knows is at risk (MINOR_CRISIS_CARE); crisis: the caller is.
   | { action: 'guide'; guidance: string; about?: 'third_party'; crisis?: true }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
@@ -126,6 +125,7 @@ type Chunk = llm.ChatChunk | string | object;
 const RANK = { pass: 0, guide: 1, replace: 2 } as const;
 
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
+const own = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance, crisis: true });
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
@@ -134,10 +134,7 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (crisis.isCrisis && crisis.subject === 'third_party') {
     return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
   }
-  if (crisis.isCrisis) {
-    const guidance = disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis);
-    return { action: 'guide', guidance, crisis: true };
-  }
+  if (crisis.isCrisis) return own(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
   return { action: 'pass' };
 }
 

@@ -29,7 +29,7 @@ import {
   releaseQuietHere,
 } from '../../services/human-transfer/crisis-signals.js';
 import { recordQuietHold } from '../../services/outreach/minor-care-shared-hold.js';
-import { isSelfHarm } from '../../services/safety/crisis-detection.js';
+import { isSelfHarm } from '../../services/safety/index.js';
 import { careHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
