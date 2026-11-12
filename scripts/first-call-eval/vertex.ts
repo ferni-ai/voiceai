@@ -1,6 +1,6 @@
 /**
- * One Gemini call on Vertex (global endpoint), with the gcloud ADC token, for
- * the first-call eval scripts. Retries 429s and network errors; returns '' when
+ * One Gemini call on Vertex (global endpoint, or the `location` region), with
+ * the gcloud ADC token, for the eval scripts. Retries 429s and network errors; returns '' when
  * every attempt fails so one bad call can't sink a batch.
  */
 import { execFileSync } from 'node:child_process';
@@ -22,6 +22,8 @@ export interface GenerateOptions {
   maxOutputTokens?: number;
   thinkingLevel?: 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH';
   json?: boolean;
+  /** A Vertex region (e.g. us-central1) instead of the global endpoint; Gemini only. */
+  location?: string;
   /** Extra request fields for Gemini (tools, toolConfig), e.g. scripts/persona-eval/internals-probe.ts. */
   extra?: Record<string, unknown>;
 }
@@ -40,13 +42,17 @@ function accessToken(): string {
 
 /** Calls per model through generate(), for a script's cost line. */
 export const callsByModel: Record<string, number> = {};
+/** Tokens per model through generate() (Gemini usageMetadata; thinking counts as output). */
+export const tokensByModel: Record<string, { in: number; out: number }> = {};
 
 export async function generate(opts: GenerateOptions): Promise<string> {
   const project = process.env.GOOGLE_CLOUD_PROJECT;
   if (!project) throw new Error('Set GOOGLE_CLOUD_PROJECT');
   callsByModel[opts.model] = (callsByModel[opts.model] ?? 0) + 1;
   if (!opts.model.startsWith('gemini')) return generateMaas(project, opts);
-  const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${opts.model}:generateContent`;
+  const location = opts.location ?? 'global';
+  const host = location === 'global' ? 'aiplatform' : `${location}-aiplatform`;
+  const url = `https://${host}.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${opts.model}:generateContent`;
   const body = JSON.stringify(withBillingLabels({
     systemInstruction: { parts: [{ text: opts.system }] },
     contents: opts.contents,
@@ -71,8 +77,13 @@ export async function generate(opts: GenerateOptions): Promise<string> {
     const json = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
       error?: { message?: string };
+      usageMetadata?: Record<string, number | undefined>;
     };
     if (json.error) throw new Error(`${opts.model}: ${json.error.message}`);
+    const used = json.usageMetadata ?? {};
+    const t = (tokensByModel[opts.model] ??= { in: 0, out: 0 });
+    t.in += used.promptTokenCount ?? 0;
+    t.out += (used.candidatesTokenCount ?? 0) + (used.thoughtsTokenCount ?? 0);
     return (json.candidates?.[0]?.content?.parts ?? [])
       .filter((p) => !p.thought)
       .map((p) => p.text ?? '')

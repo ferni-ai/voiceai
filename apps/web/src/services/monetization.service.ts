@@ -12,6 +12,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { stripePublishableKey } from '../config/stripe-key.js';
 
 const log = createLogger('Monetization');
 
@@ -351,7 +352,7 @@ export async function loadStripe(): Promise<unknown> {
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/';
     script.onload = () => {
-      const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      const stripeKey = stripePublishableKey();
       if (!stripeKey) {
         log.warn('Stripe publishable key not configured');
         resolve(null);

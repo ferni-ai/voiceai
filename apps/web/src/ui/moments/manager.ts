@@ -37,6 +37,7 @@ import { MOMENT_ICONS, getIcon } from './icons.js';
 import { isToastRegionEnabled } from '../overlay/toast-flag.js';
 import { dismissAllToasts, dismissToast, showToast } from '../overlay/toast-region.js';
 import { NOTICE_TONES, celebrationCopy } from './toast-copy.js';
+import { crisisAffectAllows } from '../face/crisis-face-hold.js';
 import type {
   MomentState,
   WhisperConfig,
@@ -361,6 +362,7 @@ class MomentsManager {
    * Show a celebration - milestone moment with visual flourish.
    */
   async celebrate(type: CelebrationType, data?: Omit<CelebrationConfig, 'type'>): Promise<void> {
+    if (!crisisAffectAllows('celebration')) return;
     if (isToastRegionEnabled()) {
       this.emit('celebration:started', { type });
       // An achievement toast instead of the centred card over the call controls.
@@ -425,10 +427,8 @@ class MomentsManager {
     await this.wait(50);
     element.classList.add('moment-celebration--entering');
 
-    // Add sparkles
     this.createSparkles(element, 12);
 
-    // Wait for display duration
     await this.wait(MOMENT_DURATIONS.celebration.display);
 
     // Animate out
@@ -460,9 +460,9 @@ class MomentsManager {
       personaRole?: string;
     }
   ): Promise<void> {
+    if (!crisisAffectAllows('celebration')) return;
     this.initialize();
 
-    // Dismiss any active moment
     if (this.active) {
       this.dismiss();
       await this.wait(DURATION.NORMAL);
