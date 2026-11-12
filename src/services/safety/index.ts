@@ -32,7 +32,6 @@ export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
-export { resolveMeansInHandMode } from './crisis-means-in-hand.js'; // a request's own env
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';

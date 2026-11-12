@@ -32,7 +32,6 @@ import type { llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
-import { resolveMeansInHandMode } from '../../services/safety/index.js';
 import { callerVenting } from './turn-extras.js';
 import {
   askWhenUnclearEnabled,
@@ -249,10 +248,9 @@ export function repairNoteFor(
   const started = performance.now();
   const { prompt, turns, earlier, said, previous } = linesOf(chatCtx);
   if (!said || ALREADY_CHECKED.test(previous)) return '';
-  const meansInHand = resolveMeansInHandMode(env);
   if (
     callerVenting(said) ||
-    detectCrisis(said, undefined, { recentMessages: earlier, meansInHand }).isCrisis
+    detectCrisis(said, undefined, { recentMessages: earlier, env }).isCrisis
   )
     return '';
   const cue =
