@@ -39,12 +39,11 @@ let createdEntities: string[] = [];
 describeWithEmulator('Entity Store', () => {
   beforeAll(async () => {
     // Initialize both the integration module and the store
-    try {
-      await initializeEntityStoreIntegration();
-      store = await initStore(); // This actually initializes the EntityStore class
-    } catch (error) {
-      console.warn('Entity store initialization failed (may be missing credentials):', error);
-    }
+    await initializeEntityStoreIntegration();
+    store = await initStore(); // This actually initializes the EntityStore class
+    // These tests used to return early when the store wasn't ready, so a store
+    // that never came up passed every one of them. Now it fails here.
+    expect(isEntityStoreReady()).toBe(true);
   });
 
   afterAll(async () => {
@@ -66,11 +65,6 @@ describeWithEmulator('Entity Store', () => {
 
   describe('Entity CRUD', () => {
     it('should create a person entity', async () => {
-      if (!isEntityStoreReady()) {
-        console.warn('Skipping test - entity store not ready');
-        return;
-      }
-
       const entity = await store.createEntity(
         TEST_USER_ID,
         'person',
@@ -97,8 +91,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should retrieve an entity by ID', async () => {
-      if (!isEntityStoreReady()) return;
-
       // First create one
       const created = await store.createEntity(TEST_USER_ID, 'person', 'Sarah', {
         _type: 'person',
@@ -117,8 +109,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should update an entity', async () => {
-      if (!isEntityStoreReady()) return;
-
       const entity = await store.createEntity(TEST_USER_ID, 'person', 'John', {
         _type: 'person',
         relationship: 'friend',
@@ -139,8 +129,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should delete an entity', async () => {
-      if (!isEntityStoreReady()) return;
-
       const entity = await store.createEntity(TEST_USER_ID, 'person', 'ToDelete', {
         _type: 'person',
         relationship: 'temp',
@@ -162,8 +150,6 @@ describeWithEmulator('Entity Store', () => {
 
   describe('Entity Resolution', () => {
     it('should resolve existing entity by name', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create an entity
       const entity = await store.createEntity(TEST_USER_ID, 'person', 'Mom', {
         _type: 'person',
@@ -181,8 +167,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should resolve existing entity by alias', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create an entity with alias
       const entity = await store.createEntity(
         TEST_USER_ID,
@@ -206,8 +190,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should create new entity if not found', async () => {
-      if (!isEntityStoreReady()) return;
-
       const uniqueName = `NewPerson_${uuidv4().substring(0, 8)}`;
 
       const { entity, isNew } = await store.resolveEntity(TEST_USER_ID, uniqueName, 'person', {
@@ -226,8 +208,6 @@ describeWithEmulator('Entity Store', () => {
 
   describe('Relationships', () => {
     it('should create a relationship between entities', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create two entities
       const person = await store.createEntity(TEST_USER_ID, 'person', 'Alice', {
         _type: 'person',
@@ -259,8 +239,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should retrieve relationships for an entity', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create person and commitment
       const person = await store.createEntity(TEST_USER_ID, 'person', 'Bob', {
         _type: 'person',
@@ -302,8 +280,6 @@ describeWithEmulator('Entity Store', () => {
 
   describe('Entity Search', () => {
     it('should find entities by semantic search', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create a person entity
       const entity = await store.createEntity(TEST_USER_ID, 'person', 'Dr. Smith', {
         _type: 'person',
@@ -330,8 +306,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should find entities by keyword search', async () => {
-      if (!isEntityStoreReady()) return;
-
       const uniqueName = `UniqueKeyword_${uuidv4().substring(0, 8)}`;
 
       const entity = await store.createEntity(TEST_USER_ID, 'person', uniqueName, {
@@ -365,8 +339,6 @@ describeWithEmulator('Entity Store', () => {
 
   describe('Graph-RAG Retrieval', () => {
     it('should retrieve entities with graph expansion', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create person
       const person = await store.createEntity(TEST_USER_ID, 'person', 'Carol', {
         _type: 'person',
@@ -421,11 +393,8 @@ describeWithEmulator('Entity Store', () => {
   // INTEGRATION TESTS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // SKIPPED: Requires Firestore emulator/indexes. Run with FIRESTORE_EMULATOR_HOST set.
-  describe.skip('Integration Functions', () => {
+  describe('Integration Functions', () => {
     it('should capture person entity via integration', async () => {
-      if (!isEntityStoreReady()) return;
-
       const result = await capturePersonEntity(
         TEST_USER_ID,
         {
@@ -451,8 +420,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should capture commitment entity via integration', async () => {
-      if (!isEntityStoreReady()) return;
-
       const result = await captureCommitmentEntity(
         TEST_USER_ID,
         {
@@ -477,8 +444,6 @@ describeWithEmulator('Entity Store', () => {
     });
 
     it('should retrieve memories via unified retrieval', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create some entities first
       await store.createEntity(TEST_USER_ID, 'person', 'Emily', {
         _type: 'person',
@@ -504,8 +469,6 @@ describeWithEmulator('Entity Store', () => {
 
   describe('Proactive Surfacing', () => {
     it('should detect surfacing opportunities', async () => {
-      if (!isEntityStoreReady()) return;
-
       // Create a person with birthday today
       const today = new Date();
       const entity = await store.createEntity(TEST_USER_ID, 'person', 'Frank', {
@@ -549,7 +512,7 @@ describeWithEmulator('Entity Store', () => {
 
 describeWithEmulator('Entity Store Performance', () => {
   it('should handle batch operations efficiently', async () => {
-    if (!isEntityStoreReady()) return;
+    expect(isEntityStoreReady()).toBe(true);
 
     const store = getEntityStore();
     const startTime = Date.now();

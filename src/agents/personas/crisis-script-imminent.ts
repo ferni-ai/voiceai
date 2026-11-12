@@ -10,8 +10,9 @@
  * classifier's imminent read.
  *
  * Nothing waits. The script's first sentence goes to the voice at once, and only the rest waits
- * for the read: until the classifier's deadline at most, and never past the time the first
- * sentence takes to say, so a crisis line never gets dead air.
+ * for the read: at most 3 s, and never past the time the first sentence takes to say less the
+ * time the voice takes to start the rest, so a crisis line never gets dead air. This read gets
+ * its own deadline (the hold, then the time the rest takes to say), not the gate's.
  *   - An imminent read in time: the rest becomes the imminent script's rest.
  *   - One landing after that, while the rest is still being said: one 911 line at the end.
  *   - Anything else (none, a crisis read, a timeout, an error, a later read): the script exactly
@@ -40,12 +41,15 @@ import type { CrisisDetectionResult } from '../safety/crisis-guard.js';
 const log = createLogger({ module: 'CrisisScriptImminent' });
 
 /**
- * Fewest milliseconds a word takes to say, below every live voice's measured pace, and the most
- * the voice takes to start a piece sent mid-reply. A hold ends this much before the first
- * sentence could end; a late line is added only this long before the rest could end.
+ * Fewest milliseconds a word takes to say, below every live voice's measured pace (the fastest
+ * took 210 ms a word on the 988 script's first sentence), and more than the voice takes to start
+ * a piece sent mid-reply (342 ms at the slowest measured; only a call's first piece starts cold).
+ * A hold ends this much before the first sentence could end, and never past HOLD_CAP_MS; a late
+ * line is added only this long before the rest could end.
  */
-export const FAST_MS_PER_WORD = 200;
-export const VOICE_START_MS = 600;
+const FAST_MS_PER_WORD = 200;
+const VOICE_START_MS = 600;
+const HOLD_CAP_MS = 3000;
 
 /** What a scripted turn's read found, and the imminent script when it is to be said. */
 export interface ScriptRead {
@@ -55,18 +59,19 @@ export interface ScriptRead {
   script: string | null;
 }
 
-const mode = (env: Env): 'off' | 'shadow' | 'on' => flagModeOf('CRISIS_SCRIPT_IMMINENT_READ', env);
+const scriptReadMode = (env: Env): 'off' | 'shadow' | 'on' =>
+  flagModeOf('CRISIS_SCRIPT_IMMINENT_READ', env);
 
 /**
  * Whether a scripted turn asks the classifier: the flag on or shadow, and the caller's own 988
  * script (not already imminent, not about someone else, not Spanish).
  */
-export function scriptAsks(
+function scriptAsks(
   decision: { action: string },
   detection: CrisisDetectionResult,
   env: Env
 ): boolean {
-  if (decision.action !== 'replace' || mode(env) === 'off') return false;
+  if (decision.action !== 'replace' || scriptReadMode(env) === 'off') return false;
   if (detection.subject === 'third_party' || detection.language === 'es') return false;
   const { severity, subject, language } = detection;
   return detection.suggestedResponse === getCrisisResponse(severity, subject, language, false);
@@ -84,7 +89,11 @@ export function scriptRead(
 ): Promise<ScriptRead> | undefined {
   const env = at.env ?? process.env;
   if (!scriptAsks(decision, detection, env)) return undefined;
-  const run = startCrisisClassifier(said, { ...at, readBlocked: true });
+  // Its own deadline: as long as a read can still change what is said, never less than the gate's.
+  const window = timesOf(detection.suggestedResponse ?? '');
+  const waitMs = Math.max(resolveCrisisClassifierTimeoutMs(env), window.holdMs + window.lateMs);
+  const readEnv = { ...env, CRISIS_CLASSIFIER_TIMEOUT_MS: String(waitMs) };
+  const run = startCrisisClassifier(said, { ...at, env: readEnv, readBlocked: true });
   if (run?.mode !== 'live') return undefined;
   return run.verdict.then(
     (verdict): ScriptRead => {
@@ -92,7 +101,7 @@ export function scriptRead(
       const imminent = read === 'imminent' && verdict?.subject === 'self';
       const { severity, language } = detection;
       const script = getCrisisResponse(severity, 'self', language, true);
-      return { read, imminent, script: imminent && mode(env) === 'on' ? script : null };
+      return { read, imminent, script: imminent && scriptReadMode(env) === 'on' ? script : null };
     },
     (): ScriptRead => ({ read: 'failed', imminent: false, script: null })
   );
@@ -111,6 +120,22 @@ function openerOf(text: string): string | null {
 function imminentRest(imminent: string): string {
   const opener = openerOf(imminent);
   return opener && !namesCrisisLine(opener) ? imminent.slice(opener.length) : imminent;
+}
+
+/**
+ * A script cut where the read can change it: the hold before the rest, and how long after that a
+ * late line can still be added (none when the rest already says 911, so 911 is said once).
+ */
+function timesOf(script: string): {
+  opener: string | null;
+  rest: string;
+  holdMs: number;
+  lateMs: number;
+} {
+  const opener = openerOf(script);
+  const rest = opener ? script.slice(opener.length) : '';
+  const holdMs = opener ? Math.min(HOLD_CAP_MS, sayMs(opener)) : 0;
+  return { opener, rest, holdMs, lateMs: opener && !names911(rest) ? sayMs(rest) : 0 };
 }
 
 /** The read, or undefined when `ms` runs out first. */
@@ -140,19 +165,15 @@ export function scriptReply(
   finish: (text: string) => string,
   env: Env = process.env
 ): ReadableStream<string> {
-  const opener = openerOf(script);
+  const { opener, rest, holdMs, lateMs } = timesOf(script);
   if (!read || !opener) return whole(script);
-  const rest = script.slice(opener.length);
-  const holdMs = Math.min(resolveCrisisClassifierTimeoutMs(env), sayMs(opener));
-  // The rest already says 911 (CRISIS_SELF_HARM_911_LINE): no late line, so 911 is said once.
-  const lateMs = names911(rest) ? 0 : sayMs(rest);
   const startedAt = Date.now();
   const note = (outcome: string, found?: ScriptRead): void =>
     log.info(
-      { mode: mode(env), read: found?.read ?? 'pending', outcome, holdMs },
+      { mode: scriptReadMode(env), read: found?.read ?? 'pending', outcome, holdMs },
       'CRISIS_SCRIPT_READ'
     );
-  if (mode(env) !== 'on') {
+  if (scriptReadMode(env) !== 'on') {
     // Shadow: the script as it is; the log says what the read would have changed.
     void read.then((found) => {
       const late = Date.now() - startedAt;

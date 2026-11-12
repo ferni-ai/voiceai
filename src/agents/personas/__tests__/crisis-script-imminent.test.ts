@@ -34,17 +34,12 @@ import {
 import { getCrisisResponse, LATE_911_LINE } from '../../../services/safety/crisis-guard-replies.js';
 import { detectCrisis } from '../../safety/crisis-guard.js';
 import { gatedReply, startCrisisGate } from '../crisis-gate.js';
-import {
-  FAST_MS_PER_WORD,
-  scriptReply,
-  VOICE_START_MS,
-  type ScriptRead,
-} from '../crisis-script-imminent.js';
+import { scriptRead, scriptReply, type ScriptRead } from '../crisis-script-imminent.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const ON = { ...LIVE, CRISIS_SCRIPT_IMMINENT_READ: 'on' };
 const SHADOW = { ...LIVE, CRISIS_SCRIPT_IMMINENT_READ: 'shadow' };
-/** The classifier waits long enough that only the script's own clock can end the hold. */
+/** The gate's classifier deadline past every window here: only the script's clock ends a wait. */
 const SLOW = { CRISIS_CLASSIFIER_TIMEOUT_MS: '20000' };
 
 /** A whole supply plus intent, "right now": the patterns read explicit, not imminent. */
@@ -52,6 +47,9 @@ const SUPPLY_NOW = 'i have the whole bottle of pills and im going to take all of
 const TONIGHT = 'i want to kill myself tonight';
 const PATTERN_IMMINENT = 'i have a gun in my hand right now';
 const SPANISH = 'quiero matarme esta noche';
+/** About someone else: guided (0.75), and an emergency for them (already imminent, replaced). */
+const THEM_RISK = 'my brother told me he is going to kill himself tonight';
+const THEM_DOWN = 'my dad collapsed and he is not breathing';
 
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
 const IMMINENT_THEM = '{"risk":"imminent","subject":"third_party"}';
@@ -68,8 +66,13 @@ const WITH_911 = SEVERE.replace('available 24/7.', `available 24/7. ${SELF_HARM_
 const count911 = (text: string): number => text.match(/\b911\b/g)?.length ?? 0;
 const SWAPPED = OPENER + IMMINENT_SCRIPT.slice(IMMINENT_SCRIPT.indexOf('Your safety'));
 const words = (text: string): number => text.split(/\s+/).filter(Boolean).length;
-const OPENER_SAY_MS = words(OPENER) * FAST_MS_PER_WORD - VOICE_START_MS;
-const REST_SAY_MS = words(REST) * FAST_MS_PER_WORD - VOICE_START_MS;
+/**
+ * The contract in numbers: a piece takes at least 200 ms a word to say, less 600 ms for the voice
+ * to start the next one, and the hold never passes 3000 ms. The 18-word first sentence: 3000 ms.
+ */
+const sayMs = (text: string): number => words(text) * 200 - 600;
+const HOLD_MS = Math.min(3000, sayMs(OPENER));
+const REST_SAY_MS = sayMs(REST);
 
 function request(text: string): llm.ChatContext {
   const ctx = llm.ChatContext.empty();
@@ -148,6 +151,13 @@ describe('the lines these rows use, as the patterns read them', () => {
   });
 });
 
+describe('the lines these rows use, in numbers', () => {
+  it('the first sentence is 18 words, so the hold is the 3000 ms cap', () => {
+    expect(words(OPENER)).toBe(18);
+    expect(HOLD_MS).toBe(3000);
+  });
+});
+
 describe('flag on: an imminent read of a scripted turn makes it 911-first', () => {
   it.each([SUPPLY_NOW, TONIGHT])('swaps the rest for the imminent rest: %s', async (line) => {
     const heard = await turn(line, ON, answer(IMMINENT, 300));
@@ -156,18 +166,18 @@ describe('flag on: an imminent read of a scripted turn makes it 911-first', () =
     expect(heard.text.indexOf('call 911')).toBeLessThan(heard.text.indexOf('988'));
     expect(heard.model).not.toHaveBeenCalled();
     expect(scriptLogs()).toEqual([
-      { mode: 'on', read: 'imminent', outcome: 'swapped', holdMs: 1000 },
+      { mode: 'on', read: 'imminent', outcome: 'swapped', holdMs: HOLD_MS },
     ]);
   });
 
   it('adds the 911 line when the read lands while the rest is still being said', async () => {
-    const heard = await turn(SUPPLY_NOW, { ...ON, ...SLOW }, answer(IMMINENT, OPENER_SAY_MS + 500));
+    const heard = await turn(SUPPLY_NOW, ON, answer(IMMINENT, HOLD_MS + 500));
     expect(heard.text).toBe(`${SEVERE} ${LATE_911_LINE}`);
     expect(scriptLogs()[0]).toMatchObject({ read: 'imminent', outcome: 'added' });
   });
 
   it('leaves the script as it is when the read lands after the rest is said', async () => {
-    const late = OPENER_SAY_MS + REST_SAY_MS + 500;
+    const late = HOLD_MS + REST_SAY_MS + 500;
     const heard = await turn(SUPPLY_NOW, { ...ON, ...SLOW }, answer(IMMINENT, late));
     expect(heard.text).toBe(SEVERE);
     expect(scriptLogs()[0]).toMatchObject({ read: 'pending', outcome: 'late' });
@@ -204,13 +214,36 @@ describe('no dead air: the hold never outlasts the first sentence', () => {
     const heard = await turn(SUPPLY_NOW, { ...ON, ...SLOW }, answer('never'));
     expect(heard.text).toBe(SEVERE);
     expect(heard.chunks.map((c) => c.text)).toEqual([OPENER, REST]);
-    expect(heard.chunks[1]!.at).toBeLessThanOrEqual(OPENER_SAY_MS);
-    expect(OPENER_SAY_MS).toBeGreaterThan(0);
+    expect(heard.chunks[1]!.at).toBeLessThanOrEqual(HOLD_MS);
+    expect(HOLD_MS).toBeGreaterThan(0);
   });
 
-  it("releases the rest at the classifier's deadline when that comes first", async () => {
+  it("holds the whole 3000 ms with the gate's 1000 ms classifier deadline: its own deadline", async () => {
     const heard = await turn(SUPPLY_NOW, ON, answer('never'));
-    expect(heard.chunks[1]!.at).toBeLessThanOrEqual(1000);
+    expect(heard.text).toBe(SEVERE);
+    expect(heard.chunks[1]).toEqual({ at: HOLD_MS, text: REST });
+  });
+
+  it("an imminent read past the gate's 1000 ms deadline, inside the hold, still swaps", async () => {
+    const heard = await turn(SUPPLY_NOW, ON, answer(IMMINENT, 2500));
+    expect(heard.text).toBe(SWAPPED);
+    expect(heard.chunks[1]!.at).toBe(2500);
+  });
+
+  it('never holds past 3000 ms, however long the first sentence', async () => {
+    const long = `${'I am here with you and I am not going anywhere at all tonight, '.repeat(3).trim()}. ${REST}`;
+    const pending = new Promise<ScriptRead>(() => {});
+    const chunks: Array<{ at: number; text: string }> = [];
+    const startedAt = Date.now();
+    const stream = scriptReply(long, pending, (t) => t, ON);
+    const reading = (async () => {
+      for await (const chunk of stream as unknown as AsyncIterable<string>)
+        chunks.push({ at: Date.now() - startedAt, text: chunk });
+    })();
+    await vi.advanceTimersByTimeAsync(60_000);
+    await reading;
+    expect(sayMs(long.slice(0, long.indexOf(REST)))).toBeGreaterThan(3000);
+    expect(chunks[1]).toEqual({ at: 3000, text: REST });
   });
 
   it('releases the rest the moment a read that changes nothing lands', async () => {
@@ -249,6 +282,32 @@ describe('what never asks', () => {
     expect(on.heard.text).toBe(off.heard.text);
   });
 
+  it('a script about someone else: their emergency, and a guided worry about them', async () => {
+    for (const line of [THEM_DOWN, THEM_RISK]) {
+      resetCrisisClassifierCache();
+      const off = await asked(line, LIVE);
+      resetCrisisClassifierCache();
+      const on = await asked(line, ON);
+      expect(on.calls).toBe(off.calls);
+      expect(on.heard.text).toBe(off.heard.text);
+    }
+    expect(scriptLogs()).toEqual([]);
+  });
+
+  it('never asks on a replaced script about someone else, should the patterns ever make one', () => {
+    const script = getCrisisResponse(0.9, 'third_party', 'en', false);
+    const them = { ...detectCrisis(THEM_RISK), severity: 0.9, suggestedResponse: script };
+    expect(them.subject).toBe('third_party');
+    const generate = vi.fn(answer(IMMINENT));
+    const at = { pattern: 'block', env: ON, generate } as const;
+    const said = (latest: string) => ({ latest, earlier: [] });
+    expect(scriptRead(said(THEM_RISK), them, { action: 'replace' }, at)).toBeUndefined();
+    expect(generate).not.toHaveBeenCalled();
+    const self = detectCrisis(SUPPLY_NOW);
+    expect(scriptRead(said(SUPPLY_NOW), self, { action: 'replace' }, at)).toBeDefined();
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ['a guided turn', "i hope i don't wake up tomorrow"],
     ['a turn the patterns pass', 'what should i cook tonight?'],
@@ -266,13 +325,15 @@ describe('shadow', () => {
     expect(heard.text).toBe(SEVERE);
     expect(heard.chunks).toHaveLength(1);
     expect(scriptLogs()).toEqual([
-      { mode: 'shadow', read: 'imminent', outcome: 'would_swap', holdMs: 1000 },
+      { mode: 'shadow', read: 'imminent', outcome: 'would_swap', holdMs: HOLD_MS },
     ]);
   });
 
   it('counts a none read as kept', async () => {
     await turn(SUPPLY_NOW, SHADOW, answer(NONE, 300));
-    expect(scriptLogs()).toEqual([{ mode: 'shadow', read: 'none', outcome: 'kept', holdMs: 1000 }]);
+    expect(scriptLogs()).toEqual([
+      { mode: 'shadow', read: 'none', outcome: 'kept', holdMs: HOLD_MS },
+    ]);
   });
 });
 
@@ -288,7 +349,16 @@ describe('with CRISIS_SELF_HARM_911_LINE on (#3748)', () => {
     expect(count911(heard.text)).toBe(1);
   });
 
-  it.todo('both flags on through gatedReply, a late read: one 911 sentence, 988 kept (#3748)');
+  it('a late read with both flags on says 911 once and keeps 988, with or without #3748', async () => {
+    // The script is what the patterns give under the flag: #3748's line in the rest once it
+    // merges (the late line is skipped), the plain script before (the late line is added).
+    vi.stubEnv('CRISIS_SELF_HARM_911_LINE', 'on');
+    const env = { ...ON, ...SLOW, CRISIS_SELF_HARM_911_LINE: 'on' };
+    const heard = await turn(SUPPLY_NOW, env, answer(IMMINENT, HOLD_MS + 500));
+    expect(heard.text.startsWith(detectCrisis(SUPPLY_NOW).suggestedResponse!)).toBe(true);
+    expect(count911(heard.text)).toBe(1);
+    expect(heard.text).toContain('988');
+  });
 });
 
 describe('scriptReply', () => {
@@ -313,7 +383,7 @@ describe('scriptReply', () => {
   it('no double 911: a late read adds no line when the rest already says 911 (#3748)', async () => {
     const found = { read: 'imminent', imminent: true, script: IMMINENT_SCRIPT } as const;
     const late = new Promise<ScriptRead>((resolve) => {
-      setTimeout(() => resolve(found), OPENER_SAY_MS + 500);
+      setTimeout(() => resolve(found), HOLD_MS + 500);
     });
     const out = await collect(scriptReply(WITH_911, late, (t) => t, { ...ON, ...SLOW }));
     expect(out).toBe(WITH_911);

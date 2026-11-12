@@ -9,6 +9,17 @@
  *
  * `prod-2026-11-01`: the same, from the prod worker's boot settings for release
  * rc2 (53bb669b4) on 2026-11-01.
+ *
+ * `prod-2026-11-11`: prod-2026-11-01 with CRISIS_MEANS_IN_HAND live (prod flipped it
+ * shadow → live on 2026-11-10 ~23:44Z), plus MINOR_CARE_OWNERS, which the sim reads
+ * (minor-care.ts ownerExempt). Every value is checked against the prod boot settings on
+ * 2026-11-11 (build 53bb669b4, rc2). Flags absent from that build, or unset there, are written
+ * at main's code default.
+ *
+ * Every value is the exact mode its flag's resolver returns for it (full-path-profiles.test.ts):
+ * a value a resolver doesn't know falls back to off or shadow without a word, so `on` where a
+ * flag only knows `live` quietly ran it in shadow (CRISIS_MEANS_IN_HAND) or off
+ * (THIRD_PARTY_SELF_HARM) in `all-on`.
  */
 
 export type FlagSet = Readonly<Record<string, string>>;
@@ -43,6 +54,23 @@ const PROD_2026_11_01: FlagSet = {
   MINOR_CARE: 'on',
 };
 
+const PROD_2026_11_11: FlagSet = {
+  ...PROD_2026_11_01,
+  CRISIS_MEANS_IN_HAND: 'live',
+  MINOR_CARE_OWNERS: 'on',
+  // absent from prod build 53bb669b4; written at main's default
+  CRISIS_GRADED_RESPONSE: 'off',
+  CRISIS_READ_JOINED_TURN: 'off',
+  MINOR_CRISIS_CARE: 'off',
+  CRISIS_CLASSIFIER_BLOCKED_SIGNAL: 'off',
+  // unset in prod build 53bb669b4 (no flag-registry entry); written at main's default
+  CRISIS_CLASSIFIER_TIMEOUT_MS: '1000',
+  CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS: '2000',
+  CRISIS_SECOND_READ_GRACE_MS: '150',
+  CRISIS_GROUNDED_RELEASE_TIMEOUT_MS: '1500',
+  CRISIS_ADJUDICATOR_TIMEOUT_MS: '1200',
+};
+
 /** Every crisis brake that exists, on. The adjudicator's live mode is blocked in code. */
 const ALL_ON: FlagSet = {
   ...PROD_2026_10_31,
@@ -55,16 +83,17 @@ const ALL_ON: FlagSet = {
   CRISIS_TRANSFER_EVERYDAY: 'on',
   CRISIS_SAME_CALL_NOTE_FADES: 'on',
   CRISIS_SIGHT_NEEDS_CUE: 'on',
-  CRISIS_MEANS_IN_HAND: 'on',
+  CRISIS_MEANS_IN_HAND: 'live',
   CRISIS_SCRIPT_IMMINENT_READ: 'on',
   SAFETY_WHOLE_WORD_SITES: 'on',
   EARLY_WARNING_WORD_BOUNDARY: 'on',
-  THIRD_PARTY_SELF_HARM: 'on',
+  THIRD_PARTY_SELF_HARM: 'live',
 };
 
 export const PROFILES: Readonly<Record<string, FlagSet>> = {
   'prod-2026-10-31': PROD_2026_10_31,
   'prod-2026-11-01': PROD_2026_11_01,
+  'prod-2026-11-11': PROD_2026_11_11,
   'all-on': ALL_ON,
 };
 
