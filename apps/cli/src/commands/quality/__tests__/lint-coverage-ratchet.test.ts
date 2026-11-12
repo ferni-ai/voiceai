@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { ignoredFiles, lowered, regressions, staleSuppressions } from '../lint-coverage-ratchet.js';
+import { ignoredFiles, lintGroups, lowered, regressions, staleSuppressions } from '../lint-coverage-ratchet.js';
 
 describe('lint-coverage ratchet', () => {
+  it('lints scripts/ in its own ESLint run (its own TypeScript program), every file exactly once', () => {
+    const files = ['src/a.ts', 'scripts/ci/b.ts', 'apps/cli/src/commands/deploy/c.ts', 'scripts/d.ts'];
+    const groups = lintGroups(files);
+    expect(groups.map((g) => g.files)).toEqual([
+      ['src/a.ts', 'apps/cli/src/commands/deploy/c.ts'],
+      ['scripts/ci/b.ts', 'scripts/d.ts'],
+    ]);
+    expect(new Set(groups.map((g) => g.name)).size).toBe(2);
+    expect(lintGroups(['src/a.ts'])).toHaveLength(1);
+  });
+
   it('fails a file whose error count grew', () => {
     const problems = regressions({ 'src/a.ts': 2 }, { 'src/a.ts': 3 });
     expect(problems).toHaveLength(1);

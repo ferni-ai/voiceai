@@ -27,7 +27,13 @@ function run(script: string, args: string[], env: Record<string, string>) {
 describe('real-call CLIs check before reading anything', () => {
   it('build-private-cases rejects a bad --calls before reading any call', () => {
     // GOOGLE_CLOUD_PROJECT is unset too: the argument error must come first.
-    const { status, stderr } = run('build-private-cases.ts', ['--calls', '0'], {});
+    // The uid is fictional and listed only here, so the allowlist check passes.
+    const uid = 'testOwnerUid0000000000000000';
+    const { status, stderr } = run(
+      'build-private-cases.ts',
+      ['--uid', uid, '--name', 'Quinlan', '--calls', '0'],
+      { MEMORY_EVAL_ALLOWED_UIDS: uid }
+    );
     expect(status).toBe(1);
     expect(stderr).toContain('--calls must be a positive integer: 0');
     expect(stderr).not.toContain('refusing to run on real calls');

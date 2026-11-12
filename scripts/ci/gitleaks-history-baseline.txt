@@ -1,0 +1,8 @@
+# How many findings gitleaks-history.sh counts in main's history. The count
+# must match exactly: more means a new finding, fewer means the scan read less.
+# Measured 2026-11-11 with gitleaks 8.30.1 (default rules) at 656012dc80, in a
+# full (non-partial) clone, the way the workflow checks out.
+# Mostly docs examples and test fixtures. If any are live credentials, they
+# have been public since they were committed: the fix is to rotate them, not to
+# edit this number. Change it only in a PR that says why it moved.
+131

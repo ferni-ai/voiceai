@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   callerPauses,
   callsOfEntries,
@@ -10,7 +10,10 @@ import {
 
 const START = 1_791_700_000_000;
 const SESSION = `session-AJ_tt-${START}`;
-const OWNER = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
+// A fictional owner, set through the same env review-calls.mjs reads.
+const OWNER = 'testOwnerUid0000000000000000';
+beforeEach(() => vi.stubEnv('REVIEW_OWNER_UID', OWNER));
+afterEach(() => vi.unstubAllEnvs());
 
 type Line = Record<string, unknown>;
 const at = (dt: number, msg: string, extra: Line = {}): Line => ({
