@@ -14,6 +14,7 @@ vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
+import { holdCrisisFace, releaseCrisisFace } from '../../../src/ui/face/crisis-face-hold.js';
 import {
   AVATAR_TURN_EVENT,
   BLINK_KEYFRAMES,
@@ -228,5 +229,59 @@ describe('flags', () => {
     turn('thinking');
     document.dispatchEvent(new Event('ferni:disconnected'));
     expect(played.every((p) => p.animation.cancelled)).toBe(true);
+  });
+});
+
+describe('crisis hold (the body holds still, fe 2026-11-11)', () => {
+  /** The production targets: Ferni's body, eyes and breathing container in the page. */
+  function mountAvatar(): void {
+    document.body.innerHTML =
+      '<div class="avatar-container"><div id="coachAvatar"></div><div id="avatarEyes"></div></div>';
+    for (const [id, target] of [
+      ['coachAvatar', 'body'],
+      ['avatarEyes', 'eyes'],
+    ] as const) {
+      Object.defineProperty(document.getElementById(id), 'animate', {
+        value: (keyframes: Keyframe[], options: KeyframeAnimationOptions) => {
+          const animation = new FakeAnimation();
+          played.push({ target, keyframes, options, animation });
+          return animation;
+        },
+      });
+    }
+    Object.defineProperty(document.querySelector('.avatar-container'), 'getAnimations', {
+      value: () => [breathing],
+    });
+  }
+
+  function aFewTurns(): void {
+    turn('speaking');
+    turn('none');
+    turn('thinking');
+    turn('speaking');
+    turn('none');
+  }
+
+  beforeEach(() => {
+    localStorage.setItem(MOTION_FLAG_KEYS.turnGestures, 'true');
+    mountAvatar();
+  });
+  afterEach(() => {
+    releaseCrisisFace();
+    document.body.innerHTML = '';
+  });
+
+  it('control, not held: turn changes move the body and eyes', () => {
+    expect(initTurnGestures(true)).toBe(true);
+    aFewTurns();
+    expect(played.length).toBeGreaterThan(0);
+  });
+
+  it('held: 0 gesture animations, and the breath keeps its pace', () => {
+    expect(initTurnGestures(true)).toBe(true);
+    holdCrisisFace();
+    aFewTurns();
+    expect(played).toHaveLength(0);
+    expect(breathing.playbackRate).toBe(1);
   });
 });

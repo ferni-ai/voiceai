@@ -4,17 +4,18 @@
  * Two things stop motion:
  * - prefers-reduced-motion stops every kind below;
  * - the crisis face hold (ui/face/crisis-face-hold.ts) stops every kind except
- *   the calm blink. fe ruled on 2026-11-11 that a dead-still face reads as
- *   frozen or broken, which is worse for someone in crisis than calm motion,
- *   so during the hold Ferni still blinks at a calm pace, keeps his eyes
- *   steady on the caller and nods gently, and nothing else moves.
+ *   the calm blink and the protective lean. fe ruled on 2026-11-11 that a
+ *   dead-still face reads as frozen or broken, which is worse for someone in
+ *   crisis than calm motion, so during the hold Ferni still blinks at a calm
+ *   pace, keeps his eyes steady on the caller and nods gently. Seth added on
+ *   2026-11-12 that he may lean in once, slowly (protective-lean.ts).
  *
- * The hold covers all of Ferni's motion, not only the delight switches. Each
- * motion source asks `avatarMotionAllowed(kind)` at its own call site, right
- * before it moves, so a hold that starts mid-call stops it at the next frame
- * or cue. New motion (the expressive eyes' lid and brow motion, say) should
- * pick the closest kind here or add one, not read the hold itself. Only the
- * admin preview buttons move the avatar without asking.
+ * The sources that ask, each at its own call site right before it moves (so a
+ * hold that starts mid-call stops them at the next frame or cue), are the ones
+ * named under each kind below. This is not every animation on the page: other
+ * motion has its own checks or none. New motion (the expressive eyes' lid and
+ * brow motion, say) should pick the closest kind here or add one, not read the
+ * hold itself.
  *
  * @module ui/avatar-motion/motion-allowed
  */
@@ -22,11 +23,11 @@
 import { isCrisisFaceHeld } from '../face/crisis-face-hold.js';
 
 export type AvatarMotionKind =
-  /** A plain blink at a calm pace. The only kind the crisis hold allows. */
+  /** A plain natural blink at a calm pace. Allowed while held. */
   | 'blink'
-  /** Double blinks, blinks cued by turn changes, and the persona's quicker blink pace. */
+  /** Natural blink's doubles, blinks cued by turn changes, and the persona's quicker pace. */
   | 'blinkFlourish'
-  /** The body settling after a blink. */
+  /** The body settling after a natural blink. */
   | 'bodyDip'
   /**
    * Saccades, look-aways and following the pointer: the gaze switch's eyes and
@@ -39,17 +40,23 @@ export type AvatarMotionKind =
    * superhuman observation's glance.
    */
   | 'thinkingLook'
-  /** Head beats on stressed syllables. */
+  /** Speech beats: head beats on stressed syllables. */
   | 'speechBeat'
-  /** The lids opening with the voice. */
+  /** The speaking system's lids opening with the voice. */
   | 'lidVoice'
-  /** Nods above the gentlest amplitude, and the body kick that goes with them. */
+  /** Listen nods above the gentlest amplitude, and the spring body's nod kick. */
   | 'fullNod'
-  /** A smile in answer to Ferni's own laugh. */
-  | 'smile';
+  /** A smile in answer to Ferni's own laugh, and the spring body's laugh kick. */
+  | 'smile'
+  /** The body moving with a turn change: turn gestures and the spring body's turn moves. */
+  | 'bodyTurn'
+  /** Protective mode's lean-in. Allowed while held, once and slowly (protective-lean.ts). */
+  | 'drawCloser'
+  /** Protective mode's comfort pulse: rings growing outward around the avatar. */
+  | 'comfortPulse';
 
 /** The kinds that still play while the crisis face is held. */
-const CALM_DURING_HOLD: ReadonlySet<AvatarMotionKind> = new Set(['blink']);
+const CALM_DURING_HOLD: ReadonlySet<AvatarMotionKind> = new Set(['blink', 'drawCloser']);
 
 function prefersReducedMotion(): boolean {
   return (

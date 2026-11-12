@@ -14,10 +14,12 @@ vi.mock('../../../src/utils/logger.js', () => ({
 }));
 
 import { addTransformLayer } from '../../../src/ui/avatar-motion/compositor.js';
+import { holdCrisisFace, releaseCrisisFace } from '../../../src/ui/face/crisis-face-hold.js';
 import {
   SPRING_BODY_TURN_EVENT,
   disposeSpringBody,
   initSpringBody,
+  springBody,
   springTurnFrom,
 } from '../../../src/ui/avatar-motion/spring-body.js';
 
@@ -151,6 +153,7 @@ describe('spring body on the compositor layer', () => {
   });
   afterEach(() => {
     disposeSpringBody();
+    releaseCrisisFace();
     localStorage.clear();
   });
 
@@ -177,5 +180,32 @@ describe('spring body on the compositor layer', () => {
     expect(body.list.at(-1)?.effect.composite).toBe('add');
     expect(body.list.filter((a) => a.effect.composite === 'add')).toHaveLength(1);
     expect(body.el.style.transform).toBe('');
+  });
+
+  describe('crisis hold (the body holds still, fe 2026-11-11)', () => {
+    const someTurns = (): void => {
+      for (const speaker of ['listening', 'speaking', 'thinking', 'idle']) turn(speaker);
+    };
+
+    it('control, not held: turns and kicks move the body', async () => {
+      localStorage.setItem(MOTION_FLAG_KEYS.springBody, 'true');
+      expect(initSpringBody()).toBe(true);
+      someTurns();
+      springBody.kick('nod');
+      springBody.kick('laugh');
+      await settle(120);
+      expect(body.animate.mock.calls.length).toBeGreaterThan(0);
+    });
+
+    it('held: turn moves and kicks move nothing', async () => {
+      localStorage.setItem(MOTION_FLAG_KEYS.springBody, 'true');
+      expect(initSpringBody()).toBe(true);
+      holdCrisisFace();
+      someTurns();
+      springBody.kick('nod');
+      springBody.kick('laugh');
+      await settle(120);
+      expect(body.animate).not.toHaveBeenCalled();
+    });
   });
 });

@@ -15,6 +15,7 @@
 import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { addTransformLayer, type TransformLayer } from './compositor.js';
+import { avatarMotionAllowed } from './motion-allowed.js';
 import {
   MAX_DEFORMATION,
   isAtRest,
@@ -36,6 +37,8 @@ export interface SpringBodyDeps {
   body: Element;
   eyes: Element | null;
   reducedMotion(): boolean;
+  /** True while the body must stay still (the crisis hold): no turns, no kicks. */
+  steady?(): boolean;
   now(): number;
   raf(cb: () => void): number;
   caf(id: number): void;
@@ -201,9 +204,10 @@ export function createSpringBody(deps: SpringBodyDeps): SpringBody {
 
   return {
     turn(t) {
-      if (!deps.reducedMotion()) play(TURN_MOVES[t]);
+      if (!deps.reducedMotion() && !deps.steady?.()) play(TURN_MOVES[t]);
     },
     kick(k) {
+      if (deps.steady?.()) return;
       if (deps.reducedMotion()) pulse();
       else play(KICK_MOVES[k]);
     },
@@ -270,6 +274,7 @@ export function initSpringBody(): boolean {
     body,
     eyes: body.querySelector('.avatar-eyes'),
     reducedMotion: prefersReducedMotion,
+    steady: () => !avatarMotionAllowed('bodyTurn'),
     now: () => performance.now(),
     raf: (cb) => requestAnimationFrame(cb),
     caf: (id) => cancelAnimationFrame(id),
