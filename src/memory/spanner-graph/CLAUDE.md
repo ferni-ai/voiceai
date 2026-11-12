@@ -95,23 +95,13 @@ await insertRelationship({
 ### Graph Queries
 
 ```typescript
-import { 
-  getEntityWithFacts, 
-  getEntityRelationships, 
-  getExtendedNetwork 
-} from './spanner-graph';
+import { getImportantPeople, findEntitiesWithFactPattern } from './spanner-graph';
 
-// Get Mike with all facts
-const mike = await getEntityWithFacts(userId, 'Mike');
-// { name: 'Mike', entityType: 'person', facts: [{ key: 'job', value: 'engineer' }] }
+// The people who matter most to the caller
+const people = await getImportantPeople(userId);
 
-// Get Mike's relationships
-const relationships = await getEntityRelationships(userId, 'Mike');
-// [{ source: 'Mike', relationship: 'brother_of', target: 'User' }]
-
-// Get Mike's extended network (friends of friends)
-const network = await getExtendedNetwork(userId, 'Mike', 2);
-// [{ path: [...], depth: 2 }]
+// People with a matching fact, e.g. everyone the caller is worried about
+const worried = await findEntitiesWithFactPattern(userId, 'feeling', 'worried');
 ```
 
 ## GQL Query Examples

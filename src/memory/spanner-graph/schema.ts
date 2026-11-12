@@ -258,12 +258,6 @@ export interface EntityWithFacts extends GraphEntity {
   facts: GraphFact[];
 }
 
-export interface RelationshipResult {
-  source: GraphEntity;
-  relationship: GraphRelationship;
-  target: GraphEntity;
-}
-
 // ============================================================================
 // MEMORY CONTINUITY TYPES (Phase 1)
 // ============================================================================

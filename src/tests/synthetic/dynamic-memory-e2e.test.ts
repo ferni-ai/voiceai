@@ -1180,22 +1180,6 @@ describe('Firestore-Spanner Sync Service', () => {
       expect(typeof sync.runSyncCycle).toBe('function');
       expect(typeof sync.getSyncStats).toBe('function');
       expect(typeof sync.isSyncServiceRunning).toBe('function');
-      expect(typeof sync.configureSyncService).toBe('function');
-    });
-
-    it('should allow configuration of sync parameters', async () => {
-      const { configureSyncService } =
-        await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      // Should not throw
-      expect(() => {
-        configureSyncService({
-          minAgeMs: 12 * 60 * 60 * 1000, // 12 hours
-          minImportanceScore: 0.6,
-          batchSize: 25,
-          enabled: true,
-        });
-      }).not.toThrow();
     });
 
     it('should track sync statistics', async () => {
@@ -1213,11 +1197,7 @@ describe('Firestore-Spanner Sync Service', () => {
 
   describe('Sync Cycle', () => {
     it('should handle missing Firestore gracefully', async () => {
-      const { runSyncCycle, configureSyncService } =
-        await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      // Disable for test
-      configureSyncService({ enabled: false });
+      const { runSyncCycle } = await import('../../memory/dynamic/firestore-spanner-sync.js');
 
       const result = await runSyncCycle();
 

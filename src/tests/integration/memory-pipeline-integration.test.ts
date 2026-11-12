@@ -6,10 +6,8 @@
  *
  * These tests validate the complete integration of:
  * - UnifiedStore with all adapters
- * - SpannerAdapter graph operations
  * - Associative Cortex with SpannerMemoryGraph
  * - Memory Intelligence learning persistence
- * - Real-time sync for high-importance memories
  *
  * @module tests/integration/memory-pipeline-integration
  */
@@ -64,26 +62,19 @@ const mockUpsertEntity = vi.fn().mockResolvedValue(undefined);
 const mockInsertFact = vi.fn().mockResolvedValue(undefined);
 const mockInsertRelationship = vi.fn().mockResolvedValue(undefined);
 const mockGetEntitiesByUser = vi.fn().mockResolvedValue([]);
-const mockGetEntityByName = vi.fn().mockResolvedValue(null);
 
 vi.mock('../../memory/spanner-graph/client.js', () => ({
   isSpannerReady: () => mockSpannerReady(),
   initializeSpanner: vi.fn().mockResolvedValue(true),
-  closeSpanner: vi.fn().mockResolvedValue(undefined),
   upsertEntity: (...args: unknown[]) => mockUpsertEntity(...args),
   insertFact: (...args: unknown[]) => mockInsertFact(...args),
   insertRelationship: (...args: unknown[]) => mockInsertRelationship(...args),
   getEntitiesByUser: (...args: unknown[]) => mockGetEntitiesByUser(...args),
-  getEntityByName: (...args: unknown[]) => mockGetEntityByName(...args),
   getMemoryThreadsByUser: vi.fn().mockResolvedValue([]),
   getMemoryAnchorsByUser: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../../memory/spanner-graph/queries.js', () => ({
-  getEntityWithFacts: vi.fn().mockResolvedValue(null),
-  getEntityRelationships: vi.fn().mockResolvedValue([]),
-  getExtendedNetwork: vi.fn().mockResolvedValue([]),
-  getEntityContext: vi.fn().mockResolvedValue(null),
   classifyFactDomain: vi.fn().mockReturnValue('general'),
 }));
 
@@ -212,112 +203,6 @@ describe('Memory Pipeline Integration', () => {
     });
   });
 
-  describe('SpannerAdapter Operations', () => {
-    it('should store entities to Spanner', async () => {
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
-      const adapter = new SpannerAdapter();
-      await adapter.initialize();
-
-      await adapter.storeEntity({
-        entityId: 'test-entity-1',
-        userId: TEST_USER_ID,
-        name: 'Sarah',
-        entityType: 'person',
-        attributes: {},
-        importance: 0.8,
-        firstMentioned: new Date(),
-        lastMentioned: new Date(),
-        mentionCount: 1,
-      });
-
-      expect(mockUpsertEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
-          entityId: 'test-entity-1',
-          name: 'Sarah',
-          entityType: 'person',
-        })
-      );
-
-      await adapter.shutdown();
-    });
-
-    it('should store facts to Spanner', async () => {
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
-      const adapter = new SpannerAdapter();
-      await adapter.initialize();
-
-      await adapter.storeFact({
-        factId: 'test-fact-1',
-        userId: TEST_USER_ID,
-        factType: 'attribute',
-        key: 'job',
-        value: 'Software Engineer',
-        confidence: 0.9,
-        extractedAt: new Date(),
-      });
-
-      expect(mockInsertFact).toHaveBeenCalledWith(
-        expect.objectContaining({
-          factId: 'test-fact-1',
-          key: 'job',
-          value: 'Software Engineer',
-        })
-      );
-
-      await adapter.shutdown();
-    });
-
-    it('should store relationships to Spanner', async () => {
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
-      const adapter = new SpannerAdapter();
-      await adapter.initialize();
-
-      await adapter.storeRelationship({
-        relationshipId: 'test-rel-1',
-        userId: TEST_USER_ID,
-        sourceEntityId: 'entity-mike',
-        targetEntityId: 'entity-sarah',
-        relationshipType: 'dating',
-        strength: 0.8,
-        bidirectional: true,
-      });
-
-      expect(mockInsertRelationship).toHaveBeenCalledWith(
-        expect.objectContaining({
-          relationshipId: 'test-rel-1',
-          relationshipType: 'dating',
-        })
-      );
-
-      await adapter.shutdown();
-    });
-
-    it('should skip writes when Spanner unavailable', async () => {
-      mockSpannerReady.mockReturnValue(false);
-
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
-      const adapter = new SpannerAdapter();
-      await adapter.initialize();
-
-      await adapter.storeEntity({
-        entityId: 'test-entity-1',
-        userId: TEST_USER_ID,
-        name: 'Test',
-        entityType: 'person',
-        attributes: {},
-        importance: 0.5,
-        firstMentioned: new Date(),
-        lastMentioned: new Date(),
-        mentionCount: 1,
-      });
-
-      // Should not have called Spanner
-      expect(mockUpsertEntity).not.toHaveBeenCalled();
-
-      await adapter.shutdown();
-    });
-  });
-
   // RETIRED 2026-09-20: memory/associative-cortex/cortex.ts no longer exists and
   // getAssociativeCortex()/resetAssociativeCortex() have no equivalent. Spreading
   // activation now lives in memory/retrieval/spreading-activation.ts, which has a
@@ -396,67 +281,6 @@ describe('Memory Pipeline Integration', () => {
       expect(stats).toBeDefined();
       expect(stats.totalSurfacings).toBeDefined();
       expect(stats.averageEngagementRate).toBeDefined();
-    });
-  });
-
-  describe('Real-Time Sync for High-Importance Memories', () => {
-    it('should identify high-importance memories for immediate sync', async () => {
-      const { shouldSyncImmediately } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
-
-      // High emotional weight
-      expect(shouldSyncImmediately({ emotionalWeight: 0.8 })).toBe(true);
-
-      // Many people mentioned
-      expect(shouldSyncImmediately({ peopleMentioned: ['A', 'B', 'C'] })).toBe(true);
-
-      // Graph-benefit type
-      expect(shouldSyncImmediately({ type: 'relationship' })).toBe(true);
-      expect(shouldSyncImmediately({ type: 'commitment' })).toBe(true);
-
-      // Low importance
-      expect(shouldSyncImmediately({ emotionalWeight: 0.2 })).toBe(false);
-    });
-
-    it('should sync high-importance memory immediately', async () => {
-      const { syncMemoryImmediately } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
-
-      const memory = {
-        id: 'test-mem-1',
-        userId: TEST_USER_ID,
-        content: 'Sarah got promoted!',
-        type: 'milestone',
-        emotionalWeight: 0.9,
-        peopleMentioned: ['Sarah'],
-        topics: ['career'],
-        createdAt: new Date(),
-      };
-
-      const result = await syncMemoryImmediately(memory);
-
-      // When Spanner is available, sync should succeed
-      expect(result).toBe(true);
-      expect(mockUpsertEntity).toHaveBeenCalled();
-    });
-
-    it('should queue medium-importance memories for priority sync', async () => {
-      const { queueForPrioritySync, getPrioritySyncQueue, clearPrioritySyncQueue } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
-
-      clearPrioritySyncQueue();
-
-      queueForPrioritySync('mem-1');
-      queueForPrioritySync('mem-2');
-
-      const queue = getPrioritySyncQueue();
-      expect(queue.size).toBe(2);
-      expect(queue.has('mem-1')).toBe(true);
-
-      clearPrioritySyncQueue();
     });
   });
 
@@ -541,36 +365,6 @@ describe('Memory Pipeline Integration', () => {
   });
 
   describe('Error Handling and Resilience', () => {
-    it('should continue operation when Spanner fails', async () => {
-      mockSpannerReady.mockReturnValue(true);
-      mockUpsertEntity.mockRejectedValueOnce(new Error('Spanner error'));
-
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
-      const adapter = new SpannerAdapter();
-      await adapter.initialize();
-
-      // Should not throw
-      await expect(
-        adapter.storeEntity({
-          entityId: 'test-entity-1',
-          userId: TEST_USER_ID,
-          name: 'Test',
-          entityType: 'person',
-          attributes: {},
-          importance: 0.5,
-          firstMentioned: new Date(),
-          lastMentioned: new Date(),
-          mentionCount: 1,
-        })
-      ).rejects.toThrow('Spanner error');
-
-      // Health should reflect the error
-      const health = await adapter.health();
-      expect(health.lastError).toBeDefined();
-
-      await adapter.shutdown();
-    });
-
     it('should handle partial adapter failures gracefully', async () => {
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
 

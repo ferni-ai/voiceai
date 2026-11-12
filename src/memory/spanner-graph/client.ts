@@ -334,49 +334,6 @@ export async function getEntitiesByUser(
   }
 }
 
-/**
- * Get an entity by name
- */
-export async function getEntityByName(userId: string, name: string): Promise<GraphEntity | null> {
-  if (!isSpannerReady()) return null;
-
-  const db = getDatabase();
-
-  try {
-    const [rows] = await db.run({
-      sql: `
-        SELECT entity_id, user_id, name, entity_type, attributes, importance,
-               first_mentioned, last_mentioned, mention_count, created_at, updated_at
-        FROM entities
-        WHERE user_id = @userId AND LOWER(name) = LOWER(@name)
-        LIMIT 1
-      `,
-      params: { userId, name },
-    });
-
-    if (rows.length === 0) return null;
-
-    const json = rows[0].toJSON() as Record<string, unknown>;
-    return {
-      entityId: json.entity_id as string,
-      userId: json.user_id as string,
-      name: json.name as string,
-      entityType: json.entity_type as GraphEntity['entityType'],
-      attributes:
-        typeof json.attributes === 'string' ? JSON.parse(json.attributes) : json.attributes || {},
-      importance: json.importance as number,
-      firstMentioned: new Date(json.first_mentioned as string),
-      lastMentioned: new Date(json.last_mentioned as string),
-      mentionCount: json.mention_count as number,
-      createdAt: new Date(json.created_at as string),
-      updatedAt: new Date(json.updated_at as string),
-    };
-  } catch (error) {
-    log.warn({ error: String(error), userId, name }, 'Failed to get entity by name');
-    return null;
-  }
-}
-
 // ============================================================================
 // MEMORY THREAD OPERATIONS
 // ============================================================================
@@ -518,17 +475,3 @@ export async function markAnchorRecalled(userId: string, anchorId: string): Prom
 // ============================================================================
 // CLEANUP
 // ============================================================================
-
-/** Close Spanner connections. Spanner 9's close() is async, so a failed close rejects here. */
-export async function closeSpanner(): Promise<void> {
-  if (databaseInstance) {
-    await databaseInstance.close();
-    databaseInstance = null;
-  }
-  if (spannerInstance) {
-    await spannerInstance.close();
-    spannerInstance = null;
-  }
-  initialized = false;
-  log.debug('Spanner connections closed');
-}

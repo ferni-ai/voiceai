@@ -47,15 +47,8 @@ const DEFAULT_CONFIG: SyncConfig = {
   enabled: true,
 };
 
-let config = { ...DEFAULT_CONFIG };
+const config = { ...DEFAULT_CONFIG };
 let syncInterval: NodeJS.Timeout | null = null;
-
-/**
- * Configure sync behavior
- */
-export function configureSyncService(newConfig: Partial<SyncConfig>): void {
-  config = { ...config, ...newConfig };
-}
 
 // ============================================================================
 // SYNC TYPES
@@ -489,11 +482,6 @@ export function isSyncServiceRunning(): boolean {
 // ============================================================================
 
 /**
- * Threshold for high-importance immediate sync
- */
-const HIGH_IMPORTANCE_THRESHOLD = 0.75;
-
-/**
  * Threshold for medium-importance priority sync
  */
 const MEDIUM_IMPORTANCE_THRESHOLD = 0.5;
@@ -507,7 +495,7 @@ const MEDIUM_IMPORTANCE_THRESHOLD = 0.5;
  * @param memory The memory to sync
  * @returns true if sync was successful
  */
-export async function syncMemoryImmediately(memory: {
+async function syncMemoryImmediately(memory: {
   id: string;
   userId: string;
   content: string;
@@ -563,66 +551,7 @@ export async function syncMemoryImmediately(memory: {
   }
 }
 
-/**
- * Determine if a memory should be synced immediately
- */
-export function shouldSyncImmediately(memory: {
-  emotionalWeight?: number;
-  strength?: number;
-  peopleMentioned?: string[];
-  type?: string;
-}): boolean {
-  // Check importance threshold
-  const importance = memory.emotionalWeight || memory.strength || 0;
-  if (importance >= HIGH_IMPORTANCE_THRESHOLD) {
-    return true;
-  }
-
-  // Check if it mentions important people (3+ is significant network)
-  if ((memory.peopleMentioned?.length || 0) >= 3) {
-    return true;
-  }
-
-  // Check for specific types that benefit from graph queries
-  const graphBenefitTypes = ['relationship', 'milestone', 'commitment', 'breakthrough'];
-  if (memory.type && graphBenefitTypes.includes(memory.type)) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Queue a memory for priority sync (not immediate, but faster than 6h)
- * These get synced on next batch or within 30 minutes
- */
-const MAX_PRIORITY_QUEUE_SIZE = 5000;
 const prioritySyncQueue: Map<string, Date> = new Map();
-
-export function queueForPrioritySync(memoryId: string): void {
-  // Evict oldest entries when queue is full
-  if (prioritySyncQueue.size >= MAX_PRIORITY_QUEUE_SIZE) {
-    const oldestKey = prioritySyncQueue.keys().next().value;
-    if (oldestKey) {
-      prioritySyncQueue.delete(oldestKey);
-      log.warn(
-        { evictedId: oldestKey, queueSize: MAX_PRIORITY_QUEUE_SIZE },
-        'Priority sync queue full, evicting oldest entry'
-      );
-    }
-  }
-
-  prioritySyncQueue.set(memoryId, new Date());
-  log.debug({ memoryId, queueSize: prioritySyncQueue.size }, 'Queued for priority sync');
-}
-
-export function getPrioritySyncQueue(): Map<string, Date> {
-  return new Map(prioritySyncQueue);
-}
-
-export function clearPrioritySyncQueue(): void {
-  prioritySyncQueue.clear();
-}
 
 /**
  * Process priority sync queue (call this more frequently than batch sync)

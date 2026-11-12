@@ -10,16 +10,13 @@
  *
  * Usage:
  * ```typescript
- * import { initializeSpanner, getEntityWithFacts, getEntityRelationships } from './spanner-graph';
+ * import { initializeSpanner, getImportantPeople } from './spanner-graph';
  *
  * // At startup
  * await initializeSpanner();
  *
- * // Query entity with all facts
- * const mike = await getEntityWithFacts(userId, 'Mike');
- *
- * // Get Mike's relationship network
- * const relationships = await getEntityRelationships(userId, 'Mike');
+ * // The people who matter most to the caller
+ * const people = await getImportantPeople(userId);
  * ```
  *
  * @see docs/architecture/DYNAMIC-MEMORY-ARCHITECTURE.md
@@ -31,30 +28,19 @@ export {
   SPANNER_CONFIG,
   TABLE_DDL,
   GRAPH_DDL,
-  type GraphEntity,
-  type GraphFact,
   type GraphRelationship,
   type EntityWithFacts,
-  type RelationshipResult,
   // Memory continuity types
   type MemoryThread,
   type MemoryAnchor,
   type MemoryAnchorType,
-  // Fact domain type
-  type FactDomain,
 } from './schema.js';
 
 // Client operations
 export {
   initializeSpanner,
   isSpannerReady,
-  upsertEntity,
-  insertFact,
-  insertRelationship,
   linkFactToEntity,
-  getEntitiesByUser,
-  getEntityByName,
-  closeSpanner,
   // Memory thread operations
   getMemoryThreadsByUser,
   // Memory anchor operations
@@ -64,16 +50,8 @@ export {
 
 // Graph queries
 export {
-  getEntityWithFacts,
-  getEntityRelationships,
-  getExtendedNetwork,
   findEntitiesWithFactPattern,
   getImportantPeople,
-  // Entity context queries (for "Better than Human" recall)
-  getEntityContext,
-  getRelationshipContext,
-  searchFactsAboutEntity,
-  type EntityContext,
   // Domain classification
   classifyFactDomain,
 } from './queries.js';
