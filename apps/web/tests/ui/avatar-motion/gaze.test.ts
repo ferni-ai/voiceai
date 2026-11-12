@@ -288,3 +288,93 @@ describe('initGaze (DOM)', () => {
     expect(eyes()?.style.getPropertyValue('--eye-offset-x')).toBe('');
   });
 });
+
+describe('while the crisis face is held (fe 2026-11-11: gaze steady on the caller)', () => {
+  it('policy: every phase looks at the user, with 0 saccades and 0 look-aways scheduled', () => {
+    const h = harness([0.1]);
+    const gaze = createGaze({ ...h.deps, steady: () => true });
+    for (const phase of ['speaking', 'listening', 'thinking', 'idle', 'speaking'] as const) {
+      gaze.setPhase(phase);
+      expect(h.last()).toEqual(AT_USER);
+      expect(h.pending()).toBe(0);
+    }
+    gaze.setPointerBias({ x: 3, y: 0 });
+    expect(h.looks.every((p) => p.x === 0 && p.y === 0)).toBe(true);
+  });
+
+  it('policy: a hold that starts mid-glance brings the eyes back and stops the saccades', () => {
+    const h = harness([0.1]);
+    let held = false;
+    const gaze = createGaze({ ...h.deps, steady: () => held });
+    gaze.setPhase('speaking');
+    expect(h.last()).toEqual(LOOK_AWAY);
+    held = true;
+    gaze.refresh();
+    expect(h.last()).toEqual(AT_USER);
+    expect(h.pending()).toBe(0);
+  });
+
+  describe('initGaze with the real hold', () => {
+    const offset = (): string =>
+      `${document.getElementById('avatarEyes')?.style.getPropertyValue('--eye-offset-x')},${document.getElementById('avatarEyes')?.style.getPropertyValue('--eye-offset-y')}`;
+    const turnTo = (speaker: string): boolean =>
+      window.dispatchEvent(new CustomEvent(AVATAR_TURN_EVENT, { detail: { speaker } }));
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      document.body.innerHTML =
+        '<div class="avatar-container"><div id="coachAvatar"><svg id="avatarEyes" class="avatar-eyes"></svg></div></div>';
+      vi.spyOn(Math, 'random').mockReturnValue(0.1); // always glance away at turn start
+      localStorage.setItem(MOTION_FLAG_KEYS.gaze, 'true');
+    });
+
+    afterEach(async () => {
+      disposeGaze();
+      (await import('../../../src/ui/face/crisis-face-hold.js')).releaseCrisisFace();
+      localStorage.removeItem(MOTION_FLAG_KEYS.gaze);
+      document.getElementById('avatar-gaze-styles')?.remove();
+      vi.restoreAllMocks();
+      vi.useRealTimers();
+    });
+
+    /** Every offset the eyes show over a call: speaking, listening, thinking, 30 s. */
+    function walk(): Set<string> {
+      const seen = new Set<string>();
+      for (const speaker of ['ferni', 'user', 'thinking', 'ferni', 'none']) {
+        turnTo(speaker);
+        seen.add(offset());
+        for (let t = 0; t < 6000; t += 100) {
+          vi.advanceTimersByTime(100);
+          seen.add(offset());
+        }
+      }
+      return seen;
+    }
+
+    it('control, no hold: the eyes look away, think up and right, and saccade', () => {
+      initGaze();
+      const seen = walk();
+      expect(seen).toContain(`${LOOK_AWAY.x}px,${LOOK_AWAY.y}px`);
+      expect(seen).toContain(`${THINKING_GAZE.x}px,${THINKING_GAZE.y}px`);
+      expect(seen.size).toBeGreaterThan(3);
+    });
+
+    it('held: the eyes stay on the user for the whole call (0 saccades, 0 look-aways)', async () => {
+      const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+      initGaze();
+      crisis.holdCrisisFace();
+      expect([...walk()]).toEqual(['0px,0px']);
+    });
+
+    it('a hold that starts mid look-away brings the eyes straight back', async () => {
+      const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+      initGaze();
+      turnTo('ferni');
+      expect(offset()).toBe(`${LOOK_AWAY.x}px,${LOOK_AWAY.y}px`);
+      crisis.holdCrisisFace();
+      expect(offset()).toBe('0px,0px');
+      vi.advanceTimersByTime(10_000);
+      expect(offset()).toBe('0px,0px');
+    });
+  });
+});

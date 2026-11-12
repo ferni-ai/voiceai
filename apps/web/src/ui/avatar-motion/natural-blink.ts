@@ -15,7 +15,9 @@
  * - the 6 s CSS idle blink loop and presence's whole-body "zen blink" stand
  *   down, so there is one blink and it never squashes the body.
  * Nothing blinks under prefers-reduced-motion or in deep sleep, and the
- * scheduler pauses while the tab is hidden.
+ * scheduler pauses while the tab is hidden. While the crisis face is held the
+ * blink stays but calms down (motion-allowed.ts): plain blinks at
+ * CALM_BLINK_PACE or slower, no doubles, no cued blinks and no body dip.
  *
  * Avatar audit item 3, "Natural blink scheduler" (W13); motion audit P5.
  *
@@ -27,6 +29,7 @@ import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { gsap } from '../../utils/gsap-setup.js';
 import { createLogger } from '../../utils/logger.js';
 import { createBlinkScheduler, type BlinkScheduler, type BlinkWeight } from './blink-scheduler.js';
+import { avatarMotionAllowed } from './motion-allowed.js';
 import { activePersonaIdle } from './persona-idle.js';
 
 const log = createLogger('NaturalBlink');
@@ -105,6 +108,12 @@ export const BODY_DIP_FRAMES: readonly Keyframe[] = [
   { translate: '0px 0px' },
 ];
 
+/**
+ * During the crisis hold the gap between blinks is at least this multiple of
+ * the base gap: about 8 blinks a minute instead of about 16, slow and calm.
+ */
+export const CALM_BLINK_PACE = 2;
+
 /** Moods that make the lids heavy (`#coach[data-emotion]`). */
 const HEAVY_EMOTIONS: ReadonlySet<string> = new Set(['sad', 'tired', 'sleepy']);
 
@@ -119,13 +128,6 @@ export const NATURAL_BLINK_CSS = `
 
 export function isNaturalBlinkEnabled(): boolean {
   return isMotionFlagOn('naturalBlink');
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
 }
 
 /** Late at night (23:00-05:00 local), lids are heavier. */
@@ -151,12 +153,14 @@ export function drawBlink(weight: BlinkWeight): number {
   }
   // `translate` with `add` stacks on the breath (transform) and any parallax offset.
   const body = document.getElementById('coachAvatar');
-  if (typeof body?.animate === 'function') body.animate([...BODY_DIP_FRAMES], BODY_DIP_TIMING);
+  if (typeof body?.animate === 'function' && avatarMotionAllowed('bodyDip')) {
+    body.animate([...BODY_DIP_FRAMES], BODY_DIP_TIMING);
+  }
   return timing.duration;
 }
 
 function canBlink(): boolean {
-  if (prefersReducedMotion()) return false;
+  if (!avatarMotionAllowed('blink')) return false;
   if (coach()?.classList.contains('deep-sleep-mode')) return false;
   return eyes().length > 0;
 }
@@ -219,7 +223,11 @@ export function initNaturalBlink(): boolean {
     canBlink,
     heavy: isHeavy,
     busy: expressionChanging,
-    pace: () => activePersonaIdle().blinkPace,
+    pace: () => {
+      const pace = activePersonaIdle().blinkPace;
+      return avatarMotionAllowed('blinkFlourish') ? pace : Math.max(pace, CALM_BLINK_PACE);
+    },
+    lively: () => avatarMotionAllowed('blinkFlourish'),
     random: Math.random,
     now: () => performance.now(),
     setTimer: (fn, ms) => setTimeout(fn, ms),
