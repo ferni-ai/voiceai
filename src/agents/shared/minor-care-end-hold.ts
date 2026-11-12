@@ -6,7 +6,7 @@
  * Only an age hold ends nothing: this session's (minorHeld), then a signed-in caller's account
  * hold (userAgeHeld, then the shared record, where an unreadable or late record means held). An
  * anonymous try-first caller has no account hold, and a sexual-topic hold (a data hold, not an
- * age one) doesn't keep a call open: both end as any call does, unless this session is held.
+ * age one) doesn't keep a call open: both end like any other call, unless this session is held.
  *
  * @module agents/shared/minor-care-end-hold
  */
