@@ -8,8 +8,9 @@
  * handler are joined here, with fictional calls.
  */
 import { voice } from '@livekit/agents';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handoffEvents } from '../../../handoff/index.js';
+import { AgentDirectory } from '../../../personas/agent-directory.js';
 import {
   executeHandoff,
   getCurrentAgent,
@@ -68,6 +69,11 @@ function callWhereSwapsDrop(dropped: string[], failsLate: string[] = []) {
   });
   return { settled: async () => void (await Promise.all(swaps)), onCall: () => current };
 }
+
+beforeAll(async () => {
+  // The alias table: until it is loaded every id reads as Ferni, so every id is "the same agent"
+  await AgentDirectory.getEntry('maya-santos');
+});
 
 beforeEach(() => {
   resetHandoffState();

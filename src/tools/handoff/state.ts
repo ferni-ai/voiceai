@@ -239,9 +239,7 @@ export function isCurrentAgent(agentId: string): boolean {
 // HANDOFF HISTORY
 // ============================================================================
 
-/**
- * Record a handoff in history (full record version)
- */
+/** Record a handoff in history (full record version) */
 export function recordHandoffRecord(record: HandoffRecord): void {
   handoffHistory.push(record);
   if (handoffHistory.length > MAX_HISTORY_LENGTH) {
@@ -476,7 +474,8 @@ export function logHandoffAnalytics(): void {
 // Mood detection state
 let lastUserMessageForMood = '';
 let lastEmotionAnalysisForMood:
-  { primary: string; intensity: number; distressLevel?: number } | undefined;
+  | { primary: string; intensity: number; distressLevel?: number }
+  | undefined;
 
 // Per-persona meeting counts (for "first time" vs "returning" entrances)
 let perPersonaMeetingCount = new Map<string, number>();
@@ -513,7 +512,8 @@ export function getLastUserMessage(): string {
  * Get the last emotion analysis (for mood detection)
  */
 export function getLastEmotionAnalysis():
-  { primary: string; intensity: number; distressLevel?: number } | undefined {
+  | { primary: string; intensity: number; distressLevel?: number }
+  | undefined {
   return lastEmotionAnalysisForMood;
 }
 
