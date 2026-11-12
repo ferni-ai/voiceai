@@ -5,6 +5,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createWrapUpTool, wrapUpCall, type WrapUpCall } from '../call-wrap-up.js';
+import { CRISIS_HOLD } from '../phone-goodbye.js';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { MINOR_CARE_HOLD } from '../minor-care-end-hold.js';
 import { clearFarewell, farewellSaid } from '../call-farewell.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
@@ -65,6 +67,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   resetMinorCare();
   resetSexualTopicHold();
+  resetCrisisCallRisk();
   setHoldStore(firestoreHoldStore);
 });
 
@@ -198,5 +201,49 @@ describe("the app's endCall tool for a care-held minor", () => {
     expect(await endCall(c.call)).toBeUndefined();
     await settle();
     expect(c.events).toEqual(['conversation_end', 'deleted']);
+  });
+});
+
+describe('minor-care ending hold: edges the ruling depends on', () => {
+  it('a try-first caller ends even when the hold record cannot be read', async () => {
+    setHoldStore({
+      heldUntil: async () => {
+        throw new Error('store down');
+      },
+      write: async () => {},
+    });
+    const c = appCall(TRY_FIRST);
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(true);
+    await settle();
+    expect(c.events).toEqual(['conversation_end', 'deleted']);
+  });
+
+  it("another live session of this caller's is held while the goodbye plays: held", async () => {
+    const c = appCall('eval-two-sessions');
+    bindSessionUser('wrap-minor-sibling', 'eval-two-sessions');
+    expect(
+      await wrapUpCall(c.call, 'goodbye_complete', async () => holdSession('wrap-minor-sibling'))
+    ).toBe(false);
+    await settle();
+    expect(c.events).toEqual([]);
+  });
+
+  it('a hold record that never answers holds within about a second, not later', async () => {
+    setHoldStore({ heldUntil: () => new Promise<never>(() => {}), write: async () => {} });
+    const c = appCall('eval-slow-store');
+    const started = Date.now();
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(false);
+    expect(Date.now() - started).toBeLessThan(1_500);
+  });
+
+  it('crisis wins over minor care: crisis during a held minor goodbye says CRISIS_HOLD', async () => {
+    const c = appCall('eval-crisis-and-minor');
+    holdSession(c.sessionId);
+    const out = await createWrapUpTool(c.call).execute({}, {
+      ctx: { waitForPlayout: async () => noteCrisisRisk(c.sessionId) },
+    } as never);
+    expect(out).toBe(CRISIS_HOLD);
+    await settle();
+    expect(c.events).toEqual([]);
   });
 });
