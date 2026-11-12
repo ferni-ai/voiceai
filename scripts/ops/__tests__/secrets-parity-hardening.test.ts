@@ -265,3 +265,80 @@ describe('the CLI reads the whole log backlog', () => {
     expect(out).toContain('Values differ (1): ARC_INSIGHT_ONCE (dev=on prod=off)');
   }, 30_000);
 });
+
+describe('round 2: fail closed on missing times and rolling restarts', () => {
+  it('cannot verify when the agent has secrets but lk gives no updatedAt', () => {
+    const fresh = snap('prod', ['X_FLAG'], [line(T0, 'hA', { X_FLAG: 'on' }, {})]);
+    expect(exitCode([], fresh, fresh)).toBe(0); // the same boot with a time is trusted
+    const prod = snap('prod', ['X_FLAG'], [line(T0, 'hA', { X_FLAG: 'on' }, {})], null);
+    expect(prod.problems.join()).toMatch(/no updatedAt/);
+    expect(exitCode([], prod, prod)).toBe(2);
+  });
+
+  it('gives no newest time when any one secret lacks updatedAt', () => {
+    const json = JSON.stringify({
+      secrets: [{ name: 'A', updatedAt: iso(T0) }, { name: 'B' }, { name: 'C', updatedAt: 'x' }],
+    });
+    expect(parseSecrets(json)).toEqual({ names: ['A', 'B', 'C'], newest: null });
+  });
+
+  it('needs no updatedAt from an agent with no secrets', () => {
+    const empty = snap('prod', [], [line(T0, 'hA', {}, {})], null);
+    expect(empty.problems).toEqual([]);
+  });
+
+  it('the CLI says CANNOT VERIFY, not CLEAN, when lk gives no updatedAt', () => {
+    const script = fileURLToPath(new URL('../secrets-parity.ts', import.meta.url));
+    const run = (secret: Record<string, string>) => {
+      const dir = mkdtempSync(join(tmpdir(), 'secrets-parity-fresh-'));
+      for (const side of ['dev', 'prod']) {
+        writeFileSync(join(dir, `${side}.secrets.json`), JSON.stringify({ secrets: [secret] }));
+        writeFileSync(join(dir, `${side}.logs.txt`), line(T0, 'h', {}, { SOME_KNOB: '<set>' }));
+      }
+      writeFileSync(join(dir, 'allow.json'), '{"keys":{"SOME_KNOB":"hidden in the log"}}');
+      const args = ['--import', 'tsx', script, '--fixtures', dir];
+      try {
+        const out = execFileSync(
+          process.execPath,
+          [...args, '--allowlist', join(dir, 'allow.json')],
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+        );
+        return { status: 0, out };
+      } catch (err) {
+        const e = err as { status: number; stdout: string };
+        return { status: e.status, out: e.stdout };
+      }
+    };
+    const dated = run({ name: 'SOME_KNOB', updatedAt: iso(T0 - 1000) });
+    expect(dated).toMatchObject({ status: 0 });
+    expect(dated.out).toContain('Result: CLEAN (exit 0)');
+    const undated = run({ name: 'SOME_KNOB' });
+    expect(undated.status).toBe(2);
+    expect(undated.out).toContain('no updatedAt');
+    expect(undated.out).toContain('Result: CANNOT VERIFY (exit 2)');
+  }, 30_000);
+
+  it('cannot verify while two boots with different settings log at once', () => {
+    const prod = snap(
+      'prod',
+      ['X_FLAG'],
+      [
+        line(T0, 'hA', { X_FLAG: 'on' }, {}, 1, 2),
+        line(T0 + 200, 'hB', { X_FLAG: 'off' }, {}, 1, 2),
+        line(T0 + 300, 'hA', {}, {}, 2, 2),
+        line(T0 + 400, 'hB', {}, {}, 2, 2),
+      ]
+    );
+    expect(prod.problems.join()).toMatch(/two boots/);
+    expect(exitCode([], prod, prod)).toBe(2);
+  });
+
+  it('trusts a boot that came well after the one before it', () => {
+    const prod = snap(
+      'prod',
+      ['X_FLAG'],
+      [line(T0, 'hA', { X_FLAG: 'on' }, {}), line(T0 + 3_600_000, 'hB', { X_FLAG: 'off' }, {})]
+    );
+    expect(prod.problems).toEqual([]);
+  });
+});

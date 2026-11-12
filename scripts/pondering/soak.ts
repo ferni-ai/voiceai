@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 /**
- * Pondering soak: runs the real pondering pass for allowlisted callers (Seth
- * and the voice-eval seed users) so its output can be read before PONDERING
- * goes on anywhere. Dry run by default: it prints what would be stored and
- * writes nothing.
+ * Pondering soak: runs the real pondering pass for allowlisted callers (uids
+ * in MEMORY_EVAL_ALLOWED_UIDS, and the voice-eval seed users) so its output
+ * can be read before PONDERING goes on anywhere. Dry run by default: it
+ * prints what would be stored and writes nothing.
  *
- *   pnpm tsx scripts/pondering/soak.ts                     # Seth, dry run
+ *   pnpm tsx scripts/pondering/soak.ts --uid <uid>         # one listed caller, dry run
  *   pnpm tsx scripts/pondering/soak.ts --eval-users        # the voice-eval seed users too
  *   pnpm tsx scripts/pondering/soak.ts --write             # store results (checks prod first)
  *   pnpm tsx scripts/pondering/soak.ts --purge             # delete what the soak stored
@@ -18,16 +18,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { getApps, initializeApp } from 'firebase-admin/app';
-import { FieldPath, type Firestore } from 'firebase-admin/firestore';
-import { callLLM } from '../../src/services/llm-utils.js';
-import { ponder, type PonderLlm } from '../../src/intelligence/pondering/pondering.js';
-import {
-  SUMMARIES_READ,
-  ponderUser,
-  toPonderSummary,
-} from '../../src/intelligence/pondering/ponder-user.js';
-import { runPonderingJob } from '../../src/intelligence/pondering/ponder-job.js';
+import type { Firestore } from 'firebase-admin/firestore';
+import type { PonderLlm } from '../../src/intelligence/pondering/pondering.js';
 import { EVAL_PREFIX } from '../voice-eval/eval-users.js';
 import {
   PROD_SERVICES,
@@ -35,13 +27,31 @@ import {
   parseSoakArgs,
   serviceHasPondering,
 } from './soak-lib.js';
-import { getAdminFirestore } from '../../src/utils/firebase-admin-app.js';
 
 const PROJECT = 'johnb-2025';
 const REGION = 'us-central1';
 const SOAK_ENV = { PONDERING: 'on' };
 
-const llm: PonderLlm = (prompt) => callLLM(prompt, { maxTokens: 1500, temperature: 0.4 });
+// These load in loadModules(), after the allowlist check: some of them log their config
+// as they load, and a refused run prints only the refusal.
+let app: typeof import('firebase-admin/app');
+let firestore: typeof import('firebase-admin/firestore');
+let ponderMod: typeof import('../../src/intelligence/pondering/pondering.js');
+let ponderUserMod: typeof import('../../src/intelligence/pondering/ponder-user.js');
+let ponderJob: typeof import('../../src/intelligence/pondering/ponder-job.js');
+let adminApp: typeof import('../../src/utils/firebase-admin-app.js');
+let llm: PonderLlm;
+
+async function loadModules(): Promise<void> {
+  app = await import('firebase-admin/app');
+  firestore = await import('firebase-admin/firestore');
+  ponderMod = await import('../../src/intelligence/pondering/pondering.js');
+  ponderUserMod = await import('../../src/intelligence/pondering/ponder-user.js');
+  ponderJob = await import('../../src/intelligence/pondering/ponder-job.js');
+  adminApp = await import('../../src/utils/firebase-admin-app.js');
+  const { callLLM } = await import('../../src/services/llm-utils.js');
+  llm = (prompt) => callLLM(prompt, { maxTokens: 1500, temperature: 0.4 });
+}
 
 function assertProdPonderingOff(): void {
   for (const service of PROD_SERVICES) {
@@ -70,7 +80,7 @@ function assertProdPonderingOff(): void {
 async function evalUserIds(db: Firestore, limit: number): Promise<string[]> {
   const snap = await db
     .collection('bogle_users')
-    .orderBy(FieldPath.documentId())
+    .orderBy(firestore.FieldPath.documentId())
     .startAt(EVAL_PREFIX)
     .endAt(`${EVAL_PREFIX}`)
     .select()
@@ -81,12 +91,13 @@ async function evalUserIds(db: Firestore, limit: number): Promise<string[]> {
 
 async function main(): Promise<void> {
   const args = parseSoakArgs(process.argv.slice(2));
-  if (getApps().length === 0) initializeApp({ projectId: PROJECT });
-  const db = getAdminFirestore();
+  await loadModules();
+  if (app.getApps().length === 0) app.initializeApp({ projectId: PROJECT });
+  const db = adminApp.getAdminFirestore();
   if (args.job) {
     // The job's own cohort and filters, every eligible caller treated as due; writes nothing.
     const env = { ...SOAK_ENV, PONDERING_USERS: process.env.PONDERING_USERS };
-    const out = await runPonderingJob(db, llm, { env, dryRun: true, ignoreDue: true });
+    const out = await ponderJob.runPonderingJob(db, llm, { env, dryRun: true, ignoreDue: true });
     console.log(JSON.stringify(out, null, 2));
     console.log('\nDry run of the scheduled job, nothing stored.');
     return;
@@ -111,17 +122,17 @@ async function main(): Promise<void> {
     const summarySnap = await user
       .collection('summaries')
       .orderBy('timestamp', 'desc')
-      .limit(SUMMARIES_READ)
+      .limit(ponderUserMod.SUMMARIES_READ)
       .get();
     if (summarySnap.empty) {
       report[uid] = { status: 'no-calls' };
       continue;
     }
     if (args.write) {
-      report[uid] = await ponderUser(db, uid, llm, { now, env: SOAK_ENV });
+      report[uid] = await ponderUserMod.ponderUser(db, uid, llm, { now, env: SOAK_ENV });
     } else {
-      const summaries = summarySnap.docs.map((d) => toPonderSummary(d.id, d.data()));
-      const pondering = await ponder(summaries, now.toISOString().slice(0, 10), llm);
+      const summaries = summarySnap.docs.map((d) => ponderUserMod.toPonderSummary(d.id, d.data()));
+      const pondering = await ponderMod.ponder(summaries, now.toISOString().slice(0, 10), llm);
       report[uid] = { status: 'dry-run', summaries: summaries.length, pondering };
     }
   }
@@ -135,6 +146,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(String(error));
-  process.exitCode = 1;
+  console.error(error instanceof Error ? error.message : String(error));
+  // Imported clients hold the event loop open, so exitCode alone never exits.
+  process.exit(1);
 });

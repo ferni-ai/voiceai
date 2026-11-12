@@ -73,7 +73,7 @@ describe('Banter System', () => {
 
   describe('ARRIVING_OPENERS Coverage', () => {
     it('gives every persona and legend at least 3 openers, from any teammate', () => {
-      for (const id of [...PERSONA_IDS, 'john-bogle', 'peter-lynch', 'joel-dickson']) {
+      for (const id of [...PERSONA_IDS, 'john-bogle', 'joel-dickson']) {
         expect(ARRIVING_OPENERS[id]?.length, id).toBeGreaterThanOrEqual(3);
         for (const from of PERSONA_IDS)
           expect(getArrivingBanter(id, from), `${id} <- ${from}`).toBeTruthy();

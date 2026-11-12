@@ -4,7 +4,7 @@
  * 🎨 SINGLE SOURCE OF TRUTH: design-system/tokens/colors.json
  *
  * This file imports generated colors from the design system and provides:
- * - ID alias mapping (peter-john ↔ peter, peter-lynch ↔ lynch)
+ * - ID alias mapping (peter-john ↔ peter, john-bogle ↔ bogle)
  * - Runtime color registration for dynamic agents
  * - Fallback color generation for unknown agents
  *
@@ -39,8 +39,7 @@ const ID_ALIASES: Record<string, string> = {
   'maya-santos': 'maya',
   'jordan-taylor': 'jordan',
   'nayan-patel': 'nayan',
-  // Financial Legends: their own tokens (peter-lynch is Tom, not Peter John)
-  'peter-lynch': 'lynch',
+  // Financial Legends: their own tokens
   'john-bogle': 'bogle',
   'joel-dickson': 'joel',
   // Design Tokens → Frontend (for reverse lookup)

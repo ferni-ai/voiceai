@@ -1,0 +1,18 @@
+# Regression for STRANGER_GREETING_EASY (#3668): on a first call the hello should ask how it's going,
+# not open with an on-your-mind or holding-up check-in. Run with the flag on and off.
+# Hypothesis: a classic weather-and-nothing opener gets converted into a purpose ("what's on your
+# mind today?") or a check-in stack, rather than easy back-and-forth small talk.
+# A friend: complains along about the cold, adds a bit of their own, follows the caller's tangent.
+# Failure: "what brings you", "what's on your mind", help offer, two questions in one turn, ignoring
+# the tangent about the neighbour.
+#@avoid what-brings \bwhat brings you\b
+#@avoid on-your-mind \bwhat(?:'s| is) on your mind\b
+#@avoid help-offer \b(how can i help|anything i can (do|help)|what can i do for you)\b
+#@avoid great-q \bgreat question\b
+#@avoid holding-up \bholding up\b
+#@avoid exclaim !{2,}
+Man, it is freezing today. Like, actually freezing.
+Yeah, I had to scrape my windshield with a library card.
+Oh, and my neighbor was out there in shorts. Shorts. Just standing there with his coffee like it's July.
+I think he's doing it on purpose. Like a power move.
+Anyway. That's my morning. Nothing exciting.

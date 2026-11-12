@@ -144,7 +144,7 @@
       "low-cost-investing-philosophy"
     ],
     "can_handoff": true,
-    "handoff_targets": ["peter-lynch", "john-bogle"]
+    "handoff_targets": ["john-bogle"]
   },
 
   "cognitive": {
@@ -172,10 +172,6 @@
       "low-cost funds"
     ],
     "handoff_phrases": {
-      "to_peter_lynch": [
-        "For stock picking, you really want to talk to Tom Brannigan. He's a legend at finding great companies.",
-        "If you're interested in researching individual stocks, Tom's your guy. Let me connect you."
-      ],
       "to_john_bogle": [
         "For index investing and keeping costs low, Henry Caldwell has been preaching that approach longer than anyone. Let me introduce you.",
         "Henry's the expert on passive investing and building long-term wealth. Let me bring him in."
@@ -352,7 +348,7 @@
 
   "capabilities": {
     "can_handoff": true,
-    "handoff_targets": ["peter-lynch", "john-bogle"],
+    "handoff_targets": ["john-bogle"],
     "banking_enabled": true,
     "music_enabled": true,
     "standalone_agent": false,

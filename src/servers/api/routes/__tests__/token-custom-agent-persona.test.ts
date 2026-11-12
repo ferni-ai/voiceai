@@ -1,11 +1,11 @@
 /**
  * A token's persona_id may name a custom agent only if the caller owns it;
- * otherwise the room is dispatched with Ferni. With DEMO_TOKEN_CORE_PERSONAS_ONLY
- * on, /demo-token also keeps only built-in personas.
+ * otherwise the room is dispatched with Ferni. Both routes keep only built-in
+ * personas (canonical ids); any other id gets Ferni (personas/persona-ids.ts livePersonaId).
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALL_CANONICAL_IDS } from '../../../../personas/persona-ids.js';
 
 const createRoomWithAgent = vi.fn();
@@ -130,64 +130,60 @@ describe('persona_id that names a custom agent', () => {
   });
 });
 
-describe('/demo-token with DEMO_TOKEN_CORE_PERSONAS_ONLY', () => {
-  beforeEach(() => {
-    createRoomWithAgent.mockReset();
-    createRoomWithAgent.mockResolvedValue({ roomReady: true, agentDispatched: true });
-  });
-  afterEach(() => vi.unstubAllEnvs());
+describe.each(['/token', '/demo-token'] as const)(
+  '%s starts on a built-in persona or Ferni',
+  (path) => {
+    beforeEach(() => {
+      createRoomWithAgent.mockReset();
+      createRoomWithAgent.mockResolvedValue({ roomReady: true, agentDispatched: true });
+    });
 
-  it('on: an id that is not a built-in persona is not dispatched; the demo is with Ferni', async () => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
-    expect(await request('/demo-token', 'test-companion')).toBe(200);
-    expect(dispatchedPersona()).toBe('ferni');
-  });
+    it('an id that is not a built-in persona is not dispatched; the call is with Ferni', async () => {
+      expect(await request(path, 'test-companion')).toBe(200);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
 
-  it.each([...ALL_CANONICAL_IDS])(
-    'on: built-in persona %s passes through unchanged',
-    async (id) => {
-      vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
-      await request('/demo-token', id);
+    it.each([...ALL_CANONICAL_IDS])('built-in persona %s passes through unchanged', async (id) => {
+      await request(path, id);
       expect(dispatchedPersona()).toBe(id);
-    }
-  );
+    });
 
-  it('on: an alias of a built-in persona is sent as its canonical id', async () => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
-    await request('/demo-token', 'maya');
-    expect(dispatchedPersona()).toBe('maya-santos');
-  });
+    it.each(['wellness-coach', 'generic-advisor'])(
+      'registry persona %s passes through unchanged, as on main',
+      async (id) => {
+        await request(path, id);
+        expect(dispatchedPersona()).toBe(id);
+      }
+    );
 
-  it.each([
-    ['off', 'off'],
-    ['unset', undefined],
-  ])('%s: any id passes through, as on main', async (_label, state) => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', state);
-    await request('/demo-token', 'test-companion');
-    expect(dispatchedPersona()).toBe('test-companion');
-  });
+    it('an alias of a built-in persona is sent as its canonical id', async () => {
+      await request(path, 'maya');
+      expect(dispatchedPersona()).toBe('maya-santos');
+    });
 
-  it.each(['on', 'off'])('%s: no persona_id gives the default, Ferni', async (state) => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', state);
-    await request('/demo-token');
-    expect(dispatchedPersona()).toBe('ferni');
-  });
-  // The prompt each one then gets is pinned in token-demo-persona.test.ts.
-  it.each(PROTOTYPE_KEYS)('on: %s is sent as Ferni', async (id) => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
-    expect(await request('/demo-token', id)).toBe(200);
-    expect(dispatchedPersona()).toBe('ferni');
-  });
+    it('no persona_id gives the default, Ferni', async () => {
+      await request(path);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
 
-  it.each(PROTOTYPE_KEYS)('off: %s passes through as the same string as on main', async (id) => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'off');
-    expect(await request('/demo-token', id)).toBe(200);
-    expect(dispatchedPersona()).toBe(id);
-  });
+    // The prompt each one then gets is pinned in token-demo-persona.test.ts.
+    it.each(PROTOTYPE_KEYS)('%s is sent as Ferni', async (id) => {
+      expect(await request(path, id)).toBe(200);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
 
-  it('on: joel goes where main sends it, joel-dickson', async () => {
-    vi.stubEnv('DEMO_TOKEN_CORE_PERSONAS_ONLY', 'on');
-    await request('/demo-token', 'joel');
-    expect(dispatchedPersona()).toBe('joel-dickson');
-  });
-});
+    // Tom, the stock-picking legend, is retired: his id and every name that used to reach him.
+    it.each([
+      'peter-lynch',
+      'Peter-Lynch',
+      'tom',
+      'brannigan',
+      'tom-brannigan',
+      'stock-picker',
+      'tom brannigan',
+    ])('%s (retired) is sent as Ferni', async (id) => {
+      expect(await request(path, id)).toBe(200);
+      expect(dispatchedPersona()).toBe('ferni');
+    });
+  }
+);

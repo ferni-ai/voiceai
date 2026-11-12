@@ -224,9 +224,14 @@ ferni deploy frontend # Frontend
 ### Step 2: Health Checks
 
 ```bash
-# Voice Agent (GCE)
-curl http://34.134.186.63:8080/health
-curl http://34.134.186.63:8080/health/ready
+# Voice agent: runs on LiveKit Cloud, which exposes no agent HTTP port, so check
+# prod through the logs.
+pnpm ops:logs:errors
+
+# An agent you run yourself (`pnpm dev` serves the health server on port 8080, or $PORT).
+AGENT_URL=http://localhost:8080
+curl $AGENT_URL/health
+curl $AGENT_URL/health/ready
 
 # UI Backend (Cloud Run)
 curl https://app.ferni.ai/health

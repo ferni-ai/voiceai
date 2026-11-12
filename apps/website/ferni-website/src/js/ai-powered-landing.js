@@ -4,7 +4,6 @@
  *
  * Comprehensive AI interactions for the Ferni landing page:
  *
- * 1. LIVE TEXT CHAT - Real AI conversation without signup
  * 2. PERSONALIZED HERO - AI-generated headlines based on context
  * 3. PERSONA PREVIEW CARDS - Interactive team member demos
  * 4. MEMORY VISUALIZATION - Interactive memory demonstration
@@ -27,7 +26,6 @@
     apiBase: '/api/landing/ai',
     // Feature flags - these get updated by loadFeatureFlags()
     // Client-side only features (no API needed) default to true
-    enableChat: false, // Requires backend API
     enablePersonalizedHero: false, // Requires backend API
     enablePersonaPreviews: false, // Requires backend API
     enableSmartFAQ: false, // Requires backend API
@@ -41,7 +39,6 @@
 
   // Feature flag mapping: server flag ID -> CONFIG key
   const FLAG_MAP = {
-    'landing-ai-live-chat': 'enableChat',
     'landing-ai-personalized-hero': 'enablePersonalizedHero',
     'landing-ai-persona-previews': 'enablePersonaPreviews',
     'landing-ai-smart-faq': 'enableSmartFAQ',
@@ -92,10 +89,6 @@
 
   const state = {
     visitorId: null,
-    chatOpen: false,
-    chatMessages: [],
-    messagesRemaining: 10,
-    currentPersona: 'ferni',
     sentiment: 0.5,
     initialized: false,
   };
@@ -119,11 +112,6 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   const OFFLINE_FALLBACKS = {
-    '/chat': (body) => ({
-      response: getFerniOfflineResponse(body?.message || ''),
-      emotion: 'warm',
-      persona: 'ferni'
-    }),
     '/personalized-hero': () => ({
       headline: 'Finally, someone who gets it.',
       subheadline: 'Someone who remembers your whole story, hears what you\'re not saying, and shows up at 2am with the same presence as noon.',
@@ -147,20 +135,6 @@
       tone: 'warm'
     })
   };
-
-  function getFerniOfflineResponse(message) {
-    const lower = message.toLowerCase();
-    if (lower.includes('stress') || lower.includes('anxious') || lower.includes('worried')) {
-      return "I hear you. That weight you're carrying? It's valid. Let's breathe through this together. What's the one thing that feels heaviest right now?";
-    }
-    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-      return "Hey there. I'm glad you're here. What's on your mind today?";
-    }
-    if (lower.includes('help') || lower.includes('need')) {
-      return "I'm here. Whatever you're going through, you don't have to figure it out alone. What would feel most helpful right now?";
-    }
-    return "I'm listening. Tell me more about what's going on for you.";
-  }
 
   function getPersonaGreeting(personaId) {
     const greetings = {
@@ -219,238 +193,6 @@
       return null;
     }
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 1. LIVE TEXT CHAT
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const LiveChat = {
-    container: null,
-    panel: null,
-    messagesContainer: null,
-    input: null,
-    sendButton: null,
-
-    init() {
-      if (!CONFIG.enableChat) return;
-
-      this.createChatWidget();
-      this.bindEvents();
-
-      if (CONFIG.debugMode) {
-        // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
-        console.log('[LiveChat] Initialized');
-      }
-    },
-
-    createChatWidget() {
-      // Check if widget already exists
-      if (document.getElementById('ferni-live-chat')) return;
-
-      const widget = document.createElement('div');
-      widget.id = 'ferni-live-chat';
-      widget.innerHTML = `
-        <button class="ferni-chat-trigger" aria-label="Chat with Ferni">
-          <div class="ferni-chat-trigger__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <span class="ferni-chat-trigger__text">Chat with Ferni</span>
-        </button>
-        
-        <div class="ferni-chat-panel" aria-hidden="true">
-          <div class="ferni-chat-panel__header">
-            <div class="ferni-chat-panel__persona">
-              <div class="ferni-chat-panel__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-              <div class="ferni-chat-panel__info">
-                <span class="ferni-chat-panel__name">Ferni</span>
-                <span class="ferni-chat-panel__status">● Online</span>
-              </div>
-            </div>
-            <div class="ferni-chat-panel__remaining">
-              <span class="ferni-chat-panel__count">${state.messagesRemaining}</span> messages left
-            </div>
-            <button class="ferni-chat-panel__close" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="ferni-chat-panel__messages" role="log" aria-live="polite" aria-label="Chat messages">
-            <div class="ferni-chat-message ferni-chat-message--ai">
-              <p>Hey! I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me—no signup needed.</p>
-            </div>
-          </div>
-          
-          <div class="ferni-chat-panel__input-area">
-            <input 
-              type="text" 
-              class="ferni-chat-panel__input" 
-              placeholder="What's on your mind?"
-              maxlength="500"
-            />
-            <button class="ferni-chat-panel__send" aria-label="Send">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="ferni-chat-panel__footer">
-            <a href="https://app.ferni.ai" class="ferni-chat-panel__upgrade">
-              Create free account for unlimited access →
-            </a>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(widget);
-
-      this.container = widget;
-      this.panel = widget.querySelector('.ferni-chat-panel');
-      this.messagesContainer = widget.querySelector('.ferni-chat-panel__messages');
-      this.input = widget.querySelector('.ferni-chat-panel__input');
-      this.sendButton = widget.querySelector('.ferni-chat-panel__send');
-    },
-
-    bindEvents() {
-      const trigger = this.container.querySelector('.ferni-chat-trigger');
-      const closeBtn = this.container.querySelector('.ferni-chat-panel__close');
-
-      trigger.addEventListener('click', () => this.togglePanel());
-      closeBtn.addEventListener('click', () => this.closePanel());
-
-      this.input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.sendMessage();
-        }
-      });
-
-      this.sendButton.addEventListener('click', () => this.sendMessage());
-
-      // Close on escape
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && state.chatOpen) {
-          this.closePanel();
-        }
-      });
-    },
-
-    togglePanel() {
-      state.chatOpen ? this.closePanel() : this.openPanel();
-    },
-
-    openPanel() {
-      state.chatOpen = true;
-      this.panel.classList.add('is-open');
-      this.panel.setAttribute('aria-hidden', 'false');
-      this.container.classList.add('is-open');
-      this.input.focus();
-
-      // Track
-      window.FerniExperiments?.trackConversionForAll('chat_opened');
-    },
-
-    closePanel() {
-      state.chatOpen = false;
-      this.panel.classList.remove('is-open');
-      this.panel.setAttribute('aria-hidden', 'true');
-      this.container.classList.remove('is-open');
-    },
-
-    async sendMessage() {
-      const message = this.input.value.trim();
-      if (!message) return;
-
-      // Clear input
-      this.input.value = '';
-
-      // Add user message to UI
-      this.addMessage(message, 'user');
-
-      // Show typing indicator
-      this.showTyping();
-
-      // Send to API
-      const result = await apiCall('/chat', {
-        method: 'POST',
-        body: {
-          visitorId: state.visitorId,
-          message,
-          persona: state.currentPersona,
-        },
-      });
-
-      // Hide typing
-      this.hideTyping();
-
-      if (result) {
-        this.addMessage(result.response, 'ai');
-        state.messagesRemaining = result.messagesRemaining;
-        this.updateRemainingCount();
-
-        // If out of messages, show upgrade prompt
-        if (result.messagesRemaining === 0) {
-          this.showUpgradePrompt();
-        }
-      } else {
-        this.addMessage("Sorry, I couldn't respond right now. Try again?", 'ai');
-      }
-    },
-
-    addMessage(content, type) {
-      const msg = document.createElement('div');
-      msg.className = `ferni-chat-message ferni-chat-message--${type}`;
-      msg.innerHTML = `<p>${this.escapeHtml(content)}</p>`;
-
-      this.messagesContainer.appendChild(msg);
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    },
-
-    showTyping() {
-      const typing = document.createElement('div');
-      typing.className = 'ferni-chat-typing';
-      typing.innerHTML = `
-        <div class="ferni-chat-typing__dot"></div>
-        <div class="ferni-chat-typing__dot"></div>
-        <div class="ferni-chat-typing__dot"></div>
-      `;
-      this.messagesContainer.appendChild(typing);
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    },
-
-    hideTyping() {
-      const typing = this.messagesContainer.querySelector('.ferni-chat-typing');
-      if (typing) typing.remove();
-    },
-
-    updateRemainingCount() {
-      const countEl = this.container.querySelector('.ferni-chat-panel__count');
-      if (countEl) {
-        countEl.textContent = state.messagesRemaining;
-        if (state.messagesRemaining <= 3) {
-          countEl.classList.add('is-low');
-        }
-      }
-    },
-
-    showUpgradePrompt() {
-      const prompt = document.createElement('div');
-      prompt.className = 'ferni-chat-upgrade-prompt';
-      prompt.innerHTML = `
-        <p>You've used all your demo messages!</p>
-        <a href="https://app.ferni.ai" class="btn btn--primary btn--sm">
-          Create free account to continue
-        </a>
-      `;
-      this.messagesContainer.appendChild(prompt);
-    },
-
-    escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    },
-  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 2. PERSONALIZED HERO
@@ -1162,318 +904,6 @@
     styles.id = 'ferni-ai-landing-styles';
     styles.textContent = `
       /* ═══════════════════════════════════════════════════════════════════════════
-         LIVE CHAT WIDGET
-         Uses CSS variables from _tokens.css for brand compliance
-         ═══════════════════════════════════════════════════════════════════════════ */
-      
-      #ferni-live-chat {
-        position: fixed;
-        bottom: var(--space-6, 24px);
-        right: var(--space-6, 24px);
-        z-index: 9998;
-        font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
-      }
-      
-      .ferni-chat-trigger {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 10px);
-        padding: var(--space-3, 12px) var(--space-5, 20px);
-        background: linear-gradient(135deg, var(--color-ferni, #5a7751) 0%, var(--color-ferni-secondary, #4a6741) 100%);
-        color: var(--color-text-inverse, white);
-        border: none;
-        border-radius: var(--radius-full, 100px);
-        cursor: pointer;
-        font-weight: 600;
-        font-size: var(--text-sm, 14px);
-        box-shadow: 0 8px 32px var(--color-ferni-glow, rgba(74, 103, 65, 0.4));
-        transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
-      }
-      
-      .ferni-chat-trigger:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.5));
-      }
-      
-      .ferni-chat-trigger__avatar {
-        width: 28px;
-        height: 28px;
-        background: rgba(255,255,255,0.2);
-        border-radius: var(--radius-full, 50%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: var(--text-2xs, 10px);
-        font-weight: 700;
-      }
-      
-      #ferni-live-chat.is-open .ferni-chat-trigger {
-        opacity: 0;
-        pointer-events: none;
-      }
-      
-      /* Chat Panel */
-      .ferni-chat-panel {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 380px;
-        max-height: 600px;
-        background: var(--color-bg-primary, #faf8f5);
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl, 0 20px 60px rgba(0, 0, 0, 0.2));
-        display: flex;
-        flex-direction: column;
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(20px) scale(0.95);
-        transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
-      }
-      
-      .ferni-chat-panel.is-open {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0) scale(1);
-      }
-      
-      .ferni-chat-panel__header {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3, 12px);
-        padding: var(--space-4, 16px) var(--space-5, 20px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      }
-      
-      .ferni-chat-panel__persona {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 10px);
-        flex: 1;
-      }
-      
-      .ferni-chat-panel__avatar {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
-        border-radius: var(--radius-full, 50%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-text-inverse, white);
-        font-size: var(--text-xs, 12px);
-        font-weight: 700;
-      }
-      
-      .ferni-chat-panel__name {
-        font-weight: 600;
-        color: var(--color-text-primary, #2c2520);
-        display: block;
-      }
-      
-      .ferni-chat-panel__status {
-        font-size: var(--text-xs, 12px);
-        color: var(--color-ferni, #4a6741);
-      }
-      
-      .ferni-chat-panel__remaining {
-        font-size: var(--text-2xs, 11px);
-        color: var(--color-text-muted, #a89b8c);
-        background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        padding: var(--space-1, 4px) var(--space-2, 10px);
-        border-radius: var(--radius-lg, 12px);
-      }
-      
-      .ferni-chat-panel__count {
-        font-weight: 600;
-        color: var(--color-ferni, #4a6741);
-      }
-      
-      .ferni-chat-panel__count.is-low {
-        color: var(--color-jordan, #c4856a);
-      }
-      
-      .ferni-chat-panel__close {
-        width: 32px;
-        height: 32px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: var(--color-text-muted, #a89b8c);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-full, 50%);
-        transition: background var(--duration-fast, 0.2s);
-      }
-      
-      .ferni-chat-panel__close:hover {
-        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      }
-      
-      .ferni-chat-panel__close svg {
-        width: 18px;
-        height: 18px;
-      }
-      
-      /* Messages */
-      .ferni-chat-panel__messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: var(--space-5, 20px);
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3, 12px);
-        min-height: 300px;
-        max-height: 400px;
-        /* Accessibility: ARIA live region for screen readers */
-      }
-      
-      .ferni-chat-message {
-        max-width: 85%;
-        animation: chatMessageIn 0.3s ease;
-      }
-      
-      @keyframes chatMessageIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      
-      .ferni-chat-message p {
-        margin: 0;
-        padding: 12px 16px;
-        border-radius: 18px;
-        font-size: 14px;
-        line-height: 1.5;
-      }
-      
-      .ferni-chat-message--user {
-        align-self: flex-end;
-      }
-      
-      .ferni-chat-message--user p {
-        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
-        color: var(--color-text-inverse, white);
-        border-bottom-right-radius: var(--radius-xs, 4px);
-      }
-      
-      .ferni-chat-message--ai p {
-        background: var(--color-bg-elevated, white);
-        color: var(--color-text-primary, #2c2520);
-        border-bottom-left-radius: var(--radius-xs, 4px);
-        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
-      }
-      
-      /* Typing indicator */
-      .ferni-chat-typing {
-        display: flex;
-        gap: var(--space-1, 4px);
-        padding: var(--space-4, 16px);
-        align-self: flex-start;
-      }
-      
-      .ferni-chat-typing__dot {
-        width: 8px;
-        height: 8px;
-        background: var(--color-ferni, #4a6741);
-        border-radius: var(--radius-full, 50%);
-        animation: typingDot 1.4s ease-in-out infinite;
-      }
-      
-      .ferni-chat-typing__dot:nth-child(2) { animation-delay: 0.2s; }
-      .ferni-chat-typing__dot:nth-child(3) { animation-delay: 0.4s; }
-      
-      @keyframes typingDot {
-        0%, 100% { opacity: 0.3; transform: scale(0.8); }
-        50% { opacity: 1; transform: scale(1); }
-      }
-      
-      /* Input area */
-      .ferni-chat-panel__input-area {
-        display: flex;
-        gap: var(--space-2, 8px);
-        padding: var(--space-4, 16px) var(--space-5, 20px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      }
-      
-      .ferni-chat-panel__input {
-        flex: 1;
-        padding: var(--space-3, 12px) var(--space-4, 16px);
-        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
-        border-radius: var(--radius-xl, 24px);
-        font-size: var(--text-sm, 14px);
-        background: white;
-        transition: border-color var(--duration-fast, 0.2s);
-      }
-      
-      .ferni-chat-panel__input:focus {
-        outline: none;
-        border-color: var(--color-ferni, #4a6741);
-        box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
-      }
-      
-      .ferni-chat-panel__send {
-        width: 44px;
-        height: 44px;
-        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
-        border: none;
-        border-radius: var(--radius-full, 50%);
-        cursor: pointer;
-        color: var(--color-text-inverse, white);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform var(--duration-fast, 0.2s);
-      }
-      
-      .ferni-chat-panel__send:hover {
-        transform: scale(1.05);
-      }
-      
-      .ferni-chat-panel__send svg {
-        width: 18px;
-        height: 18px;
-      }
-      
-      /* Footer */
-      .ferni-chat-panel__footer {
-        padding: var(--space-3, 12px) var(--space-5, 20px);
-        text-align: center;
-        background: var(--color-bg-subtle, rgba(44, 37, 32, 0.03));
-        border-radius: 0 0 var(--radius-xl, 24px) var(--radius-xl, 24px);
-      }
-      
-      .ferni-chat-panel__upgrade {
-        font-size: var(--text-xs, 12px);
-        color: var(--color-ferni, #4a6741);
-        text-decoration: none;
-        font-weight: 500;
-      }
-      
-      .ferni-chat-panel__upgrade:hover {
-        text-decoration: underline;
-      }
-      
-      /* Upgrade prompt */
-      .ferni-chat-upgrade-prompt {
-        background: linear-gradient(135deg, var(--color-ferni-glow, rgba(74, 103, 65, 0.1)), rgba(90, 119, 81, 0.1));
-        padding: var(--space-5, 20px);
-        border-radius: var(--radius-lg, 16px);
-        text-align: center;
-      }
-      
-      .ferni-chat-upgrade-prompt p {
-        margin: 0 0 var(--space-3, 12px);
-        color: var(--color-text-primary, #2c2520);
-        font-weight: 500;
-      }
-      
-      /* ═══════════════════════════════════════════════════════════════════════════
          PERSONA PREVIEW CARDS
          ═══════════════════════════════════════════════════════════════════════════ */
       
@@ -1924,25 +1354,6 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       @media (max-width: 768px) {
-        #ferni-live-chat {
-          bottom: 80px;
-          right: 16px;
-        }
-        
-        .ferni-chat-trigger__text {
-          display: none;
-        }
-        
-        .ferni-chat-trigger {
-          padding: 14px;
-          border-radius: 50%;
-        }
-        
-        .ferni-chat-panel {
-          width: calc(100vw - 32px);
-          max-height: calc(100vh - 120px);
-        }
-        
         .memory-demo__visualization {
           grid-template-columns: 1fr;
         }
@@ -1965,17 +1376,10 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       @media (prefers-reduced-motion: reduce) {
-        .ferni-chat-panel,
-        .ferni-chat-message,
         .ferni-hover-preview,
         .is-personalized {
           animation: none !important;
           transition: opacity 0.1s !important;
-        }
-        
-        .ferni-chat-typing__dot {
-          animation: none;
-          opacity: 0.5;
         }
       }
     `;
@@ -2000,10 +1404,6 @@
     // Initialize modules based on feature flags
     const enabledFeatures = [];
 
-    if (CONFIG.enableChat) {
-      LiveChat.init();
-      enabledFeatures.push('Live Text Chat');
-    }
     if (CONFIG.enablePersonaPreviews) {
       PersonaPreviews.init();
       enabledFeatures.push('Persona Previews');
@@ -2044,7 +1444,6 @@
 
   window.FerniAI = {
     init,
-    chat: LiveChat,
     hero: PersonalizedHero,
     personas: PersonaPreviews,
     memory: MemoryDemo,

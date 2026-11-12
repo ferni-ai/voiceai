@@ -18,9 +18,9 @@
  *
  * The dispatcher must reach whichever fetch the runtime bundles. Node 22's fetch reads the
  * global dispatcher from the legacy slot and Node 26's (undici 8) from the newer one, and the
- * two speak different handler APIs. undici 7's setGlobalDispatcher writes both slots and its
- * Agent accepts both handler APIs, so one install covers both runtimes (undici 6 wrote only the
- * legacy slot, so on Node 26 the keep-alive was silently ignored).
+ * two speak different handler APIs. undici's setGlobalDispatcher (7 and 8 alike) writes both
+ * slots, each in the API its fetch speaks, so one install covers both runtimes (undici 6 wrote
+ * only the legacy slot, so on Node 26 the keep-alive was silently ignored).
  *
  * @module agents/model-provider/vertex-keepalive
  */

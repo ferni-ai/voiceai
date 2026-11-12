@@ -1,6 +1,6 @@
 /**
  * The Financial Legends personas are fictional characters inspired by public
- * investing ideas: john-bogle is Henry Caldwell, peter-lynch is Tom Brannigan.
+ * investing ideas: john-bogle is Henry Caldwell.
  * No file scanned here may name the real people they were once modeled on, or
  * their family, employers, funds, books or signature quotes.
  *
@@ -23,12 +23,6 @@ const TARGETS: Array<{ id: string; root: string; markerFile: string; marker: str
     root: bundle('john-bogle'),
     markerFile: 'persona.manifest.json',
     marker: 'Henry Caldwell',
-  },
-  {
-    id: 'peter-lynch',
-    root: bundle('peter-lynch'),
-    markerFile: 'persona.manifest.json',
-    marker: 'Tom Brannigan',
   },
   {
     id: 'henry landing page',

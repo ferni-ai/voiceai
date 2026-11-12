@@ -6,7 +6,7 @@
 import dns from 'node:dns';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Agent, fetch as undiciFetch } from 'undici';
+import { Agent, fetch as undiciFetch, Response as UndiciResponse } from 'undici';
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import {
   assertSafeOutboundUrl,
@@ -242,6 +242,45 @@ describe('guardedStreamFetch', () => {
     );
     expect(failure).toBeInstanceOf(OutboundUrlBlockedError);
     expect(socketLookup).toHaveBeenCalled();
+  });
+});
+
+// undici's Response is not an instance of the global one, so the guard narrows its fetch result by
+// shape. Anything that fails the shape check must be refused with a TypeError, never handed to a
+// caller that would read status, headers or body off it.
+describe('fetch result narrowing', () => {
+  const headers = new globalThis.Headers();
+  const notResponses: Array<[string, unknown]> = [
+    ['null', null],
+    ['an empty object', {}],
+    ['a status with no headers or body', { status: 200 }],
+    ['headers without get()', { status: 200, headers: {}, body: null }],
+    ['a non-numeric status', { status: '200', headers, body: null }],
+    ['no body property', { status: 200, headers }],
+  ];
+  const entryPoints = [
+    ['safeOutboundFetch', (url: string) => safeOutboundFetch(url)],
+    ['guardedStreamFetch', (url: string) => guardedStreamFetch(url)],
+  ] as const;
+
+  describe.each(entryPoints)('%s', (_name, call) => {
+    it.each(notResponses)('rejects when undici fetch resolves to %s', async (_label, value) => {
+      resolveTo({ 'hooks.example.com': PUBLIC_V4 });
+      guardedFetch.mockResolvedValue(value as Response);
+
+      const failure = await call('https://hooks.example.com/hook').catch((e: unknown) => e);
+      expect(failure).toBeInstanceOf(TypeError);
+      expect((failure as Error).message).toBe('undici fetch did not return a Response');
+      expect(guardedFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("passes undici's own Response through unchanged", async () => {
+      resolveTo({ 'hooks.example.com': PUBLIC_V4 });
+      const response = new UndiciResponse('ok', { status: 200 });
+      guardedFetch.mockResolvedValue(response as unknown as Response);
+
+      await expect(call('https://hooks.example.com/hook')).resolves.toBe(response);
+    });
   });
 });
 
