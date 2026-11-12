@@ -150,6 +150,21 @@ describe('a text from an unverified number', () => {
     expect(ttl).toMatchObject({ fieldPath: 'expireAt', ttl: true });
   });
 
+  it.each(['default', 'ferni-dev'])(
+    'the %s database has that policy live: its checked-in TTL listing shows it ACTIVE',
+    (database) => {
+      const dir = join(process.cwd(), 'scripts/ci/fixtures/firestore-indexes', database);
+      const listed = JSON.parse(readFileSync(join(dir, 'ttls.json'), 'utf8')) as Array<{
+        name: string;
+        ttlConfig?: { state?: string };
+      }>;
+      const policy = listed.find((f) =>
+        f.name.endsWith('/collectionGroups/rate_limits/fields/expireAt')
+      );
+      expect(policy?.ttlConfig?.state).toBe('ACTIVE');
+    }
+  );
+
   it('Firestore unavailable: rejects (the route sends nothing)', async () => {
     firestore.down = true;
     const { deps } = world();
