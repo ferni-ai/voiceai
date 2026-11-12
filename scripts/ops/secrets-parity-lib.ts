@@ -41,7 +41,7 @@ export function newSealer(): Sealer {
 
 export interface Secrets {
   readonly names: string[];
-  /** Latest `updatedAt` (ms) among the agent's secrets, null when none is given. */
+  /** Latest `updatedAt` (ms) among the agent's secrets; null unless every secret gives one. */
   readonly newest: number | null;
 }
 
@@ -54,11 +54,14 @@ export function parseSecrets(json: string): Secrets {
     throw new Error('lk agent secrets --json did not return JSON'); // never echo the input
   }
   if (!Array.isArray(list)) throw new Error('lk agent secrets --json returned no "secrets" list');
-  const rows = list as Array<{ name?: unknown; updatedAt?: unknown }>;
-  const times = rows.map((s) => Date.parse(String(s.updatedAt))).filter((t) => !Number.isNaN(t));
+  const rows = (list as Array<{ name?: unknown; updatedAt?: unknown }>).filter(
+    (s): s is { name: string; updatedAt?: unknown } => typeof s?.name === 'string'
+  );
+  // One undated secret could be the latest change, so a partial list can't bound freshness.
+  const times = rows.map((s) => Date.parse(String(s.updatedAt)));
   return {
-    names: rows.map((s) => s.name).filter((n): n is string => typeof n === 'string'),
-    newest: times.length ? Math.max(...times) : null,
+    names: rows.map((s) => s.name),
+    newest: times.length && !times.some(Number.isNaN) ? Math.max(...times) : null,
   };
 }
 
@@ -73,13 +76,28 @@ interface Boot {
   done: number | null; // log position where its last part arrived
 }
 
+/**
+ * Lines of the finished boots `b` and `chosen` mix in the log. An unfinished `b` never counts
+ * here: one that began after `chosen` is `partialNewer`, and a crashed boot from before (or one
+ * whose start the backlog cut off) must not block every later boot.
+ */
+function interleaved(b: Boot, chosen: Boot): boolean {
+  if (b.done === null || chosen.done === null) return false;
+  return b.first < chosen.done && chosen.first < b.done;
+}
+
 export interface BootResult {
   readonly commit: string | null;
   readonly values: Map<string, Sealed>;
   readonly at: number | null;
   /** A boot with other settings started after the chosen one and never finished logging. */
   readonly partialNewer: boolean;
+  /** Another boot with other settings logged alongside the chosen one (a rolling restart). */
+  readonly concurrent: boolean;
 }
+
+/** Boots with different settings this close together are a restart still rolling out. */
+const ROLLING_MS = 120_000;
 
 /**
  * Collects `EFFECTIVE_SETTINGS {...}` boot lines from a log stream, sealing each value as it
@@ -146,7 +164,20 @@ export class BootCollector {
     const partialNewer = this.boots.some(
       (b) => b.done === null && b.id !== chosen?.id && b.first > (chosen?.first ?? 0)
     );
-    return { commit: chosen?.commit ?? null, values, at: chosen?.at ?? null, partialNewer };
+    const concurrent = this.boots.some(
+      (b) =>
+        chosen !== undefined &&
+        b.id !== chosen.id &&
+        (interleaved(b, chosen) ||
+          (b.at !== null && chosen.at !== null && Math.abs(b.at - chosen.at) < ROLLING_MS))
+    );
+    return {
+      commit: chosen?.commit ?? null,
+      values,
+      at: chosen?.at ?? null,
+      partialNewer,
+      concurrent,
+    };
   }
 
   private sealOne(name: string, value: string): Sealed {
@@ -171,6 +202,15 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
   const problems: string[] = [];
   if (boot.commit === null) problems.push('no complete boot settings found in the log');
   if (boot.partialNewer) problems.push('a newer boot is only partly logged; read the log again');
+  if (boot.concurrent) {
+    problems.push(
+      'two boots with different settings are too close together to tell which one is live; ' +
+        'restart the agent (or wait for a later boot) before reading again'
+    );
+  }
+  if (secrets.names.length > 0 && secrets.newest === null) {
+    problems.push('lk gave no updatedAt for some secrets, so boot freshness was not checked');
+  }
   if (boot.commit !== null && boot.at === null) problems.push('boot time unknown');
   if (boot.at !== null && secrets.newest !== null && boot.at < secrets.newest) {
     problems.push('the boot read is older than the latest secret change');

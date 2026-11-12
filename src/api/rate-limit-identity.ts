@@ -2,10 +2,9 @@
  * Who a request is, for rate limiting.
  *
  * The synchronous authenticate() can't verify Firebase tokens, so every
- * rateLimit() call keyed signed-in people by IP as if anonymous. Most route
- * limits also share one key per IP, so people behind one office or mobile-
- * carrier address shared a single bucket across routes, and an app load (a
- * few dozen API calls) could throttle all of them.
+ * rateLimit() call keyed signed-in people by IP as if anonymous, so people
+ * behind one office or mobile-carrier address shared a bucket, and an app load
+ * (a few dozen API calls) could throttle all of them.
  *
  * The API server already verifies each request's credentials once, at the
  * door (servers/api/request-identity.ts). It records the verified uid here,

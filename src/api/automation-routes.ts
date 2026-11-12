@@ -47,7 +47,7 @@ export async function handleAutomationRoutes(
   const route = pathname.replace(PREFIX, '');
 
   // Apply rate limiting
-  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'automations' })) {
     return true;
   }
 

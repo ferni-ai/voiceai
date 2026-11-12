@@ -457,11 +457,6 @@
       "count": 1
     }
   },
-  "src/servers/api/services/demo-sessions.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "src/services/coaching/goal-tracking.ts": {
     "no-useless-assignment": {
       "count": 1
