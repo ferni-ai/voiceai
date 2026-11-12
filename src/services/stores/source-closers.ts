@@ -77,7 +77,7 @@ function createSourceClosers(db: Firestore): SourceClosers {
       const tasks = (snap.get('productivityData.tasks') ?? []) as TaskData[];
       const task = Array.isArray(tasks) ? tasks.find((t) => t?.id === id) : undefined;
       if (!task) return 'missing';
-      if (isSafetyRecord((f) => (task as unknown as Record<string, unknown>)[f])) return 'safety';
+      if (isSafetyRecord((f) => Reflect.get(task, f))) return 'safety';
       if (!OPEN_TASK.has(task.status) || task.isRecurring) return 'already';
       closed = { ...task, status, updatedAt: at, ...(status === 'completed' ? { completedAt: at } : {}) }; // prettier-ignore
       tx.update(ref, { 'productivityData.tasks': tasks.map((t) => (t.id === id ? closed : t)) });
