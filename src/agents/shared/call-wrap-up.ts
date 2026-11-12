@@ -66,7 +66,12 @@ import {
   watchFarewell,
 } from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
-import { minorCareHoldReason } from './minor-care-end-hold.js';
+import {
+  MINOR_CARE_HOLD,
+  minorCareHoldAfterGoodbye,
+  minorCareHoldReason,
+  type MinorCareHoldReason,
+} from './minor-care-end-hold.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { setPhoneMoveEnd } from '../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
 import { coordinatedSay } from '../../speech/coordination/session-integration.js';
@@ -138,13 +143,14 @@ const wrapping = new Set<string>();
  * Ends the call: playout, closing, `conversation_end`, then the room after a
  * grace period. Returns false, doing nothing, when the call is already ending,
  * or ending nothing when crisis risk appeared while the goodbye played, the
- * caller is under a minor-care hold (minor-care-end-hold.ts), or the call
+ * caller is under a minor-care hold (minor-care-end-hold.ts; `onHeld` hears why), or the call
  * reopened while `conversation_end` went out.
  */
 export async function wrapUpCall(
   call: WrapUpCall,
   reason: WrapUpReason,
-  playout?: () => Promise<void>
+  playout?: () => Promise<void>,
+  onHeld?: (why: MinorCareHoldReason) => void
 ): Promise<boolean> {
   const { sessionId } = call;
   if (wrapping.has(sessionId) || isSessionClosing(sessionId)) return false;
@@ -159,8 +165,11 @@ export async function wrapUpCall(
     log.warn({ sessionId, error: String(error) }, 'CALL_WRAP_UP playout did not finish');
   }
   // Crisis risk that appeared while the goodbye played, or a care-held minor: the call carries on
-  const minorCareWhy = await minorCare;
-  if (minorCareWhy) log.warn({ sessionId, reason, why: minorCareWhy }, 'CALL_WRAP_UP_HELD');
+  const minorCareWhy = await minorCareHoldAfterGoodbye(sessionId, minorCare);
+  if (minorCareWhy) {
+    log.warn({ sessionId, reason, why: minorCareWhy }, 'CALL_WRAP_UP_HELD');
+    onHeld?.(minorCareWhy);
+  }
   if (holdEndCallForCrisis(sessionId, 'app', 'after_playout') || minorCareWhy) {
     wrapping.delete(sessionId);
     clearFarewell(sessionId);
@@ -263,7 +272,8 @@ async function closeRoomIfStillThere(
 
 /**
  * The endCall tool for an app call. It asks for no reply: there is nothing left
- * to say. On a call with crisis risk it ends nothing and tells Ferni to stay.
+ * to say. On a call with crisis risk, or a care-held minor's, it ends nothing and tells Ferni to
+ * stay.
  */
 export function createWrapUpTool(call: WrapUpCall): llm.ToolContext['functionTools'][string] {
   return llm.tool({
@@ -272,8 +282,18 @@ export function createWrapUpTool(call: WrapUpCall): llm.ToolContext['functionToo
     parameters: z.object({}),
     execute: async (_args, { ctx }) => {
       if (holdEndCallForCrisis(call.sessionId, 'app')) return CRISIS_HOLD;
-      const began = await wrapUpCall(call, 'goodbye_complete', async () => ctx.waitForPlayout());
-      return began || !crisisRiskThisCall(call.sessionId) ? undefined : CRISIS_HOLD;
+      let minorCare = false;
+      const began = await wrapUpCall(
+        call,
+        'goodbye_complete',
+        async () => ctx.waitForPlayout(),
+        () => {
+          minorCare = true;
+        }
+      );
+      if (began) return undefined;
+      if (crisisRiskThisCall(call.sessionId)) return CRISIS_HOLD;
+      return minorCare ? MINOR_CARE_HOLD : undefined;
     },
   });
 }

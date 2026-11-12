@@ -31,7 +31,8 @@ import {
   trackCrisisRead,
 } from '../../../services/safety/crisis-call-risk.js';
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
-import { attachPhoneHangUp, CRISIS_HOLD, END_CALL, MINOR_CARE_HOLD } from '../phone-goodbye.js';
+import { MINOR_CARE_HOLD } from '../minor-care-end-hold.js';
+import { attachPhoneHangUp, CRISIS_HOLD, END_CALL } from '../phone-goodbye.js';
 import {
   firestoreHoldStore,
   setHoldStore,
@@ -277,6 +278,17 @@ describe('phone goodbye for a care-held minor', () => {
     bindSessionUser('s-minor-account', 'eval-held-teen-2');
     setHoldStore({ heldUntil: async () => Date.now() + 60_000, write: async () => {} });
     expect(await callEndCall(a, events)).toBe(JSON.stringify(MINOR_CARE_HOLD));
+    expect(events).toEqual(['goodbye played']);
+  });
+
+  it('does not hang up when the hold lands while the goodbye plays', async () => {
+    const { a, events } = await phoneCall('s-minor-late');
+    bindSessionUser('s-minor-late', 'eval-late-teen');
+    const output = await callEndCall(a, events, async () => {
+      events.push('goodbye played');
+      holdSession('s-minor-late');
+    });
+    expect(output).toBe(JSON.stringify(MINOR_CARE_HOLD));
     expect(events).toEqual(['goodbye played']);
   });
 

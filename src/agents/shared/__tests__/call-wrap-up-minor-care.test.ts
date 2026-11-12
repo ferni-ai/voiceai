@@ -4,7 +4,8 @@
  * read while the goodbye plays, so an adult's call ends no later than before.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { wrapUpCall, type WrapUpCall } from '../call-wrap-up.js';
+import { createWrapUpTool, wrapUpCall, type WrapUpCall } from '../call-wrap-up.js';
+import { MINOR_CARE_HOLD } from '../minor-care-end-hold.js';
 import { clearFarewell, farewellSaid } from '../call-farewell.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
 import {
@@ -113,5 +114,51 @@ describe('wrapUpCall: held for a care-held minor', () => {
       order.push('goodbye played');
     });
     expect(order).toEqual(['hold read', 'goodbye played']);
+  });
+
+  it('the hold lands while the goodbye plays', async () => {
+    const c = appCall('eval-late-hold');
+    expect(await wrapUpCall(c.call, 'goodbye_complete', async () => holdSession(c.sessionId))).toBe(
+      false
+    );
+    await settle();
+    expect(c.events).toEqual([]);
+  });
+
+  it('a held goodbye releases the call: a later goodbye, no longer held, ends it', async () => {
+    const c = appCall('eval-store-recovers');
+    setHoldStore({
+      heldUntil: async () => {
+        throw new Error('store down');
+      },
+      write: async () => {},
+    });
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(false);
+    setHoldStore({ heldUntil: async () => undefined, write: async () => {} });
+    expect(await wrapUpCall(c.call, 'goodbye_complete')).toBe(true);
+    await settle();
+    expect(c.events).toEqual(['conversation_end', 'deleted']);
+  });
+});
+
+describe("the app's endCall tool for a care-held minor", () => {
+  const endCall = (call: WrapUpCall) =>
+    createWrapUpTool(call).execute({}, {
+      ctx: { waitForPlayout: async () => undefined },
+    } as never) as Promise<unknown>;
+
+  it('tells Ferni to stay and ends nothing', async () => {
+    const c = appCall('eval-tool-held');
+    holdSession(c.sessionId);
+    expect(await endCall(c.call)).toBe(MINOR_CARE_HOLD);
+    await settle();
+    expect(c.events).toEqual([]);
+  });
+
+  it('asks for no reply when it ends the call', async () => {
+    const c = appCall('eval-tool-plain');
+    expect(await endCall(c.call)).toBeUndefined();
+    await settle();
+    expect(c.events).toEqual(['conversation_end', 'deleted']);
   });
 });

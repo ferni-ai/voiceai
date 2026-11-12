@@ -24,7 +24,11 @@ import { z } from 'zod';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { minorCareHoldReason } from './minor-care-end-hold.js';
+import {
+  MINOR_CARE_HOLD,
+  minorCareHoldAfterGoodbye,
+  minorCareHoldReason,
+} from './minor-care-end-hold.js';
 
 const log = createLogger({ module: 'phone-goodbye' });
 
@@ -41,10 +45,6 @@ export type HangUp = (roomName: string) => Promise<void>;
 /** What endCall tells the model instead of hanging up a call with crisis risk. */
 export const CRISIS_HOLD =
   "Don't hang up: this call has had a crisis moment. Stay with them; the call ends when they hang up.";
-
-/** What endCall tells the model instead of hanging up a care-held minor (minor-care-end-hold.ts). */
-export const MINOR_CARE_HOLD =
-  "Don't hang up: stay on the line with them. The call ends when they hang up.";
 
 /** Where in the teardown the crisis check ran. */
 export type CrisisHoldStage = 'before_playout' | 'after_playout' | 'before_delete';
@@ -106,7 +106,7 @@ export function createEndCallTool(
         // Hang up anyway: a cut-off goodbye beats a line left open
       }
       if (holdEndCallForCrisis(sessionId, 'phone', 'after_playout')) return CRISIS_HOLD;
-      const why = await minorCare;
+      const why = sessionId && minorCare && (await minorCareHoldAfterGoodbye(sessionId, minorCare));
       if (why) {
         log.warn({ sessionId, why }, 'END_CALL_HELD_MINOR_CARE');
         return MINOR_CARE_HOLD;
