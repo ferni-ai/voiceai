@@ -38,9 +38,9 @@ import {
   apply,
   closeFromReply,
   closeSourceItem,
+  confidentClose,
   contentWords,
   mentionsItem,
-  namesItem,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
@@ -244,10 +244,10 @@ export function followThroughReplyListeners(deps: {
         .then(async (next) => {
           log.info({ verdict, kind: f.kind, saved: next !== null }, 'FOLLOW_THROUGH_REPLY');
           if (!next || verdict === 'replan') return;
-          // A bare "yep, done" closes the follow-up Ferni asked about, but writing
-          // to the todo's own store needs the answer to name it.
-          if (!namesItem(transcript, f.text)) {
-            log.info({ verdict, kind: f.kind }, 'FOLLOW_THROUGH_SOURCE_NOT_NAMED');
+          // Any done closes the follow-up Ferni asked about; writing to the todo's
+          // own store needs one plain answer that names all of it (confident-close).
+          if (!confidentClose(transcript, f.text)) {
+            log.info({ verdict, kind: f.kind }, 'FOLLOW_THROUGH_SOURCE_NOT_CONFIDENT');
             return;
           }
           const closers = deps.closers === undefined ? firestoreSourceClosers() : deps.closers;
