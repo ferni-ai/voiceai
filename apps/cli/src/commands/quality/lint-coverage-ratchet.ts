@@ -124,6 +124,21 @@ export function lintGroups(files: string[]): Array<{ name: string; files: string
   ].filter((group) => group.files.length > 0);
 }
 
+/** V8's own crash lines, such as "FATAL ERROR: Reached heap limit ... heap out of memory". */
+const V8_FATAL = /FATAL ERROR|heap out of memory|Reached heap limit/;
+
+/**
+ * What a crashed run's stderr says, kept short: V8's fatal lines wherever they are, then the
+ * last 5 lines. An out-of-heap abort ends in a page of native stack frames, so the tail alone
+ * drops the one line that names the cause (seen on CI job 131256057330).
+ */
+export function crashLines(stderr: string): string {
+  const lines = stderr.trim().split('\n');
+  const tail = lines.slice(-5);
+  const fatal = lines.slice(0, -5).filter((line) => V8_FATAL.test(line));
+  return [...fatal, ...tail].join('\n');
+}
+
 /**
  * The per-file results of one ESLint run, or why the run can't be read. The exit status alone
  * can't say: ESLint exits 1 for lint errors and 2 for stale suppressions, both with full JSON.
@@ -138,7 +153,7 @@ export function readEslintRun(run: {
   stderr: string;
 }): { results: EslintFile[] } | { failure: string } {
   const crashed = (detail: string) => ({
-    failure: `eslint crashed (status ${run.status}, signal ${run.signal}, ${run.stdout.length} bytes of output, ${detail}): ${run.stderr.trim().split('\n').slice(-5).join('\n')}`,
+    failure: `eslint crashed (status ${run.status}, signal ${run.signal}, ${run.stdout.length} bytes of output, ${detail}): ${crashLines(run.stderr)}`,
   });
   if (run.signal) return crashed('killed');
   try {

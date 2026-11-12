@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  crashLines,
   readEslintRun,
   ignoredFiles,
   lintGroups,
@@ -51,6 +52,20 @@ describe('lint-coverage ratchet', () => {
     expect(killed).toEqual({ failure: expect.stringContaining('signal SIGABRT') });
     const silent = readEslintRun({ status: 2, signal: null, stdout: '', stderr: 'config error' });
     expect(silent).toEqual({ failure: expect.stringContaining('no output') });
+  });
+
+  it('keeps the heap line when a page of native stack frames follows it, as on CI', () => {
+    const frames = Array.from({ length: 20 }, (_, i) => ` ${i}: 0x1248d00 v8::internal::Frame${i}`);
+    const stderr = [
+      '<--- Last few GCs --->',
+      'FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory',
+      ...frames,
+    ].join('\n');
+    const read = readEslintRun({ status: 134, signal: null, stdout: '[{"file', stderr });
+    expect(read).toEqual({ failure: expect.stringContaining('JavaScript heap out of memory') });
+    expect(read).toEqual({ failure: expect.stringContaining('Frame19') });
+    expect(crashLines(stderr).split('\n')).toHaveLength(6);
+    expect(crashLines('a\nb')).toBe('a\nb');
   });
 
   it('fails a file whose error count grew', () => {
