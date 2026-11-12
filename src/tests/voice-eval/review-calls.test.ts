@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
 import {
   callMetrics,
@@ -6,11 +6,15 @@ import {
   linesOf,
   parseEntries,
   runOf,
-  SETH_UID,
   summaryOutcome,
   timelineOf,
   userKind,
 } from '../../../scripts/voice-eval/review-calls.mjs';
+
+// A fictional owner, set through the same env the script reads.
+const OWNER = 'testOwnerUid0000000000000000';
+beforeEach(() => vi.stubEnv('REVIEW_OWNER_UID', OWNER));
+afterEach(() => vi.unstubAllEnvs());
 
 const START = 1_791_700_000_000;
 const SESSION = `session-AJ_test-${START}`;
@@ -26,7 +30,7 @@ const line = (dt: number, msg: string, extra: Line = {}) =>
 
 const callLines = () =>
   parseEntries([
-    line(0, '🌍 Session language initialized', { sessionId: SESSION, userId: SETH_UID }),
+    line(0, '🌍 Session language initialized', { sessionId: SESSION, userId: OWNER }),
     line(100, '🔍 E2E TRACE [4/4] → TTS', {
       trace: 'E2E_TTS_OUTPUT',
       ttsText: 'Hey Sam, <break time="80ms"/>how was the day?',
@@ -62,16 +66,21 @@ const callLines = () =>
 
 describe('review-calls privacy', () => {
   it('reviews only the owner, eval accounts and explicit opt-ins', () => {
-    expect(userKind(SETH_UID)).toBe('owner');
+    expect(userKind(OWNER)).toBe('owner');
     expect(userKind('voice-eval-real-call-1')).toBe('eval');
     expect(userKind('someone-else')).toBeNull();
     expect(userKind('someone-else', new Set(['someone-else']))).toBe('opt-in');
     expect(userKind(null)).toBeNull();
   });
 
+  it('has no owner fallback: with REVIEW_OWNER_UID unset, nobody is the owner', () => {
+    vi.stubEnv('REVIEW_OWNER_UID', undefined);
+    expect(userKind(OWNER)).toBeNull();
+  });
+
   it('drops lines without a sessionId when another session shared the pod', () => {
     const lines = parseEntries([
-      line(0, 'x', { sessionId: SESSION, userId: SETH_UID }),
+      line(0, 'x', { sessionId: SESSION, userId: OWNER }),
       line(30_000, 'Processing user turn', { preview: 'mine' }),
       line(61_000, 'x', { sessionId: OTHER, userId: 'stranger' }),
       line(70_000, 'Processing user turn', { preview: 'maybe theirs' }),
@@ -96,7 +105,7 @@ describe('review-calls timeline and metrics', () => {
   it('rebuilds the call in order with SSML stripped and session times', () => {
     expect(session).toMatchObject({
       id: SESSION,
-      userId: SETH_UID,
+      userId: OWNER,
       start: START,
       end: START + 60_000,
     });

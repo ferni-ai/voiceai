@@ -35,6 +35,8 @@ initSeedsEconomy();
 describe('Seed Fund payments -> seeds economy', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    // A build with payments set up (without a key the gift never reaches the server)
+    vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_seed');
   });
 
   it('a confirmed one-time gift awards the supporter bonus for its amount', async () => {
