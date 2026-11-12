@@ -25,8 +25,11 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 const ROOT = process.cwd();
 const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'lint-coverage-baseline.json');
-/** Production trees linted by this ratchet (`pnpm lint` covers only part of src/). */
-const ROOTS = ['src', 'apps/cli/src/commands/deploy'];
+/**
+ * Production trees linted by this ratchet (`pnpm lint` covers only part of src/). scripts/ joined
+ * on 2026-11-11: ESLint ignored it outright, so lint on it could never fail.
+ */
+const ROOTS = ['src', 'apps/cli/src/commands/deploy', 'scripts'];
 const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|(^|\/)(tests|e2e)\/)/;
 
 export interface EslintFile {
@@ -96,11 +99,31 @@ function productionFiles(): string[] {
   return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !TEST.test(file));
 }
 
-/** Runs ESLint over every production file and returns per-file results plus its stderr. */
+/**
+ * The files split into one ESLint run per TypeScript program. scripts/ lints against
+ * tsconfig.scripts.json, a second program over much of src/ again; in the same process as
+ * the main run it took ESLint past its 8 GB heap. Empty groups are dropped.
+ */
+export function lintGroups(files: string[]): Array<{ name: string; files: string[] }> {
+  const scripts = files.filter((file) => file.startsWith('scripts/'));
+  const rest = files.filter((file) => !file.startsWith('scripts/'));
+  return [
+    { name: 'eslint-coverage', files: rest },
+    { name: 'eslint-coverage-scripts', files: scripts },
+  ].filter((group) => group.files.length > 0);
+}
+
+/** Runs ESLint over the production files, one process per group, and returns per-file results plus stderr. */
 function lint(files: string[]): { results: EslintFile[]; stderr: string } {
+  const runs = lintGroups(files).map((group) => lintOne(group.name, group.files));
+  return { results: runs.flatMap((run) => run.results), stderr: runs.map((run) => run.stderr).join('\n') };
+}
+
+function lintOne(cacheName: string, files: string[]): { results: EslintFile[]; stderr: string } {
   // Run ESLint's binary directly, not through `npx`: npx joins the paths into one shell
   // argument (about 214 KB), which Linux rejects (E2BIG). Spawned directly, each path is its own argument.
-  const cache = join(ROOT, 'node_modules/.cache/eslint-coverage');
+  // One cache per group: each run would otherwise drop the other group's entries.
+  const cache = join(ROOT, 'node_modules/.cache', cacheName);
   const eslint = join(ROOT, 'node_modules/eslint/bin/eslint.js');
   const run = spawnSync(
     process.execPath,

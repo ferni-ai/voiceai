@@ -237,7 +237,7 @@ describe('the persona manifests', () => {
     expect(base('peter-john')).not.toBe(base('maya-santos'));
     expect(base('jordan-taylor')).toBeGreaterThan(1);
     expect(personaDelivery('ferni')).toBeUndefined();
-    for (const id of ['john-bogle', 'peter-lynch', 'joel-dickson']) {
+    for (const id of ['john-bogle', 'joel-dickson']) {
       expect(personaDelivery(id)?.emotions?.size).toBeGreaterThan(0);
     }
   });

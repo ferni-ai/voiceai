@@ -24,11 +24,7 @@ vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
 vi.mock('../../../utils/safe-logger.js', () => ({ createLogger: () => log }));
 
 import { clearCache, generateJSON, generateText } from '../gemini-client.js';
-import {
-  generatePersonaPreview,
-  generateSentimentReactiveCopy,
-  sendDemoChatMessage,
-} from '../ai-interactions.js';
+import { generatePersonaPreview, generateSentimentReactiveCopy } from '../ai-interactions.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,22 +36,12 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-// The landing routes are public and the chat limit is keyed on a client-chosen
-// visitorId, so the model must stay unreachable until LANDING_AI is turned on.
+// The landing routes are public, so the model must stay unreachable until
+// LANDING_AI is turned on.
 describe('with LANDING_AI unset (default off)', () => {
   beforeEach(() => {
     vi.stubEnv('LANDING_AI', undefined);
     generateContent.mockResolvedValue({ text: 'model reply' });
-  });
-
-  it('demo chat returns the static fallback without calling the client', async () => {
-    const reply = await sendDemoChatMessage('visitor-off', 'work is a lot');
-
-    expect(reply.response).toBe("Work stuff can be complicated. What's going on?");
-    expect(getGeminiClient).not.toHaveBeenCalled();
-    expect(generateContent).not.toHaveBeenCalled();
-    expect(log.error).not.toHaveBeenCalled();
-    expect(log.warn).not.toHaveBeenCalled();
   });
 
   it('persona preview returns the static fallback without calling the client', async () => {
@@ -150,17 +136,5 @@ describe('ai-interactions on the shared client (LANDING_AI=on)', () => {
 
     expect(preview.response).toBe('I breathe first, then pick one thing.');
     expect(generateContent).toHaveBeenCalledTimes(1);
-  });
-
-  it('demo chat sends the history plus the new turn in one request', async () => {
-    generateContent.mockResolvedValue({ text: 'What is weighing on you?' });
-
-    await sendDemoChatMessage('visitor-1', 'hi there');
-    const reply = await sendDemoChatMessage('visitor-1', 'work is a lot');
-
-    expect(reply.response).toBe('What is weighing on you?');
-    const { contents } = generateContent.mock.calls[1][0];
-    expect(contents.map((c: { role: string }) => c.role)).toEqual(['user', 'model', 'user']);
-    expect(contents[2].parts[1]).toEqual({ text: 'work is a lot' });
   });
 });

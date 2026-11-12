@@ -61,7 +61,6 @@ const EXPECTED: Record<string, { builder: string; flag?: string } | null> = {
   'alex-chen': { builder: 'buildAlexCommunicationInsightsContext', flag: 'PERSONA_BRIEFING_ALEX' },
   'nayan-patel': { builder: 'buildNayanWisdomInsightsContext', flag: 'PERSONA_BRIEFING_NAYAN' },
   'joel-dickson': { builder: 'buildLifeMentorInsightsContext' },
-  'peter-lynch': null,
   'john-bogle': null,
 };
 const ALL_FLAGS = [

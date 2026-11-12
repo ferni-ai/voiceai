@@ -50,7 +50,10 @@ vi.mock('livekit-server-sdk', () => ({
     createSipParticipant = vi.fn(async () => ({ participantId: 'PA_1' }));
   },
 }));
-vi.mock('@livekit/agents', () => ({
+// Only llm and log are stubbed; the rest is the real package, which the dispatch
+// path needs (metadata-parser -> personas -> audio -> voice.BackgroundAudioPlayer).
+vi.mock('@livekit/agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@livekit/agents')>()),
   llm: { tool: (config: Record<string, unknown>) => config },
   log: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));

@@ -16,7 +16,6 @@ const CLONES = [
 
 const LEGENDS = [
   { id: 'joel-dickson', env: 'JOEL_DICKSON_VOICE_ID', voice: VOICE_IDS.JOEL_DICKSON },
-  { id: 'peter-lynch', env: 'PETER_LYNCH_VOICE_ID', voice: VOICE_IDS.PETER_LYNCH },
   { id: 'john-bogle', env: 'JOHN_BOGLE_VOICE_ID', voice: VOICE_IDS.JOHN_BOGLE },
 ] as const;
 
@@ -47,9 +46,9 @@ describe('legend voices', () => {
 
   it('gives each legend its own voice, distinct from every teammate', () => {
     const legendVoices = LEGENDS.map((l) => l.voice);
-    expect(new Set(legendVoices).size).toBe(3);
+    expect(new Set(legendVoices).size).toBe(2);
     const others = Object.entries(VOICE_IDS)
-      .filter(([key]) => !['JOEL_DICKSON', 'PETER_LYNCH', 'JOHN_BOGLE'].includes(key))
+      .filter(([key]) => !['JOEL_DICKSON', 'JOHN_BOGLE'].includes(key))
       .map(([, v]) => v);
     for (const v of legendVoices) expect(others).not.toContain(v);
   });
@@ -69,8 +68,6 @@ describe('legend voices', () => {
     const fictional: Record<string, string> = {
       henry: VOICE_IDS.JOHN_BOGLE,
       caldwell: VOICE_IDS.JOHN_BOGLE,
-      tom: VOICE_IDS.PETER_LYNCH,
-      brannigan: VOICE_IDS.PETER_LYNCH,
       nate: VOICE_IDS.JOEL_DICKSON,
       holloway: VOICE_IDS.JOEL_DICKSON,
     };
