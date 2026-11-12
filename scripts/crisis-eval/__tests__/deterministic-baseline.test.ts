@@ -36,8 +36,9 @@ function zoneWrites<T>(read: () => T): [T, number] {
 
 describe('crisis K0 deterministic baseline', () => {
   it('regenerating on this head reproduces the committed file byte for byte', () => {
-    const committed = readFileSync(OUT, 'utf8');
+    const [committed, zone] = [readFileSync(OUT, 'utf8'), process.env.TZ];
     const [fresh, writes] = zoneWrites(baselineText);
+    expect(process.env.TZ, 'the caller zone is restored').toBe(zone);
     // The rows read differently first, by name; then any other byte (a key, a hash, the head).
     expect(changedRows(committed, fresh), 'run pnpm crisis:baseline').toEqual([]);
     expect(fresh === committed, 'run pnpm crisis:baseline').toBe(true);
