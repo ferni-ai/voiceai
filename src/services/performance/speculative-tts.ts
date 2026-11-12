@@ -16,7 +16,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../config/voice-ids.js';
@@ -257,7 +257,10 @@ class SpeculativeTTSEngine {
       await Promise.all(
         batch.map(({ text, emotion }) =>
           this.generateAndCache(text, voiceId, 'low', emotion).catch((e) =>
-            log.debug({ text, emotion, error: String(e) }, 'Warmup generation failed')
+            log.debug(
+              { text: replyForLog(text), emotion, error: String(e) },
+              'Warmup generation failed'
+            )
           )
         )
       );
