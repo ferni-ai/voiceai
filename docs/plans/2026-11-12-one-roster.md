@@ -56,10 +56,14 @@ hangs the five asks on it.
 - Consent gate: a real yes can be held (#3755, fix in #3759) and a wrong yes
   can pass (#3760).
 - `executeHandoff` marks the target as the current agent before the swap is
-  confirmed (`src/tools/handoff/executor.ts:405`). The handler wait is 15 s
-  and the swap timeout 8 s (`executor.ts:496-525`,
-  `src/agents/multi-agent/persona-swap.ts:71`), so state can name one agent
-  while the caller hears another.
+  confirmed (`src/tools/handoff/executor.ts:405`) and puts it back when the
+  handler reports a failure or never answers
+  (`src/tools/handoff/unconfirmed-handoff.ts`). One path was missed: with one
+  session per call the tool is told the handoff worked once the next persona
+  is built, so a swap dropped after that left the tools naming a teammate who
+  never joined, and a second ask was refused as "Already with" them (#3803,
+  fix in #3804). A second handoff asked for while a swap is pending can still
+  leave the same wrong record (#3807).
 - The flags that make a held or failed transfer truthful
   (`HANDOFF_HELD_TRUTHFUL`, `HANDOFF_FAILED_SAY_SO`, `HANDOFF_EARLY_GOODBYE`)
   default off.
@@ -172,9 +176,10 @@ decision for the owner (section 6).
 ### 3.6 Transfers
 
 1. Consent: land #3759, then tighten the named-offer path (#3760).
-2. State: set the current agent only after the swap is confirmed; on a
-   failed or timed-out swap the caller hears a truthful line and stays with
-   the agent they had.
+2. State: after any failed or dropped swap the tools name the persona the
+   orchestrator has on the call (#3804, then #3807), and the caller hears a
+   truthful line. `HANDOFF_FAILED_SAY_SO` already does the second part and
+   is off, so that part is a dev run and a decision, not new code.
 3. Proof: a nightly lane that tries every from-to pair in the roster,
    including legends and the failure cases, and fails on a broken pair.
 4. Custom agents and the twin join multi-agent mode once they are bundles
@@ -191,7 +196,7 @@ behaviour. Nothing here flips a prod flag.
 | R1   | Roster module with the core six and two legends; move the preloader and the browse filter onto it. No behaviour change, pinned by tests.  | -                                |
 | R2   | Move the remaining lists in 2.1 onto the roster, one consumer per PR.                                                                     | R1                               |
 | R3   | Voice records; the existing consented voice first.                                                                                        | R1                               |
-| R4   | Transfer state fix and the truthful failure line.                                                                                         | R0                               |
+| R4   | Transfer state fixes (#3804, #3807), then a dev run of the truthful failure line (`HANDOFF_FAILED_SAY_SO`).                               | R0                               |
 | R5   | Colour map from the roster, the cross-file check, and the fixes in 2.4 that need no brand decision (Nayan's three values, text contrast). | R1                               |
 | R6   | Marketplace P1: bring bundles in, three or four per PR.                                                                                   | R2, #3595, access to the bundles |
 | R7   | Marketplace P2: callable from web and iOS; every-pair transfer lane.                                                                      | R4, R6                           |
