@@ -1,7 +1,7 @@
 /**
  * The freshness gate: at send time, a todo leaves Alex's morning brief when the
- * person has already dealt with it. Seth's brief kept texting todos he had
- * given updates on, because the brief read the raw stores and nothing else.
+ * person has already dealt with it. Before this the brief kept texting todos
+ * people had already given updates on: it read the raw stores and nothing else.
  *
  * An item is dropped when:
  * - (a) its source is no longer open, is gone, or changed since it was read
