@@ -1,5 +1,7 @@
 # Lane B (the 2026-10-21 sweep): crisis, attunement, handoff, play, music, journal, lookups,
-# turn-taking, timer, bh samples. Fields: ENV | scenario | label | uid | capability
+# turn-taking, timer, bh samples, and each teammate called directly (#3752; EVAL_TIER=partner so
+# team_availability lists the whole team unlocked, as for a user who can call them).
+# Fields: ENV | scenario | label | uid | capability
 # No EVAL_TZ unless a line needs that zone: run.sh puts each caller at 14:00 local, whenever the
 # sweep runs (caller-clock.mjs, #3164). A fixed Asia/Tokyo made a 19:00Z sweep a 04:00 caller.
 - | sweep-crisis-bye | s1 | | goodbye
@@ -34,3 +36,8 @@ EVAL_TIER=partner | bh-20 | s1 | | bh-sample
 - | hard-ground | s2 | | attunement
 - | sweep-crisis-bye | s2 | | goodbye
 EVAL_TIER=partner | bh-20 | s2 | | bh-sample
+EVAL_TIER=partner | teammate-maya | s1 | | teammate
+EVAL_TIER=partner | teammate-alex | s1 | | teammate
+EVAL_TIER=partner | teammate-peter | s1 | | teammate
+EVAL_TIER=partner | teammate-jordan | s1 | | teammate
+EVAL_TIER=partner | teammate-nayan | s1 | | teammate

@@ -23,7 +23,7 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
 }));
 
 const { bindVerifiedIdentity } = await import('../../servers/api/request-identity.js');
-const { limitApiRequest, API_GLOBAL_LIMIT } = await import('../global-rate-limit.js');
+const { limitServerRequest, API_GLOBAL_LIMIT } = await import('../global-rate-limit.js');
 const { handleTokenRoutes } = await import('../../servers/api/routes/token.js');
 
 function response() {
@@ -47,6 +47,11 @@ async function signedIn(name: string, url: string, ip: string) {
   return req;
 }
 
+/** Whether the server's global limit turns away one /api/ call. */
+async function apiCall(name: string, ip: string): Promise<boolean> {
+  return limitServerRequest(await signedIn(name, '/api/rituals', ip), response(), '/api/rituals');
+}
+
 /** Status /token answers with for a request missing its room. */
 async function tokenStatus(name: string, ip: string): Promise<number> {
   const req = await signedIn(name, '/token?username=x', ip);
@@ -59,7 +64,7 @@ describe('/token rate limit', () => {
   it('is not spent by the app loading: 30 /api/ calls, then Connect still works', async () => {
     const ip = '198.51.100.71';
     for (let i = 0; i < 30; i++) {
-      expect(limitApiRequest(await signedIn('cara', '/api/rituals', ip), response())).toBe(false);
+      expect(await apiCall('cara', ip)).toBe(false);
     }
     expect(await tokenStatus('cara', ip)).toBe(400);
   });
@@ -74,8 +79,8 @@ describe('/token rate limit', () => {
     const ip = '198.51.100.73';
     for (let i = 0; i < 20; i++) await tokenStatus('eve', ip);
     for (let i = 0; i < API_GLOBAL_LIMIT.maxRequests; i++) {
-      expect(limitApiRequest(await signedIn('eve', '/api/rituals', ip), response())).toBe(false);
+      expect(await apiCall('eve', ip)).toBe(false);
     }
-    expect(limitApiRequest(await signedIn('eve', '/api/rituals', ip), response())).toBe(true);
+    expect(await apiCall('eve', ip)).toBe(true);
   });
 });

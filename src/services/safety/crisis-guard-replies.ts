@@ -15,6 +15,10 @@ export const IN_DANGER_NOW =
 /** The caller's own 988 line, in the in-danger reply's words (the caller check speaks it). */
 export const TALK_TO_988 = IN_DANGER_NOW.slice(IN_DANGER_NOW.indexOf('You can also'));
 
+/** The 988 line in Spanish, in the Spanish crisis reply's words (the timeout check-in reuses it). */
+export const TALK_TO_988_ES =
+  'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';
+
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
  * them, so the reply leads with 911 for them and stays with the caller. No 988: it isn't the
@@ -52,7 +56,7 @@ What's going on with them right now?`;
   if (language === 'es') {
     return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
 
-Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988. Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
+${TALK_TO_988_ES} Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
 
 Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
   }

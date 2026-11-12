@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { added, emptinessProblem, fromKnip, type DeadCode } from '../knip-ratchet.js';
+import { added, emptinessProblem, fromKnip, productionFindings, type DeadCode } from '../knip-ratchet.js';
 
 const base: DeadCode = { files: ['src/old-dead.ts'], exports: { 'src/a.ts': ['x', 'y'], 'src/b.ts': ['z'] } };
 const same = (p: string): string => p;
@@ -29,12 +29,13 @@ describe('knip gate: reading the report', () => {
     expect(() => fromKnip({ issues: [{ file: 'src/a.ts', files: [], exports: [{ id: 1 }], types: [] }] }, 'default')).toThrow(
       /unexpected shape/
     );
-    // production mode lists files only
-    expect(fromKnip({ issues: [{ file: 'src/p.ts', files: [{ name: 'src/p.ts' }] }] }, 'production')).toEqual({
-      files: ['src/p.ts'],
-      exports: {},
-    });
-    expect(() => fromKnip({ issues: [{ file: 'src/p.ts' }] }, 'production')).toThrow(/unexpected shape/);
+    // production mode asks for exports and types too, so a report without them is refused
+    expect(
+      fromKnip({ issues: [{ file: 'src/p.ts', files: [], exports: [{ name: 'onlyTested' }], types: [] }] }, 'production')
+    ).toEqual({ files: [], exports: { 'src/p.ts': ['onlyTested'] } });
+    expect(() => fromKnip({ issues: [{ file: 'src/p.ts', files: [{ name: 'src/p.ts' }] }] }, 'production')).toThrow(
+      /production issue has an unexpected shape/
+    );
   });
 
   it('fails an emptied project or a report that suddenly sees far less', () => {
@@ -80,5 +81,49 @@ describe('knip gate: only what the change adds fails', () => {
 
   it('reports a newly dead file once, not again for its exports', () => {
     expect(added({ files: ['src/old-dead.ts', 'src/d.ts'], exports: { ...base.exports, 'src/d.ts': ['a', 'b'] } }, base, same, none)).toHaveLength(1);
+  });
+});
+
+describe('knip gate: production pass (#3522)', () => {
+  // src/a.ts is reached from production; `helper` is a new export in it.
+  const prodBase: DeadCode = { files: ['src/test-only.ts'], exports: { 'src/a.ts': ['x'] } };
+
+  it('fails a new export that only a test imports', () => {
+    // The default pass counts the test as a use, so only the production pass sees it.
+    const head: DeadCode = { files: ['src/test-only.ts'], exports: { 'src/a.ts': ['x', 'helper'] } };
+    const r = productionFindings(head, prodBase, same, none, []);
+    expect(r.failures).toEqual(['src/a.ts: export helper is used only by tests or tooling, never by production code']);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('passes the same export once production code calls it', () => {
+    const r = productionFindings(prodBase, prodBase, same, none, []);
+    expect(r).toEqual({ failures: [], warnings: [] });
+  });
+
+  it('fails a new unused type in production mode too', () => {
+    const head: DeadCode = { files: ['src/test-only.ts'], exports: { 'src/a.ts': ['x', 'type:Shape'] } };
+    expect(productionFindings(head, prodBase, same, none, []).failures).toEqual([
+      'src/a.ts: export type:Shape is used only by tests or tooling, never by production code',
+    ]);
+  });
+
+  it('does not repeat an export the default pass already fails', () => {
+    const head: DeadCode = { files: [], exports: { 'src/a.ts': ['x', 'dead'] } };
+    const r = productionFindings(head, prodBase, same, none, ['src/a.ts: unused export dead']);
+    expect(r.failures).toEqual([]);
+  });
+
+  it('keeps a new file only tests reach a warning, not a failure', () => {
+    const head: DeadCode = { files: ['src/test-only.ts', 'src/new-helper.ts'], exports: { 'src/a.ts': ['x'] } };
+    const r = productionFindings(head, prodBase, same, none, []);
+    expect(r.failures).toEqual([]);
+    expect(r.warnings).toEqual(['src/new-helper.ts: no production entry point reaches it (only tests or tooling, if anything)']);
+  });
+
+  it('matches a moved file to its old path, so an old test-only export is not new', () => {
+    const head: DeadCode = { files: ['src/test-only.ts'], exports: { 'src/moved.ts': ['x'] } };
+    const toBase = (p: string): string | null => (p === 'src/moved.ts' ? 'src/a.ts' : p);
+    expect(productionFindings(head, prodBase, toBase, none, []).failures).toEqual([]);
   });
 });

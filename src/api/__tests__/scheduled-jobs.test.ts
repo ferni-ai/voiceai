@@ -158,56 +158,25 @@ describe('Scheduled Jobs Routes API', () => {
     });
   });
 
-  describe('POST /api/jobs/process-background-tasks', () => {
-    it('should process background tasks', async () => {
+  // These three were stubs (tasks marked running but never run; a session count) and
+  // were removed in #3720. An authorised scheduler POST must fall through unhandled.
+  describe('removed stub job routes', () => {
+    it.each([
+      '/api/jobs/process-background-tasks',
+      '/api/jobs/check-scheduled',
+      '/api/jobs/cleanup-sessions',
+    ])('does not handle %s', async (path) => {
       const { handleScheduledJobsRoutes } = await import('../scheduled-jobs.routes.js');
-
-      const req = createMockRequest({
-        method: 'POST',
-        url: '/api/jobs/process-background-tasks',
-      });
+      const { JOB_PATHS } = await import('../scheduled-jobs/index.js');
+      const req = createMockRequest({ method: 'POST', url: path });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(
-        req,
-        res,
-        '/api/jobs/process-background-tasks'
-      );
+      const handled = await handleScheduledJobsRoutes(req, res, path);
 
-      expect(handled).toBe(true);
-      expect(res._statusCode).toBeLessThanOrEqual(500);
-    });
-  });
-
-  describe('POST /api/jobs/check-scheduled', () => {
-    it('should check scheduled tasks', async () => {
-      const { handleScheduledJobsRoutes } = await import('../scheduled-jobs.routes.js');
-
-      const req = createMockRequest({
-        method: 'POST',
-        url: '/api/jobs/check-scheduled',
-      });
-      const res = createMockResponse();
-
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/check-scheduled');
-
-      expect(handled).toBe(true);
-    });
-  });
-
-  describe('POST /api/jobs/cleanup-sessions', () => {
-    it('should cleanup expired sessions', async () => {
-      const { handleScheduledJobsRoutes } = await import('../scheduled-jobs.routes.js');
-
-      const req = createMockRequest({
-        method: 'POST',
-        url: '/api/jobs/cleanup-sessions',
-      });
-      const res = createMockResponse();
-
-      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/cleanup-sessions');
-
-      expect(handled).toBe(true);
+      expect(handled).toBe(false);
+      expect(res.writeHead).not.toHaveBeenCalled();
+      expect(res.end).not.toHaveBeenCalled();
+      expect(JOB_PATHS.has(path)).toBe(false);
     });
   });
 
@@ -411,15 +380,11 @@ describe('Scheduled Jobs Routes API', () => {
 
       const req = createMockRequest({
         method: 'GET',
-        url: '/api/jobs/process-background-tasks',
+        url: '/api/jobs/cleanup-old-tasks',
       });
       const res = createMockResponse();
 
-      const handled = await handleScheduledJobsRoutes(
-        req,
-        res,
-        '/api/jobs/process-background-tasks'
-      );
+      const handled = await handleScheduledJobsRoutes(req, res, '/api/jobs/cleanup-old-tasks');
 
       expect(handled).toBe(false);
     });
@@ -450,11 +415,11 @@ describe('Scheduled Jobs Routes API', () => {
 
       const req = createMockRequest({
         method: 'POST',
-        url: '/api/jobs/process-background-tasks',
+        url: '/api/jobs/cleanup-old-tasks',
       });
       const res = createMockResponse();
 
-      await handleScheduledJobsRoutes(req, res, '/api/jobs/process-background-tasks');
+      await handleScheduledJobsRoutes(req, res, '/api/jobs/cleanup-old-tasks');
 
       // Should complete without throwing
       expect(res._statusCode).toBeDefined();

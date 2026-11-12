@@ -476,7 +476,6 @@
   "src/services/musical-you/preferences.ts",
   "src/services/observability/connection-health.ts",
   "src/services/observability/error-recovery.ts",
-  "src/services/observability/finops.ts",
   "src/services/observability/index.ts",
   "src/services/outreach/__tests__/user-reach-auth-phone.test.ts",
   "src/services/outreach/__tests__/voice-synthesis-voice-id.test.ts",

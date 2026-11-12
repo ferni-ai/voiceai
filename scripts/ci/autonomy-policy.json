@@ -50,6 +50,7 @@
         "src/agents/processors/injection-builders/safety-coaching-builders.ts",
         "src/agents/remembered-fact-store-register.ts",
         "src/agents/shared/call-farewell.ts",
+        "src/agents/shared/goodbye-phrases.ts",
         "src/agents/shared/call-wrap-up.ts",
         "src/agents/shared/caller-activity.ts",
         "src/agents/shared/farewell-risk.ts",
