@@ -54,7 +54,6 @@ export type {
   SessionMood,
   // Milestones
   Milestone,
-  MilestoneType,
   // Session
   SessionStartResult,
   // Config

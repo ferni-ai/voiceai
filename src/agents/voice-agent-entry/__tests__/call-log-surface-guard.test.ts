@@ -40,7 +40,6 @@ const SURFACE = [
   'src/intelligence/context-builders/external/proactive-session-context.ts',
   'src/intelligence/context-builders/external/voice-mismatch-context.ts',
   'src/intelligence/context-builders/external/account-linking-context.ts',
-  'src/intelligence/context-builders/external/family-messages-context.ts',
   'src/intelligence/context-builders/external/macos-context.ts',
   'src/intelligence/context-builders/external/pending-call-results.ts',
   // The turn path (#2656, #2653).

@@ -399,7 +399,7 @@ function storeMilestonesForDispatch(
  *
  * Call this during application startup to enable v2 personality intelligence.
  */
-export function registerPersonalityV2Builder(): void {
+function registerPersonalityV2Builder(): void {
   registerContextBuilder({
     name: 'personality-context',
     description:

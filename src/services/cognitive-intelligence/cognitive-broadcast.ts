@@ -251,46 +251,6 @@ class CognitiveBroadcastService extends EventEmitter {
 // Singleton instance
 export const cognitiveBroadcast = new CognitiveBroadcastService();
 
-// ============================================================================
-// CONVENIENCE METHODS
-// ============================================================================
-
-/**
- * Broadcast cognitive mode change
- */
-export function broadcastCognitiveMode(
-  personaId: string,
-  mode: ReasoningStyle,
-  reason: string
-): void {
-  cognitiveBroadcast.broadcast({
-    type: 'cognitive_mode',
-    personaId,
-    mode,
-    reason,
-    timestamp: new Date(),
-  });
-}
-
-/**
- * Broadcast detected user style
- */
-export function broadcastUserStyle(
-  userId: string,
-  style: ReasoningStyle,
-  confidence: number,
-  signals: Record<string, number> = {}
-): void {
-  cognitiveBroadcast.broadcast({
-    type: 'user_style',
-    userId,
-    style,
-    confidence,
-    signals,
-    timestamp: new Date(),
-  });
-}
-
 /**
  * Broadcast voice emotion detection
  */
@@ -306,76 +266,6 @@ export function broadcastVoiceEmotion(
     emotion,
     confidence,
     trend,
-    timestamp: new Date(),
-  });
-}
-
-/**
- * Broadcast confidence level
- */
-export function broadcastConfidence(personaId: string, level: number, reason: string): void {
-  cognitiveBroadcast.broadcast({
-    type: 'confidence',
-    personaId,
-    level,
-    reason,
-    timestamp: new Date(),
-  });
-}
-
-/**
- * Broadcast approach used
- */
-export function broadcastApproachUsed(
-  personaId: string,
-  approach: ReasoningStyle,
-  topic: string,
-  engagementScore: number
-): void {
-  cognitiveBroadcast.broadcast({
-    type: 'approach_history',
-    personaId,
-    approach,
-    topic,
-    engagementScore,
-    timestamp: new Date(),
-  });
-}
-
-/**
- * Broadcast quirk activation
- */
-export function broadcastQuirkActivated(
-  personaId: string,
-  quirkName: string,
-  quirkIcon: string,
-  frequency: number
-): void {
-  cognitiveBroadcast.broadcast({
-    type: 'quirk_activated',
-    personaId,
-    quirkName,
-    quirkIcon,
-    frequency,
-    timestamp: new Date(),
-  });
-}
-
-/**
- * Broadcast insight generation
- */
-export function broadcastInsightGenerated(
-  personaId: string,
-  insightType: string,
-  phrase: string,
-  shared: boolean
-): void {
-  cognitiveBroadcast.broadcast({
-    type: 'insight_generated',
-    personaId,
-    insightType,
-    phrase,
-    shared,
     timestamp: new Date(),
   });
 }

@@ -16,39 +16,29 @@ vi.mock('../../services/data-layer/store-hooks.js', () => ({
 
 // Import hooks after mocking
 import {
-  // Trust hooks
   onCommitmentChange,
   onBoundaryChange,
   onInsideJokeChange,
   onGrowthReflectionChange,
   onSmallWinChange,
-  // Superhuman hooks
   onDreamChange,
   onLifeChapterChange,
   onValuesAlignmentChange,
   onCapacityStateChange,
-  // Calendar hooks
   onCalendarEventChange,
   onMeetingMemoryChange,
   onDeadlineChange,
-  // Contacts hooks
   onContactChange,
   onGiftIdeaChange,
   onRelationshipNoteChange,
-  // Coaching hooks
   onCoachingInsightChange,
-  onBreakthroughMomentChange,
   onStuckPatternChange,
-  // Health hooks
   onHealthGoalChange,
   onWellnessCheckinChange,
-  // Media hooks
   onMusicPreferenceChange,
   onBookHighlightChange,
-  // Career hooks
   onCareerGoalChange,
   onSkillDevelopmentChange,
-  // Wisdom hooks
   onWisdomInsightChange,
   onLifeLessonChange,
 } from '../../services/data-layer/hooks/index.js';
@@ -349,20 +339,6 @@ describe('Domain Hooks', () => {
       const call = vi.mocked(storeHooks.onStoreChange).mock.calls[0][0];
       expect(call.content).toContain('visual examples');
       expect(call.content).toContain('behavior');
-    });
-
-    it('onBreakthroughMomentChange should capture aha moments', () => {
-      const breakthrough = {
-        description: 'Realized fear was holding them back',
-        trigger: 'Question about past attempts',
-        impact: 'New confidence in approaching goal',
-      };
-
-      onBreakthroughMomentChange('user123', 'break1', breakthrough, 'create');
-
-      const call = vi.mocked(storeHooks.onStoreChange).mock.calls[0][0];
-      expect(call.content).toContain('fear');
-      expect(call.content).toContain('confidence');
     });
 
     it('onStuckPatternChange should track blockers', () => {

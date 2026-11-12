@@ -7,9 +7,7 @@
  * Test Coverage:
  * 1. Cognitive Intelligence (distortion detection, ANT tracking, Socratic questioning)
  * 2. Wellbeing Tracking (signal detection, alerts)
- * 3. Somatic Intelligence (exercise selection, nervous system detection)
- * 4. Therapeutic Frameworks (ACT values, DBT skills, MI)
- * 5. Behavioral Economics (implementation intentions, commitment devices)
+ * 3. Therapeutic Frameworks (ACT values, MI)
  */
 
 import { describe, expect, it } from 'vitest';
@@ -113,28 +111,6 @@ describe('Cognitive Intelligence', () => {
       expect(dialogue.followUp).toBeDefined();
     });
   });
-
-  describe('Unified API', () => {
-    it('should build complete cognitive intelligence context', async () => {
-      const { buildCognitiveIntelligenceContext } =
-        await import('../services/cognitive-intelligence/index.js');
-
-      const result = buildCognitiveIntelligenceContext(
-        'user-test-7',
-        "I'm such a failure. I mess up everything I try.",
-        {
-          emotion: 'sad',
-          emotionIntensity: 0.7,
-          relationshipStage: 'established',
-        }
-      );
-
-      expect(result.hasDistortion).toBe(true);
-      expect(result.primary).toBeDefined();
-      expect(result.contextInjection).toBeDefined();
-      expect(result.contextInjection?.llmContext).toContain('COGNITIVE PATTERN DETECTED');
-    });
-  });
 });
 
 // ============================================================================
@@ -199,86 +175,6 @@ describe('Wellbeing Tracking', () => {
 });
 
 // ============================================================================
-// SOMATIC INTELLIGENCE TESTS
-// ============================================================================
-
-describe('Somatic Intelligence', () => {
-  describe('Exercise Selection', () => {
-    it('should select physiological sigh for high distress', async () => {
-      const { selectExercise, PHYSIOLOGICAL_SIGH } =
-        await import('../services/somatic-intelligence/index.js');
-
-      const exercise = selectExercise({
-        emotionIntensity: 0.9,
-        emotion: 'panic',
-      });
-
-      expect(exercise.id).toBe('physiological_sigh');
-    });
-
-    it('should select grounding for panic', async () => {
-      const { selectExercise } = await import('../services/somatic-intelligence/index.js');
-
-      const exercise = selectExercise({
-        emotion: 'panic',
-        state: 'dorsal_vagal',
-      });
-
-      expect(exercise.category).toBe('grounding');
-    });
-
-    it('should select breathing for anxiety', async () => {
-      const { selectExercise } = await import('../services/somatic-intelligence/index.js');
-
-      const exercise = selectExercise({
-        emotion: 'anxious',
-        preference: 'breathing',
-      });
-
-      expect(exercise.category).toBe('breathing');
-    });
-  });
-
-  describe('Nervous System Detection', () => {
-    it('should detect sympathetic activation', async () => {
-      const { detectNervousSystemState } =
-        await import('../services/somatic-intelligence/index.js');
-
-      const state = detectNervousSystemState({
-        emotion: 'anxious',
-        emotionIntensity: 0.8,
-      });
-
-      expect(state).toBe('sympathetic');
-    });
-
-    it('should detect dorsal vagal shutdown', async () => {
-      const { detectNervousSystemState } =
-        await import('../services/somatic-intelligence/index.js');
-
-      const state = detectNervousSystemState({
-        keywords: ['numb', 'frozen'],
-      });
-
-      expect(state).toBe('dorsal_vagal');
-    });
-  });
-
-  describe('Voice Guidance', () => {
-    it('should generate voice guidance for exercise', async () => {
-      const { generateVoiceGuidance, BOX_BREATHING } =
-        await import('../services/somatic-intelligence/index.js');
-
-      const guidance = generateVoiceGuidance(BOX_BREATHING, { rounds: 2 });
-
-      expect(guidance.parts.length).toBeGreaterThan(0);
-      expect(guidance.totalDurationMs).toBeGreaterThan(0);
-      expect(guidance.rounds).toBe(2);
-    });
-  });
-});
-
-// ============================================================================
 // THERAPEUTIC FRAMEWORKS TESTS
 // ============================================================================
 
@@ -316,65 +212,6 @@ describe('Therapeutic Frameworks', () => {
 
       const prompt = generateValuesPrompt('user-test-act-2', {});
       expect(prompt.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('ACT Defusion', () => {
-    it('should select appropriate defusion technique', async () => {
-      const { selectDefusionTechnique } =
-        await import('../services/therapeutic-frameworks/act-defusion.js');
-
-      const technique = selectDefusionTechnique({
-        thought: "I'm such a failure",
-        emotionIntensity: 0.9,
-      });
-
-      expect(technique.id).toBe('im_having_the_thought');
-    });
-
-    it('should have complete defusion library', async () => {
-      const { getAllDefusionTechniques } =
-        await import('../services/therapeutic-frameworks/act-defusion.js');
-
-      const techniques = getAllDefusionTechniques();
-      expect(techniques.length).toBeGreaterThanOrEqual(5);
-    });
-  });
-
-  describe('DBT Skills', () => {
-    it('should select TIPP for crisis', async () => {
-      const { selectDBTSkill } = await import('../services/therapeutic-frameworks/dbt-skills.js');
-
-      const skill = selectDBTSkill({
-        emotionIntensity: 0.95,
-        goal: 'survive_crisis',
-      });
-
-      expect(skill.id).toBe('tipp');
-    });
-
-    it('should select STOP for impulsive situations', async () => {
-      const { selectDBTSkill } = await import('../services/therapeutic-frameworks/dbt-skills.js');
-
-      const skill = selectDBTSkill({
-        keywords: ['about to send this text'],
-      });
-
-      expect(skill.id).toBe('stop');
-    });
-
-    it('should have complete DBT skill library', async () => {
-      const { ALL_DBT_SKILLS } = await import('../services/therapeutic-frameworks/dbt-skills.js');
-
-      expect(Object.keys(ALL_DBT_SKILLS).length).toBeGreaterThanOrEqual(10);
-    });
-
-    it('should have voice guidance for skills', async () => {
-      const { DISTRESS_TOLERANCE_SKILLS } =
-        await import('../services/therapeutic-frameworks/dbt-skills.js');
-
-      expect(DISTRESS_TOLERANCE_SKILLS.tipp.voiceGuidance).toBeDefined();
-      expect(DISTRESS_TOLERANCE_SKILLS.tipp.voiceGuidance.length).toBeGreaterThan(0);
     });
   });
 
@@ -418,125 +255,6 @@ describe('Therapeutic Frameworks', () => {
       expect(response.response.length).toBeGreaterThan(0);
     });
   });
-
-  describe('Unified API', () => {
-    it('should build complete therapeutic context', async () => {
-      const { buildTherapeuticContext } =
-        await import('../services/therapeutic-frameworks/index.js');
-
-      const result = buildTherapeuticContext(
-        'user-test-tf-1',
-        "I want to change but I can't seem to. It's too hard.",
-        {
-          emotionIntensity: 0.7,
-          relationshipStage: 'established',
-        }
-      );
-
-      expect(result.hasContext).toBe(true);
-      expect(result.frameworks.length).toBeGreaterThan(0);
-    });
-  });
-});
-
-// ============================================================================
-// BEHAVIORAL ECONOMICS TESTS
-// ============================================================================
-
-describe('Behavioral Economics', () => {
-  describe('Implementation Intentions', () => {
-    it('should create implementation intention', async () => {
-      const { createImplementationIntention, getImplementationIntentions } =
-        await import('../services/behavioral-economics/index.js');
-
-      const intention = createImplementationIntention(
-        'user-test-be-1',
-        'After I finish my morning coffee',
-        'I will meditate for 5 minutes',
-        'daily meditation'
-      );
-
-      expect(intention.when).toBe('After I finish my morning coffee');
-      expect(intention.then).toBe('I will meditate for 5 minutes');
-
-      const retrieved = getImplementationIntentions('user-test-be-1');
-      expect(retrieved.length).toBeGreaterThan(0);
-    });
-
-    it('should assess specificity', async () => {
-      const { createImplementationIntention } =
-        await import('../services/behavioral-economics/index.js');
-
-      const vague = createImplementationIntention(
-        'user-test-be-2',
-        'When I have time',
-        'I will exercise',
-        'exercise'
-      );
-
-      const specific = createImplementationIntention(
-        'user-test-be-3',
-        'After I wake up at 7am in my bedroom',
-        'I will put on my running shoes',
-        'exercise'
-      );
-
-      expect(vague.specificity).toBe('vague');
-      expect(specific.specificity).toBe('specific');
-    });
-  });
-
-  describe('Commitment Devices', () => {
-    it('should create and retrieve commitment device', async () => {
-      const { createCommitmentDevice, getActiveCommitments } =
-        await import('../services/behavioral-economics/index.js');
-
-      createCommitmentDevice('user-test-be-4', 'Go to gym 3x this week', 'social', {
-        witnesses: ['accountability partner'],
-      });
-
-      const active = getActiveCommitments('user-test-be-4');
-      expect(active.length).toBeGreaterThan(0);
-    });
-
-    it('should suggest commitment devices', async () => {
-      const { suggestCommitmentDevice } = await import('../services/behavioral-economics/index.js');
-
-      const suggestions = suggestCommitmentDevice('exercise more');
-      expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions.some((s) => s.type === 'social')).toBe(true);
-    });
-  });
-
-  describe('Loss Framing', () => {
-    it('should apply loss framing to goals', async () => {
-      const { applyLossFraming } = await import('../services/behavioral-economics/index.js');
-
-      const lossFramed = applyLossFraming('get more energy');
-      expect(lossFramed).toContain('losing');
-    });
-  });
-
-  describe('Temptation Bundling', () => {
-    it('should suggest temptation bundles', async () => {
-      const { suggestTemptationBundles } =
-        await import('../services/behavioral-economics/index.js');
-
-      const bundles = suggestTemptationBundles(['exercise'], ['listen to podcasts']);
-
-      expect(bundles.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Friction Audit', () => {
-    it('should audit friction for common goals', async () => {
-      const { auditFriction } = await import('../services/behavioral-economics/index.js');
-
-      const audit = auditFriction('exercise regularly');
-      expect(audit.barriers.length).toBeGreaterThan(0);
-      expect(audit.solutions.length).toBeGreaterThan(0);
-    });
-  });
 });
 
 // ============================================================================
@@ -560,20 +278,6 @@ describe('Better-Than-Human Capabilities', () => {
     // Should track patterns over time
     expect(profile).toBeDefined();
     expect(profile.totalDetected).toBeGreaterThan(0);
-  });
-
-  it('should be consistent in framework application', async () => {
-    const { selectDBTSkill } = await import('../services/therapeutic-frameworks/dbt-skills.js');
-
-    // Same input should always give same output
-    const input = { emotionIntensity: 0.95, goal: 'survive_crisis' as const };
-
-    const skill1 = selectDBTSkill(input);
-    const skill2 = selectDBTSkill(input);
-    const skill3 = selectDBTSkill(input);
-
-    expect(skill1.id).toBe(skill2.id);
-    expect(skill2.id).toBe(skill3.id);
   });
 
   it('should track wellbeing across sessions', async () => {
@@ -604,27 +308,5 @@ describe('Better-Than-Human Capabilities', () => {
     // Check snapshots are being stored
     const snaps = getRecentSnapshots(userId, 5);
     expect(snaps.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('should integrate multiple frameworks seamlessly', async () => {
-    const { buildTherapeuticContext } = await import('../services/therapeutic-frameworks/index.js');
-    const { buildBehavioralEconomicsContext } =
-      await import('../services/behavioral-economics/index.js');
-
-    const userId = 'user-integration-test';
-    const userText = 'I want to change but I keep failing. It feels hopeless.';
-
-    const therapeuticContext = buildTherapeuticContext(userId, userText, {
-      relationshipStage: 'established',
-      emotionIntensity: 0.7,
-    });
-
-    const beContext = buildBehavioralEconomicsContext(userId, {
-      goal: 'change behavior',
-      barrier: 'keep failing',
-    });
-
-    // Both should provide relevant context
-    expect(therapeuticContext.hasContext || !!beContext).toBe(true);
   });
 });

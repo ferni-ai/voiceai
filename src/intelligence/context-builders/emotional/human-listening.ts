@@ -280,6 +280,4 @@ Consider a gentle check-in: "You sound a bit different today. How are you really
 
 // Register on module load
 registerContextBuilder(humanListeningBuilder);
-
-export { humanListeningBuilder };
 export default humanListeningBuilder;

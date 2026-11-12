@@ -32,7 +32,7 @@ export type ValueDomain =
   | 'community' // Service, citizenship, belonging
   | 'environment'; // Nature, sustainability
 
-export interface Value {
+interface Value {
   id: string;
   name: string;
   description: string;
@@ -42,7 +42,7 @@ export interface Value {
   examples: string[]; // Specific behaviors that express this value
 }
 
-export interface ValuesProfile {
+interface ValuesProfile {
   userId: string;
 
   // Core values
@@ -176,7 +176,7 @@ const EXPLORATION_PROMPTS: string[] = [
 /**
  * Generate a values exploration prompt
  */
-export function getValuesExplorationPrompt(userId: string): {
+function getValuesExplorationPrompt(userId: string): {
   prompt: string;
   context: string;
   ssml: string;
@@ -208,11 +208,7 @@ export function getValuesExplorationPrompt(userId: string): {
 /**
  * Record response to values exploration
  */
-export function recordValuesExplorationResponse(
-  userId: string,
-  prompt: string,
-  response: string
-): void {
+function recordValuesExplorationResponse(userId: string, prompt: string, response: string): void {
   const profile = getOrCreateProfile(userId);
   const exploration = profile.valuesExploration.find((e) => e.prompt === prompt);
   if (exploration) {
@@ -227,7 +223,7 @@ export function recordValuesExplorationResponse(
 /**
  * Identify a value for a user
  */
-export function identifyValue(
+function identifyValue(
   userId: string,
   valueName: string,
   domain: ValueDomain,
@@ -326,7 +322,7 @@ export function suggestValuesFromConversation(
 /**
  * Record alignment with a value
  */
-export function recordValueAlignment(
+function recordValueAlignment(
   userId: string,
   valueName: string,
   alignmentScore: number,
@@ -353,7 +349,7 @@ export function recordValueAlignment(
 /**
  * Get values with low alignment (potential growth areas)
  */
-export function getLowAlignmentValues(userId: string): Value[] {
+function getLowAlignmentValues(userId: string): Value[] {
   const profile = valuesProfiles.get(userId);
   if (!profile) return [];
 
@@ -369,7 +365,7 @@ export function getLowAlignmentValues(userId: string): Value[] {
 /**
  * Generate values check for a decision
  */
-export function generateValuesCheck(
+function generateValuesCheck(
   userId: string,
   decision: string
 ): {
@@ -455,11 +451,11 @@ export function buildValuesContext(userId: string): string | null {
 // PERSISTENCE
 // ============================================================================
 
-export function exportValuesProfile(userId: string): ValuesProfile | null {
+function exportValuesProfile(userId: string): ValuesProfile | null {
   return valuesProfiles.get(userId) || null;
 }
 
-export function importValuesProfile(profile: ValuesProfile): void {
+function importValuesProfile(profile: ValuesProfile): void {
   profile.valuesExploration.forEach((e) => {
     e.date = new Date(e.date);
   });

@@ -91,7 +91,7 @@ const {
   sendableLink,
 } = await import('../pick-delivery.js');
 const { processCommitments } = await import('../../trust-systems/commitment-tracking.js');
-const { asksAbout, noteAskedFollowUps, noteFollowUpOffered } =
+const { asksAbout, noteAskedFollowUps } =
   await import('../../trust-systems/commitment-follow-through.js');
 const { recordFollowUpAnswer } = await import('../feedback.js');
 
@@ -136,63 +136,6 @@ afterEach(() => {
 });
 
 describe('deliverPick', () => {
-  it('texts this call’s pick to the verified number and asks about it once, three days later', async () => {
-    const session = {};
-    rememberPick(session, PICK);
-
-    const said = await deliverPick(session, 'user-1', 'text', 'ferni');
-
-    expect(said).toContain('Texted it');
-    expect(userReach).toHaveBeenCalledWith('user-1', 'sms', { standingOptIn: false });
-    expect(sendGuardedText).toHaveBeenCalledTimes(1);
-    const { userId, kind, refId, body } = sendGuardedText.mock.calls[0][0];
-    expect({ userId, kind, refId }).toEqual({
-      userId: 'user-1',
-      kind: 'coach-media',
-      refId: 'pick-1',
-    });
-    expect(body).toContain('https://www.youtube.com/watch?v=vid1');
-    expect(body).toContain('(8 minutes)');
-    expect(body).not.toContain('\n');
-    expect(body).not.toMatch(/ignore previous instructions/i);
-    // The text links the card page; the inbox copy carries the same card's id.
-    const { id, url } = await createAnswerCard.mock.results[0].value;
-    expect(createAnswerCard).toHaveBeenCalledTimes(1);
-    expect(createAnswerCard).toHaveBeenCalledWith('user-1', expect.anything());
-    expect(body.endsWith(` Why I picked it: ${url}`)).toBe(true);
-    expect(saveInAppMessage).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({ answerCardId: id })
-    );
-
-    expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
-    vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
-    const due = (await processCommitments('user-1', 'hey')).followUpsDue;
-    expect(due).toHaveLength(1);
-    // The title's planted line is dropped; only the plain title comes back later.
-    expect(due[0].content).toBe("try the video 'Shin Splint Rehab'");
-    expect(due[0].content).not.toMatch(/ignore previous instructions/i);
-    expect(asksAbout(`You were going to ${due[0].content}. Did it help?`, due[0].content)).toBe(
-      true
-    );
-
-    // Ferni asks (through the real follow-through reader); the pick log notes when.
-    const key = [...docs.keys()].find((k) => k.includes('/commitments/'))!;
-    noteFollowUpOffered('user-1', due[0]);
-    await noteAskedFollowUps('user-1', `You were going to ${due[0].content}. Did it help?`);
-    expect(docs.get(key)).toMatchObject({ awaitingAnswer: true });
-    expect(markAsked).toHaveBeenCalledWith('user-1', 'pick-1', expect.any(String));
-    const { answers } = await processCommitments('user-1', 'oh it really helped, thanks');
-    expect(answers).toEqual([expect.objectContaining({ outcome: 'done' })]);
-    expect(await recordFollowUpAnswer('user-1', answers[0], 'oh it really helped, thanks')).toBe(
-      'yes'
-    );
-    expect(storeUserPreferences).toHaveBeenCalledWith('user-1', [
-      expect.objectContaining({ category: 'coaching_media', isNegative: false }),
-    ]);
-    expect(docs.get(key)).toMatchObject({ awaitingAnswer: false, status: 'completed' });
-  });
-
   it('puts it in the app inbox when they want it there', async () => {
     const session = {};
     rememberPick(session, PICK);

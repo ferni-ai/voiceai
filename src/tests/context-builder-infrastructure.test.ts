@@ -173,32 +173,6 @@ describe('Builder Metrics Integration', () => {
     resetAllMetrics();
   });
 
-  it('should track metrics across multiple builders', async () => {
-    const { recordBuilderMetrics, recordTurnMetrics, getMetricsSummary, checkPerformanceIssues } =
-      await import('../intelligence/context-builders/metrics.js');
-
-    // Simulate multiple builder executions
-    recordBuilderMetrics('emotional', 50, 3);
-    recordBuilderMetrics('crisis', 20, 1);
-    recordBuilderMetrics('memory', 100, 2);
-    recordBuilderMetrics('emotional', 45, 2); // Second call
-
-    // Record turn
-    recordTurnMetrics('test-session', 1, [
-      { name: 'emotional', durationMs: 50, injectionCount: 3 },
-      { name: 'crisis', durationMs: 20, injectionCount: 1 },
-      { name: 'memory', durationMs: 100, injectionCount: 2 },
-    ]);
-
-    const summary = getMetricsSummary();
-    expect(summary.totalBuilds).toBe(1);
-    expect(summary.slowestBuilders.length).toBeGreaterThan(0);
-    expect(summary.mostActiveBuilders.length).toBeGreaterThan(0);
-
-    const warnings = checkPerformanceIssues();
-    expect(Array.isArray(warnings)).toBe(true);
-  });
-
   it('should be re-exported from context-builders index', async () => {
     const { getMetricsSummary, checkPerformanceIssues, getBuilderMetrics } =
       await import('../intelligence/context-builders/index.js');

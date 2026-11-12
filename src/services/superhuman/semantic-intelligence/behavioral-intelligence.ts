@@ -359,7 +359,7 @@ export async function getBaseline(userId: string): Promise<EmotionalBaseline | n
 /**
  * Check if current state is outside baseline.
  */
-export async function checkBaselineDeviation(
+async function checkBaselineDeviation(
   userId: string,
   current: { valence: number; energy: number }
 ): Promise<{ isDeviation: boolean; description?: string }> {

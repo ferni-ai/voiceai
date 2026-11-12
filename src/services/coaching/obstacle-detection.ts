@@ -62,20 +62,20 @@ export interface Obstacle {
   whatHelped?: string;
 }
 
-export interface ObstacleProfile {
+interface ObstacleProfile {
   userId: string;
   obstacles: Obstacle[];
   patterns: ObstaclePattern[];
 }
 
-export interface ObstaclePattern {
+interface ObstaclePattern {
   type: ObstacleType;
   frequency: number;
   lastSeen: Date;
   commonContexts: string[];
 }
 
-export interface ObstacleSupport {
+interface ObstacleSupport {
   type: ObstacleType;
   acknowledgment: string;
   questions: string[];
@@ -517,7 +517,7 @@ export function getObstacleSupport(type: ObstacleType): ObstacleSupport {
 /**
  * Generate a supportive response to an obstacle
  */
-export function generateObstacleResponse(obstacle: Obstacle): {
+function generateObstacleResponse(obstacle: Obstacle): {
   acknowledgment: string;
   question: string;
   ssml: string;
@@ -545,11 +545,7 @@ export function generateObstacleResponse(obstacle: Obstacle): {
 /**
  * Mark an obstacle as addressed (we talked about it)
  */
-export function markObstacleAddressed(
-  userId: string,
-  obstacleId: string,
-  supportOffered: string
-): void {
+function markObstacleAddressed(userId: string, obstacleId: string, supportOffered: string): void {
   const profile = obstacleProfiles.get(userId);
   if (!profile) return;
 
@@ -564,11 +560,7 @@ export function markObstacleAddressed(
 /**
  * Mark an obstacle as resolved
  */
-export function markObstacleResolved(
-  userId: string,
-  obstacleId: string,
-  whatHelped?: string
-): void {
+function markObstacleResolved(userId: string, obstacleId: string, whatHelped?: string): void {
   const profile = obstacleProfiles.get(userId);
   if (!profile) return;
 
@@ -588,7 +580,7 @@ export function markObstacleResolved(
 /**
  * Get active obstacles for a user
  */
-export function getActiveObstacles(userId: string): Obstacle[] {
+function getActiveObstacles(userId: string): Obstacle[] {
   const profile = obstacleProfiles.get(userId);
   return profile?.obstacles.filter((o) => o.status === 'active') || [];
 }
@@ -596,7 +588,7 @@ export function getActiveObstacles(userId: string): Obstacle[] {
 /**
  * Get obstacle patterns for a user
  */
-export function getObstaclePatterns(userId: string): ObstaclePattern[] {
+function getObstaclePatterns(userId: string): ObstaclePattern[] {
   const profile = obstacleProfiles.get(userId);
   return profile?.patterns || [];
 }
@@ -604,7 +596,7 @@ export function getObstaclePatterns(userId: string): ObstaclePattern[] {
 /**
  * Get the most common obstacle type for a user
  */
-export function getMostCommonObstacle(userId: string): ObstacleType | null {
+function getMostCommonObstacle(userId: string): ObstacleType | null {
   const patterns = getObstaclePatterns(userId);
   if (patterns.length === 0) return null;
 
@@ -642,11 +634,11 @@ export function buildObstacleContext(userId: string): string | null {
 // PERSISTENCE
 // ============================================================================
 
-export function exportObstacleProfile(userId: string): ObstacleProfile | null {
+function exportObstacleProfile(userId: string): ObstacleProfile | null {
   return obstacleProfiles.get(userId) || null;
 }
 
-export function importObstacleProfile(profile: ObstacleProfile): void {
+function importObstacleProfile(profile: ObstacleProfile): void {
   profile.obstacles.forEach((o) => {
     o.detectedAt = new Date(o.detectedAt);
     if (o.resolvedAt) o.resolvedAt = new Date(o.resolvedAt);

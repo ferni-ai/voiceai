@@ -721,23 +721,6 @@ export function detectAnticipatoryCues(
   return null;
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-// Note: buildSuperhumanInsights and generateTimeBasedInsights are not exported with 'export function'
-// so we explicitly export them here along with all the types
-export {
-  buildSuperhumanInsights,
-  generateTimeBasedInsights,
-  type SuperhumanSession,
-  type TimeBasedInsight,
-  type LinguisticPatternResult,
-  type RepeatedTopicResult,
-  type EmotionalWeatherResult,
-  type AnticipatoryCueResult,
-};
-
 export default {
   buildSuperhumanInsights,
   generateTimeBasedInsights,

@@ -907,7 +907,7 @@ const capabilityTrackingStore = new Map<string, CapabilityEffectiveness[]>();
 /**
  * Track a capability being surfaced (called by builder)
  */
-export function trackCapabilitySurfaced(
+function trackCapabilitySurfaced(
   sessionKey: string,
   domain: string,
   personaId: string,
@@ -1110,7 +1110,7 @@ function detectRelevantDomains(input: ContextBuilderInput, personaId: string): D
     .map((s) => s.domain);
 }
 
-export const domainFluencyBuilder: ContextBuilder = {
+const domainFluencyBuilder: ContextBuilder = {
   name: 'domain-fluency',
   description:
     'Injects conceptual capability awareness - what each persona can help with, expressed naturally',
@@ -1179,16 +1179,3 @@ export const domainFluencyBuilder: ContextBuilder = {
 registerContextBuilder(domainFluencyBuilder);
 
 export default domainFluencyBuilder;
-
-// Export all persona fluencies and types for external use
-export {
-  FERNI_DOMAIN_FLUENCIES,
-  MAYA_DOMAIN_FLUENCIES,
-  PETER_DOMAIN_FLUENCIES,
-  ALEX_DOMAIN_FLUENCIES,
-  JORDAN_DOMAIN_FLUENCIES,
-  NAYAN_DOMAIN_FLUENCIES,
-  TEAM_EXPERTISE,
-  getPersonaDomainFluencies,
-  type DomainFluency,
-};

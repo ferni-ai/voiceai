@@ -22,7 +22,7 @@ const log = createLogger({ module: 'ProgressMetrics' });
 // TYPES
 // ============================================================================
 
-export interface ProgressSummary {
+interface ProgressSummary {
   userId: string;
   period: 'week' | 'month' | 'quarter' | 'year';
   periodStart: Date;
@@ -68,7 +68,7 @@ export interface ProgressSummary {
   };
 }
 
-export interface GrowthHighlight {
+interface GrowthHighlight {
   type: 'goal' | 'milestone' | 'breakthrough' | 'habit' | 'insight';
   date: Date;
   title: string;
@@ -76,7 +76,7 @@ export interface GrowthHighlight {
   significance: 'notable' | 'significant' | 'major';
 }
 
-export interface ProgressProfile {
+interface ProgressProfile {
   userId: string;
 
   // Historical summaries
@@ -140,7 +140,7 @@ function getOrCreateProfile(userId: string): ProgressProfile {
 /**
  * Record a session for progress tracking
  */
-export function recordProgressSession(
+function recordProgressSession(
   userId: string,
   sessionData: {
     durationMinutes: number;
@@ -163,7 +163,7 @@ export function recordProgressSession(
 /**
  * Record a growth highlight
  */
-export function recordHighlight(userId: string, highlight: Omit<GrowthHighlight, 'date'>): void {
+function recordHighlight(userId: string, highlight: Omit<GrowthHighlight, 'date'>): void {
   const profile = getOrCreateProfile(userId);
 
   profile.highlights.push({
@@ -177,7 +177,7 @@ export function recordHighlight(userId: string, highlight: Omit<GrowthHighlight,
 /**
  * Reset streak (called when session gap is too long)
  */
-export function resetStreak(userId: string): void {
+function resetStreak(userId: string): void {
   const profile = getOrCreateProfile(userId);
   profile.streaks.currentSessionStreak = 0;
 }
@@ -189,7 +189,7 @@ export function resetStreak(userId: string): void {
 /**
  * Generate a progress summary for a period
  */
-export function generateProgressSummary(
+function generateProgressSummary(
   userId: string,
   period: 'week' | 'month' | 'quarter'
 ): ProgressSummary | null {
@@ -264,7 +264,7 @@ export function generateProgressSummary(
 /**
  * Generate a human-readable progress reflection
  */
-export function generateProgressReflection(userId: string): {
+function generateProgressReflection(userId: string): {
   title: string;
   reflection: string;
   highlights: GrowthHighlight[];
@@ -301,7 +301,7 @@ export function generateProgressReflection(userId: string): {
 /**
  * Get streak information for user
  */
-export function getStreakInfo(userId: string): {
+function getStreakInfo(userId: string): {
   currentStreak: number;
   longestStreak: number;
   message: string;
@@ -377,11 +377,11 @@ export function buildProgressContext(userId: string): string | null {
 // PERSISTENCE
 // ============================================================================
 
-export function exportProgressProfile(userId: string): ProgressProfile | null {
+function exportProgressProfile(userId: string): ProgressProfile | null {
   return progressProfiles.get(userId) || null;
 }
 
-export function importProgressProfile(profile: ProgressProfile): void {
+function importProgressProfile(profile: ProgressProfile): void {
   profile.highlights.forEach((h) => {
     h.date = new Date(h.date);
   });

@@ -53,7 +53,7 @@ const log = getLogger();
 // TYPES
 // ============================================================================
 
-export interface SystemStateContext {
+interface SystemStateContext {
   music: {
     isPlaying: boolean;
     currentTrack?: { name: string; artist: string };
@@ -336,7 +336,7 @@ export function completeToolInFlight(sessionId: string, toolId: string): void {
  * Record a turn gap for pace calculation.
  * Call this at the start of each turn with the gap from previous turn.
  */
-export function recordTurnGap(sessionId: string, gapMs: number): void {
+function recordTurnGap(sessionId: string, gapMs: number): void {
   if (!recentTurnGapsBySession.has(sessionId)) {
     recentTurnGapsBySession.set(sessionId, []);
   }
@@ -771,7 +771,7 @@ CRITICAL: If you believe the user wants this action, CALL THE TOOL. Don't just t
 // REGISTRATION
 // ============================================================================
 
-export const systemStateAwarenessBuilder: ContextBuilder = {
+const systemStateAwarenessBuilder: ContextBuilder = {
   name: 'system-state-awareness',
   description:
     'Provides LLM with continuous awareness of music, timers, recent tools, and timing pressure',
@@ -781,9 +781,6 @@ export const systemStateAwarenessBuilder: ContextBuilder = {
 };
 
 registerContextBuilder(systemStateAwarenessBuilder);
-
-// Core exports
-export { buildSystemStateAwareness, formatSystemState, getMusicState };
 
 // Note: Timing state functions (registerToolInFlight, completeToolInFlight,
 // recordTurnGap, clearTimingState, getTimingState) are exported at their declarations above.

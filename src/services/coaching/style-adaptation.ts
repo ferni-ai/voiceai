@@ -22,7 +22,7 @@ const log = createLogger({ module: 'StyleAdaptation' });
 // TYPES
 // ============================================================================
 
-export type CoachingStyle =
+type CoachingStyle =
   | 'analytical' // Lead with data, frameworks, logic
   | 'emotional' // Process feelings before problem-solving
   | 'action' // Get to "what's next" quickly
@@ -30,17 +30,17 @@ export type CoachingStyle =
   | 'supportive' // Heavy validation, gentle suggestions
   | 'challenging'; // Direct feedback, accountability
 
-export type ProcessingMode =
+type ProcessingMode =
   | 'verbal' // Thinks out loud
   | 'internal' // Needs quiet to process
   | 'collaborative'; // Thinks through dialogue
 
-export type FeedbackPreference =
+type FeedbackPreference =
   | 'direct' // Tell me straight
   | 'gentle' // Soften it
   | 'curious'; // Ask me questions instead
 
-export interface CoachingStyleProfile {
+interface CoachingStyleProfile {
   userId: string;
 
   // Primary and secondary styles
@@ -291,7 +291,7 @@ function updateStyleAssessment(profile: CoachingStyleProfile): void {
 /**
  * Set explicit style preference
  */
-export function setExplicitStylePreference(
+function setExplicitStylePreference(
   userId: string,
   style: CoachingStyle,
   preferences?: Partial<CoachingStyleProfile['preferences']>
@@ -375,7 +375,7 @@ const STYLE_GUIDANCE: Record<CoachingStyle, StyleGuidance> = {
 /**
  * Get coaching guidance for a user's style
  */
-export function getStyleGuidance(
+function getStyleGuidance(
   userId: string
 ): StyleGuidance & { style: CoachingStyle; confidence: number } {
   const profile = getOrCreateProfile(userId);
@@ -419,11 +419,11 @@ export function buildStyleContext(userId: string): string | null {
 // QUERIES
 // ============================================================================
 
-export function getStyleProfile(userId: string): CoachingStyleProfile {
+function getStyleProfile(userId: string): CoachingStyleProfile {
   return getOrCreateProfile(userId);
 }
 
-export function getPreferredStyle(userId: string): CoachingStyle {
+function getPreferredStyle(userId: string): CoachingStyle {
   return getOrCreateProfile(userId).primaryStyle;
 }
 
@@ -431,11 +431,11 @@ export function getPreferredStyle(userId: string): CoachingStyle {
 // PERSISTENCE
 // ============================================================================
 
-export function exportStyleProfile(userId: string): CoachingStyleProfile | null {
+function exportStyleProfile(userId: string): CoachingStyleProfile | null {
   return styleProfiles.get(userId) || null;
 }
 
-export function importStyleProfile(profile: CoachingStyleProfile): void {
+function importStyleProfile(profile: CoachingStyleProfile): void {
   profile.lastUpdated = new Date(profile.lastUpdated);
   profile.signals.forEach((s) => {
     s.timestamp = new Date(s.timestamp);

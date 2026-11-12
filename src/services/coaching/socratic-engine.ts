@@ -32,14 +32,14 @@ export type SocraticQuestionType =
   | 'origin_exploring' // "Where does that belief come from?"
   | 'alternative_generating'; // "What's another way to see this?"
 
-export interface SocraticQuestion {
+interface SocraticQuestion {
   question: string;
   type: SocraticQuestionType;
   followUp?: string;
   ssml: string;
 }
 
-export interface SocraticContext {
+interface SocraticContext {
   topic: string;
   userStatement: string;
   emotionalTone?: string;
@@ -175,7 +175,7 @@ const QUESTION_TRIGGERS: Record<SocraticQuestionType, RegExp[]> = {
 /**
  * Determine the best question type for the context
  */
-export function selectQuestionType(
+function selectQuestionType(
   userMessage: string,
   context?: Partial<SocraticContext>
 ): SocraticQuestionType {
@@ -215,7 +215,7 @@ export function selectQuestionType(
 /**
  * Generate a Socratic question
  */
-export function generateSocraticQuestion(context: SocraticContext): SocraticQuestion {
+function generateSocraticQuestion(context: SocraticContext): SocraticQuestion {
   const type = selectQuestionType(context.userStatement, context);
   const templates = QUESTION_TEMPLATES[type];
   const template = templates[Math.floor(Math.random() * templates.length)];
@@ -240,7 +240,7 @@ export function generateSocraticQuestion(context: SocraticContext): SocraticQues
 /**
  * Generate multiple questions for a topic
  */
-export function generateQuestionSequence(topic: string, depth = 3): SocraticQuestion[] {
+function generateQuestionSequence(topic: string, depth = 3): SocraticQuestion[] {
   const questions: SocraticQuestion[] = [];
   const usedTypes: SocraticQuestionType[] = [];
 
@@ -278,7 +278,7 @@ export function generateQuestionSequence(topic: string, depth = 3): SocraticQues
 /**
  * Generate a Socratic response that blends validation with inquiry
  */
-export function generateSocraticResponse(
+function generateSocraticResponse(
   userMessage: string,
   emotionalTone?: string
 ): {

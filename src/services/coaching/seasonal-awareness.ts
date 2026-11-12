@@ -22,15 +22,15 @@ const log = createLogger({ module: 'SeasonalAwareness' });
 // TYPES
 // ============================================================================
 
-export type Season = 'spring' | 'summer' | 'fall' | 'winter';
+type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
-export type HolidayType =
+type HolidayType =
   | 'major_secular' // New Year, Thanksgiving (US)
   | 'religious' // Christmas, Hanukkah, Eid, Diwali
   | 'cultural' // Lunar New Year, etc.
   | 'personal'; // Birthdays, anniversaries
 
-export interface Holiday {
+interface Holiday {
   name: string;
   date: Date | null; // null for variable dates
   type: HolidayType;
@@ -40,7 +40,7 @@ export interface Holiday {
   checkInAfter?: string;
 }
 
-export interface SeasonalContext {
+interface SeasonalContext {
   season: Season;
   seasonalThemes: string[];
   dayLength: 'short' | 'medium' | 'long';
@@ -48,7 +48,7 @@ export interface SeasonalContext {
   timeOfYear: string;
 }
 
-export interface UserSeasonalProfile {
+interface UserSeasonalProfile {
   userId: string;
   timezone: string;
   culturalBackground?: string[];
@@ -225,7 +225,7 @@ function getOrCreateProfile(userId: string): UserSeasonalProfile {
 /**
  * Get current season (Northern Hemisphere default)
  */
-export function getCurrentSeason(date: Date = new Date()): Season {
+function getCurrentSeason(date: Date = new Date()): Season {
   const month = date.getMonth();
 
   if (month >= 2 && month <= 4) return 'spring';
@@ -237,7 +237,7 @@ export function getCurrentSeason(date: Date = new Date()): Season {
 /**
  * Get day length category
  */
-export function getDayLength(date: Date = new Date()): 'short' | 'medium' | 'long' {
+function getDayLength(date: Date = new Date()): 'short' | 'medium' | 'long' {
   const month = date.getMonth();
 
   // Northern hemisphere approximation
@@ -249,7 +249,7 @@ export function getDayLength(date: Date = new Date()): 'short' | 'medium' | 'lon
 /**
  * Get upcoming holidays (next 30 days)
  */
-export function getUpcomingHolidays(userId: string, date: Date = new Date()): Holiday[] {
+function getUpcomingHolidays(userId: string, date: Date = new Date()): Holiday[] {
   const profile = getOrCreateProfile(userId);
   const upcoming: Holiday[] = [];
 
@@ -289,7 +289,7 @@ export function getUpcomingHolidays(userId: string, date: Date = new Date()): Ho
 /**
  * Get full seasonal context
  */
-export function getSeasonalContext(userId: string): SeasonalContext {
+function getSeasonalContext(userId: string): SeasonalContext {
   const now = new Date();
   const season = getCurrentSeason(now);
 
@@ -328,7 +328,7 @@ function getTimeOfYearDescription(date: Date): string {
 /**
  * Record a difficult time of year for a user
  */
-export function recordDifficultTime(userId: string, period: string, reason?: string): void {
+function recordDifficultTime(userId: string, period: string, reason?: string): void {
   const profile = getOrCreateProfile(userId);
 
   const existing = profile.knownDifficultTimes.find((t) => t.period === period);
@@ -349,7 +349,7 @@ export function recordDifficultTime(userId: string, period: string, reason?: str
 /**
  * Check if current time is difficult for user
  */
-export function isCurrentlyDifficultTime(userId: string): {
+function isCurrentlyDifficultTime(userId: string): {
   isDifficult: boolean;
   period?: string;
   reason?: string;
@@ -445,7 +445,7 @@ export function buildSeasonalContext(userId: string): string | null {
 /**
  * Set user's holiday preferences
  */
-export function setHolidayPreferences(
+function setHolidayPreferences(
   userId: string,
   preferences: {
     celebrate?: string[];
@@ -476,11 +476,11 @@ export function setHolidayPreferences(
 // PERSISTENCE
 // ============================================================================
 
-export function exportSeasonalProfile(userId: string): UserSeasonalProfile | null {
+function exportSeasonalProfile(userId: string): UserSeasonalProfile | null {
   return userProfiles.get(userId) || null;
 }
 
-export function importSeasonalProfile(profile: UserSeasonalProfile): void {
+function importSeasonalProfile(profile: UserSeasonalProfile): void {
   profile.knownDifficultTimes.forEach((t) => {
     t.lastMentioned = new Date(t.lastMentioned);
   });

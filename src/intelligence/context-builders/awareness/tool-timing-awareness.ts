@@ -69,7 +69,7 @@ export function recordToolTiming(
  * Get recent tool timings for a session.
  * Only returns timings from the last 30 seconds (current turn).
  */
-export function getRecentToolTimings(sessionId: string): ToolTiming[] {
+function getRecentToolTimings(sessionId: string): ToolTiming[] {
   const timings = sessionToolTimings.get(sessionId) || [];
   const cutoff = Date.now() - 30000; // Last 30 seconds
 
@@ -149,7 +149,7 @@ function generateTimingContext(timings: ToolTiming[]): string | null {
 // CONTEXT BUILDER
 // ============================================================================
 
-export const toolTimingContextBuilder: ContextBuilder = {
+const toolTimingContextBuilder: ContextBuilder = {
   name: 'tool-timing-context',
   description: 'Injects tool execution timing context for natural response framing',
   priority: 75, // After tool execution, before response generation

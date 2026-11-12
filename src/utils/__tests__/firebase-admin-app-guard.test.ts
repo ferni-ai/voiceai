@@ -47,7 +47,6 @@ const NOT_YET_MIGRATED = new Set([
   'src/services/admin/daily-report.ts',
   'src/services/analytics/user-analytics.ts',
   'src/services/billing/subscription-metrics.ts',
-  'src/services/coaching/persistence.ts',
   'src/services/data-layer/ttl-cleanup.ts',
   'src/services/games/game-analytics.ts',
   'src/services/gtm/gtm-storage.ts',

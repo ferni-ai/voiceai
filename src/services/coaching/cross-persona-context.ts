@@ -23,7 +23,7 @@ const log = createLogger({ module: 'CrossPersonaContext' });
 // TYPES
 // ============================================================================
 
-export interface SharedContext {
+interface SharedContext {
   topic: string;
   summary: string;
   importance: 'low' | 'medium' | 'high';
@@ -33,7 +33,7 @@ export interface SharedContext {
   expiresAt?: Date;
 }
 
-export interface PersonaInteraction {
+interface PersonaInteraction {
   personaId: PersonaId;
   date: Date;
   topics: string[];
@@ -42,7 +42,7 @@ export interface PersonaInteraction {
   nextSteps?: string[];
 }
 
-export interface UserTeamContext {
+interface UserTeamContext {
   userId: string;
 
   // Recent interactions with each persona
@@ -91,70 +91,13 @@ function getOrCreateContext(userId: string): UserTeamContext {
 }
 
 // ============================================================================
-// SESSION DATA MANAGER INTEGRATION
-// ============================================================================
-
-/**
- * Clear ALL cached data for a specific user.
- * Called by SessionDataManager when a session ends.
- * This is CRITICAL for preventing memory leaks.
- */
-export function clearUserContext(userId: string): void {
-  const hadData = userContexts.has(userId);
-  userContexts.delete(userId);
-
-  if (hadData) {
-    log.debug({ userId }, '🧹 CrossPersonaContext user cache cleared');
-  }
-}
-
-/**
- * Clear ALL cached data (for shutdown).
- */
-export function clearAllContexts(): void {
-  userContexts.clear();
-  log.info('🧹 CrossPersonaContext all caches cleared');
-}
-
-/**
- * Get cache statistics for monitoring.
- */
-export function getContextStats(): { users: number; entries: number } {
-  let totalEntries = 0;
-  for (const ctx of userContexts.values()) {
-    totalEntries += ctx.sharedContexts.length;
-    totalEntries += ctx.crossPersonaItems.length;
-    totalEntries += ctx.personaInteractions.size;
-  }
-  return { users: userContexts.size, entries: totalEntries };
-}
-
-/**
- * Register with SessionDataManager (call during initialization).
- */
-export async function registerWithSessionDataManager(): Promise<void> {
-  try {
-    const { getSessionDataManager } = await import('../session-data-manager.js');
-    getSessionDataManager().registerService({
-      name: 'CrossPersonaContext',
-      clearUserData: clearUserContext,
-      clearAllData: clearAllContexts,
-      getStats: getContextStats,
-    });
-  } catch {
-    // SessionDataManager may not be initialized yet
-    log.debug('SessionDataManager not available for CrossPersonaContext registration');
-  }
-}
-
-// ============================================================================
 // CONTEXT SHARING
 // ============================================================================
 
 /**
  * Share context from one persona for others to see
  */
-export function shareContext(userId: string, context: Omit<SharedContext, 'sharedAt'>): void {
+function shareContext(userId: string, context: Omit<SharedContext, 'sharedAt'>): void {
   const userContext = getOrCreateContext(userId);
 
   userContext.sharedContexts.push({
@@ -176,7 +119,7 @@ export function shareContext(userId: string, context: Omit<SharedContext, 'share
 /**
  * Record an interaction with a persona
  */
-export function recordPersonaInteraction(userId: string, interaction: PersonaInteraction): void {
+function recordPersonaInteraction(userId: string, interaction: PersonaInteraction): void {
   const userContext = getOrCreateContext(userId);
 
   const interactions = userContext.personaInteractions.get(interaction.personaId) || [];
@@ -195,7 +138,7 @@ export function recordPersonaInteraction(userId: string, interaction: PersonaInt
 /**
  * Update the user's current situation (visible to all personas)
  */
-export function updateCurrentSituation(
+function updateCurrentSituation(
   userId: string,
   situation: {
     summary: string;
@@ -218,7 +161,7 @@ export function updateCurrentSituation(
 /**
  * Add a cross-persona item (something one persona started that others should know about)
  */
-export function addCrossPersonaItem(
+function addCrossPersonaItem(
   userId: string,
   item: string,
   originPersona: PersonaId,
@@ -247,7 +190,7 @@ export function addCrossPersonaItem(
 /**
  * Get relevant context for a specific persona
  */
-export function getContextForPersona(
+function getContextForPersona(
   userId: string,
   personaId: PersonaId
 ): {
@@ -306,7 +249,7 @@ export function getContextForPersona(
 /**
  * Get a handoff summary when switching personas
  */
-export function getHandoffSummary(
+function getHandoffSummary(
   userId: string,
   fromPersona: PersonaId,
   toPersona: PersonaId
@@ -425,11 +368,11 @@ export function buildCrossPersonaContext(userId: string, currentPersona: Persona
 // PERSISTENCE
 // ============================================================================
 
-export function exportTeamContext(userId: string): UserTeamContext | null {
+function exportTeamContext(userId: string): UserTeamContext | null {
   return userContexts.get(userId) || null;
 }
 
-export function importTeamContext(context: UserTeamContext): void {
+function importTeamContext(context: UserTeamContext): void {
   // Convert Map from serialized format
   if (!(context.personaInteractions instanceof Map)) {
     const entries = Object.entries(

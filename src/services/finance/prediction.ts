@@ -45,7 +45,7 @@ export interface IncomeSource {
   confidence: number;
 }
 
-export interface CashFlowForecast {
+interface CashFlowForecast {
   currentBalance: number;
   projectedBalance: number;
   daysOut: number;
@@ -63,7 +63,7 @@ export interface CashFlowWarning {
   amount?: number;
 }
 
-export interface SpendingAnomaly {
+interface SpendingAnomaly {
   type: 'spike' | 'unusual_merchant' | 'category_increase' | 'time_anomaly';
   description: string;
   amount: number;
@@ -107,7 +107,7 @@ export interface GoalProgress {
   message: string;
 }
 
-export interface FinancialInsight {
+interface FinancialInsight {
   type: 'cash_flow' | 'anomaly' | 'subscription' | 'goal' | 'stress';
   severity: 'info' | 'warning' | 'alert';
   insight: string;

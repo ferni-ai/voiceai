@@ -308,51 +308,6 @@ function buildPromptInjection(
 }
 
 /**
- * Check if a behavior is allowed at the current relationship stage
- */
-export function isBehaviorAllowed(behavior: string, stage: RelationshipStage): boolean {
-  const stageOrder: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_advisor'];
-  const currentIndex = stageOrder.indexOf(stage);
-
-  // Check each stage from current backwards
-  for (let i = currentIndex; i >= 0; i--) {
-    const stageDef = RELATIONSHIP_BEHAVIORS[stageOrder[i]];
-    if (stageDef.allowed.some((a) => a.toLowerCase().includes(behavior.toLowerCase()))) {
-      return true;
-    }
-  }
-
-  // Check if explicitly not allowed
-  const currentDef = RELATIONSHIP_BEHAVIORS[stage];
-  return !currentDef.notYetAllowed.some((n) => n.toLowerCase().includes(behavior.toLowerCase()));
-}
-
-/**
- * Get an appropriate challenge phrase for the relationship level
- */
-export function getChallengePhrase(stage: RelationshipStage): string | null {
-  const phrases = RELATIONSHIP_BEHAVIORS[stage].unlockedPhrases.filter(
-    (p) =>
-      p.toLowerCase().includes('push') ||
-      p.toLowerCase().includes('honest') ||
-      p.toLowerCase().includes('really') ||
-      p.toLowerCase().includes('think')
-  );
-
-  if (phrases.length === 0) return null;
-  return phrases[Math.floor(Math.random() * phrases.length)];
-}
-
-/**
- * Get a deep question appropriate for the relationship level
- */
-export function getDeepQuestion(stage: RelationshipStage): string | null {
-  const questions = RELATIONSHIP_BEHAVIORS[stage].unlockedQuestions;
-  if (questions.length === 0) return null;
-  return questions[Math.floor(Math.random() * questions.length)];
-}
-
-/**
  * Calculate relationship stage from metrics
  */
 export function calculateRelationshipStage(
