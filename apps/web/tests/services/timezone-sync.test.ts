@@ -79,6 +79,25 @@ describe('detectAndSyncTimezone', () => {
     expect(cachedZone()).toBe(detectTimezone());
   });
 
+  it('after travel, a failed sync still uses the current zone this session, keeping the old one stored', async () => {
+    vi.resetModules();
+    const fresh = await import('../../src/services/timezone.service.js');
+    const oldZone =
+      fresh.detectTimezone() === 'Pacific/Chatham' ? 'Asia/Kathmandu' : 'Pacific/Chatham';
+    localStorage.setItem(USER_ID_KEY, 'uid-42');
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ timezone: oldZone, offset: 0, lastDetected: '2026-11-01T00:00:00Z' })
+    );
+    mocks.apiPost.mockResolvedValueOnce({ ok: false, status: 503, error: 'unavailable' });
+
+    await fresh.detectAndSyncTimezone();
+
+    expect(mocks.apiPost).toHaveBeenCalledTimes(1);
+    expect(fresh.getUserTimezone()).toBe(fresh.detectTimezone());
+    expect(cachedZone()).toBe(oldZone);
+  });
+
   it('an unchanged, already-synced zone sends nothing', async () => {
     localStorage.setItem(USER_ID_KEY, 'uid-42');
     localStorage.setItem(

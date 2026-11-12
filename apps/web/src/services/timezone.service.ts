@@ -175,12 +175,13 @@ export async function detectAndSyncTimezone(): Promise<string> {
     // Remember only a zone the server accepted: the cache means "already sent".
     // A skipped (no user id yet) or failed sync stays uncached, so the next
     // app start sends it again instead of the server never hearing it.
+    const current = { timezone: detectedTimezone, offset, lastDetected: now };
     if (await syncTimezoneToBackend(detectedTimezone)) {
-      saveCachedTimezone({
-        timezone: detectedTimezone,
-        offset,
-        lastDetected: now,
-      });
+      saveCachedTimezone(current);
+    } else {
+      // Not sent, so not stored; but this session still uses the zone the
+      // device is in now, never an older stored one (someone who travelled).
+      cachedTimezone = current;
     }
   } else {
     log.debug({ timezone: detectedTimezone }, 'Timezone unchanged');
