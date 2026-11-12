@@ -3,9 +3,10 @@
  * words two texts share, crudely stemmed ("calling Mom's" → call, mom), with
  * answer and time words left out so "yeah, done tomorrow" names nothing.
  *
- * One matcher for every reader, so the call opener ("did they answer what Ferni
- * asked?") and the after-call close ("which todo did they talk about?") agree
- * on what counts as naming an item.
+ * Two strengths, one place, so every reader agrees on what counts as naming an
+ * item: mentionsItem (one shared stem) is enough for "did they answer what Ferni
+ * asked?"; namesItem (whole words, all or two of the item's naming words) gates
+ * any write to the todo's own store.
  *
  * @module services/follow-through/item-match
  */
@@ -44,13 +45,51 @@ export function mentionsItem(text: string, itemText: string): boolean {
   return shared(text, itemText).count > 0;
 }
 
+/** Verbs a todo starts with ("book the dentist"): they say what to do, not which item it is. */
+const ACTION = new Set(
+  `book fix call ring send buy pay get do make schedule email text pick up order renew return cancel
+  check ask tell write sign submit file clean take bring set reply follow finish start look find`.split(
+    /\s+/
+  )
+);
+
+function tokens(text: string): string[] {
+  return (text.toLowerCase().match(/[a-z][a-z']*/g) ?? []).map((w) => w.replace(/'s$/, ''));
+}
+
+/** The item's naming words: stopwords anywhere and its leading action verbs dropped. */
+function namingWords(itemText: string): string[] {
+  const words = tokens(itemText).filter((w) => w.length >= 3 && !STOP.has(w));
+  while (words.length > 0 && ACTION.has(words[0])) words.shift();
+  return [...new Set(words)];
+}
+
 /**
- * Names the item firmly enough to change it: at least half its content words
- * ("forget the dentist" names "book the dentist"). A store write needs more than
- * one loose word in common with a longer item ("the party" is not "buy balloons
- * for the party").
+ * The whole words that count as `word`: itself and its plural, and for words of
+ * five letters or more the -ed/-ing forms ("water" ~ "watered"). Never a prefix:
+ * "car" is not "caring" or "cart".
+ */
+function formsOf(word: string): Set<string> {
+  const base = word.length > 4 && /[^s]s$/.test(word) ? word.slice(0, -1) : word;
+  const forms = new Set([word, base, `${base}s`, `${base}es`]);
+  if (base.length >= 5) {
+    const stem = base.endsWith('e') ? base.slice(0, -1) : base;
+    for (const end of ['ed', 'ing']) forms.add(stem + end);
+  }
+  return forms;
+}
+
+/**
+ * Names the item firmly enough to change its store: every naming word when it
+ * has one or two ("booked the dentist" names "Book the dentist"; "booked the
+ * flight" does not), at least two when it has more. Whole words only, so one
+ * shared verb or a word inside a word never closes the wrong item, and a bare
+ * "yep, done" names nothing. When in doubt this says no: a missed close costs a
+ * stale mention, a wrong one cancels someone's real reminder.
  */
 export function namesItem(text: string, itemText: string): boolean {
-  const { count, ofItem } = shared(text, itemText);
-  return count > 0 && count >= Math.ceil(ofItem / 2);
+  const said = new Set(tokens(text));
+  const naming = namingWords(itemText);
+  const hits = naming.filter((w) => [...formsOf(w)].some((f) => said.has(f))).length;
+  return naming.length > 0 && hits >= Math.min(naming.length, 2);
 }

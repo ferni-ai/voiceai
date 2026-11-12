@@ -8,6 +8,7 @@ import type { Firestore } from '@google-cloud/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../calendar/calendar-bridge.js', () => ({ removeCalendarSyncedItem: vi.fn(async () => undefined) })); // prettier-ignore
+vi.mock('../../superhuman/firestore-utils.js', async (importOriginal) => ({ ...(await importOriginal<object>()), getFirestoreDb: () => fakeDb(), recordDegradation: () => undefined })); // prettier-ignore
 vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({ ...(await importOriginal<object>()), getFirestoreDb: () => fakeDb() })); // prettier-ignore
 
 const docs = new Map<string, Record<string, unknown>>();
@@ -103,5 +104,22 @@ describe('source closers', () => {
     cache.setTask(U, task('t1') as unknown as CachedTask);
     expect(await closers.close(U, { store: 'tasks', ref: 't1' }, 'done')).toBe('closed');
     expect(cache.getTask('t1')).toMatchObject({ userId: U, status: 'completed' });
+  });
+
+  it('a safety type in any field (kind reminder, type crisis-check-in) is never closed', async () => {
+    docs.set(`bogle_users/${U}/reminders/r1`, { status: 'pending', kind: 'reminder', type: 'crisis-check-in' }); // prettier-ignore
+    expect(await closers.close(U, { store: 'reminders', ref: 'r1' }, 'done')).toBe('safety');
+    expect(docs.get(`bogle_users/${U}/reminders/r1`)?.status).toBe('pending');
+  });
+
+  it("commitments: done completes an active one as the conversation's close; let go dismisses; missing is missing", async () => {
+    docs.set(`bogle_users/${U}/commitments/c1`, { status: 'active', summary: 'Send the slides' });
+    docs.set(`bogle_users/${U}/commitments/c2`, { status: 'active', summary: 'Run on Sunday' });
+    expect(await closers.close(U, { store: 'commitments', ref: 'c1' }, 'done')).toBe('closed');
+    expect(docs.get(`bogle_users/${U}/commitments/c1`)).toMatchObject({ status: 'completed', closedVia: 'conversation' }); // prettier-ignore
+    expect(await closers.close(U, { store: 'commitments', ref: 'c1' }, 'done')).toBe('already');
+    expect(await closers.close(U, { store: 'commitments', ref: 'c2' }, 'release')).toBe('closed');
+    expect(docs.get(`bogle_users/${U}/commitments/c2`)?.status).toBe('dismissed');
+    expect(await closers.close(U, { store: 'commitments', ref: 'nope' }, 'done')).toBe('missing');
   });
 });

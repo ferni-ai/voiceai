@@ -13,8 +13,8 @@
  *   the task tool's completeTask, which only an in-call tool can run.
  * - commitments: done → 'completed', let go → 'dismissed' (closeCommitmentOrThrow).
  *
- * A safety item (a 988 follow-up, a crisis check-in: isSafetyItem, by the
- * reminder's kind or the task's category) is never closed from conversation:
+ * A safety item (a 988 follow-up, a crisis check-in: isSafetyItem on each of
+ * kind, type and category) is never closed from conversation:
  * a stale one costs a line, a closed one can cost far more. Commitments have
  * no safety types (CommitmentType).
  *
@@ -34,6 +34,15 @@ const log = createLogger({ module: 'source-closers' });
 
 const OPEN_TASK = new Set(['pending', 'in_progress']);
 
+/** Wherever a store keeps an item's type; a safety value in ANY of them makes it a safety item. */
+const SAFETY_FIELDS = ['kind', 'type', 'category'] as const;
+function isSafetyRecord(get: (field: string) => unknown): boolean {
+  return SAFETY_FIELDS.some((f) => {
+    const v = get(f);
+    return typeof v === 'string' && isSafetyItem(v);
+  });
+}
+
 /** The cached task is this user's: setTask stamps the owner; no owner means unknown, so no. */
 function ownedBy(cached: TaskData | undefined, userId: string): boolean {
   return (cached as { userId?: string } | undefined)?.userId === userId;
@@ -47,8 +56,7 @@ function createSourceClosers(db: Firestore): SourceClosers {
     const outcome = await db.runTransaction(async (tx): Promise<CloseWrite> => {
       const snap = await tx.get(ref);
       if (!snap.exists) return 'missing';
-      if (isSafetyItem((snap.get('kind') ?? snap.get('type')) as string | undefined))
-        return 'safety';
+      if (isSafetyRecord((f) => snap.get(f))) return 'safety';
       if (snap.get('status') !== 'pending') return 'already';
       tx.update(ref, { status: 'cancelled' });
       return 'closed';
@@ -69,7 +77,7 @@ function createSourceClosers(db: Firestore): SourceClosers {
       const tasks = (snap.get('productivityData.tasks') ?? []) as TaskData[];
       const task = Array.isArray(tasks) ? tasks.find((t) => t?.id === id) : undefined;
       if (!task) return 'missing';
-      if (isSafetyItem(task.category)) return 'safety';
+      if (isSafetyRecord((f) => (task as unknown as Record<string, unknown>)[f])) return 'safety';
       if (!OPEN_TASK.has(task.status) || task.isRecurring) return 'already';
       closed = { ...task, status, updatedAt: at, ...(status === 'completed' ? { completedAt: at } : {}) }; // prettier-ignore
       tx.update(ref, { 'productivityData.tasks': tasks.map((t) => (t.id === id ? closed : t)) });

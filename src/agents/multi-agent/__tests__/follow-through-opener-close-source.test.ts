@@ -52,8 +52,11 @@ const closers = {
   },
 };
 
+const ITEM = 'Send Priya the slides';
+const followUp = (text: string): FollowUp => ({ id: 'f-c1', userId: OWNER, kind: 'commitment', text, dueAt: null, zone: 'America/Chicago', repeat: null, source: { store: 'commitments', ref: 'c1' }, status: 'open', surfaced: [], createdAt: '2026-10-15T00:00:00Z', updatedAt: '2026-10-15T00:00:00Z' }); // prettier-ignore
+
 beforeEach(() => {
-  ledger = [{ id: 'f-c1', userId: OWNER, kind: 'commitment', text: 'Send Priya the slides', dueAt: null, zone: 'America/Chicago', repeat: null, source: { store: 'commitments', ref: 'c1' }, status: 'open', surfaced: [], createdAt: '2026-10-15T00:00:00Z', updatedAt: '2026-10-15T00:00:00Z' }]; // prettier-ignore
+  ledger = [{ id: 'f-c1', userId: OWNER, kind: 'commitment', text: ITEM, dueAt: null, zone: 'America/Chicago', repeat: null, source: { store: 'commitments', ref: 'c1' }, status: 'open', surfaced: [], createdAt: '2026-10-15T00:00:00Z', updatedAt: '2026-10-15T00:00:00Z' }]; // prettier-ignore
   writes = [];
   failWrites = false;
   forgetAgentValues();
@@ -71,13 +74,14 @@ async function answer(
   env: Record<string, string | undefined> = { FOLLOW_THROUGH_CLOSE_SOURCE: 'on' },
   cohorts?: CohortStore
 ) {
+  const item = ledger[0].text;
   const pick = opener.createFollowThroughOpener({ userId: OWNER, store, forgotten: async () => [], now: () => CALL }); // prettier-ignore
   await pick.ready;
-  pick.raised(['Send Priya the slides']);
+  pick.raised([item]);
   await vi.waitFor(() => expect(ledger[0].status).toBe('surfaced'));
   await flush(); // the raise is noted after the save
   const listen = opener.followThroughReplyListeners({ userId: OWNER, isOwner: () => true, store, closers, env, cohorts, now: () => CALL }); // prettier-ignore
-  listen.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: 'Did the slides go to Priya?' } }); // prettier-ignore
+  listen.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: `Did you get to this one: ${item}?` } }); // prettier-ignore
   listen.onTranscript({ transcript: said, isFinal: true });
 }
 
@@ -135,5 +139,39 @@ describe('the opener reply closes the todo where it lives', () => {
   it('flag on for this caller through their cohort: the store is written', async () => {
     await answer('Yep, sent Priya the slides, done.', { COHORT_FLAGS: 'on' }, cohortFor(OWNER));
     await vi.waitFor(() => expect(writes).toEqual([{ ref: 'c1', how: 'done' }]));
+  });
+
+  // The store write needs the answer to name the item in whole words; one shared verb or a
+  // word inside a word closes only the follow-up (verify-3791 r1 cases).
+  it.each([
+    ['Book the dentist', 'I booked the flight, done.'],
+    ['Fix the car', 'I was caring for my mom all week, but done.'],
+    ['Call Mom about the bill', 'Paid the gas bill, done.'],
+    ['Send Priya the slides', 'Sent Priya a birthday card, done.'],
+    ['Buy balloons for the party', 'The party? Done.'],
+  ])('"%s" ← "%s": the follow-up closes, no store is written', async (item, said) => {
+    ledger = [followUp(item)];
+    await answer(said);
+    await vi.waitFor(() => expect(ledger[0].status).toBe('done'));
+    await flush();
+    expect(writes).toEqual([]);
+  });
+
+  it.each([
+    ['Book the dentist', 'Booked the dentist, done.'],
+    ['Fix the car', 'Fixed the car, done.'],
+    ['Call Mom about the bill', 'Called Mom about the bill, done.'],
+  ])('"%s" ← "%s": named, so the store is written', async (item, said) => {
+    ledger = [followUp(item)];
+    await answer(said);
+    await vi.waitFor(() => expect(writes).toEqual([{ ref: 'c1', how: 'done' }]));
+  });
+
+  it('a negated answer closes nothing', async () => {
+    await answer("I didn't send Priya the slides.");
+    await flush();
+    await flush();
+    expect(ledger[0].status).toBe('surfaced');
+    expect(writes).toEqual([]);
   });
 });
