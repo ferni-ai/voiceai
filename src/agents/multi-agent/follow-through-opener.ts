@@ -16,6 +16,8 @@
  * - Ferni has to actually ask: the reply that follows must mention it. Then
  *   the caller's next final transcript, and only that one, goes through
  *   closeFromReply: done (kept), replan (moved a day on) or release (dropped).
+ *   Done or dropped closes the todo it came from too, behind
+ *   FOLLOW_THROUGH_CLOSE_SOURCE (close-to-source.ts), so the brief stops texting it.
  *   Ferni's own words never close anything: they only arm the listener.
  * - A follow-up about a topic the caller asked Ferni to forget is never
  *   picked (the same forgotten-topic list and match recall uses), and when
@@ -34,11 +36,14 @@
 import {
   apply,
   closeFromReply,
+  closeSourceItem,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
   type ReplyVerdict,
+  type SourceClosers,
 } from '../../services/follow-through/index.js';
+import { firestoreSourceClosers } from '../../services/stores/source-closers.js';
 import { firestoreFollowUpStore } from '../../services/stores/follow-through-store.js';
 import { forgottenInProcess, isForgotten } from '../../memory/recall/forget.js';
 import { loadOpenerPick } from '../../services/follow-through/opener-pick.js';
@@ -221,6 +226,9 @@ export function followThroughReplyListeners(deps: {
   userId: string;
   isOwner: () => boolean;
   store?: FollowUpStore | null;
+  /** Closes the todo itself too (FOLLOW_THROUGH_CLOSE_SOURCE, close-to-source.ts). */
+  closers?: SourceClosers | null;
+  env?: Record<string, string | undefined>;
   now?: () => Date;
 }): { onItemAdded: (event: unknown) => void; onTranscript: (event: unknown) => void } {
   const now = deps.now ?? (() => new Date());
@@ -247,9 +255,12 @@ export function followThroughReplyListeners(deps: {
       const store = deps.store === undefined ? firestoreFollowUpStore() : deps.store;
       if (!store) return;
       void save(store, f, eventFor(verdict, now()), now())
-        .then((next) =>
-          log.info({ verdict, kind: f.kind, saved: next !== null }, 'FOLLOW_THROUGH_REPLY')
-        )
+        .then(async (next) => {
+          log.info({ verdict, kind: f.kind, saved: next !== null }, 'FOLLOW_THROUGH_REPLY');
+          if (!next || verdict === 'replan') return;
+          const closers = deps.closers === undefined ? firestoreSourceClosers() : deps.closers;
+          if (closers) await closeSourceItem(closers, deps.userId, f.source, verdict, deps.env ?? process.env); // prettier-ignore
+        })
         .catch((error: unknown) => log.warn({ error: String(error) }, 'Follow-up not closed'));
     },
   };

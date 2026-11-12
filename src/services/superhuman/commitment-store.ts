@@ -112,7 +112,9 @@ export async function closeCommitmentOrThrow(
   userId: string,
   commitmentId: string,
   status: ClosedBy,
-  now = Date.now()
+  now = Date.now(),
+  /** Where they closed it: the app's button, or saying so in a call or text. */
+  via: 'app' | 'conversation' = 'app'
 ): Promise<CloseOutcome> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
@@ -121,7 +123,7 @@ export async function closeCommitmentOrThrow(
     const snap = await tx.get(ref);
     if (snap.exists && snap.get('status') === status) return 'already';
     if (!snap.exists || snap.get('status') !== 'active') return 'missing';
-    tx.update(ref, { status, closedAt: now, closedVia: 'app', lastMentioned: now });
+    tx.update(ref, { status, closedAt: now, closedVia: via, lastMentioned: now });
     return 'closed';
   });
   if (outcome === 'closed') commitmentCache.delete(userId);
