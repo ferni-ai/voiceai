@@ -2,14 +2,14 @@
  * CRISIS_TIMEOUT_CHECKIN through the real gatedReply: a failed crisis read on a line with safety
  * words gets a warm check-in with 988; everything else reads exactly as with the flag off.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { TIMEOUT_CHECKIN } from '../../../services/safety/crisis-timeout-checkin.js';
+import { checkin } from '../../../services/safety/index.js';
 import { gatedReply } from '../crisis-gate.js';
 
 const BASE = {
@@ -97,6 +97,16 @@ const guidedModel = (ctx: llm.ChatContext): string =>
     ? "I'm here with you. Are you safe right now? You can call or text 988 any time."
     : 'Sounds good.';
 
+/** The check-in's guidance as the gate's escalation hands it over (the module keeps it private). */
+let TIMEOUT_CHECKIN = '';
+beforeAll(async () => {
+  const pass = { action: 'pass' };
+  const read = Promise.resolve(null);
+  const turn = { decision: pass, latest: UNSAFE, env: ON };
+  TIMEOUT_CHECKIN = ((await checkin.escalation(read, turn, async () => null)) ?? { guidance: '' })
+    .guidance;
+  expect(TIMEOUT_CHECKIN).toContain('988'); // never an empty string the rows below would pass on
+});
 beforeEach(() => resetCrisisClassifierCache());
 
 describe('CRISIS_TIMEOUT_CHECKIN: a failed read on a line with safety words', () => {

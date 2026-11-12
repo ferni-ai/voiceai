@@ -56,14 +56,14 @@ const wordsOf = (line: string): string =>
   line.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'");
 
 /** Which check-in words the caller's line holds: 'es' for the Spanish ones, or null for none. */
-export function checkinWordsIn(line: string): 'en' | 'es' | null {
+function checkinWordsIn(line: string): 'en' | 'es' | null {
   const words = wordsOf(line);
   if (ES.test(words)) return 'es';
   return EN.test(words) ? 'en' : null;
 }
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
-export const TIMEOUT_CHECKIN = `[SAFETY - CHECK-IN]
+const TIMEOUT_CHECKIN = `[SAFETY - CHECK-IN]
 A safety read of the caller's last words could not be made, and their words touch on their own safety.
 1. Check in once, plainly and warmly: are you safe right now?
 2. Say they can call or text 988, the Suicide & Crisis Lifeline, any time
@@ -78,7 +78,7 @@ const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
  * The check-in's guidance for this turn, or null. The flag on, no verdict (the read failed), the
  * patterns read nothing, not a re-ask, and the latest caller line holds a check-in word.
  */
-export function timeoutCheckin(
+function timeoutCheckin(
   turn: {
     verdict: CrisisVerdict | null;
     decision: { action: string };
@@ -99,7 +99,7 @@ export function timeoutCheckin(
  * question when it asked none, the 988 line when it never said 988; both when the model gave
  * nothing.
  */
-export function withCheckinEnding<T>(
+function withCheckinEnding<T>(
   reply: ReadableStream<T> | null,
   caller: { latest: string }
 ): ReadableStream<T | string> {

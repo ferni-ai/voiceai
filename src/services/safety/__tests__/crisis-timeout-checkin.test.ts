@@ -4,15 +4,35 @@ import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 import { SCREEN_QUESTION, screenReply } from '../crisis-grounded-screen.js';
 import { getCrisisResponse } from '../crisis-guard-replies.js';
-import {
-  checkinWordsIn,
-  timeoutCheckin,
-  TIMEOUT_CHECKIN,
-  withCheckinEnding,
-} from '../crisis-timeout-checkin.js';
+import { checkin } from '../crisis-timeout-checkin.js';
 
+/**
+ * Everything here goes through `checkin`, the only surface production uses (crisis-gate.ts):
+ * `checkin.escalation` decides, `checkin.ending` finishes the reply.
+ */
 const ON = { CRISIS_TIMEOUT_CHECKIN: 'on' };
 const PASS = { action: 'pass' };
+const UNSAFE = 'i feel unsafe with myself tonight';
+const ESCALATED = { action: 'replace' as const, script: 'escalated' };
+type Read = Awaited<Parameters<typeof checkin.escalation>[0]>;
+
+/** The gate's decision once the read is in: the read failed (null) unless one is given. */
+const decide = (
+  latest: string,
+  turn: {
+    read?: Read;
+    decision?: { action: string };
+    reask?: boolean;
+    env?: Record<string, string | undefined>;
+  } = {}
+) =>
+  checkin.escalation(
+    Promise.resolve('read' in turn ? turn.read : null),
+    { decision: turn.decision ?? PASS, reask: turn.reask, latest, env: turn.env ?? ON },
+    async () => ESCALATED
+  );
+const checksIn = async (latest: string) => (await decide(latest))?.action === 'guide';
+const guidance = async () => ((await decide(UNSAFE)) as { guidance: string }).guidance;
 
 async function spoken(stream: ReadableStream<unknown>): Promise<unknown[]> {
   const out: unknown[] = [];
@@ -26,24 +46,33 @@ const streamOf = (...chunks: string[]) =>
       controller.close();
     },
   });
+/** The check-in reply as spoken, after `checkin.ending`. */
+const said = async (latest: string, ...chunks: string[]) =>
+  (
+    await spoken(
+      checkin.ending(streamOf(...chunks), { guidance: await guidance() }, { latest }) ?? streamOf()
+    )
+  ).join('');
 
-describe('checkinWordsIn', () => {
+describe('the check-in words', () => {
   it.each([
     'i have a bottle of pills and i want to take them all',
-    'i feel unsafe with myself tonight',
+    UNSAFE,
     "honestly i don't trust myself right now",
     "i've been cutting myself again",
     "I can't go on anymore",
     'thinking about jumping off the bridge on fifth',
     'I’m scared of what I might do', // curly apostrophe
-  ])('reads safety words in "%s"', (line) => {
-    expect(checkinWordsIn(line)).toBe('en');
+  ])('check in, in English, on "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+    expect(await said(line)).toContain('Are you safe right now?');
   });
 
   it.each(['ya no quiero vivir', 'quiero hacerme daño', 'me tomé todas las pastillas'])(
-    'reads Spanish safety words in "%s"',
-    (line) => {
-      expect(checkinWordsIn(line)).toBe('es');
+    'check in, in Spanish, on "%s"',
+    async (line) => {
+      expect(await checksIn(line)).toBe(true);
+      expect(await said(line)).toContain('¿Estás a salvo ahora mismo?');
     }
   );
 
@@ -57,37 +86,41 @@ describe('checkinWordsIn', () => {
     'i feel safe here with you',
     'the bridge was closed so i was late',
     'unsafely', // whole words only
-  ])('reads none in "%s"', (line) => {
-    expect(checkinWordsIn(line)).toBeNull();
+  ])('do not fire on "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(false);
   });
 });
 
-describe('timeoutCheckin', () => {
-  const turn = { verdict: null, decision: PASS, latest: 'i feel unsafe with myself tonight' };
-
-  it('is the check-in for a failed read, a pattern pass and safety words, with the flag on', () => {
-    expect(timeoutCheckin(turn, ON)).toBe(TIMEOUT_CHECKIN);
-    expect(TIMEOUT_CHECKIN).toContain('988');
-    expect(TIMEOUT_CHECKIN).toContain('are you safe right now?');
+describe('checkin.escalation', () => {
+  it('is the check-in for a failed read, a pattern pass and safety words, with the flag on', async () => {
+    expect(await decide(UNSAFE)).toEqual({ action: 'guide', guidance: await guidance() });
+    expect(await guidance()).toContain('988');
+    expect(await guidance()).toContain('are you safe right now?');
   });
 
-  it('is null with the flag off or unset', () => {
-    expect(timeoutCheckin(turn, { CRISIS_TIMEOUT_CHECKIN: 'off' })).toBeNull();
-    expect(timeoutCheckin(turn, {})).toBeNull();
+  it('hands every read that came back to the gate, and escalates nothing without one', async () => {
+    const reads: Read[] = (['none', 'crisis', 'imminent'] as const).map((risk) => ({
+      risk,
+      subject: 'self' as const,
+    }));
+    const decided = await Promise.all(reads.map(async (read) => decide(UNSAFE, { read })));
+    expect(decided).toEqual([ESCALATED, ESCALATED, ESCALATED]);
+    expect(await decide(UNSAFE, { read: undefined })).toBeNull();
   });
 
-  it('is null when the classifier answered, the patterns acted, it is a re-ask, or no words', () => {
-    expect(timeoutCheckin({ ...turn, verdict: { risk: 'none', subject: 'self' } }, ON)).toBeNull();
-    expect(timeoutCheckin({ ...turn, decision: { action: 'guide' } }, ON)).toBeNull();
-    expect(timeoutCheckin({ ...turn, reask: true }, ON)).toBeNull();
-    expect(timeoutCheckin({ ...turn, latest: 'what should I cook tonight?' }, ON)).toBeNull();
+  it('goes to the gate with the flag off or unset', async () => {
+    expect(await decide(UNSAFE, { env: { CRISIS_TIMEOUT_CHECKIN: 'off' } })).toBe(ESCALATED);
+    expect(await decide(UNSAFE, { env: {} })).toBe(ESCALATED);
+  });
+
+  it('goes to the gate when the patterns acted, on a re-ask, or with no words', async () => {
+    expect(await decide(UNSAFE, { decision: { action: 'guide' } })).toBe(ESCALATED);
+    expect(await decide(UNSAFE, { reask: true })).toBe(ESCALATED);
+    expect(await decide('what should I cook tonight?')).toBe(ESCALATED);
   });
 });
 
-describe('withCheckinEnding', () => {
-  const said = async (latest: string, ...chunks: string[]) =>
-    (await spoken(withCheckinEnding(streamOf(...chunks), { latest }))).join('');
-
+describe('checkin.ending', () => {
   it('adds nothing when the reply asked about safety and said 988', async () => {
     expect(await said('unsafe', 'Are you safe right now? ', 'Call or text 988.')).toBe(
       'Are you safe right now? Call or text 988.'
@@ -101,6 +134,13 @@ describe('withCheckinEnding', () => {
     expect(await said('unsafe', 'Are you safe? Text 741741 or call 19880.')).toContain(
       'call or text 988 to talk'
     );
+  });
+
+  it('passes every other reply through untouched', () => {
+    const reply = streamOf('ok');
+    expect(checkin.ending(reply, { guidance: 'another guidance' }, { latest: UNSAFE })).toBe(reply);
+    expect(checkin.ending(reply, {}, { latest: UNSAFE })).toBe(reply);
+    expect(checkin.ending(null, {}, { latest: UNSAFE })).toBeNull();
   });
 });
 
@@ -148,7 +188,8 @@ describe('false alarms on the public non-crisis corpora', () => {
       .flatMap((call) => call.turns)
       .filter((t) => !label || t.label === label)
       .map((t) => t.text);
-  const hits = (texts: string[]) => texts.filter((t) => checkinWordsIn(t) !== null).length;
+  const hits = async (texts: string[]) =>
+    (await Promise.all(texts.map(checksIn))).filter(Boolean).length;
 
   it.each([
     [
@@ -194,9 +235,9 @@ describe('false alarms on the public non-crisis corpora', () => {
         ).map((r) => r.query),
       0,
     ],
-  ] as const)('%s', (_name, texts, ceiling) => {
+  ] as const)('%s', async (_name, texts, ceiling) => {
     const all = texts();
     expect(all.length).toBeGreaterThan(10);
-    expect(hits(all)).toBeLessThanOrEqual(ceiling);
+    expect(await hits(all)).toBeLessThanOrEqual(ceiling);
   });
 });
