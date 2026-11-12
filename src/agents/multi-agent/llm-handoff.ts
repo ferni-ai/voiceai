@@ -13,6 +13,7 @@
 import { handoffEvents } from '../../handoff/index.js';
 import { earlyGoodbyePending, toolHandoffSuperseded } from '../../tools/handoff/early-goodbye.js';
 import { offerAgent, withdrawAgent } from '../../tools/handoff/ready-agents.js';
+import { handoffUndone } from '../../tools/handoff/index.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
@@ -138,8 +139,9 @@ interface FailedHandoff {
 
 /**
  * The app is told a handoff failed and who to show. When the tool had been told it worked,
- * only the app would know otherwise: HANDOFF_FAILED_SAY_SO tells the persona still on the
- * call, which says so (handoff-failed-say-so.ts).
+ * only the app would know otherwise: the tools' record is put back (unconfirmed-handoff.ts),
+ * and HANDOFF_FAILED_SAY_SO tells the persona still on the call, which says so
+ * (handoff-failed-say-so.ts).
  */
 async function reportFailure(
   call: LlmHandoffCall,
@@ -155,8 +157,10 @@ async function reportFailure(
     rollbackTo,
     timestamp: Date.now(),
   });
-  if (failed.toldItWorked && handoffFailedSaySo()) {
-    const sessionId = String(call.services.sessionId);
+  if (!failed.toldItWorked) return; // the tool heard the failure and put its own state back
+  const sessionId = String(call.services.sessionId);
+  if (rollbackTo) handoffUndone(sessionId, rollbackTo, targetPersonaId);
+  if (handoffFailedSaySo()) {
     await sayHandoffFailed(call.orchestrator.getActiveAgent(), targetPersonaId, sessionId);
   }
 }

@@ -244,8 +244,6 @@ export function isCurrentAgent(agentId: string): boolean {
  */
 export function recordHandoffRecord(record: HandoffRecord): void {
   handoffHistory.push(record);
-
-  // Trim history if too long
   if (handoffHistory.length > MAX_HISTORY_LENGTH) {
     handoffHistory.shift();
   }
@@ -268,18 +266,21 @@ export function recordHandoff(from: AgentId, to: AgentId, reason: string): void 
     duration: lastRecord ? now - lastRecord.timestamp : undefined,
   };
 
-  // FIX BUG #2: Update rate limiting timestamp here (single source of truth)
   lastHandoffTimestamp = now;
 
   recordHandoffRecord(record);
 
-  // Broadcast handoff via Redis Pub/Sub for cross-instance notifications
-  // This enables real-time handoff tracking across all instances
   if (pubsubBroadcast) {
     pubsubBroadcast(from, to, reason);
   }
 
   getLogger().debug({ handoff: record }, 'Handoff recorded');
+}
+
+/** Take the latest handoff to `to` back out: its swap never happened (unconfirmed-handoff.ts) */
+export function takeBackHandoff(to: AgentId): void {
+  const last = handoffHistory.at(-1);
+  if (last && isSameAgent(last.to, to)) handoffHistory.pop();
 }
 
 /**
@@ -475,8 +476,7 @@ export function logHandoffAnalytics(): void {
 // Mood detection state
 let lastUserMessageForMood = '';
 let lastEmotionAnalysisForMood:
-  | { primary: string; intensity: number; distressLevel?: number }
-  | undefined;
+  { primary: string; intensity: number; distressLevel?: number } | undefined;
 
 // Per-persona meeting counts (for "first time" vs "returning" entrances)
 let perPersonaMeetingCount = new Map<string, number>();
@@ -513,8 +513,7 @@ export function getLastUserMessage(): string {
  * Get the last emotion analysis (for mood detection)
  */
 export function getLastEmotionAnalysis():
-  | { primary: string; intensity: number; distressLevel?: number }
-  | undefined {
+  { primary: string; intensity: number; distressLevel?: number } | undefined {
   return lastEmotionAnalysisForMood;
 }
 
