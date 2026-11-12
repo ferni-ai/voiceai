@@ -47,7 +47,9 @@ const IGNORED = 'File ignored because of a matching ignore pattern';
 
 /** Files ESLint skipped. A skipped file reads as clean, so it must fail the ratchet. */
 export function ignoredFiles(results: EslintFile[]): string[] {
-  return results.filter((file) => file.messages.some((m) => m.message.startsWith(IGNORED))).map((file) => file.filePath);
+  return results
+    .filter((file) => file.messages.some((m) => m.message.startsWith(IGNORED)))
+    .map((file) => file.filePath);
 }
 
 export function regressions(base: ErrorBaseline, now: ErrorBaseline): string[] {
@@ -71,7 +73,9 @@ const STALE = 'There are suppressions left that do not occur anymore';
  */
 export function staleSuppressions(stderr: string): string[] {
   return stderr.includes(STALE)
-    ? ['eslint-suppressions.json suppresses violations that are gone: run `npx eslint --prune-suppressions <the files you fixed>` and commit it.']
+    ? [
+        'eslint-suppressions.json suppresses violations that are gone: run `npx eslint --prune-suppressions <the files you fixed>` and commit it.',
+      ]
     : [];
 }
 
@@ -99,24 +103,58 @@ function productionFiles(): string[] {
   return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !TEST.test(file));
 }
 
+const DEPLOY = 'apps/cli/src/commands/deploy/';
+
 /**
  * The files split into one ESLint run per TypeScript program. scripts/ lints against
  * tsconfig.scripts.json, a second program over much of src/ again; in the same process as
- * the main run it took ESLint past its 8 GB heap. Empty groups are dropped.
+ * the main run it took ESLint past its 8 GB heap. The deploy commands lint against
+ * apps/cli/tsconfig.json, the whole CLI: measured 2026-11-12, src/ alone peaks at 6.9 GB of
+ * heap, and src/ plus deploy at about 7.9 GB, which ran out of heap in 4 of 11 CI runs.
+ * Empty groups are dropped.
  */
 export function lintGroups(files: string[]): Array<{ name: string; files: string[] }> {
   const scripts = files.filter((file) => file.startsWith('scripts/'));
-  const rest = files.filter((file) => !file.startsWith('scripts/'));
+  const deploy = files.filter((file) => file.startsWith(DEPLOY));
+  const rest = files.filter((file) => !file.startsWith('scripts/') && !file.startsWith(DEPLOY));
   return [
     { name: 'eslint-coverage', files: rest },
+    { name: 'eslint-coverage-deploy', files: deploy },
     { name: 'eslint-coverage-scripts', files: scripts },
   ].filter((group) => group.files.length > 0);
+}
+
+/**
+ * The per-file results of one ESLint run, or why the run can't be read. The exit status alone
+ * can't say: ESLint exits 1 for lint errors and 2 for stale suppressions, both with full JSON.
+ * A run killed by a signal, or one that ran out of heap while writing its JSON (a partial
+ * stdout, seen in CI), is a crash; it is named as one, with ESLint's own stderr, instead of
+ * surfacing as a JSON SyntaxError.
+ */
+export function readEslintRun(run: {
+  status: number | null;
+  signal: string | null;
+  stdout: string;
+  stderr: string;
+}): { results: EslintFile[] } | { failure: string } {
+  const crashed = (detail: string) => ({
+    failure: `eslint crashed (status ${run.status}, signal ${run.signal}, ${run.stdout.length} bytes of output, ${detail}): ${run.stderr.trim().split('\n').slice(-5).join('\n')}`,
+  });
+  if (run.signal) return crashed('killed');
+  try {
+    return { results: JSON.parse(run.stdout) as EslintFile[] };
+  } catch {
+    return crashed(run.stdout ? 'output is not complete JSON' : 'no output');
+  }
 }
 
 /** Runs ESLint over the production files, one process per group, and returns per-file results plus stderr. */
 function lint(files: string[]): { results: EslintFile[]; stderr: string } {
   const runs = lintGroups(files).map((group) => lintOne(group.name, group.files));
-  return { results: runs.flatMap((run) => run.results), stderr: runs.map((run) => run.stderr).join('\n') };
+  return {
+    results: runs.flatMap((run) => run.results),
+    stderr: runs.map((run) => run.stderr).join('\n'),
+  };
 }
 
 function lintOne(cacheName: string, files: string[]): { results: EslintFile[]; stderr: string } {
@@ -128,16 +166,29 @@ function lintOne(cacheName: string, files: string[]): { results: EslintFile[]; s
   const run = spawnSync(
     process.execPath,
     [eslint, '--cache', '--cache-location', cache, '--format', 'json', ...files],
-    { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' } }
+    {
+      cwd: ROOT,
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+      env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' },
+    }
   );
-  // ESLint exits 1 when it finds errors; that is the data we want, so only a missing stdout is fatal.
-  if (!run.stdout) {
-    throw new Error(`eslint produced no output (status ${run.status}, signal ${run.signal}): ${run.error?.message ?? run.stderr}`);
-  }
-  return { results: JSON.parse(run.stdout) as EslintFile[], stderr: run.stderr ?? '' };
+  const read = readEslintRun({
+    status: run.status,
+    signal: run.signal,
+    stdout: run.stdout ?? '',
+    stderr: run.error?.message ?? run.stderr ?? '',
+  });
+  if ('failure' in read) throw new Error(`${cacheName}: ${read.failure}`);
+  return { results: read.results, stderr: run.stderr ?? '' };
 }
 
-function measure(): { errors: ErrorBaseline; warnings: number; ignored: string[]; stale: string[] } {
+function measure(): {
+  errors: ErrorBaseline;
+  warnings: number;
+  ignored: string[];
+  stale: string[];
+} {
   const { results, stderr } = lint(productionFiles());
   const errors: ErrorBaseline = {};
   let warnings = 0;
@@ -145,35 +196,53 @@ function measure(): { errors: ErrorBaseline; warnings: number; ignored: string[]
     warnings += file.warningCount;
     if (file.errorCount > 0) errors[relative(ROOT, file.filePath)] = file.errorCount;
   }
-  return { errors, warnings, ignored: ignoredFiles(results).map((file) => relative(ROOT, file)), stale: staleSuppressions(stderr) };
+  return {
+    errors,
+    warnings,
+    ignored: ignoredFiles(results).map((file) => relative(ROOT, file)),
+    stale: staleSuppressions(stderr),
+  };
 }
 
 function main(): void {
   const args = process.argv.slice(2);
   const { errors, warnings, ignored, stale } = measure();
   const total = Object.values(errors).reduce((sum, n) => sum + n, 0);
-  const baseline: ErrorBaseline = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : {};
+  const baseline: ErrorBaseline = existsSync(BASELINE)
+    ? JSON.parse(readFileSync(BASELINE, 'utf8'))
+    : {};
 
   if (args.includes('--init') || args.includes('--update')) {
     const next = args.includes('--init') ? errors : lowered(baseline, errors);
     writeFileSync(BASELINE, `${JSON.stringify(next, null, 2)}\n`);
-    console.log(`Wrote ${Object.keys(next).length} files, ${Object.values(next).reduce((s, n) => s + n, 0)} errors to the lint-coverage baseline.`);
+    console.log(
+      `Wrote ${Object.keys(next).length} files, ${Object.values(next).reduce((s, n) => s + n, 0)} errors to the lint-coverage baseline.`
+    );
     return;
   }
 
   const problems = [
-    ...ignored.map((file) => `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`),
+    ...ignored.map(
+      (file) =>
+        `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`
+    ),
     ...regressions(baseline, errors),
     ...stale,
   ];
-  console.log(`Lint coverage: ${Object.keys(errors).length} files with ${total} errors (baseline ${Object.values(baseline).reduce((s, n) => s + n, 0)}), ${warnings} warnings (not gated).`);
+  console.log(
+    `Lint coverage: ${Object.keys(errors).length} files with ${total} errors (baseline ${Object.values(baseline).reduce((s, n) => s + n, 0)}), ${warnings} warnings (not gated).`
+  );
   if (problems.length > 0) {
     console.error(`\n❌ ${problems.length} lint regression(s):`);
     problems.forEach((p) => console.error(`  - ${p}`));
     process.exit(1);
   }
   const improved = JSON.stringify(lowered(baseline, errors)) !== JSON.stringify(baseline);
-  console.log(improved ? '\n✅ No regressions, and things improved: run with --update to lock it in.' : '\n✅ No regressions.');
+  console.log(
+    improved
+      ? '\n✅ No regressions, and things improved: run with --update to lock it in.'
+      : '\n✅ No regressions.'
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
