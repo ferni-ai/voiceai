@@ -37,6 +37,7 @@ import { soulStatsService } from '../services/soul-stats.service.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { avatarMotionAllowed } from './avatar-motion/motion-allowed.js';
 import { onThinkingTurns } from './avatar-motion/thinking-glance.js';
 import { crisisAffectAllows } from './face/crisis-face-hold.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
@@ -592,9 +593,8 @@ function startSaccadeTimer(): void {
       Math.random() * (SOUL_TIMING.SACCADE_MAX_INTERVAL - SOUL_TIMING.SACCADE_MIN_INTERVAL);
 
     state.gaze.saccadeTimer = trackedTimeout(() => {
-      if (!state.gaze.isThinking) {
-        performSaccade();
-      }
+      // None during the crisis hold: the gaze rests on the caller (motion-allowed.ts)
+      if (!state.gaze.isThinking && avatarMotionAllowed('gazeShift')) performSaccade();
       scheduleSaccade();
     }, interval);
   };
