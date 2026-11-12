@@ -174,7 +174,7 @@ export async function handleDemoSessionUpdate(
   req: IncomingMessage,
   res: ServerResponse
 ): Promise<boolean> {
-  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000, keyPrefix: 'demo-session-update' })) {
     return true;
   }
   return new Promise((resolve) => {

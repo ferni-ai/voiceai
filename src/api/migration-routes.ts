@@ -81,7 +81,7 @@ export async function handleMigrationRoutes(
  */
 async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // Rate limit: 5 migrations per hour per IP
-  if (rateLimit(req, res, { maxRequests: 5, windowMs: 3600000 })) {
+  if (rateLimit(req, res, { maxRequests: 5, windowMs: 3600000, keyPrefix: 'migrate' })) {
     return;
   }
 
