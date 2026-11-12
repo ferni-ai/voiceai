@@ -19,15 +19,22 @@
  */
 
 import { meansLookback } from './crisis-means-lookback.js';
+import { type MeansNominateMode, resolveMeansNominateMode } from './crisis-means-nominate.js';
 import { explicitModifier } from './crisis-modifiers.js';
 
 export type MeansInHandMode = 'off' | 'shadow' | 'live';
-/** Which forms a read uses: none (off, shadow), the live ones, or all of them (the shadow log). */
-export type MeansForms = 'none' | 'live' | 'all';
+/**
+ * Which forms a read uses: none (off, shadow), the live ones, the live and the nominating ones,
+ * or all of them (the shadow log).
+ */
+export type MeansForms = 'none' | 'live' | 'nominate' | 'all';
 
 /** The forms a mode reads with; 'all' is the shadow log's own read, never a turn's. */
-export const meansFormsOf = (mode: MeansInHandMode | 'all'): MeansForms =>
-  mode === 'live' ? 'live' : mode === 'all' ? 'all' : 'none';
+export const meansFormsOf = (
+  mode: MeansInHandMode | 'all',
+  nominate: MeansNominateMode = resolveMeansNominateMode()
+): MeansForms =>
+  mode === 'live' ? (nominate === 'live' ? 'nominate' : 'live') : mode === 'all' ? 'all' : 'none';
 
 /** shadow unless set to off or live. */
 export function resolveMeansInHandMode(
@@ -74,6 +81,61 @@ const DOSE_TAKEN = String.raw`(?:(?:them|em|these|those) all|all of (?:them|em|t
 const NOT_A_UNIT = String.raw`(?! ?(?:mg|mgs|mcg|µg|ug|milligrams?|micrograms?|grams?|g|units?|u|ml|mls|milliliters?|millilitres?|cc|iu|drops?|puffs?|mmol|percent|%)\b)`;
 const DRUGS = String.raw`(?:tylenol|advil|ibuprofen|acetaminophen|paracetamol|aspirin|benadryl|xanax|ambien|oxy(?:codone|contin)?|percocet|vicodin|sleeping pills|painkillers|insulin|lithium|seroquel|klonopin|valium)`;
 
+/*
+ * The recall forms (means or a plan, said plainly, that read nothing before). Every word is
+ * whole-word bounded (substring-classifier-pitfalls): "showjumping" is not "jumping".
+ */
+const I_AM = String.raw`\b(?:i'?m|i am|im)`;
+const SOON = String.raw`(?:tonight|now|right now)`;
+/**
+ * A dose plan after "tonight" carries the clause on ("... tonight and tomorrow morning", "...
+ * tonight, is that ok?", "... tonight?"): #3666's false 911s. Read where "them" has no quantity.
+ */
+const NOT_A_DOSE_PLAN = String.raw`(?! *(?:\?|(?:,|\.|\band\b|\bthen\b)? *(?:tomorrow|again|every|each|twice|once|daily|in the morning|before|after|with|at \d|is (?:that|this|it)|should i|can i|right\?|ok(?:ay)?\?|lol|please remind)\b))`;
+/**
+ * Cutting soon: with a self-harm marker ("going to cut myself now", "cutting deep tonight"), or
+ * plain and tonight. Plain and now ("the knife's in my hand, i'm cutting now") can be cooking.
+ */
+const CUT_NOW = String.raw`(?:i'?m|i am|im) (?:going to |gonna |about to )?(?:cut|cutting)(?:(?: myself| deep(?:er)?)(?= ${SOON}\b)|(?= tonight\b))`;
+/**
+ * The whole supply, not a dose: "the whole bottle", "every pill i have". "the whole bottle of
+ * wine" is not it, and "my pills" or "all my meds" is how a check-in is said.
+ */
+const WHOLE_SUPPLY = String.raw`(?:the (?:whole|entire) bottle(?: of (?:pills|meds|tablets|them|my (?:pills|meds)|${DRUGS}))?|every (?:last |single )?pill(?: i (?:have|own)| i'?ve got)?)`;
+const TAKE = String.raw`(?:taking|takin|swallowing|downing|(?:going to|gonna|about to) (?:take|swallow|down))`;
+/** Pills held, earlier in the turn: what "them all" points at ("pills in hand. taking them all").
+ * Not someone else's ("grandmas pills") or the caller's own ("my meds", not "all my meds").
+ * Read after the verb, so it is only tried where the verb is. */
+const PILLS_HELD_BEFORE = String.raw`(?<=(?<!(?<!\ball )\b(?:my|his|her|their|our|\w+'?s) (?:[\w-]+ )?)\b(?:pills|meds|tablets|bottle)\b[^.!?]{0,30}\b(?:in (?:my )?hands?|right here|in front of me)\b[\s\S]{0,55})`;
+/** Counted things that are not pills, said before a bare count: "photos? i took 30 already".
+ * Read at the end of a count already matched (the window spans the match), so a long turn of
+ * other words never pays for it. */
+const COUNTED_EVERYDAY = String.raw`(?<!\b(?:photos?|pictures?|pics|shots|selfies|laps|steps|reps|sets|notes|calls|classes|questions|tests|minutes|mins|hours|days|bucks|dollars|swings|breaths|bites|sips)\b[\s\S]{0,90})`;
+/** A bare count, done: "i took 30 already", "i just took 25". The done-word is required. */
+const BARE_COUNT = String.raw`(?:[1-9]\d|\d{3,})`;
+/** Where a hanging point is: a rope tied there is not for the boat or the swing. */
+const HANG_POINT = String.raw`(?:beam|rafter|ceiling(?: fan)?|banister|closet rod|pipe|door ?frame|doorknob|stair ?rail(?:ing)?|light fixture|loft)`;
+/** Somewhere to fall from, with the caller on it: "i'm standing on the bridge". */
+const HEIGHT = String.raw`(?:bridge|roof|rooftop|ledge|cliff|overpass|balcony|railing|parking garage|tower|(?:edge|top) of (?:the |a |this )?(?:roof|bridge|cliff|building|parking garage|garage|tower))`;
+const ON_HEIGHT = String.raw`${I_AM} (?:standing |sitting |up |out )?(?:on|at|by|up on|on top of|out on) (?:the |a |this |my )?(?:[\w-]+ )?${HEIGHT}\b`;
+const JUMP_SOON = String.raw`(?:${I_AM} (?:going to |gonna |about to )?jump(?:ing)?|\bjumping)(?: off(?: (?:it|here|the (?:[\w-]+ )?${HEIGHT}))?)?(?: ${SOON})?\b`;
+/**
+ * A supply had, no hand or "right here" needed: a bottle (bare, or of pills or a named drug, not
+ * of wine or vitamins), a handful, or all of the pills. "all my meds" alone is a check-in.
+ */
+const PILL_NOUN = String.raw`(?:pills|meds|tablets|${DRUGS})`;
+const BOTTLE = String.raw`(?:whole |full |entire )?bottle(?: of ${PILL_NOUN}| (?!of\b))`;
+const SUPPLY_HAD = String.raw`(?:(?:a|the|this|that|my) ${BOTTLE}|a handful of ${PILL_NOUN}|all (?:of )?(?:the|my|these|those) ${PILL_NOUN})`;
+const WANT = String.raw`i (?:really |just )?(?:want|wanna)(?: to)?`;
+const GOING = String.raw`i'?m (?:going to|gonna|about to)`;
+const ALL_OF_IT = String.raw`(?:(?:them|em|it|these|those) all|all of (?:them|em|it|these|those)|every (?:last |single )?(?:one|pill)(?: of (?:them|em))?)`;
+/** A bottle of pills, said in full: "i'm going to take a bottle of advil" is no headache dose. */
+const BOTTLE_OF_PILLS = String.raw`(?:a|the|this|that|my) (?:whole |full |entire )?bottle of ${PILL_NOUN}`;
+/** A dose the doctor set, anywhere in the turn ("finish them all, it's the full course"). */
+const DOSE_WORDS = String.raw`\b(?:prescri\w*|antibiotics?|course|doctor|dr|pharmac\w+|refill)\b`;
+const HAVE = String.raw`\bi(?: have|'?ve got| got)`;
+const TAKE_IT_ALL = String.raw`(?:take|swallow|down) ${ALL_OF_IT}`;
+
 /** A form's name, logged by the shadow read (crisis-means-shadow.ts). */
 export type MeansFormName =
   | 'on_body'
@@ -84,7 +146,14 @@ export type MeansFormName =
   | 'took_dose'
   | 'did_it'
   | 'cutting_now'
-  | 'ending_beside_means';
+  | 'ending_beside_means'
+  | 'whole_supply_soon'
+  | 'bare_count_taken'
+  | 'rope_tied_ready'
+  | 'jumping_from_height'
+  | 'cutting_soon'
+  | 'supply_and_intent'
+  | 'means_held_soon';
 
 /** The means in hand and the caller's own intent to act now, in one clause. */
 /**
@@ -94,6 +163,12 @@ export type MeansFormName =
 const PAIRED_MEANS = String.raw`(?:(?<!(?<!\ball )\bmy (?:[\w-]+ ){0,2})(?:pills|meds|tablets)|${TOOL_GUN}(?:hand|shot)?guns?|pistols?|revolvers?|rifles?|firearms?|${PLAY_ROPE}ropes?|noose|belts?|cords?|razors?|blades?|knife|knives|a bottle|the bottle|everything)`;
 const MEANS_HELD = String.raw`(?:\b(?:i|i'?ve|i'?m|i have|i got)\b[^.!?]{0,25}\b${PAIRED_MEANS}\b[^.!?]{0,30}\b${WHERE}|\b${PAIRED_MEANS}\b (?:is |are )?${WHERE})\b`;
 const INTENT_NOW = String.raw`(?:i'?m|i am) (?:taking|takin|swallowing|downing) (?:them|em|it|these|those|the pills|the meds|all of them)|(?:i'?m|i am) (?:going to|about to) (?:take|swallow|do it|end it|use it|pull the trigger|kill myself|shoot myself|hang myself)|(?:i'?m|i am) doing it|doing it (?:now|tonight|right now)`;
+/**
+ * Intent said soon beside the means held, past main's: the whole supply, cutting tonight, or a
+ * clause-start "taking them" after a whole-supply word ("whole bottle in my hand, taking them
+ * tonight"). These nominate (means_held_soon); main's INTENT_NOW alone sends 911.
+ */
+const INTENT_SOON = String.raw`(?:i'?m|i am) (?:taking|takin|swallowing|downing) (?:the (?:whole|entire) bottle|every (?:last |single )?pill)|${CUT_NOW}|(?<=(?:,|;|\band) ?)(?:taking|swallowing|downing)(?<=\b(?:whole|entire|handful|every)\b[^.!?]{0,80}) (?:them|em|these|those|the pills|the meds)(?: all)? ${SOON}\b${NOT_A_DOSE_PLAN}${CLAUSE_END}`;
 
 /**
  * The forms, in order. Each must end its clause (or run on with "and", "now", a goodbye).
@@ -102,12 +177,21 @@ interface MeansForm {
   name: MeansFormName;
   re: RegExp;
   tag: 'suicidal' | 'self_harm';
+  /** Words anywhere in the turn that excuse the form; one test per turn, so it stays linear. */
+  unless?: RegExp;
 }
 const FORMS: readonly MeansForm[] = [
   // "the pills are in my hand and i'm taking them now", "the gun is in my hand, i'm doing it tonight".
   {
     name: 'means_with_intent',
     re: new RegExp(String.raw`${MEANS_HELD}[^.!?]{0,20}?\b(?:${INTENT_NOW})\b`),
+    tag: 'suicidal',
+  },
+  // The means held and intent said soon, past main's (INTENT_SOON): "the bottle is right here and
+  // i'm taking every last pill", "whole bottle of pills in my hand, taking them tonight".
+  {
+    name: 'means_held_soon',
+    re: new RegExp(String.raw`${MEANS_HELD}[^.!?]{0,20}?\b(?:${INTENT_SOON})\b`),
     tag: 'suicidal',
   },
   // Means on the body: "the noose is around my neck", "gun pointed at my head".
@@ -164,6 +248,69 @@ const FORMS: readonly MeansForm[] = [
     name: 'cutting_now',
     re: /\b(i'm|i am) (cutting|burning) (myself|my (wrists?|arms?|thighs?|legs|skin)) (right )?now\b/,
     tag: 'self_harm',
+  },
+  // The whole supply, soon: "i'm taking the whole bottle tonight", "tonight i'm taking every pill
+  // i have", and "them all" after pills held ("pills in hand. taking them all tonight").
+  {
+    name: 'whole_supply_soon',
+    re: new RegExp(
+      String.raw`${I_AM} ${TAKE} ${WHOLE_SUPPLY} ${SOON}\b${CLAUSE_END}` +
+        String.raw`|\btonight,? (?:i'?m|i am|im) ${TAKE} ${WHOLE_SUPPLY}\b${CLAUSE_END}` +
+        String.raw`|\b(?:(?:i'?m|i am|im) )?(?:taking|swallowing|downing)${PILLS_HELD_BEFORE} (?:(?:them|em) all|all of (?:them|em)|every (?:last |single )?one(?: of them)?) ${SOON}\b${NOT_A_DOSE_PLAN}${CLAUSE_END}`
+    ),
+    tag: 'suicidal',
+  },
+  // A bare count, done, ending the clause: "i took 30 already", "i just took 25".
+  {
+    name: 'bare_count_taken',
+    re: new RegExp(
+      String.raw`\bi(?: (?:just |already )(?:took|swallowed|downed) ${BARE_COUNT}| took ${BARE_COUNT} already|(?:'ve| have) (?:just |already )?(?:taken|swallowed|downed) ${BARE_COUNT})\b${NOT_A_UNIT}(?: already| just now)?(?= *(?:$|[.!?]|,? *(?:${RUN_ON})\b))${COUNTED_EVERYDAY}`
+    ),
+    tag: 'suicidal',
+  },
+  // A rope made ready, with intent or at a hanging point: "the rope is tied and i'm doing it
+  // tonight", "the rope is tied to the beam and i'm ready", "the rope's tied. tonight."
+  {
+    name: 'rope_tied_ready',
+    re: new RegExp(
+      String.raw`\bthe (?:rope|noose|cord)(?:'s| is) (?:tied|up|ready|set up)(?: (?:to|from|on) (?:the|a|my) ${HANG_POINT})? ?(?:,|\band\b) ?(?:${INTENT_NOW})\b` +
+        String.raw`|\bthe (?:rope|noose|cord)(?:'s| is) (?:tied|up|set up) (?:to|from|on) (?:the|a|my) ${HANG_POINT}\b ?(?:,|\band\b) ?(?:i'?m ready|it'?s time)\b${CLAUSE_END}` +
+        String.raw`|\bthe (?:rope|noose)(?:'s| is) (?:tied|up|ready)[.!?] *tonight *(?=$|[.!?])`
+    ),
+    tag: 'suicidal',
+  },
+  // On a height and jumping, in the clause or the next: "i'm standing on the bridge. i'm jumping."
+  {
+    name: 'jumping_from_height',
+    re: new RegExp(
+      String.raw`${ON_HEIGHT}[^.!?]{0,40}?(?:[.!?] *)?[^.!?]{0,20}?${JUMP_SOON}${CLAUSE_END}`
+    ),
+    tag: 'suicidal',
+  },
+  // Cutting soon, with a marker, a blade held before it, or no one to stop it.
+  {
+    name: 'cutting_soon',
+    re: new RegExp(
+      String.raw`${I_AM} (?:going to |gonna |about to )?(?:cut|cutting) (?:myself|deep(?:er)?) ${SOON}\b${CLAUSE_END}` +
+        String.raw`|${I_AM}(?<=\b(?:i have|i'?ve got|i got|got|holding) (?:the|a|my) (?:knife|knives|blades?|razors?|box cutter)\b[\s\S]{0,45}) (?:going to |gonna |about to )?(?:cut|cutting) tonight\b${CLAUSE_END}` +
+        String.raw`|${I_AM} (?:going to |gonna |about to )?(?:cut|cutting) ${SOON} and (?:nobody|no one)(?: can| is going to| will)? stop me\b`
+    ),
+    tag: 'self_harm',
+  },
+  // A supply had and the caller's own intent to take it all, in either order: "i have a bottle of
+  // pills and i want to take them all", "i want to take them all. i have a bottle", "i want to
+  // take all of my pills". Unlike #3666, a pill noun and "tonight" never read alone: the whole
+  // supply must be said, and a dose the doctor set eases it.
+  {
+    name: 'supply_and_intent',
+    unless: new RegExp(DOSE_WORDS),
+    re: new RegExp(
+      String.raw`${HAVE} ${SUPPLY_HAD}\b[^.!?]{0,40}?(?:,|[.!?]|\band\b|\bso\b) *(?:(?:${WANT}|${GOING}) ${TAKE_IT_ALL}(?: ${SOON}\b${NOT_A_DOSE_PLAN})?|(?:taking|swallowing|downing) ${ALL_OF_IT} ${SOON}\b${NOT_A_DOSE_PLAN})\b${CLAUSE_END}` +
+        String.raw`|\b(?:${WANT}|${GOING}) ${TAKE_IT_ALL}\b(?: ${SOON})? *(?:,|[.!?]|\band\b) *i(?: have|'?ve got| got) ${SUPPLY_HAD}\b(?: (?:right here|here|already|ready))?${CLAUSE_END}` +
+        String.raw`|\b${WANT} (?:take|swallow|down) (?:${BOTTLE_OF_PILLS}|a handful of ${PILL_NOUN}|all (?:of )?(?:the|my|these|those) ${PILL_NOUN}|${WHOLE_SUPPLY})\b(?: ${SOON})?${CLAUSE_END}` +
+        String.raw`|\b${GOING} (?:take|swallow|down) (?:${BOTTLE_OF_PILLS}|${WHOLE_SUPPLY})\b(?: ${SOON})?${CLAUSE_END}`
+    ),
+    tag: 'suicidal',
   },
 ];
 
@@ -241,8 +388,9 @@ function freeOf(
 }
 
 /**
- * The live forms: each gave 0 false 911 scripts on the held-out ordinary and medication lines with
- * no everyday exemption (numbers in the #2717 body). Every other form only feeds the shadow log.
+ * The live forms: #2717's each gave 0 false 911 scripts on the held-out ordinary and medication
+ * lines with no everyday exemption (numbers in the #2717 body). Each reads 911 first. Every other
+ * form nominates or only feeds the shadow log.
  */
 export const LIVE_FORMS: ReadonlySet<MeansFormName> = new Set<MeansFormName>([
   'on_body',
@@ -255,10 +403,27 @@ export const LIVE_FORMS: ReadonlySet<MeansFormName> = new Set<MeansFormName>([
 ]);
 
 /**
- * The imminent read a form adds, and which form, or null. With 'live' only live forms count; with
- * 'all' every form does (the shadow log). A form counts only when it is the caller's own and
- * nothing softens it (spans the patterns softened stay softened); every match is read, not just the
- * first, so a softened one never hides a later real one.
+ * The nominating forms (crisis-means-nominate.ts): with both flags live, each reads a crisis that
+ * is never imminent. One entry per form, so a form the held-out read flags is demoted alone.
+ */
+const NOMINATE_FORMS: ReadonlySet<MeansFormName> = new Set<MeansFormName>([
+  'means_held_soon',
+  'whole_supply_soon',
+  'bare_count_taken',
+  'rope_tied_ready',
+  'jumping_from_height',
+  'cutting_soon',
+  'supply_and_intent',
+]);
+
+/**
+ * The read a form adds, which form, and whether it only nominates (never imminent alone), or
+ * null: a live form's read is imminent, a nominating form's a crisis that is not. With 'live'
+ * the live forms count, with 'nominate' the nominating ones too (CRISIS_MEANS_NOMINATE=live),
+ * and with 'all' every form does (the shadow log). A form counts
+ * only when it is the caller's own and nothing softens it (spans the patterns softened stay
+ * softened); every match is read, not just the first, so a softened one never hides a later real
+ * one.
  */
 export function meansInHandRead(
   text: string,
@@ -266,14 +431,15 @@ export function meansInHandRead(
   softened: ReadonlyArray<readonly [number, number]>,
   forms: MeansForms,
   endingOutside: (spans: ReadonlyArray<readonly [number, number]>) => boolean
-): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null {
+): { tag: 'suicidal' | 'self_harm'; form: MeansFormName; nominate: boolean } | null {
   if (forms === 'none') return null;
   const free = freeOf(text, softened);
-  const read = (form: MeansForm): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null => {
+  const read = (form: MeansForm) => {
+    if (form.unless?.test(text)) return null;
     for (const m of text.matchAll(new RegExp(form.re.source, 'g'))) {
       const end = m.index + m[0].length;
       if (free(m.index, end) && explicitModifier(text, m.index, end, true) === null) {
-        return { tag: form.tag, form: form.name };
+        return { tag: form.tag, form: form.name, nominate: NOMINATE_FORMS.has(form.name) };
       }
     }
     return null;
@@ -289,7 +455,7 @@ export function meansInHandRead(
     indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means');
   for (const m of ending && said ? text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g')) : []) {
     if (free(m.index, m.index + m[0].length)) {
-      return { tag: 'suicidal', form: 'ending_beside_means' };
+      return { tag: 'suicidal', form: 'ending_beside_means', nominate: false };
     }
   }
   // The sentence alone names no hand or lap, and its own words make the plan_or_means read, so
@@ -300,10 +466,15 @@ export function meansInHandRead(
         .map((m): [number, number] => [m.index, m.index + m[0].length])
         .filter(([start, end]) => free(start, end))
     : [];
-  if (had.length > 0 && endingOutside(had)) return { tag: 'suicidal', form: 'ending_beside_means' };
+  if (had.length > 0 && endingOutside(had))
+    return { tag: 'suicidal', form: 'ending_beside_means', nominate: false };
+  for (const form of forms === 'live' ? [] : FORMS) {
+    const hit = NOMINATE_FORMS.has(form.name) ? read(form) : null;
+    if (hit) return hit;
+  }
   if (forms !== 'all') return null;
   for (const form of FORMS) {
-    const hit = LIVE_FORMS.has(form.name) ? null : read(form);
+    const hit = LIVE_FORMS.has(form.name) || NOMINATE_FORMS.has(form.name) ? null : read(form);
     if (hit) return hit;
   }
   return null;

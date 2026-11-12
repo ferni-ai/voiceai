@@ -27,7 +27,7 @@ describe('the means sentence re-read, once per turn', () => {
   it('blanks every free means sentence in one call', () => {
     const outside = vi.fn((_spans: ReadonlyArray<readonly [number, number]>) => true);
     const read = meansInHandRead(pasted, ['passive_ideation'], [], 'live', outside);
-    expect(read).toEqual({ tag: 'suicidal', form: 'ending_beside_means' });
+    expect(read).toEqual({ tag: 'suicidal', form: 'ending_beside_means', nominate: false });
     expect(outside).toHaveBeenCalledTimes(1);
     expect(outside.mock.calls[0][0]).toHaveLength(1000);
   });

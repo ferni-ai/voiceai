@@ -30,6 +30,7 @@ import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-call
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
+import { MEANS_NOMINATED, NOT_SAFE_TAGS, notSafeAfterMeans } from './crisis-means-nominate.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
@@ -216,7 +217,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     add('plan_or_means', SEVERITY.explicit);
   }
 
-  // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
+  // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911, a nominating one a crisis (Seth 11-11).
   const means = meansInHandRead(text, indicators, softened, forms, (spans) =>
     endingOutside(text, spans)
   );
@@ -224,8 +225,10 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     hardSelf = true;
     if (means.tag === 'self_harm') add('self_harm', 0);
     if (forms === 'all') add(`means_form:${means.form}`, 0);
-    add('explicit_crisis_language', SEVERITY.explicit);
-    add('imminent_danger', SEVERITY.explicit);
+    const tags = means.nominate
+      ? [MEANS_NOMINATED]
+      : ['explicit_crisis_language', 'imminent_danger'];
+    for (const tag of tags) add(tag, means.nominate ? SEVERITY.passive : SEVERITY.explicit);
   }
 
   // Someone hurting the caller (K1e), read by abuse-disclosure.ts, the one abuse reader: a
@@ -320,6 +323,14 @@ export function detectCrisis(
     subject = 'self';
   }
 
+  // The caller's own "no, i'm not safe" just after a means read sends 911 (Seth 11-11).
+  const readEarlier = (m: string) => scoreText(normalize(m), forms).indicators;
+  if (forms === 'nominate' && notSafeAfterMeans(text, options?.recentMessages ?? [], readEarlier)) {
+    for (const tag of NOT_SAFE_TAGS) if (!indicators.includes(tag)) indicators.push(tag);
+    severity = Math.max(severity, SEVERITY.explicit);
+    subject = 'self';
+  }
+
   // Voice amplifies what the words say; on its own it is a reason to check in,
   // not a crisis. The 988 script is for the caller, so a worry about someone
   // else never escalates into it.
@@ -404,6 +415,11 @@ The user is worried that someone they know is at risk. Your response MUST:
   }
   if (crisis.indicators.includes('crisis_history')) {
     lines.push('6. They mentioned a past crisis. Ask gently whether any of it is coming back now');
+  }
+  if (crisis.indicators.includes(MEANS_NOMINATED)) {
+    lines.push(
+      '6. They named the means or a plan. Ask plainly and warmly whether they are safe right now ("are you safe right now?"), and stay with them'
+    );
   }
   if (crisis.language === 'es') {
     lines.push('7. Reply in Spanish. 988 offers Spanish: call and press 2, or text AYUDA to 988');

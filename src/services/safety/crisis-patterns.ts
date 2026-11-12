@@ -278,6 +278,13 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
   },
   { re: /\bdon'?t want to (exist|be here anymore)\b/, tag: 'suicidal' },
+  // Unsafe with oneself: "i feel unsafe with myself tonight", "i don't trust myself tonight",
+  // "scared of what i'll do to myself". Never "unsafe walking home", "unsafe for the dog" or
+  // "trust myself with cake"; "not safe at home" stays the abuse readers' (abuse-disclosure.ts).
+  {
+    re: /\bnot safe (being )?(alone )?(with|around|by) myself\b|(?<!\b(don'?t|do not|never|not) (feel |felt )?)\bun ?safe (being )?(alone )?(with|around|by) myself\b|\bdon'?t feel safe (being )?(alone )?(with|around|by) myself\b|\b(don'?t|do not|can'?t|cannot) trust myself( (tonight|right now|anymore|alone|to (be|stay) (alone|safe)|not to hurt myself))?( tonight| right now)?(?= *($|[.!?]|and i'?m (scared|afraid)\b))|(?<!\b(not|never|n't|no longer) )\b(scared|afraid|terrified|frightened) (of )?(what )?i('ll| will| might| could|'m going to|'m gonna)? (do|hurt|harm) (something )?(to )?myself\b/,
+    tag: 'suicidal',
+  },
   { re: /\blife (isn'?t|is not|ain'?t) worth living\b/, tag: 'suicidal' },
   {
     re: /\bdon'?t (think i )?want to (keep going|go on)\b(?! (to|with|down|at)\b)/,
