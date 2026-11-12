@@ -7,6 +7,8 @@
  * @module agents/personas/caller-move
  */
 
+import { flagOn } from '../../config/env-flag.js';
+
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 
 /**
@@ -60,13 +62,25 @@ const ACK =
 export const ABOUT_THEIR_THINGS =
   /\b(?:do|did|can|could|would|will) you (?:still |even |actually )?(?:have|know|remember|keep|save|store|see|get|call|text|reach|ring|phone|message|email|send)\b(?:\s+\w+)?\s+(?:my|me|mine|our|us)\b/i;
 
-export function callerMove(text: string): CallerMove {
+/**
+ * CALLER_SETUP_READ=on: "and you" asks about him only where the caller
+ * hands the turn over ("good, and you?"). Mid-line it is their own story: on
+ * dev "And you know what the thing is?", the setup to a punchline, read as
+ * about_ferni and he told a story of his own about Hollis (#3810).
+ */
+const AND_YOU_MID = /\band you\b(?![?.!,\s]*$)/gi;
+
+export function callerMove(
+  text: string,
+  env: Record<string, string | undefined> = process.env
+): CallerMove {
   const t = text.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words <= 3 && ACK.test(t)) return 'ack';
   if (isLookup(t)) return 'lookup';
   if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
-  if (ABOUT_FERNI.test(t)) return 'about_ferni';
+  const aboutHim = flagOn('CALLER_SETUP_READ', env) ? t.replace(AND_YOU_MID, 'and') : t;
+  if (ABOUT_FERNI.test(aboutHim)) return 'about_ferni';
   if (OPINION_ASK.test(t)) return 'request';
   return 'share';
 }
@@ -74,4 +88,23 @@ export function callerMove(text: string): CallerMove {
 /** Asked for his take on their topic, not about him (callerMove's opinion branch). */
 export function opinionAsk(text: string): boolean {
   return OPINION_ASK.test(text) && callerMove(text) === 'request';
+}
+
+/** "You know what the thing is?", "guess what": the setup to their own punchline. */
+const SETUP =
+  /\b(?:you know what|guess what|get this|the thing is|wait (?:till|until) you hear)\b/i;
+
+/**
+ * The caller is telling something of theirs, so no story of his own rides this
+ * reply (ferni-state.ts): a share of 8+ words, or, with CALLER_SETUP_READ=on, a
+ * short setup to their punchline (#3810).
+ */
+export function callerSharing(
+  said: string,
+  move: CallerMove,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  if (move !== 'share') return false;
+  if (said.split(/\s+/).filter(Boolean).length >= 8) return true;
+  return flagOn('CALLER_SETUP_READ', env) && SETUP.test(said);
 }

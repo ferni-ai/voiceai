@@ -44,6 +44,7 @@ import { dayDetailFor, isSelfShare, selfQuotes, soundsLow, turnsBack } from './f
 import * as asked from './self-share-asked.js';
 import { callerVenting } from './turn-extras.js';
 import { hardNews } from './turn-candor.js';
+import { callerSharing } from './caller-move.js';
 import { callerMove, taskTurn } from './turn-shape.js';
 import { callerTurn } from '../model-provider/fast-lane.js';
 import { understandingFor } from './turn-understanding.js';
@@ -197,7 +198,7 @@ export function selfShareFor(turn: SelfTurn): { line: string; ownStory: boolean;
   const last = replies[replies.length - 1] ?? '';
   const recent = replies.slice(-2).some(isSelfShare);
   const move = callerMove(said);
-  const sharing = move === 'share' && said.split(/\s+/).filter(Boolean).length >= 8;
+  const sharing = callerSharing(said, move);
   const lines: string[] = [];
   if (soundsLow(last))
     lines.push(
