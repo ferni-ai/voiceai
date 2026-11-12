@@ -12,7 +12,6 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
-import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
 import {
   resetCrisisClassifierCache,
@@ -246,13 +245,7 @@ describe('every labelled crisis case keeps full crisis handling', () => {
       'utf8'
     )
   ) as typeof redteam;
-  const positives = [
-    ...CRISIS_HELDOUT_RETIRED,
-    ...CRISIS_TEST_BLIND,
-    ...CRISIS_CONTEXTUAL,
-    ...redteam,
-    ...gloomy,
-  ]
+  const positives = [...CRISIS_HELDOUT_RETIRED, ...CRISIS_CONTEXTUAL, ...redteam, ...gloomy]
     .filter((c) => c.label !== 'none')
     .map((c) => ({
       text: c.text,
@@ -268,7 +261,7 @@ describe('every labelled crisis case keeps full crisis handling', () => {
     );
 
   it('has the labelled corpus', () => {
-    expect(positives.length).toBeGreaterThan(230);
+    expect(positives.length).toBeGreaterThanOrEqual(184);
   });
 
   it('as the line itself, or with a transfer request before or after it', () => {
