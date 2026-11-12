@@ -38,10 +38,6 @@ const WEB_HTML = 'apps/web/index.html';
  * Remove an entry once the build passes it (the test tells you to).
  */
 const KNOWN_UNBUILT = {
-  // On unless "false": no kill switch in prod.
-  VITE_AFTER_CALL_CARD: 'unwired',
-  // Off in prod; one browser can turn it on with localStorage.
-  VITE_AGENT_DROP_PROMPT: 'unwired',
   VITE_CALL_ROOM: 'unwired',
   // Off in prod; one browser can turn it on with localStorage.
   VITE_CLIENT_TIMING_SEND: 'unwired',
@@ -65,21 +61,15 @@ const KNOWN_UNBUILT = {
   VITE_LEGACY_SHARING: 'unwired',
   // Also on whenever VITE_MEMORY_VIEW is, which the build does pass.
   VITE_MEMORY_CONTROL: 'unwired',
-  // On unless "false": no kill switch in prod.
-  VITE_NO_STREAKS: 'unwired',
   VITE_OVERLAY_HOST: 'unwired',
   VITE_PATTERN_INSIGHTS: 'unwired',
   VITE_PERSONALIZE_EXTRAS: 'unwired',
   VITE_PORCH_LIGHT: 'unwired',
   VITE_REACH_OUT_ACTIONS: 'unwired',
-  // On unless "false": no kill switch in prod.
-  VITE_REPORT_REPLY: 'unwired',
   VITE_ROSTER_STABLE: 'unwired',
   VITE_SANCTUARY_CHAT: 'unwired',
   VITE_SEEDS: 'unwired',
   VITE_SPEAKER_CUES: 'unwired',
-  // A config value, but nothing delivers it to prod: loadStripe() resolves null there.
-  VITE_STRIPE_PUBLISHABLE_KEY: 'unwired',
   // Only read when import.meta.env.DEV; the e2e walks set it for their emulator build.
   VITE_USE_FIREBASE_EMULATORS: 'dev-only',
   // Only an override: with no build value, push-notifications.service.ts fetches the key

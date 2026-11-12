@@ -24,7 +24,7 @@ export async function handlePlaidRoutes(
   // Exchange Plaid public token for access token
   if (pathname === '/plaid/exchange' && req.method === 'POST') {
     // Rate limit: 5 exchanges per minute per IP (financial operation)
-    if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000, keyPrefix: 'plaid-exchange' })) {
       return true; // Rate limited
     }
 
