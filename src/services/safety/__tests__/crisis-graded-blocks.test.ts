@@ -682,6 +682,16 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(handed.longestFerni).toBe(FERNI.length);
   });
 
+  // One generous wall-clock backstop, for a blow-up the counts above don't model: main grades this
+  // in a few milliseconds, so 2 s holds on a loaded runner and fails a grade that grows with the call.
+  it('a 10,000-line call with a 95k-char Ferni line grades in under 2 s (backstop)', () => {
+    const earlier = Array.from({ length: 10_000 }, (_, i) => `Line ${i} about the garden.`);
+    const companion = `Is anyone ${'there with you and '.repeat(5_000)}`;
+    const at = performance.now();
+    gradeTurn(turn({ earlier, companion }));
+    expect(performance.now() - at).toBeLessThan(2_000);
+  }, 30_000);
+
   it.each(MUST_NOT_FIRE)('must not fire, a lone classifier read: %s grades L2', (_label, lines) => {
     resetMinorCare();
     const latest = lines[lines.length - 1];

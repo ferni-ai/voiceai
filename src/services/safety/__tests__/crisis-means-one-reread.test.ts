@@ -135,4 +135,21 @@ describe('a 20k-char pasted turn reads in linear work', () => {
       expect(sliced).toBeLessThan(20 * text.length);
     }
   );
+
+  // One generous wall-clock backstop, for a blow-up the counts above don't model. The turn is 400k
+  // chars because a quadratic read only stands clear of a linear one on a long turn: the old
+  // per-match split took 0.09 s at 20k (too close to main to time) and 3.2 s at 200k, while main
+  // took 0.12 s at 200k on a quiet box and 0.4 s at load 35. At 400k main stays well under 5 s on a
+  // loaded runner, and the quadratic shape (30 s at load 30) fails it.
+  it('a 400k-char pasted turn reads in under 5 s under live and shadow (backstop)', () => {
+    const text = `i can't handle this heat. ${'i have the pills. '.repeat(22_300)}`.slice(
+      0,
+      400_000
+    );
+    expect(text).toHaveLength(400_000);
+    const at = performance.now();
+    reads.live(text);
+    reads.shadow(text);
+    expect(performance.now() - at).toBeLessThan(5_000);
+  }, 60_000);
 });
