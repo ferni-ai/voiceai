@@ -17,6 +17,7 @@ import {
   logValidation,
 } from '../../intelligence/context-builders/humanization/humanizing-debug.js';
 import { extractPersonalThemes } from '../session/session-state.js';
+import { readsHeavy } from './task-help-distress.js';
 import type { TurnAnalysisResult, TurnContext } from './types.js';
 
 // ============================================================================
@@ -28,7 +29,8 @@ import type { TurnAnalysisResult, TurnContext } from './types.js';
  */
 export function buildHumanizingContextForTurn(
   ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
+  analysisResult: TurnAnalysisResult,
+  distressCapped = false
 ): HumanizingResult | null {
   const { persona, bundleRuntime, services, userData, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
@@ -113,12 +115,11 @@ export function buildHumanizingContextForTurn(
     }
 
     // Check for mood shift
-    const topicWeight =
-      analysis.emotion.distressLevel > 0.6
-        ? ('heavy' as const)
-        : analysis.emotion.distressLevel > 0.3
-          ? ('medium' as const)
-          : ('light' as const);
+    const topicWeight = readsHeavy(analysis.emotion.distressLevel, distressCapped)
+      ? ('heavy' as const)
+      : analysis.emotion.distressLevel > 0.3
+        ? ('medium' as const)
+        : ('light' as const);
 
     if (shouldMoodShift(result.mood, analysis.emotion.primary, topicWeight)) {
       const newMoodState = getMoodShift(

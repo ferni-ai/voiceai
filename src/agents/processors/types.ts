@@ -131,6 +131,8 @@ export interface EmotionalState {
   responseGuidance?: string;
   /** Transition phrase for emotional shifts */
   transitionPhrase?: string;
+  /** The distress is only a request for help with a task: no crisis concern or heavy topic (task-help-distress.ts) */
+  distressCapped?: boolean;
 }
 
 // ============================================================================
