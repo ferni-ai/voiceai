@@ -8,9 +8,10 @@
  * tool lets Ferni's goodbye finish playing, then deletes the call's room,
  * which drops the phone leg and ends the session.
  *
- * Ferni never hangs up a call that has had a crisis moment (crisis-call-risk.ts):
- * endCall then tells him to stay, and the call ends when the caller hangs up.
- * The app's endCall (call-wrap-up.ts) holds the same way.
+ * Ferni never hangs up a call that has had a crisis moment (crisis-call-risk.ts),
+ * or a caller under a minor-care hold (minor-care-end-hold.ts): endCall then
+ * tells him to stay, and the call ends when the caller hangs up. The app's
+ * endCall (call-wrap-up.ts) holds the same way.
  *
  * Calls placed on the user's behalf get their own endCall (with how the call
  * ended) from outbound-call/call-control.ts; this one stays off them.
@@ -23,6 +24,7 @@ import { z } from 'zod';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { minorCareHoldReason } from './minor-care-end-hold.js';
 
 const log = createLogger({ module: 'phone-goodbye' });
 
@@ -39,6 +41,10 @@ export type HangUp = (roomName: string) => Promise<void>;
 /** What endCall tells the model instead of hanging up a call with crisis risk. */
 export const CRISIS_HOLD =
   "Don't hang up: this call has had a crisis moment. Stay with them; the call ends when they hang up.";
+
+/** What endCall tells the model instead of hanging up a care-held minor (minor-care-end-hold.ts). */
+export const MINOR_CARE_HOLD =
+  "Don't hang up: stay on the line with them. The call ends when they hang up.";
 
 /** Where in the teardown the crisis check ran. */
 export type CrisisHoldStage = 'before_playout' | 'after_playout' | 'before_delete';
@@ -93,12 +99,18 @@ export function createEndCallTool(
     parameters: z.object({}),
     execute: async (_args, { ctx }) => {
       if (holdEndCallForCrisis(sessionId, 'phone')) return CRISIS_HOLD;
+      const minorCare = sessionId ? minorCareHoldReason(sessionId) : null; // read during the goodbye
       try {
         await ctx.waitForPlayout();
       } catch {
         // Hang up anyway: a cut-off goodbye beats a line left open
       }
       if (holdEndCallForCrisis(sessionId, 'phone', 'after_playout')) return CRISIS_HOLD;
+      const why = await minorCare;
+      if (why) {
+        log.warn({ sessionId, why }, 'END_CALL_HELD_MINOR_CARE');
+        return MINOR_CARE_HOLD;
+      }
       const heard = await holdFirst?.();
       if (holdFirst && holdEndCallForCrisis(sessionId, 'phone', 'before_delete')) {
         return CRISIS_HOLD;
