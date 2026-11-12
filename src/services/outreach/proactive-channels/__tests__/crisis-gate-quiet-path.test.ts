@@ -85,8 +85,7 @@ const { CRISIS_QUIET_DAYS, crisisFromSignal, hadCrisisWithin, releaseQuietHere }
 const { getCrisisHistory, hadRecentCrisis, forgetRecentCrisis } =
   await import('../../../human-transfer/index.js');
 const { decisionFor, gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
-const { RETRY_MS, quietAfterCrisis, quietLevelOf, resetQuietAfterCrisis } =
-  await import('../../../../agents/safety/crisis-quiet-window.js');
+const { quietAfterCrisis } = await import('../../../../agents/safety/crisis-quiet-window.js');
 const { signalGateDecisions } = await import('../../../../agents/safety/crisis-gate-signal.js');
 const { holdSession, resetMinorCare } = await import('../../../../utils/minor-care.js');
 const { heldFromBackgroundJobs } = await import('../../minor-care-background-read.js');
@@ -184,7 +183,6 @@ beforeEach(() => {
   store.mode = 'up';
   later.on = false;
   later.kept.length = 0;
-  resetQuietAfterCrisis();
   resetMinorCare();
   forgetRecentCrisis(UID);
   vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
@@ -367,7 +365,11 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     expect(await hadCrisisWithin(readable(), UID, CRISIS_QUIET_DAYS, CALL_AT)).toBe(true);
 
     store.mode = 'up';
-    await vi.advanceTimersByTimeAsync(RETRY_MS[0]!);
+    // The first retry waits 5 s: nothing is tried before it, and it stores
+    await vi.advanceTimersByTimeAsync(4_999);
+    await settle();
+    expect(signalDocs()).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
     await settle();
     expect(signalDocs()).toHaveLength(1);
     // Stored, so this process lets go: with the doc gone nothing holds it
@@ -462,14 +464,38 @@ describe("the hold doc's other writers never let the TTL come before a crisis qu
   });
 });
 
-describe('quietLevelOf', () => {
-  it('counts the script, own crisis guidance and third-party guidance; nothing soft', () => {
-    expect(quietLevelOf(decisionFor(OWN as never))).toBe('guidance');
-    expect(quietLevelOf(decisionFor(THIRD_PARTY as never))).toBe('third_party');
-    expect(quietLevelOf(decisionFor({ ...OWN, isCrisis: false } as never))).toBeUndefined();
-    expect(quietLevelOf({ action: 'replace' })).toBe('script');
-    expect(quietLevelOf({ action: 'guide' })).toBeUndefined();
-    expect(quietLevelOf({ action: 'pass' })).toBeUndefined();
-    expect(quietLevelOf(null)).toBeUndefined();
+describe('which gate decisions start the window', () => {
+  /** What one decision stored: the crisis_signals severities and the hold doc's quietUntil. */
+  async function storedFor(decision: unknown) {
+    quietAfterCrisis(call(), decision as never);
+    await settle();
+    const severities = signalDocs().map(([, d]) => (d.signals as { severity?: number }).severity);
+    return { severities, quietUntil: docs.get(HOLD)?.quietUntil };
+  }
+  const until = CALL_AT.getTime() + CRISIS_QUIET_DAYS * DAY;
+
+  it('the script replacing the reply: a severity 9 signal', async () => {
+    expect(await storedFor({ action: 'replace' })).toEqual({
+      severities: [9],
+      quietUntil: undefined,
+    });
   });
+  it("full guidance for the caller's own crisis: a severity 7 signal", async () => {
+    const stored = await storedFor(decisionFor(OWN as never));
+    expect(stored).toEqual({ severities: [7], quietUntil: undefined });
+  });
+  it('guidance about someone else: quietUntil only, no crisis record', async () => {
+    const stored = await storedFor(decisionFor(THIRD_PARTY as never));
+    expect(stored).toEqual({ severities: [], quietUntil: until });
+  });
+  for (const [name, decision] of [
+    ['soft guidance (not a crisis)', decisionFor({ ...OWN, isCrisis: false } as never)],
+    ['a bare guide', { action: 'guide' }],
+    ['pass', { action: 'pass' }],
+    ['no decision', null],
+  ] as const) {
+    it(`${name}: nothing stored`, async () => {
+      expect(await storedFor(decision)).toEqual({ severities: [], quietUntil: undefined });
+    });
+  }
 });

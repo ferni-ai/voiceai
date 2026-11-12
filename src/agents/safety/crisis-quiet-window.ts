@@ -44,14 +44,14 @@ export type QuietDecision =
   { action: string; crisis?: true; about?: string; kind?: CrisisEventKind } | null | undefined;
 
 /** A failed write is tried again after each of these waits, then left held in this process. */
-export const RETRY_MS: readonly number[] = [5_000, 60_000];
+const RETRY_MS: readonly number[] = [5_000, 60_000];
 const DAY_MS = 86_400_000;
 const MAX_CALLS = 5000;
 /** `${sessionId}|${level}` already started, oldest first. */
 const started = new Set<string>();
 
 /** What a gate decision counts as, or undefined when it doesn't start the window. */
-export function quietLevelOf(decision: QuietDecision): QuietLevel | undefined {
+function quietLevelOf(decision: QuietDecision): QuietLevel | undefined {
   if (decision?.action === 'replace') return 'script';
   if (decision?.action !== 'guide') return undefined;
   if (decision.crisis === true) return 'guidance';
@@ -134,9 +134,4 @@ async function store(
   if (wait === undefined) return;
   const retry = setTimeout(() => void store(write, release, at, attempt + 1), wait);
   retry.unref?.();
-}
-
-/** For tests. */
-export function resetQuietAfterCrisis(): void {
-  started.clear();
 }
