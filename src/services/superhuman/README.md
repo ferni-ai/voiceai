@@ -384,14 +384,10 @@ await warmupSuperhumanCache(userId);
 pnpm vitest run src/tests/cross-persona-integration.test.ts
 ```
 
-### Integration Tests (real Firestore emulator)
+### Safety Tests (emotional first aid)
 
 ```bash
-# Start emulator
-firebase emulators:start --only firestore
-
-# Run tests
-FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run superhuman-firestore
+pnpm vitest run --config vitest.config.unit.ts src/services/superhuman/__tests__/safety-critical.test.ts
 ```
 
 ---

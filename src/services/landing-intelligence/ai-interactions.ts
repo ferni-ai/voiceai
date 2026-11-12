@@ -2,7 +2,6 @@
  * AI Interactions for Landing Page
  *
  * Provides real AI-powered interactions for the landing page:
- * - Live text chat with Ferni (no account required)
  * - Persona preview responses
  * - Smart FAQ answers
  * - Personalized hero headlines
@@ -44,27 +43,9 @@ async function getGenAI(): Promise<GenerativeAI | null> {
   return getGenerativeAI();
 }
 
-// Rate limiting for demo chat (per visitor)
-const chatRateLimits = new Map<string, { count: number; resetAt: number }>();
-const MAX_DEMO_MESSAGES = 10; // Per session
-const RATE_LIMIT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-
 // ============================================================================
 // TYPES
 // ============================================================================
-
-export interface DemoChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
-
-export interface DemoChatSession {
-  visitorId: string;
-  messages: DemoChatMessage[];
-  startedAt: number;
-  persona?: string;
-}
 
 export interface PersonaPreviewRequest {
   persona: 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan';
@@ -108,33 +89,6 @@ export interface PersonalizedHeroResponse {
   subhead: string;
   ctaText: string;
   generationReason: string;
-}
-
-// ============================================================================
-// IN-MEMORY SESSION STORE (for demo purposes)
-// ============================================================================
-
-const chatSessions = new Map<string, DemoChatSession>();
-
-// ============================================================================
-// RATE LIMITING
-// ============================================================================
-
-function checkRateLimit(visitorId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const limit = chatRateLimits.get(visitorId);
-
-  if (!limit || now > limit.resetAt) {
-    chatRateLimits.set(visitorId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: MAX_DEMO_MESSAGES - 1 };
-  }
-
-  if (limit.count >= MAX_DEMO_MESSAGES) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  limit.count++;
-  return { allowed: true, remaining: MAX_DEMO_MESSAGES - limit.count };
 }
 
 // ============================================================================
@@ -183,122 +137,6 @@ const PERSONA_PROMPTS: Record<
   },
 };
 
-// ============================================================================
-// LIVE DEMO CHAT
-// ============================================================================
-
-/**
- * Send a message in the demo chat and get AI response
- */
-export async function sendDemoChatMessage(
-  visitorId: string,
-  message: string,
-  persona = 'ferni'
-): Promise<{
-  response: string;
-  messagesRemaining: number;
-  sessionMessages: DemoChatMessage[];
-}> {
-  // Check rate limit
-  const rateCheck = checkRateLimit(visitorId);
-  if (!rateCheck.allowed) {
-    return {
-      response:
-        "You've reached the demo limit! Create a free account to keep talking with me. I'd love to continue this conversation. 💚",
-      messagesRemaining: 0,
-      sessionMessages: chatSessions.get(visitorId)?.messages || [],
-    };
-  }
-
-  // Get or create session
-  let session = chatSessions.get(visitorId);
-  if (!session) {
-    session = {
-      visitorId,
-      messages: [],
-      startedAt: Date.now(),
-      persona,
-    };
-    chatSessions.set(visitorId, session);
-  }
-
-  // Add user message
-  session.messages.push({
-    role: 'user',
-    content: message,
-    timestamp: Date.now(),
-  });
-
-  // Generate AI response
-  const response = await generateChatResponse(session.messages, persona);
-
-  // Add assistant message
-  session.messages.push({
-    role: 'assistant',
-    content: response,
-    timestamp: Date.now(),
-  });
-
-  // Cleanup old sessions periodically
-  cleanupOldSessions();
-
-  return {
-    response,
-    messagesRemaining: rateCheck.remaining,
-    sessionMessages: session.messages,
-  };
-}
-
-async function generateChatResponse(messages: DemoChatMessage[], persona: string): Promise<string> {
-  const genAI = await getGenAI();
-  if (!genAI) {
-    log.debug('Landing AI off or Gemini not configured, using fallback response');
-    return getFallbackResponse(messages[messages.length - 1].content, persona);
-  }
-
-  const personaConfig = PERSONA_PROMPTS[persona] || PERSONA_PROMPTS.ferni;
-
-  const systemPrompt = `You are ${personaConfig.name}, ${personaConfig.role} at Ferni.
-
-Your traits: ${personaConfig.traits.join(', ')}.
-Your style: ${personaConfig.style}
-
-IMPORTANT RULES:
-- This is a DEMO conversation on the landing page. Keep responses SHORT (2-3 sentences max).
-- Be warm and genuine, not salesy.
-- Don't mention you're an AI unless directly asked.
-- If they ask about features or pricing, briefly mention they can explore the full experience in the app.
-- Focus on making them feel HEARD and UNDERSTOOD.
-- Ask a thoughtful follow-up question when appropriate.
-
-Remember: This is their first impression of Ferni. Make it count.`;
-
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-
-    // Conversation history, then the new turn (what startChat().sendMessage() sent)
-    const contents = messages.slice(0, -1).map((m) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }));
-    const lastText = messages[messages.length - 1].content;
-    contents.push({ role: 'user', parts: [{ text: systemPrompt }, { text: lastText }] });
-
-    const result = await model.generateContent({
-      contents,
-      generationConfig: {
-        maxOutputTokens: MAX_TOKENS_TINY,
-        temperature: TEMP_REASONING,
-      },
-    });
-
-    return result.response.text();
-  } catch (error) {
-    log.error({ error }, 'Failed to generate chat response');
-    return getFallbackResponse(messages[messages.length - 1].content, persona);
-  }
-}
-
 function getFallbackResponse(userMessage: string, persona: string): string {
   const personaConfig = PERSONA_PROMPTS[persona] || PERSONA_PROMPTS.ferni;
   const lowerMessage = userMessage.toLowerCase();
@@ -332,17 +170,6 @@ function getFallbackResponse(userMessage: string, persona: string): string {
   }
 
   return "I hear you. Tell me more about what's going on.";
-}
-
-function cleanupOldSessions(): void {
-  const now = Date.now();
-  const maxAge = 60 * 60 * 1000; // 1 hour
-
-  for (const [visitorId, session] of chatSessions.entries()) {
-    if (now - session.startedAt > maxAge) {
-      chatSessions.delete(visitorId);
-    }
-  }
 }
 
 // ============================================================================

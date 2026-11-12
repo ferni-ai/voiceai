@@ -23,6 +23,8 @@
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
 import { Room, RoomEvent } from '@livekit/rtc-node';
 
+import { agentObsHeaders } from './voice-eval-metrics.mjs';
+
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
@@ -50,7 +52,7 @@ function requireEnv() {
 }
 
 async function fetchObservability() {
-  const res = await fetch(OBS_URL);
+  const res = await fetch(OBS_URL, { headers: agentObsHeaders(process.env) });
   if (!res.ok) {
     throw new Error(`Observability HTTP ${res.status}`);
   }

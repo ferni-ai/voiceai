@@ -11,7 +11,8 @@
  *                        node scripts/voice-eval/recall-facts.mjs --json out/<recall>-<arm>-*.json > recall.json
  *
  * OBS_URL still selects the old HTTP path (e.g. a local agent's health server)
- * when no eval file is given. With neither, a check fails and says what to pass.
+ * when no eval file is given. That route answers only an admin: set
+ * AGENT_OBS_TOKEN to an admin's Firebase ID token. With neither, a check fails and says what to pass.
  */
 
 import { readFileSync } from 'node:fs';
@@ -30,6 +31,14 @@ export function metricsSource(env, evalVar = 'VOICE_EVAL_RESULT') {
       `No metrics source. Pass ${evalVar}=<path to voice-eval JSON> (see scripts/ops/voice-eval-metrics.mjs), ` +
       'or OBS_URL=<agent /api/observability URL> for an agent with a reachable health server.',
   };
+}
+
+/**
+ * Headers for the agent health server's /api/observability, which answers only an admin.
+ * @param {Record<string, string | undefined>} env AGENT_OBS_TOKEN: an admin's Firebase ID token
+ */
+export function agentObsHeaders(env) {
+  return env.AGENT_OBS_TOKEN ? { Authorization: `Bearer ${env.AGENT_OBS_TOKEN}` } : {};
 }
 
 export function readEvalJson(path) {
