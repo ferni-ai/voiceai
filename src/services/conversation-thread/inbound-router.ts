@@ -16,8 +16,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PersonaId } from '../../personas/types.js';
-import type { EngagementChannel, InboundRouteDecision } from './types.js';
-import { getActiveThread, getOrCreateThread, addMessage } from './thread-manager.js';
+import type { EngagementChannel, InboundRouteDecision, ThreadMessage } from './types.js';
+import { getActiveThread, getOrCreateThread, addMessage, getMessages } from './thread-manager.js';
 import { getConversationBridgeContext } from '../outreach/conversation-context-bridge.js';
 
 const log = createLogger({ module: 'InboundRouter' });
@@ -231,6 +231,10 @@ export async function handleInboundSMS(
   shouldInitiateCall: boolean;
   /** A whole-text ask for a call now (detectCallIntent): only this may dial (SMS_CALL_ME). */
   callNow: boolean;
+  /** SMS_REPLY: the thread's texts before this one, oldest first. Absent when held. */
+  earlierTexts?: () => Promise<SmsTurn[]>;
+  /** SMS_REPLY: keeps Ferni's reply to this text in the thread. Absent when held. */
+  recordReply?: (text: string) => Promise<void>;
 }> {
   // Route the message
   const routeDecision = await routeInbound(userId, 'sms', body, { fromPhone });
@@ -250,7 +254,7 @@ export async function handleInboundSMS(
   });
 
   // Record message
-  await addMessage(thread.id, {
+  const added = await addMessage(thread.id, {
     role: 'user',
     channel: 'sms',
     direction: 'inbound',
@@ -272,8 +276,36 @@ export async function handleInboundSMS(
     '📥 Inbound SMS processed'
   );
 
-  return { routeDecision, shouldInitiateCall: callIntent, callNow };
+  const earlierTexts = async (): Promise<SmsTurn[]> => {
+    const texts = await getMessages(thread.id, EARLIER_TEXTS + 1);
+    return texts
+      .filter((m) => m !== added)
+      .slice(-EARLIER_TEXTS)
+      .flatMap(smsTurn);
+  };
+  const recordReply = async (content: string): Promise<void> => {
+    const reply = { role: 'agent', agentId: routeDecision.agentId, channel: 'sms' } as const;
+    await addMessage(thread.id, {
+      ...reply,
+      direction: 'outbound',
+      content,
+      timestamp: new Date(),
+    });
+  };
+  return { routeDecision, shouldInitiateCall: callIntent, callNow, earlierTexts, recordReply };
 }
+
+/** One text of an SMS thread, as the typed crisis read takes it (crisis-gate-text.ts TypedTurn). */
+export interface SmsTurn {
+  from: 'person' | 'agent';
+  text: string;
+}
+
+/** The texts before this one that a reply sees. */
+const EARLIER_TEXTS = 6;
+
+const smsTurn = (m: ThreadMessage): SmsTurn[] =>
+  m.role === 'system' ? [] : [{ from: m.role === 'user' ? 'person' : 'agent', text: m.content }];
 
 // ============================================================================
 // HELPER FUNCTIONS

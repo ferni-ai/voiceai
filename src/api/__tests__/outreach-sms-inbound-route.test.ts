@@ -72,4 +72,17 @@ describe('POST /api/outreach/webhooks/twilio/sms-inbound', () => {
     expect(recordCheckinReply).not.toHaveBeenCalled();
     expect(recordInboundSmsConsent).not.toHaveBeenCalled();
   });
+
+  it("SMS_REPLY: a text the reply's own crisis read answered records no YES; its STOP still lands", async () => {
+    recordContactYes.mockClear();
+    handleInboundSMSWebhook.mockResolvedValue({
+      success: true,
+      twiml: '<Response/>',
+      crisis: true,
+    });
+    const { req, res } = post();
+    await handleOutreachWebhookRoutes(req, res, PATH);
+    expect(recordContactYes).not.toHaveBeenCalled();
+    expect(recordInboundSmsConsent).toHaveBeenCalledWith(params.From, params.Body);
+  });
 });

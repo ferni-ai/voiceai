@@ -23,6 +23,7 @@ import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import { heldSenderStrict, last4 } from '../checkin-replies.js';
 import { answerCallMe, CALL_SCHEDULED, CALLING, NO_CALL } from '../sms-call-me.js';
+import { smsMemberReply } from '../sms-reply/sms-reply.js';
 import { findAccountByVerifiedPhone } from './sms-sender-account.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
@@ -272,14 +273,14 @@ export function isSignedInboundSms(
 
 /**
  * Handle an inbound text. `called`: a "call me" text placed a call now, or for later.
- * `crisis`: the route's screen read this text as a crisis (its "call me" rings now).
+ * `crisis`: the screen read a crisis (a "call me" then rings now); returned: SMS_REPLY's read did.
  */
 export async function handleInboundSMSWebhook(
   payload: TwilioInboundSMSPayload,
   signature?: string,
   url?: string,
   { crisis = false }: { crisis?: boolean } = {}
-): Promise<{ success: boolean; twiml?: string; called?: 'now' | 'later' }> {
+): Promise<{ success: boolean; twiml?: string; called?: 'now' | 'later'; crisis?: true }> {
   if (!isSignedInboundSms(payload, signature, url)) return { success: false };
 
   const { MessageSid, Body, From, NumMedia } = payload;
@@ -305,9 +306,7 @@ export async function handleInboundSMSWebhook(
   const numMedia = parseInt(NumMedia, 10) || 0;
   for (let i = 0; i < numMedia; i++) {
     const mediaUrl = (payload as unknown as Record<string, string>)[`MediaUrl${i}`];
-    if (mediaUrl) {
-      mediaUrls.push(mediaUrl);
-    }
+    if (mediaUrl) mediaUrls.push(mediaUrl);
   }
 
   // Create inbound message record
@@ -343,7 +342,6 @@ export async function handleInboundSMSWebhook(
   const matchingDelivery = recentDeliveries.find(
     (d) => d.channel === 'sms' && d.status !== 'failed' && d.status !== 'responded'
   );
-
   const outreachId = matchingDelivery?.outreachId || 'unknown';
   const responseTime = matchingDelivery?.sentAt
     ? Date.now() - matchingDelivery.sentAt.getTime()
@@ -406,7 +404,6 @@ export async function handleInboundSMSWebhook(
         },
         '🔀 SMS routed to agent'
       );
-
       if (routeResult.shouldInitiateCall) {
         const persona = routeResult.routeDecision.agentId;
         const reply = routeResult.callNow
@@ -416,6 +413,9 @@ export async function handleInboundSMSWebhook(
         // says only what was done; a crisis reply keeps the call line (outreach-webhook-routes.ts)
         return { success: true, twiml: generateTwiML(reply), ...(called && { called }) };
       }
+      const ask = { userId, phone: From, text: Body, held, skip: crisis || stop };
+      const sent = await smsMemberReply(routeResult, ask); // SMS_REPLY; null when off
+      if (sent) return { success: true, twiml: generateTwiML(sent.reply), crisis: sent.crisis };
     } catch (routeError) {
       // The raw value, not String(): that throws on a value with no string form,
       // outside the logger's guard, and the reply became a 500. The logger
@@ -425,7 +425,7 @@ export async function handleInboundSMSWebhook(
     }
   }
 
-  return { success: true }; // no auto-reply
+  return { success: true }; // no reply (SMS_REPLY off or held back)
 }
 
 /**
