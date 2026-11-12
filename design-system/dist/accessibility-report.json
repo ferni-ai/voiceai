@@ -2,7 +2,7 @@
   "timestamp": "2026-10-05T10:56:51.741Z",
   "passed": true,
   "errors": 0,
-  "warnings": 18,
+  "warnings": 16,
   "details": {
     "errors": [],
     "warnings": [
@@ -53,22 +53,6 @@
         "bg": "#352e28",
         "ratio": "1.54",
         "message": "joel primary (#9A0718) has 1.54:1 contrast on dark bg - DO NOT use as text"
-      },
-      {
-        "type": "persona-as-text",
-        "persona": "lynch",
-        "color": "#1a5f2a",
-        "bg": "#14110e",
-        "ratio": "2.43",
-        "message": "lynch primary (#1a5f2a) has 2.43:1 contrast on dark bg - DO NOT use as text"
-      },
-      {
-        "type": "persona-as-text",
-        "persona": "lynch",
-        "color": "#1a5f2a",
-        "bg": "#352e28",
-        "ratio": "1.73",
-        "message": "lynch primary (#1a5f2a) has 1.73:1 contrast on dark bg - DO NOT use as text"
       },
       {
         "type": "persona-as-text",

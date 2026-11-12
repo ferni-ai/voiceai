@@ -65,7 +65,6 @@ export const TEAM_NAME_PRONUNCIATIONS: Readonly<Record<string, string>> = {
   // The legends
   Henry: '<<ˈ|h|ɛ|n|ɹ|i>>',
   Caldwell: '<<ˈ|k|ɔ|l|d|w|ɛ|l>>',
-  Brannigan: '<<ˈ|b|ɹ|æ|n|ə|ɡ|ə|n>>',
   Nate: '<<ˈ|n|eɪ|t>>',
   Holloway: '<<ˈ|h|ɑ|l|ə|ˌ|w|eɪ>>',
   // Places in their stories

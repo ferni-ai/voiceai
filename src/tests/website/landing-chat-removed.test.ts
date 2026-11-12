@@ -4,8 +4,8 @@
  * flag came back on, and post visitors' messages to /api/landing/ai/chat. Ferni is a
  * voice companion and that chat had none of the crisis handling real conversations
  * get, so it was removed (#3683). Here the script runs in a small fake browser with
- * every flag on: no chat flag is asked for, no widget is built, nothing posts to
- * /chat, and the features that stay still start.
+ * every flag on: no chat flag is asked for, no widget is built, the injected
+ * stylesheet has no chat rules (#3685), and the features that stay still start.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -53,7 +53,6 @@ async function runWithEveryFlagOn() {
   const bodyChildren: FakeElement[] = [];
   const headChildren: FakeElement[] = [];
   const askedFlags: string[] = [];
-  const fetched: string[] = [];
   const ready: Array<() => unknown> = [];
   const window: Record<string, unknown> = {
     innerWidth: 1280,
@@ -84,10 +83,7 @@ async function runWithEveryFlagOn() {
     window,
     document,
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
-    fetch: vi.fn(async (url: string) => {
-      fetched.push(url);
-      return { ok: true, status: 200, json: async () => ({}) };
-    }),
+    fetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })),
     IntersectionObserver: class {
       observe() {}
       disconnect() {}
@@ -103,17 +99,22 @@ async function runWithEveryFlagOn() {
   await new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
-  return { window, bodyChildren, headChildren, askedFlags, fetched };
+  return { window, bodyChildren, headChildren, askedFlags };
 }
 
 describe('ai-powered-landing.js has no text chat', () => {
-  it('builds no chat widget and posts nothing to /chat, with every flag on', async () => {
-    const { window, bodyChildren, askedFlags, fetched } = await runWithEveryFlagOn();
+  it('builds no chat widget and injects no chat styles, with every flag on', async () => {
+    const { window, bodyChildren, headChildren, askedFlags } = await runWithEveryFlagOn();
 
     expect(askedFlags).not.toContain('landing-ai-live-chat');
     expect(bodyChildren.map((c) => c.id)).not.toContain('ferni-live-chat');
     expect(bodyChildren.some((c) => c.innerHTML.includes('ferni-chat-'))).toBe(false);
-    expect(fetched.filter((url) => url.endsWith('/chat'))).toEqual([]);
+    // The chat-rule checks below only mean something if the stylesheet was captured.
+    const styles = headChildren.find((c) => c.id === 'ferni-ai-landing-styles');
+    expect(styles?.textContent.length ?? 0).toBeGreaterThan(0);
+    const css = styles?.textContent ?? '';
+    expect(css).not.toContain('ferni-live-chat');
+    expect(css).not.toContain('ferni-chat-');
     const api = window.FerniAI as Record<string, unknown>;
     expect(api).not.toHaveProperty('chat');
   });

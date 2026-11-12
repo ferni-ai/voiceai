@@ -12,7 +12,10 @@
  *   filled from a shared read is at most that much older than it looks.
  * - `generation` is stored with the topics and goes up by one in the same
  *   transaction as each forget, so it survives a restart and is seen by
- *   every process. This process keeps only the highest stored generation it
+ *   every process. A write that hides memory without a topic (a fact forgotten
+ *   by id, a dispute, a correction, a closed world fact) raises it too
+ *   (bumpForgetGeneration), so what was built from that memory (the call
+ *   sheet, forget caches) is known to be stale. This process keeps only the highest stored generation it
  *   has read or written (forgetGenerationSeen), for caches that can't wait
  *   for a read to compare against.
  *
@@ -20,7 +23,10 @@
  */
 import type { Firestore } from '@google-cloud/firestore';
 import { dropCallStartRead, readOncePerCallStart } from '../../../utils/call-start-reads.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import type { ForgottenState, ForgottenStore } from '../../ports/forgotten-store.js';
+
+const log = createLogger({ module: 'forgotten-store' });
 
 const forgottenDoc = (db: Firestore, userId: string) =>
   db.collection('bogle_users').doc(userId).collection('memory_state').doc('forgotten');
@@ -121,7 +127,40 @@ export async function addForgottenTopic(
     );
     return next;
   });
+  wroteGeneration(userId, generation);
+  return generation;
+}
+
+/** After a stored generation write: the next read is fresh, and caches here see it at once. */
+function wroteGeneration(userId: string, generation: number): void {
   dropCallStartRead(sharedKey(userId));
   noteGeneration(userId, generation);
-  return generation;
+}
+
+/**
+ * Raises the stored generation by one without recording a topic, after a write
+ * that hid memory some other way. Best effort: the write it follows has already
+ * happened, so a failure is logged (and counted here, so this process's caches
+ * still refresh) rather than thrown. Returns the new generation, or null.
+ */
+export async function bumpForgetGeneration(
+  db: Firestore | null | undefined,
+  userId: string
+): Promise<number | null> {
+  try {
+    if (!db) throw new Error('no database');
+    const ref = forgottenDoc(db, userId);
+    const generation = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      const next = parseGeneration(doc.exists ? doc.data()?.generation : undefined) + 1;
+      tx.set(ref, { generation: next }, { merge: true });
+      return next;
+    });
+    wroteGeneration(userId, generation);
+    return generation;
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Forget generation not raised; caches refresh on their TTL');
+    noteUnstoredForget(userId);
+    return null;
+  }
 }

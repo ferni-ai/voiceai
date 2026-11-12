@@ -98,7 +98,7 @@ describe('styles', () => {
   it("give the legends their own style, not Ferni's, and leave Ferni alone", () => {
     expect(teamLaughStyle('ferni')).toBeUndefined();
     expect(teamLaughStyle('john-bogle')).toMatchObject({ ownJokes: false, frequency: 0.08 });
-    expect(teamLaughStyle('peter-lynch')?.ownJokes).toBe(true);
+    expect(teamLaughStyle('peter-lynch')).toBeUndefined(); // Tom, retired 2026-11-08
     expect(teamLaughStyle('joel-dickson')?.frequency).toBe(0.2);
   });
 

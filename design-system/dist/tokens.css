@@ -374,14 +374,6 @@
   --color-joel-glow: rgba(154, 7, 24, 0.28);
   --color-joel-tint: rgba(154, 7, 24, 0.06);
   --color-joel-light: #c83040;
-  --color-lynch: #1a5f2a;
-  --color-lynch-secondary: #154c22;
-  --color-lynch-text: #ffffff;
-  --color-lynch-text-on-dark: #dde7df;
-  --color-lynch-on-primary: #ffffff;
-  --color-lynch-glow: rgba(26, 95, 42, 0.28);
-  --color-lynch-tint: rgba(26, 95, 42, 0.06);
-  --color-lynch-light: #5f8f6a;
   --color-bogle: #8b0000;
   --color-bogle-secondary: #6f0000;
   --color-bogle-text: #ffffff;
@@ -449,7 +441,6 @@
   --color-jordan-on-surface: #f0c0a0;
   --color-nayan-on-surface: #e8d0a8;
   --color-joel-on-surface: #f0a8a8;
-  --color-lynch-on-surface: #dde7df;
   --color-bogle-on-surface: #f3e6e6;
   --color-eli-on-surface: #b8a8d8;
   --color-marcus-on-surface: #88c4a8;
@@ -468,7 +459,6 @@
   --color-jordan-on-surface: #9c5a3e;
   --color-nayan-on-surface: #85653f;
   --color-joel-on-surface: #9A0718;
-  --color-lynch-on-surface: #1a5f2a;
   --color-bogle-on-surface: #8b0000;
   --color-eli-on-surface: #6B5B95;
   --color-marcus-on-surface: #2D5A4A;
@@ -589,20 +579,6 @@
 [data-theme="midnight"] [data-persona="joel"],
 [data-theme="midnight"][data-persona="joel"] {
   --persona-text: #f0a8a8;
-}
-
-/* Persona: lynch */
-[data-persona="lynch"] {
-  --persona-primary: #1a5f2a;
-  --persona-secondary: #154c22;
-  --persona-text: #1a5f2a;
-  --persona-on-primary: #ffffff;
-  --persona-glow: rgba(26, 95, 42, 0.28);
-  --persona-tint: rgba(26, 95, 42, 0.06);
-}
-[data-theme="midnight"] [data-persona="lynch"],
-[data-theme="midnight"][data-persona="lynch"] {
-  --persona-text: #dde7df;
 }
 
 /* Persona: bogle */

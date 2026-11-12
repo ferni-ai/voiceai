@@ -578,44 +578,6 @@
         "signaturePattern": "steady"
       }
     },
-    "lynch": {
-      "name": "Tom Brannigan",
-      "role": "Stock Picking Guide (Financial Legend)",
-      "archetype": "The Stock Picker Who Finds Great Companies by Paying Attention",
-      "colors": {
-        "primary": {
-          "value": "#1a5f2a",
-          "description": "Forest green"
-        },
-        "secondary": {
-          "value": "#154c22",
-          "description": "Deeper forest green"
-        },
-        "glow": {
-          "value": "rgba(26, 95, 42, 0.28)",
-          "description": "Forest green glow"
-        },
-        "tint": {
-          "value": "rgba(26, 95, 42, 0.06)",
-          "description": "Subtle forest green tint"
-        }
-      },
-      "animation": {
-        "timingMultiplier": 1.0,
-        "easingPreference": "smooth",
-        "breathingBase": 4500,
-        "reactionIntensity": 0.9
-      },
-      "audio": {
-        "signature": "curious",
-        "pitchRange": "medium",
-        "paceBase": "brisk"
-      },
-      "haptics": {
-        "intensityMultiplier": 0.9,
-        "signaturePattern": "steady"
-      }
-    },
     "bogle": {
       "name": "Henry Caldwell",
       "role": "Index Investing Elder (Financial Legend)",

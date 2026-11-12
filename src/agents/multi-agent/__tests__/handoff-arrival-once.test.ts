@@ -340,9 +340,9 @@ describe('A→B→A→B in one call', () => {
  * what any persona without RETURNING_OPENERS says: today's line, as flag off.
  */
 describe('legend personas have no returning openers', () => {
-  it("flag on: john-bogle and peter-lynch have no RETURNING_OPENERS key, and a return to either says today's line", async () => {
+  it("flag on: john-bogle has no RETURNING_OPENERS key, and a return to him says today's line", async () => {
     const everyReturnLine = new Set(Object.values(RETURNING_OPENERS).flat());
-    for (const legend of ['john-bogle', 'peter-lynch']) {
+    for (const legend of ['john-bogle']) {
       expect(Object.keys(RETURNING_OPENERS)).not.toContain(legend);
       const hops = [legend, 'ferni', legend];
       vi.stubEnv('HANDOFF_ARRIVAL_ONCE', 'off');
