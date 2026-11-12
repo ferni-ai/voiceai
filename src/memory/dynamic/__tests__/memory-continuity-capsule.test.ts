@@ -29,7 +29,6 @@ const upsertMemoryThread = vi.fn(async (_thread: unknown) => undefined);
 const insertMemoryAnchor = vi.fn(async (_anchor: unknown) => undefined);
 vi.mock('../../spanner-graph/client.js', () => ({
   isSpannerReady: () => true,
-  getMemoryThreadByTheme: async () => null,
   upsertMemoryThread,
   insertMemoryAnchor,
 }));

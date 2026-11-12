@@ -56,11 +56,8 @@ export {
   getEntityByName,
   closeSpanner,
   // Memory thread operations
-  upsertMemoryThread,
   getMemoryThreadsByUser,
-  getMemoryThreadByTheme,
   // Memory anchor operations
-  insertMemoryAnchor,
   getMemoryAnchorsByUser,
   markAnchorRecalled,
 } from './client.js';

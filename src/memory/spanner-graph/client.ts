@@ -382,50 +382,6 @@ export async function getEntityByName(userId: string, name: string): Promise<Gra
 // ============================================================================
 
 /**
- * Upsert a memory thread (conversation theme continuity)
- */
-export async function upsertMemoryThread(thread: Omit<MemoryThread, 'createdAt'>): Promise<void> {
-  if (!isSpannerReady() || graphWriteSkipped('upsertMemoryThread')) return;
-
-  const db = getDatabase();
-  const now = new Date().toISOString();
-
-  try {
-    await db.runTransactionAsync(async (transaction) => {
-      await transaction.runUpdate({
-        sql: `
-          INSERT OR UPDATE INTO memory_threads 
-          (thread_id, user_id, theme, rolling_summary, last_emotional_arc, confidence,
-           session_count, first_session_id, last_session_id, first_mentioned, last_updated, created_at)
-          VALUES 
-          (@threadId, @userId, @theme, @rollingSummary, @lastEmotionalArc, @confidence,
-           @sessionCount, @firstSessionId, @lastSessionId, @firstMentioned, @lastUpdated, @createdAt)
-        `,
-        params: {
-          threadId: thread.threadId,
-          userId: thread.userId,
-          theme: thread.theme,
-          rollingSummary: thread.rollingSummary || null,
-          lastEmotionalArc: thread.lastEmotionalArc || null,
-          confidence: thread.confidence,
-          sessionCount: thread.sessionCount,
-          firstSessionId: thread.firstSessionId || null,
-          lastSessionId: thread.lastSessionId || null,
-          firstMentioned: thread.firstMentioned.toISOString(),
-          lastUpdated: thread.lastUpdated.toISOString(),
-          createdAt: now,
-        },
-      });
-      await transaction.commit();
-    });
-
-    log.debug({ threadId: thread.threadId, theme: thread.theme }, 'Memory thread upserted');
-  } catch (error) {
-    log.warn({ error: String(error), threadId: thread.threadId }, 'Failed to upsert memory thread');
-  }
-}
-
-/**
  * Get memory threads for a user, ordered by last updated
  */
 export async function getMemoryThreadsByUser(
@@ -475,99 +431,9 @@ export async function getMemoryThreadsByUser(
   }
 }
 
-/**
- * Get a specific memory thread by theme
- */
-export async function getMemoryThreadByTheme(
-  userId: string,
-  theme: string
-): Promise<MemoryThread | null> {
-  if (!isSpannerReady()) return null;
-
-  const db = getDatabase();
-
-  try {
-    const [rows] = await db.run({
-      sql: `
-        SELECT thread_id, user_id, theme, rolling_summary, last_emotional_arc,
-               confidence, session_count, first_session_id, last_session_id,
-               first_mentioned, last_updated, created_at
-        FROM memory_threads
-        WHERE user_id = @userId AND LOWER(theme) = LOWER(@theme)
-        LIMIT 1
-      `,
-      params: { userId, theme },
-    });
-
-    if (rows.length === 0) return null;
-
-    const json = rows[0].toJSON() as Record<string, unknown>;
-    return {
-      threadId: json.thread_id as string,
-      userId: json.user_id as string,
-      theme: json.theme as string,
-      rollingSummary: json.rolling_summary as string | undefined,
-      lastEmotionalArc: json.last_emotional_arc as string | undefined,
-      confidence: json.confidence as number,
-      sessionCount: json.session_count as number,
-      firstSessionId: json.first_session_id as string | undefined,
-      lastSessionId: json.last_session_id as string | undefined,
-      firstMentioned: new Date(json.first_mentioned as string),
-      lastUpdated: new Date(json.last_updated as string),
-      createdAt: new Date(json.created_at as string),
-    };
-  } catch (error) {
-    log.warn({ error: String(error), userId, theme }, 'Failed to get memory thread by theme');
-    return null;
-  }
-}
-
 // ============================================================================
 // MEMORY ANCHOR OPERATIONS
 // ============================================================================
-
-/**
- * Insert a memory anchor (significant memory)
- */
-export async function insertMemoryAnchor(
-  anchor: Omit<MemoryAnchor, 'createdAt' | 'recallCount'>
-): Promise<void> {
-  if (!isSpannerReady() || graphWriteSkipped('insertMemoryAnchor')) return;
-
-  const db = getDatabase();
-  const now = new Date().toISOString();
-
-  try {
-    await db.runTransactionAsync(async (transaction) => {
-      await transaction.runUpdate({
-        sql: `
-          INSERT INTO memory_anchors 
-          (anchor_id, user_id, anchor_type, payload, significance_score,
-           recall_count, last_recalled, source_session_id, source_thread_id, created_at)
-          VALUES 
-          (@anchorId, @userId, @anchorType, @payload, @significanceScore,
-           0, @lastRecalled, @sourceSessionId, @sourceThreadId, @createdAt)
-        `,
-        params: {
-          anchorId: anchor.anchorId,
-          userId: anchor.userId,
-          anchorType: anchor.anchorType,
-          payload: JSON.stringify(anchor.payload),
-          significanceScore: anchor.significanceScore,
-          lastRecalled: anchor.lastRecalled?.toISOString() || null,
-          sourceSessionId: anchor.sourceSessionId || null,
-          sourceThreadId: anchor.sourceThreadId || null,
-          createdAt: now,
-        },
-      });
-      await transaction.commit();
-    });
-
-    log.debug({ anchorId: anchor.anchorId, type: anchor.anchorType }, 'Memory anchor inserted');
-  } catch (error) {
-    log.warn({ error: String(error), anchorId: anchor.anchorId }, 'Failed to insert memory anchor');
-  }
-}
 
 /**
  * Get memory anchors for a user, ordered by significance

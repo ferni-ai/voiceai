@@ -47,8 +47,6 @@ async function writeEverything(): Promise<number> {
   await graph.insertFact(row);
   await graph.insertRelationship(row);
   await graph.linkFactToEntity('u1', 'e1', 'f1');
-  await graph.upsertMemoryThread(row);
-  await graph.insertMemoryAnchor(row);
   await graph.markAnchorRecalled('u1', 'a1');
   await insertSyncedFact(row);
   return runTransactionAsync.mock.calls.length;
@@ -59,7 +57,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe('graph writes on a non-prod Firestore database', () => {
   it("on prod's database, every write reaches the graph", async () => {
     expect(graph.isSpannerReady()).toBe(true);
-    expect(await writeEverything()).toBe(8);
+    expect(await writeEverything()).toBe(6);
   });
 
   it('on ferni-dev, no write reaches it and a removal refuses', async () => {
@@ -72,6 +70,6 @@ describe('graph writes on a non-prod Firestore database', () => {
   it('on ferni-dev with GRAPH_WRITES_ON_DEV_DB=on, writes go through', async () => {
     vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
     vi.stubEnv('GRAPH_WRITES_ON_DEV_DB', 'on');
-    expect(await writeEverything()).toBe(8);
+    expect(await writeEverything()).toBe(6);
   });
 });

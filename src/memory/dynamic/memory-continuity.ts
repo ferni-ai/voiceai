@@ -18,7 +18,7 @@ const log = createLogger({ module: 'MemoryContinuity' });
 // ============================================================================
 
 /** Kinds of significant moment a session can leave in the capsule. */
-export type MemoryAnchorType =
+type MemoryAnchorType =
   | 'breakthrough' // Major insight or realization
   | 'commitment' // Promise or commitment made
   | 'milestone' // Life milestone or achievement

@@ -36,14 +36,18 @@ vi.mock('../../utils/firestore-utils.js', () => ({
   })),
 }));
 
-// Mock Spanner client
-vi.mock('../../memory/spanner-graph/client.js', () => ({
-  isSpannerReady: vi.fn(() => true),
+// Mock Spanner client. The old thread and anchor writers are gone from the
+// client; the mock keeps their names so a re-added write turns the row red.
+const { upsertMemoryThread, insertMemoryAnchor } = vi.hoisted(() => ({
   upsertMemoryThread: vi.fn(),
   insertMemoryAnchor: vi.fn(),
+}));
+vi.mock('../../memory/spanner-graph/client.js', () => ({
+  isSpannerReady: vi.fn(() => true),
+  upsertMemoryThread,
+  insertMemoryAnchor,
   getMemoryThreadsByUser: vi.fn(() => []),
   getMemoryAnchorsByUser: vi.fn(() => []),
-  getMemoryThreadByTheme: vi.fn(() => null),
   markAnchorRecalled: vi.fn(),
 }));
 
@@ -68,8 +72,6 @@ import {
 
 import {
   isSpannerReady,
-  upsertMemoryThread,
-  insertMemoryAnchor,
   getMemoryThreadsByUser,
   getMemoryAnchorsByUser,
 } from '../../memory/spanner-graph/client.js';
