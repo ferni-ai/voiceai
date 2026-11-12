@@ -5,9 +5,10 @@
  * started, what kept it from starting, and how long the call stayed open after
  * them.
  *
- * It only observes: every recorder returns nothing, and every decision about
- * ending a call stays in call-farewell.ts (a crisis-lane file). This file isn't
- * in the crisis lane, so it must never gate anything.
+ * It only observes: every recorder returns nothing and can't throw (each runs
+ * inside `guarded`, so a broken clock or report never reaches the watcher), and
+ * every decision about ending a call stays in call-farewell.ts (a crisis-lane
+ * file). This file isn't in the crisis lane, so it must never gate anything.
  *
  * Why: on 2026-11-11 prod had ended no call on a goodbye in 7 days (49 calls
  * watched, 4 farewells), and nothing said why.
@@ -35,10 +36,10 @@ export interface GoodbyeWatchSummary {
   openAfterFarewellMs: number | null;
 }
 
-export type GoodbyeWatchReport = (summary: GoodbyeWatchSummary) => void;
+type GoodbyeWatchReport = (summary: GoodbyeWatchSummary) => void;
 
 /** Logs the summary as GOODBYE_WATCH_SUMMARY. */
-export const logGoodbyeWatchSummary: GoodbyeWatchReport = (summary) =>
+const logGoodbyeWatchSummary: GoodbyeWatchReport = (summary) =>
   log.info(summary, 'GOODBYE_WATCH_SUMMARY');
 
 export interface GoodbyeWatchTallyOptions {
@@ -46,8 +47,45 @@ export interface GoodbyeWatchTallyOptions {
   now?: () => number;
 }
 
+/** One call's tally. Every method returns nothing and never throws. */
+export interface GoodbyeWatchTally {
+  sawCallerBye(bye: boolean): void;
+  sawFerniBye(bye: boolean): void;
+  /** A farewell holds when the watcher checks whether to start its quiet window. */
+  farewell(): void;
+  /** The quiet window didn't start: `agent_<state>` or `user_speaking`. */
+  blocked(why: string): void;
+  armed(): void;
+  held(why: 'crisis' | 'unread'): void;
+  fired(): void;
+  /** Reports the summary, once. */
+  close(): void;
+}
+
+/** Runs a recorder; anything it throws is logged (no words) and goes no further. */
+function guarded<A extends unknown[]>(
+  sessionId: string,
+  name: string,
+  fn: (...args: A) => void
+): (...args: A) => void {
+  return (...args) => {
+    try {
+      fn(...args);
+    } catch {
+      try {
+        log.warn({ sessionId, recorder: name }, 'GOODBYE_WATCH_SUMMARY recorder failed');
+      } catch {
+        // the log failed too: the watcher still never sees it
+      }
+    }
+  };
+}
+
 /** One call's tally: the watcher records what it decided; `close` reports once. */
-export function goodbyeWatchTally(sessionId: string, opts: GoodbyeWatchTallyOptions = {}) {
+export function goodbyeWatchTally(
+  sessionId: string,
+  opts: GoodbyeWatchTallyOptions = {}
+): GoodbyeWatchTally {
   const report = opts.report ?? logGoodbyeWatchSummary;
   const now = opts.now ?? Date.now;
   const seen = { callerBye: false, ferniBye: false };
@@ -55,31 +93,31 @@ export function goodbyeWatchTally(sessionId: string, opts: GoodbyeWatchTallyOpti
   const blocked: Record<string, number> = {};
   let firstFarewellAt: number | null = null;
   let reported = false;
+  const safe = <A extends unknown[]>(name: string, fn: (...args: A) => void) =>
+    guarded(sessionId, name, fn);
   return {
-    sawCallerBye(bye: boolean): void {
+    sawCallerBye: safe('sawCallerBye', (bye: boolean) => {
       seen.callerBye ||= bye;
-    },
-    sawFerniBye(bye: boolean): void {
+    }),
+    sawFerniBye: safe('sawFerniBye', (bye: boolean) => {
       seen.ferniBye ||= bye;
-    },
-    /** A farewell holds when the watcher checks whether to start its quiet window. */
-    farewell(): void {
+    }),
+    farewell: safe('farewell', () => {
       firstFarewellAt ??= now();
-    },
-    /** The quiet window didn't start: `agent_<state>` or `user_speaking`. */
-    blocked(why: string): void {
+    }),
+    blocked: safe('blocked', (why: string) => {
       blocked[why] = (blocked[why] ?? 0) + 1;
-    },
-    armed(): void {
+    }),
+    armed: safe('armed', () => {
       counts.armed++;
-    },
-    held(why: 'crisis' | 'unread'): void {
+    }),
+    held: safe('held', (why: 'crisis' | 'unread') => {
       counts.held[why]++;
-    },
-    fired(): void {
+    }),
+    fired: safe('fired', () => {
       counts.fired++;
-    },
-    close(): void {
+    }),
+    close: safe('close', () => {
       if (reported) return;
       reported = true;
       report({
@@ -92,6 +130,6 @@ export function goodbyeWatchTally(sessionId: string, opts: GoodbyeWatchTallyOpti
         blocked: { ...blocked },
         openAfterFarewellMs: firstFarewellAt === null ? null : now() - firstFarewellAt,
       });
-    },
+    }),
   };
 }

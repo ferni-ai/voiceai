@@ -432,6 +432,21 @@ describe('GOODBYE_WATCH_SUMMARY: one line per call, no words', () => {
     expect(c.idle()).toBe(0);
   });
 
+  it('a broken clock and report never touch the ending: the call still ends, teardown completes', () => {
+    const broken = () => {
+      throw new Error('broken');
+    };
+    const c = call({ report: broken, now: broken });
+    c.agent('listening');
+    c.say('user', 'okay, bye');
+    c.say('assistant', 'Bye, take care!');
+    expect(c.timers.size).toBe(1); // the quiet window started despite the clock
+    c.fire();
+    expect(c.idle()).toBe(1);
+    expect(() => c.session.emit('close', {})).not.toThrow();
+    expect(farewellSaid(c.sessionId)).toBe(false); // teardown ran past the failed report
+  });
+
   it('reports once, and carries no words from the call', () => {
     const c = watched();
     c.agent('listening');
