@@ -5,11 +5,13 @@ import {
   ANSWER_START_MS,
   createCallAlertSpeaker,
   HEARD_AFTER_MS,
-  LATE_PLAY_WAIT_MS,
   MAX_ALERT_ATTEMPTS,
   REPLY_WAIT_MS,
 } from '../call-alerts.js';
 import { setPlayoutHeld } from '../playout-hold.js';
+
+/** call-alerts.ts's late-play watch (module-private there): a dropped reply is watched this long. */
+const LATE_PLAY_WAIT_MS = 120_000;
 
 /** A LiveKit SpeechHandle as the speaker sees it. */
 function fakeHandle() {

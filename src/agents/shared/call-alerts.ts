@@ -50,7 +50,7 @@ export const ANSWER_START_MS = 5000;
 /** Longest an attempt waits for its reply to be heard or to end. */
 export const REPLY_WAIT_MS = 30_000;
 /** After a reply_timeout drop, how long the reply is still watched in case it plays. */
-export const LATE_PLAY_WAIT_MS = 120_000;
+const LATE_PLAY_WAIT_MS = 120_000;
 
 /** The parts of LiveKit's SpeechHandle the speaker watches. */
 export interface AlertSpeech {
