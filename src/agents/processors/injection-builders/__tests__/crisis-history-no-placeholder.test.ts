@@ -225,10 +225,12 @@ describe('the crisis writer: never a shared bucket, no words without an account'
     expect((doc.signals as { severity: number }).severity).toBeGreaterThan(0);
   });
 
-  it("a member's signal is stored as main stores it: snippet, no expiry", async () => {
+  it("a member's signal keeps its session but no words and no expiry", async () => {
     await logCrisisSignal('uid-member-snippet', signals(), CRISIS_LINE, 'session-AJ_m-1');
     const [doc] = fake.stores.get('uid-member-snippet/crisis_signals') ?? [];
-    expect(doc.transcriptSnippet).toBe(CRISIS_LINE.slice(0, 200));
+    expect(doc).not.toHaveProperty('transcriptSnippet');
+    expect(JSON.stringify(doc)).not.toMatch(/pills|kill|myself/i);
+    expect(doc.sessionId).toBe('session-AJ_m-1');
     expect(doc).not.toHaveProperty('expireAt');
   });
 

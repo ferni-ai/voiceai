@@ -221,15 +221,16 @@ function isNewer(target: unknown, source: unknown): boolean {
 }
 
 /**
- * A crisis record is kept permanently (2026-11-11): one written before that rule, under an
- * anon: or try-first id, still carries a 90-day expireAt, which the account's copy drops.
+ * A crisis record is kept permanently (2026-11-11) and never holds words (2026-11-12). One
+ * written before those rules may still carry a 90-day expireAt or a transcriptSnippet; the
+ * account's copy drops both.
  */
 function copiedFields(
   collectionId: string,
   data: FirebaseFirestore.DocumentData
 ): FirebaseFirestore.DocumentData {
   if (collectionId !== 'crisis_signals') return data;
-  const { expireAt: _expiry, ...rest } = data;
+  const { expireAt: _expiry, transcriptSnippet: _words, ...rest } = data;
   return rest;
 }
 

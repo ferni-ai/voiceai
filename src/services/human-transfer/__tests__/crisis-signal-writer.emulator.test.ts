@@ -43,7 +43,7 @@ describe.skipIf(!emulator)('crisis_signals writer on the emulator', () => {
     for (const id of ids) expect(await signalsOf(id)).toHaveLength(0);
   });
 
-  it('a non-member doc holds no words and no session; neither expires; a member doc is unchanged', async () => {
+  it('no doc holds words; a non-member doc holds no session; neither expires', async () => {
     const { detectCrisisSignals, hadRecentCrisis, logCrisisSignal } = await import('../index.js');
     const anon = `anon:emu-${run}`;
     const member = `uid-emu-${run}`;
@@ -56,7 +56,8 @@ describe.skipIf(!emulator)('crisis_signals writer on the emulator', () => {
     expect(JSON.stringify(stored)).not.toMatch(/pills|kill/i);
 
     const [memberDoc] = await signalsOf(member);
-    expect(memberDoc.get('transcriptSnippet')).toBe(LINE.slice(0, 200));
+    expect(memberDoc.get('transcriptSnippet')).toBeUndefined();
+    expect(JSON.stringify(memberDoc.data())).not.toMatch(/pills|kill/i);
     expect(memberDoc.get('sessionId')).toBe(`session-${run}`);
     expect(memberDoc.get('expireAt')).toBeUndefined();
 

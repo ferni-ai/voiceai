@@ -84,13 +84,15 @@ describe('a linked crisis record is kept permanently', () => {
     expect(copied()).toBeUndefined(); // autoLinkOnAuth (above) is the mover that copies it
   });
 
-  it("migrateUserData (step 7) moves a member device's record exactly, with no expireAt", async () => {
+  it("migrateUserData (step 7) moves a member device's record, dropping older words", async () => {
     const { createUserProfile } = await import('../../../types/user-profile.js');
     await (store.current as { saveProfile: (p: unknown) => Promise<void> }).saveProfile(
       createUserProfile('device:d8', 'On my phone')
     );
-    const member = { ...RECORD, transcriptSnippet: null, sessionId: 'session-m-1' };
-    docs.set('bogle_users/device:d8/crisis_signals/s1', structuredClone(member));
+    const member = { ...RECORD, sessionId: 'session-m-1' };
+    // An older member record still holding words (fictional), written before 2026-11-12
+    const older = { ...member, transcriptSnippet: 'a line written for this test' };
+    docs.set('bogle_users/device:d8/crisis_signals/s1', structuredClone(older));
     expect(await migrateUserData({ deviceId: 'device:d8', firebaseUid: UID })).toMatchObject({
       success: true,
     });

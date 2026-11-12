@@ -2,8 +2,8 @@
  * Every crisis record is kept permanently, a member's or not (2026-11-11). So:
  *  - no crisis_signals write carries an expireAt, and no TTL policy covers the collection (one
  *    would silently delete a caller's 14-day crisis quiet and their crisis history);
- *  - a non-member's record (anon:, try-first device:demo_) holds tier and time only
- *    (NON_MEMBER_SIGNAL_FIELDS): no words, no session id;
+ *  - no record holds words (2026-11-12). A non-member's (anon:, onbehalf:, try-first
+ *    device:demo_) holds only NON_MEMBER_SIGNAL_FIELDS; a member's adds its session id;
  *  - every place that can write the collection is listed below, so a new one fails this test
  *    until someone decides what it writes.
  * Linking a record into an account: identity/__tests__/crisis-signals-linking.test.ts.
@@ -18,7 +18,11 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => pathFirestore(docs),
 }));
 
-const { NON_MEMBER_SIGNAL_FIELDS, followUpCrisis, logCrisisSignal } = await import('../index.js');
+const { followUpCrisis, logCrisisSignal } = await import('../index.js');
+
+/** Every field a non-member's record may hold: the time, flags and severity, and caller turn. */
+const NON_MEMBER_SIGNAL_FIELDS: readonly string[] = ['timestamp', 'signals', 'turn'];
+const { crisisFromSignal } = await import('../crisis-signals.js');
 
 // ---- Static inventory -------------------------------------------------------------------------
 
@@ -125,14 +129,30 @@ afterEach(() => {
 
 describe('logCrisisSignal', () => {
   it.each(['AbCdEfGhIjKlMnOpQrStUvWxYz12', 'device:phone-1', 'family_sp1'])(
-    'a member (%s) keeps words and session, and no expireAt',
+    'a member (%s) keeps the session, no words and no expireAt',
     async (userId) => {
       const [doc, ...more] = await written(userId);
       expect(more).toEqual([]);
+      for (const field of Object.keys(doc!)) {
+        expect([...NON_MEMBER_SIGNAL_FIELDS, 'sessionId'], field).toContain(field);
+      }
       expect(doc).not.toHaveProperty('expireAt');
-      expect(doc).toMatchObject({ transcriptSnippet: SAID, sessionId: 'session-w-1', turn: 4 });
+      expect(doc).toMatchObject({ sessionId: 'session-w-1', turn: 4 });
     }
   );
+
+  it.each([
+    'AbCdEfGhIjKlMnOpQrStUvWxYz12',
+    'device:phone-1',
+    'family_sp1',
+    'anon:call-7f3a',
+    'device:demo_1730000000_ab12',
+  ])("no record (%s) carries the caller's words", async (userId) => {
+    const [doc] = await written(userId);
+    expect(doc).toBeDefined();
+    expect(doc).not.toHaveProperty('transcriptSnippet');
+    expect(JSON.stringify(doc)).not.toContain(SAID.slice(0, 12));
+  });
 
   it.each(['anon:call-7f3a', 'device:demo_1730000000_ab12'])(
     'a non-member (%s) keeps tier and time only, and no expireAt',
@@ -140,7 +160,7 @@ describe('logCrisisSignal', () => {
       const [doc, ...more] = await written(userId);
       expect(more).toEqual([]);
       for (const field of Object.keys(doc!)) {
-        expect(NON_MEMBER_SIGNAL_FIELDS as readonly string[], field).toContain(field);
+        expect(NON_MEMBER_SIGNAL_FIELDS, field).toContain(field);
       }
       expect(doc).not.toHaveProperty('sessionId');
       expect(doc).not.toHaveProperty('transcriptSnippet');
@@ -157,37 +177,82 @@ describe('logCrisisSignal', () => {
   });
 });
 
-describe('the same-call note (CRISIS_SAME_CALL_NOTE_FADES) without a stored session id', () => {
-  // No non-member id shape is proven fresh per call (a given anon: session_id and an unsigned
-  // device_id can both come back), so a record without a session id always counts as from an
-  // earlier call: the note keeps showing, never fades early.
-  const record = (userId: string) =>
-    ({
-      userId,
-      timestamp: NOW.toISOString(),
-      escalationType: 'crisis_immediate',
-      turn: 2,
-    }) as never;
+describe('the same-call note (CRISIS_SAME_CALL_NOTE_FADES)', () => {
+  const NON_MEMBERS = ['anon:call-7f3a', 'device:demo_1730000000_ab12', 'onbehalf:call-2b'];
+  const MEMBER = 'AbCdEfGhIjKlMnOpQrStUvWxYz12';
 
-  it.each(['anon:call-7f3a', 'device:demo_1730000000_ab12'])(
-    "a non-member's record (%s) counts as an earlier call, so it shows past 3 turns",
-    (userId) => {
-      expect(followUpCrisis([record(userId)], 'session-w-1', 20)).toBeDefined();
+  /** Log on `sessionId` at caller turn 2, and read the record back as the follow-up sees it. */
+  async function loggedOn(userId: string, sessionId: string) {
+    docs.clear();
+    await logCrisisSignal(userId, SIGNALS, SAID, sessionId, 2);
+    const [[, doc]] = [...docs.entries()].filter(([path]) => path.includes('/crisis_signals/'));
+    return { doc, record: crisisFromSignal(userId, doc)! };
+  }
+
+  it.each(NON_MEMBERS)(
+    "a non-member's note (%s) fades after 3 turns on the call that wrote it, like a member's",
+    async (userId) => {
+      const call = `session-fade-${userId}`;
+      const { doc, record } = await loggedOn(userId, call);
+      expect(doc).not.toHaveProperty('sessionId'); // the call is known from memory, not stored
+      expect(followUpCrisis([record], call, 5)).toBeDefined();
+      expect(followUpCrisis([record], call, 6)).toBeUndefined();
     }
   );
 
-  it("a member's record without a session id counts as an earlier call, as on main", () => {
-    expect(
-      followUpCrisis([record('AbCdEfGhIjKlMnOpQrStUvWxYz12')], 'session-w-1', 20)
-    ).toBeDefined();
+  it.each(NON_MEMBERS)(
+    "a non-member's note (%s) from an earlier call keeps showing",
+    async (userId) => {
+      const { record } = await loggedOn(userId, `session-earlier-${userId}`);
+      expect(followUpCrisis([record], `session-now-${userId}`, 20)).toBeDefined();
+    }
+  );
+
+  it.each(NON_MEMBERS)(
+    "fail-safe: a non-member's record this process did not write (%s) never fades early",
+    (userId) => {
+      // A restart mid-call, or another process wrote it: unknown counts as an earlier call
+      const unknown = {
+        userId,
+        timestamp: NOW.toISOString(),
+        escalationType: 'crisis_immediate',
+        turn: 2,
+      };
+      expect(followUpCrisis([unknown as never], 'session-unknown-1', 20)).toBeDefined();
+    }
+  );
+
+  it("another caller's record at the same moment is not this call's", async () => {
+    const { record } = await loggedOn('anon:call-first', 'session-shared-1');
+    const other = { ...record, userId: 'anon:call-second' };
+    expect(followUpCrisis([record], 'session-shared-1', 6)).toBeUndefined();
+    expect(followUpCrisis([other], 'session-shared-1', 20)).toBeDefined();
   });
 
-  it('a record from this call (same session id) fades after 3 turns', () => {
-    const same = {
-      ...(record('AbCdEfGhIjKlMnOpQrStUvWxYz12') as object),
-      sessionId: 'session-w-1',
+  it("flag off: a non-member's record is as on main (no turn, nothing remembered)", async () => {
+    vi.stubEnv('CRISIS_SAME_CALL_NOTE_FADES', 'off');
+    const { doc, record } = await loggedOn('anon:call-off', 'session-off-1');
+    expect(Object.keys(doc).sort()).toEqual(['signals', 'timestamp']);
+    expect(followUpCrisis([record], 'session-off-1', 20)).toBeDefined();
+  });
+
+  it.each(['on', 'off'])("flag %s: a member's note is as on main", async (flag) => {
+    vi.stubEnv('CRISIS_SAME_CALL_NOTE_FADES', flag);
+    const { doc, record } = await loggedOn(MEMBER, 'session-m-1');
+    expect(doc.sessionId).toBe('session-m-1');
+    expect(followUpCrisis([record], 'session-m-2', 20)).toBeDefined(); // an earlier call
+    expect(followUpCrisis([record], 'session-m-1', 5)).toBeDefined();
+    // On, it fades after 3 turns by its stored session; off, the doc has no turn and stays
+    expect(followUpCrisis([record], 'session-m-1', 6) === undefined).toBe(flag === 'on');
+  });
+
+  it("a member's record without a session id counts as an earlier call, as on main", () => {
+    const older = {
+      userId: MEMBER,
+      timestamp: NOW.toISOString(),
+      escalationType: 'crisis_immediate',
+      turn: 2,
     };
-    expect(followUpCrisis([same as never], 'session-w-1', 5)).toBeDefined();
-    expect(followUpCrisis([same as never], 'session-w-1', 6)).toBeUndefined();
+    expect(followUpCrisis([older as never], 'session-w-1', 20)).toBeDefined();
   });
 });

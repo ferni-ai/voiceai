@@ -386,7 +386,7 @@ export async function buildHumanTransferInjections(
     // PRIVACY: under the caller's own id or the session's anon: id; never a shared 'unknown'
     if (signals.severity > 0) {
       const caller = callerIdFor(userId, sessionId);
-      logCrisisSignal(caller, signals, userText, sessionId, turn).catch((err: Error) => {
+      logCrisisSignal(caller, signals, undefined, sessionId, turn).catch((err: Error) => {
         diag.debug('Crisis signal logging failed', { error: String(err) });
       });
     }
