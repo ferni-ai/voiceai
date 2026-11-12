@@ -163,14 +163,23 @@ function pinned<T>(seed: string, fn: () => T): T {
   }
   Math.random = () => (s = (Math.imul(s ^ (s >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0) / 2 ** 32;
   globalThis.Date = FixedDate as DateConstructor;
-  process.env.TZ = 'UTC';
+  const setZone = zone !== 'UTC';
+  if (setZone) process.env.TZ = 'UTC';
   try {
     return fn();
   } finally {
     [Math.random, globalThis.Date] = [random, RealDate];
-    if (zone === undefined) delete process.env.TZ;
-    else process.env.TZ = zone;
+    if (setZone) restoreZone(zone);
   }
+}
+
+/**
+ * Every write to process.env.TZ makes Node drop its time zone cache. Once per line that was
+ * about 80% of a pass, so readAll pins the zone once and pinned() writes only when it isn't UTC.
+ */
+function restoreZone(zone: string | undefined): void {
+  if (zone === undefined) delete process.env.TZ;
+  else process.env.TZ = zone;
 }
 
 let reads = 0;
@@ -220,8 +229,10 @@ export function readLine(text: string, seed: string): Reading[] {
 /** Every corpus line's readings with `flags` set and every other crisis flag unset. */
 export function readAll(flags: Readonly<Record<string, string>>): Map<string, Reading[][]> {
   const saved = FLAGS.map((n) => [n, process.env[n]] as const);
+  const zone = process.env.TZ;
   for (const n of FLAGS) delete process.env[n];
   Object.assign(process.env, flags);
+  process.env.TZ = 'UTC';
   try {
     const lines = Object.entries(corpora());
     return new Map(
@@ -231,6 +242,7 @@ export function readAll(flags: Readonly<Record<string, string>>): Map<string, Re
     for (const [n, v] of saved)
       if (v === undefined) delete process.env[n];
       else process.env[n] = v;
+    restoreZone(zone);
   }
 }
 
