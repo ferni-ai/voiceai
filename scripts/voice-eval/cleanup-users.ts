@@ -14,6 +14,10 @@
  * --min-age-hours N   generated users younger than this stay (default 24: a run may be live)
  * --include-legacy    also fixed ids from older runs (voice-eval-v12-story-1, …)
  * --keep a,b          extra ids to keep; voice-eval-sam is always kept
+ * --ids FILE          only the voice-eval ids listed in FILE (one per line) may go; every
+ *                     other user stays. The file is refused if it is empty or has any line
+ *                     that isn't a voice-eval id. Listed ids not found are reported, never
+ *                     replaced by others.
  * --env prod|dev      the database that env's runs wrote to (eval-database.mjs:
  *                     prod '(default)', dev 'ferni-dev' unless EVAL_DEV_DATABASE says otherwise)
  * --database ID       a database by name instead; with neither flag, prod's '(default)'
@@ -23,7 +27,8 @@
  */
 
 import { databaseFromArgs, PROD_DATABASE } from './eval-database.mjs';
-import { ALWAYS_KEEP, EVAL_PREFIX, selectEvalUsers } from './eval-users.js';
+import { readFileSync } from 'node:fs';
+import { ALWAYS_KEEP, EVAL_PREFIX, parseIdList, selectEvalUsers } from './eval-users.js';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -37,6 +42,7 @@ const includeLegacy = process.argv.includes('--include-legacy');
 const minAgeHours = Number(arg('--min-age-hours') ?? 24);
 const keep = (arg('--keep') ?? '').split(',').filter(Boolean);
 const database = databaseFromArgs(process.argv, { fallback: PROD_DATABASE });
+const idsFile = arg('--ids');
 
 if (!project) {
   console.error('--project is required (the Firestore project holding bogle_users)');
@@ -45,6 +51,26 @@ if (!project) {
 if (!Number.isFinite(minAgeHours) || minAgeHours < 1) {
   console.error('--min-age-hours must be at least 1');
   process.exit(2);
+}
+let only: Set<string> | undefined;
+if (process.argv.includes('--ids')) {
+  let text: string;
+  try {
+    text = readFileSync(idsFile ?? '', 'utf8');
+  } catch (error) {
+    console.error(`--ids: cannot read ${idsFile ?? '(missing path)'}: ${String(error)}`);
+    process.exit(2);
+  }
+  const list = parseIdList(text);
+  if (list.invalid.length > 0) {
+    console.error(`--ids: ${list.invalid.length} line(s) aren't voice-eval ids; refusing the file`);
+    process.exit(2);
+  }
+  if (list.ids.size === 0) {
+    console.error('--ids: the file lists no ids; refusing');
+    process.exit(2);
+  }
+  only = list.ids;
 }
 
 // Point every Firebase client the erasure uses at this project before importing it.
@@ -62,6 +88,7 @@ const selection = selectEvalUsers(ids, {
   minAgeMs: minAgeHours * 3_600_000,
   includeLegacy,
   keep,
+  only,
 });
 const targets = [...selection.generated, ...selection.legacy];
 
@@ -76,6 +103,13 @@ const reasons = new Map<string, number>();
 for (const k of selection.kept) reasons.set(k.reason, (reasons.get(k.reason) ?? 0) + 1);
 console.log(`  keep:   ${[...reasons].map(([r, n]) => `${n} ${r}`).join(', ') || 'none'}`);
 console.log(`  always kept: ${[...ALWAYS_KEEP].join(', ')}`);
+if (only) {
+  const found = new Set(ids);
+  const missing = [...only].filter((id) => !found.has(id));
+  console.log(
+    `  --ids: ${only.size} listed, ${missing.length} not found (nothing else replaces them)`
+  );
+}
 for (const id of targets.slice(0, 10)) console.log(`    - ${id}`);
 if (targets.length > 10) console.log(`    … and ${targets.length - 10} more`);
 
@@ -83,6 +117,7 @@ if (!execute) {
   const flags = [
     `--database '${database}'`,
     includeLegacy ? '--include-legacy' : '',
+    idsFile ? `--ids '${idsFile}'` : '',
     `--min-age-hours ${minAgeHours}`,
   ]
     .filter(Boolean)
