@@ -19,7 +19,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'goodbye-watch-summary' });
 
-export interface GoodbyeWatchSummary {
+interface GoodbyeWatchSummary {
   sessionId: string;
   callerBye: boolean;
   ferniBye: boolean;
@@ -49,17 +49,17 @@ export interface GoodbyeWatchTallyOptions {
 
 /** One call's tally. Every method returns nothing and never throws. */
 export interface GoodbyeWatchTally {
-  sawCallerBye(bye: boolean): void;
-  sawFerniBye(bye: boolean): void;
+  sawCallerBye: (bye: boolean) => void;
+  sawFerniBye: (bye: boolean) => void;
   /** A farewell holds when the watcher checks whether to start its quiet window. */
-  farewell(): void;
+  farewell: () => void;
   /** The quiet window didn't start: `agent_<state>` or `user_speaking`. */
-  blocked(why: string): void;
-  armed(): void;
-  held(why: 'crisis' | 'unread'): void;
-  fired(): void;
-  /** Reports the summary, once. */
-  close(): void;
+  blocked: (why: string) => void;
+  armed: () => void;
+  held: (why: 'crisis' | 'unread') => void;
+  fired: () => void;
+  /** Reports the summary, once: a report that fails is not retried. */
+  close: () => void;
 }
 
 /** Runs a recorder; anything it throws is logged (no words) and goes no further. */
@@ -93,8 +93,10 @@ export function goodbyeWatchTally(
   const blocked: Record<string, number> = {};
   let firstFarewellAt: number | null = null;
   let reported = false;
-  const safe = <A extends unknown[]>(name: string, fn: (...args: A) => void) =>
-    guarded(sessionId, name, fn);
+  const safe = <A extends unknown[]>(
+    name: string,
+    fn: (...args: A) => void
+  ): ((...args: A) => void) => guarded(sessionId, name, fn);
   return {
     sawCallerBye: safe('sawCallerBye', (bye: boolean) => {
       seen.callerBye ||= bye;

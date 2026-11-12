@@ -20,7 +20,7 @@ import { farewellRisk, stripWarmSymbols } from './farewell-risk.js';
  * exponential time on a live transcript. Here every check is a linear pass
  * over at most MAX_CALLER_CHARS of text.
  */
-export const MAX_CALLER_CHARS = 200;
+const MAX_CALLER_CHARS = 200;
 const MAX_FERNI_CHARS = 300;
 
 /** Every way to fill a phrase template: [["see"], ["ya", "you"]] -> "see ya", "see you". */

@@ -12,12 +12,16 @@ import {
   ferniSaysGoodbye,
   IDLE_AFTER_GOODBYE_MS,
   markFarewell,
-  MAX_CALLER_CHARS,
   stayQuiet,
   stayQuietOn,
   watchFarewell,
 } from '../call-farewell.js';
-import type { GoodbyeWatchSummary } from '../goodbye-watch-summary.js';
+import type { GoodbyeWatchTallyOptions } from '../goodbye-watch-summary.js';
+
+/** How far back callerSaysGoodbye looks (goodbye-phrases.ts). */
+const MAX_CALLER_CHARS = 200;
+
+type GoodbyeWatchSummary = Parameters<NonNullable<GoodbyeWatchTallyOptions['report']>>[0];
 import { clearSessionClosing, markSessionClosing } from '../session-closing-tracker.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 

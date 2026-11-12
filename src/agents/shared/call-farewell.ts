@@ -41,7 +41,6 @@ import { goodbyeWatchTally, type GoodbyeWatchTallyOptions } from './goodbye-watc
 import { callerAsksToHangUp, callerSaysGoodbye, ferniSaysGoodbye } from './goodbye-phrases.js';
 
 export {
-  MAX_CALLER_CHARS,
   callerSaysGoodbye,
   callerSignsOff,
   callerAsksToHangUp,
