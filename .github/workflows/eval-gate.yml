@@ -198,6 +198,8 @@ jobs:
           GEMINI_BILLING_JOB: ci_eval_gate
 
       # The persona bar, single-turn, one judge: 552 Flash calls, 215-559 s a run (2026-11-11).
+      # Two protections run at their prod values from repository variables, kept out of this
+      # public repo; persona.ts fails the step when either is unset.
       - name: Compare with evals/baselines/persona.json
         if: contains(steps.decide.outputs.suites, 'persona')
         run: pnpm tsx scripts/eval-gate/persona.ts
@@ -205,3 +207,5 @@ jobs:
           GOOGLE_CLOUD_PROJECT: johnb-2025
           LOG_LEVEL: silent
           GEMINI_BILLING_JOB: ci_eval_gate
+          CRISIS_MEANS_IN_HAND: ${{ vars.PERSONA_GATE_CRISIS_MEANS_IN_HAND }}
+          MINOR_CARE: ${{ vars.PERSONA_GATE_MINOR_CARE }}

@@ -2,15 +2,17 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { SpawnSyncReturns } from 'node:child_process';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FLAG_MANIFEST } from '../../../src/config/flag-manifest.js';
 import { rate, samplingGap, TELL_KEYS } from '../../persona-eval/bar-lib.js';
 import { compare, failed, readBaseline } from '../gate-lib.js';
 import {
   BASELINE,
   FLAGS,
+  PROTECTIONS,
   baselineFrom,
   metricsOf,
+  protectionsFrom,
   ratesOf,
   readResult,
   runBar,
@@ -97,13 +99,19 @@ describe('baselineFrom', () => {
   });
 });
 
+/** Fictional protection values: the real ones live only in repository variables. */
+const ENV = { PATH: '/bin', CRISIS_MEANS_IN_HAND: 'test-a', MINOR_CARE: 'test-b' };
+interface Seen {
+  args: string[];
+  opts: { env?: Record<string, string> };
+}
+
 describe('a bar run that produced nothing fails', () => {
-  const spawned = (status: number | null, signal: NodeJS.Signals | null = null) =>
-    (() => ({ status, signal, pid: 1, output: [], stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) })) as unknown as (
-      cmd: string,
-      args: string[],
-      opts: object
-    ) => SpawnSyncReturns<Buffer>; // prettier-ignore
+  const spawned = (status: number | null, signal: NodeJS.Signals | null = null, seen: Seen[] = []) =>
+    ((_cmd: string, args: string[], opts: Seen['opts']) => {
+      seen.push({ args, opts });
+      return { status, signal, pid: 1, output: [], stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
+    }) as unknown as (cmd: string, args: string[], opts: object) => SpawnSyncReturns<Buffer>; // prettier-ignore
 
   it('throws when result.json is missing', () => {
     expect(() => readResult(tmp())).toThrow(/wrote no/);
@@ -113,27 +121,90 @@ describe('a bar run that produced nothing fails', () => {
     const out = tmp();
     mkdirSync(join(out, 'gate', 'run1'), { recursive: true });
     writeFileSync(join(out, 'gate', 'run1', 'result.json'), JSON.stringify(result(60)));
-    expect(() => runBar(out, spawned(1))).toThrow(/exit 1/);
-    expect(() => runBar(out, spawned(null, 'SIGTERM'))).toThrow(/SIGTERM/);
-    expect(runBar(out, spawned(0)).scored?.metrics.distinctness.k).toBe(60);
+    expect(() => runBar(out, spawned(1), ENV)).toThrow(/exit 1/);
+    expect(() => runBar(out, spawned(null, 'SIGTERM'), ENV)).toThrow(/SIGTERM/);
+    expect(runBar(out, spawned(0), ENV).scored?.metrics.distinctness.k).toBe(60);
   });
 
   it('throws when the child exits 0 but wrote no result', () => {
-    expect(() => runBar(tmp(), spawned(0))).toThrow(/wrote no/);
+    expect(() => runBar(tmp(), spawned(0), ENV)).toThrow(/wrote no/);
+  });
+
+  it('refuses to start without either protection, naming its repository variable', () => {
+    for (const name of PROTECTIONS) {
+      expect(() => protectionsFrom({ ...ENV, [name]: undefined })).toThrow(`PERSONA_GATE_${name}`);
+      expect(() => protectionsFrom({ ...ENV, [name]: ' ' })).toThrow(`PERSONA_GATE_${name}`);
+      const seen: Seen[] = [];
+      expect(() => runBar(tmp(), spawned(0, null, seen), { ...ENV, [name]: '' })).toThrow(name);
+      expect(seen).toEqual([]); // no child started
+    }
+  });
+
+  it('never writes a protection value to stdout, stderr or an error message', () => {
+    const sentinels = { CRISIS_MEANS_IN_HAND: 'zz-sentinel-1', MINOR_CARE: 'zz-sentinel-2' };
+    const printed: string[] = [];
+    const capture = (chunk: unknown): boolean => (printed.push(String(chunk)), true);
+    const spies = [
+      vi.spyOn(process.stdout, 'write').mockImplementation(capture),
+      vi.spyOn(process.stderr, 'write').mockImplementation(capture),
+      ...(['log', 'error', 'warn', 'info'] as const).map((m) =>
+        vi.spyOn(console, m).mockImplementation((...a: unknown[]) => void printed.push(a.join(' ')))
+      ),
+    ];
+    try {
+      const out = tmp();
+      mkdirSync(join(out, 'gate', 'run1'), { recursive: true });
+      writeFileSync(join(out, 'gate', 'run1', 'result.json'), JSON.stringify(result(60)));
+      const env = { ...ENV, ...sentinels };
+      const message = (run: () => unknown): void => {
+        try {
+          run();
+        } catch (e) {
+          printed.push((e as Error).message);
+        }
+      };
+      runBar(out, spawned(0), env);
+      message(() => runBar(out, spawned(1), env));
+      message(() => runBar(tmp(), spawned(0), env));
+      for (const name of PROTECTIONS) message(() => protectionsFrom({ ...env, [name]: '' }));
+    } finally {
+      spies.forEach((s) => s.mockRestore());
+    }
+    expect(printed.length).toBeGreaterThan(0);
+    expect(printed.filter((p) => /zz-sentinel/.test(p))).toEqual([]);
+  });
+
+  it('passes the protections to the child unchanged, in its env, never as printed --set overrides', () => {
+    const seen: Seen[] = [];
+    expect(() => runBar(tmp(), spawned(0, null, seen), ENV)).toThrow(/wrote no/);
+    expect(seen[0].opts.env).toMatchObject({
+      CRISIS_MEANS_IN_HAND: 'test-a',
+      MINOR_CARE: 'test-b',
+    });
+    expect(seen[0].args.join(' ')).not.toMatch(/CRISIS|MINOR|--set/);
   });
 });
 
+const PROTECTION = /CRISIS|SAFETY|MINOR|SMS|SCREEN|PRIVACY|AUTH|CONSENT/;
+const FLAG_WORD = /^(?:on|off|true|false|live|shadow|\d+(?:\.\d+)?|[a-z][a-z0-9-]{0,23})$/;
+
 describe('committed files', () => {
-  it('the flags file names only flags the manifest knows, with plain values', () => {
-    const flags = JSON.parse(readFileSync(FLAGS, 'utf8')) as Record<string, unknown>;
+  const flags = JSON.parse(readFileSync(FLAGS, 'utf8')) as Record<string, unknown>;
+
+  it('the flags file names only flags the manifest still has (a renamed or deleted flag fails)', () => {
     expect(Object.keys(flags).filter((k) => !(k in FLAG_MANIFEST))).toEqual([]);
-    expect(Object.values(flags).every((v) => typeof v === 'string' && v.length <= 16)).toBe(true);
+  });
+
+  it('the flags file holds flag words only, and no protection', () => {
+    expect(Object.entries(flags).filter(([, v]) => typeof v !== 'string' || !FLAG_WORD.test(v))).toEqual([]); // prettier-ignore
+    expect(Object.keys(flags).filter((k) => PROTECTION.test(k))).toEqual([]);
+    expect(PROTECTIONS.filter((k) => !(k in FLAG_MANIFEST))).toEqual([]);
   });
 
   it('the baseline carries every metric persona.ts measures, each with a band', () => {
     const b = readBaseline(BASELINE);
     expect(Object.keys(b.metrics).sort()).toEqual(Object.keys(metricsOf(result(60))).sort());
     for (const m of Object.values(b.metrics)) expect(m.maxDrop ?? m.maxRise).toBeGreaterThan(0);
-    expect(b.runs).toBeGreaterThanOrEqual(3);
+    expect(b.runs).toBeGreaterThanOrEqual(5);
   });
 });

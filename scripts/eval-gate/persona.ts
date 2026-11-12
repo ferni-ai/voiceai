@@ -6,8 +6,8 @@
  * prompt edit that flattens the voices or brings back the model's generic
  * habits fails the PR instead of merging green.
  *
- *   GOOGLE_CLOUD_PROJECT=<p> pnpm tsx scripts/eval-gate/persona.ts [--json]
- *   GOOGLE_CLOUD_PROJECT=<p> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5
+ *   GOOGLE_CLOUD_PROJECT=<p> CRISIS_MEANS_IN_HAND=<prod> MINOR_CARE=<prod> \
+ *     pnpm tsx scripts/eval-gate/persona.ts [--json | --write-baseline --runs 5]
  *
  * bar runs as a child process: it reads flags at import time and runs one arm
  * per process. A child that fails, times out or writes no result.json fails
@@ -43,7 +43,28 @@ const JUDGE = 'gemini-3.5-flash';
 const CHILD_TIMEOUT_MS = 12 * 60_000;
 /** Failed calls (empty replies, unparsable judgments) a run may add before it reads as an outage. */
 const COUNT_FLOOR = 5;
-const UPDATE = 'GOOGLE_CLOUD_PROJECT=<project> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5'; // prettier-ignore
+const UPDATE = 'GOOGLE_CLOUD_PROJECT=<project> CRISIS_MEANS_IN_HAND=<prod> MINOR_CARE=<prod> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5'; // prettier-ignore
+
+/**
+ * Protections bar reads whose prod values stay out of this public repo: the workflow maps each
+ * from a repository variable (PERSONA_GATE_<name>). They reach bar through the environment, not
+ * --set, so bar's printed overrides never show them.
+ */
+export const PROTECTIONS = ['CRISIS_MEANS_IN_HAND', 'MINOR_CARE'] as const;
+
+/** The protections from `env`, unchanged; a missing one throws: no default stands in for prod. */
+export function protectionsFrom(env: NodeJS.ProcessEnv): Record<string, string> {
+  return Object.fromEntries(
+    PROTECTIONS.map((name) => {
+      const value = env[name];
+      if (!value?.trim())
+        throw new Error(
+          `${name} is not set: the persona step maps it from the repository variable PERSONA_GATE_${name}, which must be set (the gate never falls back to a default)`
+        );
+      return [name, value];
+    })
+  );
+}
 
 /** The part of bar's result.json the gate reads. */
 export interface BarResult {
@@ -129,11 +150,12 @@ export function readResult(out: string): BarResult {
 type Spawn = (cmd: string, args: string[], opts: object) => SpawnSyncReturns<Buffer>;
 
 /** One bar run in a child process; a failed, killed or silent child throws. */
-export function runBar(out: string, spawn: Spawn = spawnSync): BarResult {
+export function runBar(out: string, spawn: Spawn = spawnSync, env = process.env): BarResult {
   const args = ['--arm', ARM, '--flags', FLAGS, '--out', out, '--runs', '1', '--judges', JUDGE];
   const child = spawn(process.execPath, ['--import', 'tsx', BAR, ...args], {
     stdio: 'inherit',
     timeout: CHILD_TIMEOUT_MS,
+    env: { ...env, ...protectionsFrom(env) },
   });
   if (child.error) throw child.error;
   if (child.status !== 0)
@@ -160,6 +182,7 @@ function measure(n: number): BarResult[] {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   if (!process.env.GOOGLE_CLOUD_PROJECT) throw new Error('Set GOOGLE_CLOUD_PROJECT (Vertex, ADC)');
+  protectionsFrom(process.env); // fail before any model call
   if (args.includes('--write-baseline')) {
     const runs = Number(args[args.indexOf('--runs') + 1]);
     if (!args.includes('--runs') || !Number.isInteger(runs) || runs < 3)

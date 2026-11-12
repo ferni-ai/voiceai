@@ -1,30 +1,46 @@
 {
   "suite": "persona: bar single-turn, judge gemini-3.5-flash (Vertex)",
-  "update": "GOOGLE_CLOUD_PROJECT=<project> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5",
-  "measuredOn": "97d6b856a",
-  "runs": 3,
+  "update": "GOOGLE_CLOUD_PROJECT=<project> CRISIS_MEANS_IN_HAND=<prod> MINOR_CARE=<prod> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5",
+  "measuredOn": "9b1ad328bd",
+  "runs": 5,
   "metrics": {
     "persona.distinctness": {
-      "value": 0.2181,
-      "maxDrop": 0.0745,
-      "runs": [0.2333, 0.2083, 0.2125]
+      "value": 0.1767,
+      "maxDrop": 0.0704,
+      "runs": [0.1708, 0.175, 0.2042, 0.1542, 0.1792]
     },
     "persona.insight_natural": {
-      "value": 0.9352,
-      "maxDrop": 0.0831,
-      "runs": [0.9306, 0.9444, 0.9306]
+      "value": 0.9139,
+      "maxDrop": 0.0967,
+      "runs": [0.9167, 0.9306, 0.8889, 0.9167, 0.9167]
     },
-    "persona.insight_forced": { "value": 0, "maxRise": 0.0383, "runs": [0, 0, 0] },
-    "persona.copy": { "value": 0.0875, "maxRise": 0.0517, "runs": [0.1, 0.0833, 0.0792] },
+    "persona.insight_forced": { "value": 0, "maxRise": 0.0383, "runs": [0, 0, 0, 0, 0] },
+    "persona.copy": {
+      "value": 0.0658,
+      "maxRise": 0.0472,
+      "runs": [0.0625, 0.075, 0.075, 0.0708, 0.0458]
+    },
     "persona.tell_question": {
-      "value": 0.8595,
-      "maxRise": 0.0635,
-      "runs": [0.8667, 0.8375, 0.8745]
+      "value": 0.8942,
+      "maxRise": 0.075,
+      "runs": [0.8667, 0.8625, 0.9375, 0.9083, 0.8958]
     },
-    "persona.tell_opener": { "value": 0.1335, "maxRise": 0.0614, "runs": [0.1375, 0.1292, 0.1339] },
-    "persona.tell_checkin": { "value": 0.032, "maxRise": 0.034, "runs": [0.0542, 0.0208, 0.0209] },
-    "persona.tell_exclaim": { "value": 0.0209, "maxRise": 0.0268, "runs": [0.025, 0.0208, 0.0167] },
-    "persona.empty_replies": { "value": 0, "maxRise": 5, "runs": [0, 0, 0] },
-    "persona.judge_failures": { "value": 0, "maxRise": 5, "runs": [0, 0, 0] }
+    "persona.tell_opener": {
+      "value": 0.3233,
+      "maxRise": 0.0844,
+      "runs": [0.3083, 0.3125, 0.3292, 0.3375, 0.3292]
+    },
+    "persona.tell_checkin": {
+      "value": 0.0367,
+      "maxRise": 0.0358,
+      "runs": [0.0417, 0.0417, 0.0167, 0.0417, 0.0417]
+    },
+    "persona.tell_exclaim": {
+      "value": 0.0492,
+      "maxRise": 0.0413,
+      "runs": [0.05, 0.0417, 0.0583, 0.0542, 0.0417]
+    },
+    "persona.empty_replies": { "value": 0, "maxRise": 5, "runs": [0, 0, 0, 0, 0] },
+    "persona.judge_failures": { "value": 0, "maxRise": 5, "runs": [0, 0, 0, 0, 0] }
   }
 }
