@@ -1,8 +1,7 @@
 /**
  * Background Task & General Maintenance Job Handlers
  *
- * Handles: process-background-tasks, check-scheduled, cleanup-sessions,
- * cleanup-old-tasks, aggregate-community-insights, rollup-persona-metrics,
+ * Handles: cleanup-old-tasks, aggregate-community-insights, rollup-persona-metrics,
  * sync-trust-profiles, cleanup-transcripts
  *
  * @module api/scheduled-jobs/background-task-jobs
@@ -13,106 +12,6 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 
 const log = createLogger({ module: 'BackgroundTaskJobs' });
-
-export async function handleProcessBackgroundTasks(res: ServerResponse): Promise<void> {
-  try {
-    log.info('Processing background tasks (Cloud Scheduler)');
-
-    const { getBackgroundTaskService } = await import('../../services/scheduling/background-tasks.js');
-    const taskService = getBackgroundTaskService();
-
-    const pendingTasks = await taskService.getUserTasks('*', 'pending');
-    let processed = 0;
-    let failed = 0;
-
-    for (const task of pendingTasks.slice(0, 50)) {
-      try {
-        await taskService.updateTaskStatus(task.id, 'running');
-        processed++;
-      } catch {
-        failed++;
-        await taskService.updateTaskStatus(task.id, 'failed', undefined, 'Processing failed');
-      }
-    }
-
-    sendJson(res, 200, {
-      success: true,
-      job: 'process-background-tasks',
-      processed,
-      failed,
-      pending: pendingTasks.length - processed,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Background task processing failed');
-    sendJson(res, 500, {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-}
-
-export async function handleCheckScheduled(res: ServerResponse): Promise<void> {
-  try {
-    log.info('Checking scheduled jobs (Cloud Scheduler)');
-
-    const { getBackgroundTaskService } = await import('../../services/scheduling/background-tasks.js');
-    const taskService = getBackgroundTaskService();
-
-    const now = new Date();
-    const allPending = await taskService.getUserTasks('*', 'pending');
-    const dueJobs = allPending.filter(
-      (task) => task.scheduledFor && new Date(task.scheduledFor) <= now
-    );
-
-    let triggered = 0;
-    for (const job of dueJobs.slice(0, 20)) {
-      try {
-        await taskService.updateTaskStatus(job.id, 'running');
-        triggered++;
-      } catch {
-        log.warn({ jobId: job.id }, 'Failed to trigger scheduled job');
-      }
-    }
-
-    sendJson(res, 200, {
-      success: true,
-      job: 'check-scheduled',
-      triggered,
-      pendingScheduled: dueJobs.length,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Scheduled job check failed');
-    sendJson(res, 500, {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-}
-
-export async function handleCleanupSessions(res: ServerResponse): Promise<void> {
-  try {
-    log.info('Cleaning up orphaned sessions (Cloud Scheduler)');
-
-    const { getActiveSessionCount } = await import('../../services/session-manager.js');
-    const sessionCount = getActiveSessionCount();
-
-    sendJson(res, 200, {
-      success: true,
-      job: 'cleanup-sessions',
-      activeSessions: sessionCount,
-      message: 'Session cleanup runs automatically via session-manager',
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Session cleanup failed');
-    sendJson(res, 500, {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-}
 
 export async function handleCleanupOldTasks(res: ServerResponse): Promise<void> {
   try {
