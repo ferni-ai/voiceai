@@ -117,11 +117,13 @@ describe('Tool Pipeline Integration', () => {
       }
     });
 
-    it('should have trigger phrases for all tools', () => {
+    // Phrases or patterns, as the registry's own check: the wellness tools carry their phrases
+    // as risk-guarded patterns, because a plain phrase can't carry the guard (#3733).
+    it('should have trigger phrases or patterns for all tools', () => {
       for (const tool of allToolDefinitions) {
-        expect(tool.triggers.phrases).toBeDefined();
-        expect(Array.isArray(tool.triggers.phrases)).toBe(true);
-        expect(tool.triggers.phrases?.length).toBeGreaterThan(0);
+        const triggers =
+          (tool.triggers.phrases?.length ?? 0) + (tool.triggers.patterns?.length ?? 0);
+        expect(triggers, tool.id).toBeGreaterThan(0);
       }
     });
 

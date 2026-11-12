@@ -13,15 +13,77 @@ import type {
   ToolExecutionResult,
 } from '../types.js';
 
-// Mild distress ("I'm a bit stressed today", "rough day") should lead with a wellness tool.
-// The holistic layer boosts crisis and wellness tools equally for any distress word, so
-// without a pattern hit here the crisis tools win the tie on registration order. Turns with
-// risk language never match these patterns: the crisis tools own those. Patterns run on
-// normalizeText output, which rewrites "can't" to "cannot" and "'ve" to " have".
-const NOT_RISK = String.raw`(?!.*\b(?:kill|die|dying|dead|suicid\w*|alive|hurt\s+myself|harm\s+myself|cut\s+myself|end\s+(?:it|my\s+life)|safe|overdos\w*|pills|jump\w*|gone|can(?:not|'?t)\s+go\s+on|no\s+point|live|wake\s+up)\b)`;
-const SOFTENER = String.raw`(?:(?:a\s+)?(?:bit|little|really|so|very|super|pretty|kind\s+of|kinda|sort\s+of)\s+)*`;
-const I_FEEL = String.raw`i(?:'m|\s+am|'ve\s+been|\s+have\s+been|\s+feel)\s+(?:feeling\s+)?${SOFTENER}`;
-const mildDistress = (body: string): RegExp => new RegExp(`^${NOT_RISK}${body}`, 'i');
+// No turn with risk language may get a wellness pattern hit: the crisis tools own those.
+// Every trigger of the two tools below goes through riskGuarded(), including their former
+// plain phrases (a phrase can't carry a guard). Stems catch word forms ("killing", "hanged").
+// Patterns run on normalizeText output, which rewrites a straight-apostrophe "can't" to
+// "cannot" and "n't" to " not"; curly apostrophes pass through unchanged.
+//
+// A word list has a known limit: risk said without any of these words (joined, elongated
+// or contextual forms) still gets a hit when the turn also has a mild phrase. Broader mild
+// patterns wait for the crisis check before ranking (task #15), so they can't take the
+// head from a crisis tool.
+const RISK_TERMS = [
+  // Self-harm and suicide, with word forms
+  String.raw`kill\w*`,
+  'kms',
+  String.raw`suicid\w*`,
+  String.raw`unaliv\w*`,
+  String.raw`di(?:e|es|ed)`,
+  'dying',
+  'dead',
+  'death',
+  String.raw`hurt\w*\s+(?:myself|me)`,
+  String.raw`harm\w*\s+myself`,
+  String.raw`self[-\s]?harm\w*`,
+  String.raw`cut\w*\s+myself`,
+  String.raw`hang\w*\s+myself`,
+  String.raw`shoot\w*\s+myself`,
+  String.raw`slit\w*`,
+  'wrists?',
+  String.raw`overdos\w*`,
+  'pills',
+  String.raw`jump(?:s|ed|ing)?`,
+  // Indirect forms
+  String.raw`better\s+off\s+without\s+me`,
+  String.raw`not\s+(?:want\s+to\s+)?(?:be\s+)?here\s+anymore`,
+  String.raw`disappear\w*`,
+  String.raw`end\w*\s+(?:it|things|everything|my\s+life)`,
+  String.raw`can(?:not|['’]?t)\s+(?:go\s+on|(?:do\s+this|take\s+it)\s+anymore)`,
+  String.raw`no\s+(?:point|reason\s+to\s+live)`,
+  'alive',
+  'live',
+  String.raw`wake\s+up`,
+  'safe',
+  'gone',
+  // Risk phrases of the crisis sites that share words with a mild phrase below
+  String.raw`struggling\s+for`,
+  String.raw`depressed\s+for\s+(?:weeks|months|years)`,
+  // Spanish
+  String.raw`matar\w*`,
+  String.raw`morir\w*`,
+  String.raw`muert[oa]s?`,
+  String.raw`quitarme\s+la\s+vida`,
+  String.raw`hacerme\s+da[ñn]o`,
+  String.raw`no\s+quiero\s+vivir`,
+  'pastillas',
+];
+const NOT_RISK = String.raw`(?![\s\S]*\b(?:${RISK_TERMS.join('|')})\b)`;
+
+/** Prefix the risk guard: an anchored pattern stays anchored, any other matches anywhere. */
+export function riskGuarded(pattern: RegExp): RegExp {
+  const body = pattern.source.startsWith('^')
+    ? pattern.source.slice(1)
+    : String.raw`[\s\S]*?(?:${pattern.source})`;
+  return new RegExp(`^${NOT_RISK}${body}`, pattern.flags);
+}
+
+/** Whole-word phrases as one regex (the registry's phrase match, as a pattern). */
+const anyPhrase = (...phrases: string[]): RegExp =>
+  new RegExp(
+    String.raw`\b(?:${phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\b`,
+    'i'
+  );
 
 // ============================================================================
 // GROUNDING EXERCISE
@@ -34,28 +96,29 @@ export const groundingExerciseTool: SemanticToolDefinition = {
     'Guides through a grounding exercise to help with anxiety, stress, or feeling overwhelmed.',
   shortDescription: 'do a grounding exercise',
   category: 'wellness',
+  // Offer, don't auto-run: a mild line gets a hint and the companion asks first (fe, #3733).
+  requiresConfirmation: true,
 
   triggers: {
-    phrases: [
-      "I'm anxious",
-      "I'm stressed",
-      'feeling overwhelmed',
-      'need to calm down',
-      'help me relax',
-      'grounding exercise',
-      'breathing exercise',
-      "I'm panicking",
-      'having a panic attack',
-      'calm me down',
-    ],
     patterns: [
-      mildDistress(`${I_FEEL}(?:anxious|stressed|overwhelmed|panicking)`),
-      mildDistress(String.raw`.*\bstress(?:ing|es)\s+me\s+out\b`),
+      anyPhrase(
+        "I'm anxious",
+        "I'm stressed",
+        'feeling overwhelmed',
+        'need to calm down',
+        'help me relax',
+        'grounding exercise',
+        'breathing exercise',
+        "I'm panicking",
+        'having a panic attack',
+        'calm me down'
+      ),
+      /^i(?:'m| am)\s+(?:feeling\s+)?(?:anxious|stressed|overwhelmed|panicking)/i,
       /^(?:i\s+)?need\s+(?:to\s+)?(?:calm\s+down|relax|ground\s+myself)/i,
       /^(?:help|can\s+you\s+help)\s+me\s+(?:calm\s+down|relax|feel\s+better)/i,
       /^(?:do\s+)?(?:a\s+)?(?:grounding|breathing|calming)\s+exercise/i,
       /^(?:i(?:'m| am)\s+)?having\s+(?:a\s+)?(?:panic\s+attack|anxiety\s+attack)/i,
-    ],
+    ].map(riskGuarded),
     keywords: [
       { word: 'anxious', weight: 1.0 },
       { word: 'anxiety', weight: 1.0 },
@@ -141,28 +204,28 @@ export const wellnessCheckinTool: SemanticToolDefinition = {
   description: 'A supportive check-in about how you are feeling emotionally and mentally.',
   shortDescription: 'check in on wellness',
   category: 'wellness',
+  // Offer, don't auto-run: a mild line gets a hint and the companion asks first (fe, #3733).
+  requiresConfirmation: true,
 
   triggers: {
-    phrases: [
-      "I'm not okay",
-      "I'm struggling",
-      'having a hard time',
-      "I don't feel good",
-      'feeling down',
-      'feeling sad',
-      'feeling depressed',
-      "I'm hurting",
-      'need someone to talk to',
-    ],
     patterns: [
+      anyPhrase(
+        "I'm not okay",
+        "I'm struggling",
+        'having a hard time',
+        "I don't feel good",
+        'feeling down',
+        'feeling sad',
+        'feeling depressed',
+        "I'm hurting",
+        'need someone to talk to'
+      ),
       /^i(?:'m| am)\s+(?:not\s+)?(?:okay|alright|doing\s+well)/i,
-      mildDistress(`${I_FEEL}(?:sad|down|depressed|blue|low|upset)`),
-      mildDistress(String.raw`.*\b${SOFTENER}(?:rough|bad|hard|tough|crappy|terrible)\s+day\b`),
-      mildDistress(String.raw`.*\bin\s+(?:a\s+)?(?:bit\s+of\s+a\s+)?funk\b`),
+      /^i(?:'m| am)\s+(?:feeling\s+)?(?:sad|down|depressed|blue|low)/i,
       /^i(?:'m| am)\s+(?:struggling|hurting|having\s+a\s+hard\s+time)/i,
       /^(?:i\s+)?need\s+(?:someone\s+)?to\s+talk\s+(?:to)?/i,
       /^(?:i\s+)?(?:don(?:'t|ot)\s+)?feel\s+(?:good|great|well)/i,
-    ],
+    ].map(riskGuarded),
     keywords: [
       { word: 'sad', weight: 0.9 },
       { word: 'depressed', weight: 1.0 },

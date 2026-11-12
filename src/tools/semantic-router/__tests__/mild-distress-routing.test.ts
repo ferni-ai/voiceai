@@ -1,8 +1,8 @@
 /**
- * Mild distress leads with a wellness tool, never crisis_support; risk language keeps
- * crisis_support at the head. The holistic layer boosts crisis and wellness tools equally
- * for any distress word, so without a wellness pattern hit the crisis tools won the tie on
- * registration order ("I'm a little anxious" headed crisis_support at 0.71).
+ * The wellness risk guard (#3733): risk language keeps crisis_support at the head and gets no
+ * wellness pattern hit, while the mild lines main already offered a wellness tool for still do.
+ * Broader mild patterns ("I'm a bit stressed today", "rough day") wait for the crisis check
+ * before ranking (task #15): see mild-lead-in-never-lower.test.ts for why.
  */
 import { afterAll, describe, expect, it } from 'vitest';
 import { runCombinedMatching } from '../matcher.js';
@@ -20,24 +20,13 @@ function route(text: string): ToolMatch[] {
 
 const WELLNESS = ['wellness_checkin', 'grounding_exercise'];
 
+// Mild lines whose wellness head on main comes from the tools' own triggers, now guarded.
 const MILD = [
-  "I'm feeling a bit stressed today",
-  "I'm feeling a bit stressed",
   "I'm so stressed out",
   "I'm stressed about work",
-  'Work has been stressing me out',
-  "I'm feeling really sad today",
-  "I'm feeling really sad",
-  'I feel kind of down today',
-  "I'm a little anxious",
   "I'm feeling anxious about tomorrow",
-  "I've been anxious all day",
-  "I'm having a rough day",
-  'Rough day today',
-  'Today was a really bad day',
   "I'm overwhelmed",
   "I'm feeling overwhelmed today",
-  "I'm in a bit of a funk",
 ];
 
 const RISK = [
@@ -48,10 +37,19 @@ const RISK = [
   "I'm sad and I want to hurt myself",
 ];
 
-// Risk lines built from the mild-distress phrasings: the wellness patterns must not fire.
-// ("feeling down" is a wellness_checkin phrase trigger, so "I'm feeling down and I want to
-// die" still gets a wellness hit from main; crisis_support leads it at 1.0 regardless.)
+// Risk lines built from the mild-distress phrasings: no wellness trigger may fire, including
+// the former plain phrases ("I'm stressed", "feeling down"), word forms ("killing") and
+// indirect forms. crisis-corpus-no-wellness.test.ts runs the public crisis corpus the same way.
 const RISK_WITH_MILD_WORDS = [
+  "I'm stressed and I want to kill myself",
+  "I'm feeling down and I want to die",
+  "I'm so stressed I keep wanting to hang myself",
+  "I'm anxious and killing myself feels like the only way",
+  "I'm overwhelmed and everyone would be better off without me",
+  'Rough day. I just want to disappear',
+  "I'm stressed\nI want to kill myself",
+  'I\u2019m so sad and I can\u2019t take it anymore',
+  "I'm struggling, I'm thinking about self-harm",
   "I'm so stressed I want to kill myself",
   "I'm sad and I want to hurt myself",
   "I've been really anxious and I want to die",
@@ -64,8 +62,8 @@ const RISK_WITH_MILD_WORDS = [
   "I'm overwhelmed and I don't want to wake up",
 ];
 
-describe('mild distress', () => {
-  it.each(MILD)('%j leads with a wellness tool, not crisis_support', (text) => {
+describe('mild distress main already offered', () => {
+  it.each(MILD)('%j still leads with a wellness tool', (text) => {
     const matches = route(text);
     expect(WELLNESS).toContain(matches[0]?.toolId);
     expect(matches[0]?.confidence ?? 0).toBeGreaterThanOrEqual(0.95);
