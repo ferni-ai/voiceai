@@ -175,9 +175,10 @@ describe('Personas Config', () => {
       expect(normalizeAgentId('event-planner')).toBe('jordan-taylor');
     });
 
-    it('does not turn peter-lynch into Peter John', () => {
+    it("does not turn a legend's or Tom's retired id into Peter John", () => {
       // A Financial Legend is not on the team: no team id stands in for him
-      expect(normalizeAgentId('peter-lynch')).not.toBe('peter-john');
+      expect(normalizeAgentId('john-bogle')).not.toBe('peter-john');
+      expect(normalizeAgentId('peter-lynch')).toBe('ferni'); // Tom, retired 2026-11-08
       expect(normalizeAgentId('lynch')).not.toBe('peter-john');
       expect(normalizeAgentId('peter')).toBe('peter-john');
     });
@@ -214,8 +215,8 @@ describe('Personas Config', () => {
 
   describe('Financial Legends (who is speaking, not the team)', () => {
     it('normalizeSpeakerId keeps a Legend as themselves and aliases as the bundles do', () => {
-      expect(normalizeSpeakerId('peter-lynch')).toBe('peter-lynch');
-      expect(normalizeSpeakerId('tom')).toBe('peter-lynch');
+      expect(normalizeSpeakerId('peter-lynch')).toBe('ferni'); // Tom, retired 2026-11-08
+      expect(normalizeSpeakerId('tom')).toBe('ferni');
       expect(normalizeSpeakerId('henry')).toBe('john-bogle');
       expect(normalizeSpeakerId('caldwell')).toBe('john-bogle');
       expect(normalizeSpeakerId('nate')).toBe('joel-dickson');
@@ -245,12 +246,11 @@ describe('Personas Config', () => {
     });
 
     it('getPersona returns the Legend, with their own colour', () => {
-      const tom = getPersona('peter-lynch');
-      expect(tom.name).toBe('Tom Brannigan');
-      expect(tom.initials).toBe('TB');
-      expect(tom.colors.primary).toBe(getPersonaColors('lynch').primary);
-      expect(tom.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
-      expect(getPersona('john-bogle').name).toBe('Henry Caldwell');
+      const henry = getPersona('john-bogle');
+      expect(henry.name).toBe('Henry Caldwell');
+      expect(henry.initials).toBe('HC');
+      expect(henry.colors.primary).toBe(getPersonaColors('bogle').primary);
+      expect(henry.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
       expect(getPersona('joel-dickson').name).toBe('Nate Holloway');
     });
   });

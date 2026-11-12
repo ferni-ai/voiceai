@@ -18,10 +18,10 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { CELEBRATION_PRESETS, type CelebrationConfig } from './celebration-presets.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('CelebrationUI');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 export type { CelebrationConfig, CelebrationType } from './celebration-presets.js';
@@ -105,6 +105,7 @@ export class CelebrationUI {
    * Show a celebration
    */
   async celebrate(config: CelebrationConfig): Promise<void> {
+    if (!crisisAffectAllows('celebration')) return;
     if (this.isShowing) {
       log.debug('Celebration already showing, queuing');
       await this.waitForCurrent();
@@ -120,7 +121,6 @@ export class CelebrationUI {
 
     log.info('Showing celebration', { type: config.type, title: config.title });
 
-    // Start multi-sensory experience
     await Promise.all([
       this.playSound(fullConfig.soundId),
       this.playHaptic(fullConfig.hapticPattern),
