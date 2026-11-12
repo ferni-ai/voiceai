@@ -61,8 +61,8 @@ export interface FreshnessReads {
     userId: string,
     refs: readonly BriefRef[]
   ) => Promise<ReadonlyMap<string, string> | null>;
-  /** Every follow-up of theirs, closed ones included; null when unreadable. */
-  ledger: (userId: string) => Promise<readonly FollowUp[] | null>;
+  /** Every follow-up of theirs changed up to `now`, closed ones included; null when unreadable. */
+  ledger: (userId: string, now: Date) => Promise<readonly FollowUp[] | null>;
   /** Their mentions since `since`; null when unreadable. */
   mentions: (userId: string, since: Date) => Promise<readonly ItemMention[] | null>;
   /** Spends the mentions behind items the brief left out. */
@@ -131,7 +131,7 @@ export async function freshDay<T extends { refs?: DayRefs } & Record<List, reado
   const since = new Date(now.getTime() - ASK_SPACING_MS);
   const [current, ledger, mentions] = await Promise.all([
     orUnknown('current', () => reads.current(userId, listed)),
-    orUnknown('ledger', () => reads.ledger(userId)),
+    orUnknown('ledger', () => reads.ledger(userId, now)),
     orUnknown('mentions', () => reads.mentions(userId, since)),
   ]);
   const facts: Facts = {

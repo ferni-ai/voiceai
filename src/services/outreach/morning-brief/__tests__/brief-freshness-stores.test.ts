@@ -7,6 +7,7 @@
  * Fictional people and items only.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { apply, type FollowUp, type FollowUpEvent } from '../../../follow-through/index.js';
 import type { GuardedText, TextOutcome } from '../../guarded-text.js';
 
 type Doc = Record<string, unknown>;
@@ -107,9 +108,10 @@ function reminder(id: string, message: string, extra: Doc = {}): void {
   fake.put(mine('reminders'), id, { userId: OWNER, message, scheduledFor: '2026-10-18T20:00:00.000Z', status: 'pending', ...extra }); // prettier-ignore
 }
 
-/** A follow-up for reminder `ref`, closed on a call yesterday evening. */
-function closedYesterday(ref: string, text: string): void {
-  fake.put(mine('follow_through'), `f-${ref}`, {
+/** Reminder `ref`'s follow-up, taken through the real follow-up transitions and stored. */
+function followUp(ref: string, text: string, steps: Array<[FollowUpEvent, string]>): void {
+  let f: FollowUp = {
+    id: `f-${ref}`,
     userId: OWNER,
     kind: 'reminder',
     text,
@@ -117,13 +119,22 @@ function closedYesterday(ref: string, text: string): void {
     zone: 'America/Chicago',
     repeat: null,
     source: { store: 'reminders', ref },
-    status: 'done',
+    status: 'open',
     surfaced: [],
     createdAt: HOURS(400),
-    updatedAt: HOURS(14),
-    closedAt: HOURS(14),
-  });
+    updatedAt: HOURS(400),
+  };
+  for (const [event, at] of steps) {
+    const next = apply(f, event, new Date(at));
+    if (!next.success) throw new Error(next.error);
+    f = next.data;
+  }
+  fake.put(mine('follow_through'), f.id, { ...f });
 }
+
+/** Raised on a call yesterday evening and closed there. */
+const closedYesterday = (ref: string, text: string): void =>
+  followUp(ref, text, [[{ type: 'surface', via: 'in-call' }, HOURS(15)], [{ type: 'done' }, HOURS(14)]]); // prettier-ignore
 
 async function brief(env: Record<string, string> = {}) {
   const sendText = vi.fn(async (_t: GuardedText): Promise<TextOutcome> => ({ sent: true }));
@@ -150,14 +161,34 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('freshness gate on its real reads', () => {
-  it('(b) a follow-up closed on a call yesterday keeps its reminder out of today', async () => {
+  it('(b) closed on a call, answered done by text, raised 10 h ago: none of them is listed', async () => {
     reminder('r1', 'Water the ferns');
-    reminder('r2', 'Return the library books');
+    reminder('r2', 'Pick up the dry cleaning');
+    reminder('r3', 'Order more printer ink');
+    reminder('r4', 'Return the library books');
     closedYesterday('r1', 'Water the ferns');
+    // No text-reply writer on main yet: this is the state the follow-up texts would leave.
+    followUp('r2', 'Pick up the dry cleaning', [[{ type: 'surface', via: 'text' }, HOURS(30)], [{ type: 'done' }, HOURS(28)]]); // prettier-ignore
+    followUp('r3', 'Order more printer ink', [[{ type: 'surface', via: 'in-call' }, HOURS(10)]]);
+    const { body } = await brief();
+    expect(body).toContain('Return the library books');
+    for (const gone of ['Water the ferns', 'Pick up the dry cleaning', 'Order more printer ink'])
+      expect(body).not.toContain(gone);
+    expect(runLines[0].dropped).toEqual({ 'ledger-closed': 2, 'ledger-recent': 1 });
+  });
+
+  it('(b) the ledger reads up to now: closed 5 min ago, or stamped 30 s ahead of this clock', async () => {
+    const SECONDS = (n: number) => new Date(EIGHT_AM.getTime() + n * 1000).toISOString();
+    reminder('r1', 'Water the ferns');
+    reminder('r2', 'Pick up the dry cleaning');
+    reminder('r4', 'Return the library books');
+    followUp('r1', 'Water the ferns', [[{ type: 'surface', via: 'in-call' }, HOURS(1)], [{ type: 'done' }, SECONDS(-300)]]); // prettier-ignore
+    followUp('r2', 'Pick up the dry cleaning', [[{ type: 'surface', via: 'in-call' }, HOURS(1)], [{ type: 'done' }, SECONDS(30)]]); // prettier-ignore
     const { body } = await brief();
     expect(body).toContain('Return the library books');
     expect(body).not.toContain('Water the ferns');
-    expect(runLines[0].dropped).toEqual({ 'ledger-closed': 1 });
+    expect(body).not.toContain('Pick up the dry cleaning');
+    expect(runLines[0].dropped).toEqual({ 'ledger-closed': 2 });
   });
 
   it('(f) every item already dealt with: no text, no push, counted as all-stale', async () => {

@@ -231,10 +231,11 @@ async function currentVersions(
   return new Map(known.flat().map((i) => [keyOf(i.ref), i.ref.version ?? '']));
 }
 
-// The whole ledger. changedBetween compares ISO strings: the largest Date prints '+275760-…',
-// which sorts before '2026-…', so with it as the end no follow-up was ever in range.
+// changedBetween compares stored ISO strings with the bounds' ISO strings, so both bounds are
+// real times: a far-future end ('+275760-…' for the largest Date) sorts before '2026-…' and
+// matched nothing. The end is now, plus a minute for a clock running ahead of this server.
 const LEDGER_FROM = new Date(0);
-const LEDGER_TO = new Date('9999-12-31T23:59:59.999Z');
+const CLOCK_SKEW_MS = 60_000;
 
 /** The freshness gate's reads (freshness.ts); each failure is that rule not applying. */
 function freshnessReads(): FreshnessReads {
@@ -242,8 +243,12 @@ function freshnessReads(): FreshnessReads {
   return {
     current: (userId, refs) => currentVersions(userId, refs),
     // Everything they have, closed included: a follow-up closed in a call keeps its todo out.
-    ledger: async (userId) =>
-      (await firestoreFollowUpStore()?.changedBetween(userId, LEDGER_FROM, LEDGER_TO)) ?? null,
+    ledger: async (userId, now) =>
+      (await firestoreFollowUpStore()?.changedBetween(
+        userId,
+        LEDGER_FROM,
+        new Date(now.getTime() + CLOCK_SKEW_MS)
+      )) ?? null,
     mentions: async (userId, since) => (await mentions?.recent(userId, since)) ?? null,
     consume: async (userId, sources) => mentions?.consume(userId, sources),
   };
