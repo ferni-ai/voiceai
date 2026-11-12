@@ -430,13 +430,11 @@ export function createLogger(bindings: Record<string, unknown>): FallbackLogger 
 // ============================================================================
 
 /**
- * Check if full (non-truncated) logging is enabled.
- *
- * Both must hold: LOG_FULL_RESPONSES=true, and this is a dev process (it uses a
- * Firestore database other than prod's '(default)': the dev agent, PR previews, a
- * local run on ferni-dev). Prod images run NODE_ENV=production on dev as well, so
- * NODE_ENV cannot tell them apart; the database can, and a process that does not
- * set it counts as prod. LOG_FULL_RESPONSES alone never turns text on in prod.
+ * True when LOG_FULL_RESPONSES lifts the truncation of logged text. It only counts on a
+ * dev process (one that uses a Firestore database other than prod's '(default)': the dev
+ * agent, PR previews, a local run on ferni-dev). Prod images run NODE_ENV=production on
+ * dev as well, so NODE_ENV cannot tell them apart; the database can, and a process that
+ * does not set it counts as prod. LOG_FULL_RESPONSES alone never brings text back in prod.
  *
  * WARNING: This can produce very large log output. Only use for debugging.
  */
@@ -447,15 +445,16 @@ export function isFullLoggingEnabled(
 }
 
 /**
- * Ferni's own words (a reply, TTS text, LLM output) for a log line: how long it is
- * everywhere, e.g. `[148 chars]`, and the text itself only when isFullLoggingEnabled().
- * Reply text can echo what the caller said or their name, so a logged reply is a
- * logged caller.
+ * Ferni's own words (a reply, TTS text, LLM output) for a log line. Prod logs how long it
+ * is, e.g. `[148 chars]`, and never the text: a reply can echo what the caller said or their
+ * name, so a logged reply is a logged caller. A dev process (isNonProdDatabase) logs the
+ * text, cut at `maxLength` unless isFullLoggingEnabled().
  */
-export function replyForLog(text: string | undefined | null): string {
+export function replyForLog(text: string | undefined | null, maxLength = 300): string {
   if (!text) return '[0 chars]';
-  if (!isFullLoggingEnabled()) return `[${text.length} chars]`;
-  return text;
+  if (!isNonProdDatabase()) return `[${text.length} chars]`;
+  if (isFullLoggingEnabled() || text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}...`;
 }
 
 /**

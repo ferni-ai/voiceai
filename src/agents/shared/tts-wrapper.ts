@@ -685,7 +685,7 @@ export async function wrappedTtsNode(
           log.info(
             {
               trace: 'E2E_LLM_OUTPUT',
-              rawOutput: replyForLog(rawLLMBuffer),
+              rawOutput: replyForLog(rawLLMBuffer, 500),
               fullLength: rawLLMBuffer.length,
               containsJson,
               containsWeather,
