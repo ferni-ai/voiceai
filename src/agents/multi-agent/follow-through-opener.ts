@@ -37,16 +37,16 @@
 import {
   apply,
   closeFromReply,
+  closeSourceItem,
+  contentWords,
+  mentionsItem,
+  namesItem,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
   type ReplyVerdict,
-} from '../../services/follow-through/index.js';
-import {
-  closeSourceItem,
   type SourceClosers,
-} from '../../services/follow-through/close-to-source.js';
-import { contentWords, mentionsItem, namesItem } from '../../services/follow-through/item-match.js';
+} from '../../services/follow-through/index.js';
 import { envForCaller } from '../../services/platform/cohort-flags.js';
 import type { CohortStore } from '../../services/platform/cohort-firestore.js';
 import { firestoreSourceClosers } from '../../services/stores/source-closers.js';

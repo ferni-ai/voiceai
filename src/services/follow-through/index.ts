@@ -57,3 +57,5 @@ export {
   type HeldSource,
   type HoldingView,
 } from './holding.js';
+export { closeSourceItem, type SourceClosers } from './close-to-source.js';
+export { contentWords, mentionsItem, namesItem } from './item-match.js';
