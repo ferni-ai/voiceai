@@ -16,7 +16,7 @@ import { join } from 'path';
 export type RunFn = (
   cmd: string,
   args: readonly string[],
-  opts: { stdio: 'inherit' }
+  opts: { stdio: 'inherit'; env?: NodeJS.ProcessEnv }
 ) => Pick<SpawnSyncReturns<Buffer>, 'status'>;
 
 export interface UsersAdminDeps {
@@ -33,9 +33,16 @@ function flagValue(args: readonly string[], name: string, fallback: string): str
   return args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) || fallback;
 }
 
-function runScript(deps: UsersAdminDeps, script: string, args: readonly string[]): void {
+/** `env` is added to this process's environment for the script only. */
+function runScript(
+  deps: UsersAdminDeps,
+  script: string,
+  args: readonly string[],
+  env?: Record<string, string>
+): void {
   (deps.run ?? defaultRun)('npx', ['tsx', join(deps.scriptsDir, script), ...args], {
     stdio: 'inherit',
+    ...(env && { env: { ...process.env, ...env } }),
   });
 }
 
@@ -81,7 +88,9 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
       return;
     case 'dump':
       if (requireArg(target, 'ferni users dump <userId>')) {
-        runScript(deps, 'full-user-dump.ts', [`--user=${target}`]);
+        // The script reads its target from FERNI_USER_ID and refuses any id not in
+        // MEMORY_EVAL_ALLOWED_UIDS (scripts/lib/allowed-uid.ts).
+        runScript(deps, 'full-user-dump.ts', [], { FERNI_USER_ID: target });
       }
       return;
     case 'grant':
@@ -107,7 +116,7 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
 
   ferni users list [--limit=N]       List users
   ferni users show <email>           Show user details
-  ferni users dump <userId>          Full user data dump
+  ferni users dump <userId>          Full user data dump (userId must be in MEMORY_EVAL_ALLOWED_UIDS)
   ferni users grant <email>          Grant access to a user
   ferni users find-rich              Find users with rich data
   ferni users cleanup [--execute]    Delete anonymous Auth users (dry run by default)
