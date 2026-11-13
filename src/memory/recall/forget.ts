@@ -302,9 +302,10 @@ export async function forgottenTopics(
 /**
  * Take forgotten dynamic facts out of the indexes recall searches: the memory
  * tool's (now, not at the next re-index, user-memory-indexer.ts;
- * recallFromMemory also checks by id meanwhile) and the graph sync's copy
- * (spanner-graph insertFact), read by per-turn memory search. Call after the
- * facts are marked forgotten with syncedToSpanner: false.
+ * recallFromMemory also checks by id meanwhile) and the semantic memory
+ * index, read by per-turn memory search. The graph sync that copied facts
+ * into that index has been removed; this still removes any copy it left.
+ * Call after the facts are marked forgotten with syncedToSpanner: false.
  */
 export async function removeIndexCopies(userId: string, factIds: string[]): Promise<void> {
   if (factIds.length === 0) return;
@@ -379,8 +380,9 @@ export const firestoreForgetStore: ForgetStore = {
     for (let i = 0; i < refs.length; i += 400) {
       const batch = db.batch();
       for (const r of refs.slice(i, i + 400)) {
-        // A fact already copied to the graph store is picked up by the next
-        // sync again (firestore-spanner-sync.ts), which removes the copy.
+        // syncedToSpanner: false was the mark that sent a fact back through the
+        // graph sync, which removed its copy. That sync has been removed and
+        // nothing picks the mark up now; mayHaveGraphCopy still reads the field.
         const resync =
           r.collection === 'dynamic_facts'
             ? { syncedToSpanner: false, ...withoutDerivedCopies() }
