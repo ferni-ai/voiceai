@@ -7,11 +7,11 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const logged = vi.hoisted(() => ({ info: vi.fn() }));
+const logged = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = {
     info: logged.info,
-    warn: vi.fn(),
+    warn: logged.warn,
     error: vi.fn(),
     debug: vi.fn(),
     trace: vi.fn(),
@@ -21,6 +21,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
 
 import { detectCrisis, sessionSeverityOf } from '../crisis-guard.js';
 import { LIVE_FORMS, resolveMeansInHandMode } from '../crisis-means-in-hand.js';
+import { resolveMeansNominateMode } from '../crisis-means-nominate.js';
 import { noteMeansInHandShadow, readsImminentLive, tierOf } from '../crisis-means-shadow.js';
 import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
 
@@ -31,6 +32,34 @@ const imminent = (r: { indicators: string[] }) => r.indicators.includes('imminen
 
 beforeEach(() => logged.info.mockClear());
 afterEach(() => vi.unstubAllEnvs());
+
+describe('CRISIS_MEANS_NOMINATE: live or off, nothing read quietly as something else', () => {
+  it.each([
+    [undefined, 'off'],
+    ['off', 'off'],
+    ['live', 'live'],
+    [' LIVE ', 'live'],
+  ])('%s reads %s, with no warning', (value, mode) => {
+    const warn = vi.fn();
+    expect(resolveMeansNominateMode({ CRISIS_MEANS_NOMINATE: value }, warn)).toBe(mode);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it.each(['on', 'shadow', 'true', 'liv'])("'%s' is off, and warned once by value", (value) => {
+    const warn = vi.fn();
+    expect(resolveMeansNominateMode({ CRISIS_MEANS_NOMINATE: value }, warn)).toBe('off');
+    expect(resolveMeansNominateMode({ CRISIS_MEANS_NOMINATE: value }, warn)).toBe('off');
+    expect(warn.mock.calls).toEqual([[value]]);
+  });
+
+  it('the default warning goes to the log, naming the value and the flag', () => {
+    expect(resolveMeansNominateMode({ CRISIS_MEANS_NOMINATE: 'enabled' })).toBe('off');
+    expect(logged.warn).toHaveBeenCalledWith(
+      { value: 'enabled', flag: 'CRISIS_MEANS_NOMINATE' },
+      'unknown flag value, read as off'
+    );
+  });
+});
 
 describe('the mode and the live set', () => {
   it('is shadow unless set to off or live', () => {
@@ -52,6 +81,8 @@ describe('the mode and the live set', () => {
         'took_dose',
       ].sort()
     );
+    expect(LIVE_FORMS.has('taking_now')).toBe(false);
+    expect(LIVE_FORMS.has('means_in_hand')).toBe(false);
   });
 
   it.each(['the noose is around my neck', "i have the pills right here and i'm taking them now"])(
@@ -115,6 +146,17 @@ describe('the shadow log names the tier and the form, never the words', () => {
     const liveForm = 'the noose is around my neck';
     expect(noteMeansInHandShadow('c', live(liveForm), { text: liveForm }, {})).toBeNull();
     expect(logged.info).not.toHaveBeenCalled();
+  });
+
+  it('a nominating form with CRISIS_MEANS_NOMINATE off: the form and the tier, never the words', () => {
+    const env = { CRISIS_MEANS_IN_HAND: 'live' };
+    const said = 'i have a bottle of pills and i want to take them all';
+    const got = noteMeansInHandShadow('call-2', live(said), { text: said }, env);
+    expect(got).toEqual({ tier: 'crisis', form: 'supply_and_intent' });
+    const [fields] = logged.info.mock.calls[0] as [Record<string, unknown>];
+    expect(Object.keys(fields).sort()).toEqual(['form', 'reader', 'sessionId', 'tier']);
+    const text = JSON.stringify(logged.info.mock.calls);
+    for (const word of ['bottle', 'pills', 'take them']) expect(text).not.toContain(word);
   });
 
   it('names the tiers by what the caller hears', () => {

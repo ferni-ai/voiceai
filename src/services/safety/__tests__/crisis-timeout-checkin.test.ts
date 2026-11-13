@@ -241,3 +241,58 @@ describe('false alarms on the public non-crisis corpora', () => {
     expect(await hits(all)).toBeLessThanOrEqual(ceiling);
   });
 });
+
+describe('checkin.turn: whether a pattern-guided reply still gets the ending', () => {
+  const GUIDE = { action: 'guide', guidance: 'pattern guidance' };
+  const NONE: Read = { risk: 'none', subject: 'self' };
+  /** `ends` for a guided turn on UNSAFE whose read failed, unless the case says otherwise. */
+  const ends = (
+    turn: {
+      read?: Read;
+      decision?: { action: string; about?: string };
+      reask?: boolean;
+      latest?: string;
+      env?: Record<string, string | undefined>;
+      next?: { action: string } | null;
+    } = {}
+  ) =>
+    checkin.turn(
+      Promise.resolve('read' in turn ? turn.read : null),
+      {
+        decision: turn.decision ?? GUIDE,
+        reask: turn.reask,
+        latest: turn.latest ?? UNSAFE,
+        env: turn.env ?? ON,
+      },
+      async () => ('next' in turn ? (turn.next ?? null) : null)
+    ).ends;
+
+  it('a failed read on check-in words: the ending, kept or eased by the escalation', async () => {
+    expect(await ends()).toBe(true);
+    expect(await ends({ next: { action: 'guide' } })).toBe(true);
+  });
+
+  it.each([
+    ['the flag off', { env: { CRISIS_TIMEOUT_CHECKIN: 'off' } }],
+    ['a read that answered', { read: NONE }],
+    ['no live read', { read: undefined }],
+    ['the patterns passed (the check-in itself handles it)', { decision: PASS }],
+    ['a guide about someone else', { decision: { ...GUIDE, about: 'third_party' } }],
+    ['a re-ask', { reask: true }],
+    ['no check-in words', { latest: 'what should I cook tonight?' }],
+    ['an escalation to the script', { next: { action: 'replace' } }],
+  ] as const)('no ending: %s', async (_name, turn) => {
+    expect(await ends(turn)).toBe(false);
+  });
+
+  it('the turn keeps its decision and re-ask, and escalates as `escalation` does', async () => {
+    const turn = checkin.turn(
+      Promise.resolve(null),
+      { decision: GUIDE, reask: false, latest: UNSAFE, env: ON },
+      async () => ESCALATED
+    );
+    expect(turn.decision).toBe(GUIDE);
+    expect(turn.reask).toBe(false);
+    expect(await turn.escalation).toBe(ESCALATED);
+  });
+});

@@ -237,11 +237,11 @@ const chunkText = (chunk: unknown): string => {
 
 /**
  * A reply stream with the words code says after it: ending(said) gets the model's whole text and
- * returns what to add, or '' for nothing (the grounded screen, the timeout check-in).
+ * returns what to add, or '' for nothing (the grounded screen, the timeout check-in); it may wait.
  */
 export function withReplyEnding<T>(
   reply: ReadableStream<T>,
-  ending: (said: string) => string
+  ending: (said: string) => string | Promise<string>
 ): ReadableStream<T | string> {
   let said = '';
   return reply.pipeThrough(
@@ -250,8 +250,8 @@ export function withReplyEnding<T>(
         said += chunkText(chunk);
         controller.enqueue(chunk);
       },
-      flush(controller) {
-        const words = ending(said);
+      async flush(controller) {
+        const words = await ending(said);
         if (words) controller.enqueue(words);
       },
     })
