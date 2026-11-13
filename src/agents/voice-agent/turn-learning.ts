@@ -80,7 +80,7 @@ export interface LearningContext {
   /** Whether a story was told in the previous turn */
   wasStoryTold?: boolean;
   /** The crisis read guided, replaced or soft-checked this turn (crisis-turn-memory.ts) */
-  crisisTurn?: boolean;
+  crisisTurn: boolean;
 }
 
 export interface LearningResult {
@@ -107,12 +107,12 @@ export async function recordTurnTrustData(ctx: LearningContext): Promise<boolean
   if (!ctx.userId) {
     return false;
   }
-
   try {
     await recordTrustSystemsData({
       userId: ctx.userId,
       userText: ctx.userText,
       result: ctx.turnResult,
+      crisisTurn: ctx.crisisTurn,
     });
     return true;
   } catch {
