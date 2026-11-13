@@ -92,6 +92,37 @@ export const R3_PROBES: ReadonlyArray<readonly [item: string, answer: string]> =
   ['Pay the gas bill', 'Paid the bill for gas, done.'],
 ];
 
+/**
+ * Answers that say "done" but are not a plain completion: attempts, plans,
+ * hedges, and negations typed with a missing or odd apostrophe. The follow-up
+ * closes as on main; Ferni must not offer to take the todo off the list.
+ */
+export const UNSURE_COMPLETIONS: ReadonlyArray<readonly [item: string, answer: string]> = [
+  ['Book the dentist', 'Booking the dentist isnt done.'],
+  ['Fix the car', 'Fixing the car aint done.'],
+  ['Book the dentist', 'Cant book the dentist, done.'],
+  ['Book the dentist', 'ill book the dentist, done'],
+  ['Book the dentist', 'Won’t book the dentist, done.'],
+  ['Book the dentist', 'Didnʼt book the dentist, done.'],
+  ['Book the dentist', 'Won＇t book the dentist, done.'],
+  ['Pay the rent', 'Paying the rent this weekend, done.'],
+  ['Pay the rent', 'Paying the rent next Friday, done.'],
+  ['Book the dentist', 'Booking the dentist after work, done.'],
+  ['Pay the rent', 'Gotta pay the rent, done.'],
+  ['Fix the car', 'Wanna fix the car, done.'],
+  ['Pay the rent', 'About to pay the rent, done.'],
+  ['Book the dentist', 'Planning to book the dentist, done.'],
+  ['Book the dentist', 'Tried to book the dentist, done.'],
+  ['Pay the rent', 'Forgot to pay the rent, done.'],
+  ['Book the dentist', 'Thinking about booking the dentist, done.'],
+  ['Book the dentist', 'Probably booked the dentist, done.'],
+  ['Book the dentist', 'I think I booked the dentist, done.'],
+  ['Fix the car', 'Mostly fixed the car, done.'],
+  ['Fix the car', 'Kinda fixed the car, done.'],
+  ['Book the dentist', 'Booked the dentist, done-ish.'],
+  ['Book the dentist', 'Booked the dentist, done, I guess.'],
+];
+
 export const ASKS: readonly string[] = [
   'Nice work! Want me to take that off your list too?',
   'Love it. Want me to take "fix the car" off your list too?',

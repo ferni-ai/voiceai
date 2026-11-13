@@ -19,9 +19,16 @@ import { mentionsItem } from './item-match.js';
 /** An unanswered question lapses after this, or when the call ends, whichever comes first. */
 export const CONFIRM_TTL_MS = 24 * 60 * 60_000;
 
-/** Another clause, a question, a negation, a deferral or a hedge. */
-const HEDGED =
-  /\b(but|though|although|except|however|yet|still|instead|whereas)\b|[;?]|n't\b|'ll\b|\b(not|no|nope|never|nothing|none|cannot|later|soon|tonight|tomorrow|next (week|month)|fell through|on my list|pending|waiting|till|until|will|gonna|going to|need to|have to|almost|maybe|kinda|kind of|sort of|ish)\b/;
+/** Another clause, a question, a negation, a deferral, an attempt or a hedge. */
+const HEDGED = new RegExp(
+  [
+    String.raw`\b(but|though|although|except|however|yet|still|instead|whereas)\b`,
+    String.raw`[;?]|n't\b|'ll\b`,
+    // The same negations typed without the apostrophe.
+    String.raw`\b(isnt|aint|cant|wont|dont|didnt|wasnt|havent|hasnt|couldnt|ill)\b`,
+    String.raw`\b(not|no|nope|never|nothing|none|cannot|later|soon|tonight|tomorrow|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next (week|month)|after work|fell through|on my list|pending|waiting|till|until|will|gonna|gotta|wanna|going to|about to|need to|have to|planning|thinking|trying|tried|forgot|almost|maybe|probably|mostly|might|i think|i guess|kinda|kind of|sort of|ish)\b`,
+  ].join('|')
+);
 
 /**
  * Whether the answer leaves room for doubt ("not yet", "done, but…", "kinda"),
@@ -29,7 +36,7 @@ const HEDGED =
  * ("not doing it", "never mind") doesn't count against it.
  */
 export function hedgedAnswer(answer: string): boolean {
-  const said = answer.toLowerCase().replace(/[‘’]/g, "'");
+  const said = answer.toLowerCase().replace(/[‘’ʼ＇]/g, "'");
   return HEDGED.test(said.replace(new RegExp(RELEASE.source, 'gi'), ' '));
 }
 

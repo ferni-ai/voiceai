@@ -28,7 +28,7 @@ import type { CohortStore } from '../../../services/platform/cohort-firestore.js
 import { applyCallerFlags, forgetAgentValues } from '../../../services/platform/cohort-flags.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../../safety/crisis-gate-signal.js';
-import { ASKS, NOT_ASKS, R3_PROBES } from './follow-through-close-fixtures.js';
+import { ASKS, NOT_ASKS, R3_PROBES, UNSURE_COMPLETIONS } from './follow-through-close-fixtures.js';
 
 const opener = await import('../follow-through-opener.js');
 
@@ -181,6 +181,13 @@ describe('only the owner’s yes to the question closes the todo', () => {
     expect(writes).toEqual([{ ref: 'c1', how: 'done' }]);
   });
 
+  it('a similar todo is open too: the yes closes the one Ferni asked about, never the one the answer names', async () => {
+    seed('Call Mom');
+    ledger.push({ ...ledger[0], id: 'f-c2', text: "Call Mom's doctor", source: { store: 'commitments', ref: 'c2' } }); // prettier-ignore
+    await confirm("Called Mom's doctor, done.");
+    expect(writes).toEqual([{ ref: 'c1', how: 'done' }]);
+  });
+
   it('a let go, then yes: closed as let go', async () => {
     await confirm('Forget sending Priya the slides, let it go.', 'Yeah, go ahead.');
     expect(writes).toEqual([{ ref: 'c1', how: 'release' }]);
@@ -253,7 +260,12 @@ describe('only the owner’s yes to the question closes the todo', () => {
   it('a crisis read between the question and the yes: nothing closes', async () => {
     const l = await answer('Yep, done.');
     reply(l, ASK);
-    noteCrisisVerdictPending(session, new Promise<never>(() => { /* never settles */ })); // the classifier is still reading
+    noteCrisisVerdictPending(
+      session,
+      new Promise<never>(() => {
+        /* never settles */
+      })
+    ); // the classifier is still reading
     say(l, 'Yes.');
     await settle();
     expect(writes).toEqual([]);
@@ -278,8 +290,9 @@ describe('only the owner’s yes to the question closes the todo', () => {
 describe('when Ferni does not ask', () => {
   it.each([
     'Not yet, maybe tomorrow.',
-    'Done, but the deck still needs work.',
-    'Kinda sorted, I guess.',
+    'Done with the slides, but the deck still needs work.',
+    'Done with the slides, kinda.',
+    'Sent Priya the slides, I think, done.',
   ])(
     // prettier-ignore
     '"%s": no question',
@@ -288,6 +301,13 @@ describe('when Ferni does not ask', () => {
       expect(notes).toEqual([]);
     }
   );
+
+  it.each(UNSURE_COMPLETIONS)('%s / %s: the follow-up closes, no question', async (item, said) => {
+    seed(item);
+    await answer(said);
+    expect(ledger[0].status).toBe('done');
+    expect(notes).toEqual([]);
+  });
 
   it('already asked once (on an earlier call): no second question', async () => {
     seed(ITEM, { sourceAskedAt: '2026-10-16T23:00:00Z' });
@@ -389,6 +409,14 @@ describe('when Ferni does not ask', () => {
     reply(l, ASK);
     say(l, 'Yes.');
     await vi.waitFor(() => expect(writes).toEqual([{ ref: 'c1', how: 'done' }]));
+  });
+});
+
+describe('FOLLOW_THROUGH_OPENER is the switch for the whole listener', () => {
+  it('only "on" installs it: with the opener off nothing is raised, so nothing is asked or closed', () => {
+    expect(opener.followThroughOpenerEnabled({ FOLLOW_THROUGH_OPENER: 'on' })).toBe(true);
+    expect(opener.followThroughOpenerEnabled({ FOLLOW_THROUGH_OPENER: 'off' })).toBe(false);
+    expect(opener.followThroughOpenerEnabled({})).toBe(false);
   });
 });
 

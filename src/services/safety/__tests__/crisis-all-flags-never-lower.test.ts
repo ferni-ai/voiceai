@@ -402,6 +402,9 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   FERNI_SELF_MEMORY: 'src/agents/personas/__tests__/self-memory.test.ts',
   FERNI_STATE: 'src/agents/personas/__tests__/ferni-state.test.ts',
   FIRST_TURN_DEFER_BACKGROUND: 'src/agents/multi-agent/__tests__/first-turn-defer.test.ts',
+  // The opener asks to close a todo only when on, and never on a call with a crisis read or decision.
+  FOLLOW_THROUGH_OPENER:
+    'src/agents/multi-agent/__tests__/follow-through-opener-close-source.test.ts',
   // A forget re-check takes recall's own notes out, never a crisis note naming the topic.
   FORGET_EVERY_READER: 'src/memory/recall/__tests__/forget-every-reader.test.ts',
   FRIEND_REPAIR: 'src/agents/personas/__tests__/friend-repair.test.ts',
