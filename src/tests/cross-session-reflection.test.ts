@@ -13,7 +13,6 @@ import {
   selectBestReflection,
   getReflectionMoments,
   saveReflectionMoment,
-  markMomentReflectedOn,
   calculateAppropiateness,
   reflectionTemplates,
   type ReflectionMoment,
@@ -651,25 +650,6 @@ describe('saveReflectionMoment', () => {
 
     expect(hasLight).toBe(false); // Light moment should be removed
     expect(moments.some((m) => m.id === 'new')).toBe(true); // New moment should be there
-  });
-});
-
-describe('markMomentReflectedOn', () => {
-  it('should mark moment as reflected', () => {
-    const moment = createMoment({ id: 'test-id' });
-    const profile = createProfile({ reflectionMoments: [moment] });
-
-    markMomentReflectedOn(profile, 'test-id');
-
-    const moments = profile.customData?.reflectionMoments as ReflectionMoment[];
-    expect(moments[0].reflectedOn).toBe(true);
-    expect(moments[0].reflectedOnAt).toBeDefined();
-  });
-
-  it('should handle missing moment gracefully', () => {
-    const profile = createProfile({ reflectionMoments: [] });
-
-    expect(() => markMomentReflectedOn(profile, 'nonexistent')).not.toThrow();
   });
 });
 

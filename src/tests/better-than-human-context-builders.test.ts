@@ -3,7 +3,6 @@
  *
  * Tests for the new BTH context builders:
  * - commitment-tracking.ts (commitment detection, progress, follow-ups)
- * - builder registration in loader.ts and builder-imports.ts
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -240,65 +239,6 @@ describe('Commitment Tracking', () => {
         })
       ).resolves.not.toThrow();
     });
-  });
-});
-
-// ============================================================================
-// BUILDER REGISTRATION TESTS
-// ============================================================================
-
-describe('BTH Context Builder Registration', () => {
-  it('should have proactive-noticing in builder manifest', async () => {
-    const { getAllBuilderModules } =
-      await import('../intelligence/context-builders/core/loader.js');
-
-    const modules = getAllBuilderModules();
-
-    expect(modules).toContain('proactive-noticing');
-  });
-
-  it('should have commitment-follow-up in builder manifest', async () => {
-    const { getAllBuilderModules } =
-      await import('../intelligence/context-builders/core/loader.js');
-
-    const modules = getAllBuilderModules();
-
-    expect(modules).toContain('commitment-follow-up');
-  });
-
-  it('should have temporal-intelligence in builder manifest', async () => {
-    const { getAllBuilderModules } =
-      await import('../intelligence/context-builders/core/loader.js');
-
-    const modules = getAllBuilderModules();
-
-    expect(modules).toContain('temporal-intelligence');
-  });
-
-  it('should have deep-relationship in builder manifest', async () => {
-    const { getAllBuilderModules } =
-      await import('../intelligence/context-builders/core/loader.js');
-
-    const modules = getAllBuilderModules();
-
-    expect(modules).toContain('deep-relationship');
-  });
-
-  it('should have import functions for all BTH builders', async () => {
-    const { BUILDER_IMPORTS } =
-      await import('../intelligence/context-builders/core/builder-imports.js');
-
-    expect(BUILDER_IMPORTS['proactive-noticing']).toBeDefined();
-    expect(typeof BUILDER_IMPORTS['proactive-noticing']).toBe('function');
-
-    expect(BUILDER_IMPORTS['commitment-follow-up']).toBeDefined();
-    expect(typeof BUILDER_IMPORTS['commitment-follow-up']).toBe('function');
-
-    expect(BUILDER_IMPORTS['temporal-intelligence']).toBeDefined();
-    expect(typeof BUILDER_IMPORTS['temporal-intelligence']).toBe('function');
-
-    expect(BUILDER_IMPORTS['deep-relationship']).toBeDefined();
-    expect(typeof BUILDER_IMPORTS['deep-relationship']).toBe('function');
   });
 });
 

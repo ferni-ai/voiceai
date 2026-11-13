@@ -17,7 +17,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateId } from '../../utils/id-generator.js';
-import { clampMomentWords, momentExpireAt } from '../../utils/shared-moment-retention.js';
+import { momentExpireAt } from '../../utils/shared-moment-retention.js';
+import { callbackCandidates, momentWords } from './wordless-moments.js';
 import {
   loadRelationshipMemory,
   saveRelationshipMemory,
@@ -243,13 +244,11 @@ export class RelationshipEngine {
     const moment: SharedMoment = {
       id: generateId(),
       type,
-      summary: clampMomentWords(summary),
+      ...momentWords(type, summary, details), // none for a crisis or vulnerability moment
       sessionNumber: this.memory.totalSessions,
       timestamp: new Date(),
       expireAt: momentExpireAt(),
-      userPhrase: details?.userPhrase && clampMomentWords(details.userPhrase),
       significance: details?.significance ?? 0.5,
-      topic: details?.topic,
       callbackCount: 0,
     };
 
@@ -366,14 +365,15 @@ export class RelationshipEngine {
     // Get recent effective callbacks
     const effectiveness = this.calculateCallbackEffectiveness();
 
-    // Get moments related to current topic
+    // Get moments related to current topic (never a crisis or vulnerability one, flag on)
+    const moments = callbackCandidates(this.memory.sharedMoments);
     const relevantMoments = currentTopic
-      ? this.memory.sharedMoments.filter(
+      ? moments.filter(
           (m) =>
             m.topic?.toLowerCase().includes(currentTopic.toLowerCase()) ||
             m.summary.toLowerCase().includes(currentTopic.toLowerCase())
         )
-      : this.memory.sharedMoments;
+      : moments;
 
     // Find a good callback candidate
     for (const moment of relevantMoments.slice(-10).reverse()) {

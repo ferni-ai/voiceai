@@ -12,9 +12,9 @@
 // Re-export all sub-modules
 export { detectCulturalMoment, type CulturalMoment } from './cultural-moments.js';
 
-export { detectUserEngagement, type EngagementSignals } from './engagement-detection.js';
+export { type EngagementSignals } from './engagement-detection.js';
 
-export { getRunningJokeCallback, type RunningJoke } from './running-jokes.js';
+export { type RunningJoke } from './running-jokes.js';
 
 export { getSpontaneousThought, type SpontaneousThought } from './spontaneous-thoughts.js';
 
@@ -27,8 +27,6 @@ export {
 export { getVoiceProsodyResponse, type ProsodyResponse } from './voice-prosody.js';
 
 export { shouldInjectBackchannel, type BackchannelState } from './backchannels.js';
-
-export { verifyTopicThreading, getProactiveGoalReference } from './topic-management.js';
 
 // Consolidated export for backward compatibility
 export const HumanBehaviors = {

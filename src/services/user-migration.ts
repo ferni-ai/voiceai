@@ -326,32 +326,12 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
   }
 }
 
-/**
- * Validate a migration request.
- */
-export function validateMigrationRequest(request: Partial<MigrationRequest>): {
-  valid: boolean;
-  error?: string;
-} {
-  if (!request.deviceId) {
-    return { valid: false, error: 'Missing deviceId' };
-  }
-  if (!request.firebaseUid) {
-    return { valid: false, error: 'Missing firebaseUid' };
-  }
-  if (request.firebaseUid.length < 20) {
-    return { valid: false, error: 'Invalid firebaseUid format' };
-  }
-  return { valid: true };
-}
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
 export const userMigration = {
   migrate: migrateUserData,
-  validate: validateMigrationRequest,
   isAlreadyMigrated,
   getMigratedUid,
 };

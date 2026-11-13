@@ -8,9 +8,6 @@ This folder contains builders that integrate external data - biometrics, calenda
 
 | Builder | Purpose |
 |---------|---------|
-| `biometrics.ts` | Health and biometric data |
-| `financial-prediction.ts` | Financial context and predictions |
-| `anticipation.ts` | Anticipatory awareness |
 | `personal-journey.ts` | Life journey tracking |
 | `macos-context.ts` | macOS menubar app desktop context |
 | `outbound-call-context.ts` | On-behalf call awareness |

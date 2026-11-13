@@ -90,7 +90,7 @@ export {
 // LEGACY COMPATIBILITY
 // ============================================================================
 
-import { createLogger } from '../../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../../utils/safe-logger.js';
 import {
   detectsFunctionCallLeakage,
   getReplacementText,
@@ -112,10 +112,10 @@ export function sanitizeToolCallLeakage(text: string): string {
   if (detection.detected) {
     log.warn(
       {
-        originalText: text,
+        originalText: replyForLog(text),
         toolName: detection.toolName,
         parameter: detection.parameter,
-        value: detection.value,
+        value: replyForLog(detection.value),
         pattern: detection.pattern,
       },
       '🚨 TOOL CALL LEAKAGE DETECTED - LLM output function call text instead of calling function'

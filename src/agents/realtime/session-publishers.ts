@@ -2,6 +2,11 @@ import { createSessionBindings } from '../../utils/session-bindings.js';
 import { FrontendPublisher, type PublisherConfig, type RoomRef } from './frontend-publisher.js';
 import { wireRememberMoment } from './remember-moment-ports.js';
 import { setMemorySavedSender } from '../../tools/domains/memory/memory-saved-sender.js';
+import { flagOn, type Env } from '../../config/env-flag.js';
+import {
+  initFrontendSignal,
+  resetFrontendSignal,
+} from '../../services/communication/frontend-signal.js';
 
 const publishers = createSessionBindings<FrontendPublisher>();
 
@@ -23,10 +28,20 @@ export function getFrontendPublisher(sessionId?: string): FrontendPublisher {
 export function initializeFrontendPublisher(
   sessionId: string,
   room: RoomRef,
-  config?: PublisherConfig
+  config?: PublisherConfig,
+  env: Env = process.env
 ): FrontendPublisher {
   const publisher = new FrontendPublisher(room, config);
   publishers.bind(sessionId, publisher);
+  // The call's signals (conversation_end, wrap_up, reply tone, ...) go out through this
+  // room. Bound here, not by each entry path: the multi-agent path never registered them,
+  // so every goodbye's conversation_end found no callback and the app never hung up.
+  // APP_HANGUP_SIGNAL (kill switch, default on) off: not bound here, as before.
+  if (flagOn('APP_HANGUP_SIGNAL', env)) {
+    initFrontendSignal(sessionId, async (type, data) => {
+      if (publisher.isConnected()) await publisher.sendData(type, data ?? {});
+    });
+  }
   // A call's room is reachable from here on, so tools may announce to it (REMEMBER_MOMENT).
   wireRememberMoment(getFrontendPublisher);
   // ...and memory writers may tell it a memory was kept (memory_saved, CLIENT_SIGNALS_V2).
@@ -39,6 +54,7 @@ export function releaseFrontendPublisher(sessionId: string): void {
   const publisher = publishers.resolve(sessionId);
   publisher?.setRoom(null);
   publishers.release(sessionId);
+  resetFrontendSignal(sessionId);
 }
 
 /** Drop every session's publisher (for tests). */

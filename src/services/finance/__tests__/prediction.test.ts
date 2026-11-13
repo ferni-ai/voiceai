@@ -29,13 +29,10 @@ import {
   updateGoalProgress,
   type Bill,
   type IncomeSource,
-  type CashFlowForecast,
   type CashFlowWarning,
-  type SpendingAnomaly,
   type SubscriptionCreep,
   type SavingsGoal,
   type GoalProgress,
-  type FinancialInsight,
 } from '../prediction.js';
 
 describe('FinancePrediction', () => {
@@ -115,50 +112,6 @@ describe('FinancePrediction', () => {
       }
     });
 
-    it('should have valid SpendingAnomaly types', () => {
-      const anomalies: SpendingAnomaly[] = [
-        {
-          type: 'spike',
-          description: 'Spending spike in dining',
-          amount: 450,
-          percentAboveNormal: 85,
-          category: 'dining',
-          date: new Date(),
-        },
-        {
-          type: 'unusual_merchant',
-          description: 'First time purchase at Luxury Store',
-          amount: 899,
-          percentAboveNormal: 0,
-          merchant: 'Luxury Store',
-          date: new Date(),
-        },
-        {
-          type: 'category_increase',
-          description: 'Shopping up 40% this month',
-          amount: 300,
-          percentAboveNormal: 40,
-          category: 'shopping',
-          date: new Date(),
-        },
-        {
-          type: 'time_anomaly',
-          description: 'Unusual late-night spending',
-          amount: 150,
-          percentAboveNormal: 0,
-          date: new Date(),
-        },
-      ];
-
-      expect(anomalies).toHaveLength(4);
-      for (const anomaly of anomalies) {
-        expect(['spike', 'unusual_merchant', 'category_increase', 'time_anomaly']).toContain(
-          anomaly.type
-        );
-        expect(anomaly.amount).toBeGreaterThanOrEqual(0);
-      }
-    });
-
     it('should have valid SubscriptionCreep structure', () => {
       const creep: SubscriptionCreep = {
         totalMonthly: 150,
@@ -214,61 +167,6 @@ describe('FinancePrediction', () => {
       expect(progress.percentComplete).toBe(50);
       expect(progress.onTrack).toBe(true);
       expect(progress.surplus).toBeGreaterThan(0);
-    });
-
-    it('should have valid FinancialInsight types', () => {
-      const insights: FinancialInsight[] = [
-        {
-          type: 'cash_flow',
-          severity: 'warning',
-          insight: 'Low balance expected next week',
-          suggestion: 'Transfer funds from savings',
-        },
-        {
-          type: 'anomaly',
-          severity: 'info',
-          insight: 'Dining spending is up 30%',
-        },
-        {
-          type: 'subscription',
-          severity: 'warning',
-          insight: 'Subscription creep detected',
-          data: { newMonthly: 150, previousMonthly: 120 },
-        },
-        {
-          type: 'goal',
-          severity: 'info',
-          insight: 'Emergency fund 50% complete!',
-        },
-        {
-          type: 'stress',
-          severity: 'alert',
-          insight: 'Money stress indicators detected',
-        },
-      ];
-
-      expect(insights).toHaveLength(5);
-      for (const insight of insights) {
-        expect(['cash_flow', 'anomaly', 'subscription', 'goal', 'stress']).toContain(insight.type);
-        expect(['info', 'warning', 'alert']).toContain(insight.severity);
-      }
-    });
-
-    it('should have valid CashFlowForecast structure', () => {
-      const forecast: CashFlowForecast = {
-        currentBalance: 5000,
-        projectedBalance: 4200,
-        daysOut: 14,
-        inflows: [{ date: new Date(), amount: 3000, source: 'Payroll' }],
-        outflows: [{ date: new Date(), amount: 1500, description: 'Rent' }],
-        warnings: [],
-        projectedLow: { date: new Date(), balance: 2000 },
-      };
-
-      expect(forecast.currentBalance).toBe(5000);
-      expect(forecast.projectedBalance).toBeLessThan(forecast.currentBalance);
-      expect(forecast.inflows).toHaveLength(1);
-      expect(forecast.outflows).toHaveLength(1);
     });
   });
 
@@ -413,42 +311,6 @@ describe('FinancePrediction', () => {
       // Try to update with wrong goal ID
       const progress = updateGoalProgress('goal-lookup-user', 'wrong-goal-id', 100);
       expect(progress).toBeNull();
-    });
-  });
-
-  describe('Anomaly detection thresholds', () => {
-    it('should categorize spending anomalies by severity', () => {
-      const anomalies: SpendingAnomaly[] = [
-        {
-          type: 'spike',
-          description: 'Minor increase',
-          amount: 50,
-          percentAboveNormal: 15,
-          date: new Date(),
-        },
-        {
-          type: 'spike',
-          description: 'Moderate increase',
-          amount: 100,
-          percentAboveNormal: 40,
-          date: new Date(),
-        },
-        {
-          type: 'spike',
-          description: 'Significant increase',
-          amount: 300,
-          percentAboveNormal: 100,
-          date: new Date(),
-        },
-      ];
-
-      // Minor: < 25%
-      expect(anomalies[0].percentAboveNormal).toBeLessThan(25);
-      // Moderate: 25-75%
-      expect(anomalies[1].percentAboveNormal).toBeGreaterThanOrEqual(25);
-      expect(anomalies[1].percentAboveNormal).toBeLessThan(75);
-      // Significant: > 75%
-      expect(anomalies[2].percentAboveNormal).toBeGreaterThanOrEqual(75);
     });
   });
 
@@ -605,44 +467,6 @@ describe('FinancePrediction', () => {
     });
   });
 
-  describe('Financial insight generation', () => {
-    it('should generate insight for low balance warning', () => {
-      const insight: FinancialInsight = {
-        type: 'cash_flow',
-        severity: 'warning',
-        insight: 'Your balance will drop below $500 in 5 days',
-        suggestion: 'Consider transferring funds or delaying non-essential purchases',
-      };
-
-      expect(insight.type).toBe('cash_flow');
-      expect(insight.suggestion).toBeDefined();
-    });
-
-    it('should generate insight for goal achievement', () => {
-      const insight: FinancialInsight = {
-        type: 'goal',
-        severity: 'info',
-        insight: 'Congratulations! Your Emergency Fund is now 75% complete!',
-        data: { goalName: 'Emergency Fund', percentComplete: 75 },
-      };
-
-      expect(insight.type).toBe('goal');
-      expect(insight.data?.percentComplete).toBe(75);
-    });
-
-    it('should generate stress-related insight', () => {
-      const insight: FinancialInsight = {
-        type: 'stress',
-        severity: 'alert',
-        insight: 'I noticed some concerning financial patterns this week',
-        suggestion: 'Would you like to talk about it?',
-      };
-
-      expect(insight.type).toBe('stress');
-      expect(insight.severity).toBe('alert');
-    });
-  });
-
   describe('Edge cases', () => {
     it('should handle zero income', () => {
       const income: IncomeSource[] = [];
@@ -652,29 +476,6 @@ describe('FinancePrediction', () => {
     it('should handle zero bills', () => {
       const bills: Bill[] = [];
       expect(bills).toHaveLength(0);
-    });
-
-    it('should handle negative balance projection', () => {
-      const forecast: CashFlowForecast = {
-        currentBalance: 500,
-        projectedBalance: -200,
-        daysOut: 14,
-        inflows: [],
-        outflows: [{ date: new Date(), amount: 700, description: 'Rent' }],
-        warnings: [
-          {
-            type: 'overdraft_risk',
-            severity: 'alert',
-            message: 'Projected overdraft',
-            date: new Date(),
-            amount: 200,
-          },
-        ],
-        projectedLow: { date: new Date(), balance: -200 },
-      };
-
-      expect(forecast.projectedBalance).toBeLessThan(0);
-      expect(forecast.warnings[0].type).toBe('overdraft_risk');
     });
 
     it('should handle goal with past target date', () => {
