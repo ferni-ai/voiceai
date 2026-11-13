@@ -55,8 +55,12 @@ export const EASY_QUESTION =
   '"what\'s on your mind" or "what brings you", which ask for a reason to call, and not ' +
   '"how are you holding up", which assumes something is wrong.';
 
-/** `en` alone, or leading with `en-` or `en_`, any case: "eng", "end" and "english" are not. */
-const ENGLISH_TAG = /^en(?:[-_]|$)/i;
+/**
+ * A well-formed English tag, any case: `en`, then any number of subtags, each `-` or `_` and
+ * 1 to 8 letters or digits (en-US, en_GB, en-US-x-private). Not English: "eng", "english",
+ * and malformed tags that start with en ("en-", "en--US", "en-US-", "en-!!", " en").
+ */
+const ENGLISH_TAG = /^en(?:[-_][a-z0-9]{1,8})*$/i;
 
 /**
  * The easy question reaches English calls only (owner decision, 2026-11-13). Dev A/B, 90 Spanish first

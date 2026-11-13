@@ -71,6 +71,36 @@ describe('callLocales', () => {
   });
 });
 
+describe('what a real call does with odd tags (applyCallOrigin, then the gate)', () => {
+  // applyCallOrigin trims each tag and drops empty ones before the gate sees them.
+  it.each([
+    ['"en-"', 'en-', false, false],
+    ['"en_"', 'en_', false, false],
+    ['"en-!!garbage"', 'en-!!garbage', false, false],
+    ['"en--US"', 'en--US', false, false],
+    ['"en-US-"', 'en-US-', false, false],
+    ['"english"', 'english', false, false],
+    ['" en" (trimmed to en)', ' en', true, true],
+    ['"en " (trimmed to en)', 'en ', true, true],
+    ['"" (dropped)', '', false, true],
+    ['"   " (dropped)', '   ', false, true],
+  ])('%s: alone, then beside en-US', (_name, tag, alone, besideEnglish) => {
+    expect(easy(callLocales({ locale: tag }))).toBe(alone);
+    expect(easy(callLocales({ locale: tag, locales: ['en-US'] }))).toBe(besideEnglish);
+    expect(easy(callLocales({ locale: 'en-US', locales: [tag] }))).toBe(besideEnglish);
+  });
+
+  it.each([
+    ['no locale, no locales', {}],
+    ['an empty locales list', { locales: [] }],
+    ['an empty locale and an empty list', { locale: '', locales: [] }],
+    ['locales not a list', { locales: 'en-US' }],
+  ])('%s: no tags, so the old string', (_name, metadata) => {
+    expect(callLocales(metadata)).toEqual([]);
+    expect(easy(callLocales(metadata))).toBe(false);
+  });
+});
+
 describe('applyCallOrigin', () => {
   it('puts the tags and the IP city on userData', () => {
     const userData: Record<string, unknown> = {};

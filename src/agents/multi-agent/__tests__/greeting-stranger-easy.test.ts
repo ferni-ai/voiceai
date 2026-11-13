@@ -157,6 +157,7 @@ describe('STRANGER_GREETING_EASY reaches English calls only', () => {
     ['upper case', ['EN-us']],
     ['upper case, no region', ['EN']],
     ['underscore region', ['en_GB']],
+    ['private-use subtags', ['en-US-x-private']],
   ])('%s: the easy question', (_name, locales) => {
     expect(greetingDirection('ferni', ON, { firstCall: true, locales })).toContain(EASY_QUESTION);
     expect(greetingDirection('ferni', ON, { unplaced: true, locales })).toContain(EASY_QUESTION);
@@ -181,6 +182,40 @@ describe('STRANGER_GREETING_EASY reaches English calls only', () => {
       STRANGER_GREETING_DIRECTION
     );
     expect(greetingDirection('ferni', ON, { unplaced: true, locales })).toBe(
+      UNPLACED_GREETING_DIRECTION
+    );
+  });
+
+  // Malformed tags as the gate sees them (applyCallOrigin trims and drops "" before the live
+  // gate: call-locales.test.ts pins what a real call does with these).
+  const MALFORMED = [
+    'en-',
+    'en_',
+    'en-!!garbage',
+    'en--US',
+    'en-US-',
+    'english',
+    ' en',
+    'en ',
+    '',
+    'eng',
+    'fr',
+  ];
+
+  it.each(MALFORMED)('%j alone: the old string, byte for byte', (tag) => {
+    expect(greetingDirection('ferni', ON, { firstCall: true, locales: [tag] })).toBe(
+      STRANGER_GREETING_DIRECTION
+    );
+    expect(greetingDirection('ferni', ON, { unplaced: true, locales: [tag] })).toBe(
+      UNPLACED_GREETING_DIRECTION
+    );
+  });
+
+  it.each(MALFORMED)('%j beside en-US: the old string, byte for byte', (tag) => {
+    expect(greetingDirection('ferni', ON, { firstCall: true, locales: ['en-US', tag] })).toBe(
+      STRANGER_GREETING_DIRECTION
+    );
+    expect(greetingDirection('ferni', ON, { unplaced: true, locales: [tag, 'en-US'] })).toBe(
       UNPLACED_GREETING_DIRECTION
     );
   });
