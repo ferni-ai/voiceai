@@ -157,7 +157,7 @@ const ALL_MOMENTS = [
   'moment:deep_conversation',
 ];
 /** Words that make every unified moment fire on a sad, intense turn (with LONG in front). */
-const EVERY_MOMENT = HAPPY + 'i admit i was scared, ';
+const EVERY_MOMENT = `${HAPPY}i admit i was scared, `;
 
 interface Crisis {
   isCrisis: boolean;
@@ -327,7 +327,7 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
   });
 
   it('records every unified moment type on a turn the read passes', async () => {
-    const turn = await runTurn(LONG + EVERY_MOMENT + 'and today was a good day', LIVE, NO_RISK);
+    const turn = await runTurn(`${LONG}${EVERY_MOMENT}and today was a good day`, LIVE, NO_RISK);
     expect(turn.level).toBe('pass');
     for (const moment of ALL_MOMENTS) expect(turn.writes, moment).toContain(moment);
   });

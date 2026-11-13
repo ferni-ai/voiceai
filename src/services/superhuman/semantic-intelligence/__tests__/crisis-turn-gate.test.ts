@@ -32,13 +32,25 @@ vi.mock('../counterfactual-memory.js', recorders('counterfactual', ['recordDecis
 vi.mock('../growth-fingerprint.js', recorders('growth', ['recordConversationData']));
 vi.mock('../cross-session-threading.js', recorders('threading', ['recordMoment']));
 vi.mock('../llm-detector.js', recorders('llm', ['extractPersonsHybrid', 'detectAdviceHybrid']));
-vi.mock('../advice-matcher.js', recorders('embeddings', ['findMatchingAdvice', 'precomputeAdviceEmbeddings']));
+vi.mock(
+  '../advice-matcher.js',
+  recorders('embeddings', ['findMatchingAdvice', 'precomputeAdviceEmbeddings'])
+);
 vi.mock('../open-loops.js', recorders('openLoops', ['processUserTextForLoops']));
 vi.mock('../relationship-graph.js', recorders('graph', ['upsertPerson']));
 vi.mock('../temporal-patterns.js', recorders('temporal', ['recordSnapshot']));
-vi.mock('../behavioral-intelligence.js', recorders('behavioral', ['updateBaseline', 'recordPotentialSabotage']));
-vi.mock('../coaching-intelligence.js', recorders('coaching', ['updateLearningStyle', 'recordDeflection']));
-vi.mock('../self-awareness.js', recorders('selfAwareness', ['recordDistortions', 'recordSelfPerception']));
+vi.mock(
+  '../behavioral-intelligence.js',
+  recorders('behavioral', ['updateBaseline', 'recordPotentialSabotage'])
+);
+vi.mock(
+  '../coaching-intelligence.js',
+  recorders('coaching', ['updateLearningStyle', 'recordDeflection'])
+);
+vi.mock(
+  '../self-awareness.js',
+  recorders('selfAwareness', ['recordDistortions', 'recordSelfPerception'])
+);
 vi.mock(
   '../../../conversation-thread/superhuman-outreach-intelligence.js',
   recorders('outreach', ['accumulateSignal'])
@@ -54,7 +66,8 @@ function turn(crisisTurn: boolean | undefined): TurnSemanticData {
     sessionId: 'session-gate-1',
     personaId: 'ferni',
     turnNumber: 3,
-    userText: "My sister Priya and I keep arguing about the garden, I've decided to call her tonight.",
+    userText:
+      "My sister Priya and I keep arguing about the garden, I've decided to call her tonight.",
     topic: 'family',
     textEmotion: 'sad',
     textEmotionIntensity: 0.8,

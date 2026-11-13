@@ -96,10 +96,13 @@ describe('moment recorder on a crisis turn', () => {
 });
 
 describe('moment recorder on any other turn (as on main)', () => {
-  it.each(TYPES)('a %s moment keeps its phrase, records and sends the bond signal', async (type) => {
-    const turn = await recordOne(type, false);
-    expect(turn.phrases).toEqual([{ type, userPhrase: LINE }]);
-    expect(turn.serviceRecords).toEqual([LINE]);
-    expect(turn.sent).toEqual(['humanization_signal']);
-  });
+  it.each(TYPES)(
+    'a %s moment keeps its phrase, records and sends the bond signal',
+    async (type) => {
+      const turn = await recordOne(type, false);
+      expect(turn.phrases).toEqual([{ type, userPhrase: LINE }]);
+      expect(turn.serviceRecords).toEqual([LINE]);
+      expect(turn.sent).toEqual(['humanization_signal']);
+    }
+  );
 });
