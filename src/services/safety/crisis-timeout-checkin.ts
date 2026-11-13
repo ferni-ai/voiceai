@@ -11,9 +11,10 @@
  * silent: when the reply lacks 988 or a safety question, code says them after it
  * (withCheckinEnding).
  *
- * A plain denial ("i'm not going to hurt myself") is not a reason to check in, but only in a line
- * that neither hedges, limits it in time, turns on a contrast nor asks; one mention the caller
- * does not deny keeps the check-in.
+ * A plain denial ("i'm not going to hurt myself") is not a reason to check in, but only when the
+ * line is that denial and nothing more (a "lol", "i'm good" or "promise" aside) and nothing on the
+ * call carried risk before it. Anything else keeps the check-in: a false check-in is far cheaper
+ * than a missed one.
  *
  * Only adds: never on a turn the patterns, a gentle offer or a re-ask already handle, and never
  * when the classifier answered (a "none" is a read). Notes no call risk; logs counts only.
@@ -44,13 +45,16 @@ const EN_WORDS = [
   'suicid\\w*|kill(?:ing)? myself|kms|ctb|unaliv\\w*|sewer ?slide|want(?:ed)? to die\\b(?! (?:my|your|her|his|their|the|it)\\b)|wanna die|wish i (?:was|were) dead|better off dead',
   "end(?:ing)? (?:it all|my life|things)|take my (?:own )?life|no reason to live|better off without me|don'?t want to (?:be here|live|exist|wake up)|not (?:be|being) (?:here|around|alive) (?:anymore|tomorrow)",
   "can'?t go on (?:anymore|any ?longer|living)|can'?t (?:do|take) (?:this|it) anymore|can'?t keep going(?: like this| anymore| on)\\b",
-  `can'?t go on${CLAUSE_END}`,
-  `nothing (?:left )?to live for|no point (?:in )?(?:living|being alive|going on)|tired of living${CLAUSE_END}|(?:give|giving|gave|given) up on (?:life|living)`,
+  `can'?t go on${CLAUSE_END}(?![^.!?]*\\b(?:so|too) (?:full\\b(?! of)|stuffed\\b))`, // not "i'm so full"
+  `nothing (?:left )?to live for|no point (?:in )?(?:living|being alive|going on)|tired of living${CLAUSE_END}`,
+  '(?:give|giving|gave|given) up on (?:life|living)(?! (?:admin|hacks?|goals?|coaching|insurance|advice|lessons))',
   "(?:hope|wish) i (?:don'?t|never|won'?t) wake up|never want to wake up",
   '(?:want(?:ed)? to|wanna|wish i could) disappear (?:forever|for good)',
   // self-harm
   'self[- ]?harm\\w*|(?:cut|cutting|hurt|hurting|harm|harming|burn|burning|starv\\w*) myself',
-  '(?:hang|shoot|drown|stab) myself|slit my wrists?',
+  'hang myself|slit my wrists?|shoot myself(?! in the (?:foot|feet))',
+  'stab myself(?! with (?:a|my|the) (?:fork|pen|pencil|toothpick))',
+  'drown myself(?! in (?:work|homework|paperwork|coffee|chocolate|netflix))',
   // means
   'overdos\\w*(?! on\\b)|(?:all|bottle|handful|whole bunch) of (?:my |the |these |those )?(?:pills|meds|tablets)|take them all|swallow(?:ed)? (?:them|it) all|noose|razor ?blades?|gun to my',
   'jump(?:ing)? (?:off|from) (?:a|the|this|that) (?:bridge|roof|building|ledge|cliff|balcony|overpass)|in front of (?:a|the) (?:train|bus|truck|car)',
@@ -67,51 +71,74 @@ const pattern = (list: readonly string[]): RegExp => new RegExp(`\\b(?:${list.jo
 const EN = pattern(EN_WORDS);
 const ES = pattern(ES_WORDS);
 
-/**
- * A plain denial right before the words: "i'm not going to hurt myself", "i would never kill
- * myself", "no thoughts of hurting myself", "no voy a hacerme daño". Wanting not to ("i don't
- * want to die"), trying not to, couldn't and didn't are not denials and stay check-ins.
- */
-const DENIED_BEFORE = new RegExp(
-  `(?:${[
-    "\\b(?:i'?m|am|will|would|i'?ll) not",
-    "\\b(?:won'?t|wouldn'?t)",
-    '\\bnever(?: (?:would|will|ever))?',
-    '\\bno (?:plans?|intention|intent|thoughts?|desire|urges?) (?:to|of|about)',
-    '\\b(?:no|nunca|jam(?:á|a)s) (?:voy a|pienso|planeo|me voy a)',
-  ].join('|')})(?: (?:ever|even))?(?: (?:going|gonna|planning|about|trying)(?: (?:to|on))?)?\\s+$`
-);
+/** Said around a plain denial and nothing more: "lol", "i'm good", "promise", "relax". */
+const FILLER = [
+  'lol\\w*',
+  'lmao',
+  'haha\\w*',
+  'jaja\\w*',
+  'ok(?:ay)?',
+  'no',
+  'nah',
+  'nope',
+  'yeah',
+  'relax',
+  'honestly',
+  'seriously',
+  '(?:i )?promise',
+  "don'?t worry",
+  'no worries',
+  "i'?m (?:good|fine|ok(?:ay)?|alright)",
+  '(?:te )?lo prometo',
+  'no te preocupes',
+  'tranquil[oa]',
+  'estoy bien',
+];
+/** Filler and plain punctuation only: no other word, no emoji, no question. */
+const AROUND = `(?:[\\s.,!]|\\b(?:${FILLER.join('|')})\\b)*`;
 
 /**
- * A line that hedges, limits a denial in time, turns on a contrast or asks keeps every check-in:
- * "i won't hurt myself tonight", "maybe i won't", "i'd never kill myself, but...".
+ * A plain denial of the words that follow: "i'm not going to", "i would never", "no thoughts of",
+ * "no voy a". Wanting not to ("i don't want to die"), trying not to, couldn't and didn't are not
+ * denials.
  */
-const HEDGED = new RegExp(
-  [
-    '\\?',
-    "\\b(?:if|unless|maybe|probably|might|hope|think|can'?t promise|cannot promise|not sure|don'?t know (?:if|whether))\\b",
-    '\\b(?:yet|tonight|today|now|again|any ?more|but|though|although)\\b',
-    '\\b(?:no s(?:é|e)|tal vez|quiz(?:á|a)s?|ojal(?:á|a)|todav(?:í|i)a|esta noche|hoy|ahora|otra vez|ya no|pero|aunque)(?![\\wáéíóúñ])',
-  ].join('|')
+const DENIAL = [
+  "(?:i'?m|i am|i will|i would|i'?ll|i'?d|am|will|would) not",
+  "(?:i'?m )?not",
+  "(?:i )?(?:won'?t|wouldn'?t)",
+  "(?:i(?:'?d|'?ll|'?m| would| will| am)? )?never(?: (?:would|will|ever))?",
+  "(?:i have |i'?ve |i got |there'?s )?no (?:plans?|intention|intent|thoughts?|desire|urges?) (?:to|of|about)",
+  '(?:yo )?(?:no|nunca|jam(?:á|a)s) (?:voy a|pienso|planeo|me voy a)',
+];
+const DENIED_BEFORE = new RegExp(
+  `^${AROUND}(?:${DENIAL.join('|')})(?: (?:ever|even))?(?: (?:going|gonna|planning|about|trying)(?: (?:to|on))?)?\\s+$`
 );
+const NOTHING_AFTER = new RegExp(`^${AROUND}$`);
 
 const wordsOf = (line: string): string =>
   line.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'");
 
-/** Words the caller plainly denies, in a line with no hedge, are not a reason to check in. */
-const denied = (words: string, at: number): boolean =>
-  DENIED_BEFORE.test(words.slice(0, at)) && !HEDGED.test(words);
+/** Every check-in word the words hold. */
+const mentions = (words: string): RegExpExecArray[] => [
+  ...words.matchAll(ES),
+  ...words.matchAll(EN),
+];
+
+/** The line is a plain denial of this mention and nothing more. */
+const plainDenial = (words: string, mention: RegExpExecArray): boolean =>
+  DENIED_BEFORE.test(words.slice(0, mention.index)) &&
+  NOTHING_AFTER.test(words.slice(mention.index + mention[0].length));
 
 /**
- * Which check-in words the caller's line holds and does not deny: 'es' for the Spanish ones, or
- * null for none. One mention that is not denied is enough.
+ * Which check-in words the caller's line holds: 'es' for Spanish ones, or null for none. A line
+ * that only plainly denies them is none, unless the call carried risk before it.
  */
-function checkinWordsIn(line: string): 'en' | 'es' | null {
+function checkinWordsIn(line: string, riskBefore = true): 'en' | 'es' | null {
   const words = wordsOf(line);
-  const said = (list: RegExp): boolean =>
-    [...words.matchAll(list)].some((m) => !denied(words, m.index ?? 0));
-  if (said(ES)) return 'es';
-  return said(EN) ? 'en' : null;
+  const found = mentions(words);
+  if (!found.length) return null;
+  if (!riskBefore && found.every((mention) => plainDenial(words, mention))) return null;
+  return [...words.matchAll(ES)].length ? 'es' : 'en';
 }
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
@@ -128,7 +155,8 @@ const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
 
 /**
  * The check-in's guidance for this turn, or null. The flag on, no verdict (the read failed), the
- * patterns read nothing, not a re-ask, and the latest caller line holds a check-in word.
+ * patterns read nothing, not a re-ask, and the latest caller line holds a check-in word that is
+ * not only plainly denied.
  */
 function timeoutCheckin(
   turn: {
@@ -136,12 +164,19 @@ function timeoutCheckin(
     decision: { action: string };
     reask?: boolean;
     latest: string;
+    /** The caller's earlier lines on this call, oldest first. */
+    earlier?: readonly string[];
+    /** Risk noted on this call before this turn (callRiskBeforeTurn); unknown counts as risk. */
+    priorRisk?: boolean;
   },
   env: Env = process.env
 ): string | null {
   if (!flagOn('CRISIS_TIMEOUT_CHECKIN', env) || turn.verdict !== null) return null;
   if (turn.decision.action !== 'pass' || turn.reask) return null;
-  if (!checkinWordsIn(turn.latest)) return null;
+  const riskBefore =
+    turn.priorRisk !== false ||
+    (turn.earlier ?? []).some((line) => mentions(wordsOf(line)).length > 0);
+  if (!checkinWordsIn(turn.latest, riskBefore)) return null;
   log.info({ action: 'guide', source: 'timeout_checkin' }, 'CRISIS_GATE'); // counts, never words
   return TIMEOUT_CHECKIN;
 }

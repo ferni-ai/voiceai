@@ -24,11 +24,21 @@ const decide = (
     decision?: { action: string };
     reask?: boolean;
     env?: Record<string, string | undefined>;
+    earlier?: string[];
+    /** Risk noted on the call before this turn: none unless given (the gate passes it). */
+    priorRisk?: boolean;
   } = {}
 ) =>
   checkin.escalation(
     Promise.resolve('read' in turn ? turn.read : null),
-    { decision: turn.decision ?? PASS, reask: turn.reask, latest, env: turn.env ?? ON },
+    {
+      decision: turn.decision ?? PASS,
+      reask: turn.reask,
+      latest,
+      earlier: turn.earlier,
+      priorRisk: 'priorRisk' in turn ? turn.priorRisk : false,
+      env: turn.env ?? ON,
+    },
     async () => ESCALATED
   );
 const checksIn = async (latest: string) => (await decide(latest))?.action === 'guide';
@@ -104,6 +114,11 @@ const WIDER_EN = [
   'i just want to disappear forever',
   'i keep thinking i should hang myself',
   'i want to slit my wrists',
+  'some nights i want to shoot myself',
+  'i thought about how i would stab myself',
+  'i want to drown myself in the lake',
+  "i'm giving up on life",
+  "i can't go on, i'm so full of regret",
 ];
 const WIDER_ES = [
   'estoy pensando en suicidarme',
@@ -122,11 +137,17 @@ const WIDER_NOT = [
   'my sister is tired of living in ohio',
   'the battery will disappear for good if you drop it', // no wanting
   'ya no puedo más con este calor',
+  // everyday idioms the wider words carve out (#3826 verify)
+  'i always shoot myself in the foot in interviews',
+  'i managed to stab myself with a fork at dinner',
+  "i'm giving up on life admin this weekend",
+  "i can't go on, i'm so full after that pasta",
+  "i can't go on, i'm too stuffed",
+  'i drown myself in work every december',
 ];
 const DENIED = [
   "i'm not going to hurt myself",
   'I would never kill myself',
-  "i'm not suicidal, just really sad",
   "i won't hurt myself, i promise",
   'i will not hurt myself',
   'i would not hurt myself',
@@ -143,6 +164,58 @@ const DENIED = [
   'no voy a hacerme daño',
   'nunca voy a matarme',
   'no pienso matarme',
+  'not suicidal',
+];
+/** One row per filler a plain denial may carry and stay plain. */
+const FILLER_ROWS = [
+  "i'm not going to hurt myself lol",
+  "i'm not gonna kill myself lmao",
+  "haha i won't hurt myself",
+  'jajaja nunca voy a matarme',
+  "ok, i'm not going to hurt myself",
+  'no, i would never hurt myself',
+  "nah i'm not suicidal",
+  'nope. not gonna hurt myself.',
+  "yeah, i'm not going to hurt myself",
+  "relax, i'm not going to kill myself",
+  "honestly i won't hurt myself",
+  "seriously, i'm not going to hurt myself!",
+  "promise i won't hurt myself",
+  "don't worry, i won't hurt myself",
+  "no worries, i'm not going to hurt myself",
+  "i'm good, i won't hurt myself",
+  "i'm fine. i'm not going to kill myself.",
+  'no voy a hacerme daño, te lo prometo',
+  'no te preocupes, no voy a matarme',
+  'tranquila, no voy a hacerme daño',
+  'estoy bien, no voy a hacerme daño',
+];
+/**
+ * Never lower (#3826 verify): a denial that says anything more keeps the check-in. A time limit,
+ * a risk clause the word list does not hold, sarcasm, or an emoji after the denied words.
+ */
+const SAYS_MORE = [
+  "i won't kill myself tomorrow",
+  'not gonna hurt myself this weekend',
+  "i won't hurt myself, at least not this week",
+  "i'm not going to kill myself until after the move",
+  "i won't hurt myself before my birthday",
+  "i won't kill myself while my mom is visiting",
+  "i'd never kill myself as long as my cat needs me",
+  "i'm not suicidal, i just want everything to stop",
+  "i'd never kill myself with the pills in my drawer",
+  "i won't hurt myself, i'd make it look like an accident",
+  "not going to overdose, i'll just take all my pills and sleep",
+  "i won't kill myself, i've already written the notes",
+  "i'm not planning to overdose, i just need enough to sleep forever",
+  "i won't hurt myself, i'd just stop eating",
+  "i won't kill myself... or will i",
+  "i'm not going to kill myself 🙃",
+  "i won't hurt myself 😂😂",
+  "i won't hurt myself, said no one ever",
+  "i'm not suicidal, just really sad",
+  "i'm not going to kill myself over this exam lol",
+  "i won't hurt myself :)",
 ];
 const KEPT = [
   "i'm not okay and i want to die",
@@ -225,9 +298,34 @@ describe('a plain denial', () => {
     expect(await said(line)).toContain('¿Estás a salvo ahora mismo?');
   });
 
-  /** One row per hedge: each turns a denial back into a check-in. */
+  it.each(FILLER_ROWS)('stays plain with filler around it: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(false);
+  });
+
+  /** A hedge is more than the denial: each keeps the check-in. */
   it.each(HEDGED_ROWS)('keeps the check-in when the line hedges: "%s"', async (line) => {
     expect(await checksIn(line)).toBe(true);
+  });
+
+  it.each(SAYS_MORE)('keeps the check-in when the line says more: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+  });
+
+  it('keeps the check-in when risk was noted on the call before, or that is unknown', async () => {
+    const line = "i'm not going to hurt myself";
+    expect(await checksIn(line)).toBe(false); // the precondition: plain on a call with no risk
+    expect((await decide(line, { priorRisk: true }))?.action).toBe('guide');
+    expect((await decide(line, { priorRisk: undefined }))?.action).toBe('guide');
+  });
+
+  it('keeps the check-in after an earlier caller line with check-in words', async () => {
+    const line = "i won't take them all, relax";
+    expect(await checksIn(line)).toBe(false);
+    const earlier = ['i have a bottle of pills here', 'whatever'];
+    expect((await decide(line, { earlier }))?.action).toBe('guide');
+    expect((await decide(line, { earlier: ['what should i cook tonight?'] }))?.action).toBe(
+      ESCALATED.action
+    );
   });
 
   it('changes nothing with the flag off: every new row goes to the gate', async () => {
@@ -236,6 +334,8 @@ describe('a plain denial', () => {
       ...WIDER_ES,
       ...WIDER_NOT,
       ...DENIED,
+      ...FILLER_ROWS,
+      ...SAYS_MORE,
       ...KEPT,
       ...KEPT_ES,
       ...HEDGED_ROWS,

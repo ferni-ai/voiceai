@@ -299,7 +299,8 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
+  const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
+  const escalation = checkin.escalation(verdictRead, checkinTurn, escalate);
   return { decision, escalation, reask };
 }
 
