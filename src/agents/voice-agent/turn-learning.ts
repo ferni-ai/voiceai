@@ -495,7 +495,7 @@ function detectCapabilityEngagement(userText: string): {
 async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
   const logger = log();
 
-  if (!ctx.userId) return;
+  if (!ctx.userId || ctx.crisisTurn !== false) return; // a crisis turn keeps no caller line
 
   const lower = ctx.userText.toLowerCase();
 
@@ -552,7 +552,7 @@ async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
 async function detectImplicitPreferences(ctx: LearningContext): Promise<void> {
   const logger = log();
 
-  if (!ctx.userId) return;
+  if (!ctx.userId || ctx.crisisTurn !== false) return; // a crisis turn keeps no caller phrase
 
   const lower = ctx.userText.toLowerCase();
 
