@@ -9,7 +9,9 @@
  * the capability) added: clinical credentials and distress or burnout prediction
  * nobody measured (#1454), voice identification and voice copies, which are off in
  * prod (#1457), Google Calendar and bank data, which aren't configured (#1446),
- * and recall shown as a real interaction (#1455). A phrase may stay only on an
+ * and recall shown as a real interaction (#1455). On 2026-11-13 the terms still said
+ * interactions may be used to improve AI models, against the privacy policy's "we don't
+ * train models on your conversations"; that wording is banned too. A phrase may stay only on an
  * ALLOWED line, with a reason.
  *
  * Usage: pnpm tsx scripts/website/site-claims.ts   (exits 1 on a hit)
@@ -49,6 +51,11 @@ export const BANNED: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'knows your calendar', pattern: /\b(?:I|we) know your calendar\b|\bmanages your calendar\b/i },
   { id: 'spending patterns', pattern: /\bspending patterns\b|\bacross your spending\b/i },
   { id: 'perfect recall', pattern: /\bperfect recall\b/i },
+  {
+    id: 'trains on your data',
+    pattern:
+      /\bmay be used to (?:train|improve) (?:our |the |AI )*models\b|\bdata for training\b|\bopt out of training\b/i,
+  },
 ];
 
 /** File (relative to SITE_SRC) and phrase id that may stay, with the reason. */
