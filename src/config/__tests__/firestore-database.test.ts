@@ -118,7 +118,10 @@ const filesWith = (pattern: RegExp): Record<string, number> =>
 
 describe('isNonProdDatabase is only for skipping prod work', () => {
   // A new log line that asks it would bring the fail-open back. Each test below closes one
-  // way of asking it: by name, through a wrapper, through the skip helper, or spelt out.
+  // way of asking it: by name, through a wrapper, through the skip helper, spelt out, or
+  // handed to something else to compare. Not closed, and left to review: the name kept in a
+  // variable and compared later, the env key built from pieces, and the name set as an
+  // object's field (databaseId: ...) and read back.
   it('is named by no production file but its own and config/environment.ts', () => {
     expect(Object.keys(filesWith(/\bisNonProdDatabase\b/))).toEqual([
       'src/config/environment.ts',
@@ -150,17 +153,37 @@ describe('isNonProdDatabase is only for skipping prod work', () => {
     });
   });
 
+  /** The database's name in code: the env key, the helper's answer, or prod's name written out. */
+  const name = String.raw`(?:\bFIRESTORE_DATABASE\b['"\]]*|\bgetFirestoreDatabase\([^)]*\)|['"]\(default\)['"])`;
+
   // The old question spelt out: the env key or the helper's answer compared with something,
   // or anything compared with prod's name. Binding a client to the name is not a comparison.
   it('no production file compares the database name for itself', () => {
     const compare = String.raw`(?:===?|!==?|\.startsWith\(|\.endsWith\(|\.includes\(|\.match\(|\.test\()`;
-    const name = String.raw`(?:\bFIRESTORE_DATABASE\b['"\]]*|\bgetFirestoreDatabase\([^)]*\)|['"]\(default\)['"])`;
     const spelt = new RegExp(`${name}\\s*\\??${compare}|${compare}\\s*[\\w.?[]*${name}`);
     expect(filesWith(spelt)).toEqual({
       'src/config/firestore-database.ts': 2,
       // The cost label on a model call (dev or prod): a label, no caller words.
       'src/config/gemini-billing-labels.ts': 1,
       // The database pin: a client bound to another database than the process names.
+      'src/utils/firestore-db-pin.ts': 1,
+    });
+  });
+
+  // The old question asked with no comparison sign: the name handed to something that compares
+  // it (a helper of one's own, Object.is, a set's has, a switch), or standing first on a line
+  // of a longer expression. Each line below binds a client, names the key in a message or
+  // lists it. A line added here is read by whoever adds it: it must not decide what is logged.
+  it('hands the database name on, or starts a line with it, only where listed', () => {
+    const handed = new RegExp(String.raw`(?:^|[(,[]\s*)(?:[\w.]*[.[]['"]?)?${name}`);
+    expect(filesWith(handed)).toEqual({
+      'src/api/habit-routes.ts': 1,
+      'src/api/review-queue.ts': 1,
+      // The generated list of every env name the code reads.
+      'src/config/env-read-names.generated.ts': 1,
+      'src/intelligence/deep-understanding/persistence.ts': 1,
+      'src/utils/firebase-admin-app.ts': 1,
+      // The pin's refusal message names the key.
       'src/utils/firestore-db-pin.ts': 1,
     });
   });

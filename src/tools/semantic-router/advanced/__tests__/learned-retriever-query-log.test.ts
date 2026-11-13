@@ -1,6 +1,6 @@
 /**
  * A routing correction reaches the learned retriever with the caller's query. Its logs give
- * the length, never the words (Seth, 2026-11-12: logs keep lengths only), anywhere but on
+ * the length, never the words (the owner's rule, 2026-11-12: logs keep lengths only), anywhere but on
  * dev's Firestore database (the dev agent and PR previews), which keeps the words.
  *
  * The dev-or-not decision is the real one (config/firestore-database.ts), driven by
