@@ -86,7 +86,6 @@ describe.skipIf(!emulator)('crisis_events: export and account deletion', () => {
         [
           'createdAt',
           'crisisType',
-          'expireAt',
           'id',
           'personaId',
           'reader',

@@ -92,7 +92,7 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { CRISIS_EVENT_RETENTION_MS, recordCrisisEvent } from '../../../services/safety/index.js';
+import { recordCrisisEvent } from '../../../services/safety/index.js';
 import { bindSessionUser, heldAfter, resetMinorCare } from '../../../utils/minor-care.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
 import { resetCrisisEventRecords } from '../crisis-event-record.js';
@@ -104,7 +104,6 @@ const SAID = 'I want to kill myself tonight';
 const FIELDS = [
   'createdAt',
   'crisisType',
-  'expireAt',
   'personaId',
   'reader',
   'resourcesProvided',
@@ -184,11 +183,11 @@ afterEach(() => {
 });
 
 /**
- * The call's words (and the 988 line it heard) found in a record. The two dates are left out:
- * their milliseconds can read "988" (main's daily run at 06:56:52.988Z failed on that, #3280).
+ * The call's words (and the 988 line it heard) found in a record. The date is left out:
+ * its milliseconds can read "988" (main's daily run at 06:56:52.988Z failed on that, #3280).
  */
 const callWordsIn = (doc: Record<string, unknown>): string[] => {
-  const { createdAt: _createdAt, expireAt: _expireAt, ...fields } = doc;
+  const { createdAt: _createdAt, ...fields } = doc;
   const text = JSON.stringify(fields).toLowerCase();
   return ['kill', 'myself', 'tonight', 'die', '988'].filter((word) => text.includes(word));
 };
@@ -215,7 +214,6 @@ describe('CRISIS_EVENT_RECORD on', () => {
       resourcesProvided: true,
     });
     expect(doc.createdAt).toBeInstanceOf(Date);
-    expect(doc.expireAt).toBeInstanceOf(Date);
     expect(callWordsIn(doc)).toEqual([]);
     expect(slack.crisis).not.toHaveBeenCalled();
     expect(slack.notify).not.toHaveBeenCalled();
@@ -249,13 +247,14 @@ describe('CRISIS_EVENT_RECORD on', () => {
     expect(added[0]!.doc).toMatchObject({ crisisType, severity });
   });
 
-  it('keeps it 90 days: expireAt is createdAt plus the retention', async () => {
+  it('is kept permanently: the record has no expiry field for a TTL policy to read', async () => {
     await speak(call());
     await settle();
-    const { createdAt, expireAt } = added[0]!.doc as { createdAt: Date; expireAt: Date };
-    expect(expireAt).toBeInstanceOf(Date);
-    expect(expireAt.getTime() - createdAt.getTime()).toBe(CRISIS_EVENT_RETENTION_MS);
-    expect(CRISIS_EVENT_RETENTION_MS).toBe(90 * 24 * 60 * 60 * 1000);
+    const { doc } = added[0]!;
+    expect(doc).not.toHaveProperty('expireAt');
+    // createdAt is the only date: an expiry under another name (deleteAt, ttlAt) fails here too
+    const dates = Object.entries(doc).filter(([, value]) => value instanceof Date);
+    expect(dates.map(([name]) => name)).toEqual(['createdAt']);
   });
 
   it('records the classifier as the reader when it escalates to the script', async () => {
