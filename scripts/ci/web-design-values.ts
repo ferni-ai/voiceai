@@ -103,8 +103,13 @@ export function countValues(text: string, css = false): Counts {
 }
 
 const SCANNED = /\.(?:tsx?|css)$/;
+/**
+ * Tests, and the *.generated.* files design-system/tokens writes (persona-colors, the
+ * theme, animation and expression tokens). Those are the tokens themselves: adding a
+ * token regenerates them, and that must not read as a hard-coded value.
+ */
 const SKIPPED =
-  /(?:^|\/)(?:__tests__|__mocks__|node_modules|dist)(?:\/|$)|\.(?:test|spec|d)\.tsx?$/;
+  /(?:^|\/)(?:__tests__|__mocks__|node_modules|dist)(?:\/|$)|\.(?:test|spec|d)\.tsx?$|\.generated\.(?:tsx?|css)$/;
 
 function walk(root: string, dir: string, out: string[]): void {
   for (const name of readdirSync(dir)) {

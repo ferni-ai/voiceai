@@ -123,33 +123,17 @@
     "fontSize": 1,
     "important": 1
   },
-  "apps/web/src/config/adaptive-theming.generated.ts": {
-    "colour": 12
-  },
-  "apps/web/src/config/animation-constants.generated.ts": {
-    "easing": 20
-  },
   "apps/web/src/config/cameo-config.ts": {
     "colour": 24
   },
   "apps/web/src/config/color-generator.ts": {
     "colour": 4
   },
-  "apps/web/src/config/expressions.generated.css": {
-    "easing": 16,
-    "duration": 16
-  },
-  "apps/web/src/config/persona-colors.generated.ts": {
-    "colour": 119
-  },
   "apps/web/src/config/persona-colors.ts": {
     "colour": 7
   },
   "apps/web/src/config/semantic-colors.ts": {
     "colour": 57
-  },
-  "apps/web/src/config/sequences.generated.ts": {
-    "colour": 3
   },
   "apps/web/src/emotion/emotion-state.ts": {
     "colour": 70

@@ -112,6 +112,29 @@ describe('the web design-value ratchet', () => {
     expect(regressions({}, now)).toEqual([`${SCAN_ROOT}/new.css: colour 0 → 1`]);
   });
 
+  it('skips generated token files, so regenerating them never moves the count', () => {
+    const generated = `${SCAN_ROOT}/config/persona-colors.generated.ts`;
+    const generatedCss = `${SCAN_ROOT}/styles/expressions.generated.css`;
+    const handWritten = `${SCAN_ROOT}/config/persona-colors.ts`;
+    const files = (extra: string) => ({
+      [generated]: `export const a = '#111111';\n${extra}`,
+      [generatedCss]: `.a { color: #222; }${extra ? ' .b { color: #555; }' : ''}`,
+      [handWritten]: "export const h = '#333333';\n",
+    });
+    const beforeRoot = tree(files(''));
+    const before = measure(beforeRoot);
+    rmSync(beforeRoot, { recursive: true, force: true });
+    const now = measure(tree(files("export const b = '#444444';\n")));
+    // the hand-written file is still counted; the token outputs are not
+    expect(Object.keys(before)).toEqual([handWritten]);
+    expect(Object.keys(now)).toEqual([handWritten]);
+    expect(regressions(before, now)).toEqual([]);
+  });
+
+  it('the baseline holds no generated token file', () => {
+    expect(Object.keys(readBaseline()).filter((f) => f.includes('.generated.'))).toEqual([]);
+  });
+
   it('only lowers the baseline: never raises a count or gains a file', () => {
     const baseline = { 'a.ts': { colour: 3, important: 1 }, 'b.ts': { shadow: 2 } };
     const now = { 'a.ts': { colour: 5 }, 'b.ts': { shadow: 1 }, 'c.ts': { easing: 4 } };
