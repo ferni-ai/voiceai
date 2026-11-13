@@ -193,7 +193,7 @@ export async function recordUnifiedMoment(
 
   if (sendDataMessage && (emotionalIntensity ?? 0) > 0.7) {
     promises.push(
-      dispatchEmotionalBondSignal(sendDataMessage, `${type}: ${message.slice(0, 50)}`, emotionalIntensity ?? 0.7)
+      dispatchEmotionalBondSignal(sendDataMessage, type, emotionalIntensity ?? 0.7)
     );
   }
 

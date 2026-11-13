@@ -343,27 +343,3 @@ export interface PersonalJourneyData {
   deliveryHistory: DeliveryRecord[];
   updatedAt: Date;
 }
-
-/**
- * Snapshot of journey state for quick access
- */
-export interface JourneySnapshot {
-  userId: string;
-  /** Key stats */
-  stats: {
-    totalConversations: number;
-    daysKnown: number;
-    currentStreak: number;
-    relationshipStage: 'new' | 'building' | 'established' | 'deep';
-  };
-  /** Available moments to potentially share */
-  availableMoments: JourneyMoment[];
-  /** Recently delivered (for repetition prevention) */
-  recentDeliveries: DeliveryRecord[];
-  /** Current chapter if detected */
-  currentChapter?: string;
-  /** Is in transition */
-  inTransition: boolean;
-  /** Captured at */
-  capturedAt: Date;
-}

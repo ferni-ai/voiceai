@@ -9,7 +9,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { clearChapterCache } from '../../services/personal-journey/chapter-detector.js';
 import {
   clearAllJourneyCaches,
-  getJourneySnapshot,
   selectMomentForTurn,
 } from '../../services/personal-journey/journey-orchestrator.js';
 import {
@@ -209,31 +208,6 @@ describe('Personal Journey Integration', () => {
       // Verify data was restored (and incremented by 1 for new session)
       const stats = getRhythmStats(testUserId);
       expect(stats.totalConversations).toBe(originalCount + 1);
-    });
-  });
-
-  describe('Snapshot Generation', () => {
-    it('should generate valid journey snapshot', async () => {
-      await initPersonalJourney(testUserId, null);
-
-      const snapshot = getJourneySnapshot(testUserId);
-
-      expect(snapshot.userId).toBe(testUserId);
-      expect(snapshot.stats).toBeDefined();
-      expect(snapshot.stats.totalConversations).toBeGreaterThan(0);
-      expect(snapshot.stats.daysKnown).toBeGreaterThanOrEqual(0);
-      expect(snapshot.availableMoments).toBeDefined();
-      expect(snapshot.capturedAt).toBeInstanceOf(Date);
-    });
-
-    it('should track relationship stage', async () => {
-      await initPersonalJourney(testUserId, null);
-
-      const snapshot = getJourneySnapshot(testUserId);
-
-      expect(['new', 'building', 'established', 'deep']).toContain(
-        snapshot.stats.relationshipStage
-      );
     });
   });
 

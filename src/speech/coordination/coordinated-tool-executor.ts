@@ -13,7 +13,7 @@
  * @module speech/coordination/coordinated-tool-executor
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { getSpeechCoordinator, SpeechPriority } from './speech-coordinator.js';
 import {
   generateAcknowledgment,
@@ -179,7 +179,10 @@ export async function executeToolWithCoordination(
       const ackResult = await coordinator.speakAcknowledgment(ackText);
       if (ackResult.accepted) {
         acknowledgmentSpoken = true;
-        log.info({ toolId, ackText }, '⏳ Acknowledgment queued via coordinator');
+        log.info(
+          { toolId, ackText: replyForLog(ackText) },
+          '⏳ Acknowledgment queued via coordinator'
+        );
       }
     }
 

@@ -13,10 +13,8 @@ relationship/
 │   ├── acquaintance-deepening.ts   # Acquaintance (sessions 2-5)
 │   ├── friendship-flowering.ts     # Friend (sessions 6-15)
 │   └── trusted-advisor.ts          # Trusted Advisor (15+)
-├── trust-context.ts        # Trust signals and boundary awareness
 ├── deep-relationship.ts    # Shared vocabulary, inside jokes, milestones
 ├── relationship-behaviors.ts # Relationship-appropriate behaviors
-├── social-relationships.ts  # Social graph and connections
 └── social-graph-context.ts  # Network visualization context
 ```
 

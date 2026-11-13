@@ -30,7 +30,7 @@ import {
   getHandoffQueueState,
 } from '../../handoff/index.js';
 import { completeHandoff } from '../../handoff/actions.js';
-import type { UserData } from '../shared/types.js';
+import { replyForLog } from '../../utils/reply-for-log.js';
 
 // New coordinator-based handoff system
 import { getSessionAdapter } from '../shared/handoff/coordinator-adapter.js';
@@ -372,12 +372,12 @@ async function handleGameStartRequest(
     // Cast gameType since it comes from user input via data channel
     type GameType = import('../../services/games/types.js').GameType;
     const welcomeMessage = await engine.startGame(gameType as GameType);
-    getLogger().info({ gameType, welcomeMessage }, '🎮 Game engine returned welcome message');
+    getLogger().info({ gameType, welcomeMessage: replyForLog(welcomeMessage) }, '🎮 Game welcome');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
     // Use coordinated speech - text is already written, no need for LLM
     if (welcomeMessage && session) {
-      getLogger().info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
+      getLogger().info({ welcomeMessage: replyForLog(welcomeMessage) }, '🎮 Speaking welcome');
       coordinatedSay(ctx.sessionId, welcomeMessage, { allowInterruptions: true });
       getLogger().info('🎮 Agent spoke welcome message');
     }
@@ -434,12 +434,12 @@ async function handleTextGameStartRequest(
 
     // Start the text game - returns result with message
     const result = await engine.startGame(gameType);
-    getLogger().info({ gameType, result }, '🎮 Text game engine returned result');
+    getLogger().info({ gameType, result: replyForLog(JSON.stringify(result)) }, '🎮 Text game');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
     // Use coordinated speech - text is already written, no need for LLM
     if (result.message && session) {
-      getLogger().info({ message: result.message }, '🎮 Agent speaking text game welcome...');
+      getLogger().info({ message: replyForLog(result.message) }, '🎮 Speaking text welcome');
       // Combine message with board state if available
       const fullMessage = result.boardDescription
         ? `${result.message} ${result.boardDescription}`

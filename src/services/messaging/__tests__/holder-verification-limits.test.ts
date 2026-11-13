@@ -124,7 +124,7 @@ describe('holder verification send limits', () => {
     expect((await startHolderVerification('sponsored_mom', 'seth', deps())).started).toBe(true);
     for (let i = 0; i < 5; i++) {
       // eslint-disable-next-line no-await-in-loop
-      expect(await recordHolderCode(MOM, '000000', deps())).toBe(false);
+      expect(await recordHolderCode(MOM, '000000', deps())).toBe('wrong-code');
     }
     expect(identities.get('sponsored_mom')?.holderVerification).toBeUndefined();
     expect(await startHolderVerification('sponsored_mom', 'seth', deps())).toEqual({

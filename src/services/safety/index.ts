@@ -93,6 +93,8 @@ export {
 } from './abuse-disclosure-turn.js';
 export { abuseOnlyRead } from './abuse-disclosure.js';
 export { abuseHoldNow, abuseHoldsOutreach, trackAbuseRead } from './abuse-outreach-hold.js';
+// Whether a stored todo is a safety item by its kind, so outreach never drops or closes it (safety-item.ts).
+export { isSafetyItem } from './safety-item.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS

@@ -207,19 +207,19 @@ describe('Signal Dispatchers', () => {
     it('should dispatch emotional_bond_deepen signal', async () => {
       const { dispatchEmotionalBondSignal } = await import('../../personality/bridge/signal-dispatchers.js');
 
-      await dispatchEmotionalBondSignal(mockSendDataMessage, 'User shared deep story', 0.8);
+      await dispatchEmotionalBondSignal(mockSendDataMessage, 'deep_conversation', 0.8);
 
       expect(mockSendDataMessage).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
         signalType: 'emotional_bond_deepen',
         intensity: 0.8,
-        relationshipContext: 'User shared deep story',
+        relationshipContext: 'deep_conversation',
       }));
     });
 
     it('should use default intensity when not provided', async () => {
       const { dispatchEmotionalBondSignal } = await import('../../personality/bridge/signal-dispatchers.js');
 
-      await dispatchEmotionalBondSignal(mockSendDataMessage, 'Breakthrough moment');
+      await dispatchEmotionalBondSignal(mockSendDataMessage, 'breakthrough');
 
       expect(mockSendDataMessage).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
         intensity: 0.7, // Default intensity

@@ -25,7 +25,7 @@ import {
   getLiveBackchannelingService,
   type LiveBackchannelContext,
 } from '../../speech/live-backchanneling/index.js';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { trackBackchannelEvent } from './speech-metrics-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
@@ -319,7 +319,10 @@ export function initializeLiveBackchanneling<T>(
       userEmotion: state.currentEmotion?.primary,
       mode: 'live',
     });
-    log.info({ text, emotional, contextual: text === fitting }, 'backchannel clip played');
+    log.info(
+      { text: replyForLog(text), emotional, contextual: text === fitting },
+      'backchannel clip played'
+    );
   };
 
   // =========================================================================
