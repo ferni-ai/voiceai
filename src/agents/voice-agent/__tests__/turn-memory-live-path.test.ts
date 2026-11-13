@@ -8,9 +8,11 @@
  *
  * Ordinary turns make exactly the captures main made (same count, same arguments: the snapshots
  * are written by this file on main). At the turn handler's capture site, which runs after the
- * turn's crisis read, a crisis turn is captured by nothing: its line stays in this call's
+ * turn's crisis read, a crisis turn is not captured: that copy of the line stays in this call's
  * short-term memory only, and session-end promotion skips it. The transcript handler and
- * processTurn capture before the read; holding them is a follow-up. All lines are fictional.
+ * processTurn capture and record the line before the read, unmarked, so the line is still
+ * extracted and promoted through them: the KNOWN GAP block pins that until the follow-ups close
+ * it. All lines are fictional.
  */
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
@@ -422,7 +424,7 @@ describe('ordinary turns on the live path make the captures main made', () => {
     cleanupSession(call.sessionId);
   }, 60_000);
 });
-describe('a crisis turn at the turn handler capture site is session only', () => {
+describe("a crisis turn: the turn handler's copy is session only (early sites: KNOWN GAP below)", () => {
   it('nothing captured from the turn handler; its record is session only, with nothing extracted', async () => {
     const call = liveSession();
     call.say(CRISIS);
@@ -461,7 +463,7 @@ describe('a crisis turn at the turn handler capture site is session only', () =>
     cleanupSession(call.sessionId);
   }, 60_000);
 
-  it('end of call: human signals and the emotional arc skip the session-only records and their voice', async () => {
+  it("end of call: human signals and the emotional arc skip the turn handler's session-only copies and their voice", async () => {
     const call = liveSession();
     call.say(ORDINARY);
     call.agentThinks();
@@ -498,5 +500,38 @@ describe('a crisis turn at the turn handler capture site is session only', () =>
     expect(arc.voiceTrajectory).toBeUndefined();
     expect(JSON.stringify(arc.trajectory)).not.toContain('voiceEmotion');
     await call.detach();
+  }, 90_000);
+});
+
+/**
+ * What this PR does NOT do yet, pinned so it cannot read as held: the transcript handler and
+ * processTurn capture and record the line before the turn's crisis read, unmarked, so through the
+ * live path a crisis line is still extracted and promoted at call end. The follow-up PRs that
+ * hold those sites flip this block to "nothing captured, nothing promoted".
+ */
+describe('KNOWN GAP (closed by the follow-up PRs): the two early capture sites', () => {
+  it('a crisis line is still captured before the read and promoted through their unmarked copies', async () => {
+    const call = liveSession();
+    call.say(CRISIS);
+    call.agentThinks();
+    await quiet(1);
+    const marlo = (t: unknown) => String(t).includes('Marlo');
+    // Rows 1 to 4: both early sites capture it (two deep extraction jobs) and one queues it for
+    // the knowledge graph; the turn handler does not capture it.
+    const sites = spy.site.filter((_s, i) => marlo(spy.capture[i].transcript));
+    expect(sites.sort()).toEqual(['process-turn', 'transcript-handler']);
+    expect(spy.jobs).toBe(2);
+    expect(carrying(['Marlo']).queued).toHaveLength(1);
+    // Their two records are promotable and extracted; only the turn handler's is session only.
+    const turns = getRecentTurns(call.sessionId).filter((t) => marlo(t.transcript));
+    expect(turns.map((t) => Boolean(t.sessionOnly)).sort()).toEqual([false, false, true]);
+    await onSessionEnd(call.sessionId, call.userId);
+    // Call end: human signals is handed the two unmarked copies, and the line's names are promoted.
+    expect(spy.signalsIn).toEqual([[CRISIS, CRISIS]]);
+    const stores = carrying(['Marlo']).written.map((p) => p.split(' ')[1]);
+    expect(stores.some((s) => s.includes('/promoted_entities/'))).toBe(true);
+    expect(stores.some((s) => s.includes('/shared_memories/'))).toBe(true);
+    await call.detach();
+    cleanupSession(call.sessionId);
   }, 90_000);
 });
