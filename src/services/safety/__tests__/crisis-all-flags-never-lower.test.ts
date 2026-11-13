@@ -386,6 +386,8 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   // under a classifier with and without a fragment false alarm, and checks it never lowers.
   CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
   CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
+  // Adds a check-in on the voice gate only; ON equals OFF wherever a read stands.
+  CRISIS_TIMEOUT_CHECKIN: 'src/agents/personas/__tests__/crisis-gate-timeout-checkin.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
   // Memory only: crisis and vulnerability moments keep no words and are never a callback. No
   // reader, script, injection or data message changes.

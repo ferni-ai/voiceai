@@ -148,7 +148,7 @@ export async function handleAdminOperationsRoutes(
   }
 
   // Rate limiting (lower limit since these can be expensive)
-  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000, keyPrefix: 'admin-operations' })) {
     return true;
   }
 

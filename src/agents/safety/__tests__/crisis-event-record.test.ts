@@ -183,6 +183,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * The call's words (and the 988 line it heard) found in a record. The two dates are left out:
+ * their milliseconds can read "988" (main's daily run at 06:56:52.988Z failed on that, #3280).
+ */
+const callWordsIn = (doc: Record<string, unknown>): string[] => {
+  const { createdAt: _createdAt, expireAt: _expireAt, ...fields } = doc;
+  const text = JSON.stringify(fields).toLowerCase();
+  return ['kill', 'myself', 'tonight', 'die', '988'].filter((word) => text.includes(word));
+};
+
 describe('CRISIS_EVENT_RECORD on', () => {
   it('a crisis call gives exactly one record, with no words and no alert', async () => {
     const session = call();
@@ -204,18 +214,29 @@ describe('CRISIS_EVENT_RECORD on', () => {
       reader: 'pattern',
       resourcesProvided: true,
     });
-    // The timestamps are Dates, and their milliseconds can read "988" (main's daily run at
-    // 06:56:52.988Z failed on that). Every other field is checked for the call's words.
-    const { createdAt, expireAt, ...fields } = doc as Record<string, unknown>;
-    expect(createdAt).toBeInstanceOf(Date);
-    expect(expireAt).toBeInstanceOf(Date);
-    const text = JSON.stringify(fields).toLowerCase();
-    for (const word of ['kill', 'myself', 'tonight', 'die', '988'])
-      expect(text).not.toContain(word);
+    expect(doc.createdAt).toBeInstanceOf(Date);
+    expect(doc.expireAt).toBeInstanceOf(Date);
+    expect(callWordsIn(doc)).toEqual([]);
     expect(slack.crisis).not.toHaveBeenCalled();
     expect(slack.notify).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     noWords(logged);
+  });
+
+  it('a clock at .988 seconds is not the 988 line in the record (#3280)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-09T06:56:52.988Z') });
+    try {
+      await speak(call());
+      await settle();
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(added).toHaveLength(1);
+    const doc = added[0]?.doc ?? {};
+    // The dates do carry the clock's .988, so the words check below is the one that copes with it.
+    expect(doc.createdAt).toEqual(new Date('2026-11-09T06:56:52.988Z'));
+    expect(JSON.stringify(doc)).toContain('988');
+    expect(callWordsIn(doc)).toEqual([]);
   });
 
   it.each([

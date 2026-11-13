@@ -52,6 +52,8 @@ function choose(selector: string): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // A build with payments set up (without a key a one-time seed never reaches the server)
+  vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_seed');
   recordPaywallFlag({ paywall: true }); // the fund opens only while the server has a paywall on
   replies.clear();
   replies.set('/api/garden/status', json(200, null));

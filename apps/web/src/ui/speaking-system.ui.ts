@@ -22,6 +22,7 @@ import { createLogger } from '../utils/logger.js';
 import { initSpringBody } from './avatar-motion/spring-body.js';
 import { initSpeechBeats } from './avatar-motion/speech-beats.js';
 import { claimAvatarContainer } from './avatar-motion/compositor.js';
+import { avatarMotionAllowed } from './avatar-motion/motion-allowed.js';
 import {
   claimBlendedLids,
   isLidBlendEnabled,
@@ -72,6 +73,8 @@ let smoothedVolume = 0;
 let animationFrame: number | null = null;
 /** ferni:lid-blend, read when speech starts and with each volume update. */
 let lidBlendOn = false;
+/** Whether the voice is writing the lids now (they go back to the expression when it stops). */
+let lidsFollowVoice = false;
 
 // DOM Elements
 let avatarContainer: HTMLElement | null = null;
@@ -80,7 +83,7 @@ let lidTop: SVGPathElement | null = null;
 let lidBottom: SVGPathElement | null = null;
 let haloWaves: HTMLElement[] = [];
 
-// Reduced motion: body and halo hold still; the lid mouth still articulates.
+// Reduced motion: body, halo and lid mouth all hold still.
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 let reducedMotionQuery: MediaQueryList | null = null;
 
@@ -202,7 +205,7 @@ export function startSpeaking(): void {
 function beginLoop(): void {
   if (avatarContainer) claimAvatarContainer(avatarContainer);
   // Before the next frame, so an expression tween never writes the lids alongside the voice
-  if (lidBlendOn) claimBlendedLids();
+  if (lidBlendOn && avatarMotionAllowed('lidVoice')) claimBlendedLids();
   animationFrame = requestAnimationFrame(animateLoop);
 }
 
@@ -332,10 +335,24 @@ function updateHaloPulse(volume: number): void {
  * The lid mouth runs only under ferni:lid-blend. Without the flag it never ran
  * in production (it looked up a `.ferni-lid-overlay` that doesn't exist), and
  * its neutral-based rewrite would wipe every expression during speech.
+ * Under prefers-reduced-motion or while the crisis face is held
+ * (motion-allowed.ts) the lids don't follow the voice: they settle on the
+ * current expression and stay there.
  */
 function updateLidMouth(volume: number): void {
   if (!lidBlendOn || !lidBottom) return;
+  if (!avatarMotionAllowed('lidVoice')) {
+    if (lidsFollowVoice) settleLids();
+    return;
+  }
   writeBlendedLids({ top: lidTop, bottom: lidBottom }, volume);
+  lidsFollowVoice = true;
+}
+
+/** Lids back on the current expression, and back to the expression's own tweens. */
+function settleLids(): void {
+  settleBlendedLids({ top: lidTop, bottom: lidBottom });
+  lidsFollowVoice = false;
 }
 
 // ============================================================================
@@ -365,7 +382,7 @@ function resetAllLayers(): void {
   resetHalo();
   
   // Lids settle on the current expression, not on neutral
-  if (lidBlendOn) settleBlendedLids({ top: lidTop, bottom: lidBottom });
+  if (lidBlendOn) settleLids();
 }
 
 // ============================================================================
