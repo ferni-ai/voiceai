@@ -125,6 +125,21 @@ interface TextScore {
 }
 
 /** Score one message from its words alone. */
+/**
+ * The tag of an imminent pattern after index `from` whose words read plainly (no negation, past,
+ * joke, condition or someone else), or null. The read stops at its first plain match, which must
+ * never hide a later 911: "i want to die. i just took all my pills" is imminent.
+ */
+function laterImminent(text: string, from: number): 'suicidal' | 'self_harm' | null {
+  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS.slice(from)) {
+    const match = imminent ? re.exec(text) : null;
+    if (match && !explicitModifier(text, match.index, match.index + match[0].length, true)) {
+      return tag;
+    }
+  }
+  return null;
+}
+
 function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
   const indicators: string[] = [];
   let severity = 0;
@@ -142,7 +157,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   let softSelf = false;
   let tierSoft = false;
   let hardSelf = false;
-  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
+  for (const [at, { re, tag, imminent }] of EXPLICIT_CRISIS_PATTERNS.entries()) {
     const match = re.exec(text);
     if (!match) continue;
     const start = match.index;
@@ -166,7 +181,9 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     } else {
       hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
-      if (imminent) add('imminent_danger', SEVERITY.explicit);
+      const later = imminent ? tag : laterImminent(text, at + 1);
+      if (later === 'self_harm') add('self_harm', 0);
+      if (later) add('imminent_danger', SEVERITY.explicit);
       break;
     }
   }
