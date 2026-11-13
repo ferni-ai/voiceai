@@ -34,6 +34,7 @@ export {
   LATE_911_LINE,
   names911,
   namesCrisisLine,
+  TALK_TO_988_ES,
 } from './crisis-guard-replies.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
@@ -46,6 +47,8 @@ export { offersCrisisLine } from './crisis-line-speech.js';
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
+// A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
+export { checkin } from './crisis-timeout-checkin.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
 export {
   resolveCrisisClassifierTimeoutMs,

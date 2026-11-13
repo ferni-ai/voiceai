@@ -70,7 +70,7 @@ import {
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
-import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
+import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -294,7 +294,7 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = verdictRead.then(async (v) => (v === undefined ? null : escalate(v)));
+  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
   return { decision, escalation, reask };
 }
 
@@ -484,10 +484,10 @@ export async function gatedReply(
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
-    const guided = await ask(
-      guidedRequest(decision),
-      burst === undefined ? undefined : false,
-      true
+    const guided = checkin.ending(
+      await ask(guidedRequest(decision), burst === undefined ? undefined : false, true),
+      decision,
+      callerWords(chatCtx) // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });

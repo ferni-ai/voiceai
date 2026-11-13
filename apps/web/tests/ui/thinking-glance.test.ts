@@ -142,3 +142,52 @@ describe('avatar soul glance', () => {
     soul.disposeAvatarSoul();
   });
 });
+
+describe('thinking glance while the crisis face is held (fe 2026-11-11: no thinking glance)', () => {
+  async function initSoul() {
+    const soul = await import('../../src/ui/avatar-soul.ui.js');
+    soul.initAvatarSoul();
+    calls.length = 0;
+    return soul;
+  }
+
+  it('held: the thinking turn gives 0 glances and never starts', async () => {
+    localStorage.setItem(FLAG, 'true');
+    const crisis = await import('../../src/ui/face/crisis-face-hold.js');
+    const { onThinkingTurns } = await import('../../src/ui/avatar-motion/thinking-glance.js');
+    const soul = await initSoul();
+    const start = vi.fn();
+    const stop = onThinkingTurns(start, vi.fn());
+    crisis.holdCrisisFace();
+    turn('thinking');
+    turn('ferni');
+    turn('thinking');
+    expect(start).not.toHaveBeenCalled();
+    expect(glances()).toHaveLength(0);
+    stop();
+    soul.disposeAvatarSoul();
+  });
+
+  it('reduced motion: the thinking turn gives 0 glances and never starts', async () => {
+    localStorage.setItem(FLAG, 'true');
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+    const { onThinkingTurns } = await import('../../src/ui/avatar-motion/thinking-glance.js');
+    const soul = await initSoul();
+    const start = vi.fn();
+    const stop = onThinkingTurns(start, vi.fn());
+    turn('thinking');
+    expect(start).not.toHaveBeenCalled();
+    expect(glances()).toHaveLength(0);
+    stop();
+    soul.disposeAvatarSoul();
+  });
+});

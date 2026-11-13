@@ -68,6 +68,7 @@ async function agentCall(userId: string, userText: string): Promise<void> {
     emotionalResult: { primary: 'joy', intensity: 0.8, distressLevel: 0 },
     injections: [],
     turnResult: { emotional: { primary: 'joy', intensity: 0.8 }, context: {} },
+    crisisTurn: false, // a pass turn
   };
   expect(await recordTurnTrustData(ctx)).toBe(true);
   await onSessionEnd(userId);

@@ -236,10 +236,13 @@ const chunkText = (chunk: unknown): string => {
 };
 
 /**
- * A reply stream with SCREEN_QUESTION as its last sentence, whatever the model
- * wrote; not added twice when the model already ended on it.
+ * A reply stream with the words code says after it: ending(said) gets the model's whole text and
+ * returns what to add, or '' for nothing (the grounded screen, the timeout check-in).
  */
-export function withScreenQuestion<T>(reply: ReadableStream<T>): ReadableStream<T | string> {
+export function withReplyEnding<T>(
+  reply: ReadableStream<T>,
+  ending: (said: string) => string
+): ReadableStream<T | string> {
   let said = '';
   return reply.pipeThrough(
     new TransformStream<T, T | string>({
@@ -248,10 +251,21 @@ export function withScreenQuestion<T>(reply: ReadableStream<T>): ReadableStream<
         controller.enqueue(chunk);
       },
       flush(controller) {
-        // Skipped only when the model's own text ends with the exact canonical question.
-        if (!said.trimEnd().endsWith(SCREEN_QUESTION)) controller.enqueue(` ${SCREEN_QUESTION}`);
+        const words = ending(said);
+        if (words) controller.enqueue(words);
       },
     })
+  );
+}
+
+/**
+ * A reply stream with SCREEN_QUESTION as its last sentence, whatever the model
+ * wrote; not added twice when the model already ended on it.
+ */
+export function withScreenQuestion<T>(reply: ReadableStream<T>): ReadableStream<T | string> {
+  // Skipped only when the model's own text ends with the exact canonical question.
+  return withReplyEnding(reply, (said) =>
+    said.trimEnd().endsWith(SCREEN_QUESTION) ? '' : ` ${SCREEN_QUESTION}`
   );
 }
 
