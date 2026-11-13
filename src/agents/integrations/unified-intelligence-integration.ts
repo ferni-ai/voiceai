@@ -706,6 +706,8 @@ export function processTurnLearning(input: {
   emotion?: string;
   personaMentioned?: string;
   reactionToInsight?: 'positive' | 'neutral' | 'acknowledged' | 'negative';
+  /** The turn's crisis read (crisisReadTurn); semantic intelligence runs only when false */
+  crisisTurn: boolean;
 }): void {
   const {
     userId,
@@ -717,6 +719,7 @@ export function processTurnLearning(input: {
     emotion,
     personaMentioned,
     reactionToInsight,
+    crisisTurn,
   } = input;
 
   // Record reaction to proactive insight if we got one
@@ -746,6 +749,7 @@ export function processTurnLearning(input: {
     dayOfWeek: now.getDay(),
     hourOfDay: now.getHours(),
     turnsSinceStart: turnNumber,
+    crisisTurn,
   }).catch((err) => {
     log.debug({ error: String(err), userId }, 'Semantic intelligence processing failed');
   });

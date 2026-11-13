@@ -10,7 +10,9 @@
  * counts as a crisis turn (fail closed), as an unmarked turn does for transfer aliases
  * (services/safety/crisis-turn-mark.ts).
  *
- * Moments that name the turn for what it was (crisis_support, vulnerability) still record.
+ * Every moment is held on a crisis turn, including the ones that name the turn for what it was
+ * (crisis_support, vulnerability). The recorder also sends the bond data message to the client
+ * (personality-bridge.ts dispatchEmotionalBondSignal), so that message stops on crisis turns too.
  *
  * @module voice-agent/crisis-turn-memory
  */
@@ -20,14 +22,6 @@ import type { CrisisDetection } from '../processors/types.js';
 
 const log = createLogger({ module: 'CrisisTurnMemory' });
 
-/** Unified moments that keep a turn as a happy or warm memory (personality-bridge.ts). */
-const HAPPY_MOMENTS: ReadonlySet<string> = new Set([
-  'breakthrough',
-  'celebration',
-  'laughter',
-  'deep_conversation',
-]);
-
 /** Whether the turn's crisis read replaced the reply, guided it, or gave a soft check-in. */
 export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
   return !crisis || crisis.shouldOverrideLLM || crisis.isCrisis || crisis.softCheck === true;
@@ -35,15 +29,16 @@ export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
 
 /**
  * The turn's unified moment recorder (personality-bridge.ts recordUnifiedMoment): on a crisis
- * turn it holds the happy moments and records the rest. Logs the moment's type, never words.
+ * turn it holds every moment; on any other turn it records them all. Logs the moment's type,
+ * never words.
  */
 export function momentRecorder<M extends { type: string }>(
   record: (moment: M) => Promise<unknown>,
   crisisTurn: boolean
 ): (moment: M) => Promise<void> {
   return async (moment) => {
-    if (crisisTurn && HAPPY_MOMENTS.has(moment.type)) {
-      log.debug({ type: moment.type }, 'Happy moment held on a crisis turn');
+    if (crisisTurn) {
+      log.debug({ type: moment.type }, 'Moment held on a crisis turn');
       return;
     }
     await record(moment);

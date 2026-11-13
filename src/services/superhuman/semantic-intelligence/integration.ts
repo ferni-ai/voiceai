@@ -121,6 +121,13 @@ export interface TurnSemanticData {
   personaId: string;
   turnNumber: number;
 
+  /**
+   * The turn's crisis read replaced, guided or soft-checked the reply (crisisReadTurn,
+   * agents/voice-agent/crisis-turn-memory.ts). Only `false` feeds the systems below; true or a
+   * missing value skips the whole turn.
+   */
+  crisisTurn: boolean;
+
   // Text data
   userText: string;
   topic?: string;
@@ -188,6 +195,13 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
 
   // Anonymous users, and MINOR_CARE: a caller under 18 by their own words (every system writes)
   if (!isMemberIdentity(userId) || writeHeld(userId, data.sessionId)) return;
+
+  // A crisis turn, or one whose read is unknown, feeds nothing: every system below stores,
+  // embeds or sends the turn to a model.
+  if (data.crisisTurn !== false) {
+    log.debug({ turnNumber: data.turnNumber }, 'Semantic intelligence skipped on a crisis turn');
+    return;
+  }
 
   // V4.1: Log when semantic intelligence runs (helps debug data capture issues)
   log.info(

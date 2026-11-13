@@ -6,8 +6,9 @@
  * a shared callback moment or "our song", ready to come back on a later call as a happy memory.
  * Now the turn's own crisis read (processTurn's crisis field: the pattern guard with the live
  * classifier's verdict, built here as process-turn.ts builds it) holds every one of those writes
- * when it replaced the reply, guided it, or gave a soft check-in. A turn the read passes records
- * them as before, and the crisis_support moment still records on a crisis turn.
+ * when it replaced the reply, guided it, or gave a soft check-in. A crisis turn records no
+ * unified moment of any kind, crisis_support and vulnerability included. A turn the read passes
+ * records them all as before.
  *
  * Only the stores are stubbed (the unified moment bridge, shared moments, Our Songs, relational
  * memory, collective learning, the music player). All lines fictional.
@@ -135,6 +136,18 @@ const HAPPY_WRITES = [
   'our-song',
 ];
 
+/** Every unified moment type the turn handler records (personality-bridge.ts). */
+const ALL_MOMENTS = [
+  'moment:breakthrough',
+  'moment:vulnerability',
+  'moment:celebration',
+  'moment:crisis_support',
+  'moment:laughter',
+  'moment:deep_conversation',
+];
+/** Words that make every unified moment fire on a sad, intense turn (with LONG in front). */
+const EVERY_MOMENT = HAPPY + 'i admit i was scared, ';
+
 interface Crisis {
   isCrisis: boolean;
   shouldOverrideLLM: boolean;
@@ -247,11 +260,14 @@ describe('turn handler: no happy memory of a crisis turn', () => {
     expect(turn.writes).not.toContain('moment:deep_conversation');
   });
 
-  it('still records the crisis_support moment on a crisis turn', async () => {
-    const turn = await runTurn(HAPPY + 'im standing on the bridge and im going to jump', PATTERNS);
-    expect(turn.level).toBe('guide');
-    expect(turn.writes).toContain('moment:crisis_support');
-  });
+  it.each(CRISIS_TURNS)(
+    'records no unified moment of any kind when %s',
+    async (_name, level, core, env, read) => {
+      const turn = await runTurn(LONG + EVERY_MOMENT + core, env, read);
+      expect(turn.level).toBe(level);
+      expect(turn.writes.filter((w) => w.startsWith('moment:'))).toEqual([]);
+    }
+  );
 
   it('counts a turn with no crisis read as a crisis turn (fail closed)', () => {
     expect(crisisReadTurn(undefined)).toBe(true);
@@ -283,6 +299,12 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
     const turn = await runTurn(HAPPY + 'this was the best day ever', LIVE, NO_RISK, 'joy');
     expect(turn.level).toBe('pass');
     for (const write of HAPPY_WRITES) expect(turn.writes, write).toContain(write);
+  });
+
+  it('records every unified moment type on a turn the read passes', async () => {
+    const turn = await runTurn(LONG + EVERY_MOMENT + 'and today was a good day', LIVE, NO_RISK);
+    expect(turn.level).toBe('pass');
+    for (const moment of ALL_MOMENTS) expect(turn.writes, moment).toContain(moment);
   });
 
   it('records a deep conversation on a long line with no risk', async () => {
