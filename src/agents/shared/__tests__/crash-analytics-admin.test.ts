@@ -6,7 +6,8 @@
  * non-admin is 403, and neither response carries any of the data.
  *
  * A session snapshot also no longer keeps what the caller or Ferni last said. A crash
- * record still keeps up to 200 characters of each, by design, for the admin who reads it.
+ * record keeps the first 200 characters of the caller's line. For Ferni's line it keeps only
+ * a length on a prod database, and the cut text on dev (replyForLog).
  *
  * The REAL health server (port 0) and the REAL crash analytics; only the Firebase token
  * verifier is mocked. Fictional data only.
@@ -33,6 +34,8 @@ const SESSION = 'sess-crash-admin-sam';
 const CALLER = `SAMPLE-CALLER-WORDS about my garden ${'and the tomatoes '.repeat(14)}TAIL-CALLER`;
 const FERNI = `SAMPLE-FERNI-WORDS reply ${'about the tomatoes '.repeat(13)}TAIL-FERNI`;
 const PATHS = ['/health/crash-analytics', '/api/crash-analytics', '/api/crash-analytics/history'];
+const CRASH_ON_PROD = 'sample crash for the admin test, prod database';
+const CRASH_ON_DEV = 'sample crash for the admin test, dev database';
 
 let server: Server;
 let port = 0;
@@ -53,7 +56,18 @@ beforeAll(async () => {
     lastUserMessage: CALLER,
     lastAgentMessage: FERNI,
   });
-  recordCrash('manual_report', new Error('sample crash for the admin test'), SESSION);
+  // The shared test setup stubs safe-logger's replyForLog to hand the text back whole. This
+  // file is about what a crash record keeps, so the stub runs the real one here.
+  const { replyForLog: stubbed } = await import('../../../utils/safe-logger.js');
+  const { replyForLog: real } = await import('../../../utils/reply-for-log.js');
+  vi.mocked(stubbed).mockImplementation(real);
+  // The same crash on a prod process (the '(default)' database) and on a dev process.
+  vi.stubEnv('LOG_FULL_RESPONSES', '');
+  vi.stubEnv('FIRESTORE_DATABASE', '');
+  recordCrash('manual_report', new Error(CRASH_ON_PROD), SESSION);
+  vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
+  recordCrash('manual_report', new Error(CRASH_ON_DEV), SESSION);
+  vi.unstubAllEnvs();
 });
 
 afterAll(async () => {
@@ -99,14 +113,14 @@ describe('crash analytics on the health server is admin only', () => {
     expect(json.data).toBeDefined();
   });
 
-  it("the admin's summary: snapshots carry no words; the crash keeps 200 chars of each", async () => {
+  it("the admin's summary: snapshots carry no words; a crash on prod keeps no words of Ferni's", async () => {
     expect(CALLER.length).toBeGreaterThan(200);
     expect(FERNI.length).toBeGreaterThan(200);
     const json = (await (await get('/api/crash-analytics', TOK_ADMIN)).json()) as {
       data: {
         sessionCrashes: {
           activeSessions: Array<Record<string, unknown>>;
-          recentCrashes: Array<{ context: Record<string, unknown> }>;
+          recentCrashes: Array<{ error: { message: string }; context: Record<string, unknown> }>;
         };
       };
     };
@@ -116,10 +130,17 @@ describe('crash analytics on the health server is admin only', () => {
     expect(snapshot).not.toHaveProperty('lastUserMessage');
     expect(snapshot).not.toHaveProperty('lastAgentMessage');
     expect(JSON.stringify(activeSessions)).not.toContain('SAMPLE-');
-    // By design, for admins: the crash record keeps the first 200 characters of each side.
-    const crash = recentCrashes.find((c) => c.context.sessionId === SESSION);
-    expect(crash?.context.lastUserMessage).toBe(CALLER.slice(0, 200));
-    expect(crash?.context.lastAgentMessage).toBe(FERNI.slice(0, 200));
+    const crashOn = (message: string) =>
+      recentCrashes.find((c) => c.error.message === message)?.context;
+    const onProd = crashOn(CRASH_ON_PROD);
+    const onDev = crashOn(CRASH_ON_DEV);
+    // Current behaviour: the crash record keeps the first 200 characters of the caller's line.
+    expect(onProd?.lastUserMessage).toBe(CALLER.slice(0, 200));
+    expect(onDev?.lastUserMessage).toBe(CALLER.slice(0, 200));
+    // Ferni's line: only its length on a prod database, the cut text on dev.
+    expect(onProd?.lastAgentMessage).toBe(`[${FERNI.length} chars]`);
+    expect(JSON.stringify(onProd)).not.toContain('SAMPLE-FERNI');
+    expect(onDev?.lastAgentMessage).toBe(`${FERNI.slice(0, 200)}...`);
     const body = JSON.stringify(json);
     expect(body).not.toContain('TAIL-CALLER');
     expect(body).not.toContain('TAIL-FERNI');
