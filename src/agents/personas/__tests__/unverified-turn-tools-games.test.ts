@@ -32,6 +32,23 @@ vi.mock('../../../services/games/game-store.js', async (importOriginal) => ({
     store.writes.push('updateMusicalDNA');
   },
 }));
+// Music games look up their songs on iTunes; here every lookup finds a stand-in track,
+// so no test waits on the network. The src/services/itunes.ts re-export reads this too.
+vi.mock('../../../services/external-apis/itunes.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  findTrack: async (query: string) => ({
+    found: true,
+    track: {
+      name: query,
+      artist: 'Stand-in Artist',
+      album: 'Stand-in Album',
+      previewUrl: 'https://example.invalid/preview.m4a',
+      duration: 30_000,
+      genre: 'Pop',
+      artwork: '',
+    },
+  }),
+}));
 
 const { PersonaVoiceAgent } = await import('../ferni-agent.js');
 const { rememberDispatchIdentity } = await import('../../voice-agent-entry/caller-recognition.js');
