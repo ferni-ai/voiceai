@@ -88,6 +88,7 @@
 /src/agents/shared/call-wrap-up.ts @sethdford
 /src/agents/shared/caller-activity.ts @sethdford
 /src/agents/shared/farewell-risk.ts @sethdford
+/src/agents/shared/goodbye-phrases.ts @sethdford
 /src/agents/shared/goodbye-read.ts @sethdford
 /src/agents/shared/phone-goodbye.ts @sethdford
 /src/agents/shared/tts-wrapper.ts @sethdford

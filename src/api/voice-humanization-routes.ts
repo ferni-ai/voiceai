@@ -60,7 +60,7 @@ export async function handleVoiceHumanizationRoutes(
   }
 
   // Apply rate limiting
-  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'voice-humanization' })) {
     return true;
   }
 

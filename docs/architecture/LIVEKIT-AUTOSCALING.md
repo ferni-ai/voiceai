@@ -1,5 +1,9 @@
 # LiveKit Auto-Scaling Architecture
 
+> **Historical.** This describes the retired GCE setup (a standalone VM and a managed instance
+> group). The voice agent now runs on LiveKit Cloud; none of the gcloud commands below apply.
+> The lesson about never running two independent worker deployments at once still holds.
+
 > **Critical:** Never run multiple independent deployments (standalone VM + MIG) simultaneously. LiveKit dispatches jobs to ALL registered workers, causing conflicts.
 
 ## The Problem We Solved (Dec 24, 2024)
@@ -177,7 +181,7 @@ gcloud compute instance-groups managed resize voiceai-agent-mig --size=0
 gcloud compute instances start voiceai-agent-gce
 
 # 3. Verify
-curl http://34.134.186.63:8080/health/ready
+curl http://<the VM external IP>:8080/health/ready
 ```
 
 ## Cost Comparison

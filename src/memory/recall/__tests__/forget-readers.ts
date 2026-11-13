@@ -518,7 +518,6 @@ export const NOT_A_READER: Readonly<Record<string, string>> = {
   'src/memory/storage/supersession-store.ts': 'internal supersession job',
   'src/memory/storage/sweep-store.ts': 'internal sweep job',
   'src/memory/storage/lifecycle-integration.ts': 'writes memories and their vectors',
-  'src/scripts/query-threads.ts': 'developer script',
   'src/services/session/last-mood-note.ts': 'comment only',
   'src/services/session/last-summary.ts': 'writes the last summary, checking forget',
   'src/services/session/session-manager.ts':

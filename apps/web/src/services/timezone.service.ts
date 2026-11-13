@@ -6,8 +6,8 @@
  *
  * FEATURES:
  * - Automatic timezone detection using Intl API
- * - Persists to localStorage to avoid redundant API calls
- * - Only updates backend when timezone changes (e.g., user travels)
+ * - Persists to localStorage to avoid redundant API calls, once the backend accepted it
+ * - Only updates backend when timezone changes (e.g., user travels) or the last sync failed
  * - Provides quiet hours defaults based on detected timezone
  *
  * USAGE:
@@ -172,15 +172,17 @@ export async function detectAndSyncTimezone(): Promise<string> {
       '🌍 Timezone changed, syncing to backend'
     );
 
-    // Sync to backend
-    await syncTimezoneToBackend(detectedTimezone);
-
-    // Cache new timezone
-    saveCachedTimezone({
-      timezone: detectedTimezone,
-      offset,
-      lastDetected: now,
-    });
+    // Remember only a zone the server accepted: the cache means "already sent".
+    // A skipped (no user id yet) or failed sync stays uncached, so the next
+    // app start sends it again instead of the server never hearing it.
+    const current = { timezone: detectedTimezone, offset, lastDetected: now };
+    if (await syncTimezoneToBackend(detectedTimezone)) {
+      saveCachedTimezone(current);
+    } else {
+      // Not sent, so not stored; but this session still uses the zone the
+      // device is in now, never an older stored one (someone who travelled).
+      cachedTimezone = current;
+    }
   } else {
     log.debug({ timezone: detectedTimezone }, 'Timezone unchanged');
     cachedTimezone = cached;
