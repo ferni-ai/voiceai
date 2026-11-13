@@ -197,6 +197,32 @@ describe('row 3, the next turn: the caller says they are not safe', () => {
     const read = await typed("i'm not safe", WARM_UP, CLASSIFIER[0][1]);
     expect(read.action === 'replace' ? read.reply : '').not.toMatch(/\b911\b/);
   });
+
+  it("after main's live form too: the script with 911", async () => {
+    const live = "i have the pills right here and i'm taking them now";
+    const before = detectCrisis("no, i'm not safe", undefined, { meansInHand: 'live' });
+    expect(before.indicators).not.toContain('not_safe_confirmed');
+    const after = detectCrisis("no, i'm not safe", undefined, {
+      meansInHand: 'live',
+      recentMessages: [live],
+    });
+    expect(after.indicators).toContain('not_safe_confirmed');
+    const read = await typed("no, i'm not safe", asked(live), CLASSIFIER[0][1]);
+    expect(read.action === 'replace' && read.reply).toMatch(/\b911\b/);
+  });
+
+  // The means read counts for the last two earlier caller turns, not one, and not three.
+  it.each([
+    ['one turn back', [ROW_3[0]], true],
+    ['two turns back', [ROW_3[0], 'hmm'], true],
+    ['three turns back', [ROW_3[0], 'hmm', 'i dunno'], false],
+  ] as const)('a means read %s', (_, earlier, counts) => {
+    const read = detectCrisis("i'm not safe", undefined, {
+      meansInHand: 'live',
+      recentMessages: [...earlier],
+    });
+    expect(read.indicators.includes('not_safe_confirmed')).toBe(counts);
+  });
 });
 
 describe('row 3 with CRISIS_MEANS_NOMINATE off: as on main', () => {
