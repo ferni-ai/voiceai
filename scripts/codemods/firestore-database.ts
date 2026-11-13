@@ -53,9 +53,7 @@ export const SKIP_FILES: Record<string, string> = {
   'src/services/pubsub/pubsub-client.ts': 'Pub/Sub choke point, owned by PR 08',
   'src/workers/base-worker.ts': 'Pub/Sub choke point, owned by PR 08',
 };
-const SKIP_PREFIXES: Array<[string, string]> = [
-  ['src/memory/spanner-graph/', 'Spanner choke point, owned by PR 08'],
-];
+const SKIP_PREFIXES: Array<[string, string]> = [];
 
 interface Edit {
   start: number;

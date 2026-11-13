@@ -36,21 +36,6 @@ vi.mock('../../utils/firestore-utils.js', () => ({
   })),
 }));
 
-// Mock Spanner client. The old thread and anchor writers are gone from the
-// client; the mock keeps their names so a re-added write turns the row red.
-const { upsertMemoryThread, insertMemoryAnchor } = vi.hoisted(() => ({
-  upsertMemoryThread: vi.fn(),
-  insertMemoryAnchor: vi.fn(),
-}));
-vi.mock('../../memory/spanner-graph/client.js', () => ({
-  isSpannerReady: vi.fn(() => true),
-  upsertMemoryThread,
-  insertMemoryAnchor,
-  getMemoryThreadsByUser: vi.fn(() => []),
-  getMemoryAnchorsByUser: vi.fn(() => []),
-  markAnchorRecalled: vi.fn(),
-}));
-
 // Import after mocks
 import {
   writeSessionContinuity,
@@ -69,12 +54,6 @@ import {
   formatContinuityForLLM,
   type ContinuityBundle,
 } from '../../memory/retrieval/hybrid-continuity-retrieval.js';
-
-import {
-  isSpannerReady,
-  getMemoryThreadsByUser,
-  getMemoryAnchorsByUser,
-} from '../../memory/spanner-graph/client.js';
 
 // ============================================================================
 // TEST DATA FACTORIES
@@ -149,8 +128,6 @@ describe('Session continuity writes', () => {
 
     expect(result.threadsUpdated).toBe(0);
     expect(result.anchorsCreated).toBe(0);
-    expect(upsertMemoryThread).not.toHaveBeenCalled();
-    expect(insertMemoryAnchor).not.toHaveBeenCalled();
   });
 });
 

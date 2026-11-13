@@ -24,15 +24,6 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
 const indexMemoriesBatch = vi.fn(async (_userId: string, _items: unknown[]) => undefined);
 vi.mock('../../retrieval/semantic-memory-search.js', () => ({ indexMemoriesBatch }));
 
-// The graph's writers, mocked so that a call coming back shows up: nothing may reach them.
-const upsertMemoryThread = vi.fn(async (_thread: unknown) => undefined);
-const insertMemoryAnchor = vi.fn(async (_anchor: unknown) => undefined);
-vi.mock('../../spanner-graph/client.js', () => ({
-  isSpannerReady: () => true,
-  upsertMemoryThread,
-  insertMemoryAnchor,
-}));
-
 const { writeSessionContinuity } = await import('../memory-continuity.js');
 type SessionData = import('../memory-continuity.js').SessionContinuityData;
 
@@ -58,8 +49,6 @@ describe('writeSessionContinuity writes only the Firestore capsule', () => {
     capsuleGet.mockReset();
     capsuleSet.mockReset();
     indexMemoriesBatch.mockClear();
-    upsertMemoryThread.mockClear();
-    insertMemoryAnchor.mockClear();
   });
 
   it('keeps existing threads newest first and merges detected anchors by significance', async () => {
@@ -92,9 +81,6 @@ describe('writeSessionContinuity writes only the Firestore capsule', () => {
     ]);
     expect(written.pendingTopics).toEqual(['garden beds', 'sleep']);
     expect(written.version).toBe(5);
-    // Nothing else is written: no graph thread for the topics, no graph anchor.
-    expect(upsertMemoryThread).not.toHaveBeenCalled();
-    expect(insertMemoryAnchor).not.toHaveBeenCalled();
     // Only the session summary is indexed for search; detected anchors are not.
     expect(indexMemoriesBatch).toHaveBeenCalledTimes(1);
     expect(indexMemoriesBatch.mock.calls[0][1]).toEqual([

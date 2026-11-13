@@ -215,48 +215,6 @@ export function toSemanticMatches(results: SemanticSearchResult[]): SemanticMatc
 // ============================================================================
 
 /**
- * Index a memory for semantic search
- *
- * @param userId - User ID
- * @param text - Memory text to index
- * @param source - Memory source type
- * @param sourceId - Source-specific ID
- * @param metadata - Additional metadata
- */
-export async function indexMemory(
-  userId: string,
-  text: string,
-  source: MemorySourceType,
-  sourceId: string,
-  metadata?: Record<string, unknown>
-): Promise<void> {
-  try {
-    const vectorStore = getFirestoreVectorStore();
-    if (!vectorStore.isInitialized) {
-      await vectorStore.initialize();
-    }
-
-    const documentId = `${source}_${sourceId}`;
-
-    await vectorStore.addDocument({
-      id: documentId,
-      text,
-      metadata: {
-        source,
-        userId,
-        sourceId,
-        timestamp: new Date(),
-        ...metadata,
-      },
-    });
-
-    log.debug({ userId, source, sourceId }, 'Indexed memory for semantic search');
-  } catch (error) {
-    log.warn({ error: String(error), userId, source }, 'Failed to index memory');
-  }
-}
-
-/**
  * Index multiple memories in batch
  *
  * @param userId - User ID

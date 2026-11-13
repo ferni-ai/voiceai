@@ -57,35 +57,6 @@ vi.mock('../../memory/embeddings.js', () => ({
   embedBatch: vi.fn().mockResolvedValue([new Array(768).fill(0.1)]),
 }));
 
-// Mock Spanner
-vi.mock('../../memory/spanner-graph/client.js', () => ({
-  isSpannerReady: vi.fn().mockReturnValue(true),
-  getMemoryThreadsByUser: vi.fn().mockResolvedValue([
-    {
-      threadId: 'thread_career',
-      theme: 'Career Concerns',
-      rollingSummary: 'Multiple conversations about job security and career growth',
-      sessionCount: 5,
-      confidence: 0.8,
-      lastUpdated: new Date(),
-    },
-  ]),
-  getMemoryAnchorsByUser: vi.fn().mockResolvedValue([
-    {
-      anchorId: 'anchor_commitment1',
-      anchorType: 'commitment',
-      payload: {
-        summary: 'User committed to updating their resume this week',
-        context: 'Career planning discussion',
-      },
-      significanceScore: 0.9,
-      recallCount: 2,
-      createdAt: new Date(),
-    },
-  ]),
-  markAnchorRecalled: vi.fn(),
-}));
-
 // ============================================================================
 // TEST IMPORTS (after mocks)
 // ============================================================================

@@ -1114,52 +1114,6 @@ describe('STM Promotion Service', () => {
 });
 
 // ============================================================================
-// FIRESTORE-SPANNER SYNC TESTS
-// ============================================================================
-
-describe('Firestore-Spanner Sync Service', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('Service Lifecycle', () => {
-    it('should export sync service functions', async () => {
-      const sync = await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      expect(typeof sync.startSyncService).toBe('function');
-      expect(typeof sync.stopSyncService).toBe('function');
-      expect(typeof sync.runSyncCycle).toBe('function');
-      expect(typeof sync.getSyncStats).toBe('function');
-      expect(typeof sync.isSyncServiceRunning).toBe('function');
-    });
-
-    it('should track sync statistics', async () => {
-      const { getSyncStats } = await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      const stats = getSyncStats();
-
-      expect(stats).toHaveProperty('totalEntitiesSynced');
-      expect(stats).toHaveProperty('totalFactsSynced');
-      expect(stats).toHaveProperty('totalRelationshipsSynced');
-      expect(stats).toHaveProperty('totalSyncRuns');
-      expect(stats).toHaveProperty('failedSyncs');
-    });
-  });
-
-  describe('Sync Cycle', () => {
-    it('should handle missing Firestore gracefully', async () => {
-      const { runSyncCycle } = await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      const result = await runSyncCycle();
-
-      expect(result.entitiesSynced).toBe(0);
-      expect(result.factsSynced).toBe(0);
-      expect(result.relationshipsSynced).toBe(0);
-    });
-  });
-});
-
-// ============================================================================
 // GAP ANALYSIS TESTS - Coverage for edge cases identified
 // ============================================================================
 

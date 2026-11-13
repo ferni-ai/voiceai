@@ -56,28 +56,6 @@ vi.mock('../../utils/firestore-utils.js', () => ({
   })),
 }));
 
-// Mock Spanner
-const mockSpannerReady = vi.fn().mockReturnValue(true);
-const mockUpsertEntity = vi.fn().mockResolvedValue(undefined);
-const mockInsertFact = vi.fn().mockResolvedValue(undefined);
-const mockInsertRelationship = vi.fn().mockResolvedValue(undefined);
-const mockGetEntitiesByUser = vi.fn().mockResolvedValue([]);
-
-vi.mock('../../memory/spanner-graph/client.js', () => ({
-  isSpannerReady: () => mockSpannerReady(),
-  initializeSpanner: vi.fn().mockResolvedValue(true),
-  upsertEntity: (...args: unknown[]) => mockUpsertEntity(...args),
-  insertFact: (...args: unknown[]) => mockInsertFact(...args),
-  insertRelationship: (...args: unknown[]) => mockInsertRelationship(...args),
-  getEntitiesByUser: (...args: unknown[]) => mockGetEntitiesByUser(...args),
-  getMemoryThreadsByUser: vi.fn().mockResolvedValue([]),
-  getMemoryAnchorsByUser: vi.fn().mockResolvedValue([]),
-}));
-
-vi.mock('../../memory/spanner-graph/queries.js', () => ({
-  classifyFactDomain: vi.fn().mockReturnValue('general'),
-}));
-
 // Mock embeddings
 vi.mock('../../memory/embeddings.js', () => ({
   embed: vi.fn().mockResolvedValue(new Array(1536).fill(0.1)),
@@ -125,7 +103,6 @@ function createRelationshipMemory(): MemoryInput {
 describe('Memory Pipeline Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSpannerReady.mockReturnValue(true);
   });
 
   describe('UnifiedStore with All Adapters', () => {
@@ -149,7 +126,7 @@ describe('Memory Pipeline Integration', () => {
       await store.shutdown();
     });
 
-    it('should store a high-importance memory with no graph write', async () => {
+    it('should store a high-importance memory', async () => {
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
       const store = new UnifiedMemoryStoreFacade({
         features: {
@@ -166,20 +143,11 @@ describe('Memory Pipeline Integration', () => {
       expect(memory.emotionalWeight).toBe(0.85);
       
       expect(memory.peopleMentioned).toContain('Sarah');
-      // No Spanner sync, now or later: let any queued async work run, then check the graph.
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
-      expect(mockUpsertEntity).not.toHaveBeenCalled();
-      expect(mockInsertFact).not.toHaveBeenCalled();
-      expect(mockInsertRelationship).not.toHaveBeenCalled();
 
       await store.shutdown();
     });
 
-    it('should not depend on Spanner being available', async () => {
-      mockSpannerReady.mockReturnValue(false);
-
+    it('should report no Spanner store and no Spanner recommendation', async () => {
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
       const store = new UnifiedMemoryStoreFacade({
         features: {
@@ -191,7 +159,6 @@ describe('Memory Pipeline Integration', () => {
 
       await store.initialize();
       
-      // Store should still work even if Spanner is down
       const memory = await store.store(createTestMemory());
       expect(memory.id).toBeDefined();
 
@@ -367,9 +334,6 @@ describe('Memory Pipeline Integration', () => {
   describe('Error Handling and Resilience', () => {
     it('should handle partial adapter failures gracefully', async () => {
       const { UnifiedMemoryStoreFacade } = await import('../../memory/unified-store/facade.js');
-
-      // Make Spanner fail
-      mockSpannerReady.mockReturnValue(false);
 
       const store = new UnifiedMemoryStoreFacade({
         features: {
