@@ -142,10 +142,7 @@ import {
 } from '../integrations/unified-intelligence-integration.js';
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
-import {
-  captureTurnMemory,
-  voiceEmotionSnapshot,
-} from '../../memory/dynamic/turn-memory-capture.js';
+import { captureTurnMemory, voiceEmotionSnapshot } from '../../memory/dynamic/index.js';
 
 // Session Health Monitor - Function calling reliability (Jan 2026)
 import {
