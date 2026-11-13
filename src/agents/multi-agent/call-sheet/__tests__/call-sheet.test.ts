@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderPersonModel } from '../../../../intelligence/person-model/index.js';
 import { registerRecentTextsOwnerCheck } from '../../recent-texts-awareness.js';
-import { MAX_SHEET_CHARS, startCallSheet, STALE_DAYS } from '../index.js';
+import { startCallSheet } from '../index.js';
 import { fakePorts, fakeState, never, storedSheet, type FakeState } from './fixtures.js';
 
 const outbound = vi.hoisted(() => new Set<string>());
@@ -152,12 +152,13 @@ describe('call sheet: holds', () => {
 });
 
 describe('call sheet: stale and capped', () => {
-  it(`a sheet ${STALE_DAYS} days old or more is skipped, though its sections would still render`, async () => {
-    const old = storedSheet(NOW, STALE_DAYS + 1);
+  it('a sheet 3 days old or more is skipped, though its sections would still render', async () => {
+    // The numbers are stated here, not imported: changing the rule must change this test.
+    const old = storedSheet(NOW, 3);
     // Not called since and under a week: the render alone would keep every section.
     expect(renderPersonModel(old, { now: NOW, forgottenTopics: [] })).toContain('Mia');
     expect(await sheetFor(fakeState(old))).toBe('');
-    expect(await sheetFor(fakeState(storedSheet(NOW, STALE_DAYS - 1)))).toContain('Mia');
+    expect(await sheetFor(fakeState(storedSheet(NOW, 2.99)))).toContain('Mia');
   });
 
   it('a long sheet is cut to the in-call cap, whole sections from the bottom', async () => {
@@ -171,7 +172,7 @@ describe('call sheet: stale and capped', () => {
     const out = (await sheetFor(fakeState(big))) ?? '';
     const body = out.split(`${HEADING}\n\n`)[1]?.trimEnd() ?? '';
     expect(body.length).toBeGreaterThan(500);
-    expect(body.length).toBeLessThanOrEqual(MAX_SHEET_CHARS);
+    expect(body.length).toBeLessThanOrEqual(1500);
     expect(out).not.toContain('Tone:');
   });
 });

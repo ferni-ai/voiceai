@@ -39,9 +39,9 @@ const SHEET_BUDGET_MS = 1500;
  * missed two nightly runs or more: dates and open items have drifted. Stricter than the
  * render's per-section rule, which keeps a quiet caller's sections for a week.
  */
-export const STALE_DAYS = 3;
+const STALE_DAYS = 3;
 /** The in-call cap: whole sections drop from the bottom of the sheet past it. */
-export const MAX_SHEET_CHARS = 1500;
+const MAX_SHEET_CHARS = 1500;
 
 const DAY_MS = 86_400_000;
 
