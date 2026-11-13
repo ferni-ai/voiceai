@@ -434,12 +434,12 @@ async function handleTextGameStartRequest(
 
     // Start the text game - returns result with message
     const result = await engine.startGame(gameType);
-    getLogger().info({ gameType, result }, '🎮 Text game engine returned result');
+    getLogger().info({ gameType, result: replyForLog(JSON.stringify(result)) }, '🎮 Text game');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
     // Use coordinated speech - text is already written, no need for LLM
     if (result.message && session) {
-      getLogger().info({ message: result.message }, '🎮 Agent speaking text game welcome...');
+      getLogger().info({ message: replyForLog(result.message) }, '🎮 Speaking text welcome');
       // Combine message with board state if available
       const fullMessage = result.boardDescription
         ? `${result.message} ${result.boardDescription}`

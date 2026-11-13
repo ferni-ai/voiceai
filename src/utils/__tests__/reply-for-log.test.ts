@@ -5,6 +5,7 @@
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -120,13 +121,15 @@ describe('the reply-text log lines use it', () => {
 });
 
 /**
- * Lines that log reply text through replyForLog/repliesForLog, per file. A file below its floor has
- * lost a wrap (the raw field is back in a log call): log-text-ratchet only sees slices, not a bare
- * `{ text }`. Raise a floor when a site is added; lower one only when the site is deleted.
+ * Calls to replyForLog/repliesForLog, per file (syntax tree: a comment or string that mentions
+ * one does not count). A file below its floor has lost a wrap, i.e. a raw field is back in a
+ * log call: log-text-ratchet only sees slices, not a bare `{ text }`. Raise a floor when a site
+ * is added; lower one only when the site is deleted.
  */
-const WRAPPED_LINES: Record<string, number> = {
+const WRAPPED_CALLS: Record<string, number> = {
   'src/agents/integrations/live-backchanneling-integration.ts': 1,
   'src/agents/integrations/slow-turn-sound.ts': 1,
+  'src/agents/integrations/tool-ack-clip.ts': 1,
   'src/agents/integrations/turn-opening-sound.ts': 2,
   'src/agents/model-provider/gemini-live.ts': 1,
   'src/agents/multi-agent/agent-setup.ts': 4,
@@ -136,9 +139,9 @@ const WRAPPED_LINES: Record<string, number> = {
   'src/agents/shared/handoff/coordinator-adapter.ts': 2,
   'src/agents/shared/performance/cache-aware-tts.ts': 3,
   'src/agents/shared/sanitizer/index.ts': 2,
-  'src/agents/shared/tts-wrapper.ts': 13,
+  'src/agents/shared/tts-wrapper.ts': 12,
   'src/agents/shared/voiced-take-render.ts': 2,
-  'src/agents/voice-agent/data-channel-handler.ts': 2,
+  'src/agents/voice-agent/data-channel-handler.ts': 4,
   'src/agents/voice-agent/transcript-handler.ts': 2,
   'src/audio/dj-speech-engine.ts': 1,
   'src/audio/music-humanization.ts': 1,
@@ -148,7 +151,7 @@ const WRAPPED_LINES: Record<string, number> = {
   'src/services/performance/speculative-tts.ts': 1,
   'src/speech/coordination/coordinated-tool-executor.ts': 1,
   'src/speech/coordination/speech-coordinator.ts': 3,
-  'src/speech/direction/director.ts': 3,
+  'src/speech/direction/director.ts': 4,
   'src/speech/tts-gateway/gateway-tts-node.ts': 13,
   'src/speech/tts-gateway/gateway.ts': 8,
   'src/speech/tts-gateway/index.ts': 7,
@@ -156,12 +159,31 @@ const WRAPPED_LINES: Record<string, number> = {
   'src/tools/domains/communication/outreach/message-crafting.ts': 1,
 };
 
+const wrappedCalls = (file: string, text: string): number => {
+  let n = 0;
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      ['replyForLog', 'repliesForLog'].includes(node.expression.text)
+    )
+      n++;
+    ts.forEachChild(node, visit);
+  };
+  visit(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true));
+  return n;
+};
+
 describe('no reply-text log line loses its wrap', () => {
   const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
-  const wrapped = (src: string) =>
-    src.split('\n').filter((l) => /(replyForLog|repliesForLog)\(/.test(l)).length;
 
-  it.each(Object.entries(WRAPPED_LINES))('%s keeps at least %i wrapped lines', (rel, floor) => {
-    expect(wrapped(read(rel))).toBeGreaterThanOrEqual(floor);
+  it.each(Object.entries(WRAPPED_CALLS))('%s keeps at least %i wrapped calls', (rel, floor) => {
+    expect(wrappedCalls(rel, read(rel))).toBeGreaterThanOrEqual(floor);
+  });
+
+  it('does not count a comment or a string that mentions replyForLog(', () => {
+    const src = '// replyForLog(x)\nconst s = "replyForLog(y)"; /* repliesForLog(z) */';
+    expect(wrappedCalls('x.ts', src)).toBe(0);
+    expect(wrappedCalls('x.ts', `${src}\nlog({ a: replyForLog(b) });`)).toBe(1);
   });
 });
