@@ -41,6 +41,10 @@ const spy = vi.hoisted(() => ({
   held: [] as Record<string, unknown>[],
   /** The lines each end-of-call human signals read was handed (stm-promotion.ts). */
   signalsIn: [] as string[][],
+  /** The turn read's summary() result, when a row makes it missing; 'real' passes through. */
+  crisisRead: 'real' as 'real' | undefined | null,
+  /** How many summary() calls returned the row's missing read (precondition for those rows). */
+  missingReads: 0,
 }));
 
 vi.mock('../../../utils/safe-logger.js', async (orig) => {
@@ -104,6 +108,24 @@ vi.mock('../../../memory/human-signal-extractor.js', async (orig) => {
       spy.signalsIn.push(args[0].map((t) => t.content));
       return real.extractHumanSignals(...args);
     }),
+  };
+});
+// The turn's crisis read, real unless a row makes its summary missing (undefined or null).
+vi.mock('../../processors/turn-processor/turn-crisis.js', async (orig) => {
+  const real = await orig<typeof import('../../processors/turn-processor/turn-crisis.js')>();
+  return {
+    ...real,
+    startTurnCrisis: (...args: Parameters<typeof real.startTurnCrisis>) => {
+      const turn = real.startTurnCrisis(...args);
+      if (spy.crisisRead === 'real') return turn;
+      const missing = spy.crisisRead;
+      return Object.assign(turn, {
+        summary: async () => {
+          spy.missingReads++;
+          return missing as never;
+        },
+      });
+    },
   };
 });
 vi.mock('../../../memory/knowledge-graph/index.js', async (orig) => ({
@@ -311,6 +333,8 @@ afterEach(() => {
   spy.held.length = 0;
   spy.site.length = 0;
   spy.signalsIn.length = 0;
+  spy.crisisRead = 'real';
+  spy.missingReads = 0;
   vi.unstubAllEnvs();
 });
 
@@ -488,6 +512,28 @@ describe("a crisis turn: the turn handler's copy is session only (early sites: K
     await call.detach();
     cleanupSession(call.sessionId);
   }, 60_000);
+
+  // A read that is missing fails closed: the turn handler holds the line as for a crisis read.
+  for (const [name, missing] of [
+    ['undefined', undefined],
+    ['null', null],
+  ] as const) {
+    it(`a crisis read that comes back ${name}: held at the turn handler like a crisis read`, async () => {
+      spy.crisisRead = missing;
+      const call = liveSession();
+      call.say(ORDINARY);
+      call.agentThinks();
+      await quiet(1);
+      expect(spy.missingReads).toBeGreaterThan(0); // the turn really ran on a missing read
+      expect(spy.site.filter((s) => s === 'turn-handler')).toEqual([]);
+      expect(heldRecords()).toEqual([ORDINARY]);
+      expect(heldLog()).toEqual([
+        { site: 'turn-handler', reason: 'crisis', sessionId: call.sessionId },
+      ]);
+      await call.detach();
+      cleanupSession(call.sessionId);
+    }, 60_000);
+  }
 
   it('an ordinary turn after it is captured at the turn handler as main', async () => {
     const call = liveSession();
