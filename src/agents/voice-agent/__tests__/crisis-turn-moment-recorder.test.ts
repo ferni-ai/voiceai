@@ -6,15 +6,16 @@
  * no phrase kept in the relationship engine, no personality service record, no data message to
  * the client (the bond signal included). On any other turn each type does all three, as on main.
  *
- * Only the two stores behind the bridge are stubbed, and both stubs are complete: neither
- * spreads the real module (`importOriginal`). In a full unit shard the relationship barrel's
- * original came back empty, the bridge's call to `isWordlessMoment` threw inside its own catch,
- * and the ordinary rows silently lost their service record. `isWordlessMoment` now comes from
- * its own unmocked module, imported here, and every ordinary row also checks the bridge's
- * result, which carries a marker only this file's service stub returns. Every line is fictional.
+ * Only the two stores behind the bridge are stubbed, and neither stub spreads a real module
+ * (`importOriginal`). The relationship stub replaces only the module that defines the engine
+ * (`engine.js`), so the barrel the bridge imports, and its `isWordlessMoment`, stay real. In a
+ * full unit shard, a stub that spread the barrel's original once got it back empty: the bridge's
+ * call to `isWordlessMoment` threw inside its own catch, and the ordinary rows silently lost their
+ * service record. The first row fails by name if that setup ever degrades, and every ordinary row
+ * checks the bridge's result for a marker only this file's service stub returns. Every line is
+ * fictional.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isWordlessMoment } from '../../../intelligence/relationship/wordless-moments.js';
 import type { SharedMomentType } from '../../../intelligence/relationship/types.js';
 import { crisisReadTurn, momentRecorder } from '../crisis-turn-memory.js';
 
@@ -25,12 +26,11 @@ const state = vi.hoisted(() => ({
   delayMs: 0,
 }));
 
-vi.mock('../../../intelligence/relationship/index.js', () => ({
+vi.mock('../../../intelligence/relationship/engine.js', () => ({
   getRelationshipEngine: () => ({
     recordMoment: (type: string, _summary: string, details?: { userPhrase?: string }) =>
       void state.phrases.push({ type, userPhrase: details?.userPhrase }),
   }),
-  isWordlessMoment: (type: SharedMomentType) => isWordlessMoment(type),
 }));
 
 vi.mock('../../../personality/v2/index.js', () => ({
@@ -117,11 +117,15 @@ beforeEach(() => {
   state.delayMs = 0;
 });
 
-describe('moment recorder on a crisis turn', () => {
-  it('the bridge reads wordless moments from the real module, not an empty stub', () => {
-    expect(typeof isWordlessMoment).toBe('function');
+describe('stub setup the bridge sees', () => {
+  it('the real barrel has isWordlessMoment, and an ordinary moment reaches the service', async () => {
+    const barrel = await import('../../../intelligence/relationship/index.js');
+    expect(typeof barrel.isWordlessMoment).toBe('function');
+    expect(await recordOne('celebration', false)).toEqual(recordedAll('celebration'));
   });
+});
 
+describe('moment recorder on a crisis turn', () => {
   it.each(TYPES)('a %s moment keeps no phrase, records nothing and sends nothing', async (type) => {
     expect(await recordOne(type, true)).toEqual(NOTHING);
   });
