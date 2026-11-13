@@ -150,7 +150,6 @@ const PENDING_3215B: Record<string, string[]> = {
   'src/memory/knowledge-graph/storage/thread-store.ts': ['topic: thread.topic'],
   'src/memory/spanner-graph/client.ts': ['name: entity.name'],
   'src/personas/bundles/ferni/superhuman-memory-integration.ts': ['topic: insight.topic'],
-  'src/scripts/query-threads.ts': ['d?.summary', '${content}'],
   'src/services/coaching/goal-tracking.ts': [
     'title: goal.title',
     'title: goal.title',
@@ -482,9 +481,10 @@ describe('log calls in src/ carry no conversation text (#2689, #3215)', () => {
     expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(18);
   });
 
-  // 82 at first, plus 47 found by the topic, canonicalName and bound-name shapes (#3724)
-  it('holds exactly the 129 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
-    expect(Object.values(PENDING_3215B).flat()).toHaveLength(129);
+  // 82 at first, plus 47 found by the topic, canonicalName and bound-name shapes (#3724),
+  // less the 2 query-threads.ts calls #3744 removed
+  it('holds exactly the 127 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
+    expect(Object.values(PENDING_3215B).flat()).toHaveLength(127);
   });
 
   it('keeps pending calls out of the other lists', () => {
