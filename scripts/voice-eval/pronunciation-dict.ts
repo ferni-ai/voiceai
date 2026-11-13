@@ -50,8 +50,11 @@ async function live(id: string): Promise<PronunciationDictItem[]> {
 if (process.argv.includes('--list')) {
   const res = await fetch(`${API}/`, { headers });
   if (!res.ok) throw new Error(`list: ${res.status} ${await res.text()}`);
-  const body = (await res.json()) as { data?: Array<{ id: string; name?: string; item_count?: number }> };
-  for (const d of body.data ?? []) console.log(`${d.id}  ${d.name ?? '(no name)'}  ${d.item_count ?? '?'} items`);
+  const body = (await res.json()) as {
+    data?: Array<{ id: string; name?: string; item_count?: number }>;
+  };
+  for (const d of body.data ?? [])
+    console.log(`${d.id}  ${d.name ?? '(no name)'}  ${d.item_count ?? '?'} items`);
 }
 
 const wanted = pronunciationDictItems();
