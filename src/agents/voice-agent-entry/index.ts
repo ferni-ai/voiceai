@@ -199,7 +199,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
   // Forward-declared variables used across phases and in cleanup
   let userId: string | null = null;
-  let callEnd: CallEnd | undefined;
+  let callEnd: CallEnd | undefined; // the call's report and context release, on any exit
   let personaId = 'ferni';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let services: any = null;
@@ -246,7 +246,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
-    // Reports the call and releases its context on every exit path, and on shutdown
     callEnd = callEndFor(ctx, { metadata, callType, sessionId, startTime });
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
@@ -923,6 +922,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
+    await callEnd?.report(); // first: no step below has a timeout
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${errorText(error)}\n`);
 
     recordCrash('uncaught_exception', errObj, sessionId, { roomName, connectionState: currentPhase });

@@ -243,19 +243,38 @@ describe('voice entry exit paths', () => {
     ['crash', range(crashStart, crashEnd)],
   ] as const;
 
-  /** The order of session close and call end on one exit path, read from index.ts. */
-  function stepsOf(lines: readonly number[]): string[] {
+  /** The order of the call report, session close and call end on one exit path, read from index.ts. */
+  function stepsOf(lines: readonly number[], withUntimed = false): string[] {
     return lines.flatMap((n) => {
       const line = entry[n];
       if (/^\s*\/\//.test(line)) return [];
       if (/callEnd\??\.end\(/.test(line)) return ['end'];
+      if (/callEnd\??\.report\(/.test(line)) return ['report'];
       if (/await closeAgentSession\(|= await runUntilCallEnds\(/.test(line)) return ['close'];
+      // The crash path's steps with no timeout of their own.
+      if (withUntimed && /analyzeFailure\(|await runSessionCleanup\(|cleanupHandlers\)/.test(line))
+        return ['untimed'];
       return [];
     });
   }
 
-  it.each(paths)('%s: the call ends once, after the agent session is closed', (_path, lines) => {
-    expect(stepsOf(lines)).toEqual(['close', 'end']);
+  it.each(paths.slice(0, 2))(
+    '%s: the call ends once, after the agent session is closed',
+    (_path, lines) => {
+      expect(stepsOf(lines)).toEqual(['close', 'end']);
+    }
+  );
+
+  it('crash: reports first, before every step with no timeout, and releases after the close', () => {
+    const [, , [, crash]] = paths;
+    expect(stepsOf(crash, true)).toEqual([
+      'report',
+      'untimed', // analyzeFailure (the diagnosis model call)
+      'untimed', // runSessionCleanup
+      'untimed', // the cleanupHandlers loop
+      'close',
+      'end',
+    ]);
   });
 
   it.each(paths)(
@@ -271,6 +290,8 @@ describe('voice entry exit paths', () => {
         if (!closed) expect(outboundPartiesFor(sessionId), `before ${step}`).toBeDefined();
         // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
         if (step === 'end') await call.end();
+        // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
+        if (step === 'report') await call.report();
         if (step === 'close') closed = true;
       }
       expect(contextsUnder(sessionId)).toEqual([]);

@@ -31,6 +31,13 @@ interface CallEndCall {
 
 export interface CallEnd {
   /**
+   * The call report alone. The crash path runs it first, before steps that
+   * have no timeout (the failure diagnosis, the cleanups): a process killed
+   * mid-catch, with no shutdown callbacks to finish it, still sent it.
+   * Never throws.
+   */
+  report(): Promise<void>;
+  /**
    * Report the call, then release its context. Run it once the agent session
    * is closed: the outbound context is how every in-call read knows a third
    * party is on the line, and dropped while a turn can still run, that person
@@ -52,11 +59,11 @@ export function callEndFor(
   steps: { finish?: () => Promise<void>; release?: () => Promise<void> } = {}
 ): CallEnd {
   const { metadata, callType, sessionId, startTime } = call;
-  const report = (): Promise<void> => {
+  const callReport = (): Promise<void> => {
     const durationMs = Date.now() - startTime;
     return finishCallTypeContexts(metadata, callType, sessionId, durationMs, ctx.job.metadata);
   };
-  const finish = once(ctx, steps.finish ?? report);
+  const finish = once(ctx, steps.finish ?? callReport);
   const releaseStep =
     steps.release ?? (() => releaseCallTypeContexts(metadata, sessionId, ctx.job.room?.name));
   const release = once(ctx, async () => {
@@ -65,11 +72,15 @@ export function callEndFor(
     noteCallEnded(sessionId, { thirdPartyOnLine: outboundPartiesFor(sessionId) !== undefined });
     await releaseStep();
   });
+  let reported: Promise<void> | undefined; // logged once, however many paths ask
+  const report = (): Promise<void> =>
+    (reported ??= finish().catch((error) =>
+      log.error({ errorClass: errorClass(error) }, 'Call report failed at call end')
+    ));
   return {
+    report,
     async end() {
-      await finish().catch((error) =>
-        log.error({ errorClass: errorClass(error) }, 'Call report failed at call end')
-      );
+      await report();
       await release().catch((error) =>
         log.error({ errorClass: errorClass(error) }, 'Call context not released at call end')
       );

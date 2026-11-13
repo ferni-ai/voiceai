@@ -100,6 +100,23 @@ describe('callEndFor', () => {
     expect(JSON.stringify(logged)).not.toContain('Wren');
   });
 
+  it('report() runs the report alone; end() then releases without a second report or log', async () => {
+    const job = fakeJob();
+    const finish = vi.fn(async () => {
+      throw new TypeError('report failed');
+    });
+    const release = vi.fn(async () => undefined);
+    const call = callEndFor(job.ctx, CALL, { finish, release });
+
+    await expect(call.report()).resolves.toBeUndefined();
+    expect(release).not.toHaveBeenCalled(); // the crash path releases only after the close
+    await call.end();
+
+    expect(finish).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(logged).toHaveLength(1);
+  });
+
   it('a failed release never throws out of end()', async () => {
     const job = fakeJob();
     const end = callEndFor(job.ctx, CALL, {
