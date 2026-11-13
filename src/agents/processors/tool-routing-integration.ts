@@ -15,7 +15,6 @@
 
 import { isFtisEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { SemanticRoutingResult } from './types.js';
 
 const log = createLogger({ module: 'ftis-routing' });
 
@@ -268,80 +267,6 @@ export async function runFTISRouting(
       error: String(error),
     };
   }
-}
-
-/**
- * Convert FTIS routing result to SemanticRoutingResult.
- *
- * Maps FTIS result fields to the SemanticRoutingResult format
- * used by the rest of the pipeline.
- */
-export function convertToSemanticRoutingResult(
-  ftisResult: FTISRoutingResult
-): SemanticRoutingResult {
-  // Not attempted or failed
-  if (!ftisResult.attempted || ftisResult.error) {
-    return {
-      routed: false,
-      bypassLLM: false,
-      metrics: {
-        latencyMs: ftisResult.processingTimeMs,
-        cacheHit: false,
-        confidence: 0,
-        matchPath: 'none',
-      },
-      routingPath: ftisResult.error ? 'error' : 'disabled',
-    };
-  }
-
-  // Direct execution happened
-  if (ftisResult.bypassLLM && ftisResult.toolResult) {
-    return {
-      routed: true,
-      bypassLLM: true,
-      toolResult: {
-        toolId: ftisResult.toolResult.toolId,
-        output: ftisResult.toolResult.output,
-        success: ftisResult.toolResult.success,
-        speakableResponse: ftisResult.toolResult.speakableResponse,
-      },
-      metrics: {
-        latencyMs: ftisResult.processingTimeMs,
-        cacheHit: false,
-        confidence: ftisResult.classification?.confidence || 0,
-        matchPath: 'combined', // FTIS uses combined pattern + keyword matching
-      },
-      routingPath: 'semantic_auto_execute', // Direct execution = auto execute
-    };
-  }
-
-  // Classification only (hint mode)
-  if (ftisResult.classification) {
-    return {
-      routed: false,
-      bypassLLM: false,
-      metrics: {
-        latencyMs: ftisResult.processingTimeMs,
-        cacheHit: false,
-        confidence: ftisResult.classification.confidence,
-        matchPath: 'combined', // FTIS uses combined pattern + keyword matching
-      },
-      routingPath: 'semantic_hint', // Classification only = hint mode
-    };
-  }
-
-  // Fallback - conversation detected
-  return {
-    routed: false,
-    bypassLLM: false,
-    metrics: {
-      latencyMs: ftisResult.processingTimeMs,
-      cacheHit: false,
-      confidence: 0,
-      matchPath: 'none',
-    },
-    routingPath: 'semantic_conversation', // No tool needed
-  };
 }
 
 /**

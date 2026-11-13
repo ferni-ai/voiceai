@@ -36,11 +36,8 @@ import {
   initializeCorrectionStore,
 } from '../learning/index.js';
 import type { SemanticRouterResult, ToolMatch } from '../types.js';
-import type {
-  TurnRouterResult,
-  RoutingContext,
-  RoutingPath,
-} from './turn-processor-integration.js';
+import type { RoutingPath } from './routing-path.js';
+import type { TurnRouterResult, RoutingContext } from './turn-processor-integration.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:active-learning' });

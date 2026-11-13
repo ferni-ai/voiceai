@@ -46,11 +46,8 @@ import {
   startSemanticRouting,
 } from '../../../tools/semantic-router/integration/index.js';
 
-import {
-  buildFTISToolHint,
-  convertToSemanticRoutingResult,
-  runFTISRouting,
-} from '../tool-routing-integration.js';
+import { buildFTISToolHint, runFTISRouting } from '../tool-routing-integration.js';
+import { convertToSemanticRoutingResult } from '../ftis-semantic-routing-result.js';
 
 import { createInspectionData, recordContextBuild } from '../../../services/context-inspection.js';
 

@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { RoutingPath } from './turn-processor-integration.js';
+import type { RoutingPath } from './routing-path.js';
 
 const log = createLogger({ module: 'semantic-router:observability' });
 
