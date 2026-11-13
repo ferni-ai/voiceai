@@ -119,6 +119,11 @@ const WIDER_EN = [
   'i want to drown myself in the lake',
   "i'm giving up on life",
   "i can't go on, i'm so full of regret",
+  // the idiom carve-outs end at the idiom: the same verb with any other ending keeps its read
+  'i want to shoot myself in the head',
+  'i could shoot myself in the face right now',
+  'i want to stab myself with a knife',
+  'i want to drown myself in the bathtub',
 ];
 const WIDER_ES = [
   'estoy pensando en suicidarme',
@@ -148,7 +153,6 @@ const WIDER_NOT = [
 const DENIED = [
   "i'm not going to hurt myself",
   'I would never kill myself',
-  "i won't hurt myself, i promise",
   'i will not hurt myself',
   'i would not hurt myself',
   'i am not going to hurt myself',
@@ -166,29 +170,59 @@ const DENIED = [
   'no pienso matarme',
   'not suicidal',
 ];
-/** One row per filler a plain denial may carry and stay plain. */
-const FILLER_ROWS = [
-  "i'm not going to hurt myself lol",
-  "i'm not gonna kill myself lmao",
-  "haha i won't hurt myself",
-  'jajaja nunca voy a matarme',
-  "ok, i'm not going to hurt myself",
+/** A bare denial: at most a leading "no" or "nah" and one closing "." or "!". */
+const BARE_ROWS = [
+  "i'm not going to hurt myself.",
+  'I would never kill myself!',
   'no, i would never hurt myself',
   "nah i'm not suicidal",
-  'nope. not gonna hurt myself.',
+  "no i'm not going to kill myself.",
+  "nah, i won't hurt myself!",
+  "no. i'm not going to hurt myself",
+  'no, no voy a matarme.',
+  '  no pienso hacerme daño!  ',
+];
+/**
+ * Never lower (lead, #3826 round 2): an aside, a second "no" or a trailing "..." is more than the
+ * bare denial, so each keeps the check-in.
+ */
+const ASIDE_ROWS = [
+  "i won't kill myself haha",
+  "lol no i'm not going to kill myself lol",
+  "i'm fine, i'm not going to kill myself, i promise",
+  "no i'm not going to kill myself, no",
+  "i'm not going to kill myself...",
+  "i'm not going to hurt myself…",
+  "i won't hurt myself..",
+  "i won't hurt myself, i promise",
+  "i'm not going to hurt myself lol",
+  "i'm not gonna kill myself lmao",
+  "hahaha no i won't hurt myself",
+  "lol i'm not going to kill myself",
+  "haha i won't hurt myself",
+  "i'm okay i won't hurt myself",
+  "dont worry i'm not going to hurt myself",
+  'jaja no voy a matarme',
+  "promise i won't hurt myself",
+  "i promise i'm not going to hurt myself",
+  "i'm fine. i'm not going to kill myself.",
+  "i'm good, i won't hurt myself",
+  "ok, i'm not going to hurt myself",
   "yeah, i'm not going to hurt myself",
+  'nope. not gonna hurt myself.',
   "relax, i'm not going to kill myself",
   "honestly i won't hurt myself",
-  "seriously, i'm not going to hurt myself!",
-  "promise i won't hurt myself",
   "don't worry, i won't hurt myself",
-  "no worries, i'm not going to hurt myself",
-  "i'm good, i won't hurt myself",
-  "i'm fine. i'm not going to kill myself.",
+  "no, no, i'm not going to kill myself",
+  "i'm not going to hurt myself!!",
+  'jajaja nunca voy a matarme',
+  'nunca voy a matarme jaja',
   'no voy a hacerme daño, te lo prometo',
   'no te preocupes, no voy a matarme',
   'tranquila, no voy a hacerme daño',
   'estoy bien, no voy a hacerme daño',
+  'no voy a matarme, no',
+  'no voy a matarme...',
 ];
 /**
  * Never lower (#3826 verify): a denial that says anything more keeps the check-in. A time limit,
@@ -302,8 +336,12 @@ describe('a plain denial', () => {
     expect(await said(line)).toContain('¿Estás a salvo ahora mismo?');
   });
 
-  it.each(FILLER_ROWS)('stays plain with filler around it: "%s"', async (line) => {
+  it.each(BARE_ROWS)('stays plain with a leading no or a closing stop: "%s"', async (line) => {
     expect(await checksIn(line)).toBe(false);
+  });
+
+  it.each(ASIDE_ROWS)('keeps the check-in with anything around the denial: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
   });
 
   /** A hedge is more than the denial: each keeps the check-in. */
@@ -323,7 +361,7 @@ describe('a plain denial', () => {
   });
 
   it('keeps the check-in after an earlier caller line with check-in words', async () => {
-    const line = "i won't take them all, relax";
+    const line = "i won't take them all.";
     expect(await checksIn(line)).toBe(false);
     const earlier = ['i have a bottle of pills here', 'whatever'];
     expect((await decide(line, { earlier }))?.action).toBe('guide');
@@ -332,13 +370,23 @@ describe('a plain denial', () => {
     );
   });
 
+  it('checks in, in Spanish, on a Spanish plain denial after earlier risk', async () => {
+    const line = 'no voy a matarme';
+    expect(await checksIn(line)).toBe(false);
+    expect((await decide(line, { earlier: ['quiero morir'] }))?.action).toBe('guide');
+    const ending = await said(line);
+    expect(ending).toContain('¿Estás a salvo ahora mismo?');
+    expect(ending).not.toContain('Are you safe right now?');
+  });
+
   it('changes nothing with the flag off: every new row goes to the gate', async () => {
     const rows = [
       ...WIDER_EN,
       ...WIDER_ES,
       ...WIDER_NOT,
       ...DENIED,
-      ...FILLER_ROWS,
+      ...BARE_ROWS,
+      ...ASIDE_ROWS,
       ...SAYS_MORE,
       ...KEPT,
       ...KEPT_ES,

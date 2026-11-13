@@ -11,10 +11,11 @@
  * silent: when the reply lacks 988 or a safety question, code says them after it
  * (withCheckinEnding).
  *
- * A plain denial ("i'm not going to hurt myself") is not a reason to check in, but only when the
- * line is that denial and nothing more (a "lol", "i'm good" or "promise" aside) and nothing on the
- * call carried risk before it. Anything else keeps the check-in: a false check-in is far cheaper
- * than a missed one.
+ * A plain denial ("i'm not going to hurt myself.") is not a reason to check in, but only when the
+ * line is that bare denial, with at most a leading "no" or "nah" and one closing "." or "!", and
+ * nothing on the call carried risk before it. Anything else keeps the check-in: an aside ("lol",
+ * "haha", "i promise", "i'm fine, ..."), a second "no", a trailing "..." (a hedge). A false
+ * check-in is far cheaper than a missed one.
  *
  * Only adds: never on a turn the patterns, a gentle offer or a re-ask already handle, and never
  * when the classifier answered (a "none" is a read). Notes no call risk; logs counts only.
@@ -71,31 +72,8 @@ const pattern = (list: readonly string[]): RegExp => new RegExp(`\\b(?:${list.jo
 const EN = pattern(EN_WORDS);
 const ES = pattern(ES_WORDS);
 
-/** Said around a plain denial and nothing more: "lol", "i'm good", "promise", "relax". */
-const FILLER = [
-  'lol\\w*',
-  'lmao',
-  'haha\\w*',
-  'jaja\\w*',
-  'ok(?:ay)?',
-  'no',
-  'nah',
-  'nope',
-  'yeah',
-  'relax',
-  'honestly',
-  'seriously',
-  '(?:i )?promise',
-  "don'?t worry",
-  'no worries',
-  "i'?m (?:good|fine|ok(?:ay)?|alright)",
-  '(?:te )?lo prometo',
-  'no te preocupes',
-  'tranquil[oa]',
-  'estoy bien',
-];
-/** Filler and plain punctuation only: no other word, no emoji, no question. */
-const AROUND = `(?:[\\s.,!]|\\b(?:${FILLER.join('|')})\\b)*`;
+/** Before a bare denial: at most one leading "no" or "nah" ("no, i'm not going to"). */
+const LEADING_NO = '\\s*(?:(?:no|nah)\\b[\\s.,!]*)?';
 
 /**
  * A plain denial of the words that follow: "i'm not going to", "i would never", "no thoughts of",
@@ -111,9 +89,10 @@ const DENIAL = [
   '(?:yo )?(?:no|nunca|jam(?:á|a)s) (?:voy a|pienso|planeo|me voy a)',
 ];
 const DENIED_BEFORE = new RegExp(
-  `^${AROUND}(?:${DENIAL.join('|')})(?: (?:ever|even))?(?: (?:going|gonna|planning|about|trying)(?: (?:to|on))?)?\\s+$`
+  `^${LEADING_NO}(?:${DENIAL.join('|')})(?: (?:ever|even))?(?: (?:going|gonna|planning|about|trying)(?: (?:to|on))?)?\\s+$`
 );
-const NOTHING_AFTER = new RegExp(`^${AROUND}$`);
+/** After a bare denial: at most one closing "." or "!". "..." trails off, a hedge. */
+const NOTHING_AFTER = /^\s*[.!]?\s*$/;
 
 const wordsOf = (line: string): string =>
   line.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'");
@@ -130,16 +109,19 @@ const plainDenial = (words: string, mention: RegExpExecArray): boolean =>
   NOTHING_AFTER.test(words.slice(mention.index + mention[0].length));
 
 /**
- * Which check-in words the caller's line holds: 'es' for Spanish ones, or null for none. A line
- * that only plainly denies them is none, unless the call carried risk before it.
+ * The caller's line holds check-in words. A line that only plainly denies them does not, unless
+ * the call carried risk before it.
  */
-function checkinWordsIn(line: string, riskBefore = true): 'en' | 'es' | null {
+function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
   const words = wordsOf(line);
   const found = mentions(words);
-  if (!found.length) return null;
-  if (!riskBefore && found.every((mention) => plainDenial(words, mention))) return null;
-  return [...words.matchAll(ES)].length ? 'es' : 'en';
+  if (!found.length) return false;
+  return riskBefore || !found.every((mention) => plainDenial(words, mention));
 }
+
+/** The check-in's language: Spanish when the line holds a Spanish check-in word, denied or not. */
+const languageOf = (line: string): 'en' | 'es' =>
+  [...wordsOf(line).matchAll(ES)].length ? 'es' : 'en';
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
 const TIMEOUT_CHECKIN = `[SAFETY - CHECK-IN]
@@ -176,7 +158,7 @@ function timeoutCheckin(
   const riskBefore =
     turn.priorRisk !== false ||
     (turn.earlier ?? []).some((line) => mentions(wordsOf(line)).length > 0);
-  if (!checkinWordsIn(turn.latest, riskBefore)) return null;
+  if (!holdsCheckinWords(turn.latest, riskBefore)) return null;
   log.info({ action: 'guide', source: 'timeout_checkin' }, 'CRISIS_GATE'); // counts, never words
   return TIMEOUT_CHECKIN;
 }
@@ -190,7 +172,7 @@ function withCheckinEnding<T>(
   reply: ReadableStream<T> | null,
   caller: { latest: string }
 ): ReadableStream<T | string> {
-  const lang = checkinWordsIn(caller.latest) === 'es' ? 'es' : 'en';
+  const lang = languageOf(caller.latest);
   const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
   return withReplyEnding(reply ?? empty, (said) => {
     const missing = [

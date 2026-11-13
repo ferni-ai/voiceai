@@ -232,18 +232,25 @@ describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', (
 /** #3826: the gate hands the check-in the call's earlier lines and its risk before this turn. */
 describe('CRISIS_TIMEOUT_CHECKIN: a plain denial, on a known call', () => {
   const call = (sessionId: string) => ({ services: { sessionId } });
-  const DENIAL = "i'm not going to hurt myself, i promise";
+  const DENIAL = "i'm not going to hurt myself.";
   it('is no check-in when nothing on the call carried risk before it', async () => {
     const on = await turn(DENIAL, ON, THROWS, guidedModel, call('denial-plain'));
     expect(on.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
     expect(on.spoken).toBe('Sounds good.');
   });
 
+  it('keeps the check-in when the denial carries an aside, on the same known call', async () => {
+    const aside = "i'm not going to hurt myself, i promise";
+    const on = await turn(aside, ON, THROWS, guidedModel, call('denial-aside'));
+    expect(on.asked.join('')).toContain(TIMEOUT_CHECKIN);
+    expect(on.spoken).toContain('988');
+  });
+
   it('keeps the check-in after an earlier caller line with safety words', async () => {
     const ctx = request(
       ['user', 'i have a bottle of pills here'],
       ['assistant', 'I hear you.'],
-      ['user', "i won't take them all, relax"]
+      ['user', "i won't take them all."]
     );
     const on = await turn(ctx, ON, THROWS, guidedModel, call('denial-earlier'));
     expect(on.spoken).toContain('988');
