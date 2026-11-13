@@ -39,6 +39,12 @@ import { extractPersonsHybrid, detectAdviceHybrid } from './llm-detector.js';
 // V3.2 Proactive Intelligence
 import { openLoops, processUserTextForLoops } from './open-loops.js';
 import { trackResponsePromises } from './follow-through.js';
+import {
+  FOLLOW_THROUGH_PATTERNS,
+  NOT_FOLLOW_PATTERNS,
+  POSITIVE_OUTCOME_PATTERNS,
+  NEGATIVE_OUTCOME_PATTERNS,
+} from './advice-outcome-patterns.js';
 
 // V3.3 Relational Network
 import { relationshipGraph, upsertPerson } from './relationship-graph.js';
@@ -101,7 +107,6 @@ import {
 import { detectEnergyLevel, detectOvercommitment } from '../capacity-guardian.js';
 import { detectConflict, loadUserValues, type UserValue } from '../values-alignment.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
-import type { TurnSemanticData } from './turn-semantic-data.js';
 
 // NOTE: Additional superhuman services are called with dynamic imports
 // to avoid coupling issues with varying API signatures. Each service
@@ -113,7 +118,53 @@ const log = createLogger({ module: 'SemanticIntelligenceIntegration' });
 // TYPES
 // ============================================================================
 
-export type { TurnSemanticData } from './turn-semantic-data.js';
+/**
+ * Data extracted from a user turn for semantic intelligence
+ */
+export interface TurnSemanticData {
+  userId: string;
+  sessionId: string;
+  personaId: string;
+  turnNumber: number;
+
+  /**
+   * The turn's crisis read replaced, guided or soft-checked the reply (crisisReadTurn,
+   * agents/voice-agent/crisis-turn-memory.ts). Only `false` feeds the systems below; true or a
+   * missing value skips the whole turn.
+   */
+  crisisTurn: boolean;
+
+  // Text data
+  userText: string;
+  topic?: string;
+  topics?: string[];
+
+  // Emotional data
+  textEmotion?: string;
+  textEmotionIntensity?: number;
+  voiceEmotion?: string;
+  voiceEmotionConfidence?: number;
+  voiceEmotionIntensity?: number;
+
+  // Voice prosody
+  speechRate?: number;
+  pitch?: number;
+  energy?: number;
+  breathiness?: number;
+
+  // Temporal context
+  timestamp: Date;
+  dayOfWeek: number;
+  hourOfDay: number;
+
+  // Relationship/conversation context
+  turnsSinceStart: number;
+  sessionCount?: number;
+  relationshipStage?: string;
+
+  // Person mentions (enhanced V3.1)
+  mentionedPerson?: string;
+}
 
 /**
  * Context when agent gives advice (for counterfactual tracking)
@@ -979,53 +1030,6 @@ export async function recordAdviceOutcome(
 // ============================================================================
 // ADVICE OUTCOME DETECTION (Auto-detect when user mentions advice results)
 // ============================================================================
-
-/**
- * Patterns that indicate user is talking about following advice.
- */
-const FOLLOW_THROUGH_PATTERNS = [
-  /\bi tried\b/i,
-  /\bi did what you/i,
-  /\byou suggested\b.*\bi\b/i,
-  /\btook your advice\b/i,
-  /\bfollowed your\b/i,
-  /\bdid the thing\b/i,
-  /\bactually did\b/i,
-  /\bfinally did\b/i,
-  /\bwent ahead and\b/i,
-];
-
-const NOT_FOLLOW_PATTERNS = [
-  /\bdidn't try\b/i,
-  /\bcouldn't do\b/i,
-  /\bdidn't do\b/i,
-  /\bnever got around\b/i,
-  /\bforgot to\b/i,
-  /\bdidn't follow\b/i,
-  /\bignored your\b/i,
-];
-
-const POSITIVE_OUTCOME_PATTERNS = [
-  /\bit worked\b/i,
-  /\bhelped\b/i,
-  /\bfeel(s|ing)? better\b/i,
-  /\bmade a difference\b/i,
-  /\bso glad\b/i,
-  /\bthank(s| you)\b/i,
-  /\bwas right\b/i,
-  /\bgreat advice\b/i,
-  /\bworked out\b/i,
-];
-
-const NEGATIVE_OUTCOME_PATTERNS = [
-  /\bdidn't work\b/i,
-  /\bdidn't help\b/i,
-  /\bmade (it )?worse\b/i,
-  /\bbackfired\b/i,
-  /\bstill (feel|feeling)\b/i,
-  /\bno difference\b/i,
-  /\bwaste of time\b/i,
-];
 
 /**
  * Detect if user is reporting on advice outcome.
