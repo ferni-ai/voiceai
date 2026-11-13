@@ -564,14 +564,6 @@ async function buildDeepHumanContext(input: ContextBuilderInput): Promise<Contex
 }
 
 // ============================================================================
-// CLEANUP
-// ============================================================================
-
-export function cleanupDeepHumanState(sessionId: string): void {
-  stateCache.delete(sessionId);
-}
-
-// ============================================================================
 // REGISTER
 // ============================================================================
 

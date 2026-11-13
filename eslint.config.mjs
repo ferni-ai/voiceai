@@ -70,7 +70,8 @@ export default [
       'marketplace-agents/**',
       'e2e/**',
       'promo/**',
-      'scripts/**',
+      // scripts/ TypeScript is linted (see the block at the end); its JavaScript is not yet.
+      'scripts/**/*.{js,mjs,cjs}',
       'brand/**',
     ],
   },
@@ -604,6 +605,19 @@ export default [
     languageOptions: {
       parserOptions: {
         project: './apps/cli/tsconfig.json',
+      },
+    },
+  },
+
+  // scripts/: typed linting against tsconfig.scripts.json (the root tsconfig only covers src/).
+  // Until 2026-11 scripts/** was ignored outright, so lint on it passed whatever it held. The
+  // lint-coverage ratchet holds each file to its baseline error count; a new error fails.
+  {
+    files: ['scripts/**/*.ts', 'scripts/**/*.mts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/tests/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.scripts.json',
       },
     },
   },

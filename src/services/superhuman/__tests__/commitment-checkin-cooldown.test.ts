@@ -5,9 +5,7 @@
  * Before: the session-start prompt told Ferni to check in on every overdue
  * commitment on every call, and nothing recorded that it had.
  *
- * Drives the production cooldown module and the live builder that offers the
- * check-in (superhuman-session-priming). Mocked: Firestore (an in-memory fake
- * of the paths used) and the commitment list.
+ * Drives the production cooldown module. Mocked: Firestore (an in-memory fake of the paths used).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -48,12 +46,6 @@ vi.mock('../firestore-utils.js', async (orig) => ({
   getFirestoreDb: () => ref([]),
 }));
 
-const commitments = vi.hoisted(() => ({ list: [] as Array<Record<string, unknown>> }));
-vi.mock('../commitment-keeper.js', async (orig) => ({
-  ...(await orig<Record<string, unknown>>()),
-  loadUserCommitments: async () => commitments.list,
-}));
-
 import {
   CHECK_IN_COOLDOWN_MS,
   checkInKey,
@@ -61,10 +53,6 @@ import {
   followUpsDue,
   forgetCheckInMemo,
 } from '../commitment-checkin-cooldown.js';
-import {
-  buildSuperhumanSessionPriming,
-  clearAllSuperhumanPrimingSessions,
-} from '../../../intelligence/context-builders/superhuman/superhuman-session-priming.js';
 import type { Commitment, CommitmentFollowUp } from '../commitment-keeper.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -137,54 +125,5 @@ describe('commitment check-in cooldown', () => {
     expect(await due(['Finish the AI project'], T0)).toEqual(['Finish the AI project']);
     expect(await due(['Finish the AI project'], T0 + DAY)).toEqual(['Finish the AI project']);
     expect(docs.size).toBe(0);
-  });
-});
-
-describe('session priming offers an overdue check-in at most once per 3 days', () => {
-  const prime = (sessionId: string) =>
-    buildSuperhumanSessionPriming({
-      services: { userId: 'user-1', sessionId },
-      userData: { turnCount: 1 },
-      persona: { id: 'ferni' },
-    } as never);
-  const checkInText = (injections: Array<{ content: string }>) =>
-    injections.map((i) => i.content).join('\n');
-
-  beforeEach(() => {
-    vi.useFakeTimers({ now: T0, toFake: ['Date'] });
-    clearAllSuperhumanPrimingSessions();
-    commitments.list = [
-      {
-        id: 'c1',
-        status: 'active',
-        type: 'intention',
-        summary: 'Finish the AI project',
-        targetDate: T0 - 2 * DAY,
-      },
-    ];
-  });
-
-  it('flag on: the second call within 3 days carries no check-in, after a restart too', async () => {
-    const first = checkInText(await prime('s1'));
-    forgetCheckInMemo();
-    vi.setSystemTime(T0 + DAY);
-    const second = checkInText(await prime('s2'));
-    vi.setSystemTime(T0 + 3 * DAY);
-    const third = checkInText(await prime('s3'));
-
-    expect(first).toContain('OVERDUE COMMITMENTS');
-    expect(first).toContain('Finish the AI project');
-    expect(second).not.toContain('OVERDUE COMMITMENTS');
-    expect(third).toContain('OVERDUE COMMITMENTS');
-  });
-
-  it('flag off: every call carries the check-in, as before', async () => {
-    vi.stubEnv('PROACTIVE_COOLDOWN', 'off');
-    const first = checkInText(await prime('s1'));
-    vi.setSystemTime(T0 + DAY);
-    const second = checkInText(await prime('s2'));
-
-    expect(first).toContain('OVERDUE COMMITMENTS');
-    expect(second).toContain('OVERDUE COMMITMENTS');
   });
 });

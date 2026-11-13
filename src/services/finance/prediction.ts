@@ -45,7 +45,7 @@ export interface IncomeSource {
   confidence: number;
 }
 
-export interface CashFlowForecast {
+interface CashFlowForecast {
   currentBalance: number;
   projectedBalance: number;
   daysOut: number;
@@ -63,7 +63,7 @@ export interface CashFlowWarning {
   amount?: number;
 }
 
-export interface SpendingAnomaly {
+interface SpendingAnomaly {
   type: 'spike' | 'unusual_merchant' | 'category_increase' | 'time_anomaly';
   description: string;
   amount: number;
@@ -107,7 +107,7 @@ export interface GoalProgress {
   message: string;
 }
 
-export interface FinancialInsight {
+interface FinancialInsight {
   type: 'cash_flow' | 'anomaly' | 'subscription' | 'goal' | 'stress';
   severity: 'info' | 'warning' | 'alert';
   insight: string;
@@ -381,9 +381,7 @@ export async function detectIncome(userId: string): Promise<IncomeSource[]> {
 // CASH FLOW FORECASTING
 // ============================================================================
 
-/**
- * Predict cash flow for upcoming days
- */
+/** @public Predict cash flow for upcoming days; handler.ts reads it via a module spread. */
 export async function predictCashFlow(
   userId: string,
   daysOut = 14
@@ -554,9 +552,7 @@ export async function predictCashFlow(
 // SPENDING ANOMALY DETECTION
 // ============================================================================
 
-/**
- * Detect unusual spending patterns
- */
+/** @public Detect unusual spending patterns; handler.ts reads it via a module spread. */
 export async function detectAnomalies(userId: string): Promise<SpendingAnomaly[]> {
   const accessToken = await getStoredAccessToken(userId);
   if (!accessToken) return [];
@@ -889,9 +885,7 @@ function calculateGoalProgress(goal: SavingsGoal): GoalProgress {
 // CONTEXT BUILDER HELPERS
 // ============================================================================
 
-/**
- * Generate financial insight for context injection
- */
+/** @public Generate financial insight for context injection; handler.ts reads it via a module spread. */
 export async function generateFinancialInsight(userId: string): Promise<FinancialInsight | null> {
   // Check cash flow first
   const cashFlow = await predictCashFlow(userId, 7);
@@ -942,7 +936,7 @@ export async function generateFinancialInsight(userId: string): Promise<Financia
 /**
  * Generate superhuman financial moment
  */
-export function generateSuperhumanMoment(userId: string): string | null {
+function generateSuperhumanMoment(userId: string): string | null {
   const state = userFinancialState.get(userId);
   if (!state) return null;
 

@@ -190,33 +190,6 @@ describe.skip('Session → Context → Intelligence Integration', () => {
     expect(analysis.intent).toBeDefined();
     expect(analysis.topics).toBeDefined();
   });
-
-  it('should build conversation context with all builders', async () => {
-    const { buildConversationContext } = await import('../intelligence/context-builders/index.js');
-    const { getPersona } = await import('../personas/index.js');
-
-    const persona = getPersona('ferni');
-
-    const injections = await buildConversationContext({
-      userText: 'I feel like giving up on my goals',
-      analysis: {
-        emotion: { primary: 'sadness', distressLevel: 0.7, valence: 'negative', intensity: 0.8 },
-        intent: { primary: 'expressing_struggle' },
-        topics: { detected: ['goals', 'motivation'], categories: ['emotional'] },
-        state: { phase: 'exploring' },
-      },
-      services: {
-        analyze: () => ({}),
-        addTurn: () => {},
-        trackResponseQuality: () => {},
-        getPromptContext: () => '',
-      },
-      userData: { turnCount: 5, isReturningUser: true },
-      persona,
-    });
-
-    expect(injections).toBeDefined();
-  });
 });
 
 // ============================================================================

@@ -18,6 +18,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 // ============================================================================
 // TYPES
@@ -173,8 +174,8 @@ function injectCelebrationStyles(): void {
  * Like a candle flickering or warm sunlight.
  */
 export function warmthGlow(options: WarmthOptions = {}): void {
-  // Skip if reduced motion is preferred (graceful degradation)
-  if (prefersReducedMotion()) {
+  // Skip if reduced motion is preferred (graceful degradation); warmth plays in a crisis
+  if (prefersReducedMotion() || !crisisAffectAllows('warm')) {
     return;
   }
 
@@ -198,7 +199,7 @@ export function warmthGlow(options: WarmthOptions = {}): void {
  * Like a nod or bow - understated recognition.
  */
 export function gentleBounce(options: WarmthOptions = {}): void {
-  if (prefersReducedMotion()) return;
+  if (prefersReducedMotion() || !crisisAffectAllows('squash')) return;
 
   const target = options.target ?? document.querySelector('.avatar-container');
   if (!target) return;
@@ -306,6 +307,7 @@ export function bubbles(_options: {
  * First connection - warm welcome, not a party.
  */
 export function celebrateFirstConnection(): void {
+  if (!crisisAffectAllows('celebration')) return; // no "first connection" party on a crisis call
   connectionWarmth();
 
   // Also add a subtle glow to the app
@@ -337,7 +339,7 @@ export function celebrateDiscovery(): void {
  * The avatar shows success through its behavior.
  */
 function showMilestoneToast(_message: string): void {
-  if (prefersReducedMotion()) return;
+  if (prefersReducedMotion() || !crisisAffectAllows('celebration')) return;
 
   // Avatar feedback - joy reaction with warm glow
   const avatar = document.getElementById('coachAvatar');

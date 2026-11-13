@@ -7,7 +7,7 @@
  */
 import type { DocumentReference } from 'firebase-admin/firestore';
 
-import { withoutDerivedCopies } from '../../memory/recall/forget.js';
+import { bumpForgetGeneration, withoutDerivedCopies } from '../../memory/recall/forget.js';
 import { firestoreSupersessionStore } from '../../memory/storage/supersession-store.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type { RepairRecord, RepairStore } from './friend-repair.js';
@@ -70,6 +70,8 @@ export const firestoreRepairStore: RepairStore = {
       batch.update(facts.doc(id), { ...retired, ...withoutDerivedCopies() });
     }
     await batch.commit();
+    // Retired facts are hidden from every reader: what was built from them is stale.
+    if (factIds.length > 0) await bumpForgetGeneration(db, userId);
   },
   async recent(userId) {
     const snap = await user(userId)

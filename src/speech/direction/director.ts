@@ -15,7 +15,7 @@
  */
 
 import { getGenerativeModel } from '../../config/generative-model.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { acceptLine, CUE_BUDGET_MS, type Cue } from './cue.js';
 
 const log = createLogger({ module: 'Director' });
@@ -158,7 +158,7 @@ export async function directLine(
   const line = acceptLine(raw, cue, recentLines);
   if (!line) {
     log.info(
-      { moment: cue.moment, raw: raw?.slice(0, 200) },
+      { moment: cue.moment, raw: replyForLog(raw) },
       'Director: line rejected, using understudy'
     );
     return understudy('rejected');
@@ -166,9 +166,12 @@ export async function directLine(
 
   const ms = Date.now() - started;
   if (mode === 'shadow') {
-    log.info({ moment: cue.moment, actor: line, spoken: cue.fallback, ms }, 'Director (shadow)');
+    log.info(
+      { moment: cue.moment, actor: replyForLog(line), spoken: replyForLog(cue.fallback), ms },
+      'Director (shadow)'
+    );
     return { ...understudy('shadow'), ms };
   }
-  log.info({ moment: cue.moment, line, ms }, 'Director: actor line');
+  log.info({ moment: cue.moment, line: replyForLog(line), ms }, 'Director: actor line');
   return { text: line, source: 'actor', ms };
 }

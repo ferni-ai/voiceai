@@ -31,8 +31,8 @@ function localHm(at: Date, timeZone: string): [number, number] {
 
 describe('night slot', () => {
   it('gives each caller a fixed minute spread across the window', () => {
-    expect(nightMinute('vdSfkCCXaiXpnVCvgKxHMYrNFr72')).toBe(
-      nightMinute('vdSfkCCXaiXpnVCvgKxHMYrNFr72')
+    expect(nightMinute('testOwnerUid0000000000000000')).toBe(
+      nightMinute('testOwnerUid0000000000000000')
     );
     const minutes = new Set(Array.from({ length: 200 }, (_, i) => nightMinute(`user-${i}`)));
     expect(minutes.size).toBeGreaterThan(100); // not piled onto a few minutes
