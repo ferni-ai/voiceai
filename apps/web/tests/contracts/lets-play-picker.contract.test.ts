@@ -4,8 +4,8 @@
  * A tap on a card in the REAL game picker publishes its request; those bytes go
  * into the voice agent's REAL data-channel handler (src/agents/voice-agent/
  * data-channel-handler.ts), which starts the REAL game engine and acks; the ack
- * goes back into the web's REAL data-message handler. Only LiveKit and the
- * speech output are stand-ins.
+ * goes back into the web's REAL data-message handler. Only LiveKit, the
+ * speech output and the iTunes search API's HTTP answers are stand-ins.
  *
  * Before: the picker's ids were only checked by hand against the engine, the
  * "Starting..." toast showed before the agent answered, a failed start was
@@ -42,6 +42,34 @@ vi.mock('../../../../src/speech/direction/index.js', async (importOriginal) => {
   mocks.ownWords.mockImplementation(actual.sayInOwnWords);
   return { ...actual, sayInOwnWords: mocks.ownWords };
 });
+
+// The music games load their songs from the iTunes search API. Real requests
+// took over 5 s on CI, past the wait for the ack, so name-that-tune and
+// this-or-that failed with no ack (#3493). The real iTunes client still runs;
+// only its HTTP answers here, at once, with one playable track per search. Any
+// other request is refused and listed, so the contract never waits on the network.
+const network = { itunes: 0, other: [] as string[] };
+const fetchStandIn = async (input: string | URL | Request): Promise<Response> => {
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  if (url.hostname !== 'itunes.apple.com') {
+    network.other.push(url.origin + url.pathname);
+    throw new Error(`no network in this contract test: ${url.origin}${url.pathname}`);
+  }
+  network.itunes++;
+  const term = url.searchParams.get('term') ?? 'song';
+  const track = {
+    trackId: network.itunes,
+    trackName: term,
+    artistName: 'Test Artist',
+    collectionName: 'Test Album',
+    previewUrl: `https://preview.test/${network.itunes}.m4a`,
+    artworkUrl100: '',
+    trackTimeMillis: 200_000,
+    primaryGenreName: 'Pop',
+    releaseDate: '2020-01-01T00:00:00Z',
+  };
+  return new Response(JSON.stringify({ resultCount: 1, results: [track] }), { status: 200 });
+};
 
 // jsdom has no Web Animations API
 Element.prototype.animate = vi.fn(() => ({
@@ -122,9 +150,14 @@ const engineGame = (sessionId: string) =>
 beforeAll(() => {
   initializeLogger({ pretty: false, level: 'silent' });
   vi.stubEnv('DIRECTED_SPEECH', 'off'); // the snag line's understudy, word for word
+  vi.stubGlobal('fetch', vi.fn(fetchStandIn));
 });
-afterAll(() => vi.unstubAllEnvs());
+afterAll(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 afterEach(() => {
+  expect(network.other).toEqual([]);
   mocks.toast.success.mockClear();
   mocks.toast.error.mockClear();
   mocks.say.mockClear();

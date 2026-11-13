@@ -112,7 +112,7 @@ describe('firestore index drift', () => {
     const drift = computeDrift(indexFile(), dev(), devAllow);
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.staleAllow).toEqual([]);
-    expect(drift.allowedDelete).toHaveLength(11);
+    expect(drift.allowedDelete).toHaveLength(14);
     const prodTtls = prod().ttls.map((f) =>
       f.name.split('/collectionGroups/')[1].replace('/fields/', '.')
     );
@@ -128,9 +128,9 @@ describe('firestore index drift', () => {
       ).toBe(true);
   });
 
-  it('without the allow-list, dev fails on its 11 dev-only TTL policies', () => {
+  it('without the allow-list, dev fails on its 14 dev-only TTL policies', () => {
     const drift = computeDrift(indexFile(), dev());
-    expect(drift.wouldDelete).toHaveLength(11);
+    expect(drift.wouldDelete).toHaveLength(14);
     expect(report('ferni-dev', 'fixture', drift).ok).toBe(false);
   });
 
@@ -141,7 +141,7 @@ describe('firestore index drift', () => {
       'field override rate_limits.expireAt [TTL policy] indexes=[ASCENDING/COLLECTION, DESCENDING/COLLECTION, CONTAINS/COLLECTION]',
     ]);
     // ...and every dev-only entry is stale against prod, which has none of them.
-    expect(drift.staleAllow).toHaveLength(11);
+    expect(drift.staleAllow).toHaveLength(14);
   });
 
   it('an allow-list entry whose offset no longer matches the listing fails', () => {

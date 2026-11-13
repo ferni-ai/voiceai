@@ -17,7 +17,7 @@
  * - whole words only ("Isla" did not touch "Island"), so plurals need their
  *   own entry;
  * - a possessive matches its base word ("Isla's", with ' or ’), so possessives
- *   need no entry of their own (Nayan's has one, with ' and ’, measured below);
+ *   need no entry of their own;
  * - case_sensitive with a capitalised key matches that spelling only.
  *
  * Beyond the team's own names, an entry is here only if it beat no entry (or
@@ -47,20 +47,12 @@ export const TEAM_NAME_PRONUNCIATIONS: Readonly<Record<string, string>> = {
   Alex: '<<ˈ|æ|l|ə|k|s>>',
   Chen: '<<ˈ|tʃ|ɛ|n>>',
   Peter: '<<ˈ|p|i|t|ɝ>>',
-  // NAH-yahn, /ˈnɑ.jɑn/ (the owner, 2026-10-20). As one IPA word Sonic glides
-  // ɑ+j into "aɪ" (NIGH-un; with or without a ˌ before j, whisper heard it
-  // right in 0 of 48 takes: "Nyon", "an eye on", 2026-10-29). The
-  // two-word IPA entry (<<ˈ|n|ɑ>> <<j|ɑ|n>>) is right mid-sentence but opens a
-  // sentence as "Nah, Jan" (0 of 6 at the start, 0 of 6 for "Nayan's ...", on
-  // ink-2 and whisper). The one-word sounds-like is heard as "Nahyan" at the
-  // start 6 of 6 and the end 6 of 6 on both, mid-sentence 5 of 6; "Nayan's"
-  // from the base word was 1 of 6 on both, 3 of 6 with its own entry (6 takes a
-  // position, Ferni's and Nayan's voices; evidence:
-  // ~/Documents/voiceai-evidence/speech-names-fix-2026-10-29/).
-  Nayan: 'nahyahn',
-  "Nayan's": 'nahyahnz',
-  // The same possessive with a curly apostrophe (not round-tripped; same entry).
-  'Nayan’s': 'nahyahnz',
+  // No Nayan entry: the name is NY-un, rhyming with "lion" (the owner,
+  // 2026-11-11), which is how Sonic reads it unaided. The 2026-10-29 entry
+  // ('nahyahn', and 'nahyahnz' for both possessives) forced NAH-yahn: Cartesia
+  // ink-2 heard "Nahyan" in 45 of 54 plain and 18 of 54 possessive takes with
+  // it, and in 0 of 108 without it (9 voices, 4 lines, 3 takes; evidence:
+  // ~/Documents/voiceai-evidence/nayan-asr-2026-11-12/).
   Patel: '<<p|ə|ˈ|t|ɛ|l>>',
   // The legends
   Henry: '<<ˈ|h|ɛ|n|ɹ|i>>',

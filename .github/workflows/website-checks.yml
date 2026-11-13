@@ -56,8 +56,10 @@ jobs:
     timeout-minutes: 20
     container:
       # Moves together with PLAYWRIGHT_VERSION below, CHROMIUM in
-      # e2e/website-visual.spec.ts and new approved screenshots.
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      # e2e/website-visual.spec.ts and new approved screenshots. Pinned by
+      # digest: Microsoft rebuilds a tag in place (v1.64.1-noble went from
+      # Chromium 156.0.8078.4 to .80), which broke every screenshot (#3708).
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
       options: --ipc=host
     env:
       PLAYWRIGHT_VERSION: 1.64.1
@@ -122,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
       options: --ipc=host
     env:
       PLAYWRIGHT_VERSION: 1.64.1

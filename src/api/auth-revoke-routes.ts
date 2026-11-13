@@ -30,7 +30,7 @@ export async function handleAuthRevokeRoutes(
 ): Promise<boolean> {
   if (pathname !== '/api/auth/revoke' || req.method !== 'POST') return false;
 
-  if (rateLimit(req, res, { maxRequests: 10, windowMs: 60_000 })) return true;
+  if (rateLimit(req, res, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'revoke' })) return true;
 
   const auth = await requireAuth(req, res);
   if (!auth) return true;

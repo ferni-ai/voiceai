@@ -28,6 +28,7 @@ const createMockLogger = () => {
 vi.mock('../../../utils/safe-logger.js', () => ({
   getLogger: () => createMockLogger(),
   createLogger: () => createMockLogger(),
+  replyForLog: (text: unknown) => String(text ?? ''),
 }));
 
 vi.mock('../../../services/diagnostic-logger.js', () => ({
@@ -465,7 +466,9 @@ describe('Rapid Handoff Stability E2E', () => {
     // its estimated speaking time for real, which put six handoffs right at the timeout
     const { AgentOrchestrator } = await import('../orchestrator.js');
     vi.spyOn(
-      AgentOrchestrator.prototype as unknown as { estimateSpeechDuration: (text: string) => number },
+      AgentOrchestrator.prototype as unknown as {
+        estimateSpeechDuration: (text: string) => number;
+      },
       'estimateSpeechDuration'
     ).mockReturnValue(0);
 

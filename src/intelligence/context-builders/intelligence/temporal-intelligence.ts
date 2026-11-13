@@ -490,8 +490,4 @@ registerContextBuilder({
   build: buildTemporalIntelligenceContext,
 });
 
-export {
-  buildTemporalIntelligenceContext,
-  learnTemporalPatternInternal as learnTemporalPattern,
-  getCurrentTemporalContext,
-};
+export { learnTemporalPatternInternal as learnTemporalPattern };
