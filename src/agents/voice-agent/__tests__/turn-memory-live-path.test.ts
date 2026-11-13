@@ -367,7 +367,8 @@ const heldLog = (): Record<string, unknown>[] => spy.held;
 
 /** A path segment or value that is an id or a clock reading: the only things normalised. */
 const ID_SEGMENT = /^(auto-\d+|[a-z]+_\d{10,}_[a-z0-9]+|\d{10,})$/;
-const TIME_KEY = /(time|timestamp|date|At|Ms)$/i;
+/** Clock keys only: exactly time/timestamp/date, or a camelCase At/Ms/Time/Timestamp/Date suffix. */
+const TIME_KEY = /^(time|timestamp|date)$|[a-z](At|Ms|Time|Timestamp|Date)$/;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
 function normalised(value: unknown, key = ''): unknown {
