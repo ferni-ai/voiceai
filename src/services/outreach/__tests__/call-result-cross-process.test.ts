@@ -414,18 +414,24 @@ describe("told.* is the once-per-channel ledger's, never the live report's (#308
   );
 });
 
+interface Reply {
+  interrupted: boolean;
+  addDoneCallback: (fn: () => void) => void;
+}
+const playsThrough = (): Reply => ({
+  interrupted: false,
+  addDoneCallback: (fn: () => void) => void Promise.resolve().then(fn),
+});
+
 /** A LiveKit AgentSession as the alert speaker sees it: a reply asked for plays through. */
-function agentSession() {
+function agentSession(reply: () => Reply = playsThrough) {
   const listeners = new Map<string, Set<(ev: unknown) => void>>();
   const closing = new AbortController();
   const s = {
     agentState: 'speaking', // Ferni is mid-sentence: an alert waits for its pause
     userState: 'listening',
     _closingSignal: closing.signal,
-    generateReply: vi.fn(() => ({
-      interrupted: false,
-      addDoneCallback: (fn: () => void) => void Promise.resolve().then(fn),
-    })),
+    generateReply: vi.fn(reply),
     on: (e: string, fn: (ev: unknown) => void) =>
       listeners.set(e, (listeners.get(e) ?? new Set()).add(fn)),
     off: (e: string, fn: (ev: unknown) => void) => listeners.get(e)?.delete(fn),
@@ -440,10 +446,18 @@ function agentSession() {
 }
 
 /** The owner's call with the real alert speaker, as live-call-behaviors.ts registers it. */
-function speakingOwnerCall(userId: string, sessionId: string) {
-  const session = agentSession();
+function speakingOwnerCall(
+  userId: string,
+  sessionId: string,
+  { reply, ...opts }: { reply?: () => Reply } & Parameters<typeof createCallAlertSpeaker>[1] = {}
+) {
+  const session = agentSession(reply);
   const releases = [
-    registerVoiceCallbackHandler(userId, createCallAlertSpeaker(session, { sessionId }), session),
+    registerVoiceCallbackHandler(
+      userId,
+      createCallAlertSpeaker(session, { sessionId, ...opts }),
+      session
+    ),
     noteLiveSession(session, sessionId),
   ];
   cleanup.push(() => releases.forEach((r) => r()));
@@ -505,5 +519,36 @@ describe('heard is delivered; held or dropped is not', () => {
     expect(session.generateReply).not.toHaveBeenCalled();
     expect(docOf('uid-h3', 'c-h3').delivered).toBeUndefined();
     expect(wywa.markResultsDelivered).not.toHaveBeenCalled();
+  });
+  it('dropped at reply_timeout, then heard after all: marked spoken and delivered (#2545)', async () => {
+    let finish: (() => void) | undefined;
+    const logs: string[] = [];
+    const session = speakingOwnerCall('uid-h4', 'sess-h4', {
+      replyWaitMs: 30,
+      log: (msg) => logs.push(msg),
+      reply: () => {
+        const done: Array<() => void> = [];
+        finish = () => done.splice(0).forEach((fn) => fn());
+        return { interrupted: false, addDoneCallback: (fn) => done.push(fn) };
+      },
+    });
+    wywa.pending = [{ id: 'wywa-h4', relatedTaskId: 'c-h4' }];
+    watchCallResult(request('uid-h4', 'sess-h4'), 'c-h4', FAST);
+    resultLands('uid-h4', 'c-h4');
+    await vi.waitFor(() => expect(docOf('uid-h4', 'c-h4').liveReport).toBeDefined());
+
+    session.pause();
+    await vi.waitFor(() => expect(logs).toEqual(['CALL_ALERT_DROPPED']));
+    expect(docOf('uid-h4', 'c-h4').liveReport).not.toHaveProperty('spokenAt');
+    expect(docOf('uid-h4', 'c-h4').delivered).toBeUndefined();
+
+    finish?.(); // the reply played through after all
+    await vi.waitFor(() => expect(docOf('uid-h4', 'c-h4').delivered).toBe(true));
+    expect(docOf('uid-h4', 'c-h4').liveReport).toMatchObject({ spokenAt: expect.any(String) });
+    expect(logs).toEqual(['CALL_ALERT_DROPPED', 'CALL_ALERT_SPOKEN']);
+    expect(session.generateReply).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() =>
+      expect(wywa.markResultsDelivered).toHaveBeenCalledWith('uid-h4', ['wywa-h4'], 'voice')
+    );
   });
 });

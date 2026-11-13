@@ -23,6 +23,7 @@ vi.mock('../../src/eq/capabilities/active-listening.js', async (importOriginal) 
 }));
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
+import { holdCrisisFace, releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 import { resetListenSignalForTests } from '../../src/app/backchannel-signal.js';
 import {
   disposeSpringBody,
@@ -173,5 +174,52 @@ describe('listen nods kick the spring body', () => {
       expect.any(Array),
       expect.objectContaining({ composite: 'add' })
     );
+  });
+});
+
+describe('listen nods while the crisis face is held (fe 2026-11-11: gentle nods only)', () => {
+  let animate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.setItem(MOTION_FLAG_KEYS.listenNods, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.springBody, 'true');
+    document.body.innerHTML = '<div id="coach"><div class="avatar-container"></div></div>';
+    animate = vi.fn(() => ({ effect: { setKeyframes: vi.fn() }, cancel: vi.fn() }));
+    const body = document.querySelector('.avatar-container');
+    if (body) Object.defineProperty(body, 'animate', { value: animate, configurable: true });
+    initSpringBody();
+  });
+  afterEach(() => {
+    releaseCrisisFace();
+    disposeSpringBody();
+    localStorage.removeItem(MOTION_FLAG_KEYS.springBody);
+    vi.restoreAllMocks();
+  });
+
+  const visibleNod = { ...listeningNod, nodType: 'visible' };
+
+  it('control, no hold: the nod plays at the asked amplitude and kicks the body', () => {
+    send(visibleNod);
+    vi.advanceTimersByTime(100);
+    expect(performMicroNod.mock.calls).toEqual([['visible']]);
+    expect(animate).toHaveBeenCalled();
+  });
+
+  it('held: both nods still play, only at the gentle micro amplitude, with no body kick', () => {
+    holdCrisisFace();
+    send(visibleNod);
+    vi.advanceTimersByTime(1200);
+    send(backchannel);
+    vi.advanceTimersByTime(1000);
+    expect(performMicroNod.mock.calls).toEqual([['micro'], ['micro']]);
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('held: a laugh brings no smile and no bounce', () => {
+    holdCrisisFace();
+    send(laugh);
+    vi.advanceTimersByTime(1000);
+    expect(smile).not.toHaveBeenCalledWith('pleased', expect.anything(), expect.anything());
+    expect(animate).not.toHaveBeenCalled();
   });
 });

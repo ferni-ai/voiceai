@@ -19,7 +19,7 @@ import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { anonymousSessionId } from './anonymous-session-id.js';
 import { phoneFromSignedDispatch } from './dispatch-phone.js';
-import { isSignedDispatch, signedClaim, trustedDeviceId } from './signed-dispatch-identity.js';
+import { signedClaim, trustedDeviceId } from './signed-dispatch-identity.js';
 import {
   authenticateNaturally,
   generateContextForLLM,
@@ -360,73 +360,7 @@ export async function identifyFromMetadata(
   const firebaseUid = metadata.firebase_uid || metadata.firebaseUid;
   if (firebaseUid && typeof firebaseUid === 'string') {
     const store = getStore();
-    let profile = await store.getProfile(firebaseUid);
-
-    // AUTO-MIGRATION, signed dispatch only: /token copies device_id from its query string
-    const deviceId = metadata.device_id || metadata.deviceId;
-    if (!profile && deviceId && typeof deviceId === 'string' && isSignedDispatch(metadata)) {
-      const deviceUserId = `device:${deviceId}`;
-      const deviceProfile = await store.getProfile(deviceUserId);
-
-      if (deviceProfile && deviceProfile.totalConversations > 0) {
-        // Found a legacy device profile - migrate it!
-        getLogger().info(
-          {
-            firebaseUid: `${firebaseUid.slice(0, 8)}...`,
-            deviceId: `${deviceId.slice(0, 12)}...`,
-            conversations: deviceProfile.totalConversations,
-            name: deviceProfile.name || '(none)',
-          },
-          '🔄 AUTO-MIGRATION: Migrating device profile to Firebase UID'
-        );
-
-        try {
-          const { migrateUserData } = await import('../user-migration.js');
-          const result = await migrateUserData({
-            deviceId: deviceUserId,
-            firebaseUid,
-            displayName: deviceProfile.name,
-            email: deviceProfile.contactInfo?.email,
-          });
-
-          if (result.success) {
-            // Re-fetch the newly migrated profile
-            profile = await store.getProfile(firebaseUid);
-            getLogger().info(
-              {
-                firebaseUid: `${firebaseUid.slice(0, 8)}...`,
-                conversations: result.conversationsMigrated,
-                memories: result.memoriesMigrated,
-                action: result.profileAction,
-              },
-              '✅ AUTO-MIGRATION: Successfully migrated device profile'
-            );
-
-            // Also run comprehensive subcollection linking (catches any collections the old migration missed)
-            try {
-              const { autoLinkOnAuth } = await import('./identity-linking.js');
-              await autoLinkOnAuth(deviceId, firebaseUid);
-            } catch (linkError) {
-              // Non-fatal - old migration already handled the critical data
-              getLogger().debug(
-                { error: String(linkError) },
-                'Comprehensive identity linking failed (non-fatal)'
-              );
-            }
-          } else {
-            getLogger().warn(
-              { firebaseUid: `${firebaseUid.slice(0, 8)}...`, error: result.error },
-              '⚠️ AUTO-MIGRATION: Migration failed, continuing with new profile'
-            );
-          }
-        } catch (migrationError) {
-          getLogger().error(
-            { error: String(migrationError), firebaseUid: `${firebaseUid.slice(0, 8)}...` },
-            '❌ AUTO-MIGRATION: Error during migration (continuing with new profile)'
-          );
-        }
-      }
-    }
+    const profile = await store.getProfile(firebaseUid);
 
     return {
       userId: createUserId(firebaseUid),

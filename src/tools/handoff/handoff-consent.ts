@@ -26,6 +26,7 @@ import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
 import { crisisGuidedTurn } from '../../services/safety/index.js';
 import { aliasesInTransfer } from './transfer-aliases.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
+import { bareYes } from './bare-yes.js';
 
 export function handoffAskFirstEnabled(
   env: Record<string, string | undefined> = process.env
@@ -134,9 +135,21 @@ type HeldHandoff =
  * HANDOFF_HELD_TRUTHFUL it never says `unavailable`: Ferni read that as the teammate
  * being away and said so ("Nate's away from his desk", #2387), and the director, which
  * sees each tool result's start (director-tool-state.ts), wrote "Alex is unavailable".
+ * After a bare yes (`said`), Ferni's offer didn't say who ("want me to bring him in?",
+ * #3755), and who "him" is can't be read from the words, so Ferni asks by name.
  */
-function heldHandoff(agentName: string, env: Env = process.env): HeldHandoff {
+function heldHandoff(agentName: string, said: string, env: Env = process.env): HeldHandoff {
   const first = agentName.split(/\s+/)[0];
+  if (heldTruthful(env) && bareYes(said)) {
+    return {
+      transferred: false,
+      instruction:
+        `Not transferred yet: they said yes, but your last line didn't say who, so don't guess. ` +
+        `${first} is free, so never say ${first} is away, busy or unavailable. If you were ` +
+        `offering ${first}, ask in a few words with the name, like "${first}, yeah?", and ` +
+        `transfer when they say yes. If you weren't, answer what they said yes to.`,
+    };
+  }
   if (heldTruthful(env)) {
     return {
       transferred: false,
@@ -145,7 +158,7 @@ function heldHandoff(agentName: string, env: Env = process.env): HeldHandoff {
         `${first} is free, so never say ${first} is away, busy or unavailable, and don't make up ` +
         `a reason. Answer them yourself, the way a friend would. If they asked for someone and ` +
         `you're not sure who, ask who they mean. If ${first} would really help, offer once, ` +
-        `casually, and transfer only if they say yes.`,
+        `casually, saying ${first}'s name, and transfer only if they say yes.`,
     };
   }
   return {
@@ -180,5 +193,5 @@ export function holdUnaskedHandoff(
   // A transfer-only alias counts only on a call with no crisis handling (transfer-aliases.ts).
   const guided = crisisGuidedTurn((runCtx as { userData?: unknown } | undefined)?.userData);
   const consent = handoffConsent(chatCtx, agentName, env, !guided);
-  return consent === 'none' ? heldHandoff(agentName, env) : null;
+  return consent === 'none' ? heldHandoff(agentName, latestUserText(chatCtx) ?? '', env) : null;
 }

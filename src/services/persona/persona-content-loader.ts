@@ -40,7 +40,7 @@ async function loadBundleByIdDynamic(
 // TYPES
 // ============================================================================
 
-export interface TrustPhrases {
+interface TrustPhrases {
   schema_version?: number;
   description?: string;
   reading_between_lines?: {
@@ -74,7 +74,7 @@ export interface TrustPhrases {
   };
 }
 
-export interface LateNightPresence {
+interface LateNightPresence {
   schema_version?: number;
   description?: string;
   late_night_greetings?: string[];
@@ -88,7 +88,7 @@ export interface LateNightPresence {
   morning_will_come_hope?: string[];
 }
 
-export interface EmotionalIntelligence {
+interface EmotionalIntelligence {
   schema_version?: number;
   [key: string]:
     | {
@@ -407,7 +407,7 @@ export interface EnergyMatching {
 // LIFE COACHING BEHAVIOR TYPES
 // ============================================================================
 
-export interface SecondChancesVoice {
+interface SecondChancesVoice {
   schema_version?: number;
   description?: string;
   holding_hope?: {
@@ -436,7 +436,7 @@ export interface SecondChancesVoice {
   };
 }
 
-export interface ConnectionVoice {
+interface ConnectionVoice {
   schema_version?: number;
   description?: string;
   acknowledging_loneliness?: {
@@ -468,7 +468,7 @@ export interface ConnectionVoice {
   };
 }
 
-export interface DifficultConversationsVoice {
+interface DifficultConversationsVoice {
   schema_version?: number;
   description?: string;
   validation?: {
@@ -502,7 +502,7 @@ export interface DifficultConversationsVoice {
   };
 }
 
-export interface LifeTransitionsVoice {
+interface LifeTransitionsVoice {
   schema_version?: number;
   description?: string;
   acknowledging_transitions?: {
@@ -536,7 +536,7 @@ export interface LifeTransitionsVoice {
   };
 }
 
-export interface QuietGrowthVoice {
+interface QuietGrowthVoice {
   schema_version?: number;
   description?: string;
   permission_to_rest?: {
@@ -570,7 +570,7 @@ export interface QuietGrowthVoice {
 // FERNI 100% WIRING - New content types (January 2026)
 // ============================================================================
 
-export interface Backchannels {
+interface Backchannels {
   schema_version?: number;
   _philosophy?: {
     purpose?: string;
@@ -589,7 +589,7 @@ export interface Backchannels {
   _silence_guidance?: Record<string, string>;
 }
 
-export interface Catchphrases {
+interface Catchphrases {
   schema_version?: number;
   description?: string;
   core_signature?: {
@@ -611,7 +611,7 @@ export interface Catchphrases {
   _forbidden?: string[];
 }
 
-export interface Goodbyes {
+interface Goodbyes {
   schema_version?: number;
   standard?: string[];
   warm?: string[];
@@ -623,7 +623,7 @@ export interface Goodbyes {
   _guidance_for_llm?: string;
 }
 
-export interface PetPeeves {
+interface PetPeeves {
   schema_version?: number;
   pet_peeves?: Array<{
     triggers: string[];
@@ -633,7 +633,7 @@ export interface PetPeeves {
   gentle_corrections?: string[];
 }
 
-export interface WittyRemarks {
+interface WittyRemarks {
   schema_version?: number;
   _philosophy?: {
     core?: string;
@@ -656,7 +656,7 @@ export interface WittyRemarks {
   delivery_notes?: string;
 }
 
-export interface Affirmation {
+interface Affirmation {
   schema_version?: number;
   _philosophy?: string;
   encouragement?: {
@@ -682,7 +682,7 @@ export interface Affirmation {
   };
 }
 
-export interface BreathSounds {
+interface BreathSounds {
   schema_version?: number;
   contemplative_breath?: string[];
   before_something_hard?: string[];
@@ -699,7 +699,7 @@ export interface BreathSounds {
   };
 }
 
-export interface CoachingModes {
+interface CoachingModes {
   schema_version?: number;
   description?: string;
   modes?: Record<
@@ -731,7 +731,7 @@ export interface CoachingModes {
   };
 }
 
-export interface OutreachVoice {
+interface OutreachVoice {
   schema_version?: string;
   name?: string;
   description?: string;
@@ -803,7 +803,7 @@ export interface OutreachVoice {
   always_do?: string[];
 }
 
-export interface VoiceDNA {
+interface VoiceDNA {
   schema_version?: number;
   core_identity?: {
     one_sentence?: string;
@@ -901,7 +901,7 @@ export interface PredictiveIntelligence {
   };
 }
 
-export interface SensoryMoments {
+interface SensoryMoments {
   schema_version?: number;
   environmental_awareness?: {
     wyoming_sensory?: string[];
@@ -966,7 +966,7 @@ export interface InsightBriefing {
  * Team coordination content - handoff routing and team awareness.
  * Enables Ferni to coordinate handoffs to the right specialist personas.
  */
-export interface TeamCoordination {
+interface TeamCoordination {
   schema_version?: number;
   description?: string;
   note?: string;
@@ -1254,7 +1254,7 @@ export async function loadPersonaContent<T>(
  * Load trust phrases for a specific persona
  * Falls back to Ferni if not available for the requested persona
  */
-export async function loadTrustPhrases(personaId = 'ferni'): Promise<TrustPhrases | null> {
+async function loadTrustPhrases(personaId = 'ferni'): Promise<TrustPhrases | null> {
   // Try to load for the specific persona first
   const phrases = await loadPersonaContent<TrustPhrases>(personaId, 'trust_phrases');
   if (phrases) {
@@ -1273,9 +1273,7 @@ export async function loadTrustPhrases(personaId = 'ferni'): Promise<TrustPhrase
 /**
  * Load late-night presence content for a specific persona
  */
-export async function loadLateNightPresence(
-  personaId = 'ferni'
-): Promise<LateNightPresence | null> {
+async function loadLateNightPresence(personaId = 'ferni'): Promise<LateNightPresence | null> {
   const content = await loadPersonaContent<LateNightPresence>(personaId, 'late_night_presence');
   if (content) return content;
 
@@ -1289,7 +1287,7 @@ export async function loadLateNightPresence(
 /**
  * Load emotional intelligence patterns for a specific persona
  */
-export async function loadEmotionalIntelligence(
+async function loadEmotionalIntelligence(
   personaId = 'ferni'
 ): Promise<EmotionalIntelligence | null> {
   const content = await loadPersonaContent<EmotionalIntelligence>(
@@ -1357,9 +1355,7 @@ export async function loadSilenceResponses(personaId = 'ferni'): Promise<Silence
 /**
  * Load second-chances voice content for life coaching
  */
-export async function loadSecondChancesVoice(
-  personaId = 'ferni'
-): Promise<SecondChancesVoice | null> {
+async function loadSecondChancesVoice(personaId = 'ferni'): Promise<SecondChancesVoice | null> {
   const content = await loadPersonaContent<SecondChancesVoice>(personaId, 'second_chances_voice');
   if (content) return content;
 
@@ -1373,7 +1369,7 @@ export async function loadSecondChancesVoice(
 /**
  * Load connection voice content for life coaching
  */
-export async function loadConnectionVoice(personaId = 'ferni'): Promise<ConnectionVoice | null> {
+async function loadConnectionVoice(personaId = 'ferni'): Promise<ConnectionVoice | null> {
   const content = await loadPersonaContent<ConnectionVoice>(personaId, 'connection_voice');
   if (content) return content;
 
@@ -1387,7 +1383,7 @@ export async function loadConnectionVoice(personaId = 'ferni'): Promise<Connecti
 /**
  * Load difficult-conversations voice content for life coaching
  */
-export async function loadDifficultConversationsVoice(
+async function loadDifficultConversationsVoice(
   personaId = 'ferni'
 ): Promise<DifficultConversationsVoice | null> {
   const content = await loadPersonaContent<DifficultConversationsVoice>(
@@ -1409,9 +1405,7 @@ export async function loadDifficultConversationsVoice(
 /**
  * Load life-transitions voice content for life coaching
  */
-export async function loadLifeTransitionsVoice(
-  personaId = 'ferni'
-): Promise<LifeTransitionsVoice | null> {
+async function loadLifeTransitionsVoice(personaId = 'ferni'): Promise<LifeTransitionsVoice | null> {
   const content = await loadPersonaContent<LifeTransitionsVoice>(
     personaId,
     'life_transitions_voice'
@@ -1428,7 +1422,7 @@ export async function loadLifeTransitionsVoice(
 /**
  * Load quiet-growth voice content for life coaching
  */
-export async function loadQuietGrowthVoice(personaId = 'ferni'): Promise<QuietGrowthVoice | null> {
+async function loadQuietGrowthVoice(personaId = 'ferni'): Promise<QuietGrowthVoice | null> {
   const content = await loadPersonaContent<QuietGrowthVoice>(personaId, 'quiet_growth_voice');
   if (content) return content;
 
@@ -1584,7 +1578,7 @@ export async function loadEnergyMatching(personaId = 'ferni'): Promise<EnergyMat
  * Load backchannels content for a specific persona
  * Used for natural listening sounds ("mm-hmm", "yeah")
  */
-export async function loadBackchannels(personaId = 'ferni'): Promise<Backchannels | null> {
+async function loadBackchannels(personaId = 'ferni'): Promise<Backchannels | null> {
   const content = await loadPersonaContent<Backchannels>(personaId, 'backchannels');
   if (content) return content;
 
@@ -1599,7 +1593,7 @@ export async function loadBackchannels(personaId = 'ferni'): Promise<Backchannel
  * Load catchphrases content for a specific persona
  * Used for signature phrases (rare, earned moments)
  */
-export async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrases | null> {
+async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrases | null> {
   const content = await loadPersonaContent<Catchphrases>(personaId, 'catchphrases');
   if (content) return content;
 
@@ -1614,7 +1608,7 @@ export async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrase
  * Load goodbyes content for a specific persona
  * Used for warm session endings
  */
-export async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null> {
+async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null> {
   const content = await loadPersonaContent<Goodbyes>(personaId, 'goodbyes');
   if (content) return content;
 
@@ -1629,7 +1623,7 @@ export async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null
  * Load pet peeves content for a specific persona
  * Used for authentic personality triggers
  */
-export async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | null> {
+async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | null> {
   const content = await loadPersonaContent<PetPeeves>(personaId, 'pet_peeves');
   if (content) return content;
 
@@ -1644,7 +1638,7 @@ export async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | nu
  * Load witty remarks content for a specific persona
  * Used for humor and self-deprecation
  */
-export async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemarks | null> {
+async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemarks | null> {
   const content = await loadPersonaContent<WittyRemarks>(personaId, 'witty_remarks');
   if (content) return content;
 
@@ -1659,7 +1653,7 @@ export async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemark
  * Load affirmation content for a specific persona
  * Used for earned encouragement and celebration
  */
-export async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation | null> {
+async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation | null> {
   const content = await loadPersonaContent<Affirmation>(personaId, 'affirmation');
   if (content) return content;
 
@@ -1674,7 +1668,7 @@ export async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation 
  * Load breath sounds content for a specific persona
  * Used for grounding presence and Wyoming stillness
  */
-export async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSounds | null> {
+async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSounds | null> {
   const content = await loadPersonaContent<BreathSounds>(personaId, 'breath_sounds');
   if (content) return content;
 
@@ -1689,7 +1683,7 @@ export async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSound
  * Load coaching modes content for a specific persona
  * Used for adaptive coaching style transitions
  */
-export async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingModes | null> {
+async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingModes | null> {
   const content = await loadPersonaContent<CoachingModes>(personaId, 'coaching_modes');
   if (content) return content;
 
@@ -1704,7 +1698,7 @@ export async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingMo
  * Load outreach voice content for a specific persona
  * Used for proactive messaging voice profile
  */
-export async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVoice | null> {
+async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVoice | null> {
   const content = await loadPersonaContent<OutreachVoice>(personaId, 'outreach_voice');
   if (content) return content;
 
@@ -1719,7 +1713,7 @@ export async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVo
  * Load voice DNA content for a specific persona
  * Used for core character essence (WHO Ferni is, not WHAT he says)
  */
-export async function loadVoiceDNA(personaId = 'ferni'): Promise<VoiceDNA | null> {
+async function loadVoiceDNA(personaId = 'ferni'): Promise<VoiceDNA | null> {
   const content = await loadPersonaContent<VoiceDNA>(personaId, 'voice_dna');
   if (content) return content;
 
@@ -1754,7 +1748,7 @@ export async function loadPredictiveIntelligence(
  * Load sensory moments content for a specific persona
  * Used for embodied awareness and grounding
  */
-export async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMoments | null> {
+async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMoments | null> {
   const content = await loadPersonaContent<SensoryMoments>(personaId, 'sensory_moments');
   if (content) return content;
 
@@ -1769,7 +1763,7 @@ export async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMo
  * Load team coordination content for a specific persona
  * Used for handoff routing and team awareness
  */
-export async function loadTeamCoordination(personaId = 'ferni'): Promise<TeamCoordination | null> {
+async function loadTeamCoordination(personaId = 'ferni'): Promise<TeamCoordination | null> {
   const content = await loadPersonaContent<TeamCoordination>(personaId, 'team_coordination');
   if (content) return content;
 
@@ -1809,7 +1803,7 @@ export function stripSsml(phrase: string): string {
 /**
  * Get a random phrase, stripped of SSML for LLM context
  */
-export function getRandomPhraseClean(phrases: string[] | undefined): string | null {
+function getRandomPhraseClean(phrases: string[] | undefined): string | null {
   const phrase = getRandomPhrase(phrases);
   return phrase ? stripSsml(phrase) : null;
 }

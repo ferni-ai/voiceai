@@ -138,7 +138,12 @@ describe('with the classifier timed out', () => {
         text,
         { recentTranscripts: [] },
         {
-          env: { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_CLASSIFIER_TIMEOUT_MS: '20' },
+          // options.env replaces process.env for the turn, so it carries the mode too.
+          env: {
+            CRISIS_CLASSIFIER_MODE: 'live',
+            CRISIS_CLASSIFIER_TIMEOUT_MS: '20',
+            CRISIS_MEANS_IN_HAND: 'live',
+          },
           generate: never,
           sessionId: 'timeout-call',
         }

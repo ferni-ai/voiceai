@@ -1,67 +1,14 @@
 /**
  * Agent Guidance Gaps E2E Tests
  *
- * Tests the four new context builders added to fill guidance gaps:
- * 1. Session Gap Awareness - Days since last session with reconnection guidance
- * 2. Proactive Session Context - Why Ferni initiated a check-in call
- * 3. Handoff Trust Context - Boundaries and rapport builders during handoffs
- * 4. Tool Failure Awareness - Recent tool failures for honest acknowledgment
+ * Tests the context builders added to fill guidance gaps:
+ * - Proactive Session Context - Why Ferni initiated a check-in call
+ * - Handoff Trust Context - Boundaries and rapport builders during handoffs
  *
  * @module tests/e2e/agent-guidance-gaps-e2e
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
-// ============================================================================
-// PHASE 1: Session Gap Awareness Tests
-// ============================================================================
-
-describe('Session Gap Awareness', () => {
-  it('should export the session gap awareness builder', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
-    expect(module.sessionGapAwarenessBuilder).toBeDefined();
-    expect(module.sessionGapAwarenessBuilder.name).toBe('session-gap-awareness');
-  });
-
-  it('should have correct builder configuration', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
-    const builder = module.sessionGapAwarenessBuilder;
-
-    expect(builder.priority).toBe(30); // Early for session awareness
-    expect(builder.category).toBeDefined();
-    expect(typeof builder.build).toBe('function');
-  });
-
-  it('should return empty array without userId', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
-    const builder = module.sessionGapAwarenessBuilder;
-
-    const result = await builder.build({
-      userText: 'hello',
-      services: { userId: undefined },
-      userData: { turnCount: 1 },
-    } as unknown as Parameters<typeof builder.build>[0]);
-
-    expect(result).toEqual([]);
-  });
-
-  it('should return empty array on turns > 3', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
-    const builder = module.sessionGapAwarenessBuilder;
-
-    const result = await builder.build({
-      userText: 'hello',
-      services: { userId: 'test-user' },
-      userData: { turnCount: 5 },
-    } as unknown as Parameters<typeof builder.build>[0]);
-
-    expect(result).toEqual([]);
-  });
-});
 
 // ============================================================================
 // PHASE 2: Proactive Session Context Tests
@@ -173,43 +120,6 @@ describe('Handoff Trust Context Wiring', () => {
 });
 
 // ============================================================================
-// PHASE 4: Tool Failure Awareness Tests
-// ============================================================================
-
-describe('Tool Failure Awareness', () => {
-  it('should export tool failure awareness builder', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/tool-failure-awareness.js');
-
-    expect(module.toolFailureAwarenessBuilder).toBeDefined();
-    expect(module.toolFailureAwarenessBuilder.name).toBe('tool-failure-awareness');
-  });
-
-  it('should have correct builder configuration', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/tool-failure-awareness.js');
-    const builder = module.toolFailureAwarenessBuilder;
-
-    expect(builder.priority).toBe(15); // Early - failures should be addressed promptly
-    expect(builder.category).toBeDefined();
-    expect(typeof builder.build).toBe('function');
-  });
-
-  it('should return empty array without sessionId', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/tool-failure-awareness.js');
-    const builder = module.toolFailureAwarenessBuilder;
-
-    const result = await builder.build({
-      userText: 'hello',
-      services: { sessionId: undefined },
-    } as unknown as Parameters<typeof builder.build>[0]);
-
-    expect(result).toEqual([]);
-  });
-});
-
-// ============================================================================
 // PHASE 4 (continued): Redis Tool Failure Tracking Tests
 // ============================================================================
 
@@ -221,58 +131,6 @@ describe('Redis Tool Failure Tracking', () => {
     expect(typeof redis.recordToolFailure).toBe('function');
     expect(typeof redis.getRecentToolFailures).toBe('function');
     expect(typeof redis.clearToolFailures).toBe('function');
-  });
-});
-
-// ============================================================================
-// Integration: Builder Registration Tests
-// ============================================================================
-
-describe('Builder Registration', () => {
-  it('should have all new builders in builder-imports', async () => {
-    const module = await import('../../intelligence/context-builders/core/builder-imports.js');
-
-    const imports = module.BUILDER_IMPORTS;
-
-    // Phase 1
-    expect(imports['session-gap-awareness']).toBeDefined();
-
-    // Phase 2
-    expect(imports['proactive-session-context']).toBeDefined();
-
-    // Phase 4
-    expect(imports['tool-failure-awareness']).toBeDefined();
-
-    // Previously added
-    expect(imports['captured-data-awareness']).toBeDefined();
-    expect(imports['emotional-trajectory-awareness']).toBeDefined();
-  });
-
-  it('should be able to dynamically import all new builders', async () => {
-    const module = await import('../../intelligence/context-builders/core/builder-imports.js');
-
-    const imports = module.BUILDER_IMPORTS;
-
-    // Test each new builder can be imported
-    const newBuilders = [
-      'session-gap-awareness',
-      'proactive-session-context',
-      'tool-failure-awareness',
-      'captured-data-awareness',
-      'emotional-trajectory-awareness',
-    ];
-
-    for (const builderName of newBuilders) {
-      const importer = imports[builderName];
-      expect(importer).toBeDefined();
-
-      // Verify it's a function
-      expect(typeof importer).toBe('function');
-
-      // Dynamic import should work
-      const imported = await importer();
-      expect(imported).toBeDefined();
-    }
   });
 });
 

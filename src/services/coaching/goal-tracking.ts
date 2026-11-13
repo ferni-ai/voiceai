@@ -35,11 +35,11 @@ export type GoalDomain =
   | 'education'
   | 'other';
 
-export type GoalStatus = 'active' | 'paused' | 'completed' | 'abandoned';
+type GoalStatus = 'active' | 'paused' | 'completed' | 'abandoned';
 
-export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
+type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 
-export interface Milestone {
+interface Milestone {
   id: string;
   title: string;
   description?: string;
@@ -96,7 +96,7 @@ export interface CoachingGoal {
   lastCheckIn?: Date;
 }
 
-export interface GoalProgress {
+interface GoalProgress {
   goalId: string;
   date: Date;
   progress: number;
@@ -104,7 +104,7 @@ export interface GoalProgress {
   milestoneCompleted?: string;
 }
 
-export interface GoalProfile {
+interface GoalProfile {
   userId: string;
   goals: CoachingGoal[];
   progressHistory: GoalProgress[];
@@ -277,7 +277,7 @@ function detectDomain(goalText: string): GoalDomain {
 /**
  * Create a new goal
  */
-export function createGoal(
+function createGoal(
   userId: string,
   goalData: {
     title: string;
@@ -325,7 +325,7 @@ export function createGoal(
 /**
  * Add a milestone to a goal
  */
-export function addMilestone(
+function addMilestone(
   userId: string,
   goalId: string,
   milestoneData: {
@@ -360,12 +360,7 @@ export function addMilestone(
 /**
  * Update goal progress
  */
-export function updateProgress(
-  userId: string,
-  goalId: string,
-  progress: number,
-  note?: string
-): boolean {
+function updateProgress(userId: string, goalId: string, progress: number, note?: string): boolean {
   const profile = goalProfiles.get(userId);
   if (!profile) return false;
 
@@ -406,7 +401,7 @@ export function updateProgress(
 /**
  * Complete a milestone
  */
-export function completeMilestone(userId: string, goalId: string, milestoneId: string): boolean {
+function completeMilestone(userId: string, goalId: string, milestoneId: string): boolean {
   const profile = goalProfiles.get(userId);
   if (!profile) return false;
 
@@ -441,7 +436,7 @@ export function completeMilestone(userId: string, goalId: string, milestoneId: s
 /**
  * Pause a goal
  */
-export function pauseGoal(userId: string, goalId: string, reason?: string): boolean {
+function pauseGoal(userId: string, goalId: string, reason?: string): boolean {
   const profile = goalProfiles.get(userId);
   if (!profile) return false;
 
@@ -462,7 +457,7 @@ export function pauseGoal(userId: string, goalId: string, reason?: string): bool
 /**
  * Resume a paused goal
  */
-export function resumeGoal(userId: string, goalId: string): boolean {
+function resumeGoal(userId: string, goalId: string): boolean {
   const profile = goalProfiles.get(userId);
   if (!profile) return false;
 
@@ -481,7 +476,7 @@ export function resumeGoal(userId: string, goalId: string): boolean {
 /**
  * Abandon a goal (with compassion - no shame)
  */
-export function abandonGoal(userId: string, goalId: string, reason?: string): boolean {
+function abandonGoal(userId: string, goalId: string, reason?: string): boolean {
   const profile = goalProfiles.get(userId);
   if (!profile) return false;
 
@@ -514,7 +509,7 @@ export function getActiveGoals(userId: string): CoachingGoal[] {
 /**
  * Get goals that need check-in
  */
-export function getGoalsNeedingCheckIn(userId: string): CoachingGoal[] {
+function getGoalsNeedingCheckIn(userId: string): CoachingGoal[] {
   const profile = goalProfiles.get(userId);
   if (!profile) return [];
 
@@ -527,7 +522,7 @@ export function getGoalsNeedingCheckIn(userId: string): CoachingGoal[] {
 /**
  * Get a specific goal
  */
-export function getGoal(userId: string, goalId: string): CoachingGoal | null {
+function getGoal(userId: string, goalId: string): CoachingGoal | null {
   const profile = goalProfiles.get(userId);
   return profile?.goals.find((g) => g.id === goalId) || null;
 }
@@ -535,7 +530,7 @@ export function getGoal(userId: string, goalId: string): CoachingGoal | null {
 /**
  * Get goal stats for a user
  */
-export function getGoalStats(userId: string): GoalProfile['stats'] | null {
+function getGoalStats(userId: string): GoalProfile['stats'] | null {
   const profile = goalProfiles.get(userId);
   return profile?.stats || null;
 }
@@ -543,7 +538,7 @@ export function getGoalStats(userId: string): GoalProfile['stats'] | null {
 /**
  * Get recent progress for a goal
  */
-export function getRecentProgress(userId: string, goalId: string, days = 30): GoalProgress[] {
+function getRecentProgress(userId: string, goalId: string, days = 30): GoalProgress[] {
   const profile = goalProfiles.get(userId);
   if (!profile) return [];
 
@@ -560,7 +555,7 @@ export function getRecentProgress(userId: string, goalId: string, days = 30): Go
 /**
  * Generate a check-in question for a goal
  */
-export function generateGoalCheckIn(userId: string, goalId: string): GoalCheckIn | null {
+function generateGoalCheckIn(userId: string, goalId: string): GoalCheckIn | null {
   const profile = goalProfiles.get(userId);
   if (!profile) return null;
 
@@ -674,14 +669,14 @@ function calculateNextCheckIn(frequency: CoachingGoal['checkInFrequency']): Date
 /**
  * Export goal profile for persistence
  */
-export function exportGoalProfile(userId: string): GoalProfile | null {
+function exportGoalProfile(userId: string): GoalProfile | null {
   return goalProfiles.get(userId) || null;
 }
 
 /**
  * Import goal profile from persistence
  */
-export function importGoalProfile(profile: GoalProfile): void {
+function importGoalProfile(profile: GoalProfile): void {
   // Convert dates from strings if needed
   profile.goals.forEach((g) => {
     g.createdAt = new Date(g.createdAt);

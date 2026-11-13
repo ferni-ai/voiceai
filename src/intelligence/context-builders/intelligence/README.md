@@ -16,13 +16,8 @@ This folder contains builders that provide intelligence capabilities that exceed
 | `pattern-surfacing.ts` | Cross-domain pattern detection and surfacing |
 | `prediction-surfacing.ts` | Predictive insights for coaching |
 | `deep-understanding.ts` | Silence, rhythm, resistance, energy, goals |
-| `life-context-synthesis.ts` | Cross-domain life context awareness |
-| `voice-mismatch-critical.ts` | THE superhuman signal - detects emotional mismatch |
 | `proactive-noticing.ts` | "I notice..." pattern surfacing |
-| `commitment-follow-up.ts` | Accountability and commitment tracking |
 | `inner-world-injector.ts` | Inner world/emotional state awareness |
-| `semantic-intent-guidance.ts` | Semantic matching for handoffs and tools |
-| `unified-intelligence-context.ts` | Unified intelligence (Levels 2-5) |
 | `sec-intelligence.ts` | SEC/financial intelligence |
 
 ## Key Principle

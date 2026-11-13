@@ -21,7 +21,7 @@ const log = createLogger({ module: 'temporal-patterns' });
 // TYPES
 // ============================================================================
 
-export interface HourlyPattern {
+interface HourlyPattern {
   hour: number; // 0-23
   dominantEmotions: Map<string, number>; // emotion -> frequency
   energyLevel: number; // 0-1
@@ -30,7 +30,7 @@ export interface HourlyPattern {
   sampleSize: number;
 }
 
-export interface DayOfWeekPattern {
+interface DayOfWeekPattern {
   day: number; // 0-6 (Sunday = 0)
   dominantEmotions: Map<string, number>;
   energyLevel: number;
@@ -39,7 +39,7 @@ export interface DayOfWeekPattern {
   sampleSize: number;
 }
 
-export interface SeasonalPattern {
+interface SeasonalPattern {
   season: 'spring' | 'summer' | 'fall' | 'winter';
   moodBaseline: number; // -1 to 1
   energyBaseline: number; // 0-1
@@ -298,10 +298,7 @@ async function computePatterns(userId: string): Promise<void> {
 /**
  * Get hourly pattern for a specific hour.
  */
-export async function getHourlyPattern(
-  userId: string,
-  hour?: number
-): Promise<HourlyPattern | null> {
+async function getHourlyPattern(userId: string, hour?: number): Promise<HourlyPattern | null> {
   await ensurePatterns(userId);
   const patterns = patternCache.get(userId);
   if (!patterns) return null;
@@ -313,10 +310,7 @@ export async function getHourlyPattern(
 /**
  * Get day-of-week pattern.
  */
-export async function getDayPattern(
-  userId: string,
-  day?: number
-): Promise<DayOfWeekPattern | null> {
+async function getDayPattern(userId: string, day?: number): Promise<DayOfWeekPattern | null> {
   await ensurePatterns(userId);
   const patterns = patternCache.get(userId);
   if (!patterns) return null;
@@ -328,7 +322,7 @@ export async function getDayPattern(
 /**
  * Get seasonal pattern.
  */
-export async function getSeasonalPattern(
+async function getSeasonalPattern(
   userId: string,
   season?: 'spring' | 'summer' | 'fall' | 'winter'
 ): Promise<SeasonalPattern | null> {
@@ -398,7 +392,7 @@ export async function getTemporalContext(userId: string): Promise<TemporalContex
 /**
  * Detect if current behavior is unusual.
  */
-export async function detectAnomaly(
+async function detectAnomaly(
   userId: string,
   current: {
     emotion?: string;

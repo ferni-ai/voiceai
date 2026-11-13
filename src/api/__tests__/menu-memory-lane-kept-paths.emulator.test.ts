@@ -177,28 +177,6 @@ describe.skipIf(!emulator)(
       delete process.env.MINOR_CARE;
     });
 
-    it('follow-through "yes" (ISO-string lastMentioned) shows once and writes one doc', async () => {
-      const u = newUser('ft');
-      const id = await agentSaves(u, 'call grandpa about the fishing trip');
-      const ft = await import('../../services/trust-systems/commitment-follow-through.js');
-      ft.noteFollowUpOffered(u, { id, content: 'call grandpa about the fishing trip' });
-      expect(
-        await ft.noteAskedFollowUps(u, 'Did you get to call grandpa about the fishing trip?')
-      ).toEqual([id]);
-      await (await tracking()).processCommitments(u, 'Yes, I did it, we talked for an hour!');
-      const row = (await (await userDoc(u)).collection('commitments').doc(id).get()).data();
-      expect(row?.status).toBe('completed');
-      expect(typeof row?.lastMentioned).toBe('string'); // the shape this pins
-
-      const card = kept('call grandpa about the fishing trip');
-      for (let visit = 0; visit < 3; visit++) {
-        expect(await commitmentCards(u, 'highlights')).toEqual([card]);
-        await tab(u, 'on-this-day');
-      }
-      expect(await commitmentCards(u, 'timeline')).toEqual([card]);
-      expect(await storedKept(u)).toHaveLength(1);
-    });
-
     it('in-call "I finally ..." (content only, ISO dates) shows its content, once', async () => {
       const u = newUser('fin');
       await detectorSaves(u, 'organize the photo albums');

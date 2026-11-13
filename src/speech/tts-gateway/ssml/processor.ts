@@ -16,7 +16,7 @@
 
 import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
-import { createLogger } from '../../../utils/safe-logger.js';
+import { createLogger, repliesForLog } from '../../../utils/safe-logger.js';
 import { holdBreak, isUnspeakable, restoreHeldBreaks, speakableText } from './native-breaks.js';
 import { fixStuckPunctuation } from './stuck-punctuation.js';
 
@@ -278,7 +278,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const jsonBlocksFound = cleanText.match(JSON_FUNCTION_CALL_REGEX);
     if (jsonBlocksFound) {
       log.warn(
-        { jsonBlocks: jsonBlocksFound.map((b) => b.slice(0, 50)), textLength: cleanText.length },
+        { jsonBlocks: repliesForLog(jsonBlocksFound, 50), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping JSON function call blocks from TTS text'
       );
       cleanText = cleanText.replace(JSON_FUNCTION_CALL_REGEX, '');
@@ -288,7 +288,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const inlineJsonFound = cleanText.match(INLINE_JSON_FN_REGEX);
     if (inlineJsonFound) {
       log.warn(
-        { inlineJson: inlineJsonFound.map((j) => j.slice(0, 50)), textLength: cleanText.length },
+        { inlineJson: repliesForLog(inlineJsonFound, 50), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping inline JSON function calls from TTS text'
       );
       cleanText = cleanText.replace(INLINE_JSON_FN_REGEX, '');
@@ -299,7 +299,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const partialJsonFound = cleanText.match(PARTIAL_JSON_BLOCK_REGEX);
     if (partialJsonFound) {
       log.warn(
-        { partialJson: partialJsonFound.map((p) => p.slice(0, 30)), textLength: cleanText.length },
+        { partialJson: repliesForLog(partialJsonFound, 30), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping partial JSON block from TTS text'
       );
       cleanText = cleanText.replace(PARTIAL_JSON_BLOCK_REGEX, '');
@@ -309,7 +309,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const codeFenceWithFn = cleanText.match(ANY_CODE_FENCE_WITH_FN);
     if (codeFenceWithFn) {
       log.warn(
-        { codeFences: codeFenceWithFn.map((f) => f.slice(0, 50)), textLength: cleanText.length },
+        { codeFences: repliesForLog(codeFenceWithFn, 50), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping code fence containing "fn" (safety net)'
       );
       cleanText = cleanText.replace(ANY_CODE_FENCE_WITH_FN, '');
@@ -319,7 +319,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const truncatedJson = cleanText.match(TRUNCATED_JSON_WITH_FN);
     if (truncatedJson) {
       log.warn(
-        { truncatedJson: truncatedJson.map((t) => t.slice(0, 50)), textLength: cleanText.length },
+        { truncatedJson: repliesForLog(truncatedJson, 50), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping truncated JSON with "fn" keyword'
       );
       cleanText = cleanText.replace(TRUNCATED_JSON_WITH_FN, '');
@@ -330,7 +330,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const anyJsonBlock = cleanText.match(ANY_JSON_CODE_BLOCK);
     if (anyJsonBlock) {
       log.warn(
-        { anyJsonBlock: anyJsonBlock.map((b) => b.slice(0, 50)), textLength: cleanText.length },
+        { anyJsonBlock: repliesForLog(anyJsonBlock, 50), textLength: cleanText.length },
         '🚨 [SSMLProcessor] Stripping json/js code block (nuclear option)'
       );
       cleanText = cleanText.replace(ANY_JSON_CODE_BLOCK, '');

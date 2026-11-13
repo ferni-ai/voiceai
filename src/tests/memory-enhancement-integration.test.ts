@@ -44,10 +44,6 @@ import {
   clearUserTexture,
 } from '../services/trust-systems/index.js';
 
-// Context Builder
-import { memoryEnhancementBuilder } from '../intelligence/context-builders/memory/memory-enhancement.js';
-import type { ContextBuilderInput } from '../intelligence/context-builders/index.js';
-
 describe('Memory Enhancement Integration', () => {
   const testUserId = 'test-user-integration-123';
   const testPersonaId = 'ferni';
@@ -222,113 +218,6 @@ describe('Memory Enhancement Integration', () => {
       const comparison = compareToUsual(testUserId, testPersonaId, 'vulnerable', 'deep');
 
       expect(comparison.isDifferent).toBe(true);
-    });
-  });
-
-  describe('Context Builder Integration', () => {
-    it('should build context with memory enhancement data', async () => {
-      // Set up some memory data
-      recordPassingMention({
-        userId: testUserId,
-        personaId: testPersonaId,
-        type: 'person',
-        name: 'Alex',
-        context: 'User mentioned their friend',
-        originalQuote: 'Alex is visiting next week',
-        sessionId: testSessionId,
-      });
-
-      // Build context
-      const input: Partial<ContextBuilderInput> = {
-        persona: { id: testPersonaId, name: 'Ferni' } as ContextBuilderInput['persona'],
-        userData: { turnCount: 5 } as ContextBuilderInput['userData'],
-        services: {
-          userId: testUserId,
-          sessionId: testSessionId,
-        } as ContextBuilderInput['services'],
-        analysis: {
-          topics: { detected: ['friend', 'visit'] },
-          emotion: { primary: 'happy', needsSupport: false },
-        } as ContextBuilderInput['analysis'],
-        userText: 'I wonder how Alex is doing',
-      };
-
-      const result = await memoryEnhancementBuilder.build(input as ContextBuilderInput);
-
-      // Result could be empty due to probability gates, but should not error
-      expect(Array.isArray(result)).toBe(true);
-    });
-
-    it('should record passing mentions from user text', async () => {
-      const input: Partial<ContextBuilderInput> = {
-        persona: { id: testPersonaId, name: 'Ferni' } as ContextBuilderInput['persona'],
-        userData: { turnCount: 3 } as ContextBuilderInput['userData'],
-        services: {
-          userId: testUserId,
-          sessionId: testSessionId,
-        } as ContextBuilderInput['services'],
-        analysis: {
-          topics: { detected: ['friend'] },
-          emotion: { primary: 'neutral' },
-        } as ContextBuilderInput['analysis'],
-        userText: "My friend Sarah is going through a hard time. She's been stressed about work.",
-      };
-
-      await memoryEnhancementBuilder.build(input as ContextBuilderInput);
-
-      // Check if mention was recorded - might not detect "Sarah" as a proper name
-      // but should have processed without error
-      const followUp = getFollowUpOpportunity(testUserId);
-
-      // The detection algorithm may or may not pick up "Sarah" depending on context
-      // What's important is the builder runs without errors
-      // If followUp exists, it means something was detected
-      if (followUp) {
-        expect(followUp.mention.type).toBeDefined();
-      }
-    });
-
-    it('should record conversation texture from builder', async () => {
-      // Start texture tracking
-      startSessionTexture(testUserId, testPersonaId, testSessionId);
-
-      const input: Partial<ContextBuilderInput> = {
-        persona: { id: testPersonaId, name: 'Ferni' } as ContextBuilderInput['persona'],
-        userData: { turnCount: 3 } as ContextBuilderInput['userData'],
-        services: {
-          userId: testUserId,
-          sessionId: testSessionId,
-        } as ContextBuilderInput['services'],
-        analysis: {
-          topics: { detected: ['fear', 'anxiety'] },
-          emotion: { primary: 'fear', needsSupport: true },
-          intent: { primary: 'support' },
-        } as ContextBuilderInput['analysis'],
-        userText: "I'm scared about what might happen. I've never felt this anxious.",
-      };
-
-      // Call builder twice to get 2 turns (needed for snapshot)
-      await memoryEnhancementBuilder.build(input as ContextBuilderInput);
-      await memoryEnhancementBuilder.build(input as ContextBuilderInput);
-
-      // Finalize and check
-      const snapshot = finalizeSessionTexture(testUserId);
-
-      // Snapshot is created only if turnCount >= 2
-      if (snapshot) {
-        // Tone should reflect vulnerability/fear
-        expect([
-          'vulnerable',
-          'serious',
-          'mixed',
-          'playful',
-          'analytical',
-          'supportive',
-          'exploratory',
-          'celebratory',
-          'reflective',
-        ]).toContain(snapshot.primaryTone);
-      }
     });
   });
 

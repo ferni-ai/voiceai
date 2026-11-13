@@ -282,6 +282,9 @@ function extractTopics(message: string): string[] {
 /**
  * Extended userData type for personality v2 signals
  * These fields are picked up by turn-handler.ts for frontend dispatch
+ *
+ * @public turn-handler.ts reads it as `import('…/personality-context.js').PersonalityV2Signals`,
+ * a type reference knip does not follow.
  */
 export interface PersonalityV2Signals {
   /** Anticipated emotion for avatar micro-expressions */
@@ -399,7 +402,7 @@ function storeMilestonesForDispatch(
  *
  * Call this during application startup to enable v2 personality intelligence.
  */
-export function registerPersonalityV2Builder(): void {
+function registerPersonalityV2Builder(): void {
   registerContextBuilder({
     name: 'personality-context',
     description:

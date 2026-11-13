@@ -23,7 +23,7 @@ const log = createLogger({ module: 'cross-persona-learning' });
 // TYPES
 // ============================================================================
 
-export interface LearnedPattern {
+interface LearnedPattern {
   /** Unique ID */
   id: string;
 
@@ -237,7 +237,7 @@ export function adaptPatternToPersona(pattern: string, targetPersonaId: string):
 /**
  * Record a successful expression and create a learned pattern
  */
-export function learnFromExpression(
+function learnFromExpression(
   expression: string,
   sourcePersona: string,
   theme: ThemeCategory,
@@ -356,7 +356,7 @@ function calculateScore(engagement: LearnedPattern['engagement']): number {
 /**
  * Get best learned patterns for a persona and context
  */
-export function getBestPatternsForPersona(
+function getBestPatternsForPersona(
   personaId: string,
   theme?: ThemeCategory,
   context?: Partial<LearnedPattern['context']>,
@@ -418,7 +418,7 @@ export function getPatternsFromPersona(sourcePersonaId: string): LearnedPattern[
 /**
  * Get pattern statistics
  */
-export function getPatternStats(): {
+function getPatternStats(): {
   totalPatterns: number;
   byPersona: Record<string, number>;
   byTheme: Record<string, number>;
