@@ -18,7 +18,6 @@ import {
 } from '../../../config/feature-flags.js';
 import {
   getCurrentChapterSummary,
-  getJourneySnapshot,
   getRhythmStats,
   recordDelivery,
   selectMomentForTurn,
@@ -310,12 +309,6 @@ registerContextBuilder({
 
 log.debug('Personal journey context builder registered');
 
-// ============================================================================
-// EXPORTS FOR DIRECT USE
-// ============================================================================
-
-export { buildBackgroundJourneyContext, buildPersonalJourneyContext, shouldInjectJourneyContext };
-
 /**
  * Get a journey-aware greeting enhancement
  * Can be called directly by greeting systems
@@ -364,37 +357,5 @@ export async function getJourneyGreetingEnhancement(userId: string): Promise<{
       error: String(err),
     });
     return { hasEnhancement: false };
-  }
-}
-
-/**
- * Get journey stats for debugging/display
- */
-export function getJourneyStatsForDisplay(userId: string): {
-  totalConversations: number;
-  daysKnown: number;
-  currentStreak: number;
-  relationshipStage: string;
-  currentChapter?: string;
-  inTransition: boolean;
-} {
-  try {
-    const snapshot = getJourneySnapshot(userId);
-    return {
-      totalConversations: snapshot.stats.totalConversations,
-      daysKnown: snapshot.stats.daysKnown,
-      currentStreak: snapshot.stats.currentStreak,
-      relationshipStage: snapshot.stats.relationshipStage,
-      currentChapter: snapshot.currentChapter,
-      inTransition: snapshot.inTransition,
-    };
-  } catch {
-    return {
-      totalConversations: 0,
-      daysKnown: 0,
-      currentStreak: 0,
-      relationshipStage: 'new',
-      inTransition: false,
-    };
   }
 }

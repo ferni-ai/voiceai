@@ -88,7 +88,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/services', 'L3:understanding', ['context-awareness', 'semantic', 'cognitive-intelligence', 'intelligence', 'conversation-thread']),
   ...under('src/services', 'L3:understanding', ['world-awareness', 'language']),
   ...under('src/conversation', 'L3:affect', ['emotional-arc', 'concern-detection']),
-  ...under('src/services', 'L3:affect', ['emotion-analysis', 'wellbeing-tracking', 'somatic-intelligence', 'vibe']),
+  ...under('src/services', 'L3:affect', ['emotion-analysis', 'wellbeing-tracking', 'vibe']),
   ...under('src/intelligence', 'L3:judgment', ['triggers', 'proactive', 'surfacing', 'pondering']),
   ...under('src', 'L3:judgment', ['conversation/response-mode', 'services/safety', 'services/principal-alignment']),
   ...under('src/services', 'L3:judgment', ['better-than-human-validation', 'message-validation']),

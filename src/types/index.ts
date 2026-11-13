@@ -491,7 +491,6 @@ export type {
   DeliveryRecord,
   JourneyMoment,
   JourneyMomentType,
-  JourneySnapshot,
   LifeChapter,
   LifeChapters,
   PersonalJourneyData,

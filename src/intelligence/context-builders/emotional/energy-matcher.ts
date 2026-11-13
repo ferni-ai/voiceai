@@ -396,18 +396,6 @@ async function buildEnergyMatcherContext(input: ContextBuilderInput): Promise<Co
 }
 
 // ============================================================================
-// CLEANUP
-// ============================================================================
-
-export function cleanupEnergyMatcherState(sessionId: string): void {
-  stateCache.delete(sessionId);
-}
-
-export function getCurrentEnergy(sessionId: string): EnergyLevel {
-  return getEnergyState(sessionId).currentLevel;
-}
-
-// ============================================================================
 // REGISTER
 // ============================================================================
 

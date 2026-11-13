@@ -259,11 +259,6 @@
       "count": 1
     }
   },
-  "src/conversation/cognitive-questions.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "src/conversation/conversational-repair.ts": {
     "no-useless-assignment": {
       "count": 2
@@ -319,16 +314,6 @@
       "count": 1
     }
   },
-  "src/intelligence/context-builders/awareness/revelation-awareness.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/intelligence/context-builders/awareness/situational-awareness.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "src/intelligence/context-builders/behavioral/awareness.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -336,24 +321,6 @@
   },
   "src/intelligence/context-builders/builder-prioritization.ts": {
     "ferni/no-env-flag-compare": {
-      "count": 2
-    }
-  },
-  "src/intelligence/context-builders/index.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    },
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/intelligence/context-builders/memory/memory-enhancement.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/intelligence/context-builders/personas/persona-quirks.ts": {
-    "no-useless-assignment": {
       "count": 2
     }
   },
@@ -679,11 +646,6 @@
     }
   },
   "src/services/superhuman/financial-pattern-intelligence.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/services/superhuman/insight-generation/generators/cross-domain-correlation.ts": {
     "no-useless-assignment": {
       "count": 1
     }
