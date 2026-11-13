@@ -11,7 +11,8 @@
  * - a line with a run of 7+ digits or an "@" is stripped;
  * - mood is a direction for tone, never a label about the person.
  *
- * No caller yet, by design: the read path (call-sheet lane M6) adds it.
+ * Rendered by the nightly job (stored as `rendered`) and again at call time by the in-call
+ * reader (agents/multi-agent/call-sheet), with the forgets known then and its own cap.
  *
  * @module intelligence/person-model/render
  */
@@ -36,6 +37,8 @@ export interface RenderOptions {
   now: Date;
   /** memory_state/forgotten topics. */
   forgottenTopics: readonly string[];
+  /** A tighter cap than MAX_RENDERED_CHARS (the in-call reader's); never looser. */
+  maxChars?: number;
 }
 
 /** One section: its heading and item lines, in the priority order of the sheet. */
@@ -171,6 +174,7 @@ const assemble = (list: Block[]): string =>
 
 export function renderPersonModel(model: PersonModel, opts: RenderOptions): string {
   const { now, forgottenTopics } = opts;
+  const cap = Math.min(opts.maxChars ?? MAX_RENDERED_CHARS, MAX_RENDERED_CHARS);
   const gone = (text: string): boolean => isForgotten(text, forgottenTopics);
   const sensitive = (text: string, flagged = false): boolean => flagged || isSensitiveThread(text);
   const c: Ctx = {
@@ -198,7 +202,7 @@ export function renderPersonModel(model: PersonModel, opts: RenderOptions): stri
     .filter((b) => b.lines.length > 0);
 
   // Over the cap: drop the lowest-priority section whole, never cut mid-line.
-  while (sections.length > 0 && assemble(sections).length > MAX_RENDERED_CHARS) {
+  while (sections.length > 0 && assemble(sections).length > cap) {
     if (sections.length > 1) sections.pop();
     else if (sections[0].lines.length > 1) sections[0].lines.pop();
     else sections.pop();
