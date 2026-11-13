@@ -225,6 +225,10 @@ const KEPT = [
   'i would never kill myself. i just want to die',
   "i won't hurt myself, i just wish i was dead",
   "i don't want to die", // wanting not to is not a denial
+  "i don't want to hurt myself",
+  "i don't want to kill myself",
+  'i do not want to hurt myself',
+  "i don't wanna kill myself",
   "i'm trying not to hurt myself",
   "i tried but i couldn't kill myself",
   "i didn't hurt myself this week",
