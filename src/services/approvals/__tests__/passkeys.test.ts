@@ -40,6 +40,33 @@ describe('relyingParty', () => {
       relyingParty({ WEBAUTHN_RP_ID: 'localhost', WEBAUTHN_ORIGINS: 'http://localhost:3004' }).rpID
     ).toBe('localhost');
   });
+
+  it('drops a trailing slash from each origin (a browser origin never has one)', () => {
+    expect(relyingParty({ WEBAUTHN_ORIGINS: 'https://host.example/' })).toEqual({
+      rpID: 'host.example',
+      origins: ['https://host.example'],
+    });
+    expect(
+      relyingParty({ WEBAUTHN_ORIGINS: 'https://a.example/ , https://b.example//' }).origins
+    ).toEqual(['https://a.example', 'https://b.example']);
+    expect(relyingParty({ WEBAUTHN_ORIGINS: 'https://c.example:8443' }).origins).toEqual([
+      'https://c.example:8443',
+    ]);
+  });
+
+  it('drops a trailing slash from the APP_URL fallback', async () => {
+    vi.stubEnv('APP_URL', 'https://app.example/');
+    vi.resetModules();
+    try {
+      const fresh = await import('../passkeys.js');
+      expect(fresh.relyingParty({})).toEqual({
+        rpID: 'app.example',
+        origins: ['https://app.example'],
+      });
+    } finally {
+      vi.resetModules();
+    }
+  });
 });
 
 describe('registration', () => {
@@ -51,6 +78,14 @@ describe('registration', () => {
     const [stored] = await listPasskeys('alice', db);
     expect(stored).toMatchObject({ id: device.id, counter: 0, transports: ['internal'] });
     expect(Buffer.from(stored?.publicKey ?? '', 'base64url').length).toBeGreaterThan(64);
+  });
+
+  it('verifies through the real library when the origin is configured with a trailing slash', async () => {
+    vi.stubEnv('WEBAUTHN_ORIGINS', 'https://app.example/');
+    const { db, options, device } = await begin();
+    expect(options.rp.id).toBe('app.example');
+    const response = device.register(options, { origin: 'https://app.example' });
+    expect(await finishRegistration('alice', response, Date.now(), db)).toBe(true);
   });
 
   it('refuses a response without user verification (no biometric or PIN)', async () => {

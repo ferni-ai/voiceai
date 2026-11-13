@@ -66,7 +66,7 @@ describe('POST /demo-session-update needs the demo claim token', () => {
     getDemoSession.mockReset();
     updateDemoSessionConversation.mockReset();
     getDemoSession.mockResolvedValue({ roomName: ROOM, claimToken: CLAIM, claimed: false });
-    updateDemoSessionConversation.mockResolvedValue(true);
+    updateDemoSessionConversation.mockResolvedValue('updated');
   });
 
   it('answers 401 and writes nothing without a claim_token', async () => {
@@ -120,6 +120,75 @@ describe('POST /demo-session-update needs the demo claim token', () => {
     getDemoSession.mockResolvedValue({ roomName: ROOM, claimToken: undefined, claimed: false });
     expect(await post({ room_name: ROOM, conversation, claim_token: CLAIM })).toBe(403);
     expect(updateDemoSessionConversation).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /demo-session-update takes only the known conversation fields (#1759)', () => {
+  const write = (c: unknown): Promise<number> =>
+    post({ room_name: ROOM, claim_token: CLAIM, conversation: c });
+
+  beforeEach(() => {
+    getDemoSession.mockReset();
+    updateDemoSessionConversation.mockReset();
+    getDemoSession.mockResolvedValue({ roomName: ROOM, claimToken: CLAIM, claimed: false });
+    updateDemoSessionConversation.mockResolvedValue('updated');
+  });
+
+  it('writes all five fields when each has the right type and size', async () => {
+    const full = {
+      messages: [{ role: 'user', text: 'hi' }],
+      highlights: ['likes tomatoes'],
+      topics: ['gardening'],
+      userMood: 'curious',
+      ferniNotes: 'ask about the garden',
+    };
+    expect(await write(full)).toBe(200);
+    expect(await write({ userMood: null })).toBe(200);
+    expect(updateDemoSessionConversation).toHaveBeenNthCalledWith(1, ROOM, full);
+    expect(updateDemoSessionConversation).toHaveBeenNthCalledWith(2, ROOM, { userMood: null });
+  });
+
+  it.each([
+    ['an unknown key', { claimed: true }],
+    ['a prototype key', JSON.parse('{"__proto__": {"claimed": true}}') as unknown],
+    ['highlights that are not strings', { highlights: [1] }],
+    ['a highlight over 500 characters', { highlights: ['x'.repeat(501)] }],
+    ['more than 50 topics', { topics: Array.from({ length: 51 }, () => 't') }],
+    ['topics that are not a list', { topics: 'gardening' }],
+    ['a userMood over 64 characters', { userMood: 'x'.repeat(65) }],
+    ['a userMood that is not a string', { userMood: 3 }],
+    ['ferniNotes over 4000 characters', { ferniNotes: 'x'.repeat(4001) }],
+    ['ferniNotes that is null', { ferniNotes: null }],
+    ['messages that are not objects', { messages: ['hi'] }],
+    ['a message that is a list', { messages: [['hi']] }],
+    ['more than 200 messages', { messages: Array.from({ length: 201 }, () => ({})) }],
+    ['a message over 4 KB', { messages: [{ text: 'x'.repeat(4097) }] }],
+  ])('answers 400 and writes nothing for %s', async (_name, conversation) => {
+    expect(await write(conversation)).toBe(400);
+    expect(updateDemoSessionConversation).not.toHaveBeenCalled();
+  });
+
+  it('answers 400 before it reads the session, so a bad body cannot probe rooms', async () => {
+    expect(await write({ nope: 1 })).toBe(400);
+    expect(getDemoSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /demo-session-update answers what the write did', () => {
+  beforeEach(() => {
+    getDemoSession.mockReset();
+    updateDemoSessionConversation.mockReset();
+    getDemoSession.mockResolvedValue({ roomName: ROOM, claimToken: CLAIM, claimed: false });
+  });
+
+  it.each([
+    ['updated', 200],
+    ['missing', 404],
+    ['claimed', 409],
+    ['failed', 503],
+  ])('%s answers %i', async (result, status) => {
+    updateDemoSessionConversation.mockResolvedValue(result);
+    expect(await post({ room_name: ROOM, conversation, claim_token: CLAIM })).toBe(status);
   });
 });
 

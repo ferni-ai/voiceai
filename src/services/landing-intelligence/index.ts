@@ -65,16 +65,13 @@ export {
 
 export { initLandingIntelligence, shutdownLandingIntelligence } from './lifecycle.js';
 
-// AI Interactions (Live Chat, Persona Preview, Smart FAQ, etc.)
+// AI Interactions (Persona Preview, Smart FAQ, etc.)
 export {
-  sendDemoChatMessage,
   generatePersonaPreview,
   answerSmartFAQ,
   generatePersonalizedHero,
   generateHoverPreview,
   generateSentimentReactiveCopy,
-  type DemoChatMessage,
-  type DemoChatSession,
   type PersonaPreviewRequest,
   type PersonaPreviewResponse,
   type SmartFAQRequest,

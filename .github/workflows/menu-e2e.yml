@@ -187,7 +187,8 @@ jobs:
         working-directory: apps/web
         # Only the variables deploy-firebase.yml builds with (prod-web-flags.mjs checks the
         # list both ways); never toJSON(vars), since a step's env is printed in a public log.
-        # The Venmo handle never enters the job: only whether it is set; the walk uses a placeholder.
+        # The Venmo handle and the Stripe key never enter the job: only whether each is set;
+        # the walk uses a placeholder.
         env:
           PROD_VAR_VITE_VENMO_CHIP_IN: ${{ vars.VITE_VENMO_CHIP_IN }}
           PROD_VAR_VITE_VENMO_HANDLE_SET: ${{ vars.VITE_VENMO_HANDLE != '' }}
@@ -203,6 +204,11 @@ jobs:
           PROD_VAR_VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
           PROD_VAR_VITE_WEB_AUDIO_START_WATCH: ${{ vars.VITE_WEB_AUDIO_START_WATCH }}
           PROD_VAR_VITE_CALM_IDLE: ${{ vars.VITE_CALM_IDLE }}
+          PROD_VAR_VITE_AGENT_DROP_PROMPT: ${{ vars.VITE_AGENT_DROP_PROMPT }}
+          PROD_VAR_VITE_AFTER_CALL_CARD: ${{ vars.VITE_AFTER_CALL_CARD }}
+          PROD_VAR_VITE_NO_STREAKS: ${{ vars.VITE_NO_STREAKS }}
+          PROD_VAR_VITE_REPORT_REPLY: ${{ vars.VITE_REPORT_REPLY }}
+          PROD_VAR_VITE_STRIPE_PUBLISHABLE_KEY_SET: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY != '' }}
           PROD_VAR_VITE_NATURAL_BLINK: ${{ vars.VITE_NATURAL_BLINK }}
           PROD_VAR_VITE_LID_BLEND: ${{ vars.VITE_LID_BLEND }}
           PROD_VAR_VITE_GAZE: ${{ vars.VITE_GAZE }}

@@ -2,7 +2,9 @@
  * The pronunciation dictionary is valid Cartesia input and covers the team.
  * Before 2026-10-12 only Ferni and Nayan were in it; before 2026-10-20
  * Nayan's IPA used ʌ, a symbol outside Cartesia's set; before 2026-10-29 it
- * was two IPA words, heard as "Nah, Jan" at the start of a sentence.
+ * was two IPA words, heard as "Nah, Jan" at the start of a sentence; from
+ * 2026-10-29 to 2026-11-12 its sounds-like entry forced NAH-yahn, and the name
+ * is NY-un, Sonic's own reading.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -58,12 +60,12 @@ describe('pronunciationDictItems', () => {
     }
   });
 
-  it('says Nayan NAH-yahn as one sounds-like word, with its own possessive', () => {
-    // One-word IPA <<ˈ|n|ɑ|j|ɑ|n>> glides into "NIGH-un" ("Nion", 2026-10-20 and
-    // 2026-10-29); the two-word IPA opened a sentence as "Nah, Jan" (0 of 6).
-    expect(TEAM_NAME_PRONUNCIATIONS.Nayan).toBe('nahyahn');
-    expect(entryFor("Nayan's", items)?.pronunciation).toBe('nahyahnz');
-    expect(entryFor('Nayan’s', items)?.pronunciation).toBe('nahyahnz');
+  it('leaves Nayan and its possessives to Sonic, which says NY-un unaided', () => {
+    // The 'nahyahn' entry made it NAH-yahn: ink-2 heard "Nahyan" in 45 of 54
+    // plain takes with it, 0 of 108 without (2026-11-12).
+    for (const word of ['Nayan', "Nayan's", 'Nayan’s']) {
+      expect(entryFor(word, items), word).toBeUndefined();
+    }
   });
 
   it('keeps sounds-like spellings free of capital runs, which Sonic spells out as letters', () => {
@@ -101,10 +103,9 @@ describe('pronunciationDictItems', () => {
     expect(items.filter((i) => !tested.has(i.text)).map((i) => i.text)).toEqual([]);
     // The tested IPA still covers names Sonic misread with no entry.
     expect(entryFor('Siobhan', items)?.pronunciation).toBe(NAME_IPA.Siobhan);
-    expect(entryFor('Nayan', items)?.pronunciation).toBe(TEAM_NAME_PRONUNCIATIONS.Nayan);
   });
 
-  it('covers every teammate, legend and story place, and their possessives through the base word', () => {
+  it('covers every teammate (but Nayan, above), legend and story place, and their possessives through the base word', () => {
     for (const name of [
       'Ferni',
       'Maya',
@@ -114,11 +115,9 @@ describe('pronunciationDictItems', () => {
       'Alex',
       'Chen',
       'Peter',
-      'Nayan',
       'Patel',
       'Henry',
       'Caldwell',
-      'Brannigan',
       'Nate',
       'Holloway',
       'Vadodara',
@@ -134,12 +133,8 @@ describe('pronunciationDictItems', () => {
       );
     }
     // Possessives come from the base word; an "X's" entry is dead weight unless a
-    // round trip measured it: "Nayan's" 1 of 6 → 3 of 6 heard right (2026-10-29),
-    // with the same entry for the curly apostrophe the LLM sometimes writes.
-    expect(items.filter((i) => /['’]s$/.test(i.text)).map((i) => i.text)).toEqual([
-      "Nayan's",
-      'Nayan’s',
-    ]);
+    // round trip measures it beating none.
+    expect(items.filter((i) => /['’]s$/.test(i.text)).map((i) => i.text)).toEqual([]);
   });
 
   it('matches spoken words in any capitalisation, plurals by their own entry', () => {

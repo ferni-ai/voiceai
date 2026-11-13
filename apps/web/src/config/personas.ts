@@ -259,9 +259,6 @@ export const LEGENDS: Readonly<Record<LegendId, PersonaConfig>> = Object.freeze(
 /** Legend aliases from their bundles. 'peter' and 'john' stay with Peter John. */
 const LEGEND_ALIASES: Readonly<Record<string, LegendId>> = {
   // Fictional names only: no real person's name reaches a legend.
-  tom: 'peter-lynch',
-  brannigan: 'peter-lynch',
-  'stock-picker': 'peter-lynch',
   henry: 'john-bogle',
   caldwell: 'john-bogle',
   'index-investing': 'john-bogle',
@@ -458,8 +455,8 @@ export function normalizeAgentId(agentId: string | undefined | null): PersonaId 
 }
 
 /**
- * Normalize the id of whoever is speaking: a Financial Legend keeps their own id
- * (peter-lynch is Tom Brannigan, not Peter John); anything else is normalizeAgentId.
+ * Normalize the id of whoever is speaking: a Financial Legend keeps their own id;
+ * anything else is normalizeAgentId.
  */
 export function normalizeSpeakerId(agentId: string | undefined | null): SpeakerId {
   const legend = agentId ? toLegendId(agentId) : undefined;
