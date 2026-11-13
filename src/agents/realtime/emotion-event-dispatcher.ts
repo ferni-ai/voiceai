@@ -866,7 +866,7 @@ export async function dispatchEmotionalBondDeepen(
       timestamp: Date.now(),
     });
 
-    log.debug({ trigger: context.trigger }, '💞 BTH: Emotional bond deepen signal dispatched');
+    log.debug({ triggerLength: context.trigger.length }, '💞 BTH: Emotional bond deepen signal dispatched');
   } catch (error) {
     log.warn({ error: String(error) }, 'emotional_bond_deepen dispatch failed');
   }
@@ -937,7 +937,7 @@ export async function dispatchSpontaneousDelight(
       );
     }
 
-    log.debug({ trigger: context.trigger }, '🎉 BTH: Spontaneous delight signal dispatched');
+    log.debug({ triggerLength: context.trigger.length }, '🎉 BTH: Spontaneous delight signal dispatched');
   } catch (error) {
     log.warn({ error: String(error) }, 'spontaneous_delight dispatch failed');
   }
@@ -977,7 +977,7 @@ export async function dispatchInsideJokeCallback(
     }
 
     log.debug(
-      { memoryReference: context.memoryReference },
+      { memoryReferenceLength: context.memoryReference.length },
       '😄 BTH: Inside joke callback dispatched'
     );
   } catch (error) {
@@ -1090,7 +1090,7 @@ export async function dispatchTemporalInsight(
       telemetry.trackCrossSessionReflection(telemetryCtx.userId, telemetryCtx.personaId);
     }
 
-    log.debug({ memoryReference: context.memoryReference }, '⏳ BTH: Temporal insight dispatched');
+    log.debug({ memoryReferenceLength: context.memoryReference.length }, '⏳ BTH: Temporal insight dispatched');
   } catch (error) {
     log.warn({ error: String(error) }, 'temporal_insight dispatch failed');
   }
