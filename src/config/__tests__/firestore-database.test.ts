@@ -7,6 +7,9 @@
  *
  * Every row asserts both. Before isKnownDevDatabase existed the logging sites asked the first
  * question, so a prod process with a misspelt name logged what callers said.
+ *
+ * The name is taken as written. Space around it is part of it: such a name is bound as it is
+ * (so prod work is skipped, as before), and it is never dev's.
  */
 import { readdirSync, readFileSync } from 'fs';
 import { join, relative } from 'path';
@@ -34,12 +37,15 @@ const unknown = (database: string) => ({ database, nonProd: true, knownDev: fals
 const ROWS: Record<string, Row> = {
   unset: { set: undefined, ...PROD },
   empty: { set: '', ...PROD },
-  'a single space': { set: ' ', ...PROD },
-  'only space and a newline': { set: ' \n', ...PROD },
+  'a single space': { set: ' ', ...unknown(' ') },
+  'a tab': { set: '\t', ...unknown('\t') },
+  'only space and a newline': { set: ' \n', ...unknown(' \n') },
   "prod's name": { set: '(default)', ...PROD },
-  "prod's name with space around it": { set: ' (default)\n', ...PROD },
+  "prod's name with space before it": { set: ' (default)', ...unknown(' (default)') },
+  "prod's name with a newline after it": { set: '(default)\n', ...unknown('(default)\n') },
   "dev's name": { set: 'ferni-dev', ...DEV },
-  "dev's name with space around it": { set: ' ferni-dev\n', ...DEV },
+  "dev's name with space before it": { set: ' ferni-dev', ...unknown(' ferni-dev') },
+  "dev's name with a newline after it": { set: 'ferni-dev\n', ...unknown('ferni-dev\n') },
   "prod's name in another case": { set: '(Default)', ...unknown('(Default)') },
   "prod's name without its brackets": { set: 'default', ...unknown('default') },
   "prod's name misspelt": { set: '(defualt)', ...unknown('(defualt)') },
@@ -58,12 +64,13 @@ describe('which Firestore database, and what it allows', () => {
     expect(isKnownDevDatabase(env)).toBe(knownDev);
   });
 
-  it('no name is both prod and dev, and the rows cover all three kinds', () => {
+  it('no name is both prod and dev, and one name only is dev', () => {
     const rows = Object.values(ROWS);
     for (const { nonProd, knownDev } of rows) expect(knownDev && !nonProd).toBe(false);
-    expect(rows.filter((r) => !r.nonProd).length).toBeGreaterThan(3);
-    expect(rows.filter((r) => r.knownDev).length).toBeGreaterThan(1);
-    expect(rows.filter((r) => r.nonProd && !r.knownDev).length).toBeGreaterThan(5);
+    // Prod is unset, empty and its own name; dev is one name; every other row is neither.
+    expect(rows.filter((r) => !r.nonProd).map((r) => r.set)).toEqual([undefined, '', '(default)']);
+    expect(rows.filter((r) => r.knownDev).map((r) => r.set)).toEqual(['ferni-dev']);
+    expect(rows.filter((r) => r.nonProd && !r.knownDev).length).toBeGreaterThan(10);
   });
 
   it('reads process.env when called, not when loaded', () => {

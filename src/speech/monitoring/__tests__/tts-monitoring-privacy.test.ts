@@ -111,6 +111,7 @@ describe.each([
   ['FIRESTORE_DATABASE empty', ''],
   ['FIRESTORE_DATABASE=(default)', '(default)'],
   ['FIRESTORE_DATABASE a single space', ' '],
+  ["dev's name with a newline after it", 'ferni-dev\n'],
   ["prod's name in another case", '(Default)'],
   ["prod's name without its brackets", 'default'],
   ["dev's name in another case", 'Ferni-Dev'],

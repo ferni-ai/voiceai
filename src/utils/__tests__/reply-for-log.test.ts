@@ -51,6 +51,8 @@ describe('replyForLog', () => {
   it.each([
     ['a single space', ' '],
     ["prod's name with space around it", ' (default)\n'],
+    ["dev's name with space before it", ' ferni-dev'],
+    ["dev's name with a newline after it", 'ferni-dev\n'],
     ["prod's name in another case", '(Default)'],
     ["prod's name without its brackets", 'default'],
     ["dev's name in another case", 'Ferni-Dev'],
@@ -62,11 +64,6 @@ describe('replyForLog', () => {
     expect(replyForLog(TEXT)).toBe(`[${TEXT.length} chars]`);
     expect(repliesForLog([TEXT])).toEqual([`[${TEXT.length} chars]`]);
     expect(isFullLoggingEnabled()).toBe(false);
-  });
-
-  it("gives the text on dev's name with space around it", () => {
-    as({ NODE_ENV: 'production', FIRESTORE_DATABASE: ' ferni-dev\n' });
-    expect(replyForLog(TEXT)).toBe(TEXT);
   });
 
   it('gives the text on dev, cut at the limit, whatever NODE_ENV says', () => {

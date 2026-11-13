@@ -33,6 +33,7 @@ describe('LearnedRetriever.addCorrection log', () => {
     ['unset', undefined],
     ["prod's name", '(default)'],
     ['a single space', ' '],
+    ["dev's name with a newline after it", 'ferni-dev\n'],
     ["prod's name in another case", '(Default)'],
     ["dev's name in another case", 'Ferni-Dev'],
     ["dev's name misspelt", 'ferni-dve'],

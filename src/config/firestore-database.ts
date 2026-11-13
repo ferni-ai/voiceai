@@ -7,16 +7,15 @@
 const DEV_FIRESTORE_DATABASE = 'ferni-dev';
 
 /**
- * The Firestore database every client in this process binds to: FIRESTORE_DATABASE with
- * the space around it dropped, or '(default)' when unset, empty or only space. Production
- * runs on '(default)'; dev sets DEV_FIRESTORE_DATABASE. getFirestoreDb() and
- * getAdminFirestore() bind to it, and the database pin (utils/firestore-db-pin.ts) reports
- * any client bound elsewhere.
+ * The Firestore database every client in this process binds to: FIRESTORE_DATABASE as
+ * written, or '(default)' when unset or empty. Production runs on '(default)'; dev sets
+ * DEV_FIRESTORE_DATABASE. getFirestoreDb() and getAdminFirestore() bind to it, and the
+ * database pin (utils/firestore-db-pin.ts) reports any client bound elsewhere.
  */
 export function getFirestoreDatabase(
   env: Readonly<Record<string, string | undefined>> = process.env
 ): string {
-  return env.FIRESTORE_DATABASE?.trim() || '(default)';
+  return env.FIRESTORE_DATABASE || '(default)';
 }
 
 /**
@@ -33,8 +32,9 @@ export function isNonProdDatabase(
 }
 
 /**
- * True only on dev's database, by its exact name. For what dev may do and prod never may,
- * such as words in a log line.
+ * True only on dev's database, by its exact name as written: another case, a misspelling or
+ * space around it is not dev's. For what dev may do and prod never may, such as words in a
+ * log line.
  *
  * isNonProdDatabase() is the wrong question for that: it answers true for any name that is
  * not '(default)', so a prod process whose FIRESTORE_DATABASE is misspelt would log what
