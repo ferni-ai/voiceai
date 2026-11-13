@@ -17,6 +17,15 @@ export const IN_DANGER_NOW =
 /** The caller's own 988 line, in the in-danger reply's words (the caller check speaks it). */
 export const TALK_TO_988 = IN_DANGER_NOW.slice(IN_DANGER_NOW.indexOf('You can also'));
 
+/** Said after the 988 script when an imminent read lands while it is still said (2026-11-11). */
+export const LATE_911_LINE = "And if you're in danger right now, call 911.";
+
+/** Whether a reply's sentence names a line to call. */
+export const namesCrisisLine = (text: string): boolean => /\b(?:911|988)\b/.test(text);
+
+/** Whether a reply's text already tells the caller to call 911. */
+export const names911 = (text: string): boolean => /\b911\b/.test(text);
+
 /** The 988 line in Spanish, in the Spanish crisis reply's words (the timeout check-in reuses it). */
 export const TALK_TO_988_ES =
   'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';

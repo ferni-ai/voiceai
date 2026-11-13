@@ -69,6 +69,7 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
 import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
@@ -118,6 +119,7 @@ export interface CrisisGateTurn {
   escalation: Promise<CrisisGateDecision | null> | null;
   /** The caller went quiet after a release: this reply asks the direct question again. */
   reask?: boolean;
+  read?: Promise<ScriptRead>; // CRISIS_SCRIPT_IMMINENT_READ: a scripted turn's read
 }
 
 type Chunk = llm.ChatChunk | string | object;
@@ -203,15 +205,17 @@ export function startCrisisGate(
   // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('gate', userData, detection.subject);
   let who: ReturnType<typeof startWhoRead> | undefined;
+  const at = { pattern, env, generate, scope, call, secondRead } as const;
   const read = (): Promise<CrisisVerdict | null> | undefined => {
-    const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
+    const run = startCrisisClassifier(said, at);
     if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
     who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
     return run.verdict;
   };
   const wait = decision.action === 'pass' && !gentle && !reask ? options.readAfter?.() : null;
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
-  if (!verdictRead) return { decision, escalation: null, reask };
+  const scripted = scriptRead(said, detection, decision, at); // CRISIS_SCRIPT_IMMINENT_READ
+  if (!verdictRead) return { decision, escalation: null, reask, read: scripted };
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
@@ -279,17 +283,8 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
-    const lone = {
-      call,
-      input: said,
-      verdict,
-      detection,
-      pattern,
-      env,
-      generate,
-      source: 'gate',
-    } as const;
-    const eased = await afterCheckLoneRead(lone); // CRISIS_CONFIRMED_CALL_RISK
+    const lone = { call, input: said, verdict, detection, pattern, env, generate } as const;
+    const eased = await afterCheckLoneRead({ ...lone, source: 'gate' }); // CRISIS_CONFIRMED_CALL_RISK
     if (eased) return guide(eased.guidance);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
@@ -431,7 +426,7 @@ export async function gatedReply(
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);
-    return textReply(script(gate.decision.script));
+    return scriptReply(script(gate.decision.script), gate.read, script, env);
   }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at

@@ -275,14 +275,15 @@ export interface StartCrisisClassifierOptions {
   call?: string;
   /** Which path reads, the call's turn count, and whether its patterns read someone else. */
   secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
+  readBlocked?: boolean; // CRISIS_SCRIPT_IMMINENT_READ: a scripted turn (crisis-script-imminent.ts)
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
 
 /**
  * One turn can reach the classifier more than once: a preemptive LLM request
- * and the final one, and the background turn handler. Identical input within
- * RECENT_RUN_TTL_MS shares one call. In memory only.
+ * and the final one, and the background turn handler. Identical input and
+ * deadline within RECENT_RUN_TTL_MS share one call. In memory only.
  */
 const RECENT_RUN_TTL_MS = 30_000;
 const RECENT_RUN_MAX = 32;
@@ -413,10 +414,8 @@ export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
 }
 
 /**
- * Start the classifier for one turn, or return null when the mode is off or
- * (in live mode) the patterns already block — the classifier cannot escalate
- * past a block. Every completed run logs one CRISIS_CLASSIFIER record with the
- * verdict and the pattern outcome so agreement can be measured from logs.
+ * One turn's classifier run; null when off, or live on a turn the patterns block unless asked to
+ * read it (readBlocked). Every completed run logs one CRISIS_CLASSIFIER record (verdict, pattern).
  */
 export function startCrisisClassifier(
   input: CrisisClassifierInput,
@@ -425,7 +424,8 @@ export function startCrisisClassifier(
   const env = options.env ?? process.env;
   const mode = resolveCrisisClassifierMode(env);
   if (mode === 'off') return null;
-  if (mode === 'live' && options.pattern === 'block') return notePatternBlock(options.call, env);
+  if (mode === 'live' && options.pattern === 'block' && !options.readBlocked)
+    return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
   // Key on what the model sees: the turn pipeline's history ends with the
@@ -442,6 +442,7 @@ export function startCrisisClassifier(
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    waitMs,
     second.key,
     ...agreementCacheScope(env, options.call),
   ]);
