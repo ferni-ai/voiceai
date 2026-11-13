@@ -94,14 +94,67 @@ function productionFiles(dir: string): string[] {
   });
 }
 
+const PRODUCTION = productionFiles(join(ROOT, 'src')).map((file) => relative(ROOT, file));
+/** A file's code lines (comment lines dropped), trimmed. */
+const codeLines = (file: string): string[] =>
+  readFileSync(join(ROOT, file), 'utf8')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !/^(\/\/|\/\*|\*)/.test(line));
+/** Each production file with a code line that matches, and how many such lines it has. */
+const filesWith = (pattern: RegExp): Record<string, number> =>
+  Object.fromEntries(
+    PRODUCTION.map((file) => [file, codeLines(file).filter((l) => pattern.test(l)).length] as const)
+      .filter(([, count]) => count > 0)
+      .sort()
+  );
+
 describe('isNonProdDatabase is only for skipping prod work', () => {
-  // A new log line that asks it would bring the fail-open back. The one caller is
-  // skipOnNonProdDatabase (config/environment.ts), which the publishers and workers use.
+  // A new log line that asks it would bring the fail-open back. Each test below closes one
+  // way of asking it: by name, through a wrapper, through the skip helper, or spelt out.
   it('is named by no production file but its own and config/environment.ts', () => {
-    const named = productionFiles(join(ROOT, 'src'))
-      .filter((file) => /\bisNonProdDatabase\b/.test(readFileSync(file, 'utf8')))
-      .map((file) => relative(ROOT, file))
-      .sort();
-    expect(named).toEqual(['src/config/environment.ts', 'src/config/firestore-database.ts']);
+    expect(Object.keys(filesWith(/\bisNonProdDatabase\b/))).toEqual([
+      'src/config/environment.ts',
+      'src/config/firestore-database.ts',
+    ]);
+  });
+
+  it('is asked once, inside skipOnNonProdDatabase: no wrapper, alias or re-export', () => {
+    const naming = (file: string): string[] =>
+      codeLines(file).filter((line) => /\bisNonProdDatabase\b/.test(line));
+    expect(naming('src/config/firestore-database.ts')).toEqual([
+      'export function isNonProdDatabase(',
+    ]);
+    expect(naming('src/config/environment.ts')).toEqual([
+      "import { getFirestoreDatabase, isNonProdDatabase } from './firestore-database.js';",
+      'if (!isNonProdDatabase()) return false;',
+    ]);
+  });
+
+  // The skip helper answers the same question, so it could carry it into a log line. Each
+  // file below skips prod work with it, once: its import and its one call.
+  it('skipOnNonProdDatabase is used by the publishers, the workers and the graph writer only', () => {
+    expect(filesWith(/\bskipOnNonProdDatabase\b/)).toEqual({
+      'src/config/environment.ts': 2,
+      'src/memory/spanner-graph/graph-write-gate.ts': 2,
+      'src/services/communication/intelligence-publisher.ts': 2,
+      'src/services/pubsub/pubsub-client.ts': 2,
+      'src/workers/base-worker.ts': 2,
+    });
+  });
+
+  // The old question spelt out: the env key or the helper's answer compared with something,
+  // or anything compared with prod's name. Binding a client to the name is not a comparison.
+  it('no production file compares the database name for itself', () => {
+    const compare = String.raw`(?:===?|!==?|\.startsWith\(|\.endsWith\(|\.includes\(|\.match\(|\.test\()`;
+    const name = String.raw`(?:\bFIRESTORE_DATABASE\b['"\]]*|\bgetFirestoreDatabase\([^)]*\)|['"]\(default\)['"])`;
+    const spelt = new RegExp(`${name}\\s*\\??${compare}|${compare}\\s*[\\w.?[]*${name}`);
+    expect(filesWith(spelt)).toEqual({
+      'src/config/firestore-database.ts': 2,
+      // The cost label on a model call (dev or prod): a label, no caller words.
+      'src/config/gemini-billing-labels.ts': 1,
+      // The database pin: a client bound to another database than the process names.
+      'src/utils/firestore-db-pin.ts': 1,
+    });
   });
 });
