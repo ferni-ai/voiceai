@@ -355,7 +355,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
           i.content.includes('meaningful')
       );
 
-    if (isHighEmotionTurn && ctx.turnCount % 3 === 0 && !ctx.crisisTurn) {
+    if (isHighEmotionTurn && ctx.turnCount % 3 === 0 && ctx.crisisTurn === false) {
       void recordSharedMoment(ctx.userId, {
         type: 'callback_moment',
         content: ctx.emotionalResult.primary || 'connection',
