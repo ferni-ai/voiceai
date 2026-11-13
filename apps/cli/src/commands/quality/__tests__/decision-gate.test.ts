@@ -109,9 +109,12 @@ describe('decision gate: what counts as a decider (the real registry)', () => {
 describe('decision gate: the two false positives from the #2563 verify (2026-10-26)', () => {
   it("counts the generated safety wording as the crisis owner's: a crisis copy edit + regenerate passes", () => {
     const real = readFileSync(join(REPO, 'src/agents/personas/phrase-loops-safety.generated.ts'), 'utf8');
+    // The literal list the generator writes; if its shape changes, fail here rather than edit nothing.
+    const listStart = 'const SCRIPT_WORDING = [\n';
+    expect(real).toContain(listStart);
     const regenerated = real.replace(
-      "export const SAFETY_WORDING: readonly string[] = [\n",
-      "export const SAFETY_WORDING: readonly string[] = [\n  'If you are having suicidal thoughts, you are not alone.',\n"
+      listStart,
+      `${listStart}  'If you are having suicidal thoughts, you are not alone.',\n`
     );
     expect(regenerated).not.toBe(real);
     expect(gained('src/agents/personas/phrase-loops-safety.generated.ts', regenerated, real)).toEqual([]);

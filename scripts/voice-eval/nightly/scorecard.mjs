@@ -32,6 +32,7 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
 import { claimedContact, falseMusicClaims } from './false-done.mjs';
+import { forPersona, judgedAsOther } from './persona-scope.mjs';
 import { recallValue } from './recall-score.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
 import { nightGrounding } from './tool-grounding.mjs';
@@ -86,7 +87,8 @@ const pctOf = (rs, field, pct) => {
 
 /** A metric over a set of runs: { value, n } (value null = nothing measured it). extra holds
  *  measurements that aren't calls: toolChoice (choice-score.mjs output). */
-export function metric(check, runs, caps, extra = {}) {
+export function metric(check, all, caps, extra = {}) {
+  const runs = forPersona(check, all, caps); // check.persona: ferni or teammate calls (#3752)
   const re =
     check.pattern &&
     new RegExp(check.pattern === 'crisis' ? caps.crisisPattern : check.pattern, 'i');
@@ -128,6 +130,8 @@ export function metric(check, runs, caps, extra = {}) {
       const bad = j.filter((r) => (r.judge.inventedHistory ?? []).length > 0).length;
       return { value: j.length ? round(bad / j.length) : null, n: j.length };
     }
+    case 'judgedAs': // persona-scope.mjs: teammate-lane calls not positively that teammate
+      return judgedAsOther(runs, caps);
     case 'judgeMean': {
       const v = runs
         .map((r) =>
