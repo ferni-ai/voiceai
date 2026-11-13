@@ -69,7 +69,7 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
+import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -94,6 +94,7 @@ import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
+import { withTrailingCallerTurn } from './caller-turn.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { withLookupBridge } from './lookup-bridge.js';
@@ -165,7 +166,7 @@ export function startCrisisGate(
   const voice = toGuardVoiceEmotion(
     (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
   );
-  const found = detectCrisis(latest, voice, { recentMessages: earlier });
+  const found = detectCrisis(latest, voice, { recentMessages: earlier, env });
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
@@ -298,7 +299,7 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = verdictRead.then(async (v) => (v === undefined ? null : escalate(v)));
+  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
   return { decision, escalation, reask };
 }
 
@@ -444,9 +445,13 @@ export async function gatedReply(
       closeLoop: false,
       youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),
     });
+  // The guidance is the last thing the model reads: a request not ending on the caller's turn (a
+  // tool call or its output) gets a caller turn first (caller-turn.ts), and the guidance rides on it.
+  const guidedRequest = (decision: GuideDecision): llm.ChatContext =>
+    withTurnStyleReminder(withTrailingCallerTurn(plain(decision)), decision.guidance);
   const ctx =
     gate?.decision.action === 'guide'
-      ? withTurnStyleReminder(plain(gate.decision), gate.decision.guidance)
+      ? guidedRequest(gate.decision)
       : withTurnReminder(chatCtx, session, { held: gate?.escalation });
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
@@ -484,10 +489,10 @@ export async function gatedReply(
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
-    const guided = await ask(
-      withTurnStyleReminder(plain(decision), decision.guidance),
-      burst === undefined ? undefined : false,
-      true
+    const guided = checkin.ending(
+      await ask(guidedRequest(decision), burst === undefined ? undefined : false, true),
+      decision,
+      callerWords(chatCtx) // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });

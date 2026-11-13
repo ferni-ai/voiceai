@@ -14,18 +14,10 @@
  * @module services/follow-through/opener-pick
  */
 import { forgottenInProcess, forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
-import type { FollowUp, FollowUpKind } from './follow-up.js';
+import { byOpenerOrder, isCallersOwn } from './askable.js';
+import type { FollowUp } from './follow-up.js';
 import type { FollowUpStore } from './ports.js';
 import { rightMoment } from './right-moment.js';
-
-/** The caller's own things. Ferni's promises and actions are told (promise ledger phase 3), not asked. */
-const ASKABLE: ReadonlySet<FollowUpKind> = new Set([
-  'commitment',
-  'reminder',
-  'thread',
-  'date',
-  'dose',
-]);
 
 /** Raised once: at or after its due time (undated: ever) by an opener. */
 function raisedByOpener(f: FollowUp): boolean {
@@ -36,16 +28,11 @@ function raisedByOpener(f: FollowUp): boolean {
 /** The one follow-up to ask about now: due ones first (latest due first), then undated, newest first. */
 export function pickOpenerFollowUp(live: readonly FollowUp[], now: Date): FollowUp | null {
   const askable = live.filter((f) => {
-    if (!ASKABLE.has(f.kind) || f.action || raisedByOpener(f)) return false;
+    if (!isCallersOwn(f) || raisedByOpener(f)) return false;
     const moment = rightMoment(f, now);
     return moment === 'next-call' || moment === 'text-now';
   });
-  const key = (f: FollowUp) => (f.dueAt ? [1, Date.parse(f.dueAt)] : [0, Date.parse(f.createdAt)]);
-  askable.sort((a, b) => {
-    const [ka, kb] = [key(a), key(b)];
-    return kb[0] - ka[0] || kb[1] - ka[1];
-  });
-  return askable[0] ?? null;
+  return askable.sort(byOpenerOrder)[0] ?? null;
 }
 
 export type OpenerPickRead =

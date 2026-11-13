@@ -26,9 +26,6 @@ export { JOB_PATHS };
 
 // Background task handlers
 import {
-  handleProcessBackgroundTasks,
-  handleCheckScheduled,
-  handleCleanupSessions,
   handleCleanupOldTasks,
   handleAggregateCommunityInsights,
   handleRollupPersonaMetrics,
@@ -153,18 +150,6 @@ async function dispatchJob(
   path: string
 ): Promise<boolean> {
   switch (path) {
-    case '/api/jobs/process-background-tasks':
-      await handleProcessBackgroundTasks(res);
-      return true;
-
-    case '/api/jobs/check-scheduled':
-      await handleCheckScheduled(res);
-      return true;
-
-    case '/api/jobs/cleanup-sessions':
-      await handleCleanupSessions(res);
-      return true;
-
     case '/api/jobs/cleanup-old-tasks':
       await handleCleanupOldTasks(res);
       return true;

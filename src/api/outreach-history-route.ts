@@ -8,7 +8,7 @@
  * @module api/outreach-history-route
  */
 import type { ServerResponse } from 'http';
-import { getDisplayName, toCanonical } from '../personas/persona-ids.js';
+import { historyDisplayName, toCanonical } from '../personas/persona-ids.js';
 import {
   clampHistoryLimit,
   listOutreachHistory,
@@ -31,7 +31,7 @@ export async function sendOutreachHistory(
     const history = entries.map((entry) => ({
       ...entry,
       personaId: toCanonical(entry.personaId),
-      personaName: getDisplayName(entry.personaId),
+      personaName: historyDisplayName(entry.personaId),
     }));
     sendJsonResponse(res, 200, { success: true, history, count: history.length });
   } catch (error) {

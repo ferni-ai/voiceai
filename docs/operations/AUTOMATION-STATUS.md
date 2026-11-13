@@ -113,7 +113,7 @@ npm run ops:logs:errors   # View error logs only
 
 | Service | URL | Health Endpoint |
 |---------|-----|-----------------|
-| Voice Agent (GCE) | `http://34.134.186.63:8080` | `/health` |
+| Voice Agent (LiveKit Cloud) | none: LiveKit Cloud exposes no agent HTTP port; use `pnpm ops:logs` | `/health` on a local agent (`pnpm dev`, port 8080) |
 | UI Server | `https://john-bogle-ui-1031920444452.us-central1.run.app` | `/health` |
 | App (Firebase) | `https://app.ferni.ai` | `/` |
 | Landing Page | `https://ferni.ai` | `/` |
@@ -146,7 +146,7 @@ npm run ops:logs:errors   # View error logs only
 ### Service Down
 
 1. Run health check: `npm run ops:health`
-2. If down, check GCE instance: `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a`
+2. If down, check the agent logs: `pnpm ops:logs:errors` (the GCE instance this step used to name is retired)
 3. Manual restart: redeploy via `.claude/skills/deploy-agent/SKILL.md`
 
 ### Cost Spike

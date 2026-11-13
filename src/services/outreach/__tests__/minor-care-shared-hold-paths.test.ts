@@ -81,6 +81,13 @@ const ENV = { LOG_HASH_SECRET: 'test-secret' };
 /** minor_care_holds, by key: heldUntil. */
 const holds = new Map<string, number>();
 const holdFor = (key: string | undefined) => holds.set(key ?? 'none', Date.now() + 60_000);
+/** minor_care_holds while Firestore is down: every read throws. */
+const unreadableHolds = {
+  heldUntil: async (): Promise<number | undefined> => {
+    throw new Error('Firestore unavailable');
+  },
+  write: async () => undefined,
+};
 const settle = () =>
   new Promise<void>((r) => {
     setTimeout(r, 0);
@@ -186,6 +193,39 @@ describe('a reply to a check-in (recordCheckinReply)', () => {
     const { id, addReply } = await run('adult-uid');
     expect(id).toBe('c1');
     expect(addReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('a hold record that cannot be read: held, not kept', async () => {
+    setHoldStore(unreadableHolds);
+    const { id, addReply } = await run('adult-uid');
+    expect(id).toBeNull();
+    expect(addReply).not.toHaveBeenCalled();
+  });
+});
+
+describe('an inbound SMS when the hold record cannot be read (fails closed)', () => {
+  beforeEach(() => setHoldStore(unreadableHolds));
+
+  it('is routed as held: answered, nothing kept', async () => {
+    const reply = await text(OTHER, 'call me');
+    expect(reply.twiml).toContain('Open Ferni whenever'); // still answered (sms-call-me.ts)
+    expect(threads.getOrCreateThread).not.toHaveBeenCalled();
+    expect(threads.addMessage).not.toHaveBeenCalled();
+  });
+
+  it('a record read in time that says not held: kept as before', async () => {
+    setHoldStore({ heldUntil: async () => undefined, write: async () => undefined });
+    await text(OTHER, 'sounds good');
+    expect(threads.addMessage).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ content: 'sounds good', direction: 'inbound' })
+    );
+  });
+
+  it('the flag off: kept as before, the record never read', async () => {
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'off');
+    await text(OTHER, 'sounds good');
+    expect(threads.addMessage).toHaveBeenCalledTimes(1);
   });
 });
 

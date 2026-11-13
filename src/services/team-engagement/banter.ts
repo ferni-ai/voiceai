@@ -423,11 +423,6 @@ export const ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
     "Good to meet you. Let's take this slowly.",
     "Well, hello. Tell me what's on your mind.",
   ],
-  'peter-lynch': [
-    "Hi! Tell me what you've been noticing out there.",
-    "Okay, I'm all ears. What caught your eye?",
-    "Glad you're here. Let's talk about what you know.",
-  ],
   'joel-dickson': [
     "Nate here! Ha, okay, what've we got?",
     "Hi! It's Nate. I've heard a little, tell me more.",

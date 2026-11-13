@@ -34,7 +34,6 @@ const PERSONA_PRONOUNS: Partial<Record<CanonicalPersonaId, PersonaPronouns>> = {
   'jordan-taylor': SHE,
   'nayan-patel': HE,
   'joel-dickson': HE,
-  'peter-lynch': HE,
   'john-bogle': HE,
 };
 

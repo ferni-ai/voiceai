@@ -76,34 +76,6 @@ data:
     # BACKGROUND TASK JOBS
     # ==========================================================================
     
-    - name: background-task-processor
-      description: "Process pending background tasks (replaces in-process setInterval)"
-      schedule: "* * * * *"  # Every minute
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/process-background-tasks"
-      httpMethod: POST
-      retryConfig:
-        retryCount: 2
-        minBackoffDuration: "10s"
-        
-    - name: scheduled-job-checker
-      description: "Check and trigger scheduled jobs"
-      schedule: "* * * * *"  # Every minute
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/check-scheduled"
-      httpMethod: POST
-      
-    # ==========================================================================
-    # SESSION CLEANUP JOBS
-    # ==========================================================================
-    
-    - name: session-cleanup
-      description: "Clean up orphaned sessions to prevent memory leaks"
-      schedule: "*/5 * * * *"  # Every 5 minutes
-      timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-sessions"
-      httpMethod: POST
-      
     - name: old-task-cleanup
       description: "Clean up old completed/failed tasks"
       schedule: "0 3 * * *"  # 3 AM daily
@@ -147,14 +119,6 @@ data:
     # HEALTH & MONITORING JOBS
     # ==========================================================================
     
-    - name: voice-agent-health-check
-      description: "Health check voice agent (external monitoring)"
-      schedule: "*/5 * * * *"  # Every 5 minutes
-      timezone: "America/Los_Angeles"
-      uri: "http://34.134.186.63:8080/health/ready"
-      httpMethod: GET
-      attemptDeadline: "30s"
-      
     - name: worker-health-check
       description: "Health check async workers"
       schedule: "*/5 * * * *"  # Every 5 minutes

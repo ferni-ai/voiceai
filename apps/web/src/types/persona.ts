@@ -21,19 +21,15 @@ export type PersonaId =
   'ferni' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'peter-john' | 'nayan-patel';
 
 /**
- * The Financial Legends (Tom Brannigan, Henry Caldwell, Nate Holloway: fictional
+ * The Financial Legends (Henry Caldwell, Nate Holloway: fictional
  * characters inspired by investing philosophies; the ids predate them): marketplace
  * advisors the voice agent can hand a call to. They are not on Ferni's team
  * (no team grid, no unlock), but while one is speaking the web shows THAT
  * person. Mirrors FINANCIAL_LEGENDS in src/personas/persona-ids.ts.
  */
-export type LegendId = 'peter-lynch' | 'john-bogle' | 'joel-dickson';
+export type LegendId = 'john-bogle' | 'joel-dickson';
 
-export const LEGEND_IDS: readonly LegendId[] = [
-  'peter-lynch',
-  'john-bogle',
-  'joel-dickson',
-] as const;
+export const LEGEND_IDS: readonly LegendId[] = ['john-bogle', 'joel-dickson'] as const;
 
 /** Anyone who can be speaking on a call: Ferni's team or a Legend. */
 export type SpeakerId = PersonaId | LegendId;
