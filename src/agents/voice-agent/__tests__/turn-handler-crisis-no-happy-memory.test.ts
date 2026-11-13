@@ -34,6 +34,8 @@ import {
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { crisisReadTurn } from '../crisis-turn-memory.js';
 
+type CrisisField = 'read' | 'undefined' | 'null';
+
 const state = vi.hoisted(() => ({
   env: {} as Record<string, string>,
   read: '',
@@ -44,6 +46,11 @@ const state = vi.hoisted(() => ({
   semanticReads: [] as unknown[],
   turnCount: 3,
   distress: 0.2,
+  /** processTurn rejects, as the handler's race does when its hard timeout wins. */
+  fail: false,
+  processCalls: 0,
+  /** The crisis field processTurn hands back: the settled read, or absent (undefined / null). */
+  crisisField: 'read' as CrisisField,
   /** Classifier asks through the turn's injected model call, and through a real model client. */
   asked: 0,
   realClient: 0,
@@ -120,6 +127,8 @@ vi.mock('../../../intelligence/index.js', async (orig) => ({
 vi.mock('../../processors/index.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   processTurn: vi.fn(async (ctx: { userText: string }) => {
+    state.processCalls++;
+    if (state.fail) throw new Error('Turn processing hard timeout');
     const turnCrisis = startTurnCrisis(
       ctx.userText,
       { recentTranscripts: [ctx.userText], turnCount: state.turnCount },
@@ -141,7 +150,11 @@ vi.mock('../../processors/index.js', async (orig) => ({
       emotional: { ...emotion, distressLevel: state.distress },
       response: {},
       identity: {},
-      crisis: await turnCrisis.summary(),
+      crisis: {
+        read: await turnCrisis.summary(),
+        undefined: undefined,
+        null: null,
+      }[state.crisisField],
     };
     return state.result;
   }),
@@ -202,6 +215,27 @@ type Level = 'replace' | 'guide' | 'soft' | 'pass';
 const levelOf = (c: Crisis): Level =>
   c.shouldOverrideLLM ? 'replace' : c.isCrisis ? 'guide' : c.softCheck ? 'soft' : 'pass';
 
+type Message = { type: string; data?: Record<string, unknown> };
+
+/** The real handler on one line: every client data message it sends, with its payload. */
+async function callHandler(userText: string, turnCount: number) {
+  const sent: string[] = [];
+  const messages: Message[] = [];
+  await handleUserTurn({
+    turnCtx: llm.ChatContext.empty(),
+    userText,
+    contextOnly: true,
+    persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
+    services: { sessionId: 'no-happy-memory', userId: 'user-no-happy-memory' },
+    userData: { turnCount }, // a multiple of 3: the shared-moment and Our Songs branch runs
+    sendDataMessage: async (type: string, data?: Record<string, unknown>) => {
+      sent.push(type);
+      messages.push({ type, data });
+    },
+  } as unknown as Ctx);
+  return { sent, messages };
+}
+
 /** One turn through the real handler: its crisis level, its safety output and every store write. */
 async function runTurn(
   userText: string,
@@ -209,7 +243,8 @@ async function runTurn(
   read = '',
   emotion = 'sad',
   turnCount = 3,
-  distress = 0.2
+  distress = 0.2,
+  crisisField: CrisisField = 'read'
 ) {
   Object.assign(state, {
     env,
@@ -222,38 +257,35 @@ async function runTurn(
     semanticReads: [],
     asked: 0,
     realClient: 0,
+    fail: false,
+    processCalls: 0,
+    crisisField,
   });
   resetFireAndForgetMetrics();
-  const sent: string[] = [];
-  await handleUserTurn({
-    turnCtx: llm.ChatContext.empty(),
-    userText,
-    contextOnly: true,
-    persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
-    services: { sessionId: 'no-happy-memory', userId: 'user-no-happy-memory' },
-    userData: { turnCount }, // a multiple of 3: the shared-moment and Our Songs branch runs
-    sendDataMessage: async (type: string) => void sent.push(type),
-  } as unknown as Ctx);
+  const { sent, messages } = await callHandler(userText, turnCount);
   await vi.waitFor(() => {
     for (const context of [
       'unified-personality-recording',
       'bth-v4-relational-memory',
       'semantic-intelligence',
+      'bth-v4-emotional-momentum', // started after the bond block: the block has run by then
     ]) {
       const m = getFireAndForgetMetrics().byContext.find((c) => c.context === context);
       expect(m && m.successes + m.failures, context).toBe(1);
     }
   });
   const result = state.result as {
-    crisis: Crisis;
+    crisis: Crisis | null | undefined;
     context: { injections: Array<{ category: string }> };
   };
   return {
-    level: levelOf(result.crisis),
+    level: result.crisis ? levelOf(result.crisis) : 'absent',
     safety: result.context.injections
       .map((i) => i.category)
       .filter((c) => c === 'crisis_response' || c === 'safety_soft_check'),
     sent,
+    messages,
+    distress: (state.result as { emotional: { distressLevel: number } }).emotional.distressLevel,
     writes: state.writes,
     semanticReads: state.semanticReads,
     asked: state.asked,
@@ -477,6 +509,84 @@ describe('the first-vulnerability milestone', () => {
       expect(turn.level).toBe('pass');
       expect(turn.writes).toContain(VULNERABLE);
       expect([...turn.writes].sort()).toEqual(AS_ON_MAIN[line]);
+    }
+  );
+});
+
+describe('the bond message to the client', () => {
+  /** Lines the patterns miss, one per trigger of the bond block (turn-handler.ts). */
+  const THANKS = 'thank you for sitting with me tonight, honestly nothing feels worth it lately';
+  const HEAVY = 'the move next week has been a lot, honestly nothing feels worth it lately';
+  const WORRIED = "i'm worried about the move next week, honestly nothing feels worth it lately";
+  const TRIGGERS: Array<[string, string, number]> = [
+    ['a gratitude word', THANKS, 0.2],
+    ['distress above 0.4', HEAVY, 0.45],
+    ['an "i\'m worried" phrase', WORRIED, 0.2],
+  ];
+  const bond = ({ messages }: { messages: Message[] }) =>
+    messages.filter(
+      (m) => m.type === 'humanization_signal' && m.data?.signalType === 'emotional_bond_deepen'
+    ).length;
+  const warmth = ({ messages }: { messages: Message[] }) =>
+    messages.filter(
+      (m) => m.type === 'micro_expression' && m.data?.expressionType === 'warmth_pulse'
+    ).length;
+  /**
+   * PREDICTION, read from main's code and not yet run: what main's source sends on each line
+   * read as ordinary, as [bond, warmth]. Replaced by a main-source run in a later commit.
+   */
+  const AS_ON_MAIN: Record<string, [number, number]> = {
+    [THANKS]: [1, 1],
+    [HEAVY]: [1, 1],
+    [WORRIED]: [1, 1],
+  };
+
+  // Each row first runs the line read as ordinary and sees the block fire, then the same line
+  // through the same wait (runTurn) on a held turn, so a held zero is never read too early.
+  it.each(TRIGGERS)(
+    'with %s: ordinary sends as on main, a crisis turn sends no bond and no warmth pulse',
+    async (_name, line, distress) => {
+      const ordinary = await runTurn(line, LIVE, NO_RISK, 'sad', 3, distress);
+      expect(ordinary.level).toBe('pass');
+      expect(bond(ordinary)).toBeGreaterThan(0); // the block fires on this line
+      expect([bond(ordinary), warmth(ordinary)]).toEqual(AS_ON_MAIN[line]);
+
+      const held = await runTurn(line, LIVE, CRISIS, 'sad', 3, distress);
+      expect(held.level).not.toBe('pass');
+      expect(held.distress).toBe(distress);
+      expect(bond(held)).toBe(0);
+      expect(warmth(held)).toBe(0);
+    }
+  );
+
+  it.each(['undefined', 'null'] as const)(
+    'a turn whose crisis field is %s is held (fail closed)',
+    async (field) => {
+      const ordinary = await runTurn(THANKS, LIVE, NO_RISK);
+      expect(bond(ordinary)).toBeGreaterThan(0); // the block fires on this line
+
+      const held = await runTurn(THANKS, LIVE, NO_RISK, 'sad', 3, 0.2, field);
+      expect(held.level).toBe('absent');
+      expect(bond(held)).toBe(0);
+      expect(warmth(held)).toBe(0);
+    }
+  );
+
+  // The hard timeout rejects the race (turn-handler.ts:840-845), so `result` is never assigned:
+  // the handler jumps to its catch (:2719) and never reaches the crisis read or the bond block.
+  // Main never reaches its bond block on that branch either.
+  it.each([
+    ['an ordinary line', `${THANKS}, ${WORRIED}`],
+    ['a crisis line', `${THANKS}, im standing on the bridge and im going to jump`],
+  ])(
+    'a turn whose processing fails, as the hard timeout fails it, sends neither on %s',
+    async (_name, line) => {
+      Object.assign(state, { fail: true, processCalls: 0, result: undefined });
+      const turn = await callHandler(line, 3);
+      expect(state.processCalls).toBe(1);
+      expect(state.result).toBeUndefined();
+      expect(bond(turn)).toBe(0);
+      expect(warmth(turn)).toBe(0);
     }
   );
 });

@@ -851,6 +851,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Record turn latency for future adaptive calculations
       completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
+    const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
 
     // Get unified intelligence result (should be ready by now)
     const intelligence = await intelligencePromise;
@@ -1005,13 +1006,13 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
       // ================================================================
       // 💞 BTH: EMOTIONAL BOND DEEPEN - Gratitude or vulnerability shared
-      // Detect when relationship is deepening through vulnerability/gratitude
+      // Relationship deepening through vulnerability/gratitude; never on a crisis turn
       // ================================================================
       const isGratitude = /thank(s| you)|grateful|appreciate/i.test(userText);
       const isVulnerable =
         result.emotional.distressLevel > 0.4 ||
         /i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText);
-      if (isGratitude || isVulnerable) {
+      if (!crisisTurn && (isGratitude || isVulnerable)) {
         fireAndForget(async () => {
           await dispatchEmotionalBondDeepen(sendDataMessage, {
             trigger: isGratitude ? 'gratitude_expressed' : 'vulnerability_shared',
@@ -2199,7 +2200,6 @@ IMPORTANT:
     // ================================================================
     // LEARNING & TRUST RECORDING
     // ================================================================
-    const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
     const learningCtx: LearningContext = {
       userId: services.userId ?? null,
       sessionId: services.sessionId,
