@@ -3,15 +3,16 @@
  * words two texts share, crudely stemmed ("calling Mom's" → call, mom), with
  * answer and time words left out so "yeah, done tomorrow" names nothing.
  *
- * One place, so every reader agrees on what counts as being about an item:
- * mentionsItem (one shared stem) is enough for "did they answer what Ferni
- * asked?". Writing to the todo's own store needs far more: see confident-close.
+ * One place, so every reader agrees on what counts as being about an item.
+ * One shared stem is enough for "did they answer what Ferni asked?", never for
+ * closing the todo's own store: only the caller's yes to a question naming it
+ * does that (close-confirm.ts).
  *
  * @module services/follow-through/item-match
  */
 
 /** Answer, time and filler words: they never say which todo someone means. */
-export const STOP = new Set(
+const STOP = new Set(
   `the and you your yours she her him his they them their its it's that this those these was were
   are have has had haven't hasn't didn't did done not yet yes yeah yep yup nope okay just really
   actually already finally still maybe about with from for but got get getting went go going
@@ -36,9 +37,4 @@ export function contentWords(text: string): Set<string> {
 export function mentionsItem(text: string, itemText: string): boolean {
   const theirs = contentWords(itemText);
   return [...contentWords(text)].some((w) => theirs.has(w));
-}
-
-/** Whole lower-case words, a possessive dropped ("Mom's" → mom). */
-export function tokens(text: string): string[] {
-  return (text.toLowerCase().match(/[a-z][a-z']*/g) ?? []).map((w) => w.replace(/'s$/, ''));
 }

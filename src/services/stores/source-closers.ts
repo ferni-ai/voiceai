@@ -1,6 +1,7 @@
 /**
- * The writers that close a todo where it lives, for close-to-source
- * (services/follow-through/close-to-source.ts). Each is a compare-and-set in a
+ * The readers and writers that close a todo where it lives, for close-to-source
+ * (services/follow-through/close-to-source.ts). peek and close judge an item
+ * the same way (the *State helpers). Each write is a compare-and-set in a
  * Firestore transaction: it closes the item only while it is still open, so a
  * close from the app a moment earlier is never undone, and a store failure
  * throws so the caller counts it.
@@ -21,11 +22,11 @@
  * @module services/stores/source-closers
  */
 
-import type { DocumentReference, Firestore } from '@google-cloud/firestore';
-import type { CloseWrite, SourceClosers } from '../follow-through/close-to-source.js';
+import type { DocumentReference, DocumentSnapshot, Firestore } from '@google-cloud/firestore';
+import type { CloseWrite, SourceClosers, SourceState } from '../follow-through/close-to-source.js';
 import { removeCalendarSyncedItem } from '../calendar/calendar-bridge.js';
 import { closeCommitmentOrThrow } from '../superhuman/commitment-store.js';
-import { isSafetyItem } from '../follow-through/safety-item.js';
+import { isSafetyItem } from '../safety/index.js';
 import { getProductivityStore, type TaskData } from './productivity-store.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -43,6 +44,24 @@ function isSafetyRecord(get: (field: string) => unknown): boolean {
   });
 }
 
+function reminderState(snap: DocumentSnapshot): SourceState {
+  if (!snap.exists) return 'missing';
+  if (isSafetyRecord((f) => snap.get(f))) return 'safety';
+  return snap.get('status') === 'pending' ? 'open' : 'already';
+}
+
+function tasksOf(snap: DocumentSnapshot): TaskData[] {
+  const tasks = snap.get('productivityData.tasks') ?? [];
+  return Array.isArray(tasks) ? (tasks as TaskData[]) : [];
+}
+
+/** A repeating task is never open to this: its next instance needs the in-call completeTask. */
+function taskState(task: TaskData | undefined): SourceState {
+  if (!task) return 'missing';
+  if (isSafetyRecord((f) => Reflect.get(task, f))) return 'safety';
+  return OPEN_TASK.has(task.status) && !task.isRecurring ? 'open' : 'already';
+}
+
 /** The cached task is this user's: setTask stamps the owner; no owner means unknown, so no. */
 function ownedBy(cached: TaskData | undefined, userId: string): boolean {
   return (cached as { userId?: string } | undefined)?.userId === userId;
@@ -54,10 +73,8 @@ function createSourceClosers(db: Firestore): SourceClosers {
   async function closeReminder(userId: string, id: string): Promise<CloseWrite> {
     const ref = user(userId).collection('reminders').doc(id);
     const outcome = await db.runTransaction(async (tx): Promise<CloseWrite> => {
-      const snap = await tx.get(ref);
-      if (!snap.exists) return 'missing';
-      if (isSafetyRecord((f) => snap.get(f))) return 'safety';
-      if (snap.get('status') !== 'pending') return 'already';
+      const state = reminderState(await tx.get(ref));
+      if (state !== 'open') return state;
       tx.update(ref, { status: 'cancelled' });
       return 'closed';
     });
@@ -73,13 +90,11 @@ function createSourceClosers(db: Firestore): SourceClosers {
     const at = new Date().toISOString();
     let closed = null as TaskData | null; // set inside the transaction
     const outcome = await db.runTransaction(async (tx): Promise<CloseWrite> => {
-      const snap = await tx.get(ref);
-      const tasks = (snap.get('productivityData.tasks') ?? []) as TaskData[];
-      const task = Array.isArray(tasks) ? tasks.find((t) => t?.id === id) : undefined;
-      if (!task) return 'missing';
-      if (isSafetyRecord((f) => Reflect.get(task, f))) return 'safety';
-      if (!OPEN_TASK.has(task.status) || task.isRecurring) return 'already';
-      closed = { ...task, status, updatedAt: at, ...(status === 'completed' ? { completedAt: at } : {}) }; // prettier-ignore
+      const tasks = tasksOf(await tx.get(ref));
+      const task = tasks.find((t) => t?.id === id);
+      const state = taskState(task);
+      if (state !== 'open') return state;
+      closed = { ...(task as TaskData), status, updatedAt: at, ...(status === 'completed' ? { completedAt: at } : {}) }; // prettier-ignore
       tx.update(ref, { 'productivityData.tasks': tasks.map((t) => (t.id === id ? closed : t)) });
       return 'closed';
     });
@@ -91,6 +106,16 @@ function createSourceClosers(db: Firestore): SourceClosers {
   }
 
   return {
+    async peek(userId, { store, ref }) {
+      if (store === 'reminders') return reminderState(await user(userId).collection('reminders').doc(ref).get()); // prettier-ignore
+      if (store === 'tasks') return taskState(tasksOf(await user(userId).get()).find((t) => t?.id === ref)); // prettier-ignore
+      if (store === 'commitments') {
+        // Commitments have no safety types (CommitmentType); open means still active.
+        const snap = await user(userId).collection('commitments').doc(ref).get();
+        return !snap.exists ? 'missing' : snap.get('status') === 'active' ? 'open' : 'already';
+      }
+      return 'missing';
+    },
     async close(userId, { store, ref }, how) {
       if (store === 'reminders') return closeReminder(userId, ref);
       if (store === 'tasks') return closeTask(userId, ref, how === 'done' ? 'completed' : 'cancelled'); // prettier-ignore

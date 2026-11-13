@@ -14,7 +14,7 @@
 
 export type ReplyVerdict = 'done' | 'replan' | 'release' | null;
 
-const RELEASE =
+export const RELEASE =
   /\b(forget (it|about it)|never ?mind|drop it|let it go|not doing (it|that)|don'?t need to( anymore)?|no longer (need|want)|skip it)\b/i;
 /** "I haven't done it": outranks a done word. A bare "no" doesn't ("yep, did it, no problem"). */
 const NEGATED = /\b(not|haven'?t|hasn'?t|didn'?t|never|couldn'?t|wasn'?t)\b/i;

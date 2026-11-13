@@ -63,6 +63,8 @@ export interface FollowUp {
   /** Why it was released, when a rule (not the person's answer) closed it. */
   readonly closedReason?: CloseReason;
   readonly action?: FollowUpAction;
+  /** When Ferni asked to take its todo off the list too (close-confirm.ts): asked once, ever. */
+  readonly sourceAskedAt?: string;
 
   // Follow-up brain fields (follow-up brain design §2.2). All optional: rows
   // written before them still parse, and nothing on a live path reads them yet.

@@ -72,6 +72,7 @@ export function brainFieldsOf(data: Record<string, unknown>): Partial<FollowUp> 
   const salience = salienceOf(data.salience);
   if (salience) out.salience = salience;
   if (Array.isArray(data.asks)) out.asks = data.asks.flatMap(askOf);
-  for (const k of ['snoozedUntil', 'nextEligibleAt']) if (isTime(data[k])) out[k] = data[k];
+  for (const k of ['snoozedUntil', 'nextEligibleAt', 'sourceAskedAt'])
+    if (isTime(data[k])) out[k] = data[k];
   return out as Partial<FollowUp>;
 }

@@ -270,7 +270,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
   if (isOutreachConfirmOn()) {
     const owner = () => speakerIsAccountOwner(sessionId);
-    const confirm = outreachConfirmListeners(session, owner, confirmNote(session, sessionId));
+    const confirm = outreachConfirmListeners(session, owner, turnNote(session, sessionId, 'OUTREACH_SERVER_CONFIRM')); // prettier-ignore
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
@@ -284,7 +284,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   if (userId && followThroughOpenerEnabled()) {
     const replies = followThroughReplyListeners({
       userId,
+      sessionId,
       isOwner: () => speakerIsAccountOwner(sessionId),
+      session,
+      note: turnNote(session, sessionId, 'FOLLOW_THROUGH_SOURCE_CONFIRM'),
     });
     const handlers = [
       { event: 'conversation_item_added', handler: replies.onItemAdded },
@@ -295,13 +298,16 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   }
 }
 
-/** OUTREACH_SERVER_CONFIRM: what the caller's yes sent reaches the model as a mid-call note. */
-function confirmNote(session: { currentAgent: unknown }, sessionId: string) {
+/**
+ * A mid-call note to the model, for the reply it is about to give: what the caller's yes sent
+ * (OUTREACH_SERVER_CONFIRM), or the question to take a todo off their list (follow-through-opener).
+ */
+function turnNote(session: { currentAgent: unknown }, sessionId: string, what: string) {
   return (text: string): void => {
     try {
       addRecallNote(session.currentAgent as RecallAgent, text);
     } catch (error) {
-      log.warn({ sessionId, error: String(error) }, 'OUTREACH_SERVER_CONFIRM: note not added');
+      log.warn({ sessionId, error: String(error) }, `${what}: note not added`);
     }
   };
 }

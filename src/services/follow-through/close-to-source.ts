@@ -5,9 +5,11 @@
  * morning brief texted it again (close-from-source.ts is the other direction:
  * closed in the app, so the follow-up closes).
  *
- * closeSourceItem writes through the store's own writer (SourceClosers,
- * stores/source-closers.ts), behind FOLLOW_THROUGH_CLOSE_SOURCE. A failed write
- * is logged by store, never thrown, so the follow-up's own close still stands.
+ * It runs only on the caller's yes to Ferni's question (close-confirm.ts):
+ * sourceAskable says whether to ask, and closeSourceItem writes through the
+ * store's own writer (SourceClosers, stores/source-closers.ts), both behind
+ * FOLLOW_THROUGH_CLOSE_SOURCE. A failed read or write is logged by store, never
+ * thrown, so the follow-up's own close still stands.
  *
  * @module services/follow-through/close-to-source
  */
@@ -24,13 +26,37 @@ export interface SourceRef {
 export type SourceClose = 'done' | 'release';
 /**
  * closed: this write closed it; already: it was not open any more; missing: no
- * such item; safety: a safety item (safety-item.ts), which conversation never closes.
+ * such item; safety: a safety item (services/safety/safety-item.ts), which
+ * conversation never closes.
  */
 export type CloseWrite = 'closed' | 'already' | 'missing' | 'safety';
+/** What a read found: open, or why it can't be closed. */
+export type SourceState = 'open' | Exclude<CloseWrite, 'closed'>;
 
-/** One writer per store, each with its own compare-and-set (stores/source-closers.ts). */
+/** One reader and writer per store; each write is its own compare-and-set (stores/source-closers.ts). */
 export interface SourceClosers {
+  peek: (userId: string, source: SourceRef) => Promise<SourceState>;
   close: (userId: string, source: SourceRef, how: SourceClose) => Promise<CloseWrite>;
+}
+
+/**
+ * Whether Ferni may ask to close it: the flag is on for this caller (read first,
+ * so with it off no store is read) and the item is open and no safety item.
+ * Unreadable is no. Never throws.
+ */
+export async function sourceAskable(
+  closers: SourceClosers,
+  userId: string,
+  source: SourceRef,
+  env: Env
+): Promise<boolean> {
+  if (!flagOn('FOLLOW_THROUGH_CLOSE_SOURCE', env)) return false;
+  try {
+    return (await closers.peek(userId, source)) === 'open';
+  } catch (error) {
+    log.warn({ store: source.store, error: String(error) }, 'FOLLOW_THROUGH_SOURCE_PEEK_FAILED');
+    return false;
+  }
 }
 
 export type SourceCloseOutcome = CloseWrite | 'flag-off' | 'failed';

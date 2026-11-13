@@ -57,6 +57,6 @@ export {
   type HeldSource,
   type HoldingView,
 } from './holding.js';
-export { closeSourceItem, type SourceClosers } from './close-to-source.js';
-export { confidentClose } from './confident-close.js';
+export { closeSourceItem, sourceAskable, type SourceClosers } from './close-to-source.js';
+export { asksToClose, CONFIRM_TTL_MS, confirmNote, hedgedAnswer } from './close-confirm.js';
 export { contentWords, mentionsItem } from './item-match.js';

@@ -64,6 +64,7 @@
 /src/agents/multi-agent/call-news-opener.ts @sethdford
 /src/agents/multi-agent/early-goodbye-call.ts @sethdford
 /src/agents/multi-agent/family-table.ts @sethdford
+/src/agents/multi-agent/follow-through-opener.ts @sethdford
 /src/agents/multi-agent/handoff-failed-say-so.ts @sethdford
 /src/agents/multi-agent/turn-intelligence.ts @sethdford
 /src/agents/personas/action-claim-guard.ts @sethdford
@@ -233,6 +234,7 @@
 /src/services/session/session-lifecycle-hooks.ts @sethdford
 /src/services/session/session-manager.ts @sethdford
 /src/services/stores/booking-prefs-store.ts @sethdford
+/src/services/stores/source-closers.ts @sethdford
 /src/services/superhuman/commitment-keeper.ts @sethdford
 /src/services/superhuman/emotional-first-aid.ts @sethdford
 /src/services/superhuman/inside-joke-memory.ts @sethdford

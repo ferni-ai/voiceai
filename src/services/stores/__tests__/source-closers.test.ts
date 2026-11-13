@@ -1,7 +1,7 @@
 /**
  * The source writers close an item only while it is still open (compare-and-set
- * in a transaction), with each store's own statuses. A safety item is never
- * closed, and this process's cached copy of a task is only updated when it is
+ * in a transaction), with each store's own statuses, and peek reads an item the
+ * same way the close judges it. A safety item is never closed or offered, and this process's cached copy of a task is only updated when it is
  * the same user's (the cache is keyed by task id alone). Fictional data.
  */
 import type { Firestore } from '@google-cloud/firestore';
@@ -15,19 +15,19 @@ const docs = new Map<string, Record<string, unknown>>();
 const pick = (data: Record<string, unknown> | undefined, path: string): unknown =>
   path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], data);
 
+const snapOf = (path: string) => ({ exists: docs.has(path), get: (p: string) => pick(docs.get(path), p) }); // prettier-ignore
+
 function fakeDb(): Firestore {
   const ref = (path: string): Record<string, unknown> => ({
     path,
+    get: async () => snapOf(path),
     collection: (n: string) => ({ doc: (id: string) => ref(`${path}/${n}/${id}`) }),
   });
   return {
     collection: (n: string) => ({ doc: (id: string) => ref(`${n}/${id}`) }),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({
-        get: async (r: { path: string }) => ({
-          exists: docs.has(r.path),
-          get: (p: string) => pick(docs.get(r.path), p),
-        }),
+        get: async (r: { path: string }) => snapOf(r.path),
         update: (r: { path: string }, patch: Record<string, unknown>) => {
           const next = { ...docs.get(r.path) };
           for (const [k, v] of Object.entries(patch)) {
@@ -121,5 +121,23 @@ describe('source closers', () => {
     expect(await closers.close(U, { store: 'commitments', ref: 'c2' }, 'release')).toBe('closed');
     expect(docs.get(`bogle_users/${U}/commitments/c2`)?.status).toBe('dismissed');
     expect(await closers.close(U, { store: 'commitments', ref: 'nope' }, 'done')).toBe('missing');
+  });
+
+  it('peek: open while closable; a safety item, a repeating or closed task and a missing one are not', async () => {
+    const peek = (store: string, ref: string) => closers.peek(U, { store, ref });
+    expect(await peek('reminders', 'r1')).toBe('open');
+    expect(await peek('tasks', 't1')).toBe('open');
+    expect(await peek('tasks', 't2')).toBe('already'); // repeating
+    expect(await peek('tasks', 'nope')).toBe('missing');
+    docs.set(`bogle_users/${U}/commitments/c1`, { status: 'active' });
+    docs.set(`bogle_users/${U}/commitments/c2`, { status: 'completed' });
+    expect(await peek('commitments', 'c1')).toBe('open');
+    expect(await peek('commitments', 'c2')).toBe('already');
+    expect(await peek('commitments', 'nope')).toBe('missing');
+    docs.set(`bogle_users/${U}/reminders/r1`, { status: 'pending', type: 'crisis-check-in' });
+    docs.set(`bogle_users/${U}`, { productivityData: { tasks: [task('t1', { kind: '988-follow-up' })] } }); // prettier-ignore
+    expect(await peek('reminders', 'r1')).toBe('safety');
+    expect(await peek('tasks', 't1')).toBe('safety');
+    expect(await peek('notes', 'n1')).toBe('missing');
   });
 });
