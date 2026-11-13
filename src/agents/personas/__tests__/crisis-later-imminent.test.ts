@@ -11,6 +11,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
+import { EXPLICIT_CRISIS_PATTERNS } from '../../../services/safety/crisis-patterns.js';
 import { gatedReply } from '../crisis-gate.js';
 import { readTypedMessageForCrisis } from '../crisis-gate-text.js';
 
@@ -121,4 +122,55 @@ describe('a later line the words around it soften: the crisis read, no 911', () 
     expect(read.indicators).not.toContain('imminent_danger');
     expect(read.indicators).not.toContain('explicit_crisis_language');
   });
+});
+
+/** Plain suicidal forms and imminent forms, each written to match one pattern. All fictional. */
+const PLAIN_FORMS = [
+  'i want to jump off the bridge',
+  "i'm going to drive my car into a wall",
+  'kms',
+  "i'm about to swallow all of my pills",
+];
+const IMMINENT_FORMS = [
+  "i'm on the roof right now and i'm going to jump",
+  "by the time anyone reads this i'll be gone",
+  'i just took all my pills',
+  'i just overdosed',
+];
+
+/**
+ * Every imminent pattern that sits right after a non-imminent one in the list, with a line whose
+ * only matches are that pair: the plain one first, so the read's first plain hit is the pattern
+ * just before. Built from the list, so a reorder can't reopen an off-by-one gap unseen.
+ */
+function adjacentPairs(): Array<{ at: number; line: string | undefined }> {
+  const matching = (line: string) =>
+    EXPLICIT_CRISIS_PATTERNS.flatMap(({ re }, i) => (re.test(line) ? [i] : []));
+  return EXPLICIT_CRISIS_PATTERNS.flatMap(({ imminent }, at) => {
+    if (!imminent || at === 0 || EXPLICIT_CRISIS_PATTERNS[at - 1]?.imminent) return [];
+    const line = PLAIN_FORMS.flatMap((plain) =>
+      IMMINENT_FORMS.map((now) => `${plain}. ${now}`)
+    ).find((candidate) => matching(candidate).join() === `${at - 1},${at}`);
+    return [{ at, line }];
+  });
+}
+
+describe('an imminent pattern right after the first plain hit: 911 first', () => {
+  const pairs = adjacentPairs();
+
+  it('finds at least 4 such patterns, each with a line', () => {
+    expect(pairs.length).toBeGreaterThanOrEqual(4);
+    for (const { at, line } of pairs) expect(line, `pattern ${at}`).toBeDefined();
+  });
+
+  for (const [how, env, generate] of CLASSIFIER)
+    it.each(pairs)(`classifier ${how}: pattern $at`, async ({ line }) => {
+      const said = line ?? '';
+      const read = detectCrisis(said);
+      expect(read.indicators).toContain('imminent_danger');
+      expect(leads911(read.suggestedResponse ?? '')).toBe(true);
+      expect(leads911(await spoken(said, env, generate))).toBe(true);
+      const typed = await readTypedMessageForCrisis(said, [], { env, generate });
+      expect(typed.action === 'replace' && leads911(typed.reply)).toBe(true);
+    });
 });
