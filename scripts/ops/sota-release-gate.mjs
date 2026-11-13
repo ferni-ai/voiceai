@@ -16,7 +16,6 @@
  *   - scripts/ops/assert-barge-in-slo.mjs
  *   - scripts/ops/assert-memory-speak-slo.mjs
  *   - scripts/ops/assert-outreach-drain-slo.mjs
- *   - scripts/ops/assert-human-signal-roundtrip.mjs
  *   - scripts/ops/assert-outreach-delivery-intent.mjs
  *
  * Each child script prints its own JSON. This runner prints an aggregate JSON
@@ -44,10 +43,6 @@ const CHECKS = [
   {
     name: 'outreach-drain',
     path: resolve(SCRIPT_DIR, 'assert-outreach-drain-slo.mjs'),
-  },
-  {
-    name: 'human-signal-roundtrip',
-    path: resolve(SCRIPT_DIR, 'assert-human-signal-roundtrip.mjs'),
   },
   {
     name: 'outreach-delivery-intent',

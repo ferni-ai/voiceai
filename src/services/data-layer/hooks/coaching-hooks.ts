@@ -45,7 +45,7 @@ export const onCoachingInsightChange = createDomainHook<CoachingInsightEntity>({
 /**
  * Track aha moments and breakthroughs
  */
-export const onBreakthroughMomentChange = createDomainHook<BreakthroughMomentEntity>({
+const onBreakthroughMomentChange = createDomainHook<BreakthroughMomentEntity>({
   storeType: 'coaching',
   entityType: 'breakthrough_moment',
   contentBuilder: (b) =>
@@ -95,7 +95,7 @@ interface ReframeSuggestionEntity {
 /**
  * Track perspective shifts offered
  */
-export const onReframeSuggestionChange = createDomainHook<ReframeSuggestionEntity>({
+const onReframeSuggestionChange = createDomainHook<ReframeSuggestionEntity>({
   storeType: 'coaching',
   entityType: 'reframe_suggestion',
   contentBuilder: (r) =>
@@ -146,7 +146,7 @@ interface StrengthIdentifiedEntity {
 /**
  * Track identified user strengths
  */
-export const onStrengthIdentifiedChange = createDomainHook<StrengthIdentifiedEntity>({
+const onStrengthIdentifiedChange = createDomainHook<StrengthIdentifiedEntity>({
   storeType: 'coaching',
   entityType: 'strength_identified',
   contentBuilder: (s) =>
@@ -196,7 +196,7 @@ interface AccountabilityItemEntity {
 /**
  * Track accountability items
  */
-export const onAccountabilityItemChange = createDomainHook<AccountabilityItemEntity>({
+const onAccountabilityItemChange = createDomainHook<AccountabilityItemEntity>({
   storeType: 'coaching',
   entityType: 'accountability_item',
   contentBuilder: (a) =>
@@ -224,7 +224,7 @@ interface BehaviorChangeEntity {
 /**
  * Track attempted behavior changes
  */
-export const onBehaviorChangeEntity = createDomainHook<BehaviorChangeEntity>({
+const onBehaviorChangeEntity = createDomainHook<BehaviorChangeEntity>({
   storeType: 'coaching',
   entityType: 'behavior_change',
   contentBuilder: (b) =>
@@ -248,7 +248,7 @@ interface MotivationInsightEntity {
 /**
  * Track what motivates the user
  */
-export const onMotivationInsightChange = createDomainHook<MotivationInsightEntity>({
+const onMotivationInsightChange = createDomainHook<MotivationInsightEntity>({
   storeType: 'coaching',
   entityType: 'motivation_insight',
   contentBuilder: (m) =>

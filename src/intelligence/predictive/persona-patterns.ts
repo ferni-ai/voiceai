@@ -105,7 +105,7 @@ export interface PersonaPredictiveConfig {
 /**
  * Pattern match context
  */
-export interface PatternMatchContext {
+interface PatternMatchContext {
   userMessage: string;
   topics: string[];
   emotion?: {
@@ -123,7 +123,7 @@ export interface PatternMatchContext {
 /**
  * Detected pattern result
  */
-export interface DetectedPattern {
+interface DetectedPattern {
   patternId: string;
   patternType: 'temporal' | 'emotional' | 'behavioral';
   name: string;
@@ -136,7 +136,7 @@ export interface DetectedPattern {
 /**
  * Proactive follow-up result
  */
-export interface ProactiveFollowUp {
+interface ProactiveFollowUp {
   id: string;
   timing: string;
   phrase: string;
@@ -146,7 +146,7 @@ export interface ProactiveFollowUp {
 /**
  * Detected concern result
  */
-export interface DetectedConcern {
+interface DetectedConcern {
   concernId: string;
   severity: 'low' | 'medium' | 'high';
   detection: string;
@@ -597,41 +597,6 @@ export function detectPersonaConcerns(
     const severityOrder = { high: 0, medium: 1, low: 2 };
     return severityOrder[a.severity] - severityOrder[b.severity];
   });
-}
-
-// ============================================================================
-// SIGNAL INTEGRATION
-// ============================================================================
-
-/**
- * Get persona pattern signal for multi-signal fusion
- */
-export async function getPersonaPatternSignal(
-  personaId: PersonaId,
-  context: PatternMatchContext
-): Promise<{
-  patterns: DetectedPattern[];
-  concerns: DetectedConcern[];
-  followUps: ProactiveFollowUp[];
-  confidence: number;
-}> {
-  const config = await loadPersonaPatterns(personaId);
-  if (!config) {
-    return { patterns: [], concerns: [], followUps: [], confidence: 0 };
-  }
-
-  const patterns = matchPersonaPatterns(personaId, config, context);
-  const concerns = detectPersonaConcerns(personaId, config, context);
-  const followUps = getPersonaFollowUps(personaId, config, context);
-
-  // Overall confidence is the max of all signals
-  const confidence = Math.max(
-    patterns[0]?.confidence || 0,
-    concerns.length > 0 ? 0.8 : 0,
-    followUps[0]?.confidence || 0
-  );
-
-  return { patterns, concerns, followUps, confidence };
 }
 
 // ============================================================================

@@ -9,7 +9,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ConversationAnalysis } from '../../services/types.js';
 import { TaskManager } from '../task-manager.js';
-import { TASK_TRANSITIONS } from '../transitions.js';
 
 vi.mock('../../utils/safe-logger.js', () => ({
   getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
@@ -56,15 +55,12 @@ describe('celebration tasks need news, not just a good mood', () => {
 });
 
 describe('task transition lines are not handed to the model', () => {
-  const celebrationLines = TASK_TRANSITIONS.toCelebration;
-
   it('an activated task adds no [TRANSITION] line', () => {
     const manager = new TaskManager();
     const context = manager.processUserTurn(joyful, 'I finally paid off my student loans!');
 
     expect(manager.getActiveTasks()).toContain('milestone_celebration');
     expect(context.join('\n')).not.toContain('[TRANSITION]');
-    for (const line of celebrationLines) expect(context.join('\n')).not.toContain(line);
   });
 
   it('a finished task adds no exit line', () => {

@@ -159,7 +159,7 @@ export const PERSONA_RITUALS: Record<string, DailyRitual> = {
 // RITUAL PROMPTS - What each persona says during their ritual
 // ============================================================================
 
-export const RITUAL_PROMPTS = {
+const RITUAL_PROMPTS = {
   'ferni-sky-check': {
     openings: [
       'Good morning. <break time="300ms"/>Before we dive into anything, let\'s check the weather inside. <break time="200ms"/>If your emotional state were the sky right now, what would it look like?',

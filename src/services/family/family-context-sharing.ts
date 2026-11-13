@@ -262,24 +262,6 @@ export async function getPendingContexts(userId: string): Promise<ShareableConte
   }
 }
 
-/**
- * Mark contexts as delivered.
- */
-export async function markContextsDelivered(ids: string[]): Promise<void> {
-  const db = getFirestore();
-  if (!db) return;
-
-  try {
-    const batch = db.batch();
-    for (const id of ids) {
-      batch.update(db.collection(COLLECTION_NAME).doc(id), { delivered: true });
-    }
-    await batch.commit();
-  } catch (error) {
-    log.error({ error, ids }, 'Failed to mark contexts as delivered');
-  }
-}
-
 // ============================================================================
 // EMOTIONAL STATE ANALYSIS (Privacy-Safe)
 // ============================================================================

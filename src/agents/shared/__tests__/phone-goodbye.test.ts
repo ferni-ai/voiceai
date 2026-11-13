@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { ReadableStream } from 'node:stream/web';
 import { pathToFileURL } from 'node:url';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 const { phoneLog } = vi.hoisted(() => ({ phoneLog: vi.fn() }));
@@ -31,7 +31,13 @@ import {
   trackCrisisRead,
 } from '../../../services/safety/crisis-call-risk.js';
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
+import { MINOR_CARE_HOLD } from '../minor-care-end-hold.js';
 import { attachPhoneHangUp, CRISIS_HOLD, END_CALL } from '../phone-goodbye.js';
+import {
+  firestoreHoldStore,
+  setHoldStore,
+} from '../../../services/outreach/minor-care-shared-hold.js';
+import { bindSessionUser, holdSession, resetMinorCare } from '../../../utils/minor-care.js';
 
 const ON = { PHONE_GOODBYE: 'on' };
 const phoneCaller = { kind: ParticipantKind.SIP };
@@ -171,21 +177,22 @@ describe('phone goodbye', () => {
   });
 });
 
+/** A phone caller's agent with endCall (PHONE_GOODBYE on); `events` records playout and hang-up. */
+async function phoneCall(sessionId: string) {
+  const a = agent();
+  const events: string[] = [];
+  await attachPhoneHangUp(a, {
+    sessionId,
+    roomName: `room-${sessionId}`,
+    participant: phoneCaller,
+    onBehalf: false,
+    env: ON,
+    hangUp: async (room) => void events.push(`hung up ${room}`),
+  });
+  return { a, events };
+}
+
 describe('phone goodbye on a call with crisis risk', () => {
-  /** A phone caller's agent with endCall; `events` records playout and hang-up. */
-  async function phoneCall(sessionId: string) {
-    const a = agent();
-    const events: string[] = [];
-    await attachPhoneHangUp(a, {
-      sessionId,
-      roomName: `room-${sessionId}`,
-      participant: phoneCaller,
-      onBehalf: false,
-      env: ON,
-      hangUp: async (room) => void events.push(`hung up ${room}`),
-    });
-    return { a, events };
-  }
   const held = () => phoneLog.mock.calls.filter(([msg]) => msg === 'END_CALL_HELD_CRISIS');
 
   it('does not hang up once crisis risk is noted, and tells Ferni to stay', async () => {
@@ -238,6 +245,75 @@ describe('phone goodbye on a call with crisis risk', () => {
     const { a, events } = await phoneCall('s-calm');
     expect(await callEndCall(a, events)).toContain('The call has ended.');
     expect(events).toEqual(['goodbye played', 'hung up room-s-calm']);
+    expect(held()).toEqual([]);
+  });
+});
+
+describe('phone goodbye for a care-held minor', () => {
+  beforeEach(() => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
+    setHoldStore({ heldUntil: async () => undefined, write: async () => {} });
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetMinorCare();
+    setHoldStore(firestoreHoldStore);
+  });
+  const held = () => phoneLog.mock.calls.filter(([msg]) => msg === 'END_CALL_HELD_MINOR_CARE');
+
+  it("does not hang up on this session's minor-care hold, and tells Ferni to stay", async () => {
+    const { a, events } = await phoneCall('s-minor');
+    bindSessionUser('s-minor', 'eval-held-teen');
+    holdSession('s-minor');
+    expect(await callEndCall(a, events)).toBe(JSON.stringify(MINOR_CARE_HOLD));
+    expect(events).toEqual(['goodbye played']);
+    expect(held()).toEqual([
+      ['END_CALL_HELD_MINOR_CARE', { sessionId: 's-minor', why: 'minor_care' }],
+    ]);
+  });
+
+  it("does not hang up when the caller's account is held elsewhere (shared record)", async () => {
+    const { a, events } = await phoneCall('s-minor-account');
+    bindSessionUser('s-minor-account', 'eval-held-teen-2');
+    setHoldStore({ heldUntil: async () => Date.now() + 60_000, write: async () => {} });
+    expect(await callEndCall(a, events)).toBe(JSON.stringify(MINOR_CARE_HOLD));
+    expect(events).toEqual(['goodbye played']);
+  });
+
+  it('hangs up an anonymous try-first caller as before', async () => {
+    const { a, events } = await phoneCall('s-try-first');
+    bindSessionUser('s-try-first', 'device:demo_1700000000000_eval4');
+    expect(await callEndCall(a, events)).toContain('The call has ended.');
+    expect(events).toEqual(['goodbye played', 'hung up room-s-try-first']);
+  });
+
+  it('does not hang up when the hold lands while the goodbye plays', async () => {
+    const { a, events } = await phoneCall('s-minor-late');
+    bindSessionUser('s-minor-late', 'eval-late-teen');
+    const output = await callEndCall(a, events, async () => {
+      events.push('goodbye played');
+      holdSession('s-minor-late');
+    });
+    expect(output).toBe(JSON.stringify(MINOR_CARE_HOLD));
+    expect(events).toEqual(['goodbye played']);
+  });
+
+  it('hangs up an adult as before, reading the hold while the goodbye plays', async () => {
+    const { a, events } = await phoneCall('s-adult');
+    bindSessionUser('s-adult', 'eval-adult');
+    setHoldStore({
+      heldUntil: async () => void events.push('hold read'),
+      write: async () => {},
+    });
+    const output = await callEndCall(a, events, async () => {
+      await new Promise((r) => {
+        setTimeout(r, 0);
+      });
+      events.push('goodbye played');
+    });
+    expect(output).toContain('The call has ended.');
+    expect(events).toEqual(['hold read', 'goodbye played', 'hung up room-s-adult']);
     expect(held()).toEqual([]);
   });
 });

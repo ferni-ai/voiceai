@@ -62,48 +62,16 @@ export {
 // ============================================================================
 
 // Advanced types
-export type {
-  UserCognitiveStyle,
-  CognitiveHandoffContext,
-  ReasoningStep,
-  ReasoningChain,
-  CognitiveConflict,
-  CognitiveEffectiveness,
-  CognitiveLearning,
-  UserKnowledgeState,
-  CognitiveGrowthProfile,
-} from './cognitive-advanced.js';
-
-// User cognitive style detection
-export { detectUserCognitiveStyle } from './cognitive-advanced.js';
+export type { CognitiveHandoffContext, ReasoningStep } from './cognitive-advanced.js';
 
 // Cognitive handoff transfer
 export { buildCognitiveHandoffContext } from './cognitive-advanced.js';
 
-// Multi-step reasoning chains
-export { buildReasoningChain, getReasoningChainGuidance } from './cognitive-advanced.js';
-
-// Cognitive conflict resolution
-export { detectCognitiveConflict } from './cognitive-advanced.js';
-
 // Cognitive learning (NOW WITH PERSISTENCE!)
-export {
-  CognitiveLearningTracker,
-  getCognitiveLearningTracker,
-  initializeCognitiveLearning,
-  flushCognitiveLearning,
-} from './cognitive-advanced.js';
+export { initializeCognitiveLearning, flushCognitiveLearning } from './cognitive-advanced.js';
 
 // Knowledge state persistence (NOW WITH PERSISTENCE!)
-export {
-  KnowledgeStateTracker,
-  getKnowledgeStateTracker,
-  initializeKnowledgeState,
-  flushKnowledgeState,
-} from './cognitive-advanced.js';
-
-// Cognitive growth arc
-export { getCognitiveGrowthProfile, buildCognitiveGrowthContext } from './cognitive-advanced.js';
+export { initializeKnowledgeState, flushKnowledgeState } from './cognitive-advanced.js';
 
 // Persistence types and functions
 export type {
@@ -126,7 +94,6 @@ export {
 export {
   generatePerspective,
   generateCollaborativePerspectives,
-  generateTeamCommentary,
 } from './collaborative-cognition.js';
 
 export type { CognitivePerspective, CollaborativeCognition } from './collaborative-cognition.js';
