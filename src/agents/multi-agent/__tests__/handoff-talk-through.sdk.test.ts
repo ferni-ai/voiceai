@@ -52,6 +52,10 @@ interface LlmCall {
 
 class ScriptLLM extends llm.LLM {
   calls: LlmCall[] = [];
+  /** Words Jordan says in the same reply as the handoff call (that reply is then held) */
+  constructor(private readonly preface?: string) {
+    super();
+  }
   label(): string {
     return 'script';
   }
@@ -76,6 +80,7 @@ class ScriptLLM extends llm.LLM {
             id: 'r',
             delta: {
               role: 'assistant',
+              ...(this.preface ? { content: this.preface } : {}),
               toolCalls: [
                 llm.FunctionCall.create({
                   callId: `call_${this.calls.length}`,
@@ -108,6 +113,8 @@ class OneChunkStream extends llm.LLMStream {
 }
 
 interface Activity {
+  /** AgentActivity's public getter for the speech playing now (1.9.3) */
+  readonly currentSpeech?: voice.SpeechHandle;
   shouldDiscardInputAudio(): boolean;
   onStartOfSpeech(ev: { speechDuration: number; inferenceDuration: number }): void;
   onEndOfSpeech(ev: { silenceDuration: number; inferenceDuration: number }): void;
@@ -117,8 +124,15 @@ interface Activity {
 
 const cleanups: Array<() => Promise<void> | void> = [];
 
-async function call(caller: 'talks' | 'waits' = 'talks') {
-  const script = new ScriptLLM();
+/**
+ * When the caller starts: once the goodbye is playing, or once it is queued behind Jordan's
+ * held reply ("Sure thing, …" said with the handoff call, still playing)
+ */
+type Start = 'playing' | 'queued';
+const PREFACE = 'Sure thing, let me grab Ferni for you right now.';
+
+async function call(caller: 'talks' | 'waits' = 'talks', start: Start = 'playing') {
+  const script = new ScriptLLM(start === 'queued' ? PREFACE : undefined);
   const userData: { personaId?: string } = {};
   const session = new voice.AgentSession({
     llm: script,
@@ -134,6 +148,11 @@ async function call(caller: 'talks' | 'waits' = 'talks') {
     () => session.close().catch(() => undefined)
   );
   const activity = () => (session as unknown as { _activity: Activity })._activity;
+  // Every speech, by source: `say` is the goodbye (and greeting), the reply holds the tool call
+  const handles: Array<{ source: string; handle: voice.SpeechHandle }> = [];
+  session.on(voice.AgentSessionEventTypes.SpeechCreated, (ev) => {
+    handles.push({ source: ev.source, handle: ev.speechHandle });
+  });
   const said: Array<{ text: string; interrupted: boolean }> = [];
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
     const it = ev.item as Item & { interrupted?: boolean };
@@ -267,20 +286,42 @@ async function call(caller: 'talks' | 'waits' = 'talks') {
     return heard;
   };
 
-  // The request; the caller goes on as soon as Jordan's goodbye starts playing
+  // The request; the caller goes on as soon as Jordan's goodbye starts playing (or is queued)
   const goodbyeStarts = new Promise<void>((resolve) => {
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => {
       if (ev.newState === 'speaking') resolve();
     });
   });
+  const goodbyeQueued = new Promise<void>((resolve) => {
+    session.on(voice.AgentSessionEventTypes.SpeechCreated, (ev) => {
+      if (ev.source === 'say') resolve();
+    });
+  });
   session.generateReply({ userInput: REQUEST });
-  await goodbyeStarts;
+  await (start === 'queued' ? goodbyeQueued : goodbyeStarts);
+  // What LiveKit is playing as the caller starts: the held reply, in the queued case
+  const current = activity().currentSpeech;
+  const startedOver = {
+    allowInterruptions: current?.allowInterruptions,
+    source: handles.find((h) => h.handle === current)?.source,
+  };
   const heard = caller === 'talks' ? await speak(SENTENCE) : '';
   const started = Date.now();
   while (results.length === 0 && Date.now() - started < 15_000) await sleep(50);
   await sleep(caller === 'talks' ? 1500 : 4500); // the arrival reply, or greeting
   const ferniTalk = (agents.ferni?.chatCtx.items ?? []) as Item[];
-  return { results, refused, heard, session, agents, calls: script.calls, ferniTalk, said };
+  return {
+    results,
+    refused,
+    heard,
+    session,
+    agents,
+    calls: script.calls,
+    ferniTalk,
+    said,
+    handles,
+    startedOver,
+  };
 }
 
 const userLines = (items: Item[]) =>
@@ -346,6 +387,22 @@ describe('talking through a handoff goodbye (real AgentSession)', () => {
     // Jordan's goodbye stopped for the caller (never played out over them)
     const goodbye = r.said.filter((s) => s.text.startsWith("Ferni's perfect"));
     expect(goodbye.every((s) => s.interrupted)).toBe(true);
+  }, 40_000);
+
+  it('on, the caller starts while the goodbye waits behind the held reply: the goodbye stops by its own handle (#63)', async () => {
+    vi.stubEnv('HANDOFF_TALK_THROUGH', 'on');
+    const r = await call('talks', 'queued');
+
+    // The case session.interrupt() can't reach: the held reply is the current speech
+    expect(r.startedOver).toEqual({ allowInterruptions: false, source: 'generate_reply' });
+    expect(r.results).toEqual([{ success: true, error: undefined }]);
+    expect(r.session.currentAgent).toBe(r.agents.ferni);
+    const goodbye = r.handles.find((h) => h.source === 'say')?.handle;
+    expect(goodbye?.interrupted).toBe(true); // stopped, never played over the caller
+    expect(r.said.some((s) => s.text.startsWith("Ferni's perfect") && !s.interrupted)).toBe(false);
+    // Jordan's held reply (with the handoff call) is left to finish
+    const reply = r.said.find((s) => s.text === PREFACE);
+    expect(reply).toEqual({ text: PREFACE, interrupted: false });
   }, 40_000);
 
   it('on, with a caller who waits: the goodbye plays out and the usual greeting follows', async () => {

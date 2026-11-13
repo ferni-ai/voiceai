@@ -27,6 +27,10 @@
  * - the goodbye is interruptible, skipped if the caller is already talking, and stopped
  *   when they talk over it; the swap waits until they finish (bounded), so their words
  *   are transcribed on the outgoing persona's stream before it closes;
+ * - the goodbye is stopped through its own SpeechHandle, never `session.interrupt()`:
+ *   while the held tool reply is still playing, it is the SDK's current speech and
+ *   `interrupt()` throws on it before it reaches the goodbye queued behind it, so that
+ *   goodbye would play over the caller (nightly 2026-11-13, "goodbye not stopped" x2);
  * - the outgoing persona doesn't answer what is said meanwhile (StopResponse); the words
  *   go into the next persona's context, and it answers them as its first line.
  *
@@ -54,9 +58,16 @@ const POLL_MS = 25;
 
 interface CallSession {
   userState: string;
-  interrupt: () => unknown;
   on: (event: string, fn: (ev: unknown) => void) => unknown;
   off: (event: string, fn: (ev: unknown) => void) => unknown;
+}
+
+/** The parts of a LiveKit SpeechHandle the window uses */
+interface Speech {
+  allowInterruptions: boolean;
+  interrupted: boolean;
+  done: () => boolean;
+  interrupt: () => unknown;
 }
 
 interface Outgoing {
@@ -105,20 +116,28 @@ function openWindow(from: Outgoing, sessionId: string): TalkThrough {
     heard.push(transcript.trim());
     lastFinalAt = Date.now();
   };
-  session.on(voice.AgentSessionEventTypes.UserInputTranscribed, onTranscript);
-  // The outgoing persona must not answer what is said during its goodbye
+  const goodbyes = goodbyeLines(sessionId);
   const own = Object.getOwnPropertyDescriptor(agent, 'onUserTurnCompleted');
-  agent.onUserTurnCompleted = async () => Promise.reject(new voice.StopResponse());
   let open = true;
   const close = (): string => {
     if (open) {
       open = false;
       session.off(voice.AgentSessionEventTypes.UserInputTranscribed, onTranscript);
+      session.off(voice.AgentSessionEventTypes.SpeechCreated, goodbyes.onSpeech);
       if (own) Object.defineProperty(agent, 'onUserTurnCompleted', own);
       else delete agent.onUserTurnCompleted;
     }
     return heard.join(' ');
   };
+  try {
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, onTranscript);
+    session.on(voice.AgentSessionEventTypes.SpeechCreated, goodbyes.onSpeech);
+    // The outgoing persona must not answer what is said during its goodbye
+    agent.onUserTurnCompleted = async () => Promise.reject(new voice.StopResponse());
+  } catch (error) {
+    close(); // a window that failed to open leaves no listener and no hook behind
+    throw error;
+  }
   const talking = (): boolean => session.userState === 'speaking';
 
   return {
@@ -133,7 +152,7 @@ function openWindow(from: Outgoing, sessionId: string): TalkThrough {
           quietSince = undefined;
           if (!talked) {
             talked = true;
-            stopGoodbye(session); // the tool's speech is held: this can't drop the handoff
+            goodbyes.stop(); // the held tool reply is left alone: the handoff can't drop
           }
         } else quietSince ??= now;
         if (!talked && now - start >= goodbyeMs) return;
@@ -142,7 +161,11 @@ function openWindow(from: Outgoing, sessionId: string): TalkThrough {
           quietSince !== undefined &&
           (lastFinalAt >= quietSince || now - quietSince >= FINAL_GRACE_MS);
         if (settled || now - start >= LISTEN_MAX_MS) {
-          log.info({ sessionId, heard: heard.length, ms: now - start }, 'HANDOFF_TALK_THROUGH');
+          const stopped = goodbyes.stopped();
+          log.info(
+            { sessionId, heard: heard.length, ms: now - start, goodbyesStopped: stopped },
+            'HANDOFF_TALK_THROUGH'
+          );
           return;
         }
         // eslint-disable-next-line no-await-in-loop -- polling the caller's voice activity
@@ -166,11 +189,53 @@ function openWindow(from: Outgoing, sessionId: string): TalkThrough {
   };
 }
 
-function stopGoodbye(session: CallSession): void {
+interface GoodbyeLines {
+  /** SpeechCreated listener: keeps each `say` line, and stops it once the caller has begun */
+  onSpeech: (ev: unknown) => void;
+  /** The caller is talking: stop every line, and each one made until the window closes */
+  stop: () => void;
+  /** How many of the lines were stopped */
+  stopped: () => number;
+}
+
+/**
+ * The outgoing persona's lines said in the window (`say`): its goodbye. Kept by handle, so
+ * the goodbye can be stopped even while it waits behind the held tool reply.
+ */
+function goodbyeLines(sessionId: string): GoodbyeLines {
+  const lines: Speech[] = [];
+  let stopping = false;
+  return {
+    onSpeech: (ev: unknown): void => {
+      const { source, speechHandle } = ev as { source?: string; speechHandle?: Speech };
+      if (source !== 'say' || !speechHandle) return;
+      lines.push(speechHandle);
+      if (stopping) stopLine(speechHandle, sessionId); // made after the caller began
+    },
+    stop: (): void => {
+      stopping = true;
+      for (const line of lines) stopLine(line, sessionId);
+    },
+    stopped: (): number => lines.filter((l) => l.interrupted).length,
+  };
+}
+
+/**
+ * Stop one line, queued or playing. With the flag on the goodbye is always said
+ * interruptible (orchestrator agentSaysGoodbye; HANDOFF_EARLY_GOODBYE is off with it), so a
+ * line said uninterruptible in the window is another one that chose to play out (e.g.
+ * reconnection's "One moment"): it plays on, and `interrupt()` would throw on it anyway.
+ */
+function stopLine(goodbye: Speech, sessionId: string): void {
+  if (goodbye.interrupted || goodbye.done()) return;
+  if (!goodbye.allowInterruptions) {
+    log.info({ sessionId }, 'handoff talk-through: uninterruptible line kept');
+    return;
+  }
   try {
-    session.interrupt();
+    goodbye.interrupt();
   } catch (error) {
-    log.warn({ error: String(error) }, 'handoff talk-through: goodbye not stopped');
+    log.warn({ sessionId, error: String(error) }, 'handoff talk-through: goodbye not stopped');
   }
 }
 

@@ -17,6 +17,7 @@ EVAL_TIER=partner | handoff-every-teammate | s1 | | handoff
 EVAL_TIER=partner | handoff-by-name | s1 | | handoff
 - | handoff-nayan-tap | s1 | | handoff
 EVAL_TIER=partner | overlap-handoff | s1 | | handoff
+EVAL_TIER=partner | handoff-talk-through | s1 | | talk-through
 - | play-roleplay | s1 | | play
 - | play-twenty-questions | s1 | | play
 - | music-control | s1 | | music
