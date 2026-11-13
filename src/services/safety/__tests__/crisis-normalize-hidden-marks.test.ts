@@ -1,7 +1,8 @@
 /**
  * normalize() (crisis-modifiers.ts) reads look-alike and hidden-mark text as the plain words, so
- * every pattern reader in detectCrisis does too: fullwidth letters (NFKC), and the zero-width
- * space, non-joiner, joiner, word joiner, byte-order mark and soft hyphen (stripped). A first-
+ * every pattern reader in detectCrisis does too: fullwidth letters in either case and other
+ * compatibility forms (NFKC, before the strip), and the zero-width space, non-joiner, joiner,
+ * word joiner, byte-order mark and soft hyphen (stripped). A first-
  * person ingestion said with any of them still gets the 911-first script. Every line is written
  * here (fictional); no eval set is loaded.
  */
@@ -34,6 +35,7 @@ const fullwidth = (line: string) =>
           : ch
     )
     .join('');
+const titleCase = (line: string) => line.replace(/\b[a-z]/g, (ch) => ch.toUpperCase());
 /** The same mark in the middle of every word of two letters or more. */
 const everyWord = (mark: string) => (line: string) =>
   line
@@ -65,6 +67,9 @@ const VARIANTS: ReadonlyArray<readonly [string, (line: string) => string]> = [
   ]),
   ['fullwidth letters', fullwidth],
   ['fullwidth and a zero-width space', (line) => fullwidth(midWord('\u200b')(line))],
+  // Capitals too: a fold that only knows the lowercase fullwidth letters fails these two.
+  ['fullwidth capitals', (line) => fullwidth(line.toUpperCase())],
+  ['fullwidth Title Case', (line) => fullwidth(titleCase(line))],
 ];
 
 const FAMILIES = {
@@ -115,6 +120,34 @@ describe('everyday lines stay quiet with the same marks', () => {
   it.each(VARIANTS)('%s', (_, mark) => {
     for (const line of CONTROLS)
       expect(read(mark(line))).toEqual({ ...read(line), isCrisis: false });
+  });
+});
+
+// Forms no whole-line variant makes: one written line beside its plain form. The first three
+// have no fullwidth character, so a reader that folds only when it sees one fails them. The
+// Spanish pattern holds the one-character accented letter, so a reader that splits accents
+// instead of joining them stops reading the plain line as a crisis.
+const WRITTEN_FORMS = [
+  ['superscript digits', 'i just took \u00b3\u2070 pills', 'i just took 30 pills'],
+  ['circled digits', 'i just took \u2462\u24ea pills', 'i just took 30 pills'],
+  ['a long s', 'i want to kill my\u017felf', 'i want to kill myself'],
+  ['a split accent (Spanish)', 'ojala\u0301 no despertar', 'ojal\u00e1 no despertar'],
+] as const;
+
+describe('compatibility forms and split accents read as the plain line', () => {
+  it.each(WRITTEN_FORMS)('%s', (_, written, plain) => {
+    expect(written).not.toBe(plain);
+    expect(read(plain).isCrisis).toBe(true);
+    expect(normalize(written)).toBe(normalize(plain));
+    expect(read(written)).toEqual(read(plain));
+  });
+
+  // Order: look-alike forms fold first, then the marks go. Stripping first would let the accent
+  // join the last letter ("pills" would end in an accented s) and the line would read as quiet.
+  it('a hidden mark and then a combining accent after the last word', () => {
+    const plain = 'i just took 30 pills';
+    expect(read(plain).isCrisis).toBe(true);
+    expect(read(`${plain}\u200b\u0301`)).toEqual(read(plain));
   });
 });
 
