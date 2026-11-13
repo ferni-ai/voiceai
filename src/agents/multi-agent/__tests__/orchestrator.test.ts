@@ -247,8 +247,15 @@ describe('AgentOrchestrator', () => {
       const { getLogger } = await import('../../../utils/safe-logger.js');
       const orchestrator = createAgentOrchestrator(mockConfig);
       const ferniAgent = await orchestrator.start('ferni');
+      const say = vi.mocked(ferniAgent.say);
+      // start() sends the opening greeting in the background; under load it can land after
+      // the goodbye. Wait for it, so every say call after this point is the handoff's.
+      await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 5000 });
+      const saidBefore = say.mock.calls.length;
       await orchestrator.handoff({ targetPersonaId: 'peter-john', reason: 'test' });
-      const spoken = vi.mocked(ferniAgent.say).mock.calls.at(-1)?.[0] ?? '';
+      const goodbyes = say.mock.calls.slice(saidBefore).map(([text]) => text);
+      expect(goodbyes, 'no goodbye: the handoff made no say call').toHaveLength(1);
+      const spoken = goodbyes[0] ?? '';
       const fields = vi
         .mocked(getLogger().info)
         .mock.calls.map((call: unknown[]): unknown => call[0])
