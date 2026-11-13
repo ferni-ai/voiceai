@@ -55,9 +55,35 @@ export const EASY_QUESTION =
   '"what\'s on your mind" or "what brings you", which ask for a reason to call, and not ' +
   '"how are you holding up", which assumes something is wrong.';
 
-/** The stranger's (or unplaced caller's) hello direction, with the easy question when the flag is on. */
-export function easyStrangerDirection(base: string, env: Env = process.env): string {
-  return flagOn('STRANGER_GREETING_EASY', env) ? base.replace(MIND_QUESTION, EASY_QUESTION) : base;
+/** `en` alone, or leading with `en-` or `en_`, any case: "eng", "end" and "english" are not. */
+const ENGLISH_TAG = /^en(?:[-_]|$)/i;
+
+/**
+ * The easy question reaches English calls only (owner decision, 2026-11-13). Dev A/B, 90 Spanish first
+ * calls a side: with it, Spanish replies on turn 2, the one right after the hello, fell from
+ * 21 to 11 (not significant across five turns, but the turn the hello sets up). A call is
+ * English when it carries a language tag and every tag is English. A Spanish call, a mixed
+ * one (English with any other language) and a call with no tags, as on the phone, keep the
+ * hello as it was. A malformed tag counts as not English.
+ */
+function englishOnlyCall(locales: readonly string[] | undefined): boolean {
+  return (
+    locales !== undefined && locales.length > 0 && locales.every((tag) => ENGLISH_TAG.test(tag))
+  );
+}
+
+/**
+ * The stranger's (or unplaced caller's) hello direction, with the easy question when the flag
+ * is on and the call is English (`locales`: the call's language tags, GreetingUserData).
+ */
+export function easyStrangerDirection(
+  base: string,
+  env: Env = process.env,
+  locales?: readonly string[]
+): string {
+  return flagOn('STRANGER_GREETING_EASY', env) && englishOnlyCall(locales)
+    ? base.replace(MIND_QUESTION, EASY_QUESTION)
+    : base;
 }
 
 /** The fact that says so, beside the time of day and their name. */

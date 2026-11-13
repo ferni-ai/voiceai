@@ -66,6 +66,40 @@ export function movedFromOf(
 }
 
 /**
+ * The call's language tags from dispatch metadata: `locale` first, then `locales`
+ * (token.ts: the app's chosen language, else the IP's languages, else en-US). A phone
+ * call has neither, so it gets none. Only empty and non-string values are dropped: a
+ * malformed tag is kept, so it can't hide a non-English language from the English-only
+ * check (first-call-stranger.ts).
+ */
+function callLocales(metadata: Record<string, unknown>): string[] {
+  const listed = Array.isArray(metadata.locales) ? (metadata.locales as unknown[]) : [];
+  const tags = [metadata.locale, ...listed]
+    .filter((tag): tag is string => typeof tag === 'string')
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+  return [...new Set(tags)];
+}
+
+/**
+ * Puts where the call is from onto userData: its language tags (callerLocales, read by the
+ * stranger's hello) and, when the IP gave one, its city (userLocation, read by tools).
+ */
+export function applyCallOrigin(
+  userData: Record<string, unknown>,
+  metadata: Record<string, unknown>
+): void {
+  userData.callerLocales = callLocales(metadata);
+  if (typeof metadata.city === 'string' && metadata.city) {
+    userData.userLocation = {
+      city: metadata.city,
+      regionCode: typeof metadata.regionCode === 'string' ? metadata.regionCode : undefined,
+      countryCode: typeof metadata.countryCode === 'string' ? metadata.countryCode : undefined,
+    };
+  }
+}
+
+/**
  * Parse job and room metadata from the LiveKit job context.
  */
 export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
