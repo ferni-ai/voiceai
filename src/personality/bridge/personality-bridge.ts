@@ -151,6 +151,7 @@ export async function recordUnifiedMoment(
     (async () => {
       try {
         const { createPersonalityService } = await import('../v2/index.js');
+        const { isWordlessMoment } = await import('../../intelligence/relationship/index.js');
         const service = createPersonalityService();
 
         const recordResult = await service.recordMoment({
@@ -159,6 +160,7 @@ export async function recordUnifiedMoment(
           message,
           topics,
           voiceFeatures,
+          ...(isWordlessMoment(type) && { keepWords: false }),
         });
 
         result.vulnerabilityDetected = recordResult.vulnerabilityDetected;
