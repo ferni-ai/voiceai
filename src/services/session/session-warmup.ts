@@ -146,8 +146,7 @@ export async function warmSessionCaches(
       fn: async () => {
         const { getRedisCache } = await import('../../memory/redis-cache.js');
         const redis = getRedisCache();
-        const presence = await redis.getUserPresence(userId);
-        if (presence) {
+        if (await redis.isUserActive(userId)) {
           warmedCaches.push('user-presence');
         }
       },
