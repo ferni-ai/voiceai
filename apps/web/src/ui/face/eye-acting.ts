@@ -24,9 +24,9 @@
 
 export interface LidPose {
   /** Upper lid closure, 0 open … 1 shut. */
-  readonly top: number;
+  readonly upperLid: number;
   /** Lower lid closure, 0 open … 1 shut. */
-  readonly bottom: number;
+  readonly lowerLid: number;
   /** Lower lid lifted in the middle (the cheek push of a smile), 0 … 1. */
   readonly arch: number;
   /** Upper lid slant: + drops the outer corner, − drops the inner corner. */
@@ -74,13 +74,13 @@ const PIVOT = 0.2;
  */
 function lidLines(u: number, p: LidPose, inner: number): { t: number; b: number } {
   const e = Math.sqrt(Math.max(0, 1 - u * u));
-  const closing = Math.sin(Math.PI * p.top);
+  const closing = Math.sin(Math.PI * p.upperLid);
   const t =
-    (1 - 2 * p.top) * e +
+    (1 - 2 * p.upperLid) * e +
     0.22 * closing * (1 - u * u) + // a closing lid wraps the eyeball
     -p.tilt * 0.275 * (1 - u * inner) + // slant: the outer end drops by tilt
     0.04 * closing * u * inner * (1 - u * u); // slight S: the peak leans toward the nose
-  const b = -(1 - 2 * p.bottom) * e + p.arch * 1.12 * (1 - u * u);
+  const b = -(1 - 2 * p.lowerLid) * e + p.arch * 1.12 * (1 - u * u);
   return { t, b };
 }
 

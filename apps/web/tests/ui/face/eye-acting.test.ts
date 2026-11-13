@@ -32,7 +32,7 @@ function upperLid(d: string): Point[] {
   return points(d.slice(0, d.indexOf('L')));
 }
 
-const OPEN: LidPose = { top: 0, bottom: 0, arch: 0, tilt: 0, sx: 1, sy: 1 };
+const OPEN: LidPose = { upperLid: 0, lowerLid: 0, arch: 0, tilt: 0, sx: 1, sy: 1 };
 const names = Object.keys(EYE_POSES) as Array<keyof typeof EYE_POSES>;
 const ys = (pts: Point[]): number[] => pts.map((p) => p[1]);
 const height = (d: string): number => Math.max(...ys(points(d))) - Math.min(...ys(points(d)));
@@ -73,8 +73,8 @@ describe('eye acting', () => {
 
   it('never draws outside the eye for any lid shape a tween can pass through', () => {
     let checked = 0;
-    for (const top of [0, 0.2, 0.4, 0.6, 0.8])
-      for (const bottom of [0, 0.1, 0.2])
+    for (const upperLid of [0, 0.2, 0.4, 0.6, 0.8])
+      for (const lowerLid of [0, 0.1, 0.2])
         for (const arch of [0, 0.5, 1])
           for (const tilt of [-0.5, 0, 0.5, 1])
             for (const [sx, sy] of [
@@ -82,7 +82,7 @@ describe('eye acting', () => {
               [1.1, 0.86],
               [1, 1],
             ]) {
-              const lid = { top, bottom, arch, tilt, sx, sy };
+              const lid = { upperLid, lowerLid, arch, tilt, sx, sy };
               const rx = EYE.rx * sx;
               const ry = EYE.ry * sy;
               const cy = 50 + (EYE.ry - ry) * 0.2;
@@ -97,10 +97,10 @@ describe('eye acting', () => {
   it('keeps even an out-of-range pose inside the eye (a tween overshoot, a bad table entry)', () => {
     const outOfRange: Array<Partial<LidPose>> = [
       { arch: 3 },
-      { arch: 2, top: 0.4 },
-      { top: 0.3, tilt: -3 },
-      { top: -0.6 },
-      { bottom: -0.6 },
+      { arch: 2, upperLid: 0.4 },
+      { upperLid: 0.3, tilt: -3 },
+      { upperLid: -0.6 },
+      { lowerLid: -0.6 },
       { sx: 1.6, sy: 0.5 },
     ];
     for (const extra of outOfRange) {
@@ -129,8 +129,8 @@ describe('eye acting', () => {
   });
 
   it('draws nothing when the lids meet', () => {
-    expect(eyeWhitePath(32, 50, { ...OPEN, top: 1 }, 1)).toBe('');
-    expect(eyeWhitePath(32, 50, { ...OPEN, top: 0.8, bottom: 0.4 }, 1)).toBe('');
+    expect(eyeWhitePath(32, 50, { ...OPEN, upperLid: 1 }, 1)).toBe('');
+    expect(eyeWhitePath(32, 50, { ...OPEN, upperLid: 0.8, lowerLid: 0.4 }, 1)).toBe('');
     expect(eyeWhitePath(32, 50, OPEN, 1)).not.toBe('');
   });
 
@@ -216,7 +216,7 @@ describe('eye acting', () => {
         expect([pose.left.sx, pose.left.sy]).toEqual([1, 1]);
         expect(pose.left.tilt).toBeGreaterThanOrEqual(0);
         expect(pose.left.tilt).toBeLessThanOrEqual(0.3);
-        expect(pose.left.top).toBeLessThanOrEqual(0.25);
+        expect(pose.left.upperLid).toBeLessThanOrEqual(0.25);
         expect(pose.brows.left.inner).toBeGreaterThanOrEqual(0);
         expect(pose.brows.left.inner).toBeLessThanOrEqual(2.5);
         expect(pose.brows.left.lift).toBeGreaterThanOrEqual(-0.5);
