@@ -92,6 +92,27 @@ describe('the SDK logger on a prod process', () => {
     expect(records()[0]['lk.pii.added_in_a_later_sdk']).toBe(`[${FUTURE.length} chars]`);
   });
 
+  it('an upper-case pii segment is a pii key too (the match ignores case, as the SDK does)', () => {
+    initializeSdkLogger(PROD);
+    log().info({ 'lk.PII.message': REPLY, 'LK.Pii.user_input': SAID }, 'upper case');
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(records()[0]).toMatchObject({
+      'lk.PII.message': `[${REPLY.length} chars]`,
+      'LK.Pii.user_input': `[${SAID.length} chars]`,
+    });
+  });
+
+  it('a pii key 32 levels deep is cut at the depth cap: none of its text reaches stdout', () => {
+    initializeSdkLogger(PROD);
+    let nested: Record<string, unknown> = { 'lk.pii.deep_text': DEEP };
+    for (let i = 0; i < 32; i++) nested = { n: nested };
+    log().info(nested, 'deep');
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    let at: unknown = records()[0];
+    for (let i = 0; i < 32; i++) at = (at as Record<string, unknown>).n;
+    expect(at).toBe('[too deep]'); // the object holding the pii key, at depth 32
+  });
+
   it('a pii key nested at depth 2', () => {
     initializeSdkLogger(PROD);
     log().info({ outer: { inner: { 'lk.pii.deep_text': DEEP } } }, 'nested');
@@ -154,6 +175,31 @@ describe('the SDK logger on a dev process', () => {
     expect(tool['lk.pii.arguments']).toEqual(ARGS);
     expect(nested.outer).toEqual({ inner: { 'lk.pii.deep_text': DEEP } });
     expect(child['lk.pii.response']).toBe(BOUND);
+  });
+});
+
+describe('dev or prod is decided on every record, not once at install', () => {
+  it('installed on a dev env that later reads as prod: lengths from then on', () => {
+    const env: Record<string, string | undefined> = { ...DEV };
+    initializeSdkLogger(env);
+    log().info({ 'lk.pii.message': REPLY }, 'while dev');
+    delete env.FIRESTORE_DATABASE; // the same env object now reads as prod
+    log().info({ 'lk.pii.message': SAID }, 'now prod');
+    const [whileDev, nowProd] = records();
+    expect(whileDev['lk.pii.message']).toBe(REPLY); // positive control: dev logs the words
+    expect(nowProd['lk.pii.message']).toBe(`[${SAID.length} chars]`);
+    expect(written.join('')).not.toContain(SAID.slice(0, 8));
+  });
+
+  it('installed on a prod env that later reads as dev: the words from then on', () => {
+    const env: Record<string, string | undefined> = { ...PROD };
+    initializeSdkLogger(env);
+    log().info({ 'lk.pii.message': SAID }, 'while prod');
+    env.FIRESTORE_DATABASE = DEV.FIRESTORE_DATABASE;
+    log().info({ 'lk.pii.message': REPLY }, 'now dev');
+    const [whileProd, nowDev] = records();
+    expect(whileProd['lk.pii.message']).toBe(`[${SAID.length} chars]`);
+    expect(nowDev['lk.pii.message']).toBe(REPLY);
   });
 });
 
