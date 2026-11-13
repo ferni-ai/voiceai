@@ -47,7 +47,7 @@ vi.mock('../../../../utils/safe-logger.js', async (importOriginal) => {
 
 import type { SemanticRouterResult } from '../../types.js';
 import { clearRoutingEvents, getDashboardData, getRoutingEvents } from '../routing-analytics.js';
-import { recordRoutedTurn } from '../routed-turn.js';
+import { recordRoutedTurn, startRoutedTurn } from '../routed-turn.js';
 import { recordActualToolExecution } from '../../learning/implicit-correction-capture.js';
 import { initializeFirestorePersistence } from '../../persistence/firestore-persistence.js';
 
@@ -120,8 +120,12 @@ function routed(line: string): SemanticRouterResult {
   };
 }
 
-/** The turn is routed, then the LLM runs a different tool: the correction capture's case */
+/**
+ * The turn is routed as startSemanticRouting routes it (start, then record), then the LLM
+ * runs a different tool: the correction capture's case
+ */
 async function routeThenCorrect(line: string, sessionId: string, crisisTurn = false) {
+  startRoutedTurn({ userId: 'u-test', sessionId, crisisTurn });
   const eventId = recordRoutedTurn(routed(line), {
     userId: 'u-test',
     sessionId,
@@ -200,8 +204,10 @@ describe('a crisis routed turn', () => {
 
   it('drops the turn before it, so a tool run on the crisis turn is not learned', async () => {
     const turn = { userId: 'u-test', sessionId: 's-after', personaId: 'ferni' };
+    startRoutedTurn(turn);
     recordRoutedTurn(routed(ORDINARY), { ...turn, inputText: ORDINARY });
-    recordRoutedTurn(routed(CRISIS), { ...turn, inputText: CRISIS, crisisTurn: true });
+    // A crisis turn that ends before a route (an error or a blocked input) is only started
+    startRoutedTurn({ ...turn, crisisTurn: true });
     const corrected = await recordActualToolExecution('s-after', 'play_music', 'native_fc');
     await vi.waitFor(() => expect(writes).toHaveLength(1)); // the ordinary turn's event
 

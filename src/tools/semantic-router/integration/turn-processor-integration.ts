@@ -27,14 +27,8 @@ import type {
   HolisticContextSummary,
 } from '../types.js';
 import { DEFAULT_ROUTER_CONFIG, isToolExecutionResult } from '../types.js';
-import {
-  recordLLMBypass,
-  recordHintAdded,
-  recordConversation,
-  recordRoutingError,
-} from './metrics.js';
 import { recordRoutingOutcome } from './routing-analytics.js';
-import { recordRoutedTurn } from './routed-turn.js';
+import { recordRoutedTurn, startRoutedTurn } from './routed-turn.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
 
 // Phase 5: Adversarial Defense - sanitize inputs before routing
@@ -206,11 +200,6 @@ export type RoutingPath =
   | 'disabled' // Semantic routing disabled
   | 'error'; // Routing error
 
-/** recordRoutingError, except on a crisis turn, which leaves only a count (routed-turn.ts) */
-function recordErrorMetric(context: RoutingContext, text: string, error: string, ms: number) {
-  if (!context.crisisTurn) recordRoutingError(context.userId, context.sessionId, text, error, ms);
-}
-
 /**
  * Start semantic routing in parallel with turn processing
  *
@@ -224,6 +213,7 @@ export async function startSemanticRouting(
   userText: string,
   context: RoutingContext
 ): Promise<TurnRouterResult> {
+  const metrics = startRoutedTurn(context); // none on a crisis turn, which is only counted
   log.info(
     { userTextLength: userText.length, enabled: isRoutingEnabled() },
     '🎯 Semantic routing started'
@@ -254,8 +244,7 @@ export async function startSemanticRouting(
       },
       '🛡️ INPUT BLOCKED by adversarial defense (high threat detected)'
     );
-    recordErrorMetric(
-      context,
+    metrics.error(
       userText,
       `Input blocked: ${sanitizationResult.threats.map((t) => t.type).join(', ')}`,
       latencyMs
@@ -376,9 +365,7 @@ export async function startSemanticRouting(
 
     // If no match or conversation, don't execute
     if (!routeResult.action || routeResult.action.type === 'conversation') {
-      if (!context.crisisTurn) {
-        recordConversation(context.userId, context.sessionId, userText, latencyMs);
-      }
+      metrics.conversation(userText, latencyMs);
 
       log.info(
         { userTextLength: userText.length, confidence: topMatch?.confidence || 0 },
@@ -407,9 +394,7 @@ export async function startSemanticRouting(
 
         if (executeResult.success) {
           // Record successful LLM bypass
-          recordLLMBypass(
-            context.userId,
-            context.sessionId,
+          metrics.bypass(
             userText,
             topMatch.toolId,
             topMatch.confidence,
@@ -501,7 +486,7 @@ export async function startSemanticRouting(
           errorFields(execError),
           '❌ SEMANTIC → EXECUTION ERROR (falling back to JSON workaround)'
         );
-        recordErrorMetric(context, userText, String(execError), latencyMs);
+        metrics.error(userText, String(execError), latencyMs);
 
         // Record execution error to advanced analytics
         recordRoutingOutcome(analyticsEventId, {
@@ -527,9 +512,7 @@ export async function startSemanticRouting(
     // For hint/confirm/clarify, record and pass through to LLM with guidance
     if (routeResult.matches.length > 0) {
       const topMatch = routeResult.matches[0];
-      recordHintAdded(
-        context.userId,
-        context.sessionId,
+      metrics.hint(
         userText,
         topMatch.toolId,
         topMatch.confidence,
@@ -576,7 +559,7 @@ export async function startSemanticRouting(
   } catch (error) {
     const latencyMs = Math.round(performance.now() - startTime);
     log.warn(errorFields(error), '❌ SEMANTIC → ROUTING ERROR (falling back to JSON workaround)');
-    recordErrorMetric(context, userText, String(error), latencyMs);
+    metrics.error(userText, String(error), latencyMs);
     // No analytics event ID in error case since we failed before recording
     // sotaResult may be undefined if error occurred before SOTA pre-routing
     return {
