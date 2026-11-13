@@ -118,6 +118,7 @@ export interface CrisisGateTurn {
   escalation: Promise<CrisisGateDecision | null> | null;
   /** The caller went quiet after a release: this reply asks the direct question again. */
   reask?: boolean;
+  ends?: Promise<boolean>; // CRISIS_TIMEOUT_CHECKIN: a guided reply still gets the check-in's end
 }
 
 type Chunk = llm.ChatChunk | string | object;
@@ -299,8 +300,7 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
-  return { decision, escalation, reask };
+  return checkin.turn(verdictRead, { decision, reask, latest, env }, escalate);
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -485,7 +485,7 @@ export async function gatedReply(
   const reply = asking(await ask(ctx));
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
-  return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
+  const held = holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
@@ -496,4 +496,5 @@ export async function gatedReply(
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
+  return checkin.guided(held, gate.ends, callerWords(chatCtx));
 }

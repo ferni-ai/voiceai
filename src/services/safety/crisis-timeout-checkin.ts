@@ -81,7 +81,7 @@ const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
 function timeoutCheckin(
   turn: {
     verdict: CrisisVerdict | null;
-    decision: { action: string };
+    decision: { action: string; about?: string };
     reask?: boolean;
     latest: string;
   },
@@ -95,17 +95,35 @@ function timeoutCheckin(
 }
 
 /**
+ * Whether a pattern-guided turn's reply still gets the check-in's ending: the flag on, the read
+ * failed, a guide about the caller (never someone else), not a re-ask, a check-in word in the
+ * latest line, and the escalation kept a guide or none (never a script). On main these lines read
+ * as nothing and got the check-in; a guide must never leave their 988 to the model alone.
+ */
+function guideKeepsEnding(
+  turn: Parameters<typeof timeoutCheckin>[0],
+  next: { action: string } | null,
+  env: Env = process.env
+): boolean {
+  if (!flagOn('CRISIS_TIMEOUT_CHECKIN', env) || turn.verdict !== null) return false;
+  if (turn.decision.action !== 'guide' || turn.decision.about || turn.reask) return false;
+  return next?.action !== 'replace' && !!checkinWordsIn(turn.latest);
+}
+
+/**
  * The check-in reply with what it lacks said after it, in the caller's language: the safety
  * question when it asked none, the 988 line when it never said 988; both when the model gave
- * nothing.
+ * nothing. With `ends`, only once it settles true.
  */
 function withCheckinEnding<T>(
   reply: ReadableStream<T> | null,
-  caller: { latest: string }
+  caller: { latest: string },
+  ends: Promise<boolean> | true = true
 ): ReadableStream<T | string> {
   const lang = checkinWordsIn(caller.latest) === 'es' ? 'es' : 'en';
   const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
-  return withReplyEnding(reply ?? empty, (said) => {
+  return withReplyEnding(reply ?? empty, async (said) => {
+    if (!(await ends)) return '';
     const missing = [
       ASKED_SAFE.test(said) ? '' : SAFETY_QUESTION[lang],
       SAID_988.test(said) ? '' : LINE_988[lang],
@@ -116,12 +134,17 @@ function withCheckinEnding<T>(
 }
 
 type GateTurn = Omit<Parameters<typeof timeoutCheckin>[0], 'verdict'> & { env?: Env };
+type GateEnds<G extends GateTurn, D> = Pick<G, 'decision' | 'reask'> & {
+  escalation: Promise<D | { action: 'guide'; guidance: string } | null>;
+  ends: Promise<boolean>;
+};
 
 /**
- * The voice gate's two touch points (crisis-gate.ts), one call each. `escalation`: once the read
+ * The voice gate's touch points (crisis-gate.ts), one call each. `escalation`: once the read
  * is in, a failed read (null) on check-in words is the check-in and every other read goes to
  * `escalate`; no live read (undefined) escalates nothing. `ending`: on the check-in's reply only,
- * code says what the reply lacks; every other reply passes untouched.
+ * code says what the reply lacks; every other reply passes untouched. `turn` and `guided` do the
+ * same for a pattern-guided turn whose read failed (guideKeepsEnding).
  */
 export const checkin = {
   async escalation<D>(
@@ -133,6 +156,28 @@ export const checkin = {
     if (verdict === undefined) return null;
     const guidance = timeoutCheckin({ ...turn, verdict }, turn.env);
     return guidance ? { action: 'guide' as const, guidance } : escalate(verdict);
+  },
+  /** The gate turn: `escalation`, and whether a pattern-guided reply still gets the ending. */
+  turn<D extends { action: string }, G extends GateTurn>(
+    read: Promise<CrisisVerdict | null | undefined>,
+    turn: G,
+    escalate: (verdict: CrisisVerdict | null) => Promise<D | null>
+  ): GateEnds<G, D> {
+    const escalation = checkin.escalation(read, turn, escalate);
+    const ends = Promise.all([read, escalation]).then(
+      ([verdict, next]) =>
+        verdict !== undefined && guideKeepsEnding({ ...turn, verdict }, next, turn.env),
+      () => false
+    );
+    return { decision: turn.decision, reask: turn.reask, escalation, ends };
+  },
+  /** A pattern-guided reply, with the check-in's ending once `ends` settles true. */
+  guided<T>(
+    reply: ReadableStream<T>,
+    ends: Promise<boolean> | undefined,
+    caller: { latest: string }
+  ): ReadableStream<T | string> {
+    return ends ? withCheckinEnding(reply, caller, ends) : reply;
   },
   ending<T>(
     reply: ReadableStream<T> | null,
