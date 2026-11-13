@@ -10,13 +10,21 @@
  * The gate takes three model calls as options: generate (the classifier), adjudicate and
  * groundedReads. The classifier has the six answers above. The other two have one value here:
  * no answer, which is what a machine with no model key gets. So a flag that acts on a second
- * model's answer changes nothing in this grid yet. No model can be reached from this file: the
- * last test fails if a model client was asked for, a connection was opened or fetch was called.
+ * model's answer changes nothing in this grid yet, and the grounded release is never consulted
+ * at all (the last test pins that). No model can be reached from this file: a
+ * test fails if a model client was asked for, a connection was opened or fetch was called while
+ * it ran, and the last test checks the total.
  *
  * Which flags are checked is measured, not listed: the calls run behind a process.env that
  * records each name read, at the defaults and with every flag found so far on, until no new
- * name turns up. Every flag the gate reads is then set alone and last, as 'on' and 'live';
- * 'shadow' must change nothing; a flag that defaults on must lower nothing when turned off.
+ * name turns up. Every flag the gate reads then gets every word in WORDS, whatever its default;
+ * the default only decides which words are the inert ones, and an inert word must change
+ * nothing at all. Every word is tried alone, and on top of every other flag set to on and to
+ * live.
+ *
+ * Calls must not see each other. FORGET_CALLS empties what the crisis modules remember before
+ * each call; the list is kept by hand, so the calls are also placed last to first and must read
+ * the same.
  *
  * Lowered means, turn by turn: the reply never came; code's words became the model's; 988 or
  * 911 left the reply; 911 stopped coming first; 988 or 911 left the last thing the model was
@@ -44,7 +52,7 @@
 import { llm } from '@livekit/agents';
 import net from 'node:net';
 import { ReadableStream } from 'node:stream/web';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
 import { NOT_YET_COVERED } from '../../../services/safety/__tests__/crisis-flag-homes.js';
@@ -52,11 +60,25 @@ import {
   CRISIS_FLAGS,
   RUNNER_MARKERS,
 } from '../../../services/safety/__tests__/crisis-lane-flags.js';
+import { resetCrisisAdjudicatorCache } from '../../../services/safety/crisis-adjudicator.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import { resetClassifierBlocked } from '../../../services/safety/crisis-classifier-blocked.js';
+import { resetEasingReads } from '../../../services/safety/crisis-classifier-only-live.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { DEFAULT_GROUNDED_RELEASE_MODELS } from '../../../services/safety/crisis-grounded-release.js';
+import { resetConfirmedCallRisk } from '../../../services/safety/crisis-confirmed-risk.js';
+import { resetGradedResponse } from '../../../services/safety/crisis-graded-shadow.js';
+import {
+  DEFAULT_GROUNDED_RELEASE_MODELS,
+  resetGroundedRelease,
+} from '../../../services/safety/crisis-grounded-release.js';
+import { resetGroundedScreen } from '../../../services/safety/crisis-grounded-screen.js';
+import { resetImminentAgreement } from '../../../services/safety/crisis-imminent-agreement.js';
+import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import { resetSecondReadTurns } from '../../../services/safety/crisis-second-read-turn.js';
+import { resetWhoReads } from '../../../services/safety/crisis-who.js';
 import { CRISIS_LINE_SPOKEN } from '../../../services/safety/crisis-line-speech.js';
 import { EMERGENCY_NUMBER } from '../../../services/safety/emergency-number.js';
 import { gatedReply } from '../crisis-gate.js';
@@ -88,7 +110,7 @@ const realConnect = net.Socket.prototype.connect;
 const realFetch = globalThis.fetch;
 net.Socket.prototype.connect = function (this: net.Socket): net.Socket {
   reached.connections += 1;
-  queueMicrotask(() => this.destroy(new Error(NO_NETWORK)));
+  globalThis.queueMicrotask(() => this.destroy(new Error(NO_NETWORK)));
   return this;
 } as typeof realConnect;
 globalThis.fetch = (async () => {
@@ -109,7 +131,11 @@ const FAKED: Parameters<typeof vi.useFakeTimers>[0] = {
 };
 /** How long a held line's hold lasts here. */
 const HOLD_MS = 8;
-/** How production runs the gate; not manifest flags, so no case below sets them. */
+/**
+ * The guard and the classifier live, as production runs them; not manifest flags, so no case
+ * below sets them. The classifier's time limit is this file's own (production's default is
+ * 1000 ms): a lowering keyed on the limit's value is not seen here.
+ */
 const MODES = {
   CRISIS_GUARD_MODE: 'live',
   CRISIS_CLASSIFIER_MODE: 'live',
@@ -137,9 +163,13 @@ const CLASSIFIER: Record<Answer, CrisisGenerateFn> = {
   },
 };
 
-/** The second models, the adjudicator and the grounded release reads: no answer, as with no key. */
-let secondModelAsks = 0;
-const NO_ANSWER: CrisisGenerateFn = async () => (secondModelAsks++, '');
+/** The second models give no answer, as with no key. Counted apart: see the last test. */
+const secondModelAsks = { adjudicator: 0, 'grounded release': 0 };
+const noAnswer =
+  (asked: keyof typeof secondModelAsks): CrisisGenerateFn =>
+  async () => (secondModelAsks[asked]++, '');
+const ADJUDICATOR = noAnswer('adjudicator');
+const GROUNDED_READS = DEFAULT_GROUNDED_RELEASE_MODELS.map(() => noAnswer('grounded release'));
 
 /** One turn as the caller got it. */
 interface Heard {
@@ -162,10 +192,30 @@ const streamOf = (text: string): ReadableStream<unknown> =>
   });
 
 let sessions = 0;
+/**
+ * What the crisis modules remember about calls, emptied before each call here. No call sees an
+ * earlier one, and the run does not slow as calls pile up: the clock here never reaches the
+ * hours after which the modules drop a call themselves.
+ */
+const FORGET_CALLS = [
+  resetCrisisClassifierCache,
+  resetCrisisAdjudicatorCache,
+  resetCrisisCallRisk,
+  resetClassifierBlocked,
+  resetEasingReads,
+  resetConfirmedCallRisk,
+  resetGradedResponse,
+  resetGroundedRelease,
+  resetGroundedScreen,
+  resetImminentAgreement,
+  resetCallRiskSnapshots,
+  resetSecondReadTurns,
+  resetWhoReads,
+];
 
 /** One call through the real gate, turn by turn, on one session. */
 async function place(call: ReplyCall, answer: Answer): Promise<Heard[]> {
-  resetCrisisClassifierCache();
+  for (const forget of FORGET_CALLS) forget();
   vi.setSystemTime(new Date(2026, 5, 10, call.hour ?? 12));
   let holdAsked = 0;
   const session = {
@@ -197,8 +247,8 @@ async function place(call: ReplyCall, answer: Answer): Promise<Heard[]> {
       const stream = await gatedReply(ctx.copy(), session, model as never, opener as never, {
         env: process.env as Record<string, string>,
         generate: CLASSIFIER[answer],
-        adjudicate: NO_ANSWER,
-        groundedReads: DEFAULT_GROUNDED_RELEASE_MODELS.map(() => NO_ANSWER),
+        adjudicate: ADJUDICATOR,
+        groundedReads: GROUNDED_READS,
       });
       if (stream)
         for await (const chunk of stream as unknown as AsyncIterable<string>) {
@@ -219,14 +269,18 @@ async function place(call: ReplyCall, answer: Answer): Promise<Heard[]> {
 
 type Readings = Map<string, Heard[]>;
 
-/** Every call under every classifier answer, keyed `call/answer`, with the env as it stands. */
-async function placeAll(): Promise<Readings> {
+/**
+ * Every call under every classifier answer, keyed `call/answer`, with the env as it stands.
+ * `backwards` places the same calls last to first: a reading must not depend on its place.
+ */
+async function placeAll(backwards = false): Promise<Readings> {
   // The turn reminder picks its style lines at random: the same picks on every turn compared.
   const random = vi.spyOn(Math, 'random').mockReturnValue(0.42);
   const out: Readings = new Map();
+  const pairs = CALLS.flatMap((call) => ANSWERS.map((answer) => [call, answer] as const));
   try {
-    for (const call of CALLS)
-      for (const answer of ANSWERS) out.set(`${call.name}/${answer}`, await place(call, answer));
+    for (const [call, answer] of backwards ? pairs.reverse() : pairs)
+      out.set(`${call.name}/${answer}`, await place(call, answer));
   } finally {
     random.mockRestore();
   }
@@ -374,9 +428,10 @@ async function readUnder(flags: FlagValues): Promise<Readings> {
 }
 
 /** Every turn that gives less with `flags` than with `base`, and every floor `flags` breaks. */
-async function losses(base: FlagValues, flags: FlagValues): Promise<string[]> {
+async function losses(base: FlagValues, flags: FlagValues, keep = true): Promise<string[]> {
   const off = await readUnder(base);
-  const on = await readUnder(flags);
+  // An on-top reading is used once: read it fresh, so the cache holds only what is read twice.
+  const on = keep ? await readUnder(flags) : await placeAllUnder(flags);
   const out = under(on);
   for (const [key, turns] of off)
     turns.forEach((turn, i) => {
@@ -398,16 +453,44 @@ const defaultOf = (name: string): string =>
   FLAG_MANIFEST[name as keyof typeof FLAG_MANIFEST].default;
 const allBut = (name: string, value: string): FlagValues =>
   Object.fromEntries(READ_BY_GATE.filter((o) => o !== name).map((o) => [o, value]));
-const ON_VALUES = ['on', 'live'] as const;
+/**
+ * Every word a flag is set to: empty (a real deploy state), the four mode words, and one that
+ * is misspelt. Every check below walks this one list, so a new mode word is added here only.
+ */
+const MISSPELT = 'onn';
+const WORDS = ['', 'off', 'shadow', 'on', 'live', MISSPELT] as const;
+/** The words that leave a flag at its default: these must change no reply at all. */
+const inertFor = (name: string): readonly string[] =>
+  defaultOf(name) === 'off' ? ['', 'off', 'shadow', MISSPELT] : ['', 'on', MISSPELT];
+/** What every other flag is set to when a word is tried on top of them. */
+const BASES = ['on', 'live'] as const;
+const shown = (word: string): string => word || "''";
 const knownToLower = (name: string, value: string): boolean =>
   LOWERS_A_REPLY[name]?.value === value;
 const CASES = READ_BY_GATE.flatMap((name) =>
-  ON_VALUES.map((value) => [name, value] as const)
-).filter(([name, value]) => !knownToLower(name, value));
-const DEFAULT_OFF = READ_BY_GATE.filter((name) => defaultOf(name) === 'off');
-const DEFAULT_ON = READ_BY_GATE.filter((name) => defaultOf(name) !== 'off');
+  WORDS.map((word) => [name, shown(word), word] as const)
+).filter(([name, , word]) => !knownToLower(name, word));
+const ON_TOP = CASES.flatMap(([name, label, word]) =>
+  BASES.map((base) => [name, label, base, word] as const)
+);
+/** Every flag at once: unset, then each base word. */
+const EVERY_FLAG: readonly (readonly [string, FlagValues])[] = [
+  ['at its default', {}],
+  ...BASES.map((base) => [`set to ${base}`, allBut('', base)] as const),
+];
+const INERT = READ_BY_GATE.flatMap((name) =>
+  inertFor(name).map((word) => [name, shown(word), word] as const)
+);
 
 beforeAll(() => void vi.useFakeTimers(FAKED));
+// Per test, so the red names the test that reached out, in any order the tests run in. The first
+// test to run also answers for what the file reached while it was loading.
+let reachedBefore = { ...reached };
+afterEach(({ task }) => {
+  const before = reachedBefore;
+  reachedBefore = { ...reached };
+  expect(reached, `reached out during "${task.name}"`).toEqual(before);
+});
 afterAll(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
@@ -432,6 +515,17 @@ describe('no flag lowers what a caller in crisis hears', () => {
     expect(kinds.filter((g) => !g["code's words"]).length).toBeGreaterThan(20);
   });
 
+  // FORGET_CALLS is kept by hand. A module that remembers a call and is missing from it shows
+  // here: placed last to first, every call follows a different one.
+  it.each(EVERY_FLAG)(
+    'reads every call the same placed last to first, every flag %s',
+    async (_label, flags) => {
+      const forwards = await readUnder(flags);
+      const backwards = await placeAllUnder(flags, true);
+      expect(Object.fromEntries(backwards)).toEqual(Object.fromEntries(forwards));
+    }
+  );
+
   it('checks every crisis-lane flag it says it does, and no flag it says it does not', async () => {
     const defaults = await readUnder({});
     for (const [name, { call, raises }] of Object.entries(SHOWN_ON)) {
@@ -454,28 +548,25 @@ describe('no flag lowers what a caller in crisis hears', () => {
     }
     // A flag that changes a reply here is checked here: give it a SHOWN_ON row.
     for (const name of NOT_YET_COVERED.filter((n) => READ_BY_GATE.includes(n)))
-      for (const value of [...ON_VALUES, 'off'])
-        expect(await moved({ [name]: value }), `${name}=${value} changes a reply`).toEqual([]);
+      for (const word of WORDS)
+        expect(await moved({ [name]: word }), `${name}=${shown(word)} changes a reply`).toEqual([]);
   });
 
-  it.each(CASES)('%s=%s alone lowers no reply', async (name, value) => {
-    expect(await losses({}, { [name]: value })).toEqual([]);
+  it.each(CASES)('%s=%s alone lowers no reply', async (name, _label, word) => {
+    expect(await losses({}, { [name]: word })).toEqual([]);
   });
 
-  it.each(CASES)(
-    '%s=%s on top of every other flag the gate reads lowers no reply',
-    async (name, value) => {
-      const base = allBut(name, value);
-      expect(await losses(base, { ...base, [name]: value })).toEqual([]);
+  it.each(ON_TOP)(
+    '%s=%s on top of every other flag set to %s lowers no reply',
+    async (name, _label, base, word) => {
+      const others = allBut(name, base);
+      // Every flag at the same word is one reading for all of them: that one is kept.
+      expect(await losses(others, { ...others, [name]: word }, word === base)).toEqual([]);
     }
   );
 
-  it.each(DEFAULT_ON)('%s=off lowers no reply', async (name) => {
-    expect(await losses({}, { [name]: 'off' })).toEqual([]);
-  });
-
-  it.each(DEFAULT_OFF)('%s=shadow changes no reply', async (name) => {
-    expect(await moved({ [name]: 'shadow' })).toEqual([]);
+  it.each(INERT)('%s=%s is its default and changes no reply', async (name, _label, word) => {
+    expect(await moved({ [name]: word })).toEqual([]);
   });
 
   it.each(Object.entries(LOWERS_A_REPLY))(
@@ -487,20 +578,23 @@ describe('no flag lowers what a caller in crisis hears', () => {
     }
   );
 
-  // Last, so it reads the whole grid. A reader with a model call of its own shows up here.
+  // The total, in whatever order the tests ran. A reader with its own model call shows up here.
   it('reaches no model: the second models are asked through the stub and nowhere else', async () => {
     await readUnder({ CRISIS_ADJUDICATOR: 'shadow' });
     expect(reached).toEqual({ 'model clients': 0, connections: 0, fetches: 0 });
-    expect(secondModelAsks).toBeGreaterThan(0);
+    expect(secondModelAsks.adjudicator).toBeGreaterThan(0);
+    // No call here reaches the grounded release, under any flag: its stub is never asked. When a
+    // call does reach it, this goes red; assert its count above zero then, as for the adjudicator.
+    expect(secondModelAsks['grounded release']).toBe(0);
   });
 });
 
 /** The calls with only these flags set, read fresh (never from the cache). */
-async function placeAllUnder(flags: FlagValues): Promise<Readings> {
+async function placeAllUnder(flags: FlagValues, backwards = false): Promise<Readings> {
   for (const name of STUBBED) vi.stubEnv(name, flags[name]);
   for (const [name, value] of Object.entries(MODES)) vi.stubEnv(name, value);
   try {
-    return await placeAll();
+    return await placeAll(backwards);
   } finally {
     vi.unstubAllEnvs();
   }
