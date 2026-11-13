@@ -4,10 +4,18 @@
  * after the room closes, then runs its shutdown callbacks (awaited, no timeout)
  * and exits the process. finishOnce runs the work once, from whichever comes
  * first, and the shutdown callback waits for it.
+ *
+ * finishOnce is private to call-end.ts: callTypeEnd's `finish` is its run.
  */
 import { describe, expect, it, vi } from 'vitest';
 
-const { finishOnce } = await import('../metadata-parser.js');
+const { callTypeEnd } = await import('../call-end.js');
+
+const noRelease = async (): Promise<void> => undefined;
+const finishOnce = (
+  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
+  finish: () => Promise<void>
+): (() => Promise<void>) => callTypeEnd(ctx, finish, noRelease).finish;
 
 function fakeJob() {
   const callbacks: Array<() => Promise<void>> = [];
@@ -19,12 +27,12 @@ function fakeJob() {
   };
 }
 
-describe('finishOnce', () => {
+describe('callTypeEnd finish (finishOnce)', () => {
   it('runs from the shutdown callbacks when the entrypoint never got there', async () => {
     const job = fakeJob();
     const finish = vi.fn(async () => undefined);
     finishOnce(job.ctx, finish);
-    expect(job.callbacks).toHaveLength(1);
+    expect(job.callbacks).toHaveLength(2); // the finish, and the release that waits for it
     await job.shutdown();
     expect(finish).toHaveBeenCalledTimes(1);
   });

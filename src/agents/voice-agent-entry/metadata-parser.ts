@@ -18,6 +18,7 @@ import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
 import { livePersonaId } from '../../personas/index.js';
+import { roomKeyOf } from './call-end.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -229,7 +230,7 @@ export async function setupCallTypeContexts(
       const trusted = await isTrustedDispatch(rawJobMetadata);
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
-      const roomNameForContext = roomName || `call-${metadata.callId}`;
+      const roomNameForContext = roomKeyOf(metadata, roomName);
       const outboundContext = {
         callId: metadata.callId as string,
         recipientName: ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
@@ -395,24 +396,6 @@ export async function finishCallTypeContexts(
   if (!call) return;
   const trusted = await isTrustedDispatch(rawJobMetadata);
   await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000), trusted);
-}
-
-/**
- * Runs `finish` once, from whichever comes first: the entrypoint's own exit
- * path, or LiveKit's shutdown callbacks. The job gives the entrypoint only 15 s
- * after the room closes (ENTRYPOINT_SHUTDOWN_TIMEOUT in @livekit/agents) and
- * then exits the process, but it awaits its shutdown callbacks first. Without
- * this, a call report still running at the end of a slow cleanup (the LLM read
- * of the call, the requester's push and records) was dropped with no log line.
- */
-export function finishOnce(
-  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
-  finish: () => Promise<void>
-): () => Promise<void> {
-  let running: Promise<void> | undefined;
-  const once = (): Promise<void> => (running ??= finish());
-  ctx.addShutdownCallback(once);
-  return once;
 }
 
 /**

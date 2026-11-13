@@ -65,7 +65,12 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import {
+  finishCallTypeContexts,
+  parseJobMetadata,
+  setupCallTypeContexts,
+} from './metadata-parser.js';
+import { callTypeEnd, releaseCallTypeContexts } from './call-end.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona, callerSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
@@ -200,6 +205,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   let userId: string | null = null;
   // Closes out call-type work (e.g. reports an on-behalf call) on any exit path
   let finishCallType: (() => Promise<void>) | undefined;
+  // Releases the call's context; each exit path runs it after the session is closed
+  let releaseCallType: (() => Promise<void>) | undefined;
   let personaId = 'ferni';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let services: any = null;
@@ -246,8 +253,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
-    finishCallType = finishOnce(ctx, () => // also on shutdown: the job exits 15 s after the room closes
-      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata));
+    // Both also run on shutdown: the job exits 15 s after the room closes
+    ({ finish: finishCallType, release: releaseCallType } = callTypeEnd(
+      ctx,
+      async () =>
+        finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata),
+      async () => releaseCallTypeContexts(metadata, sessionId, ctx.job.room?.name)
+    ));
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
     await setupCallTypeContexts(
@@ -797,6 +809,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
 
       process.stderr.write(`[voice-agent-entry] Session ended cleanly (multi-agent).\n`);
+      await releaseCallType();
       unregisterSession(sessionId, 'multi_agent_exit');
       return;
     }
@@ -919,6 +932,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     process.stderr.write(`[voice-agent-entry] Session ended cleanly.\n`);
+    await releaseCallType();
     unregisterSession(sessionId, 'clean_exit');
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
@@ -983,6 +997,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // After the wait, so a spoken error message isn't cut off.
     await closeAgentSession(session, { sessionId, endReason: 'error' });
+    await releaseCallType?.().catch(() => undefined); // after the close: no turn can read it now
 
     unregisterSession(sessionId, `crash_in_${currentPhase}`);
   }
