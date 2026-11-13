@@ -8,6 +8,10 @@ import {
   MAX_ALERT_ATTEMPTS,
   REPLY_WAIT_MS,
 } from '../call-alerts.js';
+import { setPlayoutHeld } from '../playout-hold.js';
+
+/** call-alerts.ts's late-play watch (module-private there): a dropped reply is watched this long. */
+const LATE_PLAY_WAIT_MS = 120_000;
 
 /** A LiveKit SpeechHandle as the speaker sees it. */
 function fakeHandle() {
@@ -445,6 +449,113 @@ describe('call alerts', () => {
     await done;
     await tick(REPLY_WAIT_MS);
     expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
+  });
+
+  it('a soft pause stops the clock too: held audio is not heard (#2545)', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    s.play();
+    await tick(300);
+    setPlayoutHeld(s, true); // BARGE_IN_SOFT_PAUSE: audio paused, LiveKit still 'speaking'
+    await tick(1000);
+    expect(msgs()).toEqual([]);
+    setPlayoutHeld(s, false);
+    await tick(HEARD_AFTER_MS - 300 - 1);
+    expect(msgs()).toEqual([]);
+    await tick(1);
+    await done;
+    expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
+  });
+
+  it('a reply that starts while held is counted from the release', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    setPlayoutHeld(s, true);
+    s.play();
+    await tick(1000);
+    expect(msgs()).toEqual([]);
+    setPlayoutHeld(s, false);
+    await tick(HEARD_AFTER_MS);
+    await done;
+    expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
+  });
+
+  describe('a reply dropped at reply_timeout', () => {
+    /** An alert whose reply neither played nor ended within REPLY_WAIT_MS. */
+    async function timedOut() {
+      const s = fakeSession();
+      s.agentState = 'listening';
+      const onSpoken = vi.fn();
+      const { speak, msgs, logs } = speaker(s);
+      const done = speak({ ...timer, onSpoken });
+      await tick(REPLY_WAIT_MS);
+      await done;
+      return { s, onSpoken, msgs, logs };
+    }
+
+    it('that plays later is marked spoken once, so the owner is not told again', async () => {
+      const { s, onSpoken, msgs, logs } = await timedOut();
+      expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+      expect(onSpoken).not.toHaveBeenCalled();
+      s.play();
+      await tick(HEARD_AFTER_MS - 1);
+      expect(onSpoken).not.toHaveBeenCalled();
+      await tick(1);
+      expect(onSpoken).toHaveBeenCalledTimes(1);
+      expect(msgs()).toEqual(['CALL_ALERT_DROPPED', 'CALL_ALERT_SPOKEN']);
+      expect(logs[1].fields).toMatchObject({ late: true, attempt: 1 });
+      s.handles[0].finish(false);
+      await tick(LATE_PLAY_WAIT_MS);
+      expect(onSpoken).toHaveBeenCalledTimes(1);
+      expect(s.generateReply).toHaveBeenCalledTimes(1);
+    });
+
+    it('that finishes uninterrupted later is marked spoken', async () => {
+      const { s, onSpoken, msgs } = await timedOut();
+      s.handles[0].finish(false);
+      await tick();
+      expect(onSpoken).toHaveBeenCalledTimes(1);
+      expect(msgs()).toEqual(['CALL_ALERT_DROPPED', 'CALL_ALERT_SPOKEN']);
+    });
+
+    it('that is cut later, or held, is not marked spoken', async () => {
+      const { s, onSpoken, msgs } = await timedOut();
+      s.play();
+      setPlayoutHeld(s, true);
+      await tick(HEARD_AFTER_MS * 3);
+      s.handles[0].finish(true);
+      setPlayoutHeld(s, false);
+      await tick(HEARD_AFTER_MS);
+      expect(onSpoken).not.toHaveBeenCalled();
+      expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+    });
+
+    it('stops watching when the call closes', async () => {
+      const { s, onSpoken, msgs } = await timedOut();
+      s.close();
+      await tick();
+      expect(s.listenerCount(voice.AgentSessionEventTypes.AgentStateChanged)).toBe(0);
+      s.handles[0].finish(false);
+      await tick();
+      expect(onSpoken).not.toHaveBeenCalled();
+      expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+    });
+
+    it(`stops watching ${LATE_PLAY_WAIT_MS} ms after the drop`, async () => {
+      const { s, onSpoken } = await timedOut();
+      expect(s.listenerCount(voice.AgentSessionEventTypes.AgentStateChanged)).toBe(1);
+      await tick(LATE_PLAY_WAIT_MS);
+      expect(s.listenerCount(voice.AgentSessionEventTypes.AgentStateChanged)).toBe(0);
+      s.handles[0].finish(false);
+      await tick();
+      expect(onSpoken).not.toHaveBeenCalled();
+    });
   });
 
   it('gives Ferni the facts, not canned words', () => {

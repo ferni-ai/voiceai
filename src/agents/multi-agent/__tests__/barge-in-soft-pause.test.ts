@@ -14,6 +14,7 @@ import {
   SUSTAINED_SPEECH_MS,
 } from '../barge-in-fastpath.js';
 import { installLiveCallBehaviors } from '../live-call-behaviors.js';
+import { playoutHeld } from '../../shared/playout-hold.js';
 import { ResumeBufferOutput } from '../resume-buffer.js';
 import {
   SOFT_PAUSE_CONFIRM_MS,
@@ -476,6 +477,52 @@ describe('a live call', () => {
       expect(c.room.calls).toEqual([]);
       expect(c.session.interrupt).toHaveBeenCalledTimes(1); // as today
     }
+  });
+
+  it('flag on: the pause marks the playout held until the resume (#2545)', () => {
+    const c = liveCall('on');
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    expect(playoutHeld(c.session)).toBe(false);
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+    expect(c.room.calls).toEqual(['pause']);
+    expect(playoutHeld(c.session)).toBe(true);
+    vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS);
+    expect(c.room.calls).toEqual(['pause', 'resume']);
+    expect(playoutHeld(c.session)).toBe(false);
+  });
+
+  it('flag on: a pause LiveKit took over is released too, as its agent state then counts', () => {
+    const c = liveCall('on');
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+    expect(playoutHeld(c.session)).toBe(true);
+    // LiveKit paused this reply itself (its false interruption): its resume owns the audio.
+    Object.assign(c.session, { _activity: { ...c.session._activity, pausedSpeech: {} } });
+    vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS);
+    expect(c.room.calls).toEqual(['pause']);
+    expect(playoutHeld(c.session)).toBe(false);
+  });
+
+  it('flag on: a cut reply releases the hold when it ends', () => {
+    const c = liveCall('on');
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+    c.emit(voice.AgentSessionEventTypes.OverlappingSpeech, { isInterruption: true });
+    expect(playoutHeld(c.session)).toBe(true);
+    c.emit('agent_state_changed', { newState: 'listening' });
+    expect(playoutHeld(c.session)).toBe(false);
+  });
+
+  it("flag on: a reply that isn't paused is never marked held", () => {
+    const c = liveCall('on', { allowInterruptions: false });
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+    expect(c.room.calls).toEqual([]);
+    expect(playoutHeld(c.session)).toBe(false);
   });
 
   it('flag off: no verdict hook, no resume buffer, sustained speech cuts as before', () => {
