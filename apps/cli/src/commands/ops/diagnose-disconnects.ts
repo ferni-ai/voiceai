@@ -8,6 +8,7 @@
  *   pnpm ops:diagnose            # production agent
  *   pnpm ops:diagnose --dev      # ferni-dev agent
  *   AGENT_OBS_URL=http://localhost:8080 pnpm ops:diagnose --dev
+ *   AGENT_OBS_TOKEN=<an admin's Firebase ID token> is needed for crash data
  */
 
 import { execSync } from 'node:child_process';
@@ -18,6 +19,7 @@ import {
   resolveAgentEnv,
   runLkAgent,
 } from '../../utils/livekit-agent.js';
+import { crashSection, fetchCrashSummary, type CrashFetch } from './crash-report.js';
 
 // ANSI colors
 const RED = '\x1b[31m';
@@ -50,27 +52,18 @@ interface ObservabilityData {
   };
 }
 
-interface CrashSummary {
-  totalCrashes: number;
-  lastCrashTime: string | null;
-  activeSessions: number;
-  recentCrashes: Array<{
-    type: string;
-    error: { message: string };
-    timestamp: string;
-    severity: string;
-  }>;
-}
-
 // LiveKit Cloud agents expose no public HTTP port, so the agent's
 // observability endpoints are only reachable from a worker you can address
 // (a local `pnpm dev` worker on http://localhost:8080, say).
 const OBS_URL = process.env.AGENT_OBS_URL;
+/** An admin's Firebase ID token: the worker's crash analytics answers only an admin. */
+const OBS_TOKEN = process.env.AGENT_OBS_TOKEN;
 const TARGET = LIVEKIT_AGENTS[resolveAgentEnv(process.argv.slice(2), 'prod')];
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, token?: string): Promise<T | null> {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
@@ -137,12 +130,14 @@ async function main(): Promise<void> {
     console.log(`Status: ${statusColor(isRunning)}${agentStatus}${RESET}`);
   }
 
-  const [observability, crashes] = OBS_URL
+  const [observability, crash]: [ObservabilityData | null, CrashFetch] = OBS_URL
     ? await Promise.all([
-        fetchJson<ObservabilityData>(`${OBS_URL}/api/observability`),
-        fetchJson<CrashSummary>(`${OBS_URL}/api/crash-analytics`),
+        // Sent here too: the worker's diagnostic routes are moving behind the same admin check.
+        fetchJson<ObservabilityData>(`${OBS_URL}/api/observability`, OBS_TOKEN),
+        fetchCrashSummary(OBS_URL, OBS_TOKEN),
       ])
-    : [null, null];
+    : [null, { kind: 'unavailable' }];
+  const crashes = crash.kind === 'ok' ? crash.summary : null;
   if (!OBS_URL) {
     console.log(
       `\n${YELLOW}Call quality and crash data need AGENT_OBS_URL (a reachable worker health server).${RESET}`
@@ -198,30 +193,10 @@ async function main(): Promise<void> {
   // ===== CRASH ANALYTICS =====
   printSection('CRASH ANALYTICS');
 
-  if (!crashes) {
-    console.log(`${YELLOW}No crash data available${RESET}`);
-  } else {
-    const crashColor = crashes.totalCrashes === 0 ? GREEN : RED;
-    console.log(`Total Crashes: ${crashColor}${crashes.totalCrashes}${RESET}`);
-    console.log(`Active Sessions: ${crashes.activeSessions}`);
-
-    if (crashes.lastCrashTime) {
-      const lastCrash = new Date(crashes.lastCrashTime);
-      const minsAgo = Math.round((Date.now() - lastCrash.getTime()) / 1000 / 60);
-      console.log(`Last Crash: ${minsAgo} minutes ago`);
-    }
-
-    if (crashes.recentCrashes && crashes.recentCrashes.length > 0) {
-      console.log(`\n${YELLOW}Recent Crashes:${RESET}`);
-      for (const crash of crashes.recentCrashes.slice(0, 5)) {
-        const time = new Date(crash.timestamp).toLocaleTimeString();
-        const severityColor = crash.severity === 'critical' ? RED : YELLOW;
-        console.log(
-          `  ${severityColor}[${crash.severity}]${RESET} ${time} - ${crash.type}: ${crash.error.message.slice(0, 60)}`
-        );
-      }
-    }
-  }
+  // Refused (no or non-admin AGENT_OBS_TOKEN): said plainly, and the command exits 1.
+  const crashReport = crashSection(crash);
+  for (const line of crashReport.lines) console.log(line);
+  if (crashReport.exitCode !== 0) process.exitCode = crashReport.exitCode;
 
   // ===== ERROR BREAKDOWN =====
   if (observability?.errors?.errorsByType) {

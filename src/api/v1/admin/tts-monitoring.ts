@@ -20,6 +20,8 @@ import { getTTSStats, resetTTSStats } from '../../../speech/tts-monitoring.js';
 
 const log = createLogger({ module: 'AdminTTSMonitoringAPI' });
 
+type LastIssue = NonNullable<ReturnType<typeof getTTSStats>['lastIssue']>;
+
 // Base path for these routes
 const BASE_PATH = '/api/v1/admin/tts-monitoring';
 
@@ -70,13 +72,7 @@ export async function handleAdminTTSMonitoringRoutes(
         issueRate: stats.issueRate,
         issueRatePercent: (stats.issueRate * 100).toFixed(2) + '%',
         topPatterns: stats.topPatterns,
-        lastIssue: stats.lastIssue
-          ? {
-              time: stats.lastIssue.time.toISOString(),
-              timeAgo: formatTimeAgo(stats.lastIssue.time),
-              textPreview: stats.lastIssue.textPreview,
-            }
-          : null,
+        lastIssue: stats.lastIssue ? lastIssueForResponse(stats.lastIssue) : null,
         status: getHealthStatus(stats.issueRate),
       });
       return true;
@@ -106,6 +102,17 @@ export async function handleAdminTTSMonitoringRoutes(
     sendError(res, 'Internal server error');
     return true;
   }
+}
+
+/**
+ * The last issue as sent: its time as text, plus the fields getTTSStats set. Prod sets no
+ * textPreview (only the length), so the response then has no preview key at all.
+ */
+function lastIssueForResponse({
+  time,
+  ...lengthAndPreview
+}: LastIssue): Omit<LastIssue, 'time'> & { time: string; timeAgo: string } {
+  return { time: time.toISOString(), timeAgo: formatTimeAgo(time), ...lengthAndPreview };
 }
 
 /**
