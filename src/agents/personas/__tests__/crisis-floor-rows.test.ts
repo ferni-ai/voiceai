@@ -22,7 +22,20 @@ import { detectCrisis } from '../../../services/safety/crisis-guard.js';
 import { startCrisisGate } from '../crisis-gate.js';
 import { readTypedMessageForCrisis, type TypedTurn } from '../crisis-gate-text.js';
 
-const env = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
+const flags = (inHand: string, nominate: string) => ({
+  CRISIS_GUARD_MODE: 'live',
+  CRISIS_CLASSIFIER_MODE: 'live',
+  CRISIS_MEANS_IN_HAND: inHand,
+  CRISIS_MEANS_NOMINATE: nominate,
+});
+/** The request env the gate and the typed route read; set with setMeans. */
+let env = flags('live', 'live');
+/** Both means flags, in the request env and in process.env (direct detectCrisis reads). */
+const setMeans = (inHand: string, nominate: string) => {
+  vi.stubEnv('CRISIS_MEANS_IN_HAND', inHand);
+  vi.stubEnv('CRISIS_MEANS_NOMINATE', nominate);
+  env = flags(inHand, nominate);
+};
 const reply =
   (text: string): CrisisGenerateFn =>
   async () =>
@@ -119,8 +132,7 @@ const typed = (line: string, earlier: readonly TypedTurn[], generate: CrisisGene
 
 beforeEach(() => {
   resetCrisisClassifierCache();
-  vi.stubEnv('CRISIS_MEANS_IN_HAND', 'live');
-  vi.stubEnv('CRISIS_MEANS_NOMINATE', 'live');
+  setMeans('live', 'live');
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -226,7 +238,7 @@ describe('row 3, the next turn: the caller says they are not safe', () => {
 });
 
 describe('row 3 with CRISIS_MEANS_NOMINATE off: as on main', () => {
-  beforeEach(() => vi.stubEnv('CRISIS_MEANS_NOMINATE', 'off'));
+  beforeEach(() => setMeans('live', 'off'));
 
   it.each(CLASSIFIER.slice(0, 2))('classifier %s: every row-3 line passes', async (_, generate) => {
     for (const line of ROW_3) {
@@ -303,17 +315,31 @@ describe('controls with the same words stay quiet', () => {
   });
 });
 
-describe('the means flag reaches the gate through process.env', () => {
+describe('the means flags reach the gate through the request env', () => {
   const line = ROW_3[0];
   const ON_ITS_OWN = "i have the pills right here and i'm taking them now";
-
-  it('off: row 3 reads nothing; live: the guidance', async () => {
-    vi.stubEnv('CRISIS_MEANS_IN_HAND', 'off');
-    expect((await typed(line, [], CLASSIFIER[0][1])).action).toBe('pass');
+  /** process.env says the opposite of the request env, so only the request env can decide. */
+  const requestSays = (inHand: string, nominate: string, processSays: string) => {
+    setMeans(processSays, processSays);
+    env = flags(inHand, nominate);
     resetCrisisClassifierCache();
-    vi.stubEnv('CRISIS_MEANS_IN_HAND', 'live');
-    expect((await typed(line, [], CLASSIFIER[0][1])).action).toBe('guide');
-  });
+  };
+
+  it.each(['typed', 'voice'] as const)(
+    '%s: each flag off in the request env passes',
+    async (path) => {
+      const act = async () =>
+        path === 'typed'
+          ? (await typed(line, [], CLASSIFIER[0][1])).action
+          : voiceAction(line, [], CLASSIFIER[0][1]);
+      requestSays('off', 'live', 'live');
+      expect(await act()).toBe('pass');
+      requestSays('live', 'off', 'live');
+      expect(await act()).toBe('pass');
+      requestSays('live', 'live', 'off');
+      expect(await act()).toBe('guide');
+    }
+  );
 
   it.each(CLASSIFIER)(
     "main's live form, classifier %s: the script with 911, as on main",

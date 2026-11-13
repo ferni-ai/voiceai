@@ -30,7 +30,12 @@ import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-call
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
-import { MEANS_NOMINATED, NOT_SAFE_TAGS, notSafeAfterMeans } from './crisis-means-nominate.js';
+import {
+  MEANS_NOMINATED,
+  NOT_SAFE_TAGS,
+  notSafeAfterMeans,
+  resolveMeansNominateMode,
+} from './crisis-means-nominate.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
@@ -94,7 +99,7 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
-  /** Read for CRISIS_MEANS_IN_HAND when meansInHand is unset; default process.env. */
+  /** Read for CRISIS_MEANS_NOMINATE, and CRISIS_MEANS_IN_HAND when meansInHand is unset; default process.env. */
   env?: Record<string, string | undefined>;
   /**
    * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
@@ -304,7 +309,10 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode(options?.env));
+  const forms = meansFormsOf(
+    options?.meansInHand ?? resolveMeansInHandMode(options?.env),
+    resolveMeansNominateMode(options?.env)
+  );
   const score = scoreText(text, forms);
   const indicators = [...score.indicators];
   let { severity, subject } = score;

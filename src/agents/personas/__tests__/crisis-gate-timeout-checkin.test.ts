@@ -42,7 +42,9 @@ const ANSWERED: Record<string, CrisisGenerateFn> = {
 };
 
 const PILLS = 'i have a bottle of pills and i want to take them all';
-const UNSAFE = 'i feel unsafe with myself tonight';
+// Safety words the patterns leave to the classifier. "i feel unsafe with myself tonight" was the
+// line here until the patterns read it (#3789); it now stands with the lines they read, below.
+const UNSAFE = "i'm scared of what i might do tonight";
 const ORDINARY = 'what should I cook tonight?';
 
 function request(...turns: Array<['user' | 'assistant', string]>): llm.ChatContext {
@@ -205,6 +207,7 @@ describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', (
   it.each([
     "I hope I don't wake up tomorrow", // the patterns guide
     'I want to kill myself tonight', // the patterns replace
+    'i feel unsafe with myself tonight', // the patterns guide (#3789)
   ])('a line the patterns already read stands unchanged: "%s"', async (line) => {
     await unchanged(line, THROWS);
   });
