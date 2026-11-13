@@ -7,11 +7,13 @@
  * Now the turn's own crisis read (processTurn's crisis field: the pattern guard with the live
  * classifier's verdict, built here as process-turn.ts builds it) holds every one of those writes
  * when it replaced the reply, guided it, or gave a soft check-in. A crisis turn records no
- * unified moment of any kind, crisis_support and vulnerability included. A turn the read passes
+ * unified moment of any kind, crisis_support and vulnerability included, and hands semantic
+ * intelligence a crisis read on both of its paths, so it skips the turn. A turn the read passes
  * records them all as before.
  *
  * Only the stores are stubbed (the unified moment bridge, shared moments, Our Songs, relational
- * memory, collective learning, the music player). All lines fictional.
+ * memory, collective learning, the music player, the semantic intelligence entry point). All lines
+ * fictional.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,6 +39,15 @@ const state = vi.hoisted(() => ({
   n: 0,
   result: undefined as unknown,
   writes: [] as string[],
+  semanticReads: [] as unknown[],
+}));
+
+// Both semantic intelligence entry points (turn-handler.ts direct and processTurnLearning) land here
+vi.mock('../../../services/superhuman/semantic-intelligence/integration.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  processSemanticIntelligence: vi.fn(async (data: { crisisTurn?: unknown }) => {
+    state.semanticReads.push(data.crisisTurn);
+  }),
 }));
 
 vi.mock('../../../personality/bridge/personality-bridge.js', async (orig) => ({
@@ -160,7 +171,7 @@ const levelOf = (c: Crisis): Level =>
 
 /** One turn through the real handler: its crisis level, its safety output and every store write. */
 async function runTurn(userText: string, env: Record<string, string>, read = '', emotion = 'sad') {
-  Object.assign(state, { env, read, emotion, result: undefined, writes: [] });
+  Object.assign(state, { env, read, emotion, result: undefined, writes: [], semanticReads: [] });
   resetFireAndForgetMetrics();
   const sent: string[] = [];
   await handleUserTurn({
@@ -173,7 +184,11 @@ async function runTurn(userText: string, env: Record<string, string>, read = '',
     sendDataMessage: async (type: string) => void sent.push(type),
   } as unknown as Ctx);
   await vi.waitFor(() => {
-    for (const context of ['unified-personality-recording', 'bth-v4-relational-memory']) {
+    for (const context of [
+      'unified-personality-recording',
+      'bth-v4-relational-memory',
+      'semantic-intelligence',
+    ]) {
       const m = getFireAndForgetMetrics().byContext.find((c) => c.context === context);
       expect(m && m.successes + m.failures, context).toBe(1);
     }
@@ -189,6 +204,7 @@ async function runTurn(userText: string, env: Record<string, string>, read = '',
       .filter((c) => c === 'crisis_response' || c === 'safety_soft_check'),
     sent,
     writes: state.writes,
+    semanticReads: state.semanticReads,
   };
 }
 
@@ -269,6 +285,15 @@ describe('turn handler: no happy memory of a crisis turn', () => {
     }
   );
 
+  it.each(CRISIS_TURNS)(
+    'hands semantic intelligence the crisis read on both paths when %s',
+    async (_name, level, line, env, read) => {
+      const turn = await runTurn(line, env, read);
+      expect(turn.level).toBe(level);
+      expect(turn.semanticReads).toEqual([true, true]);
+    }
+  );
+
   it('counts a turn with no crisis read as a crisis turn (fail closed)', () => {
     expect(crisisReadTurn(undefined)).toBe(true);
   });
@@ -305,6 +330,12 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
     const turn = await runTurn(LONG + EVERY_MOMENT + 'and today was a good day', LIVE, NO_RISK);
     expect(turn.level).toBe('pass');
     for (const moment of ALL_MOMENTS) expect(turn.writes, moment).toContain(moment);
+  });
+
+  it('hands semantic intelligence an ordinary read on both paths', async () => {
+    const turn = await runTurn('the garden had a good week', LIVE, NO_RISK, 'joy');
+    expect(turn.level).toBe('pass');
+    expect(turn.semanticReads).toEqual([false, false]);
   });
 
   it('records a deep conversation on a long line with no risk', async () => {

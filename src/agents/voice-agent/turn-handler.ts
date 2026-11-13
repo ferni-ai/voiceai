@@ -2199,7 +2199,7 @@ IMPORTANT:
     // ================================================================
     // LEARNING & TRUST RECORDING
     // ================================================================
-    const crisisTurn = crisisReadTurn(result.crisis); // keeps no happy memory (crisis-turn-memory.ts)
+    const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
     const learningCtx: LearningContext = {
       userId: services.userId ?? null,
       sessionId: services.sessionId,

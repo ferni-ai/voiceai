@@ -1,8 +1,7 @@
 /**
- * No happy memory of a crisis turn. A turn the crisis read replaced, guided or gave a soft
- * check-in never becomes shared humor, a breakthrough, a win, a deep talk, a gratitude
- * milestone, a callback moment or "our song": "lol" on a line about ending a life is not a
- * laugh to bring back on a later call.
+ * A crisis turn records nothing. A turn the crisis read replaced, guided or gave a soft check-in
+ * becomes no moment of any type, no gratitude milestone, no callback moment and no "our song",
+ * and semantic intelligence never sees it.
  *
  * The read is the turn's own: processTurn's crisis field (turn-crisis.ts, the pattern guard
  * with the live classifier's verdict), the field the turn handler turns into the crisis script,
@@ -10,9 +9,13 @@
  * counts as a crisis turn (fail closed), as an unmarked turn does for transfer aliases
  * (services/safety/crisis-turn-mark.ts).
  *
- * Every moment is held on a crisis turn, including the ones that name the turn for what it was
- * (crisis_support, vulnerability). The recorder also sends the bond data message to the client
- * (personality-bridge.ts dispatchEmotionalBondSignal), so that message stops on crisis turns too.
+ * Moments of every type are held, crisis_support and vulnerability included. Until 2026-11-13
+ * those two still recorded, as moments that name the turn for what it was. The owner reversed
+ * that on 2026-11-13: their stored words were coming back on later calls as callback hints. Holding
+ * the moment also holds what the moment recorder does with it (personality-bridge.ts
+ * recordUnifiedMoment): the caller's phrase kept in the relationship engine, the personality
+ * service's record and its signals, and the bond data message to the client
+ * (dispatchEmotionalBondSignal).
  *
  * @module voice-agent/crisis-turn-memory
  */
