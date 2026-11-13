@@ -15,6 +15,7 @@
  *
  * @module services/session/after-call-tasks
  */
+import { setCapped } from '../../utils/capped-map.js';
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { memoryHeld } from '../../utils/minor-care.js';
@@ -38,6 +39,18 @@ export interface AfterCallContext {
   startedAt: Date;
   /** The caller's IANA timezone, when known. */
   timezone?: string;
+  /**
+   * Whether a third party was on the line (a call Ferni placed for someone), as
+   * the call's end read it before releasing the call's context (call-end.ts).
+   * Undefined when no end was recorded for this session: unknown, so a reader
+   * deciding who the caller was must not assume the account owner.
+   */
+  thirdPartyOnLine?: boolean;
+}
+
+/** What a call's end recorded for its after-call tasks (noteCallEnded). */
+interface EndedCall {
+  thirdPartyOnLine: boolean;
 }
 
 export type AfterCallTask = (ctx: AfterCallContext) => Promise<void>;
@@ -50,6 +63,18 @@ interface Registered {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const tasks = new Map<string, Registered>();
 const inFlight = new Set<Promise<void>>();
+/** Taken by runAfterCall; the cap bounds calls whose after-call run never came. */
+const endedCalls = new Map<string, EndedCall>();
+const ENDED_CALLS_MAX = 2_000;
+
+/**
+ * Records, by value, what this call's after-call tasks need to know about who
+ * was on the line, before the call's context is released. runAfterCall takes
+ * it once.
+ */
+export function noteCallEnded(sessionId: string, ended: EndedCall): void {
+  setCapped(endedCalls, sessionId, ended, ENDED_CALLS_MAX);
+}
 
 /** Adds (or replaces) a named task. Registering the same name twice keeps one. */
 export function registerAfterCallTask(
@@ -174,6 +199,8 @@ export function runAfterCall(
   summary: unknown,
   tracker: { getDurationSeconds: () => number }
 ): void {
+  const ended = endedCalls.get(sessionId);
+  endedCalls.delete(sessionId);
   runAfterCallTasks({
     userId,
     sessionId,
@@ -183,5 +210,6 @@ export function runAfterCall(
     // The zone the call settled (phone-parity.ts): never the raw profile's, which
     // belongs to a sponsor on a call placed for someone, or to an unverified caller's account.
     timezone: callerTimeZoneFor(sessionId),
+    thirdPartyOnLine: ended?.thirdPartyOnLine,
   });
 }

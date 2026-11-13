@@ -24,6 +24,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { storeCallContext } from './call-context-cap.js';
 
 const log = createLogger({ module: 'context:inbound-call' });
 
@@ -78,7 +79,7 @@ export interface InboundCallContext {
   primaryPhone?: string;
 }
 
-// In-memory store for inbound call contexts
+// Per call, released at call end (releaseCallTypeContexts); capped as a backstop
 const inboundCallContexts = new Map<string, InboundCallContext>();
 
 // ============================================================================
@@ -90,7 +91,7 @@ const inboundCallContexts = new Map<string, InboundCallContext>();
  * Called by the voice-agent-entry when handling an inbound call.
  */
 export function setInboundCallContext(sessionId: string, context: InboundCallContext): void {
-  inboundCallContexts.set(sessionId, context);
+  storeCallContext(inboundCallContexts, sessionId, context, log);
   log.info(
     {
       sessionId,

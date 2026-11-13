@@ -70,7 +70,8 @@ export async function settleCallerZone(
   }
   const release = markZonelessCall(sessionId, userId, conversationId);
   registerCleanup(sessionId, 'resource', 'zoneless call (phone-parity)', release);
-  if (call.onBehalf || !services) return undefined;
+  // Read now: a profile can load after the call has ended and released its context.
+  if (call.onBehalf || outboundPartiesFor(sessionId) || !services) return undefined;
   const profile = await profileOnceLoaded(services);
   const zone = verifiedOwnerProfileZone(sessionId, profile?.contactInfo?.timezone);
   if (!zone) return undefined;
