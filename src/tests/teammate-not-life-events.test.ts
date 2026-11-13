@@ -16,10 +16,6 @@ import type { ConversationState } from '../intelligence/state/conversation.js';
 import { buildRelationshipContext } from '../context/context-builders.js';
 import { withCallerProvenance } from '../memory/caller-assertions.js';
 import { insightText, teammateNote } from '../memory/cross-persona/teammate-note.js';
-import {
-  extractCallbackKeyMoments,
-  getPendingCallbacksFromProfile,
-} from '../personality/callback-helpers.js';
 import { callerCommitmentDocs } from '../services/superhuman/after-call-commitments.js';
 import type { KeyMoment, UserProfile } from '../types/user-profile.js';
 
@@ -108,28 +104,6 @@ describe('the learning engine', () => {
     engine.captureExternalKeyMoment(moment('Decided to quit the bakery job'));
     expect(engine.finalizeSession(profile()).keyMoments.map((m) => m.summary)).toEqual([
       'Decided to quit the bakery job',
-    ]);
-  });
-});
-
-describe('callbacks ("the smile factor")', () => {
-  it('extracts nothing from speech to a teammate', () => {
-    for (const line of TO_JORDAN) expect(extractCallbackKeyMoments(line), line).toEqual([]);
-  });
-
-  it('still takes a hard talk with a real person who shares the name', () => {
-    const [m] = extractCallbackKeyMoments('I need to talk to my sister Maya about the house.');
-    expect(m?.type).toBe('decision');
-  });
-
-  it('never follows up on a moment stored before this, about switching to a teammate', () => {
-    const stored = [
-      moment('Made a decision to "I\'m going to talk to Jordan"'),
-      moment('Expressed concern about "Hey Jordan, can you help me do some planning"', 'concern'),
-      moment('Made a decision to "I\'m going to quit my job"'),
-    ];
-    expect(getPendingCallbacksFromProfile(profile(stored)).map((p) => p.moment.summary)).toEqual([
-      'Made a decision to "I\'m going to quit my job"',
     ]);
   });
 });
@@ -346,13 +320,11 @@ describe('life news said with a teammate request, or about a teammate name', () 
 describe('with TEAMMATE_TALK_FILTER off (the default), the write paths are as on main', () => {
   beforeEach(() => vi.stubEnv('TEAMMATE_TALK_FILTER', 'off'));
 
-  it('the engine, callbacks, commitments and summary keep teammate talk as before', () => {
+  it('the engine, commitments and summary keep teammate talk as before', () => {
     const engine = new UserLearningEngine();
     engine.processUserTurn("I'm going to talk to Jordan.", analysis(0.9), profile());
     engine.captureExternalKeyMoment(moment('Made a decision to talk to Jordan'));
     expect(engine.finalizeSession(profile()).keyMoments).toHaveLength(2);
-
-    expect(extractCallbackKeyMoments("I'm going to talk to Jordan.")).not.toEqual([]);
 
     const quote = "I'm going to talk to Jordan.";
     const docs = callerCommitmentDocs(
@@ -406,19 +378,18 @@ describe('stored moments with life news, read with the flag off and on', () => {
   ].map((m, i) => ({ ...m, id: `km-${i}` }));
   const readAll = () => {
     const p = { ...profile(SIX), name: 'Sam', totalConversations: 1 } as UserProfile;
-    return {
-      pending: getPendingCallbacksFromProfile(p).map((x) => x.moment.summary),
-      context: buildRelationshipContext(p),
-    };
+    return { context: buildRelationshipContext(p) };
   };
 
-  it.each(['off', 'on'])('flag %s: every reader returns all six, as main does', (flag) => {
-    vi.stubEnv('TEAMMATE_TALK_FILTER', flag);
-    const { pending, context } = readAll();
-    expect(pending).toEqual(SIX.map((m) => m.summary));
-    // buildRelationshipContext shows the first two follow-ups, as on main
-    expect(context).toContain(`Key moments: ${SIX[0]?.summary}; ${SIX[1]?.summary}`);
-  });
+  it.each(['off', 'on'])(
+    'flag %s: the relationship context reads all six, as main does',
+    (flag) => {
+      vi.stubEnv('TEAMMATE_TALK_FILTER', flag);
+      const { context } = readAll();
+      // buildRelationshipContext shows the first two follow-ups, as on main
+      expect(context).toContain(`Key moments: ${SIX[0]?.summary}; ${SIX[1]?.summary}`);
+    }
+  );
 
   it('keeps "Jordan, their brother," with Jordan the teammate on the call', () => {
     const item = 'Ask how Jordan, their brother, is doing';
@@ -432,7 +403,6 @@ describe('stored moments with life news, read with the flag off and on', () => {
   it('flag off: a stored teammate-only moment is read as on main', () => {
     vi.stubEnv('TEAMMATE_TALK_FILTER', 'off');
     const stored = [moment('Made a decision to talk to Jordan')];
-    expect(getPendingCallbacksFromProfile(profile(stored))).toHaveLength(1);
     expect(lifeMoments(stored)).toHaveLength(1);
   });
 });

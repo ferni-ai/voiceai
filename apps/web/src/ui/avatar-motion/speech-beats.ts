@@ -15,7 +15,9 @@
  *   stand the canned 3.5 s `conversationalSpeaking` loop down;
  * - when the voice pauses long enough to end a phrase,
  *   `ferni:avatar-phrase-end` is dispatched on window (for gaze to use).
- * No gestures under prefers-reduced-motion (the phrase-end event still fires).
+ * No gestures under prefers-reduced-motion or while the crisis face is held
+ * (motion-allowed.ts); a beat in flight stops at once. The phrase-end event
+ * still fires.
  *
  * Avatar audit item 11, "Prosody beats instead of a canned loop".
  */
@@ -25,6 +27,7 @@ import { audioService } from '../../services/audio.service.js';
 import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { addTransformLayer, type TransformLayer } from './compositor.js';
+import { avatarMotionAllowed } from './motion-allowed.js';
 import { createBeatDetector, type BeatDetector } from './speech-beat-detector.js';
 
 const log = createLogger('SpeechBeats');
@@ -73,10 +76,6 @@ export function isSpeechBeatsEnabled(): boolean {
   return isMotionFlagOn('speechBeats');
 }
 
-function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 interface Beat {
   start: number;
   strength: number;
@@ -116,9 +115,10 @@ function tick(): void {
   frame = requestAnimationFrame(tick);
   const now = performance.now();
   const level = audioService.getRmsVolume();
+  const allowed = avatarMotionAllowed('speechBeat');
   if (level !== null && detector) {
     const step = detector.step(level, now);
-    if (step.beat && !prefersReducedMotion()) {
+    if (step.beat && allowed) {
       side = side === 1 ? -1 : 1;
       beat = { start: now, strength: step.strength, side };
     }
@@ -126,7 +126,8 @@ function tick(): void {
       window.dispatchEvent(new CustomEvent(AVATAR_PHRASE_END_EVENT, { detail: { at: now } }));
     }
   }
-  drawBeat(now);
+  if (allowed) drawBeat(now);
+  else endBeat();
 }
 
 function stopLoop(): void {

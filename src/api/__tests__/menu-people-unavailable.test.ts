@@ -5,7 +5,7 @@
  * said "nobody here", the nudges said "no suggestions" and "Take your story" exported a
  * file with no contacts that looked complete. Now the panel routes answer 503, the export
  * stops with 503, a failed read is retried instead of cached as empty, and the agent's
- * context builders still degrade quietly. Real routes, real services; only Firestore is
+ * contact reads still degrade quietly. Real routes, real services; only Firestore is
  * replaced, by one that fails until told otherwise.
  */
 import { createServer, type Server } from 'node:http';
@@ -165,20 +165,6 @@ describe('a contact store that cannot be read', () => {
     expect((listed.body.contacts as Array<{ name: string }>).map((p) => p.name)).toEqual([
       'Rosa Diaz',
     ]);
-  });
-
-  it("the agent's context builder still degrades quietly: no throw, no injection", async () => {
-    const { contactAwarenessBuilder } =
-      await import('../../intelligence/context-builders/awareness/contact-awareness.js');
-    const input = { persona: { id: 'alex-chen' }, userData: {}, services: { userId: newUser() } };
-    const reads = store.reads;
-
-    await expect(
-      contactAwarenessBuilder.build(
-        input as unknown as Parameters<typeof contactAwarenessBuilder.build>[0]
-      )
-    ).resolves.toEqual([]);
-    expect(store.reads).toBeGreaterThan(reads); // it did try the store
   });
 
   it("the agent's contact read still answers [] (it degrades; the panel doesn't)", async () => {

@@ -1,7 +1,7 @@
 /**
  * Linking a device or anon: identity copies every subcollection of its record (it
  * used to copy a fixed 12 of ~40), and the source's _migratedTo is the one flag
- * that says it is done, read by autoLinkOnAuth and user-migration alike.
+ * that says it is done, read by linkIdentity and user-migration alike.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,7 +13,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => db }
 const store = vi.hoisted(() => ({ current: null as unknown }));
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store.current }));
 
-const { linkIdentity, autoLinkOnAuth } = await import('../identity-linking.js');
+const { linkIdentity } = await import('../identity-linking.js');
 const { getMigratedUid, migrateUserData } = await import('../../user-migration.js');
 
 const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz12';
@@ -59,25 +59,6 @@ describe('linkIdentity', () => {
     docs.set('bogle_users/device:d1', { _migratedTo: 'SomeoneElse000000000000000000' });
     const result = await linkIdentity('device:d1', UID);
     expect(result.success).toBe(false);
-    expect([...docs.keys()].some((p) => p.startsWith(`bogle_users/${UID}/`))).toBe(false);
-  });
-});
-
-describe('autoLinkOnAuth', () => {
-  it('links an unmigrated device and leaves a migrated one alone', async () => {
-    seedDevice();
-    await autoLinkOnAuth('d1', UID);
-    expect(docs.get('bogle_users/device:d1')?._migratedTo).toBe(UID);
-
-    docs.delete(`bogle_users/${UID}/journal/j1`);
-    await autoLinkOnAuth('d1', UID);
-    expect(docs.has(`bogle_users/${UID}/journal/j1`)).toBe(false);
-  });
-
-  it('treats a pair linked before _migratedTo existed as done', async () => {
-    seedDevice();
-    docs.set('bogle_users/device:d1', { _migrated: true, migratedTo: UID, totalConversations: 3 });
-    await autoLinkOnAuth('d1', UID);
     expect([...docs.keys()].some((p) => p.startsWith(`bogle_users/${UID}/`))).toBe(false);
   });
 });
@@ -145,7 +126,7 @@ describe('a failed copy is retried, never stranded', () => {
     expect(docs.has(`bogle_users/${UID}/reminders/r1`)).toBe(false);
 
     failing.collectionGet = null;
-    await autoLinkOnAuth('d1', UID);
+    await linkIdentity('device:d1', UID);
     expect(docs.has(`bogle_users/${UID}/reminders/r1`)).toBe(true);
     expect(docs.get('bogle_users/device:d1')?._migrationIncomplete).toBe(false);
   });

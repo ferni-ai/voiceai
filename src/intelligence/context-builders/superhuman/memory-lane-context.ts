@@ -384,7 +384,6 @@ registerContextBuilder({
 // ============================================================================
 
 export {
-  buildMemoryLaneContext,
   clearMemoryLaneSessionInternal as clearMemoryLaneSession,
   clearAllMemoryLaneSessionsInternal as clearAllMemoryLaneSessions,
 };

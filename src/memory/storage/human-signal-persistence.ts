@@ -338,7 +338,7 @@ export async function persistHumanSignals(
 /**
  * Retrieve persisted human signals for a user
  */
-export async function getPersistedHumanSignals(userId: string): Promise<Partial<HumanSignals>> {
+async function getPersistedHumanSignals(userId: string): Promise<Partial<HumanSignals>> {
   const db = getAdminFirestore();
   const signalsRef = db.collection('bogle_users').doc(userId).collection('human_signals');
 
