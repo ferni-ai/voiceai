@@ -21,33 +21,10 @@ const SKIP_FILE = /\.(test|spec)\.ts$|\.d\.ts$/;
 
 /** Reviewed calls per file. Each group says why its calls may stay. */
 const PENDING_2656: Record<string, number> = {
-  // Held as pending Seth's call in call-log-surface-guard.test.ts EXEMPT (#2656): the call
-  // reviewer reads what the caller said (E2E_USER_INPUT) and Ferni's words (E2E_TTS_OUTPUT).
+  // Held as pending Seth's call in call-log-surface-guard.test.ts EXEMPT (#2656): what the
+  // caller said. Ferni's own words are out: replyForLog logs their length, never the text.
   'src/agents/integrations/better-than-human-integration.ts': 1, // resonance transcript (#2663)
-  'src/agents/multi-agent/agent-setup.ts': 3, // AGENT SPEECH, TEXT DONE, say() textPreview
-  'src/agents/multi-agent/orchestrator.ts': 6, // greeting x4 and goodbye x2 previews
-  'src/agents/shared/tts-wrapper.ts': 5, // LLM chunk x2, first-chunk x2, E2E_TTS_OUTPUT ttsText
-  'src/agents/voice-agent/transcript-handler.ts': 3, // E2E_USER_INPUT, cached response x2
-};
-const FERNI_SPOKEN_TEXT: Record<string, number> = {
-  // Ferni's own spoken text, logged whole by the TTS and audio paths: the same pending call
-  // as E2E_TTS_OUTPUT (#2656). Not changed here; lower these when it is decided.
-  'src/agents/integrations/live-backchanneling-integration.ts': 1,
-  'src/agents/integrations/slow-turn-sound.ts': 1,
-  'src/agents/integrations/turn-opening-sound.ts': 2,
-  'src/agents/shared/greeting-audio-cache.ts': 2,
-  'src/agents/shared/performance/cache-aware-tts.ts': 2,
-  'src/agents/shared/sanitizer/index.ts': 1,
-  'src/agents/shared/voiced-take-render.ts': 2,
-  'src/audio/dj-speech-engine.ts': 1,
-  'src/audio/music-humanization.ts': 1,
-  'src/personas/bundles/ferni/llm-expression-generator.ts': 1,
-  'src/services/performance/speculative-tts.ts': 1,
-  'src/speech/coordination/coordinated-tool-executor.ts': 1,
-  'src/speech/coordination/speech-coordinator.ts': 1,
-  'src/speech/tts-gateway/gateway-tts-node.ts': 9,
-  'src/speech/tts-gateway/gateway.ts': 4,
-  'src/speech/tts-gateway/index.ts': 2,
+  'src/agents/voice-agent/transcript-handler.ts': 1, // E2E_USER_INPUT
 };
 const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/tools/domains/marketing/content-generator.ts': 1, // LLM marketing copy that failed to parse
@@ -69,7 +46,6 @@ const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/api/monetization-routes.ts': 1, // a JOURNEY_MILESTONES catalog title
   'src/api/scheduled-jobs/brand-jobs.ts': 1, // a company brand milestone, not a user's
   'src/intelligence/context-builders/humanization/humanizing-debug.ts': 1, // stage and mood enums
-  'src/intelligence/context-builders/personas/physical-presence.ts': 1, // a persona's stage direction
   'src/services/custom-agent/voice-clone-service.ts': 1, // clip.speech: seconds of audio
   'src/services/data-layer/index.ts': 1, // context.summary: counts and totals
   'src/services/data-layer/session-integration.ts': 1, // the same counts
@@ -100,19 +76,6 @@ const PENDING_3215B: Record<string, string[]> = {
   ],
   'src/intelligence/coaching/dynamic-questions.ts': ['context.recentTopics.slice('],
   'src/intelligence/collective/agent-evolution.ts': ['trigger: adjustment.trigger.description'],
-  'src/intelligence/context-builders/memory/memory-enhancement.ts': [
-    'topic: thinkingMoment.record.topic',
-    'name: followUp.mention.name',
-    'topic: tonalInsight.topic',
-    'topic: growthMoment.record.topic',
-  ],
-  'src/intelligence/context-builders/memory/thinking-of-you.ts': [
-    'topic: thinkingMoment.record.topic',
-    'topic: callback.topic',
-  ],
-  'src/intelligence/context-builders/session/cross-session-reflection.ts': [
-    'topic: newMoment.topic',
-  ],
   'src/intelligence/context-builders/superhuman/conversational-superpowers.ts': [
     'person: person.name',
     'person: followUp.person.name',
@@ -229,21 +192,12 @@ const PENDING_3215B: Record<string, string[]> = {
   'src/agents/voice-agent/turn-learning.ts': ['topic: learningContext.topic'],
   'src/conversation/emotional-arc/momentum/tracker.ts': ['topic: turningPoint.topic'],
   'src/intelligence/collective/community-insights.ts': ['context: signal.context.topic'],
-  'src/intelligence/context-builders/awareness/career-awareness.ts': [
-    'topics: careerDetection.topics',
-  ],
-  'src/intelligence/context-builders/coaching/topic-guidance.ts': [
-    'topic: bestMatch.trigger.topic',
-  ],
   'src/intelligence/context-builders/personas/jordan-milestone-insights/index.ts': [
     'handoffTopic: handoffBriefing?.topic',
   ],
   'src/intelligence/context-builders/personas/mortality-perspective.ts': ['topic: relevance.topic'],
   'src/intelligence/context-builders/personas/peter-research-insights/index.ts': [
     'handoffTopic: handoffBriefing?.topic',
-  ],
-  'src/intelligence/context-builders/session/natural-discovery.ts': [
-    'topics: prompts.map((p) => p.topic)',
   ],
   'src/intelligence/predictive/conversation-preparation.ts': ['topic: entry.topic'],
   'src/intelligence/predictive/embeddings/breakthrough-embeddings.ts': [
@@ -267,7 +221,6 @@ const PENDING_3215B: Record<string, string[]> = {
   ],
   'src/services/handoff/handoff-state.ts': ['topics: state.conversationContext.topics'],
   'src/services/humanization/relationship-artifacts.ts': ['topic: bt.topic'],
-  'src/services/intelligence/cross-agent-awareness.ts': ['topics: summary.topics'],
   'src/services/memory/voice-conversation-memory.ts': ['topics: conversation.topics'],
   'src/services/personal-journey/seasonal-memory.ts': ['topics: data.topics'],
   'src/services/superhuman/protective-silence.ts': ['topic: boundary.topic'],
@@ -282,7 +235,6 @@ const PENDING_3215B: Record<string, string[]> = {
 };
 const ALLOWED: Record<string, number> = {
   ...PENDING_2656,
-  ...FERNI_SPOKEN_TEXT,
   ...NOT_ANYONES_WORDS,
 };
 
@@ -477,14 +429,14 @@ describe('log calls in src/ carry no conversation text (#2689, #3215)', () => {
     expect(unreviewed(found, ALLOWED, PENDING_3215B)).toEqual([]);
   });
 
-  it('holds exactly the 18 calls call-log-surface-guard keeps pending (#2656)', () => {
-    expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(18);
+  it('holds exactly the 2 caller-text calls call-log-surface-guard keeps pending (#2656)', () => {
+    expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(2);
   });
 
   // 82 at first, plus 47 found by the topic, canonicalName and bound-name shapes (#3724),
   // less the 2 query-threads.ts calls #3744 removed
-  it('holds exactly the 127 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
-    expect(Object.values(PENDING_3215B).flat()).toHaveLength(127);
+  it('holds exactly the 116 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
+    expect(Object.values(PENDING_3215B).flat()).toHaveLength(116);
   });
 
   it('keeps pending calls out of the other lists', () => {

@@ -177,6 +177,48 @@
         {
           "fields": [
             {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/background_results/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
               "fieldPath": "timestamp",
               "order": "ASCENDING"
             }
@@ -210,6 +252,48 @@
     "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/bq_cost_log/fields/timestamp",
     "ttlConfig": {
       "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/call_memories/fields/expireAt",
+    "ttlConfig": {
       "state": "ACTIVE"
     }
   },
@@ -347,6 +431,48 @@
         {
           "fields": [
             {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/on_behalf_calls/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
               "fieldPath": "startTime",
               "order": "ASCENDING"
             }
@@ -380,6 +506,48 @@
     "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/optimization_cycles/fields/startTime",
     "ttlConfig": {
       "expirationOffset": "7776000s",
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/ferni-dev/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/rate_limits/fields/expireAt",
+    "ttlConfig": {
       "state": "ACTIVE"
     }
   },

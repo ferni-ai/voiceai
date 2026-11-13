@@ -11,7 +11,7 @@
  * @module crash-analytics
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CrashAnalytics' });
 
@@ -289,7 +289,7 @@ export function recordCrash(
       ...additionalContext,
       turnCount: session?.turnCount,
       lastUserMessageLen: messages?.lastUserMessage?.length,
-      lastAgentMessage: messages?.lastAgentMessage?.slice(0, 200),
+      lastAgentMessage: replyForLog(messages?.lastAgentMessage, 200), // a length on prod
       connectionState: session?.state,
       uptimeMs: session ? Date.now() - new Date(session.timestamp).getTime() : undefined,
       memoryUsageMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),

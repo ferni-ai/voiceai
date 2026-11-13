@@ -62,21 +62,7 @@ personality/
 │   ├── personality-bridge.ts  # Unified recording entry point
 │   └── signal-dispatchers.ts  # EQ signal dispatchers
 │
-└── # Legacy files (to be migrated)
-    ├── index.ts               # Legacy exports
-    ├── types.ts               # Legacy types
-    ├── emotional-data.ts
-    ├── emotional-patterns.ts
-    ├── growth-tracking.ts
-    ├── memory-adapter.ts
-    ├── pattern-analysis.ts
-    ├── pattern-persistence.ts
-    ├── personal-moment-store.ts
-    ├── timing-intelligence.ts
-    ├── transitions.ts
-    ├── callback-helpers.ts
-    ├── callback-persistence.ts
-    └── moments/               # Moment detection
+└── emotional-data-shape.ts   # What an emotional_data point may hold
 ```
 
 ---
@@ -523,29 +509,10 @@ const { service, repository } = createTestPersonalityService();
 
 ---
 
-## Migration from Legacy
-
-The v2 implementation coexists with legacy files:
-
-| Legacy File | v2 Equivalent |
-|-------------|---------------|
-| `timing-intelligence.ts` | `domain/services/timing-calculator.ts` |
-| `emotional-patterns.ts` | `domain/model/emotional-pattern.ts` |
-| `growth-tracking.ts` | `domain/model/growth-milestone.ts` |
-| `memory-adapter.ts` | `infrastructure/firestore-personality-repository.ts` |
-
-**Migration path:**
-1. Use v2 API for new features
-2. Gradually migrate consumers to v2
-3. Deprecate legacy files
-
----
-
 ## Rules
 
 | ✅ Do | ❌ Don't |
 |-------|---------|
-| Use v2 API for new features | Add to legacy files |
 | Put business logic in domain | Put I/O in domain |
 | Use value objects for immutability | Mutate state directly |
 | Use interfaces for dependencies | Hardcode implementations |

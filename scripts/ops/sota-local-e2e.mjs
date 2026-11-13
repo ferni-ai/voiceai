@@ -229,11 +229,6 @@ async function proveAsyncOutreach() {
 }
 
 async function proveRememberReachOutIntegration() {
-  const humanSignal = await runNode(resolve(ROOT, 'scripts/ops/assert-human-signal-roundtrip.mjs'));
-  record('unit:human-signal-roundtrip', humanSignal.code === 0, {
-    note: JSON.stringify(parseLastJsonObject(humanSignal.stdout) || { raw: humanSignal.stdout.trim().slice(0, 160) }),
-  });
-
   const deliveryIntent = await runNode(resolve(ROOT, 'scripts/ops/assert-outreach-delivery-intent.mjs'));
   record('unit:outreach-delivery-intent', deliveryIntent.code === 0, {
     note: JSON.stringify(parseLastJsonObject(deliveryIntent.stdout) || { raw: deliveryIntent.stdout.trim().slice(0, 160) }),

@@ -283,7 +283,7 @@ export async function getPeopleByRelationship(
 /**
  * Get energizing vs draining people.
  */
-export async function getPeopleByImpact(
+async function getPeopleByImpact(
   userId: string
 ): Promise<{ energizing: PersonNode[]; draining: PersonNode[]; neutral: PersonNode[] }> {
   const nodes = await loadNodes(userId);
@@ -310,7 +310,7 @@ export async function getMostMentioned(userId: string, limit = 5): Promise<Perso
 /**
  * Get recently mentioned people.
  */
-export async function getRecentlyMentioned(userId: string, days = 7): Promise<PersonNode[]> {
+async function getRecentlyMentioned(userId: string, days = 7): Promise<PersonNode[]> {
   const nodes = await loadNodes(userId);
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 

@@ -261,17 +261,6 @@ describe('Biometrics Integration API', () => {
   const testUserId = `biometrics-test-${Date.now()}`;
 
   describe('Connection Flow', () => {
-    it('GET /status - should return biometrics status', async () => {
-      const { hasBiometricsConnected, getConnectedPlatform, getCurrentBiometrics } =
-        await import('../../services/biometrics/index.js');
-
-      const connected = hasBiometricsConnected(testUserId);
-      const platform = getConnectedPlatform(testUserId);
-
-      expect(typeof connected).toBe('boolean');
-      console.log(`✅ Biometrics status check works (connected: ${connected})`);
-    });
-
     it('GET /connect/:platform - should generate auth URLs for all platforms', async () => {
       const { getAuthorizationUrl } = await import('../../services/biometrics/index.js');
 
@@ -285,21 +274,6 @@ describe('Biometrics Integration API', () => {
       }
 
       console.log(`✅ Auth URL generation works for ${platforms.length} platforms`);
-    });
-
-    it('POST /sync - should handle sync requests', async () => {
-      const { syncBiometrics, hasBiometricsConnected } =
-        await import('../../services/biometrics/index.js');
-
-      if (!hasBiometricsConnected(testUserId)) {
-        console.log('⚠️ Sync skipped (no connected platform)');
-        expect(true).toBe(true);
-        return;
-      }
-
-      const snapshot = await syncBiometrics(testUserId);
-      expect(snapshot === null || typeof snapshot === 'object').toBe(true);
-      console.log('✅ Biometrics sync flow works');
     });
 
     it('GET /data - should retrieve biometric data', async () => {

@@ -9,12 +9,6 @@ This folder contains builders that manage the AI team - persona transitions, ava
 | Builder | Purpose |
 |---------|---------|
 | `team-availability.ts` | Which team members are available |
-| `team-dynamics.ts` | Team interaction patterns |
-| `team-gossip.ts` | Cross-persona references and banter |
-| `handoff.ts` | Persona transition orchestration |
-| `role-boundaries.ts` | What each persona does/doesn't do |
-| `cameo-opportunities.ts` | When to briefly mention another persona |
-| `cameo-unlock.ts` | Natural team member introductions |
 
 ## Handoff Philosophy
 
