@@ -20,7 +20,7 @@
  *   npx tsx apps/cli/src/commands/quality/ratchet.ts --update   lower the baseline to today
  *   npx tsx apps/cli/src/commands/quality/ratchet.ts --init     write a fresh baseline
  *   ... ratchet.ts --bundle [--init|--update]   the built web bundle (after pnpm build:frontend)
- *   ... ratchet.ts --eslint <results.json> [--as webEslint|designEslint] [--init|--update]
+ *   ... ratchet.ts --eslint <results.json> [--as webEslint|webTestsEslint|designEslint] [--init|--update]
  *       ESLint errors per rule (results from `eslint --format json --output-file <results.json>`)
  *
  * @module quality/ratchet
@@ -295,13 +295,15 @@ async function bundleMain(args: string[]): Promise<void> {
 
 /**
  * ESLint runs whose per-rule error counts are ratcheted, by baseline key (`--as`):
- * apps/web's own config, and the design-system rules (eslint.design.config.mjs).
+ * apps/web's own config over src/ and over tests/, and the design-system rules
+ * (eslint.design.config.mjs).
  *
- * Both also fail a baselined rule that reports nothing (eslintSilentRules): otherwise a PR
+ * Each also fails a baselined rule that reports nothing (eslintSilentRules): otherwise a PR
  * that switches a rule off, or sets it to warn, reads as having fixed every violation.
  */
 const ESLINT_BASELINES = {
   webEslint: { label: 'Web ESLint' },
+  webTestsEslint: { label: 'Web tests ESLint' },
   designEslint: { label: 'Design-system ESLint' },
 } as const;
 type EslintBaseline = keyof typeof ESLINT_BASELINES;
@@ -337,6 +339,7 @@ async function eslintMain(args: string[]): Promise<void> {
 export const otherModes = (file: BaselineFile): BaselineFile => ({
   bundle: file.bundle,
   webEslint: file.webEslint,
+  webTestsEslint: file.webTestsEslint,
   designEslint: file.designEslint,
 });
 
