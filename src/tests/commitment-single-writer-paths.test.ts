@@ -59,7 +59,7 @@ const { trackCommitmentDef } = await import('../tools/domains/proactive/index.js
 const { loadActiveCommitmentsOrThrow, commitmentCache } =
   await import('../services/superhuman/commitment-store.js');
 const { loadCallCheckIns } = await import('../services/superhuman/commitment-follow-up.js');
-const { forgetFlagCache } = await import('../services/platform/cohort-flags.js');
+const { forgetFlagCache, READ_TIMEOUT_MS } = await import('../services/platform/cohort-flags.js');
 const { firestoreCohortStore } = await import('../services/platform/cohort-firestore.js');
 
 const UID = 'u-writer';
@@ -211,24 +211,38 @@ describe('a tool row, when the call env and the person disagree', () => {
     expect(asked).toContain('send Jen the deck tomorrow');
   });
 
-  it('a slow cohort read holds the tool at most ~400 ms, and the env decides', async () => {
+  it('a slow cohort read holds the tool for READ_TIMEOUT_MS of timer time, and the env decides', async () => {
     personSays('on');
+    // The ceiling the tool promises, so raising the shared timeout fails here too.
+    expect(READ_TIMEOUT_MS).toBeLessThanOrEqual(400);
+    // Timer time, not wall time: the bound is exact and a loaded machine can't stretch it.
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(START);
     const slow = vi.spyOn(firestoreCohortStore, 'overridesFor').mockImplementation(
       () =>
         new Promise((r) => {
-          setTimeout(() => r({ COMMITMENT_SINGLE_WRITER: 'on' }), 3000);
+          setTimeout(() => r({ COMMITMENT_SINGLE_WRITER: 'on' }), 10 * READ_TIMEOUT_MS);
         })
     );
     try {
-      const t0 = performance.now();
-      expect(await record()(DECK)).toMatch(/^Got it/);
-      expect(performance.now() - t0).toBeLessThan(450);
+      let reply: string | undefined;
+      const done = record()(DECK).then((r) => {
+        reply = r;
+      });
+      // Just short of the timeout the tool is still waiting on the read...
+      await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS - 1);
+      expect(reply).toBeUndefined();
+      // ...and at the timeout it answers, without the read (still 9 x READ_TIMEOUT_MS away).
+      await vi.advanceTimersByTimeAsync(1);
+      expect(reply ?? 'still waiting on the read').toMatch(/^Got it/);
+      await done;
       expect(slow).toHaveBeenCalled();
       // Stored as on main: the env says off and the person's value came too late.
       const stored = rows().find((r) => r.summary === 'send Jen the deck');
       expect(stored).toBeDefined();
       expect(stored).not.toHaveProperty('source');
     } finally {
+      await vi.runOnlyPendingTimersAsync(); // settle the slow read before the timers go back
       slow.mockRestore();
     }
   });
