@@ -297,7 +297,7 @@ export const FORGET_READERS: readonly ForgetReader[] = [
   {
     id: 'outbound.briefReminders',
     file: 'src/services/outreach/morning-brief/default-deps.ts',
-    site: 'remindersDueToday',
+    site: 'pendingReminderItems',
     reaches: 'outbound',
     check: 'none',
     fix: 'PR2a',
