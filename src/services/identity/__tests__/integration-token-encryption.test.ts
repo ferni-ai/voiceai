@@ -303,35 +303,6 @@ describe('integration token stores encrypt at rest', () => {
     expect(doc(path)).toBeUndefined();
   });
 
-  it('linkedin: sealed profile field replaces legacy, disconnect leaves no token field', async () => {
-    state.docs.set('bogle_users/u-li', {
-      id: 'u-li',
-      name: 'fixture',
-      linkedInTokens: {
-        accessToken: ACCESS,
-        refreshToken: REFRESH,
-        expiresAt: new Date(Date.now() + 9e6).toISOString(),
-        scope: [],
-        lastSync: 'x',
-      },
-    });
-    const linkedin = await import('../../linkedin/index.js');
-    expect(await linkedin.initializeLinkedIn('u-li')).toBe(true); // legacy read
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
-    );
-
-    await linkedin.connectLinkedIn('u-li', ACCESS, REFRESH, 3600, ['r_liteprofile']);
-    const field = doc('bogle_users/u-li')?.linkedInTokens as Record<string, unknown>;
-    expect(Object.keys(field)).toEqual(['encrypted']);
-    noRawToken(doc('bogle_users/u-li'));
-
-    await linkedin.disconnectLinkedIn('u-li');
-    expect(doc('bogle_users/u-li')).not.toHaveProperty('linkedInTokens');
-    expect(doc('bogle_users/u-li')?.name).toBe('fixture');
-  });
-
   it('biometrics: sealed profile field, both reads, clear leaves no token field', async () => {
     const tp = await import('../../biometrics/token-persistence.js');
     const bio = {

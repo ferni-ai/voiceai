@@ -61,7 +61,7 @@ export function clearCognitiveMetricsBroadcast(): void {
 // TYPES
 // ============================================================================
 
-export interface CognitiveMetrics {
+interface CognitiveMetrics {
   /** Time to build cognitive context (ms) */
   contextBuildTime: number;
   /** Time to calculate speech adjustments (ms) */
@@ -292,7 +292,7 @@ export function timeCognitiveOperationSync<T>(
 /**
  * Record metrics for this turn and get summary
  */
-export function recordTurnMetrics(): CognitiveMetrics {
+function recordTurnMetrics(): CognitiveMetrics {
   return cognitiveMetrics.recordMetrics();
 }
 
@@ -323,7 +323,7 @@ export function maybeLogMetrics(): void {
  */
 let turnsSinceBroadcast = 0;
 
-export function maybeBroadcastMetrics(): void {
+function maybeBroadcastMetrics(): void {
   turnsSinceBroadcast++;
   if (turnsSinceBroadcast >= BROADCAST_INTERVAL) {
     if (broadcastCallback) {

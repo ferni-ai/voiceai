@@ -30,6 +30,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return {
     createLogger: () => mockLogger,
     getLogger: () => mockLogger,
+    replyForLog: (text: unknown) => String(text ?? ''),
   };
 });
 

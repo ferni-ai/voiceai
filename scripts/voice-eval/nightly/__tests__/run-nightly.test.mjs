@@ -38,6 +38,7 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
     'superhuman.mjs',
     'superhuman-bar.json',
     'false-done.mjs',
+    'persona-scope.mjs',
     'recall-score.mjs',
     'recall-world.mjs',
     'tool-grounding.mjs',

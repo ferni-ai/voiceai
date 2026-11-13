@@ -346,7 +346,13 @@ export function callerHeld(
  * id. Never refreshes a session, so a timer can't keep a hold alive past IDLE_MS.
  */
 export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
-  if (isAnonymousDemoUser(userId) || sexualTopicUserHeld(userId, env)) return true;
+  return (
+    isAnonymousDemoUser(userId) || sexualTopicUserHeld(userId, env) || userAgeHeld(userId, env)
+  );
+}
+
+/** userHeld's age part alone: another live session of this user's sounds under 18 (MINOR_CARE). */
+export function userAgeHeld(userId: string | undefined, env: Env = process.env): boolean {
   if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
   for (const [sessionId, owner] of sessionUsers) {
     const used = likely.get(sessionId);

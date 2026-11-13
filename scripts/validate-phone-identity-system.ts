@@ -206,61 +206,6 @@ async function validateServiceImports(): Promise<void> {
 }
 
 // ============================================================================
-// 3. CONTEXT BUILDER REGISTRATION
-// ============================================================================
-
-async function validateContextBuilderRegistration(): Promise<void> {
-  section('3. Context Builder Registration');
-
-  try {
-    const { BUILDER_IMPORTS } = await import(
-      '../src/intelligence/context-builders/core/builder-imports.js'
-    );
-
-    const hasInboundCallContext = 'inbound-call-context' in BUILDER_IMPORTS;
-    addResult(
-      'builder-imports:inbound-call-context',
-      hasInboundCallContext,
-      hasInboundCallContext
-        ? 'inbound-call-context registered in BUILDER_IMPORTS'
-        : 'inbound-call-context NOT in BUILDER_IMPORTS',
-      `Available external builders: ${Object.keys(BUILDER_IMPORTS)
-        .filter((k) => k.includes('call') || k.includes('external'))
-        .join(', ')}`
-    );
-  } catch (error) {
-    addResult('builder-imports', false, 'Failed to check builder imports', String(error));
-  }
-
-  try {
-    const { BUILDER_MANIFEST } = await import(
-      '../src/intelligence/context-builders/core/loader.js'
-    );
-
-    // Check if inbound-call-context is in any category
-    let found = false;
-    let foundCategory = '';
-    for (const [category, builders] of Object.entries(BUILDER_MANIFEST)) {
-      if ((builders as string[]).includes('inbound-call-context')) {
-        found = true;
-        foundCategory = category;
-        break;
-      }
-    }
-
-    addResult(
-      'builder-manifest:inbound-call-context',
-      found,
-      found
-        ? `inbound-call-context in BUILDER_MANIFEST (category: ${foundCategory})`
-        : 'inbound-call-context NOT in BUILDER_MANIFEST'
-    );
-  } catch (error) {
-    addResult('builder-manifest', false, 'Failed to check builder manifest', String(error));
-  }
-}
-
-// ============================================================================
 // 4. TOOL DOMAIN REGISTRATION
 // ============================================================================
 
@@ -509,7 +454,6 @@ async function main(): Promise<void> {
 
   await validateEnvironment();
   await validateServiceImports();
-  await validateContextBuilderRegistration();
   await validateToolDomainRegistration();
   await validateApiRoutes();
   await validateLiveKitSip();

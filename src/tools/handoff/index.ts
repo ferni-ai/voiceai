@@ -304,3 +304,6 @@ export {
   type BeforeVoiceSwitchCallback,
   type AfterVoiceSwitchCallback,
 } from './handoff-coordinator.js';
+
+// Putting the tools' record back after a swap that never happened
+export { handoffUndone } from './unconfirmed-handoff.js';

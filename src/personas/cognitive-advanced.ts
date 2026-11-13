@@ -164,7 +164,7 @@ export function clearCognitiveStyleCache(): void {
 /**
  * User's cognitive style - how THEY think
  */
-export type UserCognitiveStyle =
+type UserCognitiveStyle =
   | 'analytical' // Asks data questions, uses numbers, wants evidence
   | 'emotional' // Leads with feelings, uses emotional language
   | 'practical' // Focuses on actions, what to do, outcomes
@@ -189,7 +189,7 @@ interface CognitiveSignals {
 /**
  * Detect user's cognitive style from their messages
  */
-export function detectUserCognitiveStyle(messages: string[]): {
+function detectUserCognitiveStyle(messages: string[]): {
   primary: UserCognitiveStyle;
   secondary?: UserCognitiveStyle;
   confidence: number;
@@ -560,7 +560,7 @@ export interface ReasoningStep {
   showReasoning: boolean;
 }
 
-export interface ReasoningChain {
+interface ReasoningChain {
   id: string;
   steps: ReasoningStep[];
   totalSteps: number;
@@ -571,7 +571,7 @@ export interface ReasoningChain {
 /**
  * Build a multi-step reasoning chain for complex situations
  */
-export function buildReasoningChain(
+function buildReasoningChain(
   personaProfile: CognitiveProfile,
   context: {
     topic: string;
@@ -698,7 +698,7 @@ export function buildReasoningChain(
 /**
  * Get the current step's guidance from a reasoning chain
  */
-export function getReasoningChainGuidance(chain: ReasoningChain): string {
+function getReasoningChainGuidance(chain: ReasoningChain): string {
   if (chain.currentStep > chain.totalSteps) {
     return '';
   }
@@ -727,7 +727,7 @@ export function getReasoningChainGuidance(chain: ReasoningChain): string {
 // COGNITIVE CONFLICT RESOLUTION
 // ============================================================================
 
-export interface CognitiveConflict {
+interface CognitiveConflict {
   detected: boolean;
   personaStyle: ReasoningStyle;
   userNeed:
@@ -748,7 +748,7 @@ export interface CognitiveConflict {
 /**
  * Detect and resolve cognitive style conflicts
  */
-export function detectCognitiveConflict(
+function detectCognitiveConflict(
   personaProfile: CognitiveProfile,
   context: {
     userEmotion: string;
@@ -869,7 +869,7 @@ function getConflictPhrase(
 // COGNITIVE LEARNING TRACKER
 // ============================================================================
 
-export interface CognitiveEffectiveness {
+interface CognitiveEffectiveness {
   approach: ReasoningStyle;
   context: string;
   userResponse: 'engaged' | 'neutral' | 'disengaged' | 'breakthrough';
@@ -877,7 +877,7 @@ export interface CognitiveEffectiveness {
   timestamp: Date;
 }
 
-export interface CognitiveLearning {
+interface CognitiveLearning {
   userId: string;
   personaId: string;
 
@@ -909,7 +909,7 @@ export interface CognitiveLearning {
  * NOW WITH PERSISTENCE! Cognitive learnings are saved to Firestore so we
  * actually learn HOW to communicate with each user over time.
  */
-export class CognitiveLearningTracker {
+class CognitiveLearningTracker {
   private learnings = new Map<string, CognitiveLearning>();
   private recentEffectiveness: CognitiveEffectiveness[] = [];
   private loadedUsers = new Set<string>(); // Track which users we've loaded from persistence
@@ -1217,7 +1217,7 @@ export class CognitiveLearningTracker {
 // Singleton
 let cognitiveLearningTracker: CognitiveLearningTracker | null = null;
 
-export function getCognitiveLearningTracker(): CognitiveLearningTracker {
+function getCognitiveLearningTracker(): CognitiveLearningTracker {
   if (!cognitiveLearningTracker) {
     cognitiveLearningTracker = new CognitiveLearningTracker();
   }
@@ -1247,7 +1247,7 @@ export async function flushCognitiveLearning(): Promise<void> {
 // KNOWLEDGE STATE PERSISTENCE
 // ============================================================================
 
-export interface UserKnowledgeState {
+interface UserKnowledgeState {
   userId: string;
 
   /** Topics we've explained to this user */
@@ -1275,7 +1275,7 @@ export interface UserKnowledgeState {
  * NOW WITH PERSISTENCE! Knowledge state is saved to Firestore so we don't
  * re-explain concepts users already understand.
  */
-export class KnowledgeStateTracker {
+class KnowledgeStateTracker {
   private states = new Map<string, UserKnowledgeState>();
   private loadedUsers = new Set<string>(); // Track which users we've loaded
   private pendingSaves = new Set<string>(); // Track dirty states that need saving
@@ -1548,7 +1548,7 @@ export class KnowledgeStateTracker {
 // Singleton
 let knowledgeStateTracker: KnowledgeStateTracker | null = null;
 
-export function getKnowledgeStateTracker(): KnowledgeStateTracker {
+function getKnowledgeStateTracker(): KnowledgeStateTracker {
   if (!knowledgeStateTracker) {
     knowledgeStateTracker = new KnowledgeStateTracker();
   }
@@ -1575,7 +1575,7 @@ export async function flushKnowledgeState(): Promise<void> {
 // COGNITIVE GROWTH ARC
 // ============================================================================
 
-export interface CognitiveGrowthProfile {
+interface CognitiveGrowthProfile {
   /** Relationship stage affects cognitive approach */
   relationshipStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
 
@@ -1595,7 +1595,7 @@ export interface CognitiveGrowthProfile {
 /**
  * Get cognitive growth adjustments based on relationship stage
  */
-export function getCognitiveGrowthProfile(
+function getCognitiveGrowthProfile(
   relationshipStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor',
   sessionCount: number
 ): CognitiveGrowthProfile {
@@ -1641,7 +1641,7 @@ export function getCognitiveGrowthProfile(
 /**
  * Build cognitive growth context for prompt
  */
-export function buildCognitiveGrowthContext(
+function buildCognitiveGrowthContext(
   profile: CognitiveGrowthProfile,
   cognitivelearning: CognitiveLearning | null
 ): string {

@@ -91,6 +91,7 @@ describe('a real crisis turn after everyday history', () => {
 
   it('off: the boost drags crisis_support below the top', () => {
     vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'off');
+    vi.stubEnv('ROUTER_CONTEXT_ADDITIVE', 'off'); // the averaged boost (context-additive.ts)
     expect(rank().rank).toBeGreaterThan(1);
   });
 

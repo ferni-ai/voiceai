@@ -13,7 +13,7 @@ import {
   cartesiaPronunciation,
 } from '../../config/voice-ids.js';
 import { voiceHonorsProsodyTags, voiceHonorsVolumeTag } from '../../config/voice-capabilities.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { BACKCHANNEL_TAKES, VOICED_TAKES } from './reaction-clips.js';
 
 const log = createLogger({ module: 'VoicedTakeRender' });
@@ -111,9 +111,9 @@ export async function renderVoicedTake(text: string, voiceId: string): Promise<A
       }),
     });
     if (response.ok) return trimAndNormalize(await response.arrayBuffer());
-    log.warn({ status: response.status, text }, 'voiced take render failed');
+    log.warn({ status: response.status, text: replyForLog(text) }, 'voiced take render failed');
   } catch (error) {
-    log.warn({ error: String(error), text }, 'voiced take render failed');
+    log.warn({ error: String(error), text: replyForLog(text) }, 'voiced take render failed');
   }
   return null;
 }

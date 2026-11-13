@@ -30,7 +30,7 @@ const log = createLogger({ module: 'ProactiveMemorySurfacing' });
 // TYPES
 // ============================================================================
 
-export interface SurfacingContext {
+interface SurfacingContext {
   userId: string;
   currentInput: string;
   currentEmotion?: string;
@@ -603,9 +603,7 @@ export function resetProactiveSession(sessionId: string): void {
  * Build proactive memory context for LLM injection
  * This can be called from context builders
  */
-export async function buildProactiveMemoryContext(
-  context: SurfacingContext
-): Promise<string | null> {
+async function buildProactiveMemoryContext(context: SurfacingContext): Promise<string | null> {
   const surfacing = getProactiveMemorySurfacing();
   const result = await surfacing.decideSurfacing(context);
   return surfacing.generateContextInjection(result);
