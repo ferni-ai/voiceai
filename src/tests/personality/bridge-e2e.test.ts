@@ -191,7 +191,7 @@ describe('Personality Bridge E2E - Signal Type Verification', () => {
         '../../personality/bridge/signal-dispatchers.js'
       );
 
-      await dispatchEmotionalBondSignal(mockSendDataMessage, 'User shared deep story', 0.85);
+      await dispatchEmotionalBondSignal(mockSendDataMessage, 'deep_conversation', 0.85);
 
       const signal = capturedSignals.find((s) => s.type === 'humanization_signal');
       expect(signal).toBeDefined();
@@ -420,7 +420,7 @@ describe('Personality Bridge E2E - Frontend Signal Contract', () => {
       description: 'test',
       confidence: 0.8,
     });
-    await dispatchEmotionalBondSignal(mockSend, 'test', 0.8);
+    await dispatchEmotionalBondSignal(mockSend, 'breakthrough', 0.8);
     await dispatchAnticipationSignal(mockSend, {
       emotion: 'test',
       confidence: 0.8,
