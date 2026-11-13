@@ -2540,10 +2540,9 @@ IMPORTANT:
     // ================================================================
     fireAndForget(async () => {
       try {
+        if (crisisTurn) return; // no trust milestone of any kind on a crisis turn
         const relMem = getRelationalMemory();
-
-        // Detect and record trust milestones; no gratitude milestone of a crisis turn
-        if (!crisisTurn && /thank(s| you)|grateful|appreciate/i.test(userText)) {
+        if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
           await relMem.addMilestone(services.userId || 'anonymous', {
             type: 'expressed-gratitude',
             description: `User expressed gratitude during turn ${turnNumber}`,

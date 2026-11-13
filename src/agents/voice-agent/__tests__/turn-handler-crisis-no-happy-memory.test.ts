@@ -43,6 +43,7 @@ const state = vi.hoisted(() => ({
   writes: [] as string[],
   semanticReads: [] as unknown[],
   turnCount: 3,
+  distress: 0.2,
   /** Classifier asks through the turn's injected model call, and through a real model client. */
   asked: 0,
   realClient: 0,
@@ -137,7 +138,7 @@ vi.mock('../../processors/index.js', async (orig) => ({
     state.result = {
       analysis: { analysis: { emotion, intent: 'unknown' } },
       context: { injections: [], elapsedMs: 0 },
-      emotional: { ...emotion, distressLevel: 0.2 },
+      emotional: { ...emotion, distressLevel: state.distress },
       response: {},
       identity: {},
       crisis: await turnCrisis.summary(),
@@ -207,13 +208,15 @@ async function runTurn(
   env: Record<string, string>,
   read = '',
   emotion = 'sad',
-  turnCount = 3
+  turnCount = 3,
+  distress = 0.2
 ) {
   Object.assign(state, {
     env,
     read,
     emotion,
     turnCount,
+    distress,
     result: undefined,
     writes: [],
     semanticReads: [],
@@ -437,4 +440,43 @@ describe('known gap: the classifier gives no answer on a line the patterns miss'
     expect(turn.level).not.toBe('pass');
     expect(turn.writes).toEqual([]);
   });
+});
+
+describe('the first-vulnerability milestone', () => {
+  const VULNERABLE = 'milestone:first-vulnerability';
+  /** Lines the patterns miss: one says it is scared, one is heavy and carries high distress. */
+  const SCARED = "i'm scared about the move next week, honestly nothing feels worth it lately";
+  const HEAVY = 'the move next week has been a lot, honestly nothing feels worth it lately';
+  const TRIGGERS: Array<[string, string, number]> = [
+    ['says it is scared', SCARED, 0.2],
+    ['carries distress over 0.5', HEAVY, 0.9],
+  ];
+  /** What main's source records on each line read as ordinary, run with this file (sorted). */
+  const AS_ON_MAIN: Record<string, string[]> = {
+    [SCARED]: [
+      VULNERABLE,
+      'moment:crisis_support',
+      'moment:vulnerability',
+      'our-song',
+      'shared-moment',
+    ],
+    [HEAVY]: [VULNERABLE, 'moment:crisis_support', 'shared-moment'],
+  };
+
+  it.each(TRIGGERS)('a crisis turn that %s writes no milestone', async (_name, line, distress) => {
+    const turn = await runTurn(line, LIVE, CRISIS, 'sad', 3, distress);
+    expect(turn.level).not.toBe('pass');
+    expect(turn.writes).not.toContain(VULNERABLE);
+    expect(turn.writes).toEqual([]);
+  });
+
+  it.each(TRIGGERS)(
+    'the same line read as ordinary (%s) writes it, as on main',
+    async (_name, line, distress) => {
+      const turn = await runTurn(line, LIVE, NO_RISK, 'sad', 3, distress);
+      expect(turn.level).toBe('pass');
+      expect(turn.writes).toContain(VULNERABLE);
+      expect([...turn.writes].sort()).toEqual(AS_ON_MAIN[line]);
+    }
+  );
 });
