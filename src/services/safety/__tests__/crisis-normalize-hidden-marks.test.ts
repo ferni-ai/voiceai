@@ -34,14 +34,35 @@ const fullwidth = (line: string) =>
           : ch
     )
     .join('');
+/** The same mark in the middle of every word of two letters or more. */
+const everyWord = (mark: string) => (line: string) =>
+  line
+    .split(' ')
+    .map((word) => (word.length < 2 ? word : midWord(mark)(word)))
+    .join(' ');
+/** The same mark between every two letters of every word. */
+const everyLetter = (mark: string) => (line: string) =>
+  line
+    .split(' ')
+    .map((word) => [...word].join(mark))
+    .join(' ');
+// Always inside a word: a leading byte-order mark is already gone with trim().
+const MARKS = [
+  ['zero-width space', '\u200b'],
+  ['zero-width non-joiner', '\u200c'],
+  ['zero-width joiner', '\u200d'],
+  ['word joiner', '\u2060'],
+  ['soft hyphen', '\u00ad'],
+  ['byte-order mark', '\ufeff'],
+] as const;
+// One mark per line, one in every word, and one between every two letters: a reader that strips
+// only the first mark it finds fails the last two.
 const VARIANTS: ReadonlyArray<readonly [string, (line: string) => string]> = [
-  ['zero-width space', midWord('\u200b')],
-  ['zero-width non-joiner', midWord('\u200c')],
-  ['zero-width joiner', midWord('\u200d')],
-  ['word joiner', midWord('\u2060')],
-  ['soft hyphen', midWord('\u00ad')],
-  // Mid-word: a leading one is already gone with trim().
-  ['byte-order mark', midWord('\ufeff')],
+  ...MARKS.flatMap(([name, mark]) => [
+    [name, midWord(mark)] as const,
+    [`${name} in every word`, everyWord(mark)] as const,
+    [`${name} between every letter`, everyLetter(mark)] as const,
+  ]),
   ['fullwidth letters', fullwidth],
   ['fullwidth and a zero-width space', (line) => fullwidth(midWord('\u200b')(line))],
 ];
