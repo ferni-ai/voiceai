@@ -37,7 +37,6 @@ export class RedisCache {
   private readonly SESSION_TTL = 3600; // 1 hour
   private readonly ANALYSIS_TTL = 300; // 5 minutes
   private readonly RATE_TTL = 60; // 1 minute
-  private readonly PRESENCE_TTL = 120; // 2 minutes (heartbeat)
   private readonly EMOTION_TTL = 300; // 5 minutes
   private readonly BIOMARKER_TTL = 60; // 1 minute (very transient)
   private readonly OUTREACH_SUPPRESS_TTL = 1800; // 30 minutes after session
@@ -775,70 +774,11 @@ export class RedisCache {
   // ============================================================================
 
   /**
-   * Set user presence (call periodically during session as heartbeat)
-   * Key: presence:{userId}
-   */
-  async setUserPresence(
-    userId: string,
-    presence: {
-      sessionId: string;
-      personaId: string;
-      startedAt: string;
-      lastHeartbeat: string;
-      channel?: 'voice' | 'text' | 'web';
-    }
-  ): Promise<boolean> {
-    if (!this.client) return false;
-    try {
-      const key = `presence:${userId}`;
-      await this.client.setex(key, this.PRESENCE_TTL, JSON.stringify(presence));
-      return true;
-    } catch (error) {
-      getLogger().warn({ error: String(error), userId }, 'Failed to set presence');
-      return false;
-    }
-  }
-
-  /**
-   * Check if user is currently in a session
-   */
-  async getUserPresence(userId: string): Promise<{
-    sessionId: string;
-    personaId: string;
-    startedAt: string;
-    lastHeartbeat: string;
-    channel?: 'voice' | 'text' | 'web';
-  } | null> {
-    if (!this.client) return null;
-    try {
-      const key = `presence:${userId}`;
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Clear user presence (on session end)
-   */
-  async clearUserPresence(userId: string): Promise<boolean> {
-    if (!this.client) return false;
-    try {
-      const key = `presence:${userId}`;
-      await this.client.del(key);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Check if user is currently active (convenience method)
+   * Is the user in a live session right now? sessionLifecycle onStart/onHeartbeat write
+   * presence:{userId} = 'active' (with a TTL) and onEnd deletes it.
    */
   async isUserActive(userId: string): Promise<boolean> {
-    const presence = await this.getUserPresence(userId);
-    return presence !== null;
+    return (await this.get<string>(`presence:${userId}`)) === 'active';
   }
 
   // ============================================================================

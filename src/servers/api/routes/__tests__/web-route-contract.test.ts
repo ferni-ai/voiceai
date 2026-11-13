@@ -27,6 +27,12 @@ import { describe, expect, it, vi } from 'vitest';
 vi.hoisted(() => {
   process.env.ECOBEE_API_KEY = process.env.ECOBEE_API_KEY || 'contract-test-key';
 });
+// With a key set, POST /api/ecobee/link/start asks the real Ecobee API for a PIN.
+// A stand-in that refuses keeps it off the network; the route still claims the path.
+vi.mock('../../../../services/identity/ecobee-auth.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../services/identity/ecobee-auth.js')>()),
+  requestPin: vi.fn(async () => ({ success: false, error: 'stand-in Ecobee API' })),
+}));
 
 vi.mock('../../../../api/auth-middleware.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../api/auth-middleware.js')>();

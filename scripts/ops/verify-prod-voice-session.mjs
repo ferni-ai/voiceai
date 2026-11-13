@@ -3,13 +3,16 @@
  *
  * Usage:
  *   export LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...
+ *   export OBS_URL=<the voice agent's /api/observability URL>
  *   node scripts/ops/verify-prod-voice-session.mjs
  *
  * GCP secrets example:
  *   export LIVEKIT_API_SECRET="$(gcloud secrets versions access latest --secret=LIVEKIT_API_SECRET --project=johnb-2025)"
  *
+ * OBS_URL has no default: the old one pointed at a VM that no longer exists, so the script
+ * refuses to run without it rather than guess a host.
+ *
  * Optional:
- *   OBS_URL=http://34.134.186.63:8080/api/observability
  *   AGENT_NAME=voice-agent
  *   PROOF_TIMEOUT_MS=40000
  *
@@ -28,7 +31,7 @@ import { agentObsHeaders } from './voice-eval-metrics.mjs';
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
-const OBS_URL = process.env.OBS_URL || 'http://34.134.186.63:8080/api/observability';
+const OBS_URL = process.env.OBS_URL || '';
 const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
 const PROOF_TIMEOUT_MS = Number(process.env.PROOF_TIMEOUT_MS || 40_000);
 
@@ -37,6 +40,7 @@ function requireEnv() {
     ['LIVEKIT_URL', LIVEKIT_URL],
     ['LIVEKIT_API_KEY', LIVEKIT_API_KEY],
     ['LIVEKIT_API_SECRET', LIVEKIT_API_SECRET],
+    ['OBS_URL', OBS_URL],
   ]
     .filter(([, value]) => !value)
     .map(([name]) => name);
@@ -83,7 +87,8 @@ function metricValue(metrics, key) {
 
 function getSessionDeltas(before, after) {
   return {
-    connectionSuccesses: metricValue(after, 'connectionSuccesses') - metricValue(before, 'connectionSuccesses'),
+    connectionSuccesses:
+      metricValue(after, 'connectionSuccesses') - metricValue(before, 'connectionSuccesses'),
     disconnectCount: metricValue(after, 'disconnectCount') - metricValue(before, 'disconnectCount'),
     totalCalls: metricValue(after, 'totalCalls') - metricValue(before, 'totalCalls'),
   };
