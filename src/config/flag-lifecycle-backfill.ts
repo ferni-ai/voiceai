@@ -155,7 +155,6 @@ const GROUPS: readonly BackfillGroup[] = [
     flags: 'CONTACT_PICK_V2 CRISIS_EVENT_RECORD HANDOFF_EARLY_GOODBYE MIND_BUILD',
   },
   { firstSeen: '2026-10-27', expires: '2027-01-25', flags: 'AI_NOTICE_SPOKEN' },
-  { firstSeen: '2026-10-28', expires: '2027-01-26', flags: 'ACTIVITY_LEDGER' },
   // CRISIS_MEANS_IN_HAND: tracked in issue #2697 (the backfill has no issue field)
   {
     firstSeen: '2026-10-29',

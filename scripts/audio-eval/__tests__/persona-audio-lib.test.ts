@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { FINANCIAL_LEGENDS } from '../../../src/personas/persona-ids.js';
 import { rate } from '../../persona-eval/bar-lib.js';
 import { PERSONAS, personaNames, personaParagraph } from '../../persona-eval/roster.js';
 import {
@@ -26,6 +27,10 @@ const HENRY = PERSONAS.find((p) => personaNames(p)[0] === 'Henry') ?? 'missing';
 const letterOf = (prompt: string, paragraph: string): string =>
   prompt.split('\n').find((l) => l.endsWith(paragraph))?.[0] ?? '?';
 const lines = ['ugh. long day.', 'guess who got the job'];
+/** One judged reply per persona per line: the roster size times the caller lines. */
+const TRIALS = PERSONAS.length * lines.length;
+/** The legends' first names, from their bundles (persona-ids.ts FINANCIAL_LEGENDS). */
+const LEGEND_NAMES = FINANCIAL_LEGENDS.map((id) => personaNames(id)[0]);
 
 // The fake clip carries who spoke; the fake audio judge finds that persona's paragraph and answers its letter.
 function knowing(log: { rendered: string[]; heard: [Buffer, string][]; read: string[] }): Clients {
@@ -94,18 +99,21 @@ describe('the blind judge prompt', () => {
     });
     const says = { voice: () => 'okay.', reply: (p: string, l: string) => `${p}: ${l}` };
     await runArms(says, lines, clients, 'salt-1');
-    expect(heard.voice).toHaveLength(PERSONAS.length * lines.length);
+    expect(heard.voice).toHaveLength(TRIALS);
     expect(heard.reply).toEqual(heard.voice);
   });
 
   it('gives a judge that always answers F chance, not a fixed edge, over many runs', async () => {
-    const salts = Array.from({ length: 30 }, (_, i) => `run-${i}`);
+    // The salts are fixed, so this is one draw: a judge at chance lands inside its 95% interval
+    // for 95% of salt sets. 200 salts keeps the interval tight around chance (1/N).
+    const salts = Array.from({ length: 200 }, (_, i) => `run-${i}`);
     const always = { ...knowing(newLog()), hear: async () => '{"companion":"F"}' };
     const picks = [];
     for (const salt of salts)
       picks.push(...(await judgeArm(salt, lines, () => 'okay.', always, ROSTER)).audio);
     const s = score(picks, PERSONAS);
-    expect(s.accuracy.n).toBe(salts.length * PERSONAS.length * lines.length);
+    expect(s.accuracy.n).toBe(salts.length * TRIALS);
+    expect(s.chance).toBe(1 / PERSONAS.length);
     expect(s.accuracy.lo).toBeLessThan(s.chance);
     expect(s.accuracy.hi).toBeGreaterThan(s.chance);
     // The persona behind F for one fixed trial changes from run to run.
@@ -118,14 +126,16 @@ describe('the blind judge prompt', () => {
       ...ROSTER,
       describe: (p) => `${personaParagraph(p)} Ask for ${personaNames(p).join(' ')}.`,
     };
-    const said = "it's Tom here, and Henry says hi, so does Ferni";
+    const [first, second] = LEGEND_NAMES;
+    const said = `it's ${first} here, and ${second} says hi, so does Ferni`;
     const log = newLog();
     await judgeArm('reply', lines, () => said + '!', knowing(log), leaky);
     await judgeArm('reply', lines, (p) => `${said} (${p})`, knowing(log), leaky);
     const prompts = [...log.heard.map(([, p]) => p), ...log.read];
-    expect(prompts.length).toBeGreaterThan(PERSONAS.length * lines.length * 2);
+    expect(prompts.length).toBeGreaterThan(TRIALS * 2);
     const nameWords = ROSTER.names.flatMap((n) => n.split(/\s+/)).filter(Boolean);
-    expect(nameWords).toEqual(expect.arrayContaining(['Tom', 'Henry']));
+    expect(LEGEND_NAMES).toHaveLength(2);
+    expect(nameWords).toEqual(expect.arrayContaining([...LEGEND_NAMES, 'Ferni']));
     for (const prompt of prompts)
       for (const w of nameWords) expect(prompt).not.toMatch(new RegExp(`\\b${w}\\b`, 'i'));
     expect(transcriptPrompt(choicesFor('t', ROSTER), said, ROSTER.names)).toContain(
@@ -161,8 +171,8 @@ describe('each judge family gets its own evidence', () => {
     const log = newLog();
     const say = (p: string, l: string) => `${p === HENRY ? 'well now' : 'sure thing'}: ${l}`;
     const r = await judgeArm('reply', lines, say, knowing(log), ROSTER);
-    expect(log.heard).toHaveLength(PERSONAS.length * lines.length);
-    expect(log.read).toHaveLength(PERSONAS.length * lines.length);
+    expect(log.heard).toHaveLength(TRIALS);
+    expect(log.read).toHaveLength(TRIALS);
     for (const [i, [wav, prompt]] of log.heard.entries()) {
       const persona = PERSONAS[Math.floor(i / lines.length)];
       const line = lines[i % lines.length];
@@ -176,7 +186,7 @@ describe('each judge family gets its own evidence', () => {
       expect(prompt).not.toMatch(/hear/);
     }
     // The letter the audio judge answers maps back to the persona it stood for.
-    expect(score(r.audio, PERSONAS).accuracy).toEqual(rate(18, 18));
+    expect(score(r.audio, PERSONAS).accuracy).toEqual(rate(TRIALS, TRIALS));
     // Always answering A spreads over the personas, since A is someone else each trial.
     expect(new Set(r.text?.map((p) => p.guess)).size).toBeGreaterThan(3);
   });
@@ -186,13 +196,13 @@ describe('each judge family gets its own evidence', () => {
     const r = await judgeArm('voice', lines, () => 'okay.', knowing(log), ROSTER);
     expect(r.text).toBeNull();
     expect(log.read).toHaveLength(0);
-    expect(r.audio).toHaveLength(18);
+    expect(r.audio).toHaveLength(TRIALS);
   });
 
   it('counts an answer without a valid letter as a failure, not a guess', async () => {
     const c = { ...knowing(newLog()), hear: async () => '{"companion":"Q"}' };
     const r = await judgeArm('voice', lines, () => 'okay.', c, ROSTER);
-    expect(score(r.audio, PERSONAS)).toMatchObject({ failures: 18, accuracy: { k: 0, n: 0 } });
+    expect(score(r.audio, PERSONAS)).toMatchObject({ failures: TRIALS, accuracy: { k: 0, n: 0 } });
   });
 
   it('counts a clip that fails to render as a failure, and never asks the judge to hear it', async () => {
@@ -200,9 +210,9 @@ describe('each judge family gets its own evidence', () => {
     const c = { ...knowing(log), render: () => Promise.reject(new Error('the clip is empty')) };
     const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const r = await judgeArm('salt-1', lines, () => 'okay.', c, ROSTER);
-    expect(logged).toHaveBeenCalledTimes(18);
+    expect(logged).toHaveBeenCalledTimes(TRIALS);
     logged.mockRestore();
-    expect(score(r.audio, PERSONAS)).toMatchObject({ failures: 18, accuracy: { k: 0, n: 0 } });
+    expect(score(r.audio, PERSONAS)).toMatchObject({ failures: TRIALS, accuracy: { k: 0, n: 0 } });
     expect(log.heard).toHaveLength(0);
   });
 });

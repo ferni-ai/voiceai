@@ -6,6 +6,7 @@
  */
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { bumpForgetGeneration } from '../adapters/firestore/forgotten-store.js';
 import { closeWorldFacts, firestoreForgetStore, openWorldFacts } from '../recall/forget.js';
 import type { DisputeStore } from '../recall/dispute.js';
 
@@ -45,5 +46,6 @@ export const firestoreDisputeStore: DisputeStore = {
       .collection('summaries')
       .doc(id)
       .update({ disputedItems: FieldValue.arrayUnion(...items), disputedAt: at });
+    await bumpForgetGeneration(db, userId); // summaries built from those items are stale
   },
 };

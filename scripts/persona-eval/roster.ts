@@ -1,6 +1,6 @@
 /**
  * Who the persona evals iterate: every persona with a bundle (the core six and
- * the three legends), checked against the bundles themselves so a new persona
+ * the two legends), checked against the bundles themselves so a new persona
  * can't be silently skipped, and the name each one goes by on a call.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';

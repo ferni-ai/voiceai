@@ -1,10 +1,11 @@
 /**
  * Financial Legend handoff contract: agent → web.
  *
- * When the voice agent hands a call to a Financial Legend (the peter-lynch,
- * john-bogle and joel-dickson personas), the web must show THAT persona. Before
- * this, the web mapped `peter-lynch` to Peter John on purpose, so a handoff to
- * peter-lynch showed Peter John's name, face and colour.
+ * When the voice agent hands a call to a Financial Legend (the john-bogle and
+ * joel-dickson personas), the web must show THAT persona. Before this, the web
+ * mapped a legend id to Peter John on purpose, so a handoff showed Peter John's
+ * name, face and colour. Tom, the stock-picking legend, retired on 2026-11-08:
+ * a stale event naming his id shows Ferni.
  *
  * The message is built by the backend's REAL code: the id is canonicalized by
  * src/personas/persona-ids.ts (the coordinator's getCanonicalPersonaId
@@ -48,28 +49,39 @@ afterEach(() => {
 });
 
 describe('handoff to a Financial Legend', () => {
-  it('shows Tom Brannigan (peter-lynch), with his own initials and token colour, not Peter John', async () => {
+  it('shows Henry Caldwell (john-bogle), with his own initials and token colour, not Peter John', async () => {
     const completedTo: string[] = [];
     cleanups.push(handoffService.onHandoffComplete((to) => completedTo.push(to)));
 
-    const message = handoffCompleteFromAgent('peter-lynch');
-    expect((message as unknown as { target: string }).target).toBe('peter-lynch');
+    const message = handoffCompleteFromAgent('john-bogle');
+    expect((message as unknown as { target: string }).target).toBe('john-bogle');
     expect(await handoffService.processDataMessage(message)).toBe(true);
 
     const speaking = appState.get('activePersona');
-    expect(speaking.id).toBe('peter-lynch');
-    expect(speaking.name).toBe('Tom Brannigan');
-    expect(speaking.initials).toBe('TB');
-    expect(speaking.subtitle).toBe('Stock Picking Guide');
-    expect(speaking.colors.primary).toBe(GENERATED_PERSONA_COLORS['lynch']?.primary);
+    expect(speaking.id).toBe('john-bogle');
+    expect(speaking.name).toBe('Henry Caldwell');
+    expect(speaking.initials).toBe('HC');
+    expect(speaking.subtitle).toBe('Index Investing Mentor');
+    expect(speaking.colors.primary).toBe(GENERATED_PERSONA_COLORS['bogle']?.primary);
     expect(speaking.colors.primary).not.toBe(PERSONAS['peter-john'].colors.primary);
-    expect(completedTo).toEqual(['peter-lynch']);
+    expect(completedTo).toEqual(['john-bogle']);
 
     // The page takes his colour: data-persona names him and a theme rule exists for it.
-    expect(document.body.getAttribute('data-persona')).toBe('peter-lynch');
+    expect(document.body.getAttribute('data-persona')).toBe('john-bogle');
     const theme = document.getElementById('legend-persona-themes')?.textContent ?? '';
     expect(theme).toContain(
-      `body[data-persona='peter-lynch'] { --persona-primary: ${GENERATED_PERSONA_COLORS['lynch']?.primary};`
+      `body[data-persona='john-bogle'] { --persona-primary: ${GENERATED_PERSONA_COLORS['bogle']?.primary};`
+    );
+  });
+
+  it("shows Ferni for a stale event that names Tom's retired id", async () => {
+    setActivePersona('maya-santos');
+    expect(
+      await handoffService.processDataMessage(handoffCompleteFromAgent('peter-lynch', false))
+    ).toBe(true);
+    expect(appState.get('activePersona').id).toBe('ferni');
+    expect(document.getElementById('legend-persona-themes')?.textContent ?? '').not.toContain(
+      'peter-lynch'
     );
   });
 
@@ -101,9 +113,10 @@ describe('handoff to a Financial Legend', () => {
 
 describe('Legends are not team members', () => {
   it('stay out of the team registry, roster order and team list', () => {
-    expect(Object.keys(LEGENDS).sort()).toEqual(['joel-dickson', 'john-bogle', 'peter-lynch']);
+    expect(Object.keys(LEGENDS).sort()).toEqual(['joel-dickson', 'john-bogle']);
     expect(Object.keys(PERSONAS).sort()).toEqual([...ALL_PERSONA_IDS].sort());
     expect([...TEAM_ORDER].sort()).toEqual([...ALL_PERSONA_IDS].sort());
+    expect(getTeamMembers().map((p) => p.id)).not.toContain('john-bogle');
     expect(getTeamMembers().map((p) => p.id)).not.toContain('peter-lynch');
     expect(Object.values(LEGENDS).every((legend) => legend.role === 'standalone')).toBe(true);
   });
