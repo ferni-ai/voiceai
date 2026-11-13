@@ -111,6 +111,18 @@ exports[`an invented 10-turn call > read as ordinary: the same 9 corrections as 
 ]
 `;
 
+exports[`every return of processTurn > inputs changed mid-turn: the correction is the one taken as the turn began (snapshot from main) 1`] = `
+[
+  [
+    "autoRecord",
+    "uid-invented",
+    "work was long today, lots of meetings",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+]
+`;
+
 exports[`every return of processTurn > route ftis, ordinary read: returns by ftis-bypass and writes as before 1`] = `
 [
   [

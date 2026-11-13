@@ -23,13 +23,28 @@ const h = vi.hoisted(() => ({
   readFault: null as null | 'throws' | 'hangs',
   /** A builder throws after the crisis read started. */
   builderThrows: false,
+  /** A builder changes the turn's inputs mid-turn, after processTurn started. */
+  builderMutates: false,
+  /** The classifier's model call answers, fails, or never answers. */
+  classifier: 'answers' as 'answers' | 'fails' | 'hangs',
+  /** What the turn's crisis read showed: the patterns alone, and each bypassAllowed() answer. */
+  patternSignal: [] as boolean[],
+  bypass: [] as boolean[],
+  /** Which routers were asked. */
+  routed: [] as string[],
   writes: [] as Array<[string, ...unknown[]]>,
 }));
 
 vi.mock('../../../../config/gemini-config.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   getGeminiClient: async () => ({
-    models: { generateContent: async () => ({ text: `{"risk":"${h.risk}","subject":"self"}` }) },
+    models: {
+      generateContent: async () => {
+        if (h.classifier === 'fails') throw new Error('model unavailable');
+        if (h.classifier === 'hangs') return new Promise<never>(() => {});
+        return { text: `{"risk":"${h.risk}","subject":"self"}` };
+      },
+    },
   }),
 }));
 vi.mock('../../../../services/superhuman/user-corrections.js', () => ({
@@ -68,32 +83,38 @@ vi.mock('../../../../config/tool-config.js', async (orig) => ({
 }));
 vi.mock('../../tool-routing-integration.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
-  runFTISRouting: async () => ({
-    attempted: true,
-    bypassLLM: true,
-    toolResult: { toolId: 'getWeather', output: 'Sunny, 72.', speakableResponse: 'Sunny, 72.' },
-    classification: { confidence: 0.99, fineCategory: 'weather' },
-    processingTimeMs: 1,
-  }),
+  runFTISRouting: async () => {
+    h.routed.push('ftis');
+    return {
+      attempted: true,
+      bypassLLM: true,
+      toolResult: { toolId: 'getWeather', output: 'Sunny, 72.', speakableResponse: 'Sunny, 72.' },
+      classification: { confidence: 0.99, fineCategory: 'weather' },
+      processingTimeMs: 1,
+    };
+  },
 }));
 vi.mock('../../../../tools/semantic-router/integration/index.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   isRoutingEnabled: () => h.route === 'semantic',
   isIntelligentRouterInitialized: () => false,
-  startSemanticRouting: async () => ({
-    attempted: true,
-    executed: true,
-    output: 'Sunny, 72.',
-    routeResult: {
-      matches: [
-        {
-          toolId: 'getWeather',
-          confidence: 0.99,
-          layerScores: { pattern: 0.99, keyword: 0, embedding: 0 },
-        },
-      ],
-    },
-  }),
+  startSemanticRouting: async () => {
+    h.routed.push('semantic');
+    return {
+      attempted: true,
+      executed: true,
+      output: 'Sunny, 72.',
+      routeResult: {
+        matches: [
+          {
+            toolId: 'getWeather',
+            confidence: 0.99,
+            layerScores: { pattern: 0.99, keyword: 0, embedding: 0 },
+          },
+        ],
+      },
+    };
+  },
 }));
 vi.mock('../../identity-context-builder.js', async (orig) => {
   const real = await orig<typeof import('../../identity-context-builder.js')>();
@@ -101,6 +122,12 @@ vi.mock('../../identity-context-builder.js', async (orig) => {
     ...real,
     buildIdentityContext: (...args: Parameters<typeof real.buildIdentityContext>) => {
       if (h.builderThrows) throw new Error('builder failed');
+      if (h.builderMutates) {
+        const [ctx] = args;
+        ctx.userData.lastAgentResponse = 'A reply written mid-turn.';
+        ctx.userData.turnCount = 99;
+        Object.assign(ctx, { userText: 'a line written mid-turn' });
+      }
       return real.buildIdentityContext(...args);
     },
   };
@@ -110,7 +137,16 @@ vi.mock('../turn-crisis.js', async (orig) => {
   return {
     ...real,
     startTurnCrisis: (...args: Parameters<typeof real.startTurnCrisis>) => {
-      const turn = real.startTurnCrisis(...args);
+      const read = real.startTurnCrisis(...args);
+      h.patternSignal.push(real.hasCrisisSignal(read.patterns));
+      const turn = {
+        ...read,
+        bypassAllowed: async () => {
+          const allowed = await read.bypassAllowed();
+          h.bypass.push(allowed);
+          return allowed;
+        },
+      };
       if (h.readFault === 'throws')
         return { ...turn, summary: () => Promise.reject(new Error('x')) };
       if (h.readFault === 'hangs') return { ...turn, summary: () => new Promise<never>(() => {}) };
@@ -204,6 +240,11 @@ beforeEach(() => {
   h.route = 'full';
   h.readFault = null;
   h.builderThrows = false;
+  h.builderMutates = false;
+  h.classifier = 'answers';
+  h.patternSignal.length = 0;
+  h.bypass.length = 0;
+  h.routed.length = 0;
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
@@ -252,21 +293,39 @@ describe('every return of processTurn', () => {
       h.route = route;
       const turn = await oneTurn(CALL[1], 'none');
       expect(turn.path).toBe(path);
+      expect(h.routed).toEqual(route === 'full' ? [] : [route]);
+      expect(h.bypass).toEqual(route === 'full' ? [] : [true]);
       expect(turn.writes.length).toBe(1);
       expect(stable(turn.writes)).toMatchSnapshot();
     }
   );
 
+  /**
+   * bypassAllowed() settles the turn's read, the live classifier verdict included, before a
+   * router may answer: a line no pattern flags, read imminent by the classifier, never takes a
+   * bypass return. The full return decides, and writes nothing.
+   */
   it.each(['full', 'ftis', 'semantic'] as const)(
-    'route %s, crisis read: no bypass, the full return, nothing written',
+    'route %s, a line no pattern flags read imminent by the classifier: bypass refused, the full return, nothing written',
     async (route) => {
       h.route = route;
       const turn = await oneTurn(CALL[1], 'imminent');
+      expect(h.patternSignal).toEqual([false]);
+      expect(h.routed).toEqual(route === 'full' ? [] : [route]);
+      expect(h.bypass).toEqual(route === 'full' ? [] : [false]);
       expect(crisisReadTurn(turn.result.crisis)).toBe(true);
       expect(turn.path).toBe('full');
       expect(turn.writes).toEqual([]);
     }
   );
+
+  it('inputs changed mid-turn: the correction is the one taken as the turn began (snapshot from main)', async () => {
+    h.builderMutates = true;
+    const turn = await oneTurn(CALL[1], 'none');
+    expect(turn.path).toBe('full');
+    expect(turn.writes.length).toBe(1);
+    expect(stable(turn.writes)).toMatchSnapshot();
+  });
 
   it('the empty-text throw writes nothing', async () => {
     await expect(
@@ -300,7 +359,8 @@ describe('no read: nothing written (fail closed)', () => {
     expect(h.writes).toEqual([]);
   });
 
-  it('processTurn throws after the read started, before any return: nothing written', async () => {
+  /** Intended change: main started the write before this throw and wrote 1; now nothing. */
+  it('processTurn throws after the read started, before any return: nothing written (intended; main wrote 1)', async () => {
     h.builderThrows = true;
     await expect(oneTurn(CALL[1], 'none')).rejects.toThrow('builder failed');
     await drain();
@@ -319,6 +379,27 @@ describe('no read: nothing written (fail closed)', () => {
     await drain();
     expect(h.writes.map((w) => w.slice(0, 3))).toEqual([['autoRecord', 'uid-invented', CALL[1]]]);
   });
+});
+
+/**
+ * The hold follows the turn's own crisis read. When the classifier gives no answer, that read
+ * is the patterns' reading: on a line no pattern flags it reads as ordinary, and the
+ * correction is written as on main. Shown, not changed here.
+ */
+describe('the classifier gives no answer', () => {
+  it.each(['fails', 'hangs'] as const)(
+    'model call %s: the turn reads as its patterns (ordinary here) and writes as on main',
+    async (mode) => {
+      vi.stubEnv('CRISIS_CLASSIFIER_TIMEOUT_MS', '100');
+      h.classifier = mode;
+      const turn = await oneTurn(CALL[1], 'imminent');
+      expect(h.patternSignal).toEqual([false]);
+      expect(crisisReadTurn(turn.result.crisis)).toBe(false);
+      expect(turn.writes.map((w) => w.slice(0, 3))).toEqual([
+        ['autoRecord', 'uid-invented', CALL[1]],
+      ]);
+    }
+  );
 });
 
 describe('FRIEND_REPAIR and DISPUTE_DENIED_FACTS on', () => {
@@ -346,14 +427,14 @@ describe('FRIEND_REPAIR and DISPUTE_DENIED_FACTS on', () => {
 });
 
 /**
- * NOT COVERED: processTurn runs once per final segment of a caller turn, on the text so far.
- * When the first segment alone reads ordinary and the second makes the turn a crisis turn, the
- * first segment's run has already returned an ordinary read and written its correction. (Before
- * this change both segments wrote.) A per-turn verdict closes this; until then this test pins
- * the one write that remains, so the change shows when it lands.
+ * KNOWN GAP, closed by the follow-up "recorder 5 uses the per-turn verdict". processTurn runs
+ * once per final segment of a caller turn, on the text so far. When the first segment alone
+ * reads ordinary and the second makes the turn a crisis turn, the first segment's run has
+ * already returned an ordinary read and written its correction (main wrote for both). This row
+ * pins the one write that remains; that follow-up flips its last assertion to `[]`.
  */
-describe('two-segment turn (residual, not covered)', () => {
-  it("segment 1 reads ordinary and writes; segment 2's crisis turn writes nothing more", async () => {
+describe('two-segment turn (known gap)', () => {
+  it("known gap: segment 1 reads ordinary and writes; segment 2's crisis turn writes nothing more", async () => {
     const userData: Record<string, unknown> = { turnCount: 2, lastAgentResponse: REPLY };
     const first = 'work was long today';
     const whole = `${first} and I keep thinking about the meeting`;
