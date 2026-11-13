@@ -8,12 +8,16 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { hits, recorders } = vi.hoisted(() => {
+const { hits, originals, recorders } = vi.hoisted(() => {
   const hits: string[] = [];
+  /** Export count of each real module a recorder spreads: an empty one would hide a throw. */
+  const originals: Record<string, number> = {};
   const recorders =
     (mod: string, names: string[]) =>
     async (importOriginal: () => Promise<Record<string, unknown>>) => {
-      const out: Record<string, unknown> = { ...(await importOriginal()) };
+      const original = await importOriginal();
+      originals[mod] = Object.keys(original).length;
+      const out: Record<string, unknown> = { ...original };
       for (const name of names) {
         out[name] = async () => {
           hits.push(`${mod}:${name}`);
@@ -22,7 +26,7 @@ const { hits, recorders } = vi.hoisted(() => {
       }
       return out;
     };
-  return { hits, recorders };
+  return { hits, originals, recorders };
 });
 
 vi.mock('../correlation-mining.js', recorders('correlation', ['recordObservation']));
@@ -97,8 +101,19 @@ describe('semantic intelligence on a crisis turn', () => {
         'coaching:updateLearningStyle',
         'selfAwareness:recordDistortions',
         'selfAwareness:recordSelfPerception',
+        'trajectories:recordEmotionalWaypoint',
       ])
     );
+    // Every spread module was real (an empty original would make a sink throw unseen)
+    for (const [mod, count] of Object.entries(originals)) expect(count, mod).toBeGreaterThan(0);
+  });
+
+  it('the emotional arc write: none on a crisis turn, one on the next ordinary turn', async () => {
+    const arcWrites = () => hits.filter((h) => h === 'trajectories:recordEmotionalWaypoint').length;
+    await processSemanticIntelligence(turn(true));
+    expect(arcWrites()).toBe(0);
+    await processSemanticIntelligence(turn(false));
+    expect(arcWrites()).toBe(1);
   });
 
   it('a crisis turn writes, embeds and asks a model nothing', async () => {
