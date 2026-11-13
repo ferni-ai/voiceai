@@ -160,6 +160,14 @@ describe('the lines these rows use, in numbers', () => {
   });
 });
 
+describe('the late line', () => {
+  it('names 911 in its own words', () => {
+    // A literal, not the constant against itself: the wording list regenerates from the constant,
+    // so a rewrite that dropped the number would pass there and go red only here.
+    expect(LATE_911_LINE).toMatch(/\b911\b/);
+  });
+});
+
 describe('flag on: an imminent read of a scripted turn makes it 911-first', () => {
   it.each([SUPPLY_NOW, TONIGHT])('swaps the rest for the imminent rest: %s', async (line) => {
     const heard = await turn(line, ON, answer(IMMINENT, 300));
