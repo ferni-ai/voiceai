@@ -8,7 +8,10 @@
  *
  * @module agents/voice-agent-entry/follow-through-import-register
  */
-import { registerAfterCallTask } from '../../services/session/after-call-tasks.js';
+import {
+  registerAfterCallTask,
+  type AfterCallContext,
+} from '../../services/session/after-call-tasks.js';
 import { FOLLOW_THROUGH_IMPORT_TASK, importFollowUpsAfterCall } from '../follow-through-import.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from './caller-recognition.js';
@@ -18,11 +21,20 @@ export function ownerOnTheLine(sessionId: string): boolean {
   return sessionIsVerifiedOwner(sessionId) && !outboundPartiesFor(sessionId);
 }
 
+/**
+ * ownerOnTheLine once the call is over. By then the call's context is released,
+ * so who was on the line comes from what the call's end recorded; a session
+ * with no record is not the owner's.
+ */
+function ownerAfterCall(ctx: AfterCallContext): boolean {
+  return ctx.thirdPartyOnLine === false && sessionIsVerifiedOwner(ctx.sessionId);
+}
+
 // Four reads (forgotten topics, reminders, commitments, summaries) and one transaction per item.
 registerAfterCallTask(
   FOLLOW_THROUGH_IMPORT_TASK,
   async (ctx) => {
-    await importFollowUpsAfterCall(ctx, { verifiedOwner: ownerOnTheLine });
+    await importFollowUpsAfterCall(ctx, { verifiedOwner: () => ownerAfterCall(ctx) });
   },
   { timeoutMs: 20_000 }
 );

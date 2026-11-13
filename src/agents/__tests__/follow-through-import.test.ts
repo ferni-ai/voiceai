@@ -55,18 +55,40 @@ function fakeDb(): Firestore {
 }
 
 const { ownerOnTheLine } = await import('../voice-agent-entry/follow-through-import-register.js');
-const { drainAfterCallTasks, registeredAfterCallTasks, runAfterCallTasks } =
+const { drainAfterCallTasks, registeredAfterCallTasks, runAfterCall, runAfterCallTasks } =
   await import('../../services/session/after-call-tasks.js');
+const { callEndFor } = await import('../voice-agent-entry/call-end.js');
+const { rememberCallerTimeZone } = await import('../../utils/caller-time-zone.js');
 const { rememberDispatchIdentity } = await import('../voice-agent-entry/caller-recognition.js');
-const { setOutboundCallContext } =
+const { getOutboundCallContext, setOutboundCallContext } =
   await import('../../intelligence/context-builders/external/outbound-call-context.js');
 const { importFollowUpsAfterCall } = await import('../follow-through-import.js');
 
 const NOW = Date.parse('2026-10-17T15:00:00.000Z');
 const DAY = 86_400_000;
 
+/** The after-call context of a call whose end recorded no third party on the line. */
 function call(userId: string, sessionId: string) {
-  return { userId, sessionId, turns: [], startedAt: new Date(NOW), timezone: 'America/Denver' };
+  return {
+    userId,
+    sessionId,
+    turns: [],
+    startedAt: new Date(NOW),
+    timezone: 'America/Denver',
+    thirdPartyOnLine: false,
+  };
+}
+
+/**
+ * A call that ends the way the voice entry ends it: callEndFor's end() (the report,
+ * then the release of the call's context), then the session cleanup's runAfterCall.
+ */
+async function endThenRunAfterCall(userId: string, sessionId: string): Promise<void> {
+  rememberCallerTimeZone('America/Denver', sessionId);
+  const ctx = { addShutdownCallback: () => undefined, job: { metadata: '{}' } };
+  await callEndFor(ctx, { metadata: {}, callType: undefined, sessionId, startTime: NOW }).end();
+  runAfterCall(userId, sessionId, [], undefined, { getDurationSeconds: () => 60 });
+  await drainAfterCallTasks(2_000);
 }
 
 /** A signed-in app call: the dispatch named the account. */
@@ -162,18 +184,35 @@ describe('follow-through import after a call (FOLLOW_THROUGH_IMPORT)', () => {
     }
   });
 
-  it("writes nothing when the caller isn't the proven owner, or Ferni placed the call", async () => {
+  it("writes nothing when the caller isn't the proven owner", async () => {
     await runCall('owner-1', 's-unrecognised-phone');
     expect(followUps('owner-1')).toHaveLength(0);
+  });
 
+  it("writes the owner's follow-ups after their own call has ended and released its context", async () => {
+    await endThenRunAfterCall('owner-1', ownerSession('s-own-ended'));
+    expect(followUps('owner-1')).toHaveLength(2);
+  });
+
+  it('writes nothing for a call Ferni placed, though its end released the context first', async () => {
     const onBehalf = ownerSession('s-on-behalf');
     setOutboundCallContext(onBehalf, {
       callId: 'c',
       recipientName: 'Doug',
       kind: 'on_behalf',
     } as never);
-    await runCall('sponsor-1', onBehalf);
+
+    await endThenRunAfterCall('sponsor-1', onBehalf);
+
+    expect(getOutboundCallContext(onBehalf)).toBeUndefined(); // released before the task ran
     expect(followUps('sponsor-1')).toHaveLength(0);
+  });
+
+  it('writes nothing for a session whose end recorded nothing (unknown is not the owner)', async () => {
+    const { thirdPartyOnLine: _known, ...unrecorded } = call('owner-1', ownerSession('s-no-end'));
+    runAfterCallTasks(unrecorded);
+    await drainAfterCallTasks(2_000);
+    expect(followUps('owner-1')).toHaveLength(0);
   });
 
   it('treats nobody as the owner when no owner check is handed in', async () => {
