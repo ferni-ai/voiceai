@@ -2,12 +2,14 @@
  * `ferni users` and `ferni waitlist`: thin wrappers over scripts/*.ts that read
  * or change prod Firestore / Firebase Auth.
  *
- * Two rules, both tested in __tests__/users-admin.test.ts:
+ * Three rules, all tested in __tests__/users-admin.test.ts:
  *  - No shell. Every script runs as `npx tsx <script> <args...>` with an
  *    argument array, so an email like `a@b.com; touch /tmp/x` stays one argv
  *    element instead of becoming a second command.
  *  - Deletions are dry runs unless the caller passes --execute AND types the
  *    project id. The scripts check the same id again (scripts/destructive-gate.ts).
+ *  - A script's exit code is the command's: when a script refuses or fails, the
+ *    command exits nonzero too.
  */
 
 import { spawnSync, type SpawnSyncReturns } from 'child_process';
@@ -16,7 +18,7 @@ import { join } from 'path';
 export type RunFn = (
   cmd: string,
   args: readonly string[],
-  opts: { stdio: 'inherit' }
+  opts: { stdio: 'inherit'; env?: NodeJS.ProcessEnv }
 ) => Pick<SpawnSyncReturns<Buffer>, 'status'>;
 
 export interface UsersAdminDeps {
@@ -33,10 +35,22 @@ function flagValue(args: readonly string[], name: string, fallback: string): str
   return args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) || fallback;
 }
 
-function runScript(deps: UsersAdminDeps, script: string, args: readonly string[]): void {
-  (deps.run ?? defaultRun)('npx', ['tsx', join(deps.scriptsDir, script), ...args], {
+/**
+ * `env` is added to this process's environment for the script only. A script that exits
+ * nonzero sets this process's exit code to the same value (1 when a signal killed it).
+ */
+function runScript(
+  deps: UsersAdminDeps,
+  script: string,
+  args: readonly string[],
+  env?: Record<string, string>
+): void {
+  const run = deps.run ?? defaultRun;
+  const { status } = run('npx', ['tsx', join(deps.scriptsDir, script), ...args], {
     stdio: 'inherit',
+    ...(env && { env: { ...process.env, ...env } }),
   });
+  if (status !== 0) process.exitCode = status ?? 1;
 }
 
 /**
@@ -81,7 +95,9 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
       return;
     case 'dump':
       if (requireArg(target, 'ferni users dump <userId>')) {
-        runScript(deps, 'full-user-dump.ts', [`--user=${target}`]);
+        // The script reads its target from FERNI_USER_ID and refuses any id not in
+        // MEMORY_EVAL_ALLOWED_UIDS (scripts/lib/allowed-uid.mjs).
+        runScript(deps, 'full-user-dump.ts', [], { FERNI_USER_ID: target });
       }
       return;
     case 'grant':
@@ -107,7 +123,7 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
 
   ferni users list [--limit=N]       List users
   ferni users show <email>           Show user details
-  ferni users dump <userId>          Full user data dump
+  ferni users dump <userId>          Full user data dump (userId must be in MEMORY_EVAL_ALLOWED_UIDS)
   ferni users grant <email>          Grant access to a user
   ferni users find-rich              Find users with rich data
   ferni users cleanup [--execute]    Delete anonymous Auth users (dry run by default)

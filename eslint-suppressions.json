@@ -80,11 +80,6 @@
       "count": 6
     }
   },
-  "src/agents/shared/call-farewell.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "src/agents/shared/conversational-audio-cache.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -101,6 +96,11 @@
     },
     "no-useless-assignment": {
       "count": 2
+    }
+  },
+  "src/agents/shared/goodbye-phrases.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/shared/handoff/coordinator-adapter.ts": {
@@ -454,11 +454,6 @@
   },
   "src/servers/api/routes/twilio-call-status.ts": {
     "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/servers/api/services/demo-sessions.ts": {
-    "no-useless-assignment": {
       "count": 1
     }
   },

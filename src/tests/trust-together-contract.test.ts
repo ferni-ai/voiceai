@@ -153,6 +153,7 @@ async function agentCalls(userId: string, days: typeof MONTH): Promise<void> {
         userId,
         userText: text ?? 'Just checking in.',
         result: { emotional: { primary: emotion, intensity }, context: {} },
+        crisisTurn: false, // a pass turn
       });
     }
     await saveTrustProfiles(userId);
