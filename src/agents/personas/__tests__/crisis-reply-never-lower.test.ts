@@ -7,6 +7,12 @@
  * else, to throw, and to never answer. The model is a stub that says MODEL_SAYS, so a reply
  * is code's words exactly when the stub's are not in it.
  *
+ * The gate takes three model calls as options: generate (the classifier), adjudicate and
+ * groundedReads. The classifier has the six answers above. The other two have one value here:
+ * no answer, which is what a machine with no model key gets. So a flag that acts on a second
+ * model's answer changes nothing in this grid yet. No model can be reached from this file: the
+ * last test fails if a model client was asked for, a connection was opened or fetch was called.
+ *
  * Which flags are checked is measured, not listed: the calls run behind a process.env that
  * records each name read, at the defaults and with every flag found so far on, until no new
  * name turns up. Every flag the gate reads is then set alone and last, as 'on' and 'live';
@@ -27,10 +33,16 @@
  * - a flag read only off a copy of the environment ({ ...env }): one site today, the
  *   classifier's plain-read prompt, which the same turn also builds from the real one;
  * - "call 911" said so that it means the opposite, beyond the NEVER_HEARD phrases;
+ * - a flag that acts on a second model's answer (the adjudicator, the grounded release, the
+ *   confirmed-risk read): those give no answer here, so the flags that soften a crisis reply
+ *   change nothing. NOT_YET_COVERED never means the gate ignores a flag;
+ * - a setting that is a number or a name (a time limit, a model), and any mode word other
+ *   than on, live, shadow and off;
  * - any call no line here resembles. NOT_YET_COVERED (services/safety/__tests__/
  *   crisis-flag-homes.ts) names the crisis-lane flags no call shows yet.
  */
 import { llm } from '@livekit/agents';
+import net from 'node:net';
 import { ReadableStream } from 'node:stream/web';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +56,7 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
+import { DEFAULT_GROUNDED_RELEASE_MODELS } from '../../../services/safety/crisis-grounded-release.js';
 import { CRISIS_LINE_SPOKEN } from '../../../services/safety/crisis-line-speech.js';
 import { EMERGENCY_NUMBER } from '../../../services/safety/emergency-number.js';
 import { gatedReply } from '../crisis-gate.js';
@@ -59,6 +72,29 @@ import {
 } from './crisis-reply.never-lower.js';
 
 type FlagValues = Readonly<Record<string, string>>;
+
+/**
+ * What this file reached and must not: a model client, a network connection, fetch. The client
+ * is replaced with none, as on a machine with no model key, so the grid reads the same where a
+ * key is set. Patched by hand, not spied, so no mock reset between tests can lift the guard.
+ */
+const reached = vi.hoisted(() => ({ 'model clients': 0, connections: 0, fetches: 0 }));
+vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../config/gemini-config.js')>()),
+  getGeminiClient: async () => ((reached['model clients'] += 1), null),
+}));
+const NO_NETWORK = 'the never-lower grid reaches no network';
+const realConnect = net.Socket.prototype.connect;
+const realFetch = globalThis.fetch;
+net.Socket.prototype.connect = function (this: net.Socket): net.Socket {
+  reached.connections += 1;
+  queueMicrotask(() => this.destroy(new Error(NO_NETWORK)));
+  return this;
+} as typeof realConnect;
+globalThis.fetch = (async () => {
+  reached.fetches += 1;
+  throw new Error(NO_NETWORK);
+}) as typeof realFetch;
 
 const MODEL_SAYS = 'MODEL-WORDS.';
 /**
@@ -100,6 +136,10 @@ const CLASSIFIER: Record<Answer, CrisisGenerateFn> = {
     });
   },
 };
+
+/** The second models, the adjudicator and the grounded release reads: no answer, as with no key. */
+let secondModelAsks = 0;
+const NO_ANSWER: CrisisGenerateFn = async () => (secondModelAsks++, '');
 
 /** One turn as the caller got it. */
 interface Heard {
@@ -157,6 +197,8 @@ async function place(call: ReplyCall, answer: Answer): Promise<Heard[]> {
       const stream = await gatedReply(ctx.copy(), session, model as never, opener as never, {
         env: process.env as Record<string, string>,
         generate: CLASSIFIER[answer],
+        adjudicate: NO_ANSWER,
+        groundedReads: DEFAULT_GROUNDED_RELEASE_MODELS.map(() => NO_ANSWER),
       });
       if (stream)
         for await (const chunk of stream as unknown as AsyncIterable<string>) {
@@ -369,6 +411,8 @@ beforeAll(() => void vi.useFakeTimers(FAKED));
 afterAll(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
+  net.Socket.prototype.connect = realConnect;
+  globalThis.fetch = realFetch;
 });
 
 describe('no flag lowers what a caller in crisis hears', () => {
@@ -442,6 +486,13 @@ describe('no flag lowers what a caller in crisis hears', () => {
       expect(await losses({}, { [name]: known.value })).toEqual(known.lost);
     }
   );
+
+  // Last, so it reads the whole grid. A reader with a model call of its own shows up here.
+  it('reaches no model: the second models are asked through the stub and nowhere else', async () => {
+    await readUnder({ CRISIS_ADJUDICATOR: 'shadow' });
+    expect(reached).toEqual({ 'model clients': 0, connections: 0, fetches: 0 });
+    expect(secondModelAsks).toBeGreaterThan(0);
+  });
 });
 
 /** The calls with only these flags set, read fresh (never from the cache). */
