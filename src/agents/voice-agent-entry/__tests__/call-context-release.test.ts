@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-const { setupCallTypeContexts } = await import('../metadata-parser.js');
+const { setupCallTypeContexts, finishCallTypeContexts } = await import('../metadata-parser.js');
 const { callTypeEnd, releaseCallTypeContexts } = await import('../call-end.js');
 const inbound =
   await import('../../../intelligence/context-builders/external/inbound-call-context.js');
@@ -206,23 +206,74 @@ describe('voice entry exit paths', () => {
   const entry = readFileSync(fileURLToPath(new URL('../index.ts', import.meta.url)), 'utf8').split(
     '\n'
   );
-  const exits = entry.flatMap((line, i) => (/unregisterSession\(sessionId,/.test(line) ? [i] : []));
+  const lineOf = (pattern: RegExp, from = 0): number => {
+    const i = entry.findIndex((line, n) => n >= from && pattern.test(line));
+    if (i < 0) throw new Error(`index.ts: no line matches ${pattern}`);
+    return i;
+  };
+  const multiStart = lineOf(/Multi-agent session returned/);
+  const multiEnd = lineOf(/unregisterSession\(sessionId, 'multi_agent_exit'\)/);
+  const cleanStart = lineOf(/= await runUntilCallEnds\(/); // it closes the agent session
+  const cleanEnd = lineOf(/unregisterSession\(sessionId, 'clean_exit'\)/);
+  const crashStart = lineOf(/^ {2}\} catch \(error\) \{/, cleanEnd);
+  const crashEnd = lineOf(/unregisterSession\(sessionId, `crash_in_/, crashStart);
 
-  it('every exit path releases the call context before it unregisters the session', () => {
-    expect(exits).toHaveLength(3); // multi-agent, clean, crash
-    for (const i of exits) {
-      expect(entry.slice(i - 3, i).join('\n'), `before line ${i + 1}`).toMatch(
+  /** The order of finish, session close and release on one exit path, read from index.ts. */
+  function stepsOf(from: number, to: number): string[] {
+    return entry.slice(from, to + 1).flatMap((line) => {
+      if (/^\s*\/\//.test(line)) return [];
+      if (/await (finishCallType)(\?\.)?\(\)/.test(line)) return ['finish'];
+      if (/await releaseCallType(\?\.)?\(\)/.test(line)) return ['release'];
+      if (/await closeAgentSession\(|= await runUntilCallEnds\(/.test(line)) return ['close'];
+      return [];
+    });
+  }
+
+  it.each([
+    ['multi_agent_exit', multiStart, multiEnd],
+    ['clean_exit', cleanStart, cleanEnd],
+    ['crash', crashStart, crashEnd],
+  ] as const)(
+    '%s: a turn before the session closes still sees the third party on the line',
+    async (path, from, to) => {
+      const steps = stepsOf(from, to);
+      expect([...steps].sort()).toEqual(['close', 'finish', 'release']);
+
+      const { outboundPartiesFor } = await import('../../shared/outbound-opener.js');
+      const sessionId = key(`s-path-${path}`);
+      const room = key(`room-path-${path}`);
+      const metadata = await startCall(onBehalfCall(), sessionId, room, false);
+      const end = callTypeEnd(
+        { addShutdownCallback: () => undefined },
+        async () =>
+          finishCallTypeContexts(metadata, 'on_behalf_call', sessionId, 60_000, undefined),
+        async () => releaseCallTypeContexts(metadata, sessionId, room)
+      );
+      let closed = false;
+      for (const step of steps) {
+        // Until the session closes, a turn can still run and ask who is on the line.
+        if (!closed) expect(outboundPartiesFor(sessionId), `before ${step}`).toBeDefined();
+        // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
+        if (step === 'finish') await end.finish();
+        // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
+        if (step === 'release') await end.release();
+        if (step === 'close') closed = true;
+      }
+      expect(contextsUnder(sessionId)).toEqual([]);
+      expect(contextsUnder(room)).toEqual([]);
+    }
+  );
+
+  it('the crash path finishes before it closes the session, and releases after', () => {
+    expect(stepsOf(crashStart, crashEnd)).toEqual(['finish', 'close', 'release']);
+  });
+
+  it('every exit path releases right before it unregisters the session', () => {
+    for (const end of [multiEnd, cleanEnd, crashEnd]) {
+      expect(entry.slice(end - 3, end).join('\n'), `before line ${end + 1}`).toMatch(
         /await releaseCallType(\?\.)?\(\)/
       );
     }
-  });
-
-  it('the crash path releases only after it closes the agent session', () => {
-    const crash = exits[exits.length - 1];
-    const before = entry.slice(crash - 3, crash).join('\n');
-    const close = before.indexOf('closeAgentSession(');
-    expect(close).not.toBe(-1);
-    expect(before.indexOf('releaseCallType')).toBeGreaterThan(close);
   });
 });
 
