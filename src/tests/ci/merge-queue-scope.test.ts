@@ -10,6 +10,7 @@
  *
  * These tests run the actions' real `run:` scripts, with their real env wiring, against
  * a fake `gh` that answers the GitHub API from fixtures and applies the --jq for real.
+ * They run them the way the runner runs a `shell: bash` step: `bash -e -o pipefail`.
  */
 import { execFileSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -22,6 +23,7 @@ const ROOT = join(__dirname, '..', '..', '..');
 /** The composite action's one step: its env (KEY -> ${{ expression }}) and run script. */
 function actionStep(name: string): { env: Record<string, string>; run: string } {
   const lines = readFileSync(join(ROOT, `.github/actions/${name}/action.yml`), 'utf8').split('\n');
+  if (!lines.includes('      shell: bash')) throw new Error(`${name}: not a shell: bash step`);
   const envAt = lines.findIndex((l) => l === '      env:');
   const runAt = lines.findIndex((l) => l === '      run: |');
   if (envAt < 0 || runAt < envAt) throw new Error(`${name}: env/run not found`);
@@ -38,6 +40,10 @@ function actionStep(name: string): { env: Record<string, string>; run: string } 
     .join('\n');
   return { env, run };
 }
+
+// The runner's command for a `shell: bash` step. Plain `bash -c` hid #3729: under
+// pipefail, a reader that exits early (head) fails the step when its writer is cut off.
+const RUNNER_BASH = ['--noprofile', '--norc', '-e', '-o', 'pipefail'];
 
 /** API path -> JSON the fake gh serves; anything else fails like an API error. */
 type Api = Record<string, unknown>;
@@ -71,7 +77,7 @@ function runAction(name: string, context: Record<string, string>, api: Api) {
   writeFileSync(out, '');
   const log = join(dir, 'gh.log');
   writeFileSync(log, '');
-  const stdout = execFileSync('bash', ['-c', run], {
+  const stdout = execFileSync('bash', [...RUNNER_BASH, '-c', run], {
     env: {
       ...resolved,
       PATH: `${bin}:${process.env.PATH}`,
@@ -193,6 +199,33 @@ describe('pr-changes picks out PRs that touch crisis-safety or memory code', () 
     'apps/web/src/memory/view.tsx',
   ])('%s is not', (file) => {
     expect(pr('src/ui/text-token.ts', file)).toBe('false');
+  });
+});
+
+// #3729 (473 changed paths): the step printed its first matches with `printf | head -5`.
+// head exited, printf hit a broken pipe, pipefail failed the step, Setup failed, and
+// every unit shard was skipped.
+describe('pr-changes on a pull request with many changed files', () => {
+  it('still matches, exits 0 and prints the first five paths', () => {
+    const names = Array.from({ length: 20000 }, (_, i) => `src/services/area-${i}/module-file.ts`);
+    const r = runAction(
+      'pr-changes',
+      {
+        'github.token': 't',
+        'github.event_name': 'pull_request',
+        'github.repository': 'o/r',
+        'github.event.pull_request.number': '7',
+        'github.event.merge_group.base_ref': '',
+        'github.event.merge_group.head_sha': '',
+        'inputs.merge-group': 'false',
+        'inputs.include': '^src/',
+        'inputs.exclude': '^$',
+      },
+      { 'repos/o/r/pulls/7/files': names.map((filename) => ({ filename })) }
+    );
+    expect(r.outputs.matched).toBe('true');
+    expect(r.stdout).toMatch(/Matched +20000 of +20000 changed paths, e\.g\.:\n/);
+    expect(r.stdout).toContain(`e.g.:\n${names.slice(0, 5).join('\n')}\n`);
   });
 });
 
