@@ -53,7 +53,13 @@ export type AvatarMotionKind =
   /** Protective mode's lean-in. Allowed while held, once and slowly (protective-lean.ts). */
   | 'drawCloser'
   /** Protective mode's comfort pulse: rings growing outward around the avatar. */
-  | 'comfortPulse';
+  | 'comfortPulse'
+  /** Presence's attentive lean while the caller speaks: a looping lean and sway of the body. */
+  | 'listenLean'
+  /** The speaking system's body squash and halo swell with Ferni's voice. */
+  | 'voicePulse'
+  /** Presence's idle moves between turns: small tilts, weight shifts and head turns. */
+  | 'idleMove';
 
 /** The kinds that still play while the crisis face is held. */
 const CALM_DURING_HOLD: ReadonlySet<AvatarMotionKind> = new Set(['blink', 'drawCloser']);
