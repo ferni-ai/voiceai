@@ -141,36 +141,21 @@ const EXEMPT: Exemptions = {
     ['session-creator.ts', '', "toolNames.join(', ')"], // tool names
     ['session-creator.ts', '', "allowedTools ? allowedTools.join(', ') : 'ALL (no restrictions)'"], // tool names
     ['call-transcript-intelligence.ts', 'callId', 'transcript.callId'], // an id
-    ['transcript-handler.ts', 'response', 'cached.response.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
     ['transcript-handler.ts', 'emotions', "result.contradiction.emotions.join(' + ')"], // emotion labels
     ['agent-setup.ts', '', "finalToolNames.join(', ')"], // tool names
     ['agent-setup.ts', '', 'JSON.stringify(error, null, 2)'], // LiveKit/Gemini connection error events: codes and reasons
     ['agent-setup.ts', '', "audioEventNames.join(', ')"], // SDK event names
-    ['agent-setup.ts', '', "evt.text?.slice(0, 100) || '(no text)'"], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['agent-setup.ts', '', "evt.text?.slice(0, 200) || '(empty)'"], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
     ['agent-setup.ts', '', "essentialDomains.join(', ')"], // tool domain names
     ['agent-setup.ts', '', 'JSON.stringify(handlersStatus)'], // which handlers are attached: booleans
     ['agent-setup.ts', '', 'JSON.stringify(timings, null, 2)'], // setup timings
-    ['agent-setup.ts', 'textPreview', 'text.slice(0, 60)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['orchestrator.ts', 'greetingPreview', 'greeting.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['orchestrator.ts', '', 'greeting.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['orchestrator.ts', 'goodbyePreview', 'textToSpeak?.slice(0, 60)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['orchestrator.ts', '', 'textToSpeak.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['orchestrator.ts', 'greetingPreview', 'textToSpeak?.slice(0, 60)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['tts-wrapper.ts', 'fallback', 'fallback.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
+    ['tts-wrapper.ts', 'fallback', 'fallback.slice(0, 50)'], // the character codes of a garbage reply's first 20 characters (punctuation or empty)
     ['tts-wrapper.ts', 'detectedArgs', 'analysis.detectedArgs.slice(0, 5)'], // argument key names found in leaked JSON, never values
     ['tts-wrapper.ts', 'leakSample', "leakedJson.slice(0, 100).replace(/[a-zA-Z]{4,}/g, 'xxx')"], // letters of 4+ replaced: JSON structure only
-    ['tts-wrapper.ts', 'chunk', 'chunk.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['tts-wrapper.ts', 'chunk', 'chunk.slice(0, 100)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['tts-wrapper.ts', 'leakedJson', 'jsonLeakBuffer.slice(0, 200)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['tts-wrapper.ts', '', 'chunk.slice(0, 50)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
     [
       'tts-wrapper.ts',
       'charCodes',
       "rawLLMBuffer\n                  .slice(0, 20)\n                  .split('')\n                  .map((c) => c.charCodeAt(0))",
-    ], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['tts-wrapper.ts', 'outputSample', 'ttsOutputBuffer.slice(0, 200)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
-    ['tts-wrapper.ts', 'outputSample', 'ttsOutputBuffer.slice(0, 300)'], // Ferni's own words: pending, with E2E_TTS_OUTPUT (#2656)
+    ], // the character codes of a garbage reply's first 20 characters (punctuation or empty)
     ['e2e-latency-tracker.ts', 'context', 'context'], // a label for the LLM request (generate-reply-gateway)
     ['e2e-latency-tracker.ts', 'context', 'timeline.context'], // a label for the LLM request (generate-reply-gateway)
     ['weather.ts', 'condition', 'condition'], // the weather API's condition text

@@ -21,7 +21,6 @@
   "src/agents/multi-agent/__tests__/greeting-facts.test.ts",
   "src/agents/multi-agent/__tests__/handoff-failed-message.test.ts",
   "src/agents/multi-agent/__tests__/initial-tools.test.ts",
-  "src/agents/multi-agent/__tests__/multi-agent-e2e.test.ts",
   "src/agents/multi-agent/__tests__/prewarm-greeting-overlap.test.ts",
   "src/agents/multi-agent/__tests__/stale-steering.test.ts",
   "src/agents/multi-agent/__tests__/turn-intelligence.test.ts",
