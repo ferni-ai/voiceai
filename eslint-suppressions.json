@@ -1009,11 +1009,6 @@
       "count": 1
     }
   },
-  "src/utils/safe-logger.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
   "src/workers/base-worker.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1

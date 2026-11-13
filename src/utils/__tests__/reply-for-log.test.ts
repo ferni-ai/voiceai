@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   isFullLoggingEnabled,
+  repliesForLog,
   replyForLog,
   truncateForLog,
 } from '../safe-logger.js';
@@ -66,6 +67,15 @@ describe('replyForLog', () => {
   });
 });
 
+describe('repliesForLog', () => {
+  it('cuts each match the same way: a length on prod, the text on dev', () => {
+    as({ NODE_ENV: 'production', LOG_FULL_RESPONSES: 'true' });
+    expect(repliesForLog(['abc', 'de'])).toEqual(['[3 chars]', '[2 chars]']);
+    as({ FIRESTORE_DATABASE: 'ferni-dev' });
+    expect(repliesForLog(['abc', 'x'.repeat(60)], 50)).toEqual(['abc', `${'x'.repeat(50)}...`]);
+  });
+});
+
 describe('the reply-text log lines use it', () => {
   const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
@@ -77,6 +87,27 @@ describe('the reply-text log lines use it', () => {
     'src/speech/coordination/speech-coordinator.ts',
   ])('%s logs no reply text through truncateForLog', (rel) => {
     expect(read(rel)).not.toMatch(/truncateForLog\(/);
+  });
+
+  it('the leaked tool-call blocks in the SSML processor log through repliesForLog', () => {
+    const src = read('src/speech/tts-gateway/ssml/processor.ts');
+    expect(src).not.toMatch(/\.map\(\(\w\) => \w\.slice\(/);
+    expect(src.match(/repliesForLog\(/g)).toHaveLength(6);
+  });
+
+  it("the crash record keeps Ferni's last message as a length", () => {
+    expect(read('src/agents/shared/crash-analytics.ts')).toContain(
+      '? replyForLog(messages.lastAgentMessage, 200)'
+    );
+  });
+
+  it('the handoff goodbye and greeting, and the Gemini event dumps, carry no raw text', () => {
+    const adapter = read('src/agents/shared/handoff/coordinator-adapter.ts');
+    expect(adapter).toContain('goodbye: replyForLog(finalGoodbye),');
+    expect(adapter).toContain('greeting: replyForLog(finalGreeting),');
+    const gemini = read('src/agents/model-provider/gemini-live.ts');
+    expect(gemini).toContain(': replyForLog(eventStr, 2000);');
+    expect(read('src/agents/multi-agent/agent-setup.ts')).toContain('${replyForLog(evt.delta)}');
   });
 
   it('E2E_LLM_OUTPUT and E2E_TTS_OUTPUT carry replyForLog, not the buffer', () => {

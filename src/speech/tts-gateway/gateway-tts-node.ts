@@ -722,10 +722,7 @@ export function createGatewayTTSNode(
     const cleanText = ssmlResult.cleanText;
 
     if (!cleanText.trim()) {
-      log.debug(
-        { sessionId, originalText: replyForLog(fullText) },
-        'Empty text after SSML strip'
-      );
+      log.debug({ sessionId, originalText: replyForLog(fullText) }, 'Empty text after SSML strip');
       // Return empty completed stream instead of null to avoid LiveKit SDK errors
       // ("WritableStream is closed" when SDK tries to close already-closed streams)
       return createEmptyAudioStream();

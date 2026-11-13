@@ -31,9 +31,9 @@
 import type { log } from '@livekit/agents';
 import pino from 'pino';
 
-import { isNonProdDatabase } from '../config/firestore-database.js';
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 import { redactErrorValue } from './error-text.js';
+import { isFullLoggingEnabled } from './reply-for-log.js';
 import { redactUrlField } from './url-redaction.js';
 
 /**
@@ -430,34 +430,6 @@ export function createLogger(bindings: Record<string, unknown>): FallbackLogger 
 // ============================================================================
 
 /**
- * True when LOG_FULL_RESPONSES lifts the truncation of logged text. It only counts on a
- * dev process (one that uses a Firestore database other than prod's '(default)': the dev
- * agent, PR previews, a local run on ferni-dev). Prod images run NODE_ENV=production on
- * dev as well, so NODE_ENV cannot tell them apart; the database can, and a process that
- * does not set it counts as prod. LOG_FULL_RESPONSES alone never brings text back in prod.
- *
- * WARNING: This can produce very large log output. Only use for debugging.
- */
-export function isFullLoggingEnabled(
-  env: Readonly<Record<string, string | undefined>> = process.env
-): boolean {
-  return env.LOG_FULL_RESPONSES === 'true' && isNonProdDatabase(env);
-}
-
-/**
- * Ferni's own words (a reply, TTS text, LLM output) for a log line. Prod logs how long it
- * is, e.g. `[148 chars]`, and never the text: a reply can echo what the caller said or their
- * name, so a logged reply is a logged caller. A dev process (isNonProdDatabase) logs the
- * text, cut at `maxLength` unless isFullLoggingEnabled().
- */
-export function replyForLog(text: string | undefined | null, maxLength = 300): string {
-  if (!text) return '[0 chars]';
-  if (!isNonProdDatabase()) return `[${text.length} chars]`;
-  if (isFullLoggingEnabled() || text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength)}...`;
-}
-
-/**
  * Truncate a string for logging, respecting LOG_FULL_RESPONSES env var.
  *
  * @param text - The text to potentially truncate
@@ -508,3 +480,5 @@ export function logPreview(
 
 // Default export for convenience
 export default safeLog;
+
+export { isFullLoggingEnabled, repliesForLog, replyForLog } from './reply-for-log.js';

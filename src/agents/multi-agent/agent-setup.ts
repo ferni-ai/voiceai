@@ -1498,7 +1498,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Track text output
       const textDeltaHandler = (event: unknown) => {
         const evt = event as { delta?: string };
-        process.stderr.write(`📝 [TEXT DELTA] "${evt.delta || ''}"`);
+        process.stderr.write(`📝 [TEXT DELTA] "${replyForLog(evt.delta)}"`);
       };
       sessionWithEvents.on('response.text.delta', textDeltaHandler);
       sessionEventHandlers.push({ event: 'response.text.delta', handler: textDeltaHandler });

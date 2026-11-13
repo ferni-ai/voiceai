@@ -45,7 +45,7 @@ interface GeminiFunctionDeclaration {
 }
 
 import { REALTIME_MODEL } from '../../config/gemini-config.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { isFtisEnabled } from '../../config/tool-config.js';
 import {
   getGeminiFCConfig,
@@ -483,8 +483,11 @@ export class GeminiLiveProvider implements ModelProvider {
       for (const eventName of eventsToTrace) {
         modelWithEvents.on(eventName, (event: unknown) => {
           const eventStr = JSON.stringify(event, null, 2);
+          // error/close carry no words; every other event may (a transcript, a reply)
           const truncated =
-            eventStr.length > 2000 ? `${eventStr.slice(0, 2000)}...[TRUNCATED]` : eventStr;
+            eventName === 'error' || eventName === 'close'
+              ? eventStr.slice(0, 2000)
+              : replyForLog(eventStr, 2000);
 
           if (debugAll) {
             process.stderr.write(`\n📡 [GEMINI ${eventName}] ${truncated}\n`);
