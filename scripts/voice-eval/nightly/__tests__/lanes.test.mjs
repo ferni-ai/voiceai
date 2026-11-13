@@ -19,8 +19,8 @@ const lines = ['a', 'b'].flatMap((l) =>
 );
 
 describe('nightly lanes', () => {
-  it('run the 10-21 set plus asked-once and the five teammates: 17 + 37 calls', () => {
-    expect(lines).toHaveLength(54);
+  it('run the 10-21 set plus asked-once, the five teammates and talk-through: 17 + 38 calls', () => {
+    expect(lines).toHaveLength(55);
   });
 
   it('call every teammate-* scenario once, as a partner, tagged teammate (#3752)', () => {
