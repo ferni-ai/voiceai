@@ -56,11 +56,6 @@ beforeAll(async () => {
     lastUserMessage: CALLER,
     lastAgentMessage: FERNI,
   });
-  // The shared test setup stubs safe-logger's replyForLog to hand the text back whole. This
-  // file is about what a crash record keeps, so the stub runs the real one here.
-  const { replyForLog: stubbed } = await import('../../../utils/safe-logger.js');
-  const { replyForLog: real } = await import('../../../utils/reply-for-log.js');
-  vi.mocked(stubbed).mockImplementation(real);
   // The same crash on a prod process (the '(default)' database) and on a dev process.
   vi.stubEnv('LOG_FULL_RESPONSES', '');
   vi.stubEnv('FIRESTORE_DATABASE', '');

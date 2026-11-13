@@ -19,7 +19,8 @@ import {
 } from '../orchestrator.js';
 
 // Mock all external dependencies - must include both createLogger and getLogger
-vi.mock('../../../utils/safe-logger.js', () => {
+vi.mock('../../../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('../../../tests/helpers/real-reply-for-log.js');
   const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
@@ -30,7 +31,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return {
     createLogger: () => mockLogger,
     getLogger: () => mockLogger,
-    replyForLog: (text: unknown) => String(text ?? ''),
+    ...(await realReplyForLog()),
   };
 });
 
@@ -236,6 +237,42 @@ describe('AgentOrchestrator', () => {
       });
 
       expect(onHandoffComplete).toHaveBeenCalledWith('ferni', 'peter-john');
+    });
+  });
+
+  // This file's safe-logger mock takes replyForLog from tests/helpers/real-reply-for-log.ts:
+  // with no database set (prod) the goodbye is logged as a length, never as the words.
+  describe('the goodbye in the log', () => {
+    const handOffAndReadLog = async () => {
+      const { getLogger } = await import('../../../utils/safe-logger.js');
+      const orchestrator = createAgentOrchestrator(mockConfig);
+      const ferniAgent = await orchestrator.start('ferni');
+      await orchestrator.handoff({ targetPersonaId: 'peter-john', reason: 'test' });
+      const spoken = vi.mocked(ferniAgent.say).mock.calls.at(-1)?.[0] ?? '';
+      const fields = vi
+        .mocked(getLogger().info)
+        .mock.calls.map((call: unknown[]): unknown => call[0])
+        .find(
+          (first): first is Record<string, unknown> =>
+            typeof first === 'object' && first !== null && 'goodbyePreview' in first
+        );
+      expect(spoken.length).toBeGreaterThan(0);
+      return { spoken, preview: fields?.goodbyePreview };
+    };
+
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('logs a length, not the words, when no database is set (prod)', async () => {
+      vi.stubEnv('FIRESTORE_DATABASE', undefined);
+      const { spoken, preview } = await handOffAndReadLog();
+      expect(preview).toBe(`[${spoken.length} chars]`);
+      expect(preview).not.toContain(spoken);
+    });
+
+    it('logs the words on a dev database (positive control)', async () => {
+      vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
+      const { spoken, preview } = await handOffAndReadLog();
+      expect(preview).toBe(spoken);
     });
   });
 
