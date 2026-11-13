@@ -19,7 +19,8 @@ import {
 } from '../orchestrator.js';
 
 // Mock all external dependencies - must include both createLogger and getLogger
-vi.mock('../../../utils/safe-logger.js', () => {
+vi.mock('../../../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('../../../tests/helpers/real-reply-for-log.js');
   const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
@@ -30,7 +31,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return {
     createLogger: () => mockLogger,
     getLogger: () => mockLogger,
-    replyForLog: (text: unknown) => String(text ?? ''),
+    ...(await realReplyForLog()),
   };
 });
 
