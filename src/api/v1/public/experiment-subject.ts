@@ -63,7 +63,8 @@ export async function experimentSubject(
   const limited = rateLimit(req, res, {
     maxRequests: EVENTS_PER_SUBJECT_PER_MINUTE,
     windowMs: 60_000,
-    keyGenerator: () => `experiments:${subject}`,
+    keyPrefix: 'experiments',
+    keyGenerator: () => subject,
   });
   return limited ? null : subject;
 }

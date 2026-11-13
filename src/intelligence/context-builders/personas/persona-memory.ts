@@ -64,7 +64,7 @@ function normalizePersonaId(id: string | undefined): NormalizedPersonaId | null 
   if ([CANONICAL_IDS.SAGE, 'nayan'].includes(lower)) return 'nayan';
 
   // Peter aliases
-  if ([CANONICAL_IDS.RESEARCHER, 'peter', 'stock-picker'].includes(lower)) return 'peter';
+  if ([CANONICAL_IDS.RESEARCHER, 'peter'].includes(lower)) return 'peter';
 
   // Maya aliases
   if (['maya', 'spend-save', CANONICAL_IDS.BUDGETER, 'budgeting'].includes(lower)) return 'maya';
@@ -733,84 +733,6 @@ function getProactiveMemoryCallback(
 }
 
 // ============================================================================
-// MEMORY ACKNOWLEDGMENT PHRASES
-// ============================================================================
-
-/**
- * Get persona-specific phrases for acknowledging when you remember something
- * These make memory references feel natural, not database-like
- */
-function getMemoryAcknowledgmentPhrases(personaId: NormalizedPersonaId): string[] {
-  switch (personaId) {
-    case 'ferni':
-      return [
-        'I remember you mentioning...',
-        'You told me once that...',
-        'I keep thinking about what you said about...',
-        'Remember when you shared...',
-        "I haven't forgotten that you...",
-      ];
-    case 'bogle':
-      return [
-        'As you said before...',
-        'I recall you mentioning...',
-        'You told me your philosophy is...',
-        'I remember your principle about...',
-        'As we discussed previously...',
-      ];
-    case 'nayan':
-      return [
-        "I've been sitting with what you said about...",
-        'You once told me...',
-        'Something you shared stayed with me...',
-        'Last time, you spoke of...',
-      ];
-    case 'peter':
-      return [
-        'You mentioned you know...',
-        'Remember when you added... to your watchlist?',
-        'I recall you saying...',
-        "That reminds me - you're watching...",
-        'You told me about your experience with...',
-      ];
-    case 'maya':
-      return [
-        'I remember you setting a goal to...',
-        'You mentioned that... is tricky for you...',
-        'I recall you working towards...',
-        'You shared with me that...',
-        'Last time you mentioned...',
-      ];
-    case 'jordan':
-      return [
-        'I have it noted that...',
-        'You told me to remember...',
-        'I recall you love...',
-        'You mentioned your dream of...',
-        "I haven't forgotten about...",
-      ];
-    case 'alex':
-      return [
-        'I remember you prefer...',
-        'You mentioned your schedule...',
-        "I've got it noted that...",
-        'You told me to reach out via...',
-        'I recall you saying...',
-      ];
-    default:
-      return ['I remember...', 'You mentioned...', 'I recall...'];
-  }
-}
-
-/**
- * Get a random acknowledgment phrase for when referencing a memory
- */
-export function getRandomAcknowledgmentPhrase(personaId: NormalizedPersonaId): string {
-  const phrases = getMemoryAcknowledgmentPhrases(personaId);
-  return phrases[Math.floor(Math.random() * phrases.length)];
-}
-
-// ============================================================================
 // CONTEXT BUILDER
 // ============================================================================
 
@@ -893,19 +815,4 @@ registerContextBuilder('persona_memory', buildPersonaMemoryContext);
 // EXPORTS
 // ============================================================================
 
-export {
-  buildPersonaMemoryContext,
-  getPersonaMemories,
-  normalizePersonaId,
-  formatFerniMemories,
-  formatBogleMemories,
-  formatNayanMemories,
-  formatPeterMemories,
-  formatMayaMemories,
-  formatJordanMemories,
-  filterMemoriesByRelationshipStage,
-  getProactiveMemoryCallback,
-  // getRandomAcknowledgmentPhrase already exported via `export function`
-  type PersonaMemoryResult,
-  type NormalizedPersonaId,
-};
+export { getPersonaMemories, normalizePersonaId };

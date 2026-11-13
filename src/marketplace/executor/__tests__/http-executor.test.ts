@@ -4,7 +4,7 @@
  * redirect to one, is refused before (or instead of) reaching it. DNS and fetch are spies.
  */
 import dns from 'node:dns';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { executeHttpTool } from '../http-executor.js';
 import type { ToolManifest } from '../../schema/types.js';
 import type { ExecutionContext, ExecutionOptions } from '../sandbox.js';
@@ -14,6 +14,14 @@ vi.mock('../../../utils/safe-logger.js', () => {
   const logger = { debug: noop, info: noop, warn: noop, error: noop, child: () => logger };
   return { getLogger: () => logger, createLogger: () => logger };
 });
+
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const guardedFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
 
 function resolveTo(map: Record<string, string>) {
   vi.spyOn(dns.promises, 'lookup').mockImplementation((async (host: string) => {
@@ -40,7 +48,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
+  guardedFetch.mockReset();
   vi.unstubAllEnvs();
 });
 
@@ -48,7 +56,7 @@ describe('executeHttpTool: outbound guard', () => {
   it('refuses an endpoint whose name resolves to a private address, without fetching', async () => {
     resolveTo({ 'tools.example.com': '10.0.0.7' });
     const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     await expect(
       executeHttpTool(manifest('https://tools.example.com/run'), {}, context, options, 5000)
@@ -58,7 +66,7 @@ describe('executeHttpTool: outbound guard', () => {
 
   it('refuses an IPv4-translated IPv6 loopback literal', async () => {
     const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     await expect(
       executeHttpTool(manifest('https://[::ffff:0:7f00:1]/run'), {}, context, options, 5000)
@@ -72,7 +80,7 @@ describe('executeHttpTool: outbound guard', () => {
       async (_url: unknown, _init?: RequestInit) =>
         new Response(null, { status: 307, headers: { location: 'https://169.254.169.254/x' } })
     );
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     await expect(
       executeHttpTool(manifest('https://tools.example.com/run'), {}, context, options, 5000)
@@ -87,7 +95,7 @@ describe('executeHttpTool: outbound guard', () => {
       async (_url: unknown, _init?: RequestInit) =>
         new Response(JSON.stringify({ summary: 'done', data: { ok: true } }), { status: 200 })
     );
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
 
     const result = await executeHttpTool(
       manifest('https://tools.example.com/run'),

@@ -9,8 +9,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { handleHandoffFromDataChannel } from '../../../agents/multi-agent/multi-agent-entry.js';
 import { withTurnReminder } from '../../../agents/personas/turn-request.js';
-import { buildCameoUnlockContext } from '../../../intelligence/context-builders/team/cameo-unlock.js';
-import type { ContextBuilderInput } from '../../../intelligence/context-builders/index.js';
 import { AgentDirectory } from '../../../personas/agent-directory.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { buildHandoffTools } from '../handoff-factory.js';
@@ -19,7 +17,7 @@ import { answerTeammateRequest, lockedTeammates, unlockViewFor } from '../locked
 import { teamByNeedNote } from '../team-by-need-note.js';
 
 const CORE = ['maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
-const LEGENDS = ['john-bogle', 'peter-lynch', 'joel-dickson'];
+const LEGENDS = ['john-bogle', 'joel-dickson'];
 /** Signed up a minute ago: no conversations, no streak, no subscription. */
 const newcomer = { id: 'u1', totalConversations: 0 } as unknown as UserProfile;
 const userData = { personaId: 'ferni', services: { userProfile: newcomer } };
@@ -149,7 +147,7 @@ describe('the per-turn team note', () => {
   it('lists the legends when the caller is talking about investing', () => {
     byNeed(true);
     expect(teamByNeedNote('ferni', 'should I move my 401k into index funds?')).toMatch(
-      /legends can join too: Henry Caldwell for .*Tom Brannigan for .*Nate Holloway for /
+      /legends can join too: Henry Caldwell for .*Nate Holloway for /
     );
   });
 
@@ -166,23 +164,5 @@ describe('the per-turn team note', () => {
     const sent =
       (withTurnReminder(chat, { userData }).items.at(-1) as llm.ChatMessage).textContent ?? '';
     expect(sent).toMatch(/fits Alex/);
-  });
-});
-
-describe('the cameo "you\'ve earned them" introduction', () => {
-  it('is off: nobody is introduced for having talked enough', async () => {
-    const input = {
-      persona: { id: 'ferni' },
-      userData: { turnCount: 5 },
-      userProfile: { id: 'u1', totalConversations: 100 },
-      userText: 'I keep breaking my morning habits and routine',
-      analysis: { topics: { detected: ['habit'] } },
-      services: {},
-    } as unknown as ContextBuilderInput;
-    byNeed(false);
-    vi.stubEnv('BYPASS_TEAM_UNLOCKS', '');
-    expect((await buildCameoUnlockContext(input)).length).toBeGreaterThan(0);
-    byNeed(true);
-    expect(await buildCameoUnlockContext(input)).toEqual([]);
   });
 });

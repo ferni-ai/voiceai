@@ -22,9 +22,7 @@ const log = createLogger({ module: 'ActionPlanning' });
 // TYPES
 // ============================================================================
 
-export type ActionStatus = 'pending' | 'completed' | 'skipped' | 'deferred';
-
-export type ActionPriority = 'high' | 'medium' | 'low';
+type ActionStatus = 'pending' | 'completed' | 'skipped' | 'deferred';
 
 export interface ActionItem {
   id: string;
@@ -56,7 +54,7 @@ export interface ActionItem {
   createdInConversation?: string;
 }
 
-export interface ActionProfile {
+interface ActionProfile {
   userId: string;
   actions: ActionItem[];
 
@@ -76,7 +74,7 @@ export interface ActionProfile {
   };
 }
 
-export interface ActionSuggestion {
+interface ActionSuggestion {
   action: string;
   timeEstimate: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -193,7 +191,7 @@ export function detectActionOpportunity(
 /**
  * Generate tiny first steps for a given topic/goal
  */
-export function generateActionSuggestions(
+function generateActionSuggestions(
   topic: string,
   context?: {
     userPreferences?: ActionProfile['preferences'];
@@ -301,7 +299,7 @@ export function generateActionSuggestions(
 /**
  * Create a new action item
  */
-export function createAction(
+function createAction(
   userId: string,
   actionData: {
     action: string;
@@ -351,7 +349,7 @@ export function createAction(
 /**
  * Complete an action
  */
-export function completeAction(userId: string, actionId: string): boolean {
+function completeAction(userId: string, actionId: string): boolean {
   const profile = actionProfiles.get(userId);
   if (!profile) return false;
 
@@ -371,7 +369,7 @@ export function completeAction(userId: string, actionId: string): boolean {
 /**
  * Skip an action
  */
-export function skipAction(userId: string, actionId: string, reason?: string): boolean {
+function skipAction(userId: string, actionId: string, reason?: string): boolean {
   const profile = actionProfiles.get(userId);
   if (!profile) return false;
 
@@ -391,7 +389,7 @@ export function skipAction(userId: string, actionId: string, reason?: string): b
 /**
  * Defer an action to a new date
  */
-export function deferAction(userId: string, actionId: string, newDate: Date): boolean {
+function deferAction(userId: string, actionId: string, newDate: Date): boolean {
   const profile = actionProfiles.get(userId);
   if (!profile) return false;
 
@@ -425,7 +423,7 @@ function updateCompletionRate(profile: ActionProfile): void {
 /**
  * Get pending actions for a user
  */
-export function getPendingActions(userId: string): ActionItem[] {
+function getPendingActions(userId: string): ActionItem[] {
   const profile = actionProfiles.get(userId);
   return profile?.actions.filter((a) => a.status === 'pending') || [];
 }
@@ -433,7 +431,7 @@ export function getPendingActions(userId: string): ActionItem[] {
 /**
  * Get actions needing follow-up
  */
-export function getActionsNeedingFollowUp(userId: string): ActionItem[] {
+function getActionsNeedingFollowUp(userId: string): ActionItem[] {
   const profile = actionProfiles.get(userId);
   if (!profile) return [];
 
@@ -447,7 +445,7 @@ export function getActionsNeedingFollowUp(userId: string): ActionItem[] {
 /**
  * Get action stats
  */
-export function getActionStats(userId: string): ActionProfile['stats'] | null {
+function getActionStats(userId: string): ActionProfile['stats'] | null {
   const profile = actionProfiles.get(userId);
   return profile?.stats || null;
 }
@@ -555,11 +553,11 @@ export function buildActionContext(userId: string): string | null {
 // PERSISTENCE
 // ============================================================================
 
-export function exportActionProfile(userId: string): ActionProfile | null {
+function exportActionProfile(userId: string): ActionProfile | null {
   return actionProfiles.get(userId) || null;
 }
 
-export function importActionProfile(profile: ActionProfile): void {
+function importActionProfile(profile: ActionProfile): void {
   profile.actions.forEach((a) => {
     a.createdAt = new Date(a.createdAt);
     if (a.dueDate) a.dueDate = new Date(a.dueDate);
@@ -572,24 +570,3 @@ export function importActionProfile(profile: ActionProfile): void {
     'Imported action profile'
   );
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectActionOpportunity,
-  generateActionSuggestions,
-  createAction,
-  completeAction,
-  skipAction,
-  deferAction,
-  getPendingActions,
-  getActionsNeedingFollowUp,
-  getActionStats,
-  generateActionFollowUp,
-  getActionToFollowUp,
-  buildActionContext,
-  exportActionProfile,
-  importActionProfile,
-};

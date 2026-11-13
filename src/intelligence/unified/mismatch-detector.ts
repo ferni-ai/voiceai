@@ -22,7 +22,7 @@ const log = createLogger({ module: 'MismatchDetector' });
 // TYPES
 // ============================================================================
 
-export type MismatchType =
+type MismatchType =
   | 'masking_negative' // Saying fine but voice says distressed
   | 'understating_positive' // Downplaying excitement
   | 'suppressing' // Trying to control emotion
@@ -30,7 +30,7 @@ export type MismatchType =
   | 'deflecting' // Changing topic with emotional voice
   | 'none';
 
-export interface MismatchResult {
+interface MismatchResult {
   /** Is there a significant mismatch? */
   detected: boolean;
 
@@ -59,7 +59,7 @@ export interface MismatchResult {
   surfacePhrase?: string;
 }
 
-export interface MismatchGuidance {
+interface MismatchGuidance {
   /** Critical injection for the prompt */
   promptInjection: string;
 
@@ -130,7 +130,7 @@ const MASKING_PHRASES = [
 // MISMATCH DETECTOR CLASS
 // ============================================================================
 
-export class VoiceTextMismatchDetector {
+class VoiceTextMismatchDetector {
   private static instance: VoiceTextMismatchDetector | null = null;
 
   static getInstance(): VoiceTextMismatchDetector {

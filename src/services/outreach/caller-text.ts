@@ -53,7 +53,7 @@ export function callerText(text: string | undefined | null, maxLength = 300): st
  * Not a bare "loan": Loan is a name, and the alert reads it ("my call with Loan, a grand time").
  * "The loan" is still read, as a noun with its determiner.
  */
-const MONEY_VERB = String.raw`(?:pay(?:s|ing)?|paid|owe[sd]?|owing|lend(?:s|ing)?|lent|borrow(?:s|ed|ing)?|loan(?:ed|ing))`;
+const MONEY_VERB = String.raw`(?:owe[sd]?|owing|lend(?:s|ing)?|lent|borrow(?:s|ed|ing)?|loan(?:ed|ing))`;
 /** What makes a money verb a money request: a sum or a debt as its object. */
 const MONEY_OBJECT = String.raw`(?:loans?|debts?|grand|bucks|quid|money|cash|funds)`;
 /** A number said in words; every one of them, so "six grand" is a sum like "two grand". */
@@ -65,31 +65,136 @@ const NUMBER_WORD = String.raw`(?:one|two|three|four|five|six|seven|eight|nine|t
 const AMOUNT = String.raw`(?:\p{Nd}+|few|couple(?: of)?|some|${NUMBER_WORD})`;
 
 /**
+ * Rules whose object can be the known name ("pay Loan a visit", "off Loan's list"): read with
+ * each mention of that name blanked out, so only the name's own word is spared, never a sum.
+ */
+const OBJECT_RULES: readonly RegExp[] = [
+  new RegExp(String.raw`\b(?:pay(?:s|ing)?|paid)\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`, 'i'), // paid the loan
+  /\boff\s+(loans?|debts?)\b/i, // paid off loans
+  /\b(in|into|of)\s+(loans?|debts?)\b/i, // in debt, into loan default; not "a friend of Loan"
+];
+
+/** A money verb and its object, in one sentence: owes a grand on the loan. */
+const MONEY_VERB_RULE = new RegExp(
+  String.raw`\b${MONEY_VERB}\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`,
+  'i'
+);
+/** A request to move money: send her the money. */
+const SEND_MONEY_RULE =
+  /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i;
+/**
+ * Rules held to one sentence: a dot in the known name ("St. Clair", "Dr. Kim") would end it,
+ * so they also read the text with the name's mentions blanked ("lend St. Clair the money").
+ */
+const SENTENCE_RULES: readonly RegExp[] = [MONEY_VERB_RULE, SEND_MONEY_RULE];
+
+/**
  * Links, phone or account numbers, and requests for money, credentials or codes.
  * Digits are any script's (`\p{Nd}`): Arabic-Indic or Vai digits make a number too.
+ * Fail-closed: a dotted word with any ending is a link (only a known name is spared).
  */
-const RISKY = [
-  /\bhttps?:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|xyz|link|ly)\b/i,
+const RISKY: readonly RegExp[] = [
+  /\bhttps?:\/\/|\b[a-z][a-z0-9+.-]{1,15}:\/\/|\bwww\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|xyz|link|ly)\b/i,
   /(\p{Nd}[\s().-]*){7,}/u, // phone, account or card number
   /[$€£]\s?\p{Nd}|(?<![A-Za-z0-9_])\p{Nd}+\s?(dollars|bucks|usd)\b/iu,
-  new RegExp(String.raw`\b${MONEY_VERB}\b[^.!?]{0,30}\b${MONEY_OBJECT}\b`, 'i'), // owes a grand on the loan
+  MONEY_VERB_RULE,
   /\b(pay(s|ing)?|paid)\b(\s+\p{L}+)?\s+back\b/iu, // pay me back
   new RegExp(String.raw`(?<![\p{L}\p{N}])${AMOUNT}\s+(?:grand|bucks|quid)\b`, 'iu'), // two grand
-  new RegExp(String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})\s?k\b`, 'iu'), // 5k, five k
-  /\b(a|the|her|his|my|your|their|our|that|this|some|any|in|into|of|off)\s+(loans?|debts?)\b/i,
+  new RegExp(
+    String.raw`(?<![\p{L}\p{N}])(?:\p{Nd}+|${NUMBER_WORD})(?:k\b|\s+k\b(?!-(?:dramas?|pop)\b))`,
+    'iu'
+  ), // 5k, five k, 5k-ish, 5k-pop; not "ten k-drama" or "two k-pop"
+  /\b(a|the|her|his|my|your|their|our|that|this|some|any)\s+(loans?|debts?)\b/i,
   /@/, // email or handle
   /[\p{L}\p{N}]_[\p{L}\p{N}]/u, // handle: riley_help
   /\bat\s+(gmail|yahoo|icloud|outlook|hotmail|aol|proton(mail)?)\b/i,
   /\bh[\s.-]+t[\s.-]+t[\s.-]+p|\bw[\s.-]+w[\s.-]+w\b/i, // a link spelled out
   /(?<![\p{L}\p{N}.])[\p{L}\p{N}-]{2,}\.\p{L}{2,}(?![\p{L}\p{N}])/u, // a link with any ending
   /\b(wire|venmo|zelle|cash ?app|paypal|gift ?cards?|bitcoin|crypto|bank|routing|account number|credit card|debit card|social security|ssn)\b/i,
-  /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i,
+  SEND_MONEY_RULE,
   /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?|card numbers?|cvv|cvc)\b/i,
+  ...OBJECT_RULES,
 ];
 
-export function isRiskyCallerText(text: string): boolean {
+/**
+ * A link in a name, or a dot before a two-letter or common link ending ("riley.shop",
+ * "Mary.Jo"): such a name is read as it is written, never spared.
+ */
+const NAME_LINK =
+  /\bwww\.|:\/\/|\.(?:\p{L}{2}|com|net|org|edu|gov|info|biz|xyz|link|app|dev|shop|store|site|online|io|co|me|ly)(?![\p{L}\p{N}])/iu;
+
+/**
+ * A sum or an at-sign in a name ("Sam $5", "riley@gmail", "Sam @ Work"), which `plain` would
+ * strip. Any at-sign makes the name risky, spaced or not, so a name's "@" is never spared:
+ * "Sam @ Work came by" is withheld like any text with an "@". `callerText` folds the full-width
+ * and small at-signs ("＠", "﹫") to "@" first (NFKC), so one "@" covers all three.
+ */
+const NAME_RISKY_MARK = /[$€£]\s?\p{Nd}|@/u;
+
+/** Spans [start, end) in `text` where the known name is mentioned as itself. */
+type Span = readonly [number, number];
+
+/**
+ * Where the known name (the person the user named, written by Ferni, not the caller) is
+ * mentioned as itself: in the case it is written, with no link, email or handle around it
+ * ("Mary_Ann.com", "@Jo.Ann", "Jo.Ann@..." are not mentions). A name that reads risky on its
+ * own (its digit run, a word like "Pin", a sum, an at-sign or a link) has no mentions: it is
+ * read as written. So does a name cut to length (it ends in "..."), here or by a caller: what
+ * was cut off, an at-sign included, was never read.
+ */
+function nameSpans(text: string, name: string | undefined): Span[] {
+  const known = callerText(name, 200);
+  const plain = known.replace(/[^\p{L}\p{N}\s]+/gu, ' ');
+  if (
+    !known.trim() ||
+    known.endsWith('...') ||
+    NAME_LINK.test(known) ||
+    NAME_RISKY_MARK.test(known) ||
+    RISKY.some((rule) => rule.test(plain))
+  ) {
+    return [];
+  }
+  const escaped = known.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const mention = new RegExp(
+    String.raw`(?<![\p{L}\p{N}@._/:-])${escaped}(?![\p{L}\p{N}@]|[._/:-][\p{L}\p{N}])`,
+    'gu'
+  );
+  return [...text.matchAll(mention)].map((m): Span => [m.index, m.index + m[0].length]);
+}
+
+/** Whether `rule` matches the text anywhere but wholly inside a mention of the known name. */
+function matchesOutside(rule: RegExp, text: string, spans: readonly Span[]): boolean {
+  if (spans.length === 0) return rule.test(text);
+  const every = new RegExp(rule.source, `${rule.flags.replace('g', '')}g`);
+  for (let m = every.exec(text); m; m = every.exec(text)) {
+    const [start, end] = [m.index, m.index + m[0].length];
+    if (!spans.some(([from, to]) => start >= from && end <= to)) return true;
+    every.lastIndex = start + 1; // a later start may still reach past the mention
+  }
+  return false;
+}
+
+/**
+ * Whether the text holds a link, a number or a request for money, credentials or codes.
+ * Every rule reads the caller's text as written. `knownName` is the name Ferni writes into its
+ * own lines (the family member, the contact): a match wholly inside a mention of it is spared,
+ * so "Mary_Ann" or "St.Clair" is not a handle or a link. The object rules read the text with
+ * those mentions blanked, so "pay Loan a visit" is spared and "pay Loan the money" is not, and
+ * the one-sentence money rules read both, so a dot in the name can't end the sentence.
+ */
+export function isRiskyCallerText(text: string, knownName?: string): boolean {
   const normalized = callerText(text, 10_000);
-  return RISKY.some((pattern) => pattern.test(normalized));
+  const spans = nameSpans(normalized, knownName);
+  let blanked = normalized;
+  for (const [from, to] of spans) {
+    blanked = blanked.slice(0, from) + ' '.repeat(to - from) + blanked.slice(to);
+  }
+  return RISKY.some((rule) =>
+    OBJECT_RULES.includes(rule)
+      ? rule.test(blanked)
+      : matchesOutside(rule, normalized, spans) ||
+        (SENTENCE_RULES.includes(rule) && rule.test(blanked))
+  );
 }
 
 /**
@@ -155,12 +260,12 @@ export function screenCallerParts(
   let risky = own(riskyCallerLine(name));
   const saidSafety = own(crisisCallerLine(name));
   let safety = saidSafety || crisis;
-  if (risky || isRiskyCallerText(said)) return { said: '', risky: true, safety };
+  if (risky || isRiskyCallerText(said, name)) return { said: '', risky: true, safety };
   // A crisis-only field the cap doesn't cut stays exactly as it was: their words carry it.
   if (!saidSafety && crisis && crisisRead(cutAtWord(said, maxLength))) safety = false;
   const room = maxLength - (safety ? crisisCallerLine(name).length + 1 : 0);
   said = cutAtWord(said, room);
-  if (isRiskyCallerText(said)) {
+  if (isRiskyCallerText(said, name)) {
     said = '';
     risky = true;
   }
@@ -222,7 +327,7 @@ export function reportedFromCall(name: string | undefined, lines: string[]): str
     const kept = cutAtWord(flat, budget);
     const safety =
       kept.includes(crisisCallerLine(label)) || flat.startsWith(crisisCallerLine(label));
-    const shown = isRiskyCallerText(kept)
+    const shown = isRiskyCallerText(kept, label)
       ? [safety ? crisisCallerLine(label) : '', riskyCallerLine(label)].filter(Boolean).join(' ')
       : kept;
     if (shown) quoted.push(`> ${shown}`);

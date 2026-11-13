@@ -94,6 +94,11 @@ export interface CrisisDetectionOptions {
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
   /**
+   * The request's env, default process.env. Read for CRISIS_MEANS_IN_HAND when meansInHand is
+   * unset, and for CRISIS_SELF_HARM_911_LINE in the severe script (crisis-script-lines.ts).
+   */
+  env?: Record<string, string | undefined>;
+  /**
    * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
    * Default true. The background turn passes false (turn-crisis.ts): there the voice only raises
    * severity, so a third-party read keeps its guidance, as on main.
@@ -122,6 +127,18 @@ interface TextScore {
   sessionSeverity: number;
 }
 
+/**
+ * Whether an imminent pattern after index `from` reads plainly (no negation, past, joke,
+ * condition or someone else). The read stops at its first plain match, which must never hide a
+ * later 911: "i want to die. i just took all my pills" is imminent.
+ */
+function laterImminent(text: string, from: number): boolean {
+  return EXPLICIT_CRISIS_PATTERNS.slice(from).some(({ re, imminent }) => {
+    const match = imminent ? re.exec(text) : null;
+    return !!match && !explicitModifier(text, match.index, match.index + match[0].length, true);
+  });
+}
+
 /** Score one message from its words alone. */
 function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
   const indicators: string[] = [];
@@ -140,7 +157,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   let softSelf = false;
   let tierSoft = false;
   let hardSelf = false;
-  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
+  for (const [at, { re, tag, imminent }] of EXPLICIT_CRISIS_PATTERNS.entries()) {
     const match = re.exec(text);
     if (!match) continue;
     const start = match.index;
@@ -164,7 +181,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     } else {
       hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
-      if (imminent) add('imminent_danger', SEVERITY.explicit);
+      if (imminent || laterImminent(text, at + 1)) add('imminent_danger', SEVERITY.explicit);
       break;
     }
   }
@@ -299,7 +316,7 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
+  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode(options?.env));
   const score = scoreText(text, forms);
   const indicators = [...score.indicators];
   let { severity, subject } = score;
@@ -357,7 +374,7 @@ export function detectCrisis(
   const imminent = !callerCheck && indicators.includes('imminent_danger');
   const script = emergency
     ? EMERGENCY_FOR_THEM
-    : getCrisisResponse(severity, subject, score.language, imminent);
+    : getCrisisResponse(severity, subject, score.language, imminent, options?.env);
 
   return {
     isCrisis,

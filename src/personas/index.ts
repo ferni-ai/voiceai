@@ -20,7 +20,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { PartialPersonaConfig, PersonaConfig, PersonaId, PersonaRegistry } from './types.js';
+import type { PartialPersonaConfig, PersonaConfig, PersonaId } from './types.js';
 
 // ============================================================================
 // CORE EXPORTS
@@ -29,15 +29,9 @@ import type { PartialPersonaConfig, PersonaConfig, PersonaId, PersonaRegistry } 
 // Team configuration, and the people in the personas' own lives (never reached by a tool)
 export * from './team/index.js';
 export { canonPeople, canonPersonIn } from './canon-people.js';
-// ============================================================================
-// LEGACY IMPORTS (for backward compatibility)
-// ============================================================================
-
-// Generic advisor persona (fallback when bundles aren't loaded)
-import { GENERIC_ADVISOR_PERSONA } from './generic-advisor/index.js';
-
-// Wellness coach persona (created from generic-advisor template)
-import { WELLNESS_COACH_PERSONA } from './wellness-coach/index.js';
+// The registry (persona-registry.ts) starts with the two template personas,
+// generic-advisor and wellness-coach (extendPersona() templates, not production).
+import { personaRegistry } from './persona-registry.js';
 
 // External agents available at marketplace-agents/
 // Install with: npm run agents install <agent-id>
@@ -138,17 +132,6 @@ export {
 // ============================================================================
 // PERSONA REGISTRY
 // ============================================================================
-
-const personaRegistry: PersonaRegistry = new Map();
-
-// ============================================================================
-// TEMPLATE PERSONAS (NOT for production use)
-// These exist as templates for creating new personas via extendPersona().
-// See src/personas/generic-advisor/index.ts for usage documentation.
-// For production, use bundle-based personas loaded via initializeFromBundles().
-// ============================================================================
-personaRegistry.set('generic-advisor', GENERIC_ADVISOR_PERSONA);
-personaRegistry.set('wellness-coach', WELLNESS_COACH_PERSONA);
 
 // NOTE: Main personas (peter-john, alex-chen, maya-santos, jordan-taylor, ferni, nayan-patel)
 // are now loaded from bundles via initializeFromBundles() at startup
@@ -434,8 +417,7 @@ export {
 } from './id-mapping.js';
 
 // ============================================================================
-// PERSONA IDS (Constants, types, validation)
-// Re-exported for tests and validation
+// PERSONA IDS (constants, types, validation, the retired-id fallback)
 // ============================================================================
 
 export {
@@ -450,50 +432,14 @@ export {
   isCanonicalId,
   isKnownId,
   isSamePersona,
+  isValidPersonaId,
+  livePersonaId,
   toCanonical,
   toFrontend,
   validateAndLog,
   type CanonicalPersonaId,
   type FrontendPersonaId,
 } from './persona-ids.js';
-
-// ============================================================================
-// RELATIONSHIP MEMORY ENGINE
-// DEPRECATED (Jan 2026): Entire relationship-memory module deleted.
-// These exports have been moved to src/intelligence/relationship/
-// Import from there instead.
-// ============================================================================
-//
-// export {
-//   clearRelationshipEngine,
-//   getRelationshipEngine,
-//   getRelationshipPersistence,
-//   loadAllRelationshipMemories,
-//   loadRelationshipMemory,
-//   RELATIONSHIP_STAGE_CONFIGS,
-//   RelationshipMemoryEngine,
-//   RelationshipMemoryPersistence,
-//   saveRelationshipMemory,
-// } from './relationship-memory/index.js';
-//
-// export type {
-//   CallbackAttempt,
-//   CallbackEffectiveness,
-//   EmotionalTrajectory,
-//   InsideJoke,
-//   InsideJokeSeed,
-//   RelationshipContext,
-//   RelationshipMemory,
-//   RelationshipMilestone,
-//   RelationshipMilestoneType,
-//   RelationshipPromptInjection,
-//   RelationshipStage,
-//   RelationshipStageConfig,
-//   RelationshipUpdateResult,
-//   SharedMoment,
-//   SharedMomentType,
-//   TemporalPattern,
-// } from './relationship-memory/index.js';
 
 // ============================================================================
 // COGNITIVE DIFFERENTIATION

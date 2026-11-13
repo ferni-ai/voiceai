@@ -9,7 +9,6 @@ import { describe, expect, it } from 'vitest';
 import {
   HANDOFF_BANTER,
   ARRIVING_OPENERS,
-  CROSS_PERSONA_REFERENCES,
   getHandoffBanter,
   getArrivingBanter,
 } from '../banter.js';
@@ -73,7 +72,7 @@ describe('Banter System', () => {
 
   describe('ARRIVING_OPENERS Coverage', () => {
     it('gives every persona and legend at least 3 openers, from any teammate', () => {
-      for (const id of [...PERSONA_IDS, 'john-bogle', 'peter-lynch', 'joel-dickson']) {
+      for (const id of [...PERSONA_IDS, 'john-bogle', 'joel-dickson']) {
         expect(ARRIVING_OPENERS[id]?.length, id).toBeGreaterThanOrEqual(3);
         for (const from of PERSONA_IDS)
           expect(getArrivingBanter(id, from), `${id} <- ${from}`).toBeTruthy();
@@ -219,76 +218,6 @@ describe('Banter System', () => {
         if (banter) results.add(banter);
       }
       expect(results.size).toBeGreaterThan(1);
-    });
-  });
-
-  describe('CROSS_PERSONA_REFERENCES', () => {
-    it('should have cross-references from Ferni about all team members', () => {
-      expect(CROSS_PERSONA_REFERENCES.ferni.aboutAlex).toBeDefined();
-      expect(CROSS_PERSONA_REFERENCES.ferni.aboutMaya).toBeDefined();
-      expect(CROSS_PERSONA_REFERENCES.ferni.aboutJordan).toBeDefined();
-      expect(CROSS_PERSONA_REFERENCES.ferni.aboutNayan).toBeDefined();
-      expect(CROSS_PERSONA_REFERENCES.ferni.aboutPeter).toBeDefined();
-    });
-
-    it('should have at least 2 references per persona pair', () => {
-      for (const [persona, refs] of Object.entries(CROSS_PERSONA_REFERENCES)) {
-        for (const [about, refList] of Object.entries(refs)) {
-          expect(refList.length).toBeGreaterThanOrEqual(2);
-        }
-      }
-    });
-
-    it('should have 100% cross-reference coverage (30 combinations)', () => {
-      const personas = [
-        'ferni',
-        'alex-chen',
-        'maya-santos',
-        'jordan-taylor',
-        'nayan-patel',
-        'peter-john',
-      ];
-      const aboutKeys: Record<string, string> = {
-        ferni: 'aboutFerni',
-        'alex-chen': 'aboutAlex',
-        'maya-santos': 'aboutMaya',
-        'jordan-taylor': 'aboutJordan',
-        'nayan-patel': 'aboutNayan',
-        'peter-john': 'aboutPeter',
-      };
-
-      const missing: string[] = [];
-      let total = 0;
-      let covered = 0;
-
-      for (const from of personas) {
-        for (const about of personas) {
-          if (from === about) continue;
-          total++;
-
-          const aboutKey = aboutKeys[about];
-          const refs = CROSS_PERSONA_REFERENCES[from];
-          if (refs && refs[aboutKey] && refs[aboutKey].length > 0) {
-            covered++;
-          } else {
-            missing.push(`${from} → ${aboutKey}`);
-          }
-        }
-      }
-
-      // All CROSS_PERSONA_REFERENCES must be present
-      const coverage = (covered / total) * 100;
-      expect(coverage).toBe(100);
-    });
-
-    it('should have SSML breaks for natural pacing', () => {
-      for (const [persona, refs] of Object.entries(CROSS_PERSONA_REFERENCES)) {
-        for (const [about, refList] of Object.entries(refs)) {
-          for (const ref of refList) {
-            expect(ref).toContain('<break time=');
-          }
-        }
-      }
     });
   });
 

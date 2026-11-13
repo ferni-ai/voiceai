@@ -4,13 +4,21 @@
  * the old fallback key was committed to this public repo.
  */
 import { createHmac } from 'node:crypto';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('../../utils/safe-logger.js', () => {
   const noop = () => undefined;
   const logger = { debug: noop, info: noop, warn: noop, error: noop, child: () => logger };
   return { getLogger: () => logger, createLogger: () => logger };
 });
+
+// The outbound guard sends through undici's own fetch, not the global one, so that is the spy.
+// No implementation by default: a request nothing stubbed fails instead of reaching the network.
+vi.mock('undici', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('undici')>()),
+  fetch: vi.fn(),
+}));
+const guardedFetch = vi.mocked((await import('undici')).fetch) as unknown as Mock<typeof fetch>;
 
 const { anonymizeUserId } = await import('../auth/index.js');
 const { executeHttpTool } = await import('../executor/http-executor.js');
@@ -26,7 +34,7 @@ const context = { userId: 'user-1', agentId: 'ferni' } as unknown as Parameters<
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  vi.unstubAllGlobals();
+  guardedFetch.mockReset();
 });
 
 describe('anonymizeUserId', () => {
@@ -55,7 +63,7 @@ describe('executeHttpTool without MARKETPLACE_HMAC_SECRET', () => {
   it('rejects before anything is fetched', async () => {
     vi.stubEnv('MARKETPLACE_HMAC_SECRET', '');
     const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+    guardedFetch.mockImplementation(fetchSpy);
     await expect(executeHttpTool(manifest, {}, context, {} as never, 5000)).rejects.toThrow(
       /MARKETPLACE_HMAC_SECRET/
     );

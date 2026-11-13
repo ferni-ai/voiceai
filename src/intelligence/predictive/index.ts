@@ -802,8 +802,6 @@ export {
   // Markov
   recordTransition,
   recordSecondOrderTransition,
-  predictNextStates,
-  extractStatesFromTurn,
   // Time Series
   recordObservation,
   forecast,

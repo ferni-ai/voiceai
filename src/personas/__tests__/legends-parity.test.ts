@@ -1,9 +1,9 @@
 /**
- * The financial legends (Nate, Henry Caldwell and Tom Brannigan; ids joel-dickson,
- * john-bogle, peter-lynch) get what the rest
+ * The financial legends (Nate and Henry Caldwell; ids joel-dickson, john-bogle)
+ * get what the rest
  * of the team gets: speech traits, a greeting and an arrival line in their own
  * voice, their names in the speech recognizer's hints, and their own Cartesia
- * voice. Before, a handoff to john-bogle or peter-lynch greeted with "Hey! What's up?" in
+ * voice. Before, a handoff to john-bogle greeted with "Hey! What's up?" in
  * Ferni's voice and the recognizer had never heard of their names.
  */
 import { readFileSync } from 'node:fs';
@@ -19,7 +19,6 @@ import { getVoiceId } from '../voice-registry.js';
 const LEGEND_NAMES: Record<(typeof FINANCIAL_LEGENDS)[number], string[]> = {
   'joel-dickson': ['Nate'],
   'john-bogle': ['Henry', 'Caldwell'],
-  'peter-lynch': ['Tom', 'Brannigan'],
 };
 
 function manifest(id: string) {
@@ -72,7 +71,7 @@ describe.each(FINANCIAL_LEGENDS)('%s has parity with the team', (id) => {
 });
 
 describe('legend voice translation', () => {
-  it.each(['john-bogle', 'peter-lynch'])('%s carries the pace the cascade reads', (id) => {
+  it.each(['john-bogle'])('%s carries the pace the cascade reads', (id) => {
     const m = manifest(id);
     expect(m.voice.default_rate).toMatch(/^(slow|medium|fast)$/);
     expect(typeof m.voice.default_speed).toBe('number');

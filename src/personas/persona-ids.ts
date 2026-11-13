@@ -21,6 +21,9 @@
  * SOLUTION: Use this module EVERYWHERE for persona ID handling.
  */
 
+import { isCustomAgentId } from '../services/custom-agent/custom-agent-ids.js';
+import type { PersonaId } from '../types/branded.js';
+import { personaRegistry } from './persona-registry.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -52,15 +55,14 @@ export const CANONICAL_IDS = {
   // Standalone personas (not part of Ferni team)
   JOEL_DICKSON: 'joel-dickson',
   // Financial Legends team
-  PETER_LYNCH: 'peter-lynch',
   JOHN_BOGLE: 'john-bogle',
 } as const;
 
 /**
  * Financial Legends roster - restricted handoff group
- * These three personas can hand off to each other but not to the main Ferni team.
+ * These personas can hand off to each other but not to the main Ferni team.
  */
-export const FINANCIAL_LEGENDS = ['peter-lynch', 'john-bogle', 'joel-dickson'] as const;
+export const FINANCIAL_LEGENDS = ['john-bogle', 'joel-dickson'] as const;
 
 export type FinancialLegendsId = (typeof FINANCIAL_LEGENDS)[number];
 
@@ -89,7 +91,6 @@ export const CANONICAL_TO_FRONTEND: Record<CanonicalPersonaId, CanonicalPersonaI
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
-  'peter-lynch': 'peter-lynch',
   'john-bogle': 'john-bogle',
 };
 
@@ -106,7 +107,6 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
-  'peter-lynch': 'peter-lynch',
   'john-bogle': 'john-bogle',
 };
 
@@ -128,11 +128,14 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
-  peter: 'peter-john', // Ferni's Peter; the Financial Legend peter-lynch is Tom Brannigan
+  peter: 'peter-john',
   'peter john': 'peter-john',
   john: 'peter-john', // Last name alias
   researcher: 'peter-john',
   'stock-storyteller': 'peter-john',
+  'the-quant': 'peter-john', // bundle manifest aliases
+  'pattern-finder': 'peter-john',
+  'insights-guy': 'peter-john',
 
   // Alex Chen (Communicator)
   'alex-chen': 'alex-chen',
@@ -143,6 +146,10 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   communications: 'alex-chen',
   communicator: 'alex-chen',
   'generic-advisor': 'alex-chen',
+  'communication-coach': 'alex-chen', // bundle manifest aliases
+  'admin-assistant': 'alex-chen',
+  'chief-of-staff': 'alex-chen',
+  scheduler: 'alex-chen',
 
   // Maya Santos (Habits Coach)
   'maya-santos': 'maya-santos',
@@ -172,6 +179,8 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'retirement-specialist': 'jordan-taylor',
   retirement: 'jordan-taylor',
   milestones: 'jordan-taylor',
+  'life-planner': 'jordan-taylor', // bundle manifest aliases
+  'lifetime-planner': 'jordan-taylor',
 
   // Nayan Patel (Sage / Lifetime Advisor)
   'nayan-patel': 'nayan-patel',
@@ -197,14 +206,6 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'nate-holloway': 'joel-dickson',
   'life-mentor': 'joel-dickson',
 
-  // Tom Brannigan (Stock Picker), id peter-lynch
-  'peter-lynch': 'peter-lynch',
-  tom: 'peter-lynch',
-  brannigan: 'peter-lynch',
-  'tom brannigan': 'peter-lynch',
-  'tom-brannigan': 'peter-lynch',
-  'stock-picker': 'peter-lynch',
-
   // Henry Caldwell (Index Investing), id john-bogle
   'john-bogle': 'john-bogle',
   henry: 'john-bogle',
@@ -227,10 +228,27 @@ export function isCanonicalId(id: string): id is CanonicalPersonaId {
 }
 
 /**
+ * The canonical id for a normalized alias, read from the table's OWN keys only.
+ * Plain `in` or indexing also finds Object.prototype members ("constructor", "__proto__").
+ */
+function canonicalForAlias(normalized: string): CanonicalPersonaId | undefined {
+  return Object.hasOwn(ALIAS_TO_CANONICAL, normalized) ? ALIAS_TO_CANONICAL[normalized] : undefined;
+}
+
+/**
  * Check if a string is a known persona ID or alias.
  */
 export function isKnownId(id: string): boolean {
-  return id.toLowerCase() in ALIAS_TO_CANONICAL;
+  return canonicalForAlias(id.toLowerCase()) !== undefined;
+}
+
+/**
+ * Type guard: is this value a known persona id or alias (case-insensitive)?
+ * Reads ALIAS_TO_CANONICAL's own keys, so it cannot drift from this table and
+ * inherited keys such as "constructor" stay out.
+ */
+export function isValidPersonaId(value: unknown): value is PersonaId {
+  return typeof value === 'string' && canonicalForAlias(value.toLowerCase()) !== undefined;
 }
 
 /**
@@ -243,7 +261,7 @@ export function isKnownId(id: string): boolean {
  */
 export function toCanonical(id: string, strict = false): CanonicalPersonaId {
   const normalized = id.toLowerCase().trim();
-  const canonical = ALIAS_TO_CANONICAL[normalized];
+  const canonical = canonicalForAlias(normalized);
 
   if (!canonical) {
     if (strict) {
@@ -286,13 +304,55 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'nayan-patel': 'Nayan',
   // Fictional characters inspired by investing philosophies, not the real people the ids are named for.
   'joel-dickson': 'Nate Holloway',
-  'peter-lynch': 'Tom Brannigan',
   'john-bogle': 'Henry Caldwell',
 };
 
 export function getDisplayName(id: string): string {
   const canonical = toCanonical(id);
   return DISPLAY_NAMES[canonical];
+}
+
+// ============================================================================
+// RETIRED PERSONAS
+// ============================================================================
+
+/**
+ * Personas taken out of the product, with the name past records show for them.
+ * Stored state (a saved persona, a scheduled check-in, a past call) can still
+ * carry one of these ids: history shows the name, anything live gets Ferni.
+ */
+const RETIRED_PERSONA_NAMES: Readonly<Record<string, string>> = {
+  'peter-lynch': 'Tom', // the stock-picking legend, retired 2026-11-08
+};
+
+/**
+ * The persona a live call starts on for a requested `id` (the token routes and
+ * dispatch both ask here): a custom agent id as given (the token route checks
+ * its owner), a persona the registry holds as that persona (the templates
+ * generic-advisor and wellness-coach included), a built-in id or alias as its
+ * canonical id, and anything else (a retired persona, an unknown or empty id)
+ * as Ferni. A call never starts on the stand-in persona that names itself
+ * after the id (persona-builder.ts).
+ */
+export function livePersonaId(id: string): string {
+  const raw = String(id ?? '').trim();
+  if (isCustomAgentId(raw)) return raw;
+  const key = raw.toLowerCase();
+  if (Object.hasOwn(RETIRED_PERSONA_NAMES, key)) return CANONICAL_IDS.COACH;
+  const registered = personaRegistry.get(raw) ?? personaRegistry.get(key);
+  if (registered) return registered.id;
+  return canonicalForAlias(key) ?? CANONICAL_IDS.COACH;
+}
+
+/** The name a past record shows: a retired persona keeps its own, anything else is getDisplayName. */
+export function historyDisplayName(id: string): string {
+  const key = String(id ?? '')
+    .toLowerCase()
+    .trim();
+  // Own keys only: `__proto__` or `constructor` would otherwise read the prototype.
+  return Object.hasOwn(RETIRED_PERSONA_NAMES, key)
+    ? RETIRED_PERSONA_NAMES[key]
+    : getDisplayName(id);
 }
 
 // ============================================================================
@@ -345,8 +405,8 @@ export function isSamePersona(id1: string, id2: string): boolean {
   }
 
   // For core team, resolve aliases and compare
-  const canonical1 = ALIAS_TO_CANONICAL[normalized1];
-  const canonical2 = ALIAS_TO_CANONICAL[normalized2];
+  const canonical1 = canonicalForAlias(normalized1);
+  const canonical2 = canonicalForAlias(normalized2);
 
   // If both are in alias map, compare canonical forms
   if (canonical1 && canonical2) {
@@ -388,7 +448,7 @@ export function isCoach(id: string): boolean {
  */
 export function isTeamMember(id: string): boolean {
   const normalized = id.toLowerCase().trim();
-  const canonical = ALIAS_TO_CANONICAL[normalized];
+  const canonical = canonicalForAlias(normalized);
 
   // Must be in alias map and not ferni to be a core team member
   return canonical !== undefined && canonical !== 'ferni' && ALL_CANONICAL_IDS.includes(canonical);
@@ -406,6 +466,7 @@ export default {
   fromFrontend,
   isCanonicalId,
   isKnownId,
+  isValidPersonaId,
   isSamePersona,
   isCoach,
   isTeamMember,

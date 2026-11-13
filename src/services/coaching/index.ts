@@ -19,305 +19,41 @@
 // GOAL TRACKING
 // ============================================================================
 
-export {
-  abandonGoal,
-  addMilestone,
-  buildGoalContext,
-  completeMilestone,
-  createGoal,
-  detectGoalStatement,
-  exportGoalProfile,
-  generateGoalCheckIn,
-  getActiveGoals,
-  getGoal,
-  getGoalsNeedingCheckIn,
-  getGoalStats,
-  getGoalToCheckIn,
-  getRecentProgress,
-  importGoalProfile,
-  pauseGoal,
-  resumeGoal,
-  updateProgress,
-  type CoachingGoal,
-  type GoalCheckIn,
-  type GoalDomain,
-  type GoalProfile,
-  type GoalProgress,
-  type GoalStatus,
-  type Milestone,
-  type MilestoneStatus,
-} from './goal-tracking.js';
-
-// ============================================================================
-// ACTION PLANNING
-// ============================================================================
-
-export {
-  buildActionContext,
-  completeAction,
-  createAction,
-  deferAction,
-  detectActionOpportunity,
-  exportActionProfile,
-  generateActionFollowUp,
-  generateActionSuggestions,
-  getActionsNeedingFollowUp,
-  getActionStats,
-  getActionToFollowUp,
-  getPendingActions,
-  importActionProfile,
-  skipAction,
-  type ActionItem,
-  type ActionPriority,
-  type ActionProfile,
-  type ActionStatus,
-  type ActionSuggestion,
-} from './action-planning.js';
+export { detectGoalStatement } from './goal-tracking.js';
 
 // ============================================================================
 // OBSTACLE DETECTION
 // ============================================================================
 
 export {
-  buildObstacleContext,
   detectObstacle,
-  exportObstacleProfile,
-  generateObstacleResponse,
-  getActiveObstacles,
-  getMostCommonObstacle,
-  getObstaclePatterns,
   getObstacleSupport,
-  importObstacleProfile,
-  markObstacleAddressed,
-  markObstacleResolved,
   type Obstacle,
-  type ObstaclePattern,
-  type ObstacleProfile,
-  type ObstacleSupport,
   type ObstacleType,
 } from './obstacle-detection.js';
-
-// ============================================================================
-// COACHING STYLE ADAPTATION
-// ============================================================================
-
-export {
-  buildStyleContext,
-  detectStyleSignals,
-  exportStyleProfile,
-  getPreferredStyle,
-  getStyleGuidance,
-  getStyleProfile,
-  importStyleProfile,
-  setExplicitStylePreference,
-  type CoachingStyle,
-  type CoachingStyleProfile,
-  type FeedbackPreference,
-  type ProcessingMode,
-  type StyleSignal,
-} from './style-adaptation.js';
-
-// ============================================================================
-// EMOTIONAL GRANULARITY
-// ============================================================================
-
-export {
-  buildGranularityContext,
-  detectVagueExpression,
-  exportGranularityProfile,
-  getEmotionTeaching,
-  getGranularityScore,
-  getTopEmotionWords,
-  getVocabularySuggestions,
-  importGranularityProfile,
-  recordExpansionAccepted,
-  recordExpansionOffered,
-  type EmotionCategory,
-  type EmotionWord,
-  type GranularityProfile,
-} from './emotional-granularity.js';
 
 // ============================================================================
 // JOURNEY TRACKING
 // ============================================================================
 
-export {
-  buildJourneyContext,
-  exportJourneyProfile,
-  generateJourneyReflection,
-  getJourneySummary,
-  importJourneyProfile,
-  markMilestoneCelebrated,
-  recordBreakthrough,
-  recordGoalCompletion,
-  recordSession,
-  type JourneyMilestone,
-  type JourneyProfile,
-  type JourneyReflection,
-  type JourneySnapshot,
-  type MilestoneType,
-} from './journey-tracking.js';
+export { recordSession } from './journey-tracking.js';
 
 // ============================================================================
 // HANDOFF INTELLIGENCE
 // ============================================================================
 
 export {
-  buildHandoffContext,
   detectHandoffOpportunity,
-  exportTeamExperience,
   generateTeamIntroduction,
   getBestPersonaForTopic,
-  getUnmetTeamMembers,
-  importTeamExperience,
-  recordHandoff,
-  type HandoffCandidate,
-  type HandoffDecision,
   type PersonaId,
-  type TeamMemberProfile,
-  type UserTeamExperience,
 } from './handoff-intelligence.js';
-
-// ============================================================================
-// SOCRATIC ENGINE
-// ============================================================================
-
-export {
-  buildSocraticContext,
-  generateQuestionSequence,
-  generateSocraticQuestion,
-  generateSocraticResponse,
-  selectQuestionType,
-  type SocraticContext,
-  type SocraticQuestion,
-  type SocraticQuestionType,
-} from './socratic-engine.js';
-
-// ============================================================================
-// COGNITIVE REFRAMES
-// ============================================================================
-
-export {
-  buildReframeContext,
-  detectDistortions,
-  generateReframes,
-  getCommonDistortions,
-  recordReframeFeedback,
-  type CognitiveReframe,
-  type DistortionType,
-  type ReframeOption,
-  type ReframeProfile,
-} from './cognitive-reframes.js';
-
-// ============================================================================
-// SEASONAL AWARENESS
-// ============================================================================
-
-export {
-  buildSeasonalContext,
-  exportSeasonalProfile,
-  getCurrentSeason,
-  getDayLength,
-  getSeasonalContext,
-  getUpcomingHolidays,
-  importSeasonalProfile,
-  isCurrentlyDifficultTime,
-  recordDifficultTime,
-  setHolidayPreferences,
-  type Holiday,
-  type HolidayType,
-  type Season,
-  type SeasonalContext,
-  type UserSeasonalProfile,
-} from './seasonal-awareness.js';
-
-// ============================================================================
-// RE-ENGAGEMENT
-// ============================================================================
-
-export {
-  exportEngagementProfile,
-  generateNudge,
-  getUsersNeedingNudges,
-  importEngagementProfile,
-  optInToReengagement,
-  optOutOfReengagement,
-  recordSession as recordEngagementSession,
-  shouldSendNudge,
-  type AbsenceReason,
-  type NudgeType,
-  type ReengagementNudge,
-  type UserEngagementProfile,
-} from './reengagement.js';
 
 // ============================================================================
 // VALUES COACHING
 // ============================================================================
 
-export {
-  buildValuesContext,
-  exportValuesProfile,
-  generateValuesCheck,
-  getValuesExplorationPrompt,
-  identifyValue,
-  importValuesProfile,
-  recordValueAlignment,
-  recordValuesExplorationResponse,
-  suggestValuesFromConversation,
-  type Value,
-  type ValueDomain,
-  type ValuesProfile,
-} from './values-coaching.js';
-
-// ============================================================================
-// PROGRESS METRICS
-// ============================================================================
-
-export {
-  buildProgressContext,
-  exportProgressProfile,
-  generateProgressReflection,
-  generateProgressSummary,
-  getStreakInfo,
-  importProgressProfile,
-  recordHighlight,
-  recordProgressSession,
-  resetStreak,
-  type GrowthHighlight,
-  type ProgressProfile,
-  type ProgressSummary,
-} from './progress-metrics.js';
-
-// ============================================================================
-// CROSS-PERSONA CONTEXT
-// ============================================================================
-
-export {
-  addCrossPersonaItem,
-  buildCrossPersonaContext,
-  exportTeamContext,
-  getContextForPersona,
-  getHandoffSummary,
-  importTeamContext,
-  recordPersonaInteraction,
-  shareContext,
-  updateCurrentSituation,
-  type PersonaInteraction,
-  type SharedContext,
-  type UserTeamContext,
-} from './cross-persona-context.js';
-
-// ============================================================================
-// PERSISTENCE
-// ============================================================================
-
-export {
-  exportAllCoachingProfiles,
-  importAllCoachingProfiles,
-  initializeCoachingForSession,
-  persistCoachingForSession,
-  type CoachingProfileBundle,
-} from './persistence.js';
+export { type ValueDomain } from './values-coaching.js';
 
 // ============================================================================
 // UNIFIED API

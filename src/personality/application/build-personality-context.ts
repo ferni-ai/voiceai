@@ -522,10 +522,10 @@ export class BuildPersonalityContext {
       sections.push('');
     }
 
-    // Vulnerability callbacks (limit to 2)
-    const urgentVulns = data.pendingVulnerabilities.filter((v) => v.isUrgentForFollowUp);
-    const vulnsToShow = urgentVulns.length > 0 ? urgentVulns : data.pendingVulnerabilities;
-    for (const vuln of vulnsToShow.slice(0, 2)) {
+    // Vulnerability callbacks (limit to 2); one that kept no words (crisis turn) is never quoted
+    const quotable = data.pendingVulnerabilities.filter((v) => v.summary || v.content);
+    const urgentVulns = quotable.filter((v) => v.isUrgentForFollowUp);
+    for (const vuln of (urgentVulns.length > 0 ? urgentVulns : quotable).slice(0, 2)) {
       sections.push(vuln.formatForPrompt());
       sections.push('');
     }

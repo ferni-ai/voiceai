@@ -33,6 +33,7 @@ import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 import { redactErrorValue } from './error-text.js';
+import { isFullLoggingEnabled } from './reply-for-log.js';
 import { redactUrlField } from './url-redaction.js';
 
 /**
@@ -429,18 +430,6 @@ export function createLogger(bindings: Record<string, unknown>): FallbackLogger 
 // ============================================================================
 
 /**
- * Check if full (non-truncated) logging is enabled.
- *
- * Set LOG_FULL_RESPONSES=true to see complete LLM responses, TTS text,
- * and other long strings in logs without truncation.
- *
- * WARNING: This can produce very large log output. Only use for debugging.
- */
-export function isFullLoggingEnabled(): boolean {
-  return process.env.LOG_FULL_RESPONSES === 'true';
-}
-
-/**
  * Truncate a string for logging, respecting LOG_FULL_RESPONSES env var.
  *
  * @param text - The text to potentially truncate
@@ -491,3 +480,5 @@ export function logPreview(
 
 // Default export for convenience
 export default safeLog;
+
+export { isFullLoggingEnabled, repliesForLog, replyForLog } from './reply-for-log.js';

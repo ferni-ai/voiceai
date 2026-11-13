@@ -18,8 +18,10 @@
  *
  * Turns come from the `ferni:avatar-turn` window event. The avatar rect is
  * cached and refreshed on resize and scroll, never read per frame. Under
- * prefers-reduced-motion there are no saccades or glances: the eyes hold on
- * you (or up and right while thinking) and move without a transition.
+ * prefers-reduced-motion, and while the crisis face is held (motion-allowed.ts),
+ * the eyes hold steady on you in every phase: no saccades, look-aways,
+ * thinking point or pointer pull. Under reduced motion they also move without
+ * a transition. A hold that starts mid-glance brings the eyes straight back.
  *
  * Off by default: the gaze switch in config/motion-flags.ts.
  *
@@ -28,6 +30,8 @@
 
 import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
+import { onCrisisHoldStart } from '../face/crisis-face-hold.js';
+import { avatarMotionAllowed } from './motion-allowed.js';
 
 const log = createLogger('AvatarGaze');
 
@@ -84,6 +88,8 @@ export interface GazeDeps {
   /** Runs `fn` after `ms`; returns a cancel function. */
   schedule(fn: () => void, ms: number): () => void;
   reducedMotion(): boolean;
+  /** Whether the eyes must hold steady on the caller (the crisis hold). Defaults to false; reduced motion holds them steady too. */
+  steady?(): boolean;
 }
 
 export interface GazeController {
@@ -91,6 +97,8 @@ export interface GazeController {
   /** Where the pointer pulls the eyes; only used while idle. */
   setPointerBias(point: GazePoint | null): void;
   phase(): GazePhase;
+  /** Look again under the current rules (call when a hold starts). */
+  refresh(): void;
   dispose(): void;
 }
 
@@ -145,6 +153,7 @@ export function createGaze(deps: GazeDeps): GazeController {
   let phase: GazePhase = 'idle';
   let pointer: GazePoint | null = null;
   let cancel: (() => void) | null = null;
+  const steady = (): boolean => (deps.steady?.() ?? false) || deps.reducedMotion();
 
   const clear = (): void => {
     cancel?.();
@@ -162,7 +171,12 @@ export function createGaze(deps: GazeDeps): GazeController {
   });
 
   const nextSaccade = (): void => after(between(SACCADE_MIN_MS, SACCADE_MAX_MS), saccade);
+  const holdOnUser = (): void => {
+    clear();
+    look(AT_USER);
+  };
   const glanceAway = (): void => {
+    if (steady()) return holdOnUser();
     look(LOOK_AWAY);
     after(between(LOOK_AWAY_MIN_MS, LOOK_AWAY_MAX_MS), () => {
       look(AT_USER);
@@ -170,6 +184,7 @@ export function createGaze(deps: GazeDeps): GazeController {
     });
   };
   function saccade(): void {
+    if (steady()) return holdOnUser();
     if (phase === 'speaking' && deps.random() < MID_TURN_LOOK_AWAY_CHANCE) return glanceAway();
     look(nearUser());
     nextSaccade();
@@ -177,7 +192,7 @@ export function createGaze(deps: GazeDeps): GazeController {
 
   const enter = (next: GazePhase, prev: GazePhase): void => {
     clear();
-    if (deps.reducedMotion()) return look(next === 'thinking' ? THINKING_GAZE : AT_USER);
+    if (steady()) return look(AT_USER);
     switch (next) {
       case 'idle':
         return look(pointer ?? AT_USER);
@@ -202,9 +217,10 @@ export function createGaze(deps: GazeDeps): GazeController {
     },
     setPointerBias(point) {
       pointer = point;
-      if (phase === 'idle' && !deps.reducedMotion()) look(point ?? AT_USER);
+      if (phase === 'idle' && !steady()) look(point ?? AT_USER);
     },
     phase: () => phase,
+    refresh: () => enter(phase, phase),
     dispose() {
       clear();
       look(AT_USER);
@@ -274,6 +290,7 @@ export function initGaze(): boolean {
       return () => clearTimeout(id);
     },
     reducedMotion: prefersReducedMotion,
+    steady: () => !avatarMotionAllowed('gazeShift'),
   });
   controller = current;
 
@@ -301,6 +318,7 @@ export function initGaze(): boolean {
   listen(window, 'resize', measure);
   listen(window, 'scroll', measure);
   listen(document, 'pointermove', onPointer);
+  teardown.push(onCrisisHoldStart(() => current.refresh()));
   teardown.push(() => {
     if (frame !== null) cancelAnimationFrame(frame);
     eyes.removeAttribute(GAZE_ATTR);

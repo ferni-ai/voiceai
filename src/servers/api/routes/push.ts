@@ -216,7 +216,7 @@ export async function handlePushRoutes(
     if (!auth) return true; // 401/403 already sent
 
     // Rate limit
-    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000, keyPrefix: 'push-send' })) {
       return true;
     }
 

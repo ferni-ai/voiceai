@@ -10,15 +10,16 @@
  * apps/website/ferni-website && npm ci && npm run build:prod):
  *
  *   docker run --rm --ipc=host -v "$PWD:$PWD" -w "$PWD" \
- *     mcr.microsoft.com/playwright:v1.64.1-noble \
+ *     mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea \
  *     npx playwright test -c apps/website/ferni-website/playwright.visual.config.ts
  *
  * To approve a change on purpose, add --update-snapshots to that command, or
  * run the "Website checks" workflow by hand on your branch with "update
  * screenshots" ticked and commit the website-screenshots artifact into
  * e2e/__screenshots__/website-visual/. Look at every changed image first.
- * Moving to a new Playwright means a new image tag here, in the workflow and
- * in CHROMIUM below, and new screenshots.
+ * The image is pinned by digest because a tag can be rebuilt with a newer
+ * Chromium. Moving to a new Playwright means a new image tag and digest here,
+ * in the workflow and in CHROMIUM below, and new screenshots.
  */
 
 import { expect, test, type Page } from '@playwright/test';
@@ -35,7 +36,7 @@ import {
 /** Served once for all workers by the config's webServer. */
 const SITE = 'http://127.0.0.1:8770';
 
-/** The Chromium in mcr.microsoft.com/playwright:v1.64.1-noble. */
+/** The Chromium in mcr.microsoft.com/playwright:v1.64.1-noble at the pinned digest. */
 const CHROMIUM = '156.0.8078.4';
 
 const PAGES = [
@@ -74,7 +75,6 @@ const VIEWPORTS = {
 const OVERLAYS = [
   '#cookieBanner',
   '.ferni-chat-widget',
-  '#ferni-live-chat',
   '.ferni-toast',
   '.helpful-nudge',
   '.ai-hover-insight',

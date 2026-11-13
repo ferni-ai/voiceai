@@ -26,7 +26,19 @@ const verifyFirebaseToken = vi.fn(async (token: string) => {
 vi.mock('../../../services/identity/firebase-auth.js', () => ({ verifyFirebaseToken }));
 
 const { startHealthCheckServer } = await import('../health-server.js');
-const { broadcastVoiceEmotion } = await import('../../../services/cognitive-broadcast.js');
+const { cognitiveBroadcast } = await import('../../../services/cognitive-broadcast.js');
+
+/** A voice-emotion event, sent the way the broadcaster sends every event. */
+function broadcastEmotion(userId: string, emotion: string, confidence: number): void {
+  cognitiveBroadcast.broadcast({
+    type: 'voice_emotion',
+    userId,
+    emotion,
+    confidence,
+    trend: 'stable',
+    timestamp: new Date(),
+  });
+}
 const { shutdownCognitiveWebSocket } = await import('../../../services/cognitive-websocket.js');
 
 type Msg = Record<string, unknown>;
@@ -52,7 +64,7 @@ beforeAll(async () => {
   );
   port = (server.address() as AddressInfo).port;
   // A user's emotional state is already in the history before anyone connects.
-  broadcastVoiceEmotion('user-A', 'anxious', 0.91, 'worsening');
+  broadcastEmotion('user-A', 'anxious', 0.91);
 });
 
 afterAll(async () => {
@@ -125,7 +137,7 @@ describe('/ws/cognitive (admin only)', () => {
     );
 
     // And live events arrive as they are broadcast.
-    broadcastVoiceEmotion('user-B', 'calm', 0.7);
+    broadcastEmotion('user-B', 'calm', 0.7);
     const live = await vi.waitFor(() => {
       const hit = messages.find(
         (m) => m.type === 'event' && (m.event as Msg | undefined)?.userId === 'user-B'

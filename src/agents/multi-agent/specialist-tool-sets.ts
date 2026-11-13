@@ -203,7 +203,6 @@ export const SPECIALIST_TOOL_SETS: Readonly<Record<string, ToolsByName>> = {
     debtPayoff: 'finance',
     budgetPlanner: 'finance',
   },
-  'peter-lynch': MONEY_EDUCATION,
   'john-bogle': MONEY_EDUCATION,
   'joel-dickson': MONEY_EDUCATION,
 };

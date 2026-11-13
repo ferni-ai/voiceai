@@ -6,6 +6,7 @@
  * @module memory/storage/memory-control-store
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { bumpForgetGeneration } from '../adapters/firestore/forgotten-store.js';
 import {
   firestoreForgetStore,
   forgottenTopicsOrNull,
@@ -74,5 +75,6 @@ export const firestoreMemoryControlStore: MemoryControlStore = {
     }
     await batch.commit();
     await removeIndexCopies(userId, wrongIds);
+    await bumpForgetGeneration(db, userId); // the wrong copies are hidden
   },
 };

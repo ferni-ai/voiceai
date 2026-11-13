@@ -1,11 +1,9 @@
 /**
- * Two things the relationship engine told the agent without the data for it.
+ * Something the relationship engine told the agent without the data for it:
  *
- * 1. "They've been trending more positive lately" after exactly 3 sessions: the
+ * "They've been trending more positive lately" after exactly 3 sessions: the
  *    "older" window was empty and averaged to 0, so any 3 sessions looked like
  *    an improvement. A trend now needs 3 recent and 3 older sessions.
- * 2. "This is your 10th conversation!" every turn: acknowledgeMilestone had no
- *    caller. The relationship-stage builder now acknowledges it once surfaced.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,8 +16,6 @@ vi.mock('../persistence.js', async (importOriginal) => ({
 }));
 
 const { initializeRelationship, clearAllRelationshipEngines } = await import('../engine.js');
-const { buildRelationshipStageContext } =
-  await import('../../context-builders/relationship/relationship-stage.js');
 
 async function engineWith(moods: SessionMood[], userId = `u-${Math.random()}`) {
   const engine = await initializeRelationship(userId, 'ferni');
@@ -73,28 +69,5 @@ describe('trend direction needs two full windows', () => {
   ])('$name: $trend', async ({ moods, trend }) => {
     const engine = await engineWith(moods);
     expect(engine.buildRelationshipContext().trajectoryDirection).toBe(trend);
-  });
-});
-
-describe('a session milestone is surfaced once', () => {
-  it('"10th conversation" reaches the prompt on one turn, not every turn', async () => {
-    const userId = 'milestone-user';
-    const { createDefaultMemory, loadRelationshipMemory } = await import('../persistence.js');
-    const memory = createDefaultMemory(userId, 'ferni');
-    memory.totalSessions = 9;
-    vi.mocked(loadRelationshipMemory).mockResolvedValueOnce(memory);
-    const engine = await initializeRelationship(userId, 'ferni');
-    engine.startSession(); // the 10th
-    const input = { services: { userId }, persona: { id: 'ferni' } } as unknown as Parameters<
-      typeof buildRelationshipStageContext
-    >[0];
-
-    const turn1 = await buildRelationshipStageContext(input);
-    const turn2 = await buildRelationshipStageContext(input);
-
-    const said = (injections: Awaited<ReturnType<typeof buildRelationshipStageContext>>) =>
-      injections.some((i) => JSON.stringify(i).includes('10th conversation'));
-    expect(said(turn1)).toBe(true);
-    expect(said(turn2)).toBe(false);
   });
 });
