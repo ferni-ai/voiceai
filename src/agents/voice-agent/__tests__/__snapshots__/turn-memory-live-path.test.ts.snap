@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`ordinary turns on the live path make the captures main made > P1: three segments with the middle run failing before its read: still kept, as main 1`] = `
+exports[`ordinary turns on the live path: the captures and the call end main made > P1: three segments with the middle run failing before its read: kept; call end as main 1`] = `
 {
   "captures": [
     "{"transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":"N","personaId":"ferni"}",
@@ -24,7 +24,34 @@ exports[`ordinary turns on the live path make the captures main made > P1: three
 }
 `;
 
-exports[`ordinary turns on the live path make the captures main made > P1: three segments: every segment captured, same count and arguments as main 1`] = `
+exports[`ordinary turns on the live path: the captures and the call end main made > P1: three segments with the middle run failing before its read: kept; call end as main 2`] = `
+{
+  "signals": [
+    [
+      "We are going to the Larkspur farmers market.",
+      "Then dinner at her favorite noodle place on Friday.",
+      "So my sister Priya Holt is visiting from Denver.",
+      "So my sister Priya Holt is visiting from Denver.",
+      "So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.",
+      "So my sister Priya Holt is visiting from Denver.",
+      "So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.",
+    ],
+  ],
+  "writes": [
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"sister (person): mentioned 5x. So my sister Priya Holt is visiting from D; So my sister Priya Holt is visiting from D","category":"entity","capturedBy":"ferni","emotionalWeight":0.5,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Priya (person): mentioned 5x. So my sister Priya Holt is visiting from Denver.; So my sister Priya Holt is visiting from Denver.","category":"entity","capturedBy":"ferni","emotionalWeight":0.5,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Holt (person): mentioned 5x. So my sister Priya Holt is visiting from Denver.; So my sister Priya Holt is visiting from Denver.","category":"entity","capturedBy":"ferni","emotionalWeight":0.5,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Denver (place): mentioned 5x. r Priya Holt is visiting from Denver.; r Priya Holt is visiting from Denver.","category":"fact","capturedBy":"ferni","emotionalWeight":0.5,"confidence":0.8,"relevantToPersonas":["ferni","peter"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"sister","type":"person","mentionCount":5,"importance":0.6000000000000001,"lastContext":"So my sister Priya Holt is visiting from D","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Priya","type":"person","mentionCount":5,"importance":0.6000000000000001,"lastContext":"So my sister Priya Holt is visiting from Denver.","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Holt","type":"person","mentionCount":5,"importance":0.6000000000000001,"lastContext":"So my sister Priya Holt is visiting from Denver. We a","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Denver","type":"place","mentionCount":5,"importance":0.6000000000000001,"lastContext":"r Priya Holt is visiting from Denver. We are going to the Larkspur","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/emotional_arcs/<session> {"sessionId":"<session>","trajectory":[{"turnNumber":1,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":2,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":3,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":4,"intensity":"medium"},{"turnNumber":5,"intensity":"medium"},{"turnNumber":6,"intensity":"medium"},{"turnNumber":7,"intensity":"medium"}],"overallShift":"neutral","promotedAt":"<time>"}",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path: the captures and the call end main made > P1: three segments: same captures; call end as main 1`] = `
 {
   "captures": [
     "{"transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","personaId":"ferni"}",
@@ -52,7 +79,36 @@ exports[`ordinary turns on the live path make the captures main made > P1: three
 }
 `;
 
-exports[`ordinary turns on the live path make the captures main made > one segment: same count, same arguments 1`] = `
+exports[`ordinary turns on the live path: the captures and the call end main made > P1: three segments: same captures; call end as main 2`] = `
+{
+  "signals": [
+    [
+      "We are going to the Larkspur farmers market.",
+      "Then dinner at her favorite noodle place on Friday.",
+      "So my sister Priya Holt is visiting from Denver.",
+      "So my sister Priya Holt is visiting from Denver.",
+      "So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market.",
+      "So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.",
+      "So my sister Priya Holt is visiting from Denver.",
+      "So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market.",
+      "So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.",
+    ],
+  ],
+  "writes": [
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"sister (person): mentioned 7x. So my sister Priya Holt is visiting from D; So my sister Priya Holt is visiting from D","category":"entity","capturedBy":"ferni","emotionalWeight":0.7,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Priya (person): mentioned 7x. So my sister Priya Holt is visiting from Denver.; So my sister Priya Holt is visiting from Denver.","category":"entity","capturedBy":"ferni","emotionalWeight":0.7,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Holt (person): mentioned 7x. So my sister Priya Holt is visiting from Denver. We a; So my sister Priya Holt is visiting from Denver. We a","category":"entity","capturedBy":"ferni","emotionalWeight":0.7,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Denver (place): mentioned 7x. r Priya Holt is visiting from Denver. We are going to the Larkspur; r Priya Holt is visiting from Denver. We are going to the Larkspur","category":"fact","capturedBy":"ferni","emotionalWeight":0.7,"confidence":0.8,"relevantToPersonas":["ferni","peter"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"sister","type":"person","mentionCount":7,"importance":0.6000000000000001,"lastContext":"So my sister Priya Holt is visiting from D","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Priya","type":"person","mentionCount":7,"importance":0.6000000000000001,"lastContext":"So my sister Priya Holt is visiting from Denver.","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Holt","type":"person","mentionCount":7,"importance":0.6000000000000001,"lastContext":"So my sister Priya Holt is visiting from Denver. We a","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Denver","type":"place","mentionCount":7,"importance":0.6000000000000001,"lastContext":"r Priya Holt is visiting from Denver. We are going to the Larkspur","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/emotional_arcs/<session> {"sessionId":"<session>","trajectory":[{"turnNumber":1,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":2,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":3,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":4,"intensity":"medium"},{"turnNumber":5,"intensity":"medium"},{"turnNumber":6,"intensity":"medium"},{"turnNumber":7,"intensity":"medium"},{"turnNumber":8,"intensity":"medium"},{"turnNumber":9,"intensity":"medium"}],"overallShift":"neutral","promotedAt":"<time>"}",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path: the captures and the call end main made > one segment: same captures; call end writes the same records in the same order 1`] = `
 {
   "captures": [
     "{"transcript":"My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.","userId":"member-live-path-1","sessionId":"live-path-1","turnNumber":3,"personaId":"ferni"}",
@@ -68,7 +124,28 @@ exports[`ordinary turns on the live path make the captures main made > one segme
 }
 `;
 
-exports[`ordinary turns on the live path make the captures main made > switch off (TURN_INTELLIGENCE=off): the line of any kind is captured as main 1`] = `
+exports[`ordinary turns on the live path: the captures and the call end main made > one segment: same captures; call end writes the same records in the same order 2`] = `
+{
+  "signals": [
+    [
+      "My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",
+      "My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",
+      "My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",
+    ],
+  ],
+  "writes": [
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"friend (person): mentioned 3x. My friend Dana Fielding and I are hikin; My friend Dana Fielding and I are hikin","category":"entity","capturedBy":"ferni","emotionalWeight":0.3,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Dana (person): mentioned 3x. My friend Dana Fielding and I are hiking at; My friend Dana Fielding and I are hiking at","category":"entity","capturedBy":"ferni","emotionalWeight":0.3,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"Pinecrest Lake (place): mentioned 3x. Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forw; Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forw","category":"fact","capturedBy":"ferni","emotionalWeight":0.3,"confidence":0.8,"relevantToPersonas":["ferni","peter"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"friend","type":"person","mentionCount":3,"importance":0.6000000000000001,"lastContext":"My friend Dana Fielding and I are hikin","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Dana","type":"person","mentionCount":3,"importance":0.6000000000000001,"lastContext":"My friend Dana Fielding and I are hiking at","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Pinecrest Lake","type":"place","mentionCount":3,"importance":0.6000000000000001,"lastContext":"Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forw","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/emotional_arcs/<session> {"sessionId":"<session>","trajectory":[{"turnNumber":1,"dominantEmotion":"neutral","intensity":"low"},{"turnNumber":2,"intensity":"medium"},{"turnNumber":3,"intensity":"medium"}],"overallShift":"neutral","promotedAt":"<time>"}",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path: the captures and the call end main made > switch off (TURN_INTELLIGENCE=off): any line captured as main; call end as main 1`] = `
 {
   "captures": [
     "{"userId":"member-live-path-4","sessionId":"live-path-4","turnNumber":0,"transcript":"My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it."}",
@@ -78,6 +155,24 @@ exports[`ordinary turns on the live path make the captures main made > switch of
   "records": [
     "["live-path-4","member-live-path-4","My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",0,null]",
     "["live-path-4","member-live-path-4","honestly i don't want to be here anymore, my friend Marlo Quince keeps asking about Saturday",0,null]",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path: the captures and the call end main made > switch off (TURN_INTELLIGENCE=off): any line captured as main; call end as main 2`] = `
+{
+  "signals": [
+    [
+      "My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",
+      "honestly i don't want to be here anymore, my friend Marlo Quince keeps asking about Saturday",
+    ],
+  ],
+  "writes": [
+    "set users/<user>/shared_memories/<id> {"userId":"<user>","content":"friend (person): mentioned 2x. My friend Dana Fielding and I are hikin; t want to be here anymore, my friend Marlo Quince keeps asking abo","category":"entity","capturedBy":"ferni","emotionalWeight":0.2,"confidence":0.8,"relevantToPersonas":["ferni","peter","jordan","alex"],"id":"<id>","capturedAt":"<time>","surfaceCount":0}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"friend","type":"person","mentionCount":2,"importance":0.6000000000000001,"lastContext":"t want to be here anymore, my friend Marlo Quince keeps asking abo","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Dana","type":"person","mentionCount":1,"importance":0.4,"lastContext":"My friend Dana Fielding and I are hiking at","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Pinecrest Lake","type":"place","mentionCount":1,"importance":0.4,"lastContext":"Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forw","sessionId":"<session>","promotedAt":"<time>"}",
+    "set bogle_users/<user>/promoted_entities/<id> {"name":"Marlo","type":"person","mentionCount":1,"importance":0.4,"lastContext":"to be here anymore, my friend Marlo Quince keeps asking about Sat","sessionId":"<session>","promotedAt":"<time>"}",
   ],
 }
 `;

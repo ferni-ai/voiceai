@@ -365,8 +365,46 @@ const heldRecords = () => spy.record.filter((r) => r[7] === true).map((r) => r[3
 
 const heldLog = (): Record<string, unknown>[] => spy.held;
 
-describe('ordinary turns on the live path make the captures main made', () => {
-  it('one segment: same count, same arguments', async () => {
+/** A path segment or value that is an id or a clock reading: the only things normalised. */
+const ID_SEGMENT = /^(auto-\d+|[a-z]+_\d{10,}_[a-z0-9]+|\d{10,})$/;
+const TIME_KEY = /(time|timestamp|date|At|Ms)$/i;
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+
+function normalised(value: unknown, key = ''): unknown {
+  if (Array.isArray(value)) return value.map((v) => normalised(v));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, normalised(v, k)])
+    );
+  }
+  if (typeof value === 'string' && ISO.test(value)) return '<time>';
+  if (typeof value === 'string' && ID_SEGMENT.test(value)) return '<id>';
+  if (typeof value === 'number' && (TIME_KEY.test(key) || value > 1e12)) return '<time>';
+  return value;
+}
+
+/**
+ * The real end of the call (stm-promotion.ts onSessionEnd): every Firestore write it makes, in
+ * order, as `<op> <path> <body>` with ids and clock readings normalised, and the lines each
+ * human signals read was handed.
+ */
+async function callEnd(call: { sessionId: string; userId: string }) {
+  const from = rec.payloads.length;
+  const signalsFrom = spy.signalsIn.length;
+  await onSessionEnd(call.sessionId, call.userId);
+  const ids = (s: string) =>
+    s.split(call.userId).join('<user>').split(call.sessionId).join('<session>');
+  const writes = rec.payloads.slice(from).map((payload) => {
+    const [op, path, ...body] = ids(payload).split(' ');
+    const segments = path.split('/').map((s) => (ID_SEGMENT.test(s) ? '<id>' : s));
+    const json = body.join(' ');
+    return `${op} ${segments.join('/')} ${JSON.stringify(normalised(json ? JSON.parse(json) : null))}`;
+  });
+  return { writes, signals: spy.signalsIn.slice(signalsFrom) };
+}
+
+describe('ordinary turns on the live path: the captures and the call end main made', () => {
+  it('one segment: same captures; call end writes the same records in the same order', async () => {
     const call = liveSession();
     call.say(ORDINARY);
     call.agentThinks();
@@ -377,14 +415,15 @@ describe('ordinary turns on the live path make the captures main made', () => {
     expect(heldRecords()).toEqual([]);
     // No reply reads the short-term memory's entities, on main or here (condition 4).
     expect(spy.stmContext).toBe(0);
-    await onSessionEnd(call.sessionId, call.userId);
-    // Positive control for the end-of-call probe: the ordinary line's names are promoted.
+    // Call end: every write, in order, and human signals' input, as on main.
+    expect(await callEnd(call)).toMatchSnapshot();
+    // Positive control for the store probe the KNOWN GAP row uses: the ordinary names are promoted.
     expect(carrying(['Dana']).written.length).toBeGreaterThan(0);
     expect(spy.signalsIn).toEqual([[ORDINARY, ORDINARY, ORDINARY]]);
     await call.detach();
   }, 60_000);
 
-  it('P1: three segments: every segment captured, same count and arguments as main', async () => {
+  it('P1: three segments: same captures; call end as main', async () => {
     const call = liveSession();
     call.say('So my sister Priya Holt is visiting from Denver.');
     call.say('We are going to the Larkspur farmers market.');
@@ -393,11 +432,12 @@ describe('ordinary turns on the live path make the captures main made', () => {
     await quiet(3);
     expect(made(true)).toMatchSnapshot();
     expect(heldRecords()).toEqual([]);
+    expect(await callEnd(call)).toMatchSnapshot();
     await call.detach();
     cleanupSession(call.sessionId);
   }, 60_000);
 
-  it('P1: three segments with the middle run failing before its read: still kept, as main', async () => {
+  it('P1: three segments with the middle run failing before its read: kept; call end as main', async () => {
     const call = liveSession({ failRuns: [2] });
     call.say('So my sister Priya Holt is visiting from Denver.');
     call.say('We are going to the Larkspur farmers market.');
@@ -406,11 +446,12 @@ describe('ordinary turns on the live path make the captures main made', () => {
     await quiet(3);
     expect(made(true)).toMatchSnapshot();
     expect(heldRecords()).toEqual([]);
+    expect(await callEnd(call)).toMatchSnapshot();
     await call.detach();
     cleanupSession(call.sessionId);
   }, 60_000);
 
-  it('switch off (TURN_INTELLIGENCE=off): the line of any kind is captured as main', async () => {
+  it('switch off (TURN_INTELLIGENCE=off): any line captured as main; call end as main', async () => {
     const call = liveSession({ env: { TURN_INTELLIGENCE: 'off' } });
     call.say(ORDINARY);
     call.say(CRISIS);
@@ -420,6 +461,7 @@ describe('ordinary turns on the live path make the captures main made', () => {
     });
     expect(made()).toMatchSnapshot();
     expect(heldRecords()).toEqual([]);
+    expect(await callEnd(call)).toMatchSnapshot();
     await call.detach();
     cleanupSession(call.sessionId);
   }, 60_000);
@@ -525,12 +567,21 @@ describe('KNOWN GAP (closed by the follow-up PRs): the two early capture sites',
     // Their two records are promotable and extracted; only the turn handler's is session only.
     const turns = getRecentTurns(call.sessionId).filter((t) => marlo(t.transcript));
     expect(turns.map((t) => Boolean(t.sessionOnly)).sort()).toEqual([false, false, true]);
-    await onSessionEnd(call.sessionId, call.userId);
-    // Call end: human signals is handed the two unmarked copies, and the line's names are promoted.
-    expect(spy.signalsIn).toEqual([[CRISIS, CRISIS]]);
-    const stores = carrying(['Marlo']).written.map((p) => p.split(' ')[1]);
-    expect(stores.some((s) => s.includes('/promoted_entities/'))).toBe(true);
-    expect(stores.some((s) => s.includes('/shared_memories/'))).toBe(true);
+    // Call end, every write in order: the line's two names reach shared memories and promoted
+    // entities from the two unmarked copies, and human signals is handed both copies.
+    const end = await callEnd(call);
+    expect(end.signals).toEqual([[CRISIS, CRISIS]]);
+    const what = end.writes.map((w) => {
+      const [op, path, ...json] = w.split(' ');
+      const body = JSON.parse(json.join(' ')) as Record<string, unknown>;
+      return [op, path, body.name ?? String(body.content).split('.')[0], body.mentionCount];
+    });
+    expect(what).toEqual([
+      ['set', 'users/<user>/shared_memories/<id>', 'friend (person): mentioned 2x', undefined],
+      ['set', 'users/<user>/shared_memories/<id>', 'Marlo (person): mentioned 2x', undefined],
+      ['set', 'bogle_users/<user>/promoted_entities/<id>', 'friend', 2],
+      ['set', 'bogle_users/<user>/promoted_entities/<id>', 'Marlo', 2],
+    ]);
     await call.detach();
     cleanupSession(call.sessionId);
   }, 90_000);
