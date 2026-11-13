@@ -132,8 +132,8 @@ describe('the SDK logger on a prod process', () => {
 
   it('covers a logger captured before the redaction was installed (agent_activity keeps log())', () => {
     const g = globalThis as Record<symbol, unknown>;
-    delete g[Symbol.for('ferni:sdk-pii-key-redaction')]; // as in a process where nothing is
-    delete g[Symbol.for('@livekit/agents:logger')]; //       installed yet (earlier tests did)
+    delete g[Symbol.for('ferni:sdk-logger-slot')]; // as in a process where nothing is
+    delete g[Symbol.for('@livekit/agents:logger')]; // installed yet (earlier tests did)
     initializeLogger({ pretty: false, level: 'info' });
     const kept = log();
     initializeSdkLogger(PROD); // installs on the slot's current logger, then re-inits
@@ -185,7 +185,7 @@ describe('what a pii value is logged as', () => {
       'lk.pii.e': '[5 chars]',
       'lk.pii.f': '[4 chars]',
       'lk.pii.g': null,
-      'lk.pii.h': '[unserializable]',
+      'lk.pii.h': '[redacted]',
     });
   });
 
@@ -212,5 +212,147 @@ describe('what a pii value is logged as', () => {
     const r = logOne({ wrap: inner });
     expect(written.join('')).not.toContain(SAID.slice(0, 8));
     expect(r.wrap).toEqual({ 'lk.pii.x': `[${SAID.length} chars]`, self: '[Circular]' });
+  });
+
+  it('replaces a value of any type under a matching key, never printing it', () => {
+    class Note {
+      constructor(readonly text: string) {}
+    }
+    const circular: Record<string, unknown> = { text: SAID };
+    circular.self = circular;
+    const badMessage = new Error('x');
+    Object.defineProperty(badMessage, 'message', {
+      get() {
+        throw new Error('no message');
+      },
+    });
+    const r = logOne({
+      'lk.pii.instance': new Note(SAID),
+      'lk.pii.map': new Map([['k', SAID]]),
+      'lk.pii.set': new Set([SAID]),
+      'lk.pii.buffer': Buffer.from(REPLY),
+      'lk.pii.fn': () => SAID,
+      'lk.pii.symbol': Symbol(DEEP),
+      'lk.pii.bigint': 12n,
+      'lk.pii.arguments': circular,
+      'lk.pii.output': {
+        toJSON: () => {
+          throw new Error(FUTURE);
+        },
+      },
+      'lk.pii.error': badMessage,
+    });
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(r['lk.pii.instance']).toBe(`[${JSON.stringify(new Note(SAID)).length} chars]`);
+    expect(r['lk.pii.map']).toBe('[2 chars]'); // JSON of a Map is {}
+    expect(r['lk.pii.set']).toBe('[2 chars]');
+    expect(r['lk.pii.bigint']).toBe('[2 chars]');
+    for (const key of ['lk.pii.buffer', 'lk.pii.fn', 'lk.pii.symbol']) {
+      expect(r[key]).toMatch(/^\[\d+ chars\]$/);
+    }
+    expect(r['lk.pii.arguments']).toBe('[redacted]'); // circular: cannot be measured
+    expect(r['lk.pii.output']).toBe('[redacted]'); // toJSON throws
+    expect(r['lk.pii.error']).toBe('[redacted]'); // its message getter throws
+  });
+
+  it('an Error under lk.pii.error: neither its message nor its stack reaches the sink', () => {
+    const err = new Error(SAID);
+    err.stack = `Error: ${SAID}\n    at ${DEEP} (file.ts:1:1)`;
+    const r = logOne({ 'lk.pii.error': err });
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(r['lk.pii.error']).toBe(`[${SAID.length} chars]`);
+  });
+
+  it('a pii key arriving through the logger mixin is a length too', () => {
+    initializeSdkLogger(PROD);
+    const logger = log();
+    // the SDK sets a mixin only when LIVEKIT_REGION_NAME is set at import: put one in its place
+    const mixin = Object.getOwnPropertySymbols(logger).find((x) => x.description === 'pino.mixin');
+    if (!mixin) throw new Error('pino has no mixin symbol: the test cannot inject one');
+    const before: unknown = Reflect.get(logger, mixin);
+    Reflect.set(logger, mixin, () => ({ 'lk.pii.mixed_in': BOUND, region: 'test-region' }));
+    try {
+      written = [];
+      logger.info({ speech_id: 'sp_3' }, 'with mixin');
+    } finally {
+      Reflect.set(logger, mixin, before);
+    }
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(records()[0]).toMatchObject({
+      'lk.pii.mixed_in': `[${BOUND.length} chars]`,
+      region: 'test-region',
+      speech_id: 'sp_3',
+    });
+  });
+});
+
+describe('when redacting a record throws', () => {
+  it('walks it again reading nothing under a matching key, and logs that, never the original', () => {
+    let reads = 0;
+    const obj = {
+      'lk.pii.x': SAID,
+      get note(): unknown {
+        reads++;
+        if (reads === 1) throw new Error('first read fails');
+        return { 'lk.pii.y': DEEP, kept: 'yes' };
+      },
+    };
+    const r = logOne(obj);
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(r).toMatchObject({
+      msg: 'one record',
+      'lk.pii.x': '[redacted]',
+      note: { 'lk.pii.y': '[redacted]', kept: 'yes' },
+    });
+  });
+
+  it('a value that keeps throwing is marked unreadable; the rest of the record still logs', () => {
+    const r = logOne({
+      'lk.pii.x': SAID,
+      speech_id: 'sp_4',
+      get boom(): unknown {
+        throw new Error('always');
+      },
+    });
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(r).toMatchObject({ 'lk.pii.x': '[redacted]', speech_id: 'sp_4', boom: '[unreadable]' });
+  });
+
+  it('when even that cannot complete: a minimal record with a fixed marker', () => {
+    let enumerations = 0;
+    const target = { 'lk.pii.x': SAID, note: REPLY };
+    const obj = new Proxy(target, {
+      ownKeys(t) {
+        enumerations++;
+        if (enumerations <= 2) throw new Error('keys unavailable');
+        return Reflect.ownKeys(t); // a later reader (pino, after the formatter) would succeed
+      },
+    });
+    const r = logOne(obj);
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(r).toMatchObject({ level: 30, msg: 'one record', redaction: 'failed' });
+    expect(Object.keys(r).sort()).toEqual(['hostname', 'level', 'msg', 'pid', 'redaction', 'time']);
+  });
+
+  it('when the formatter it wraps throws (the phone one, say): the minimal record too', () => {
+    const g = globalThis as Record<symbol, unknown>;
+    delete g[Symbol.for('ferni:sdk-logger-slot')];
+    delete g[Symbol.for('@livekit/agents:logger')];
+    initializeLogger({ pretty: false, level: 'info' });
+    const kept = log();
+    const key = Object.getOwnPropertySymbols(kept).find((s) => s.description === 'pino.formatters');
+    if (!key) throw new Error('pino has no formatters symbol: the test cannot inject one');
+    const formatters: unknown = Reflect.get(kept, key);
+    Reflect.set(kept, key, {
+      ...(formatters as object),
+      log: () => {
+        throw new Error('inner formatter failed');
+      },
+    });
+    initializeSdkLogger(PROD); // wraps the kept logger around the throwing formatter
+    written = [];
+    kept.info({ 'lk.pii.x': SAID, note: REPLY }, 'one record');
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(records()[0]).toMatchObject({ level: 30, msg: 'one record', redaction: 'failed' });
   });
 });
