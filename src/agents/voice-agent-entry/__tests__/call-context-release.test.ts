@@ -243,7 +243,10 @@ describe('voice entry exit paths', () => {
     ['crash', range(crashStart, crashEnd)],
   ] as const;
 
-  /** The order of the call report, session close and call end on one exit path, read from index.ts. */
+  /**
+   * The order of the call report, session close, call end and after-call tasks
+   * (handleSessionCleanup starts them) on one exit path, read from index.ts.
+   */
   function stepsOf(lines: readonly number[], withUntimed = false): string[] {
     return lines.flatMap((n) => {
       const line = entry[n];
@@ -251,6 +254,7 @@ describe('voice entry exit paths', () => {
       if (/callEnd\??\.end\(/.test(line)) return ['end'];
       if (/callEnd\??\.report\(/.test(line)) return ['report'];
       if (/await closeAgentSession\(|= await runUntilCallEnds\(/.test(line)) return ['close'];
+      if (/handleSessionCleanup\(\{/.test(line)) return ['after-call'];
       // The crash path's steps with no timeout of their own.
       if (withUntimed && /analyzeFailure\(|await runSessionCleanup\(|cleanupHandlers\)/.test(line))
         return ['untimed'];
@@ -259,9 +263,9 @@ describe('voice entry exit paths', () => {
   }
 
   it.each(paths.slice(0, 2))(
-    '%s: the call ends once, after the agent session is closed',
+    '%s: the call ends once, after the agent session is closed and before the after-call tasks',
     (_path, lines) => {
-      expect(stepsOf(lines)).toEqual(['close', 'end']);
+      expect(stepsOf(lines)).toEqual(['close', 'end', 'after-call']);
     }
   );
 
@@ -278,9 +282,14 @@ describe('voice entry exit paths', () => {
   });
 
   it.each(paths)(
-    '%s: a turn before the session closes still sees the third party on the line',
+    '%s: a turn before the session closes, and every after-call task, sees the third party',
     async (path, lines) => {
       const { outboundPartiesFor } = await import('../../shared/outbound-opener.js');
+      const afterCall = await import('../../../services/session/after-call-tasks.js');
+      const seen: Array<boolean | undefined> = [];
+      afterCall.registerAfterCallTask('probe', async (ctx) => {
+        seen.push(ctx.thirdPartyOnLine);
+      });
       const sessionId = key(`s-path-${path}`);
       const room = key(`room-path-${path}`);
       const call = (await startCall(onBehalfCall(), sessionId, room, false)).end();
@@ -293,7 +302,16 @@ describe('voice entry exit paths', () => {
         // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
         if (step === 'report') await call.report();
         if (step === 'close') closed = true;
+        // What handleSessionCleanup's endSession hands the after-call tasks.
+        if (step === 'after-call')
+          afterCall.runAfterCall('sponsor-ada', sessionId, [], undefined, {
+            getDurationSeconds: () => 60,
+          });
       }
+      await afterCall.drainAfterCallTasks(2_000);
+      afterCall.clearAfterCallTasks();
+      // The crash path starts no after-call task; the others hand each one the call's end.
+      expect(seen).toEqual(path === 'crash' ? [] : [true]);
       expect(contextsUnder(sessionId)).toEqual([]);
       expect(contextsUnder(room)).toEqual([]);
     }
