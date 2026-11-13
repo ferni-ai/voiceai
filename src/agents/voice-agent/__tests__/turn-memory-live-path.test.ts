@@ -413,7 +413,9 @@ describe('ordinary turns on the live path make the captures main made', () => {
     call.say(ORDINARY);
     call.say(CRISIS);
     await vi.waitFor(() => expect(spy.record.length).toBe(2), { timeout: 30_000, interval: 100 });
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => {
+      setTimeout(r, 1000);
+    });
     expect(made()).toMatchSnapshot();
     expect(heldRecords()).toEqual([]);
     await call.detach();
