@@ -12,8 +12,10 @@
  * records them all as before.
  *
  * Only the stores are stubbed (the unified moment bridge, shared moments, Our Songs, relational
- * memory, collective learning, the music player, the semantic intelligence entry point). All lines
- * fictional.
+ * memory, collective learning, the music player, the semantic intelligence entry point, the
+ * corrections store), and the real model client refuses, so every read goes through the turn's
+ * injected model call. The last block pins a known gap: no classifier answer on a line the
+ * patterns miss records as on main. All lines fictional.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,6 +42,27 @@ const state = vi.hoisted(() => ({
   result: undefined as unknown,
   writes: [] as string[],
   semanticReads: [] as unknown[],
+  turnCount: 3,
+  /** Classifier asks through the turn's injected model call, and through a real model client. */
+  asked: 0,
+  realClient: 0,
+}));
+
+// No row may reach a real model: every read in this file goes through the injected `generate`
+vi.mock('../../../config/gemini-config.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  getGeminiClient: async () => {
+    state.realClient++;
+    throw new Error('no real model client in this test');
+  },
+}));
+
+// The correction and preference recorders' store (turn-learning.ts)
+vi.mock('../../../services/superhuman/user-corrections.js', () => ({
+  userCorrections: {
+    autoRecord: async () => void state.writes.push('correction'),
+    recordImplicitPreference: async () => void state.writes.push('preference'),
+  },
 }));
 
 // Both semantic intelligence entry points (turn-handler.ts direct and processTurnLearning) land here
@@ -98,11 +121,16 @@ vi.mock('../../processors/index.js', async (orig) => ({
   processTurn: vi.fn(async (ctx: { userText: string }) => {
     const turnCrisis = startTurnCrisis(
       ctx.userText,
-      { recentTranscripts: [ctx.userText], turnCount: 3 },
+      { recentTranscripts: [ctx.userText], turnCount: state.turnCount },
       {
         sessionId: `no-happy-memory-${++state.n}`,
         env: state.env,
-        generate: async () => (state.read === 'blocked' ? BLOCKED_REPLY : state.read),
+        generate: () => {
+          state.asked++;
+          if (state.read === NEVER) return new Promise<string>(() => {}); // past its deadline
+          if (state.read === FAILS) return Promise.reject(new Error('classifier unavailable'));
+          return Promise.resolve(state.read === 'blocked' ? BLOCKED_REPLY : state.read);
+        },
       }
     );
     const emotion = { primary: state.emotion, intensity: 0.9 };
@@ -131,6 +159,10 @@ const LIVE = {
 };
 const NO_RISK = '{"risk":"none","subject":"self"}';
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
+const CRISIS = '{"risk":"crisis","subject":"self"}';
+/** The classifier's model call never answers, or fails: either way the classifier gives no verdict. */
+const NEVER = 'never';
+const FAILS = 'fails';
 
 /** Words that make every happy write fire: a laugh, a breakthrough, a win, thanks. */
 const HAPPY = 'lol i finally get it now, i passed every exam, thank you for listening, ';
@@ -170,8 +202,24 @@ const levelOf = (c: Crisis): Level =>
   c.shouldOverrideLLM ? 'replace' : c.isCrisis ? 'guide' : c.softCheck ? 'soft' : 'pass';
 
 /** One turn through the real handler: its crisis level, its safety output and every store write. */
-async function runTurn(userText: string, env: Record<string, string>, read = '', emotion = 'sad') {
-  Object.assign(state, { env, read, emotion, result: undefined, writes: [], semanticReads: [] });
+async function runTurn(
+  userText: string,
+  env: Record<string, string>,
+  read = '',
+  emotion = 'sad',
+  turnCount = 3
+) {
+  Object.assign(state, {
+    env,
+    read,
+    emotion,
+    turnCount,
+    result: undefined,
+    writes: [],
+    semanticReads: [],
+    asked: 0,
+    realClient: 0,
+  });
   resetFireAndForgetMetrics();
   const sent: string[] = [];
   await handleUserTurn({
@@ -180,7 +228,7 @@ async function runTurn(userText: string, env: Record<string, string>, read = '',
     contextOnly: true,
     persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
     services: { sessionId: 'no-happy-memory', userId: 'user-no-happy-memory' },
-    userData: { turnCount: 3 }, // a multiple of 3: the shared-moment and Our Songs branch runs
+    userData: { turnCount }, // a multiple of 3: the shared-moment and Our Songs branch runs
     sendDataMessage: async (type: string) => void sent.push(type),
   } as unknown as Ctx);
   await vi.waitFor(() => {
@@ -205,6 +253,8 @@ async function runTurn(userText: string, env: Record<string, string>, read = '',
     sent,
     writes: state.writes,
     semanticReads: state.semanticReads,
+    asked: state.asked,
+    realClient: state.realClient,
   };
 }
 
@@ -342,5 +392,49 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
     const turn = await runTurn(LONG + 'and today was a good day', LIVE, NO_RISK, 'joy');
     expect(turn.level).toBe('pass');
     expect(turn.writes).toContain('moment:deep_conversation');
+  });
+});
+
+/**
+ * KNOWN GAP, pinned here so the crisis read fix flips it on purpose. When the classifier gives no
+ * verdict (its model call never answers within its deadline, or fails) and the patterns miss the
+ * line, the settled read carries no "no answer" marker (crisis-classifier.ts classifyCrisis
+ * resolves null; crisis-classifier-verdict.ts applyClassifierVerdict returns the patterns
+ * unchanged), so the turn reads as ordinary and every recorder here records, exactly as on main.
+ * The expectation below is what main's own source records on this turn. The fix belongs to the
+ * crisis read, in its own PR.
+ */
+describe('known gap: the classifier gives no answer on a line the patterns miss', () => {
+  /** A laugh, thanks, a correction, a preference and a line the patterns do not flag. */
+  const GAP =
+    "lol thank you for listening, actually it's the blue mug, i always drink my tea in the " +
+    'morning, honestly nothing feels worth it lately';
+  /** What main's source records on this turn, run with this file (sorted). */
+  const AS_ON_MAIN = [
+    'correction',
+    'milestone:expressed-gratitude',
+    'moment:crisis_support',
+    'moment:laughter',
+    'preference',
+    'shared-moment',
+  ];
+
+  it.each([NEVER, FAILS])(
+    'model call %s: the turn reads as ordinary and records as on main',
+    async (read) => {
+      const turn = await runTurn(GAP, LIVE, read, 'sad', 6);
+      expect(turn.asked).toBeGreaterThan(0);
+      expect(turn.realClient).toBe(0);
+      expect(turn.level).toBe('pass');
+      expect([...turn.writes].sort()).toEqual(AS_ON_MAIN);
+      expect(turn.semanticReads).toHaveLength(2);
+    }
+  );
+
+  it('the same line with a crisis verdict is a crisis turn and records nothing', async () => {
+    const turn = await runTurn(GAP, LIVE, CRISIS, 'sad', 6);
+    expect(turn.realClient).toBe(0);
+    expect(turn.level).not.toBe('pass');
+    expect(turn.writes).toEqual([]);
   });
 });
