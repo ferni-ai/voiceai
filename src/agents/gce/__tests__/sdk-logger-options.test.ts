@@ -1,17 +1,26 @@
+import { loggerOptions } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
-import { sdkLoggerOptions } from '../sdk-logger-options.js';
+import { initializeSdkLogger } from '../sdk-logger-options.js';
 
-describe('sdkLoggerOptions', () => {
+/** The options the SDK logger was started with, as the SDK itself records them. */
+function startedWith(env: Record<string, string>): unknown {
+  initializeSdkLogger(env);
+  return loggerOptions();
+}
+
+describe('initializeSdkLogger', () => {
   it('writes JSON records when deployed', () => {
-    expect(sdkLoggerOptions({ NODE_ENV: 'production' })).toEqual({ pretty: false, level: 'info' });
+    expect(startedWith({ NODE_ENV: 'production' })).toEqual({ pretty: false, level: 'info' });
   });
 
   it('pretty-prints for local development', () => {
-    expect(sdkLoggerOptions({ NODE_ENV: 'development' }).pretty).toBe(true);
-    expect(sdkLoggerOptions({}).pretty).toBe(true);
+    expect(startedWith({ NODE_ENV: 'development' })).toMatchObject({ pretty: true });
+    expect(startedWith({})).toMatchObject({ pretty: true });
   });
 
   it('takes the level from LOG_LEVEL', () => {
-    expect(sdkLoggerOptions({ NODE_ENV: 'production', LOG_LEVEL: 'debug' }).level).toBe('debug');
+    expect(startedWith({ NODE_ENV: 'production', LOG_LEVEL: 'debug' })).toMatchObject({
+      level: 'debug',
+    });
   });
 });

@@ -171,8 +171,6 @@ log('✅ Call quality monitor started');
 log('Phase 2: Loading modules');
 const moduleLoadStart = Date.now();
 
-import { initializeLogger } from '@livekit/agents';
-
 // Import extracted GCE modules
 import {
   warmupResources,
@@ -204,7 +202,7 @@ import { drainTimeoutMs } from './gce/drain.js';
 import { drainMemoryWork } from './gce/drain-memory-work.js';
 import { exitAfterFlush, holdEventLoop } from './gce/exit-worker.js';
 import { startWorkerRecycle } from './gce/worker-recycle.js';
-import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
+import { initializeSdkLogger } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
 
@@ -213,7 +211,7 @@ log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
 // Initialize LiveKit SDK logger: JSON lines when deployed, pretty locally.
 // LOG_LEVEL=debug for verbose turn monitoring and startup logging.
-initializeLogger(sdkLoggerOptions());
+initializeSdkLogger();
 
 // Initialize LiveKit connection module
 initLiveKitConnection(
