@@ -74,6 +74,8 @@ export interface TurnMemory {
   personaId?: string;
   /** Voice-derived emotion (from prosody), distinct from keyword-based emotions */
   voiceEmotion?: VoiceEmotionSnapshot;
+  /** A crisis turn (turn-memory-capture.ts): this call only, never promoted. */
+  sessionOnly?: true;
 }
 
 export interface EntityFrequency {
@@ -151,6 +153,7 @@ export function getSTMBuffer(sessionId: string, userId: string): SessionSTM {
  * Record a turn in STM (never for an on-behalf call's pseudo-user: third-party-call.ts)
  * @param voiceEmotion - Optional voice-derived emotion from prosody analysis.
  *                       Distinct from keyword-based emotionSignals in captureResult.
+ * @param sessionOnly - A crisis turn: kept for this call, never promoted (promotableTurns).
  */
 export function recordTurn(
   sessionId: string,
@@ -159,7 +162,8 @@ export function recordTurn(
   transcript: string,
   turnNumber: number,
   personaId?: string,
-  voiceEmotion?: VoiceEmotionSnapshot
+  voiceEmotion?: VoiceEmotionSnapshot,
+  sessionOnly = false
 ): void {
   if (isThirdPartyCallUser(userId)) return; // the person on an on-behalf call is not our user
   log.info(
@@ -185,6 +189,7 @@ export function recordTurn(
     topics: captureResult.topicHints,
     personaId,
     ...(voiceEmotion && { voiceEmotion }),
+    ...(sessionOnly && { sessionOnly: true as const }),
   };
 
   // Add turn (FIFO eviction if full)
@@ -328,26 +333,21 @@ export function isTopicContinuing(sessionId: string, topic: string): boolean {
   return buffer.topicHistory.includes(topic);
 }
 
-/**
- * Get emotional trajectory across recent turns (text/keyword-based)
- */
-export function getEmotionalTrajectory(sessionId: string): EmotionSignal[][] {
-  const buffer = sessionBuffers.get(sessionId);
-  if (!buffer) return [];
-
-  return buffer.turns.map((t) => t.emotions);
+/** The turns that may outlive the call: every turn but a crisis turn (sessionOnly). */
+export function promotableTurns(sessionId: string): TurnMemory[] {
+  return (sessionBuffers.get(sessionId)?.turns ?? []).filter((t) => !t.sessionOnly);
 }
 
-/**
- * Get voice-derived emotion trajectory across recent turns
- */
+/** Emotional trajectory across the promotable turns (text/keyword-based) */
+export function getEmotionalTrajectory(sessionId: string): EmotionSignal[][] {
+  return promotableTurns(sessionId).map((t) => t.emotions);
+}
+
+/** Voice-derived emotion trajectory across the promotable turns */
 export function getVoiceEmotionTrajectory(
   sessionId: string
 ): Array<VoiceEmotionSnapshot & { turnNumber: number }> {
-  const buffer = sessionBuffers.get(sessionId);
-  if (!buffer) return [];
-
-  return buffer.turns
+  return promotableTurns(sessionId)
     .filter((t): t is TurnMemory & { voiceEmotion: VoiceEmotionSnapshot } => !!t.voiceEmotion)
     .map((t) => ({ ...t.voiceEmotion!, turnNumber: t.turnNumber }));
 }

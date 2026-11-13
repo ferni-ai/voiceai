@@ -25,6 +25,7 @@ import {
   getRecentTopics,
   getSTMBuffer,
   getVoiceEmotionTrajectory,
+  promotableTurns,
   type EntityFrequency,
   type TurnMemory,
   type VoiceEmotionSnapshot,
@@ -529,23 +530,20 @@ async function doPromoteSessionToFirestore(
 }
 
 /**
- * Extract and persist human signals while STM buffer still has turns.
- * MUST run before cleanupSession — otherwise getSTMBuffer returns empty.
+ * Extract and persist human signals from the promotable turns (never a crisis turn's words),
+ * while the STM buffer still has them: MUST run before cleanupSession.
  */
 async function extractAndPersistHumanSignals(sessionId: string, userId: string): Promise<void> {
   try {
-    const buffer = getSTMBuffer(sessionId, userId);
-    if (!buffer || buffer.turns.length === 0) {
-      return;
-    }
-
-    const turns = buffer.turns.map((turn) => ({
+    const kept = promotableTurns(sessionId);
+    if (kept.length === 0) return;
+    const turns = kept.map((turn) => ({
       role: 'user' as const,
       content: turn.transcript || '',
       timestamp: new Date(turn.timestamp),
     }));
 
-    const personaId = buffer.turns[0]?.personaId || 'ferni';
+    const personaId = kept[0]?.personaId || 'ferni';
     const signals = extractHumanSignals(turns, {
       userId,
       personaId,

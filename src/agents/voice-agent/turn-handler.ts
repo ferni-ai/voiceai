@@ -142,7 +142,10 @@ import {
 } from '../integrations/unified-intelligence-integration.js';
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
-import { fastCapture } from '../../memory/dynamic/index.js';
+import {
+  captureTurnMemory,
+  voiceEmotionSnapshot,
+} from '../../memory/dynamic/turn-memory-capture.js';
 
 // Session Health Monitor - Function calling reliability (Jan 2026)
 import {
@@ -2635,43 +2638,22 @@ IMPORTANT:
           transcriptLen: userText.length,
         });
 
+        // A crisis turn stays in this call's short-term memory only (turn-memory-capture.ts).
+        const verdict = Promise.resolve(crisisTurn ? ('crisis' as const) : ('keep' as const));
         fireAndForget(async () => {
-          const captureResult = await fastCapture({
-            userId: captureUserId,
-            sessionId: services.sessionId,
-            turnNumber,
-            transcript: userText,
-            voiceEmotion: result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
-            personaId: persona.id, // For multi-persona data attribution
+          const captureResult = await captureTurnMemory('turn-handler', verdict, {
+            input: {
+              userId: captureUserId,
+              sessionId: services.sessionId,
+              turnNumber,
+              transcript: userText,
+              voiceEmotion: result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
+              personaId: persona.id, // For multi-persona data attribution
+            },
+            personaId: persona.id,
+            voiceEmotion: voiceEmotionSnapshot(voiceEmotionForCapture),
           });
-
-          // Map voice emotion to STM-compatible shape (for emotional trajectory)
-          const voiceEmotionSnapshot =
-            voiceEmotionForCapture &&
-            typeof voiceEmotionForCapture.primary === 'string'
-              ? {
-                  primary: voiceEmotionForCapture.primary,
-                  confidence: voiceEmotionForCapture.confidence ?? 0.5,
-                  stressLevel: voiceEmotionForCapture.stressLevel ?? 0.3,
-                  valence: voiceEmotionForCapture.valence ?? 0,
-                  arousal: voiceEmotionForCapture.arousal ?? 0.5,
-                }
-              : undefined;
-
-          // 🧠 CRITICAL: Record to STM buffer for session context
-          // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
-          const { recordTurn } = await import('../../memory/dynamic/index.js');
-          recordTurn(
-            services.sessionId,
-            captureUserId,
-            captureResult,
-            userText,
-            turnNumber,
-            persona.id,
-            voiceEmotionSnapshot
-          );
-
-          // voice-session-store removed during DDD cleanup
+          if (!captureResult) return;
 
           // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
           diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {
