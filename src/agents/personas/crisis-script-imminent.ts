@@ -74,7 +74,8 @@ function scriptAsks(
   if (decision.action !== 'replace' || scriptReadMode(env) === 'off') return false;
   if (detection.subject === 'third_party' || detection.language === 'es') return false;
   const { severity, subject, language } = detection;
-  return detection.suggestedResponse === getCrisisResponse(severity, subject, language, false);
+  // The same env the patterns' script was written with (detectCrisis passes the gate's env).
+  return detection.suggestedResponse === getCrisisResponse(severity, subject, language, false, env);
 }
 
 /**

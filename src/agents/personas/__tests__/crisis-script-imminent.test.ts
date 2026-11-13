@@ -341,8 +341,8 @@ describe('shadow', () => {
 
 describe('with CRISIS_SELF_HARM_911_LINE on (#3748)', () => {
   it('still asks the classifier on the severe self-harm script, and goes 911-first', async () => {
-    // Both sides of scriptAsks (the pattern's script and getCrisisResponse) read the flag from the
-    // same env today; if one side ever reads another env, this row goes red instead of #19 going quiet.
+    // Both sides of scriptAsks (the pattern's script and getCrisisResponse) see the flag on here;
+    // the next row sets it in one env only.
     vi.stubEnv('CRISIS_SELF_HARM_911_LINE', 'on');
     const generate = vi.fn(answer(IMMINENT, 300));
     const heard = await turn(SUPPLY_NOW, { ...ON, CRISIS_SELF_HARM_911_LINE: 'on' }, generate);
@@ -351,9 +351,27 @@ describe('with CRISIS_SELF_HARM_911_LINE on (#3748)', () => {
     expect(count911(heard.text)).toBe(1);
   });
 
-  it('a late read with both flags on says 911 once and keeps 988, with or without #3748', async () => {
-    // The script is what the patterns give under the flag: #3748's line in the rest once it
-    // merges (the late line is skipped), the plain script before (the late line is added).
+  it('asks when only the gate env sets the line, and when only process.env does', async () => {
+    // detectCrisis writes the script from the gate's env, so scriptAsks must compare in that env.
+    const gateOnly = vi.fn(answer(IMMINENT, 300));
+    const heardGateOnly = await turn(
+      SUPPLY_NOW,
+      { ...ON, CRISIS_SELF_HARM_911_LINE: 'on' },
+      gateOnly
+    );
+    expect(gateOnly).toHaveBeenCalled();
+    expect(heardGateOnly.text).toBe(SWAPPED);
+    resetCrisisClassifierCache();
+    vi.stubEnv('CRISIS_SELF_HARM_911_LINE', 'on');
+    const processOnly = vi.fn(answer(IMMINENT, 300));
+    const heard = await turn(SUPPLY_NOW, { ...ON, CRISIS_SELF_HARM_911_LINE: 'off' }, processOnly);
+    expect(processOnly).toHaveBeenCalled();
+    expect(heard.text).toBe(SWAPPED);
+  });
+
+  it('a late read with both flags on says 911 once and keeps 988', async () => {
+    // The script is what the patterns give under the flag: #3748's line is in the rest, so the
+    // late line is skipped and 911 is said once.
     vi.stubEnv('CRISIS_SELF_HARM_911_LINE', 'on');
     const env = { ...ON, ...SLOW, CRISIS_SELF_HARM_911_LINE: 'on' };
     const heard = await turn(SUPPLY_NOW, env, answer(IMMINENT, HOLD_MS + 500));
