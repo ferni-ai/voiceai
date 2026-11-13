@@ -14,7 +14,17 @@
  * and X6/X7 (text vs music acks out of order; one "Starting" per started game).
  */
 import { initializeLogger } from '@livekit/agents';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
@@ -36,6 +46,23 @@ vi.mock('../../../../src/speech/coordination/session-integration.js', async (imp
 vi.mock('../../../../src/speech/direction/index.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   sayInOwnWords: vi.fn(),
+}));
+// Starting a music game looks up its songs; here every lookup finds a stand-in track,
+// so no test waits on the network. The src/services/itunes.ts re-export reads this too.
+vi.mock('../../../../src/services/external-apis/itunes.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  findTrack: async (query: string) => ({
+    found: true,
+    track: {
+      name: query,
+      artist: 'Stand-in Artist',
+      album: 'Stand-in Album',
+      previewUrl: 'https://example.invalid/preview.m4a',
+      duration: 30_000,
+      genre: 'Pop',
+      artwork: '',
+    },
+  }),
 }));
 // Animations run to completion at once, so the board's visible state is readable.
 vi.mock('../../src/utils/gsap-setup.js', () => ({
@@ -180,7 +207,12 @@ beforeAll(() => {
   vi.stubEnv('DIRECTED_SPEECH', 'off');
 });
 afterAll(() => vi.unstubAllEnvs());
+/** No contract test may reach the network: an unmocked call fails at once and is counted. */
+let fetches: MockInstance<typeof fetch>;
 beforeEach(() => {
+  fetches = vi
+    .spyOn(globalThis, 'fetch')
+    .mockRejectedValue(new Error('no network in contract tests'));
   // Real time still runs (the picker's close timer, waitFor); the 10 s wait is skipped
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
   board.initGameBoard();
@@ -189,6 +221,7 @@ beforeEach(() => {
   mocks.toast.error.mockClear();
 });
 afterEach(() => {
+  const fetched = fetches.mock.calls.length;
   acks.forgetGameStarts();
   vi.runOnlyPendingTimers(); // the picker's close, so the next test can open it
   board.destroyGameBoard();
@@ -196,6 +229,7 @@ afterEach(() => {
   cleanups.splice(0).forEach((cleanup) => cleanup());
   vi.restoreAllMocks();
   vi.useRealTimers();
+  expect(fetched, 'fetch calls made by this test').toBe(0);
 });
 
 const T = 30_000;
@@ -411,6 +445,8 @@ describe('an older tap that never reached the agent, replaced by one it answered
       expect(xs()).toBe(1);
       expect(successes()).toEqual(['Starting This or That...']);
       expect(mocks.toast.error).not.toHaveBeenCalled();
+      // Starting This or That looks up its songs; all of them came from the stand-in.
+      expect(fetches).not.toHaveBeenCalled();
     },
     T
   );
