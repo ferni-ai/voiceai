@@ -698,5 +698,3 @@ export function formatInnerWorldForPrompt(
 export function shouldInject(injection: InnerWorldInjection): boolean {
   return Math.random() < injection.probability;
 }
-
-export default findInnerWorldInjections;

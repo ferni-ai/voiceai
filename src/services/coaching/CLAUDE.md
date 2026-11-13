@@ -17,7 +17,6 @@ Coaching services power Ferni's ability to help users grow:
 ```
 coaching/
 ├── index.ts                       # Main exports
-├── persistence.ts                 # Coaching data persistence
 │
 ├── # Goal & Progress
 ├── goal-tracking.ts               # Track user goals
@@ -25,7 +24,6 @@ coaching/
 ├── journey-tracking.ts            # Long-term progress
 ├── progress-metrics.ts            # Progress measurement
 ├── obstacle-detection.ts          # Detect obstacles to goals
-├── reengagement.ts                # Re-engage lapsed users
 │
 ├── # Cognitive Support
 ├── cognitive-reframes.ts          # Reframe negative thinking

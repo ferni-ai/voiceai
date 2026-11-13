@@ -771,7 +771,7 @@ export function shouldSkipDueToNeverWhen(
 /**
  * Build a context object from ContextBuilderInput
  */
-export function buildTriggerContext(
+function buildTriggerContext(
   userText: string,
   analysis:
     | { emotion?: { primary?: string; intensity?: number }; topics?: { primary?: string | null } }

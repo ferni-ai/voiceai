@@ -17,7 +17,6 @@ const OWNER = 'uid-inbound-owner';
 const store = new InMemoryStore();
 const h = vi.hoisted(() => ({ credentialReads: [] as string[] }));
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store }));
-vi.mock('../../../services/identity/identity-linking.js', () => ({ autoLinkOnAuth: vi.fn(async () => undefined) })); // prettier-ignore
 vi.mock('../../../services/superhuman/commitment-prefetch.js', () => ({ prefetchUserCommitments: vi.fn(async () => {}) })); // prettier-ignore
 vi.mock('../../../services/trust-and-identity/voice-agent-integration.js', () => ({ onSessionStart: vi.fn(async () => ({})) })); // prettier-ignore
 vi.mock('../../../services/voice/voice-speaker-change.js', () => ({ getSpeakerChangeDetector: () => ({ on: vi.fn(), start: vi.fn() }) })); // prettier-ignore

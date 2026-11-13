@@ -272,3 +272,47 @@ describe('speech beats, flag on', () => {
     expect(frames).toHaveLength(0);
   });
 });
+
+describe('speech beats while the crisis face is held (fe 2026-11-11: no head beats)', () => {
+  beforeEach(() => localStorage.setItem(FLAG, 'true'));
+
+  it('control, no hold: three stressed syllables draw head frames', async () => {
+    await start();
+    turn('ferni');
+    for (let i = 0; i < 3; i++) stressedSyllable();
+    expect(headWrites().filter((t) => px(t) !== 0).length).toBeGreaterThan(0);
+  });
+
+  it('held: 0 head frames and 0 eye lifts, phrase ends still marked', async () => {
+    const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+    await start();
+    crisis.holdCrisisFace();
+    const phraseEnds: Event[] = [];
+    window.addEventListener('ferni:avatar-phrase-end', (e) => phraseEnds.push(e));
+    turn('ferni');
+    for (let i = 0; i < 3; i++) stressedSyllable();
+    play(0, 1500);
+    expect(headWrites().filter((t) => px(t) !== 0 || deg(t) !== 0)).toHaveLength(0);
+    expect(eyeWrites().filter((t) => px(t) !== 0)).toHaveLength(0);
+    expect(phraseEnds.length).toBeGreaterThan(0);
+  });
+
+  it('a hold that starts mid-beat puts the head back at rest on the next frame', async () => {
+    const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+    await start();
+    turn('ferni');
+    play(0.1, 200);
+    play(0.8, 48);
+    expect(px(headWrites().at(-1) ?? '')).toBeGreaterThan(0);
+    crisis.holdCrisisFace();
+    play(0.8, 16);
+    expect(px(headWrites().at(-1) ?? '')).toBe(0);
+    const writes = headWrites().length;
+    for (let i = 0; i < 3; i++) stressedSyllable();
+    expect(
+      headWrites()
+        .slice(writes)
+        .filter((t) => px(t) !== 0)
+    ).toHaveLength(0);
+  });
+});

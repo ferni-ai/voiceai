@@ -194,40 +194,17 @@ describe('Hybrid Retrieval Ranking', () => {
     vi.clearAllMocks();
   });
 
-  it('should retrieve continuity bundle with metadata', async () => {
-    vi.mocked(getMemoryThreadsByUser).mockResolvedValue([
-      {
-        threadId: 'thread-1',
-        userId: 'user-test',
-        theme: 'career',
-        rollingSummary: 'Career discussions',
-        confidence: 0.8,
-        sessionCount: 5,
-        lastUpdated: new Date(),
-        firstMentioned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-    ]);
-
-    vi.mocked(getMemoryAnchorsByUser).mockResolvedValue([
-      {
-        anchorId: 'anchor-1',
-        userId: 'user-test',
-        anchorType: 'breakthrough',
-        payload: { summary: 'Major insight' },
-        significanceScore: 0.9,
-        recallCount: 2,
-        createdAt: new Date(),
-      },
-    ]);
+  it('should retrieve continuity bundle from the capsule', async () => {
+    mockFirestoreDoc.get.mockResolvedValue({ exists: true, data: () => createTestCapsule() });
 
     const bundle = await retrieveContinuityBundle('user-test', {
       currentContext: 'Let me tell you about my career',
+      includeSemanticSearch: false,
     });
 
-    expect(bundle.metadata.spannerAvailable).toBe(true);
-    expect(bundle.activeThreads.length).toBeGreaterThanOrEqual(0);
-    expect(bundle.topAnchors.length).toBeGreaterThanOrEqual(0);
+    expect(bundle.metadata.capsuleFound).toBe(true);
+    expect(bundle.activeThreads.map((t) => t.theme)).toEqual(['career', 'relationships']);
+    expect(bundle.topAnchors.map((a) => a.summary)).toEqual(['Realized fear of failure']);
   });
 
   it('should format bundle for LLM context', () => {
@@ -256,7 +233,6 @@ describe('Hybrid Retrieval Ranking', () => {
       lastEmotionalState: 'hopeful',
       semanticMatches: [],
       metadata: {
-        spannerAvailable: true,
         capsuleFound: true,
         retrievalTimeMs: 50,
         threadCount: 1,
@@ -282,7 +258,6 @@ describe('Hybrid Retrieval Ranking', () => {
       pendingTopics: [],
       semanticMatches: [],
       metadata: {
-        spannerAvailable: false,
         capsuleFound: false,
         retrievalTimeMs: 10,
         threadCount: 0,
@@ -296,39 +271,6 @@ describe('Hybrid Retrieval Ranking', () => {
     expect(formatted).toBe('');
   });
 
-  it('should rank threads by recency and relevance', async () => {
-    vi.mocked(getMemoryThreadsByUser).mockResolvedValue([
-      {
-        threadId: 'old-thread',
-        userId: 'user-test',
-        theme: 'old topic',
-        confidence: 0.9,
-        sessionCount: 10,
-        lastUpdated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-        firstMentioned: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-      {
-        threadId: 'recent-thread',
-        userId: 'user-test',
-        theme: 'career growth',
-        confidence: 0.7,
-        sessionCount: 3,
-        lastUpdated: new Date(), // Today
-        firstMentioned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-    ]);
-
-    const bundle = await retrieveContinuityBundle('user-test', {
-      currentContext: 'career',
-    });
-
-    // Recent thread should rank higher due to freshness + relevance
-    if (bundle.activeThreads.length >= 2) {
-      expect(bundle.activeThreads[0].theme).toBe('career growth');
-    }
-  });
 });
 
 // ============================================================================

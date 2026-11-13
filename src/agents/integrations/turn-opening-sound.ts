@@ -30,7 +30,7 @@
  * @module agents/integrations/turn-opening-sound
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import {
   noteOpeningSound,
   slowSoundBlocksEarly,
@@ -210,7 +210,7 @@ export function attachTurnOpeningSound(
     const wireMs = clips.wireDelayMs?.() ?? 0;
     early.holdReply(clipMs + wireMs);
     log.info(
-      { text, afterCommitMs: Date.now() - thinkingAt, clipMs, wireMs },
+      { text: replyForLog(text), afterCommitMs: Date.now() - thinkingAt, clipMs, wireMs },
       'TURN_OPENING_EARLY'
     );
   };
@@ -240,7 +240,7 @@ export function attachTurnOpeningSound(
         heavy: heavy(),
       });
       playedLastTurn = text !== null && clips.playClip(text);
-      if (playedLastTurn) log.info({ text }, 'turn opening clip played');
+      if (playedLastTurn) log.info({ text: replyForLog(text) }, 'turn opening clip played');
     }, early?.waitMs ?? TURN_OPENING.waitMs);
   };
   session.on('agent_state_changed', onState);

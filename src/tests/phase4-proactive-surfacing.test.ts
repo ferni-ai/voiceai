@@ -81,18 +81,6 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
   });
 
   describe('ProactiveMemorySurfacingService', () => {
-    it('should export proactive surfacing functions', async () => {
-      const {
-        getProactiveMemorySurfacing,
-        resetProactiveMemorySurfacing,
-        buildProactiveMemoryContext,
-      } = await import('../services/proactive-memory-surfacing.js');
-
-      expect(getProactiveMemorySurfacing).toBeDefined();
-      expect(resetProactiveMemorySurfacing).toBeDefined();
-      expect(buildProactiveMemoryContext).toBeDefined();
-    });
-
     it('should not surface on early turns', async () => {
       const { getProactiveMemorySurfacing, resetProactiveMemorySurfacing } =
         await import('../services/proactive-memory-surfacing.js');
@@ -210,50 +198,6 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
           reaction: 'engaged',
         })
       ).resolves.toBeUndefined();
-    });
-  });
-
-  describe('Better Than Human Memory Context Builder', () => {
-    it('should export context builder', async () => {
-      const { betterThanHumanMemoryBuilder, buildBetterThanHumanMemoryContext } =
-        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
-
-      expect(betterThanHumanMemoryBuilder).toBeDefined();
-      expect(betterThanHumanMemoryBuilder.name).toBe('better_than_human_memory');
-      expect(buildBetterThanHumanMemoryContext).toBeDefined();
-    });
-
-    it('should return empty array when no userId', async () => {
-      const { buildBetterThanHumanMemoryContext } =
-        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
-
-      const result = await buildBetterThanHumanMemoryContext({
-        userText: 'Hello',
-        services: {}, // No userId
-        userData: { turnCount: 0 },
-        userProfile: null,
-        persona: { id: 'ferni' },
-        analysis: { emotion: {}, topics: {} },
-      } as unknown as Parameters<typeof buildBetterThanHumanMemoryContext>[0]);
-
-      expect(result).toEqual([]);
-    });
-
-    it('should build session priming on turn 0', async () => {
-      const { buildBetterThanHumanMemoryContext } =
-        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
-
-      const result = await buildBetterThanHumanMemoryContext({
-        userText: 'Hello',
-        services: { userId: 'test-user', sessionId: 'session_123' },
-        userData: { turnCount: 0 },
-        userProfile: { name: 'Test', totalConversations: 5 },
-        persona: { id: 'ferni' },
-        analysis: { emotion: { primary: 'neutral' }, topics: { detected: [] } },
-      } as unknown as Parameters<typeof buildBetterThanHumanMemoryContext>[0]);
-
-      // May return empty if no memories found (mocked)
-      expect(Array.isArray(result)).toBe(true);
     });
   });
 

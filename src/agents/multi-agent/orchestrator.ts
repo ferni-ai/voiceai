@@ -20,7 +20,7 @@
 import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { wireDeferredHandlers, wireHandoffAgent } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -275,7 +275,7 @@ export class AgentOrchestrator {
         agent.userData.greetingText = greeting;
         agent.userData.greetingInjected = false;
         log.info(
-          { personaId: agent.personaId, greetingPreview: greeting.slice(0, 50) },
+          { personaId: agent.personaId, greetingPreview: replyForLog(greeting) },
           '📝 Greeting stored for LLM awareness'
         );
       }
@@ -283,7 +283,7 @@ export class AgentOrchestrator {
       // Speak via agent.say wrapper (uses coordinated speech / Cartesia TTS).
       // With OVERLAP_GREETING_WITH_PREWARM (default), this runs while Gemini
       // prewarm continues in the factory background — first audio ≠ prewarm done.
-      diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
+      diag.entry(`🎭 ${agent.personaId} greeting: ${replyForLog(greeting)}`);
       try {
         const { markCallStage } = await import('../../services/analytics/call-quality-monitor.js');
         markCallStage(this.sessionId, 'greeting_say');
@@ -749,13 +749,13 @@ export class AgentOrchestrator {
         from: agent.personaId,
         to: targetPersonaId,
         hasGoodbye: !!goodbye,
-        goodbyePreview: textToSpeak?.slice(0, 60),
+        goodbyePreview: replyForLog(textToSpeak),
       },
       '🎭 [GOODBYE] Preparing goodbye speech...'
     );
 
     const duration = this.estimateSpeechDuration(textToSpeak);
-    diag.entry(`🎭 ${agent.personaId} goodbye: "${textToSpeak.slice(0, 50)}..."`);
+    diag.entry(`🎭 ${agent.personaId} goodbye: ${replyForLog(textToSpeak)}`);
     log.info(
       { personaId: agent.personaId, estimatedDurationMs: duration },
       '🎭 [GOODBYE] Speaking...'
@@ -819,13 +819,13 @@ export class AgentOrchestrator {
         to: agent.personaId,
         from: previousPersonaId,
         hasGreeting: !!greeting,
-        greetingPreview: textToSpeak?.slice(0, 60),
+        greetingPreview: replyForLog(textToSpeak),
       },
       '🎭 [GREETING] Preparing greeting speech...'
     );
 
     const duration = this.estimateSpeechDuration(textToSpeak);
-    diag.entry(`🎭 ${agent.personaId} greeting: "${textToSpeak.slice(0, 50)}..."`);
+    diag.entry(`🎭 ${agent.personaId} greeting: ${replyForLog(textToSpeak)}`);
     log.info(
       { personaId: agent.personaId, estimatedDurationMs: duration },
       '🎭 [GREETING] Speaking...'

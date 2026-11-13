@@ -55,86 +55,12 @@ import {
   resetLifeChapterAwareness,
 } from '../intelligence/deep-understanding/life-chapter.js';
 
-// Context builder
-import {
-  buildConversationContext,
-  type ContextBuilderInput,
-} from '../intelligence/context-builders/index.js';
-
 // ============================================================================
 // TEST FIXTURES
 // ============================================================================
 
 const TEST_USER_ID = 'test-user-deep-understanding';
 const TEST_SESSION_ID = 'test-session-123';
-
-function createTestInput(userText: string, turnCount: number): ContextBuilderInput {
-  return {
-    userText,
-    analysis: {
-      emotion: {
-        primary: 'neutral',
-        intensity: 0.5,
-        distressLevel: 0,
-        valence: 'neutral',
-        confidence: 0.8,
-      },
-      intent: {
-        primary: 'share',
-        confidence: 0.7,
-      },
-      topics: {
-        detected: ['work', 'stress'],
-        primary: 'work',
-      },
-      state: {
-        phase: 'exploration',
-      },
-    },
-    services: {
-      sessionId: TEST_SESSION_ID,
-      userId: TEST_USER_ID,
-      sessionStartTime: Date.now(),
-      userProfile: {
-        id: TEST_USER_ID,
-        name: 'TestUser',
-        email: 'test@test.com',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        totalConversations: 10,
-        relationshipStage: 'building-trust',
-        version: 1,
-      },
-    },
-    userData: {
-      turnCount,
-      userName: 'TestUser',
-    },
-    userProfile: {
-      id: TEST_USER_ID,
-      name: 'TestUser',
-      email: 'test@test.com',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      totalConversations: 10,
-      relationshipStage: 'building-trust',
-      version: 1,
-    },
-    persona: {
-      id: 'ferni',
-      identity: {
-        id: 'ferni',
-        name: 'Ferni',
-        role: 'Life Coach',
-        personality: 'warm, curious, grounded',
-      },
-      voice: {
-        provider: 'elevenlabs',
-        voiceId: 'test-voice',
-      },
-    },
-  };
-}
 
 // ============================================================================
 // SETUP / TEARDOWN
@@ -517,72 +443,6 @@ describe('Life Chapter Awareness', () => {
     expect(analysis).toBeDefined();
     expect(analysis.chapter).toBeDefined();
     expect(analysis.chapter.transition).toBeDefined();
-  });
-});
-
-// ============================================================================
-// CONTEXT BUILDER INTEGRATION TEST
-// ============================================================================
-
-describe('Deep Understanding Context Builder Integration', () => {
-  it('should load and execute deep_understanding builder', async () => {
-    const input = createTestInput(
-      "I've been feeling overwhelmed lately, especially with work and my relationship with Sarah",
-      5
-    );
-
-    // Override emotion for test
-    input.analysis.emotion.primary = 'anxious';
-    input.analysis.emotion.intensity = 0.7;
-    input.analysis.emotion.distressLevel = 0.4;
-
-    const injections = await buildConversationContext(input);
-
-    // Should have some injections from deep understanding
-    const deepInjections = injections.filter(
-      (i) =>
-        i.source?.includes('deep_') ||
-        i.id?.includes('deep_') ||
-        i.category === 'awareness' ||
-        i.category === 'safety' ||
-        i.category === 'insight'
-    );
-
-    // Log for debugging
-    console.log('Total injections:', injections.length);
-    console.log(
-      'Deep understanding injections:',
-      deepInjections.map((i) => ({ id: i.id, source: i.source, priority: i.priority }))
-    );
-
-    // The builder should produce SOME output for this scenario
-    // (Even if none match deep_*, other builders will produce output)
-    expect(injections.length).toBeGreaterThan(0);
-  });
-
-  it('should detect repair needs when previous response was off', async () => {
-    // Simulate first turn with AI giving advice
-    const { recordResponse } =
-      await import('../intelligence/context-builders/intelligence/deep-understanding.js');
-    recordResponse(TEST_SESSION_ID, 'You should definitely stand up to your boss about this.');
-
-    // Second turn - user pushes back
-    const input = createTestInput(
-      "That's not really what I was looking for... I just wanted to vent.",
-      2
-    );
-    input.analysis.emotion.primary = 'frustrated';
-    input.analysis.emotion.intensity = 0.6;
-
-    const injections = await buildConversationContext(input);
-
-    // Check if repair injection was added
-    const repairInjection = injections.find(
-      (i) => i.id?.includes('repair') || i.content?.toLowerCase().includes('repair')
-    );
-
-    // May or may not trigger depending on detection threshold
-    console.log('Repair injection:', repairInjection);
   });
 });
 

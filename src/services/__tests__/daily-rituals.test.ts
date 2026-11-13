@@ -46,7 +46,6 @@ import {
   type RitualStreak,
   type UserRitualProfile,
   PERSONA_RITUALS,
-  RITUAL_PROMPTS,
   DailyRitualsService,
   getDailyRitualsService,
   resetDailyRitualsService,
@@ -192,62 +191,6 @@ describe('DailyRituals', () => {
 
     it('should have 6 persona rituals', () => {
       expect(Object.keys(PERSONA_RITUALS)).toHaveLength(6);
-    });
-  });
-
-  describe('RITUAL_PROMPTS', () => {
-    describe('Ferni sky check prompts', () => {
-      it('should have openings', () => {
-        const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-        expect(prompts.openings.length).toBeGreaterThan(0);
-      });
-
-      it('should have weather responses for all types', () => {
-        const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-        const weatherTypes = [
-          'sunny',
-          'partly-cloudy',
-          'cloudy',
-          'rainy',
-          'stormy',
-          'foggy',
-          'rainbow',
-        ] as const;
-
-        weatherTypes.forEach((weather) => {
-          expect(prompts.weatherResponses[weather]).toBeDefined();
-          expect(prompts.weatherResponses[weather].length).toBeGreaterThan(0);
-        });
-      });
-
-      it('should have streak celebrations', () => {
-        const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-        expect(prompts.streakCelebrations[3]).toBeDefined();
-        expect(prompts.streakCelebrations[7]).toBeDefined();
-        expect(prompts.streakCelebrations[30]).toBeDefined();
-        expect(prompts.streakCelebrations[66]).toBeDefined();
-        expect(prompts.streakCelebrations[100]).toBeDefined();
-      });
-    });
-
-    describe('Maya habit heartbeat prompts', () => {
-      it('should have cat commentary', () => {
-        const prompts = RITUAL_PROMPTS['maya-habit-heartbeat'];
-        expect(prompts.catCommentary.compound.length).toBeGreaterThan(0);
-        expect(prompts.catCommentary.interest.length).toBeGreaterThan(0);
-      });
-    });
-
-    describe('Nayan morning stillness prompts', () => {
-      it('should have wisdom drops', () => {
-        const prompts = RITUAL_PROMPTS['nayan-morning-stillness'];
-        expect(prompts.wisdomDrops.length).toBeGreaterThan(0);
-      });
-
-      it('should have at least 10 wisdom drops', () => {
-        const prompts = RITUAL_PROMPTS['nayan-morning-stillness'];
-        expect(prompts.wisdomDrops.length).toBeGreaterThanOrEqual(10);
-      });
     });
   });
 
@@ -518,35 +461,6 @@ describe('DailyRituals', () => {
       const service2 = getDailyRitualsService();
 
       expect(service1).not.toBe(service2);
-    });
-  });
-
-  describe('Streak milestone celebrations', () => {
-    const milestones = [3, 7, 14, 21, 30, 66, 100] as const;
-
-    it.each([...milestones])('should have celebration for %d day streak', (days) => {
-      const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-      // Not all milestones exist for all rituals, but ferni has most
-      const milestone = days as keyof typeof prompts.streakCelebrations;
-      if (prompts.streakCelebrations[milestone]) {
-        expect(prompts.streakCelebrations[milestone].length).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  describe('Ritual content quality', () => {
-    it('should have SSML pauses in Ferni openings', () => {
-      const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-      prompts.openings.forEach((opening) => {
-        expect(opening).toContain('<break');
-      });
-    });
-
-    it('should have SSML pauses in Nayan wisdom', () => {
-      const prompts = RITUAL_PROMPTS['nayan-morning-stillness'];
-      prompts.wisdomDrops.forEach((wisdom) => {
-        expect(wisdom).toContain('<break');
-      });
     });
   });
 });
