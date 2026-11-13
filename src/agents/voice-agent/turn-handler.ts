@@ -2608,18 +2608,16 @@ IMPORTANT:
       fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
 
       // NEW: Unified intelligence turn learning (cross-domain correlation & pattern detection)
-      if (services.userId) {
-        processTurnLearning({
-          userId: services.userId,
-          sessionId: services.sessionId,
-          turnNumber,
-          transcript: userText,
-          emotion: result.emotional.primary,
-          topics: result.analysis.analysis.topics?.detected || [],
-          reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
-          crisisTurn,
-        });
-      }
+      processTurnLearning({
+        userId: services.userId,
+        sessionId: services.sessionId,
+        turnNumber,
+        transcript: userText,
+        emotion: result.emotional.primary,
+        topics: result.analysis.analysis.topics?.detected || [],
+        reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
+        crisisTurn,
+      });
 
       // ================================================================
       // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling

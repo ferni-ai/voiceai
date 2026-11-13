@@ -101,6 +101,7 @@ import {
 import { detectEnergyLevel, detectOvercommitment } from '../capacity-guardian.js';
 import { detectConflict, loadUserValues, type UserValue } from '../values-alignment.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
+import type { TurnSemanticData } from './turn-semantic-data.js';
 
 // NOTE: Additional superhuman services are called with dynamic imports
 // to avoid coupling issues with varying API signatures. Each service
@@ -112,53 +113,7 @@ const log = createLogger({ module: 'SemanticIntelligenceIntegration' });
 // TYPES
 // ============================================================================
 
-/**
- * Data extracted from a user turn for semantic intelligence
- */
-export interface TurnSemanticData {
-  userId: string;
-  sessionId: string;
-  personaId: string;
-  turnNumber: number;
-
-  /**
-   * The turn's crisis read replaced, guided or soft-checked the reply (crisisReadTurn,
-   * agents/voice-agent/crisis-turn-memory.ts). Only `false` feeds the systems below; true or a
-   * missing value skips the whole turn.
-   */
-  crisisTurn: boolean;
-
-  // Text data
-  userText: string;
-  topic?: string;
-  topics?: string[];
-
-  // Emotional data
-  textEmotion?: string;
-  textEmotionIntensity?: number;
-  voiceEmotion?: string;
-  voiceEmotionConfidence?: number;
-  voiceEmotionIntensity?: number;
-
-  // Voice prosody
-  speechRate?: number;
-  pitch?: number;
-  energy?: number;
-  breathiness?: number;
-
-  // Temporal context
-  timestamp: Date;
-  dayOfWeek: number;
-  hourOfDay: number;
-
-  // Relationship/conversation context
-  turnsSinceStart: number;
-  sessionCount?: number;
-  relationshipStage?: string;
-
-  // Person mentions (enhanced V3.1)
-  mentionedPerson?: string;
-}
+export type { TurnSemanticData } from './turn-semantic-data.js';
 
 /**
  * Context when agent gives advice (for counterfactual tracking)
