@@ -25,11 +25,14 @@ const createMockLogger = () => {
   return logger;
 };
 
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => createMockLogger(),
-  createLogger: () => createMockLogger(),
-  replyForLog: (text: unknown) => String(text ?? ''),
-}));
+vi.mock('../../../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('../../../tests/helpers/real-reply-for-log.js');
+  return {
+    getLogger: () => createMockLogger(),
+    createLogger: () => createMockLogger(),
+    ...(await realReplyForLog()),
+  };
+});
 
 vi.mock('../../../services/diagnostic-logger.js', () => ({
   diag: { entry: vi.fn() },
