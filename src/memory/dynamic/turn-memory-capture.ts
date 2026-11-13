@@ -16,7 +16,7 @@ export type TurnMemoryVerdict = 'keep' | 'crisis';
 const log = createLogger({ module: 'TurnMemoryCapture' });
 
 /** Whether the words may go to long-term memory; a hold is logged with its site and reason. */
-export async function memoryKept(
+async function memoryKept(
   site: string,
   sessionId: string,
   verdict: Promise<TurnMemoryVerdict>

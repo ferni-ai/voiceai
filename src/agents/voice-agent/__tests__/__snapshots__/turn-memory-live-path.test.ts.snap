@@ -1,0 +1,83 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ordinary turns on the live path make the captures main made > P1: three segments with the middle run failing before its read: still kept, as main 1`] = `
+{
+  "captures": [
+    "{"transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":"N","personaId":"ferni"}",
+    "{"transcript":"So my sister Priya Holt is visiting from Denver.","userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":"N","personaId":"ferni"}",
+    "{"userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":"N","transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","personaId":"ferni"}",
+    "{"userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":"N","transcript":"So my sister Priya Holt is visiting from Denver.","personaId":"ferni"}",
+    "{"userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":0,"transcript":"So my sister Priya Holt is visiting from Denver."}",
+    "{"userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":0,"transcript":"Then dinner at her favorite noodle place on Friday."}",
+    "{"userId":"member-live-path-3","sessionId":"live-path-3","turnNumber":0,"transcript":"We are going to the Larkspur farmers market."}",
+  ],
+  "jobs": 5,
+  "records": [
+    "["live-path-3","member-live-path-3","So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","N","ferni"]",
+    "["live-path-3","member-live-path-3","So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","N",null]",
+    "["live-path-3","member-live-path-3","So my sister Priya Holt is visiting from Denver.","N","ferni"]",
+    "["live-path-3","member-live-path-3","So my sister Priya Holt is visiting from Denver.","N",null]",
+    "["live-path-3","member-live-path-3","So my sister Priya Holt is visiting from Denver.",0,null]",
+    "["live-path-3","member-live-path-3","Then dinner at her favorite noodle place on Friday.",0,null]",
+    "["live-path-3","member-live-path-3","We are going to the Larkspur farmers market.",0,null]",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path make the captures main made > P1: three segments: every segment captured, same count and arguments as main 1`] = `
+{
+  "captures": [
+    "{"transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","personaId":"ferni"}",
+    "{"transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market.","userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","personaId":"ferni"}",
+    "{"transcript":"So my sister Priya Holt is visiting from Denver.","userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","personaId":"ferni"}",
+    "{"userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","personaId":"ferni"}",
+    "{"userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","transcript":"So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market.","personaId":"ferni"}",
+    "{"userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":"N","transcript":"So my sister Priya Holt is visiting from Denver.","personaId":"ferni"}",
+    "{"userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":0,"transcript":"So my sister Priya Holt is visiting from Denver."}",
+    "{"userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":0,"transcript":"Then dinner at her favorite noodle place on Friday."}",
+    "{"userId":"member-live-path-2","sessionId":"live-path-2","turnNumber":0,"transcript":"We are going to the Larkspur farmers market."}",
+  ],
+  "jobs": 7,
+  "records": [
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","N","ferni"]",
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market. Then dinner at her favorite noodle place on Friday.","N",null]",
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market.","N","ferni"]",
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver. We are going to the Larkspur farmers market.","N",null]",
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver.","N","ferni"]",
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver.","N",null]",
+    "["live-path-2","member-live-path-2","So my sister Priya Holt is visiting from Denver.",0,null]",
+    "["live-path-2","member-live-path-2","Then dinner at her favorite noodle place on Friday.",0,null]",
+    "["live-path-2","member-live-path-2","We are going to the Larkspur farmers market.",0,null]",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path make the captures main made > one segment: same count, same arguments 1`] = `
+{
+  "captures": [
+    "{"transcript":"My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.","userId":"member-live-path-1","sessionId":"live-path-1","turnNumber":3,"personaId":"ferni"}",
+    "{"userId":"member-live-path-1","sessionId":"live-path-1","turnNumber":0,"transcript":"My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it."}",
+    "{"userId":"member-live-path-1","sessionId":"live-path-1","turnNumber":3,"transcript":"My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.","personaId":"ferni"}",
+  ],
+  "jobs": 3,
+  "records": [
+    "["live-path-1","member-live-path-1","My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",0,null]",
+    "["live-path-1","member-live-path-1","My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",3,"ferni"]",
+    "["live-path-1","member-live-path-1","My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",3,null]",
+  ],
+}
+`;
+
+exports[`ordinary turns on the live path make the captures main made > switch off (TURN_INTELLIGENCE=off): the line of any kind is captured as main 1`] = `
+{
+  "captures": [
+    "{"userId":"member-live-path-4","sessionId":"live-path-4","turnNumber":0,"transcript":"My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it."}",
+    "{"userId":"member-live-path-4","sessionId":"live-path-4","turnNumber":0,"transcript":"honestly i don't want to be here anymore, my friend Marlo Quince keeps asking about Saturday"}",
+  ],
+  "jobs": 2,
+  "records": [
+    "["live-path-4","member-live-path-4","My friend Dana Fielding and I are hiking at Pinecrest Lake on Saturday, I'm looking forward to it.",0,null]",
+    "["live-path-4","member-live-path-4","honestly i don't want to be here anymore, my friend Marlo Quince keeps asking about Saturday",0,null]",
+  ],
+}
+`;

@@ -478,7 +478,9 @@ describe('a crisis turn at the turn handler capture site is session only', () =>
     const promotable = turns.filter((t) => !t.sessionOnly);
     // Precondition: the turn handler's two records of the crisis turn (one per run) are session
     // only and carry the voice; no other record carries one.
-    expect(turns.filter((t) => t.sessionOnly).map((t) => t.transcript)).toEqual([CRISIS, CRISIS]);
+    const held = turns.filter((t) => t.sessionOnly).map((t) => t.transcript);
+    expect(held).toHaveLength(2); // a run's text is the turn so far: the line, then line + "yeah"
+    expect(held.every((t) => t.startsWith(CRISIS))).toBe(true);
     expect(turns.filter((t) => t.sessionOnly && t.voiceEmotion)).toHaveLength(2);
     expect(promotable.filter((t) => t.voiceEmotion)).toHaveLength(0);
     await onSessionEnd(call.sessionId, call.userId);
