@@ -4,8 +4,9 @@
  * the copy keeps the signals and time exactly and carries no expireAt, not even one an older
  * record was written with, and the account's 14-day crisis quiet still holds, because the quiet
  * check reads the copied doc.
- * Movers: linkIdentity and autoLinkOnAuth copy a non-member's doc; migrateUserData (step 7) only
- * ever moves a stored device profile, which a try-first visitor never has (profile-save-guard).
+ * Movers: linkIdentity and linkVerifiedAnonymousIdentity copy a non-member's doc; migrateUserData
+ * (step 7) only ever moves a stored device profile, which a try-first visitor never has
+ * (profile-save-guard).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,7 +17,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => db }
 const store = vi.hoisted(() => ({ current: null as unknown }));
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store.current }));
 
-const { linkIdentity, autoLinkOnAuth } = await import('../identity-linking.js');
+const { linkIdentity, linkVerifiedAnonymousIdentity } = await import('../identity-linking.js');
 const { migrateUserData } = await import('../../user-migration.js');
 const { CRISIS_QUIET_DAYS, hadCrisisWithin } =
   await import('../../human-transfer/crisis-signals.js');
@@ -24,6 +25,8 @@ const { pathFirestore } =
   await import('../../outreach/proactive-channels/__tests__/path-firestore.js');
 
 const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz12';
+/** A Firebase anonymous account's uid: its doc id carries no prefix. */
+const ANON_UID = 'ZyXwVuTsRqPoNmLkJiHgFeDcBa34';
 const DAY = 86_400_000;
 const CALLED = new Date('2026-11-02T17:00:00Z');
 const SIGNALS = { suicidalIdeation: true, selfHarmIndicators: false, severity: 9 };
@@ -70,10 +73,11 @@ describe('a linked crisis record is kept permanently', () => {
   it.each([
     ['a record', RECORD],
     ['an older record written with an expireAt', OLDER_RECORD],
-  ])('autoLinkOnAuth from a try-first device id: %s', async (_name, record) => {
-    seedCrisis('device:demo_1730000000_ab12', record);
-    await autoLinkOnAuth('demo_1730000000_ab12', UID);
-    await expectKeptPermanently('device:demo_1730000000_ab12');
+  ])('linkVerifiedAnonymousIdentity from an anonymous account: %s', async (_name, record) => {
+    seedCrisis(ANON_UID, record);
+    const anonToken = { uid: ANON_UID, signInProvider: 'anonymous' };
+    expect((await linkVerifiedAnonymousIdentity(anonToken, UID)).success).toBe(true);
+    await expectKeptPermanently(ANON_UID);
   });
 
   it('migrateUserData never reaches step 7 for a try-first device: it has no profile to move', async () => {
@@ -81,7 +85,7 @@ describe('a linked crisis record is kept permanently', () => {
     expect(
       await migrateUserData({ deviceId: 'device:demo_1730000000_cd34', firebaseUid: UID })
     ).toMatchObject({ success: true });
-    expect(copied()).toBeUndefined(); // autoLinkOnAuth (above) is the mover that copies it
+    expect(copied()).toBeUndefined(); // nothing copies it: the auto-link path that did was removed
   });
 
   it("migrateUserData (step 7) moves a member device's record, dropping older words", async () => {
