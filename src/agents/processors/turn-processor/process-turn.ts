@@ -111,7 +111,7 @@ import {
 } from '../../integrations/better-than-human-integration.js';
 
 import { hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
-import { heldCallerCorrection } from './caller-correction-hold.js';
+import { heldCallerCorrection } from './caller-correction-crisis-hold.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -153,7 +153,7 @@ import { isFtisEnabled } from '../../../config/tool-config.js';
 export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult> {
   const startTime = Date.now();
   const { turnCtx, userText, userData, services, logger } = ctx;
-  // USER CORRECTIONS: every return goes through it (caller-correction-hold.ts)
+  // USER CORRECTIONS: every return goes through it (caller-correction-crisis-hold.ts)
   const withCorrection = heldCallerCorrection(ctx);
 
   // DEV TELEMETRY: Create turn trace for E2E observability

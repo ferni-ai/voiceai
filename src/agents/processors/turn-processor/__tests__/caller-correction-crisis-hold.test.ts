@@ -16,9 +16,9 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type Risk = 'none' | 'imminent';
+type Risk = 'none' | 'crisis' | 'imminent';
 const h = vi.hoisted(() => ({
-  risk: 'none' as 'none' | 'imminent',
+  risk: 'none' as 'none' | 'crisis' | 'imminent',
   /** Which return the routers steer the turn to. */
   route: 'full' as 'full' | 'ftis' | 'semantic',
   /** The crisis read fails: its summary rejects, or never settles. */
@@ -27,8 +27,16 @@ const h = vi.hoisted(() => ({
   builderThrows: false,
   /** A builder changes the turn's inputs mid-turn, after processTurn started. */
   builderMutates: false,
-  /** The classifier's model call answers, fails, or never answers. */
-  classifier: 'answers' as 'answers' | 'fails' | 'hangs',
+  /** The same builder also changes the session's user id and the persona. */
+  builderMutatesId: false,
+  /** Runs while processTurn awaits the memory response (lastSurfacedMemoryIds set). */
+  duringMemoryAwait: null as null | (() => void),
+  /** The correction store's write stays pending until the test releases it. */
+  storeGate: null as null | Promise<void>,
+  /** Correction-store writes that finished. */
+  landed: 0,
+  /** The classifier's model call answers, fails, never answers, or is blocked by the provider. */
+  classifier: 'answers' as 'answers' | 'fails' | 'hangs' | 'blocked' | 'malformed',
   /** What the turn's crisis read showed: the patterns alone, and each bypassAllowed() answer. */
   patternSignal: [] as boolean[],
   bypass: [] as boolean[],
@@ -44,6 +52,9 @@ vi.mock('../../../../config/gemini-config.js', async (orig) => ({
       generateContent: async () => {
         if (h.classifier === 'fails') throw new Error('model unavailable');
         if (h.classifier === 'hangs') return new Promise<never>(() => {});
+        if (h.classifier === 'blocked')
+          return { text: '', promptFeedback: { blockReason: 'SAFETY' } };
+        if (h.classifier === 'malformed') return { text: 'not a verdict' };
         return { text: `{"risk":"${h.risk}","subject":"self"}` };
       },
     },
@@ -53,10 +64,22 @@ vi.mock('../../../../services/superhuman/user-corrections.js', () => ({
   userCorrections: {
     autoRecord: vi.fn(async (...args: unknown[]) => {
       h.writes.push(['autoRecord', ...args]);
+      if (h.storeGate) await h.storeGate;
+      h.landed += 1;
       return null;
     }),
   },
 }));
+vi.mock(
+  '../../../../intelligence/memory-intelligence/turn-processor-integration.js',
+  async (orig) => ({
+    ...(await orig<Record<string, unknown>>()),
+    recordMemoryResponse: async () => {
+      await Promise.resolve();
+      h.duringMemoryAwait?.();
+    },
+  })
+);
 vi.mock('../../../personas/friend-repair-store.js', () => ({
   firestoreRepairStore: {
     facts: async () => [
@@ -130,6 +153,11 @@ vi.mock('../../identity-context-builder.js', async (orig) => {
         ctx.userData.turnCount = 99;
         Object.assign(ctx, { userText: 'a line written mid-turn' });
       }
+      if (h.builderMutatesId) {
+        const [ctx] = args as unknown as [{ services: { userId?: string }; persona?: unknown }];
+        ctx.services.userId = 'uid-written-mid-turn';
+        ctx.persona = { id: 'persona-written-mid-turn', name: 'Other' };
+      }
       return real.buildIdentityContext(...args);
     },
   };
@@ -166,6 +194,8 @@ const { resetCrisisClassifierCache } =
 const { resetCrisisCallRisk } = await import('../../../../services/safety/crisis-call-risk.js');
 const { resetCallRiskSnapshots } =
   await import('../../../../services/safety/crisis-lone-imminent.js');
+const { resetClassifierBlocked } =
+  await import('../../../../services/safety/crisis-classifier-blocked.js');
 
 type Ctx = Parameters<typeof processTurn>[0];
 type Result = Awaited<ReturnType<typeof processTurn>>;
@@ -186,14 +216,20 @@ const CALL = [
   'anyway, tell me something good',
 ];
 
-function turnCtx(userText: string, userData: Record<string, unknown>, session: string): Ctx {
+function turnCtx(
+  userText: string,
+  userData: Record<string, unknown>,
+  session: string,
+  extra: { userId?: string; lastSurfacedMemoryIds?: string[] } = {}
+): Ctx {
   return {
     userText,
     userData,
+    ...(extra.lastSurfacedMemoryIds && { lastSurfacedMemoryIds: extra.lastSurfacedMemoryIds }),
     services: {
       ...createMockServices(),
       sessionId: session,
-      userId: 'uid-invented',
+      userId: extra.userId ?? 'uid-invented',
       recordResponseSignal: () => undefined,
       getPromptContext: () => ({ phase: 'building' }),
       handoffState: { currentAgent: 'ferni' },
@@ -243,6 +279,10 @@ beforeEach(() => {
   h.readFault = null;
   h.builderThrows = false;
   h.builderMutates = false;
+  h.builderMutatesId = false;
+  h.duringMemoryAwait = null;
+  h.storeGate = null;
+  h.landed = 0;
   h.classifier = 'answers';
   h.patternSignal.length = 0;
   h.bypass.length = 0;
@@ -250,6 +290,7 @@ beforeEach(() => {
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
+  resetClassifierBlocked();
   vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
   vi.stubEnv('CRISIS_GUARD_MODE', 'live');
 });
@@ -329,6 +370,49 @@ describe('every return of processTurn', () => {
     expect(stable(turn.writes)).toMatchSnapshot();
   });
 
+  /** Not only the snapshot: the values themselves, so a snapshot update cannot erase the pin. */
+  it('the arguments are the values at turn start: user id, turn text, previous reply, persona, call', async () => {
+    h.builderMutates = true;
+    h.builderMutatesId = true;
+    h.risk = 'none';
+    const userData = {
+      turnCount: 2,
+      recentTranscripts: [CALL[1]],
+      lastAgentResponse: REPLY,
+      userId: 'uid-in-user-data',
+    };
+    await processTurn(turnCtx(CALL[1], userData, 'values'));
+    await drain();
+    // The turn did change every one of them before returning.
+    expect([userData.lastAgentResponse, userData.turnCount]).toEqual([
+      'A reply written mid-turn.',
+      99,
+    ]);
+    // recordCallerCorrection(userId, callerLine, previousReply, personaId, callId): no turn count.
+    expect(h.writes).toEqual([['autoRecord', 'uid-invented', CALL[1], REPLY, 'ferni']]);
+  });
+
+  /**
+   * INTENDED CHANGE on ordinary turns. Main read the previous reply after the memory-response
+   * await, so a reply committed during that await (agent-reply-recorder.ts sets
+   * lastAgentResponse on each committed assistant item, and the turn pipeline runs beside the
+   * reply) was recorded instead of the one the caller answered. The hold keeps the reply that
+   * existed when the caller spoke.
+   */
+  it('the previous reply replaced during the memory-response await: the reply at turn start is kept (intended)', async () => {
+    h.risk = 'none';
+    const userData = { turnCount: 2, recentTranscripts: [CALL[1]], lastAgentResponse: REPLY };
+    h.duringMemoryAwait = () => {
+      userData.lastAgentResponse = 'A newer reply, committed during the memory-response await.';
+    };
+    await processTurn(
+      turnCtx(CALL[1], userData, 'memory-await', { lastSurfacedMemoryIds: ['m1'] })
+    );
+    await drain();
+    expect(userData.lastAgentResponse).toMatch(/^A newer reply/);
+    expect(h.writes).toEqual([['autoRecord', 'uid-invented', CALL[1], REPLY, 'ferni']]);
+  });
+
   it('the empty-text throw writes nothing', async () => {
     await expect(
       processTurn(turnCtx('   ', { lastAgentResponse: REPLY }, 'empty'))
@@ -336,6 +420,145 @@ describe('every return of processTurn', () => {
     await drain();
     expect(h.writes).toEqual([]);
   });
+
+  it.each([undefined, null])(
+    'text %s with an owner id and a previous reply: main\'s "Empty user text" error, nothing written',
+    async (text) => {
+      const ctx = turnCtx('x', { lastAgentResponse: REPLY }, 'no-text');
+      Object.assign(ctx, { userText: text });
+      await expect(processTurn(ctx)).rejects.toThrow(new Error('Empty user text'));
+      await drain();
+      expect(h.writes).toEqual([]);
+    }
+  );
+});
+
+/**
+ * Every way crisisReadTurn reads a turn as a crisis turn, each beside an ordinary control under
+ * the same mocks: a crisis read that does not replace the reply (isCrisis, no override), and a
+ * soft check-in (a classifier read the provider blocked, CRISIS_CLASSIFIER_BLOCKED_SIGNAL on;
+ * and, with every switch at its default, a lone imminent read of a goodnight).
+ */
+describe('a crisis turn that does not replace the reply', () => {
+  it.each([
+    ['crisis', true],
+    ['none', false],
+  ] as const)(
+    'classifier reads %s: isCrisis without an override is a crisis turn (crisis turn: %s)',
+    async (risk, crisisTurn) => {
+      const turn = await oneTurn(CALL[1], risk);
+      expect(h.patternSignal).toEqual([false]);
+      expect(turn.result.crisis).toMatchObject({ isCrisis: crisisTurn, shouldOverrideLLM: false });
+      expect(turn.result.crisis?.softCheck).toBeUndefined();
+      expect(turn.writes.length).toBe(crisisTurn ? 0 : 1);
+    }
+  );
+
+  /** A line the patterns read as a crisis that does not replace the reply (invented). */
+  const PATTERN_CRISIS = 'sometimes I wish I could just disappear for a while';
+  it.each(['answers', 'fails', 'hangs', 'malformed'] as const)(
+    'a pattern crisis line, classifier %s: isCrisis without an override, nothing written',
+    async (mode) => {
+      vi.stubEnv('CRISIS_CLASSIFIER_TIMEOUT_MS', '100');
+      h.classifier = mode;
+      const turn = await oneTurn(PATTERN_CRISIS, 'crisis');
+      expect(h.patternSignal).toEqual([true]);
+      expect(turn.result.crisis).toMatchObject({ isCrisis: true, shouldOverrideLLM: false });
+      expect(turn.result.crisis?.softCheck).toBeUndefined();
+      expect(turn.writes).toEqual([]);
+    }
+  );
+
+  it.each([
+    ['on', true],
+    ['off', false],
+  ] as const)(
+    'a blocked classifier read, blocked signal %s: a soft check-in is a crisis turn (soft: %s)',
+    async (signal, soft) => {
+      vi.stubEnv('CRISIS_CLASSIFIER_BLOCKED_SIGNAL', signal);
+      h.classifier = 'blocked';
+      const turn = await oneTurn(CALL[1], 'none');
+      expect(h.patternSignal).toEqual([false]);
+      expect(turn.result.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
+      expect(turn.result.crisis?.softCheck === true).toBe(soft);
+      expect(turn.writes.length).toBe(soft ? 0 : 1);
+    }
+  );
+
+  /**
+   * The soft check-in a live call gets with every switch at its default: a lone imminent read
+   * of a plain goodnight on a quiet call (turn-crisis.ts, loneImminentGoodbye). The control is
+   * the same goodnight read as none, which is ordinary and writes.
+   */
+  it.each([
+    ['imminent', true],
+    ['none', false],
+  ] as const)(
+    'a quiet call, then a goodnight the classifier reads %s: a soft check-in is a crisis turn (soft: %s)',
+    async (risk, soft) => {
+      h.risk = risk;
+      const quiet = [
+        'we finally got the couch up the stairs',
+        'the new place gets a lot of morning light',
+        'my neighbor brought over some cookies',
+      ];
+      const line = 'okay, goodnight, talk to you tomorrow';
+      const userData = {
+        turnCount: quiet.length + 1,
+        recentTranscripts: [...quiet, line],
+        lastAgentResponse: REPLY,
+      };
+      const result = await processTurn(turnCtx(line, userData, `goodnight-${risk}`));
+      await drain();
+      expect(h.patternSignal).toEqual([false]);
+      expect(result.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
+      expect(result.crisis?.softCheck === true).toBe(soft);
+      expect(h.writes.length).toBe(soft ? 0 : 1);
+    }
+  );
+});
+
+/** ownerWriteId (services/identity/owner-write-gate.ts): nothing is stored under these ids. */
+describe('ids nothing is written under', () => {
+  it.each([
+    ['device:demo_invented', 0],
+    ['onbehalf:call-invented', 0],
+    ['uid-invented', 1],
+  ] as const)('ordinary read, user id %s: %i writes', async (userId, count) => {
+    const result = await processTurn(
+      turnCtx(
+        CALL[1],
+        { turnCount: 2, recentTranscripts: [CALL[1]], lastAgentResponse: REPLY },
+        `id-${userId}`,
+        { userId }
+      )
+    );
+    await drain();
+    expect(crisisReadTurn(result.crisis)).toBe(false);
+    expect(h.writes.length).toBe(count);
+  });
+});
+
+/** The write is fire-and-forget: processTurn returns while the store write is still pending. */
+describe('off the reply path', () => {
+  it('a store write that never finishes does not hold the turn; it lands once released', async () => {
+    let release = (): void => {};
+    h.storeGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const timedOut = Symbol('timed out');
+    const returned = await Promise.race([
+      oneTurn(CALL[1], 'none'),
+      drain(5_000).then(() => timedOut),
+    ]);
+    expect(returned).not.toBe(timedOut);
+    // The store was called, and its write had not finished when the turn returned.
+    expect(h.writes.map((w) => w.slice(0, 3))).toEqual([['autoRecord', 'uid-invented', CALL[1]]]);
+    expect(h.landed).toBe(0);
+    release();
+    await drain(50);
+    expect(h.landed).toBe(1);
+  }, 10_000);
 });
 
 describe('no read: nothing written (fail closed)', () => {
@@ -370,7 +593,7 @@ describe('no read: nothing written (fail closed)', () => {
   });
 
   it('a returned turn with no crisis field writes nothing; an ordinary field writes', async () => {
-    const { heldCallerCorrection } = await import('../caller-correction-hold.js');
+    const { heldCallerCorrection } = await import('../caller-correction-crisis-hold.js');
     const ctx = turnCtx(CALL[1], { lastAgentResponse: REPLY }, 'no-field');
     const turn = { analysis: {}, context: {}, emotional: {}, response: {}, identity: {} };
     heldCallerCorrection(ctx)(turn as unknown as Result);
@@ -421,26 +644,45 @@ describe('known gap: the classifier gives no answer', () => {
 
 /** A new return path writes nothing until it is wrapped; this row says so when it is added. */
 describe('the shape of processTurn', () => {
-  it('every return of processTurn passes its result through withCorrection', () => {
-    const path = new URL('../process-turn.ts', import.meta.url);
-    const file = ts.createSourceFile(
-      'process-turn.ts',
-      readFileSync(path, 'utf8'),
-      ts.ScriptTarget.Latest
-    );
+  /** Each top-level return of processTurn: 'wrapped' when its expression IS withCorrection(x). */
+  function returnShapes(source: string): string[] {
+    const file = ts.createSourceFile('process-turn.ts', source, ts.ScriptTarget.Latest, true);
     const fn = file.statements.find(
       (st): st is ts.FunctionDeclaration =>
         ts.isFunctionDeclaration(st) && st.name?.text === 'processTurn'
     );
-    const returns: string[] = [];
+    const shapes: string[] = [];
     const visit = (node: ts.Node): void => {
       if (ts.isFunctionLike(node)) return; // a nested function's returns are its own
-      if (ts.isReturnStatement(node))
-        returns.push(node.expression?.getText(file).split('(')[0] ?? '');
+      if (ts.isReturnStatement(node)) {
+        const e = node.expression;
+        const wrapped =
+          !!e &&
+          ts.isCallExpression(e) &&
+          ts.isIdentifier(e.expression) &&
+          e.expression.text === 'withCorrection' &&
+          e.arguments.length === 1;
+        shapes.push(wrapped ? 'wrapped' : (e?.getText(file) ?? '<bare return>'));
+      }
       ts.forEachChild(node, visit);
     };
     fn?.body?.statements.forEach(visit);
-    expect(returns).toEqual(['withCorrection', 'withCorrection', 'withCorrection']);
+    return shapes;
+  }
+
+  it('every return of processTurn is exactly withCorrection(result)', () => {
+    const source = readFileSync(new URL('../process-turn.ts', import.meta.url), 'utf8');
+    expect(returnShapes(source)).toEqual(['wrapped', 'wrapped', 'wrapped']);
+  });
+
+  it('the check is exact: a return that only contains the call is caught', () => {
+    const planted = (body: string) =>
+      returnShapes(`export async function processTurn() { ${body} }`);
+    expect(planted('return withCorrection(a);')).toEqual(['wrapped']);
+    expect(planted('return withCorrection(a) && b;')).toEqual(['withCorrection(a) && b']);
+    expect(planted('return other(withCorrection(a));')).toEqual(['other(withCorrection(a))']);
+    expect(planted('return withCorrection;')).toEqual(['withCorrection']);
+    expect(planted('return;')).toEqual(['<bare return>']);
   });
 });
 

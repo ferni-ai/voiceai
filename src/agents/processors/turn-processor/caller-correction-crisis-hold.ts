@@ -6,7 +6,7 @@
  * (crisisReadTurn fails closed) records nothing about the caller, and neither does a turn that
  * throws or never returns, since it never passes a result through.
  *
- * @module agents/processors/turn-processor/caller-correction-hold
+ * @module agents/processors/turn-processor/caller-correction-crisis-hold
  */
 import { ownerWriteId } from '../../../services/identity/owner-write-gate.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
@@ -23,7 +23,8 @@ export function heldCallerCorrection(
 ): (result: TurnProcessorResult) => TurnProcessorResult {
   const userId = ownerWriteId(ctx.services.userId);
   const previousReply = ctx.userData.lastAgentResponse;
-  if (!userId || !ctx.userText.trim() || !previousReply) return (result) => result;
+  // Null-safe: undefined or null text reaches processTurn's own "Empty user text" check.
+  if (!userId || !ctx.userText?.trim() || !previousReply) return (result) => result;
   const { userText } = ctx;
   const personaId = ctx.persona?.id;
   const callId = ctx.services.sessionId;
