@@ -16,8 +16,9 @@
  *
  * The rest of the crisis lane (every crisis-named flag plus every flag a crisis-lane source file
  * reads, crisis-lane-flags.ts) acts outside these readers. The guard at the bottom makes each of
- * those name a test that drives it (COVERED_ELSEWHERE) or sit on a list that may only shrink
- * (NOT_YET_COVERED).
+ * those either be shown at the reply itself (SHOWN_ON, checked by the seventh reader,
+ * agents/personas/__tests__/crisis-reply-never-lower.test.ts) or sit on a list that may only
+ * shrink (NOT_YET_COVERED, crisis-flag-homes.ts).
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
@@ -31,11 +32,13 @@
  * the crisis script as the caller hears it (minorCrisisScript over crisis-guard's script): it
  * may gain a line, but never lose one of the script's, nor its 988 or 911.
  */
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
+import {
+  LOWERS_A_REPLY,
+  SHOWN_ON,
+} from '../../../agents/personas/__tests__/crisis-reply.never-lower.js';
 import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
 import { minorCrisisScript } from '../../../utils/minor-crisis-care.js';
 import { detectCrisisSignals } from '../../human-transfer/escalation-classifier.js';
@@ -44,6 +47,7 @@ import { checkWarnings } from '../../wellbeing-tracking/early-warning.js';
 import { getWellbeingProfile } from '../../wellbeing-tracking/index.js';
 import { detectCrisis } from '../crisis-guard.js';
 import { performSafetyCheck } from '../index.js';
+import { NOT_YET_COVERED, NOT_YET_COVERED_CEILING } from './crisis-flag-homes.js';
 import {
   CRISIS_FLAGS,
   flagReadsIn,
@@ -337,172 +341,6 @@ describe('crisis flags never lower a production crisis read', () => {
   );
 });
 
-/**
- * Crisis-lane flags the six readers don't read, each with an existing test that drives it.
- * Picked as the unit test that sets the flag, named after the module that reads it where one is.
- */
-const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
-  ABUSE_DISCLOSURE_PATTERNS:
-    'src/agents/voice-agent/__tests__/turn-handler-abuse-disclosure.test.ts',
-  ACTION_CLAIM_BARE_WILL: 'src/agents/personas/__tests__/action-claim-bare-will.test.ts',
-  ACTION_CLAIM_GUARD: 'src/agents/personas/__tests__/action-claim-guard-spacing.test.ts',
-  ACTION_CLAIM_PAST: 'src/agents/personas/__tests__/action-claim-past.test.ts',
-  ACTION_CLAIM_STREAM: 'src/agents/personas/__tests__/action-claim-guard-spacing.test.ts',
-  AI_NOTICE_SPOKEN: 'src/agents/multi-agent/__tests__/ai-notice-opening.test.ts',
-  BOOKING_PREFS: 'src/services/stores/__tests__/booking-prefs-store.test.ts',
-  CALLER_CARD: 'src/agents/multi-agent/__tests__/caller-card-setup.test.ts',
-  CALLER_RECOGNITION: 'src/agents/voice-agent-entry/__tests__/caller-recognition.test.ts',
-  CALL_CAPTURE_CONSENT: 'src/api/__tests__/call-capture-consent-routes.test.ts',
-  // Dropped, never said later, on a call with crisis risk: 'crisis risk on the owner call'.
-  CALL_LIVE_RELAY: 'src/services/outreach/__tests__/call-progress-relay.test.ts',
-  CALL_NEWS_OPENER: 'src/agents/multi-agent/__tests__/greeting-call-news.test.ts',
-  CALL_REPORT_REACHES_YOU: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
-  CALL_RESULT_LIVE_REPORT: 'src/services/outreach/__tests__/call-result-cross-process.test.ts',
-  CALL_STATUS_RECALL: 'src/tools/domains/telephony/__tests__/call-status-replay.test.ts',
-  CALL_WRAP_UP: 'src/agents/shared/__tests__/call-farewell.test.ts',
-  CLIENT_SIGNALS_V2: 'src/tools/domains/memory/__tests__/memory-saved.test.ts',
-  COACH_WINS: 'src/services/superhuman/__tests__/wins.test.ts',
-  CONTACT_SAVE_ON_YES: 'src/tools/domains/telephony/__tests__/owner-contact.test.ts',
-  CRISIS_ADJUDICATOR: 'src/services/safety/__tests__/crisis-adjudicator-shadow.test.ts',
-  CRISIS_AGREEMENT_GATE:
-    'src/agents/processors/turn-processor/__tests__/crisis-agreement-replay.test.ts',
-  CRISIS_CLASSIFIER_BLOCKED_SIGNAL:
-    'src/services/safety/__tests__/crisis-classifier-blocked.test.ts',
-  CRISIS_CLASSIFIER_EVERYDAY_RULES:
-    'src/agents/personas/__tests__/crisis-classifier-only-shadow.test.ts',
-  CRISIS_CLASSIFIER_ONLY_CHECKIN:
-    'src/agents/personas/__tests__/crisis-classifier-only-shadow.test.ts',
-  CRISIS_CLASSIFIER_SECOND_READ: 'src/services/safety/__tests__/crisis-classifier-v3.test.ts',
-  CRISIS_CONFIRMED_CALL_RISK: 'src/agents/personas/__tests__/crisis-gate-confirmed-risk.test.ts',
-  CRISIS_EVENT_RECORD: 'src/agents/safety/__tests__/crisis-event-record.test.ts',
-  // Shadow only: logs a grade, changes no reader or reply.
-  CRISIS_GRADED_RESPONSE: 'src/agents/personas/__tests__/crisis-graded-response-shadow.test.ts',
-  CRISIS_GROUNDED_RELEASE:
-    'src/services/safety/__tests__/crisis-grounded-release-failclosed.test.ts',
-  CRISIS_IMMINENT_NEEDS_AGREEMENT:
-    'src/services/safety/__tests__/crisis-imminent-agreement.test.ts',
-  // Changes only when the reply gate's classifier reads a held line, never what a reader decides,
-  // so the six readers here can't see it. Its test drives the real gatedReply flag off and on,
-  // under a classifier with and without a fragment false alarm, and checks it never lowers.
-  CRISIS_READ_JOINED_TURN: 'src/agents/personas/__tests__/crisis-read-joined-turn.test.ts',
-  CRISIS_SAME_CALL_NOTE_FADES: 'src/agents/multi-agent/__tests__/call-report-after-crisis.test.ts',
-  // Adds a check-in on the voice gate only; ON equals OFF wherever a read stands.
-  CRISIS_TIMEOUT_CHECKIN: 'src/agents/personas/__tests__/crisis-gate-timeout-checkin.test.ts',
-  CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
-  // Memory only: crisis and vulnerability moments keep no words and are never a callback. No
-  // reader, script, injection or data message changes.
-  CRISIS_WORDS_NEVER_RESURFACE: 'src/intelligence/relationship/__tests__/wordless-moments.test.ts',
-  // The typed agent chat's prompt; its crisis read runs first either way (chat-routes-crisis).
-  CUSTOM_AGENT_CHAT_HONESTY: 'src/api/custom-agent/__tests__/chat-routes.test.ts',
-  DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',
-  EOT_CONTINUED_MERGE: 'src/agents/personas/__tests__/late-words.test.ts',
-  // Read by deep-extraction-worker.ts: adds one subject rule to the fact prompt, nothing dropped.
-  FACT_SUBJECT_GUARD: 'src/memory/dynamic/__tests__/fact-subject-deep.test.ts',
-  FAMILY_TABLE: 'src/agents/multi-agent/__tests__/family-table-handoff.test.ts',
-  FERNI_SELF_MEMORY: 'src/agents/personas/__tests__/self-memory.test.ts',
-  FERNI_STATE: 'src/agents/personas/__tests__/ferni-state.test.ts',
-  FIRST_TURN_DEFER_BACKGROUND: 'src/agents/multi-agent/__tests__/first-turn-defer.test.ts',
-  // A forget re-check takes recall's own notes out, never a crisis note naming the topic.
-  FORGET_EVERY_READER: 'src/memory/recall/__tests__/forget-every-reader.test.ts',
-  FRIEND_REPAIR: 'src/agents/personas/__tests__/friend-repair.test.ts',
-  GOODBYE_ENDS_CALL: 'src/agents/shared/__tests__/call-wrap-up-quiet.test.ts',
-  GROUNDED_CLAIMS: 'src/agents/personas/__tests__/grounded-claims-verify.test.ts',
-  HANDOFF_ARRIVAL_ONCE: 'src/agents/multi-agent/__tests__/handoff-arrival-once.sdk.test.ts',
-  HANDOFF_ASK_FIRST: 'src/tools/handoff/__tests__/handoff-consent.test.ts',
-  HANDOFF_FAILED_SAY_SO: 'src/agents/multi-agent/__tests__/llm-handoff.test.ts',
-  HANDOFF_HELD_TRUTHFUL: 'src/tools/handoff/__tests__/handoff-held-truthful.test.ts',
-  HELD_GOODBYE_CHECK_IN: 'src/agents/shared/__tests__/call-wrap-up-held-goodbye.test.ts',
-  LAUGH_CAP: 'src/agents/personas/__tests__/laugh-ledger.test.ts',
-  LISTEN_OFFER_STRIP: 'src/agents/personas/__tests__/listen-offer.test.ts',
-  MINOR_ABUSE_DISCLOSURE: 'src/services/safety/__tests__/minor-abuse-disclosure.test.ts',
-  MINOR_CARE_SHARED_HOLD:
-    'src/services/outreach/__tests__/minor-care-shared-hold-call-paths.test.ts',
-  // A guided crisis reply loses only the caller's name: every other word, 988 and 911 stay.
-  NAME_FALLING_SPLIT: 'src/agents/personas/__tests__/name-gate-crisis-reply.test.ts',
-  NAME_GATE_V2: 'src/agents/personas/__tests__/name-gate-crisis-reply.test.ts',
-  OPENER_GATE: 'src/agents/personas/__tests__/crisis-gate.test.ts',
-  OPEN_PROMISE_TRIGGERS:
-    'src/services/outreach/proactive-channels/__tests__/open-promise-triggers-path.test.ts',
-  // Read only by the call read-back's consent window, which no reader above calls. That file
-  // stubs it on and shows a turn the crisis reader flags, whole or split across turns, ends the
-  // pending call at every place it pins, with nothing sent.
-  OUTREACH_NO_ANSWERS_READBACK:
-    'src/tools/domains/communication/outreach/__tests__/outreach-consent-v2.test.ts',
-  OUTREACH_PONDERED_NOTES:
-    'src/services/outreach/proactive-channels/__tests__/grounded-path.test.ts',
-  PERSONA_GROWTH: 'src/agents/multi-agent/__tests__/persona-growth-recall.test.ts',
-  PHONE_GOODBYE: 'src/agents/shared/__tests__/phone-goodbye.test.ts',
-  PHRASE_LOOP_GUARD: 'src/agents/personas/__tests__/phrase-loops.test.ts',
-  // A crisis or safety note is pushed at once, never held behind a preemptive reply.
-  PREEMPT_STABLE_CONTEXT: 'src/agents/multi-agent/__tests__/preempt-stable-context.sdk.test.ts',
-  // A crisis turn's follow-up decision and log equal off; a crisis after the claim drops the line.
-  PROACTIVE_BUDGET: 'src/agents/voice-agent/__tests__/commitment-follow-up-gate.test.ts',
-  QUESTION_PACE: 'src/agents/personas/__tests__/question-pace-wiring.test.ts',
-  QUIET_AFTER_QUESTION: 'src/agents/voice-agent/__tests__/quiet-presence.test.ts',
-  REJECTED_TRANSCRIPT_KEEPS_SPEECH:
-    'src/agents/voice-agent/__tests__/rejected-transcript-policy.test.ts',
-  REPAIR_MODE: 'src/agents/personas/__tests__/repair-check.test.ts',
-  REQUIRE_FIX_VOICE: 'src/agents/voice-agent/__tests__/echo-window-esm.test.ts',
-  SEXUAL_TOPIC_BOUNDARY: 'src/agents/personas/__tests__/sexual-boundary-call-end.test.ts',
-  // Off, repair advice says to call EMERGENCY_NUMBER for an electrical fire; on, it isn't served.
-  SMART_HOME_LIFX: 'src/tools/domains/smart-home/__tests__/lifx-repair-advice-crisis-line.test.ts',
-  SMS_CRISIS_SCREEN: 'src/services/outreach/__tests__/sms-crisis-screen.test.ts',
-  SPEAK_988_DIGITS: 'src/services/safety/__tests__/crisis-line-speech.test.ts',
-  TEAMMATE_TALK_FILTER: 'src/utils/__tests__/teammate-talk.test.ts',
-  THIRD_PARTY_SELF_HARM: 'src/services/safety/__tests__/crisis-who.test.ts',
-  TOLD_THIS_CALL: 'src/agents/personas/__tests__/told-this-call.test.ts',
-  // No ack clip on a call with crisis risk noted or a crisis decision.
-  TOOL_ACK_CLIP: 'src/agents/integrations/__tests__/tool-ack-clip.test.ts',
-  // No look-up line or "On it." on a grave call: crisis risk noted or hard news.
-  TOOL_ACK_WIDE: 'src/agents/personas/__tests__/tool-ack-coverage.test.ts',
-  TOOL_HUM: 'src/agents/integrations/__tests__/tool-hum-crisis-pending.test.ts',
-  TRANSFER_NAME_ALIASES: 'src/tools/handoff/__tests__/transfer-aliases.test.ts',
-  TURN_INTELLIGENCE: 'src/agents/multi-agent/__tests__/turn-intelligence.test.ts',
-  USE_SMART_CONTEXT_ROUTING: 'src/utils/__tests__/minor-care-cleanup.test.ts',
-  WEEKLY_PREDICTION: 'src/agents/multi-agent/__tests__/prediction-check-in.test.ts',
-  WELLBEING_AFTER_CALL: 'src/services/wellbeing-tracking/__tests__/after-call.test.ts',
-};
-
-/**
- * Crisis-lane flags with no test that names them yet. A ratchet: it may only shrink. A new
- * crisis-lane flag gets a real test and a COVERED_ELSEWHERE entry, never a name here.
- */
-const NOT_YET_COVERED: readonly string[] = [
-  'DEBUG_GEMINI_ALL',
-  'DEBUG_GEMINI_MESSAGES',
-  'DEBUG_GEMINI_TRANSCRIPTS',
-  'DEBUG_INJECTIONS',
-  'DEBUG_ROUTING',
-  'DEBUG_TTS_PIPELINE',
-  'DEBUG_TURN_TIMING',
-  'DEBUG_VOICE_AGENT',
-  'DEV_TELEMETRY',
-  'DISABLE_INTERRUPT_TRANSFORM',
-  'DISABLE_LINGUISTIC_MIRRORING',
-  'DISABLE_NOISE_FILTER',
-  'LIFE_LEDGER',
-  'LOG_CONTEXT_BUILDS',
-  'USE_TOOL_GATEWAY',
-];
-/** NOT_YET_COVERED as of 2026-11-02. Never add to it; delete a name once its flag has a test. */
-const NOT_YET_COVERED_CEILING: readonly string[] = [
-  'DEBUG_GEMINI_ALL',
-  'DEBUG_GEMINI_MESSAGES',
-  'DEBUG_GEMINI_TRANSCRIPTS',
-  'DEBUG_INJECTIONS',
-  'DEBUG_ROUTING',
-  'DEBUG_TTS_PIPELINE',
-  'DEBUG_TURN_TIMING',
-  'DEBUG_VOICE_AGENT',
-  'DEV_TELEMETRY',
-  'DISABLE_INTERRUPT_TRANSFORM',
-  'DISABLE_LINGUISTIC_MIRRORING',
-  'DISABLE_NOISE_FILTER',
-  'LIFE_LEDGER',
-  'LOG_CONTEXT_BUILDS',
-  'USE_TOOL_GATEWAY',
-];
-
 /** Crisis flags no crisis name marks, so only the lane read finds them. */
 const READ_NOT_NAMED = [
   'MINOR_ABUSE_DISCLOSURE', // a caller under 18 telling of sexual harm (turn path)
@@ -512,8 +350,6 @@ const READ_NOT_NAMED = [
   'SPEAK_988_DIGITS', // 988 spoken as digits
   'AI_NOTICE_SPOKEN', // the spoken AI notice
 ];
-
-const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
 
 describe('every flag a crisis module reads is checked or covered elsewhere', () => {
   it('finds crisis flags by what crisis modules read, not by name', () => {
@@ -544,7 +380,8 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
       const homes = [
         CHECKED.includes(name) && 'checked',
         name in KNOWN_LOWERS && 'KNOWN_LOWERS',
-        name in COVERED_ELSEWHERE && 'COVERED_ELSEWHERE',
+        name in SHOWN_ON && 'SHOWN_ON',
+        name in LOWERS_A_REPLY && 'LOWERS_A_REPLY',
         NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
@@ -552,16 +389,6 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     }
     // A flag the readers start reading is checked: delete its other entry.
     expect(unaccounted).toEqual([]);
-  });
-
-  it('points each COVERED_ELSEWHERE flag at an existing test that names it', () => {
-    for (const [name, test] of Object.entries(COVERED_ELSEWHERE)) {
-      expect(CRISIS_FLAGS, `${name} is no longer a crisis-lane flag`).toContain(name);
-      expect(test, `${name}: ${test} is not a test file`).toMatch(TEST_FILE);
-      expect(existsSync(join(ROOT, test)), `${name}: ${test} does not exist`).toBe(true);
-      const text = readFileSync(join(ROOT, test), 'utf8');
-      expect(text.includes(name), `${test} never names ${name}`).toBe(true);
-    }
   });
 
   it('only shrinks NOT_YET_COVERED', () => {
