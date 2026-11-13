@@ -15,8 +15,10 @@
  * Fails on: a file unused here that was used at the base (or is new), and a file with more
  * unused exports + types than at the base. A moved file is matched to its old path.
  *
- * Production mode (entries marked `!` in knip.json, no tests) is reported alongside as a
- * warning: a new file only tests reach.
+ * Production mode (entries marked `!` in knip.json, no tests or tooling) runs the same
+ * comparison. A new export or type that only tests or tooling use fails: the "defined,
+ * unit-tested, never called" shape, which the default pass counts as used (#3522). A new
+ * file that only tests reach is still a warning.
  *
  *   pnpm quality:knip     check (CI, Quality Gates)
  *
@@ -41,19 +43,20 @@ const isNamed = (l: unknown): boolean => Array.isArray(l) && l.every((e) => type
 
 /**
  * Reads knip's JSON reporter output; throws when its shape is not what this gate understands.
- * Every issue must carry `files`, and in default mode `exports` and `types`, as lists of
- * `{ name }`: a missing list must not read as "no dead code".
+ * Every issue must carry `files`, `exports` and `types` (both modes ask for all three) as
+ * lists of `{ name }`: a missing list must not read as "no dead code". `mode` names the pass
+ * in the error.
  */
 export function fromKnip(report: unknown, mode: Mode): DeadCode {
   const issues = (report as { issues?: unknown } | null)?.issues;
-  if (!Array.isArray(issues)) throw new Error('knip report has no issues array: did the knip version or reporter change?');
+  if (!Array.isArray(issues)) throw new Error(`knip ${mode} report has no issues array: did the knip version or reporter change?`);
   const files: string[] = [];
   const exports: Record<string, string[]> = {};
   for (const raw of issues) {
     const issue = raw as { file?: unknown; files?: unknown; exports?: unknown; types?: unknown };
-    const lists = mode === 'default' ? [issue.files, issue.exports, issue.types] : [issue.files];
+    const lists = [issue.files, issue.exports, issue.types];
     if (typeof issue.file !== 'string' || !lists.every(isNamed)) {
-      throw new Error(`knip issue has an unexpected shape: ${JSON.stringify(raw).slice(0, 200)}`);
+      throw new Error(`knip ${mode} issue has an unexpected shape: ${JSON.stringify(raw).slice(0, 200)}`);
     }
     if ((issue.files as unknown[]).length > 0) files.push(issue.file);
     const names = [
@@ -69,8 +72,8 @@ const totalExports = (d: DeadCode): number => Object.values(d.exports).reduce((a
 
 /**
  * Guards against a gate that passes because knip saw nothing: an emptied project, a changed
- * config or a reporter that stopped listing exports all look like "no dead code". Run on the
- * default-mode pair only; the production pair is report-only and never blocks.
+ * config or a reporter that stopped listing exports all look like "no dead code". Run on
+ * both pairs, since both block.
  */
 export function emptinessProblem(head: DeadCode, base: DeadCode): string | null {
   if (head.files.length === 0 && totalExports(head) === 0) {
@@ -120,11 +123,37 @@ export function added(
   return out;
 }
 
+/**
+ * What the production pass adds beyond the default pass. A new unused export or type there
+ * is used only by tests or tooling, and fails (`failures`). One the default pass already
+ * reports (`defaultFindings`) is not repeated. A new unused file is a warning (`warnings`).
+ */
+export function productionFindings(
+  head: DeadCode,
+  base: DeadCode,
+  toBase: (headPath: string) => string | null,
+  touched: Map<string, string | null>,
+  defaultFindings: string[]
+): { failures: string[]; warnings: string[] } {
+  const seen = new Set(defaultFindings);
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  for (const finding of added(head, base, toBase, touched)) {
+    const file = finding.split(':')[0]!;
+    if (finding.endsWith('unused file (nothing imports it from an entry point)')) {
+      warnings.push(`${file}: no production entry point reaches it (only tests or tooling, if anything)`);
+    } else if (!seen.has(finding)) {
+      failures.push(`${finding.replace(': unused export ', ': export ')} is used only by tests or tooling, never by production code`);
+    }
+  }
+  return { failures, warnings };
+}
+
 /** Runs knip in `cwd`; resolves with its parsed JSON report. */
 function knip(cwd: string, production: boolean): Promise<unknown> {
   const bin = join(process.cwd(), 'node_modules', '.bin', 'knip');
   const args = production
-    ? ['--production', '--include', 'files', '--reporter', 'json', '--no-progress']
+    ? ['--production', '--include', 'files,exports,types', '--reporter', 'json', '--no-progress']
     : ['--include', 'files,exports,types', '--reporter', 'json', '--no-progress'];
   return new Promise((resolve, reject) => {
     const child = spawn(bin, args, { cwd });
@@ -195,22 +224,22 @@ async function main(): Promise<void> {
     ]);
     say(
       `Dead code (knip), base ${base.slice(0, 9)}, ${Date.now() - started} ms:\n` +
-        `  here: ${headAll.files.length} unused files, ${totalExports(headAll)} unused exports; production mode ${headProd.files.length} unused files\n` +
-        `  base: ${baseAll.files.length} unused files, ${totalExports(baseAll)} unused exports; production mode ${baseProd.files.length} unused files`
+        `  here: ${headAll.files.length} unused files, ${totalExports(headAll)} unused exports; production mode ${headProd.files.length} files, ${totalExports(headProd)} exports\n` +
+        `  base: ${baseAll.files.length} unused files, ${totalExports(baseAll)} unused exports; production mode ${baseProd.files.length} files, ${totalExports(baseProd)} exports`
     );
-    const empty = emptinessProblem(headAll, baseAll); // the report-only production pair never blocks
+    const empty = emptinessProblem(headAll, baseAll) ?? emptinessProblem(headProd, baseProd);
     if (empty) {
       say(`\n❌ ${empty}`);
       process.exitCode = 1;
       return; // through finally, so the base checkout is removed
     }
-    const prodOnly = added({ files: headProd.files, exports: {} }, { files: baseProd.files, exports: {} }, toBase, new Map());
-    for (const p of prodOnly) {
-      const note = `${p.split(':')[0]}: no production entry point reaches it (only tests or tooling, if anything)`;
+    const defaultWorse = added(headAll, baseAll, toBase, touched);
+    const prod = productionFindings(headProd, baseProd, toBase, touched, defaultWorse);
+    for (const note of prod.warnings) {
       say(`  ⚠️  ${note}`);
       if (process.env.GITHUB_ACTIONS) say(`::warning title=Dead code (production mode)::${note}`);
     }
-    const worse = added(headAll, baseAll, toBase, touched);
+    const worse = [...defaultWorse, ...prod.failures];
     if (worse.length > 0) {
       say(`\n❌ ${worse.length} piece(s) of dead code added by this change:\n${worse.slice(0, 60).map((w) => `  - ${w}`).join('\n')}`);
       if (worse.length > 60) say(`  … and ${worse.length - 60} more`);

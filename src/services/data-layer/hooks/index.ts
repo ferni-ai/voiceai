@@ -80,15 +80,9 @@ export {
 // ============================================================================
 export {
   onCoachingInsightChange,
-  onBreakthroughMomentChange,
   onStuckPatternChange,
-  onReframeSuggestionChange,
   onGrowthEdgeChange,
-  onStrengthIdentifiedChange,
   onBlindSpotChange,
-  onAccountabilityItemChange,
-  onBehaviorChangeEntity,
-  onMotivationInsightChange,
   coachingHooks,
 } from './coaching-hooks.js';
 

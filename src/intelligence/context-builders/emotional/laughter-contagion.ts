@@ -437,22 +437,6 @@ async function buildLaughterContagionContext(
 }
 
 // ============================================================================
-// CLEANUP
-// ============================================================================
-
-export function cleanupLaughterState(sessionId: string): void {
-  stateCache.delete(sessionId);
-}
-
-export function getLaughterStats(sessionId: string): { count: number; types: string[] } {
-  const state = getLaughterState(sessionId);
-  return {
-    count: state.laughsThisSession,
-    types: Array.from(state.laughTypesUsed),
-  };
-}
-
-// ============================================================================
 // REGISTER
 // ============================================================================
 

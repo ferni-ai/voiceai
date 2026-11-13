@@ -1,6 +1,8 @@
 name: Security Scan
 
-# Scans for security vulnerabilities in dependencies and code
+# Scans for security vulnerabilities in dependencies and code.
+# Secret scanning: CI's Security Scan (PRs, merge queue) and Secret Scan (main)
+# (pushes, plus a nightly full-history scan).
 # Runs daily and on PRs
 
 on:
@@ -172,25 +174,3 @@ jobs:
           path: codeql-results
           retention-days: 14
           if-no-files-found: ignore
-
-  # Secret scanning (check for accidentally committed secrets)
-  secret-scan:
-    if: ${{ vars.OPTIONAL_CI != 'off' }}
-    name: Secret Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Install Gitleaks
-        # The same pinned, checksummed install as the required Security Scan in ci.yml.
-        uses: ./.github/actions/install-gitleaks
-        continue-on-error: true
-
-      - name: Run Gitleaks
-        run: |
-          gitleaks detect --source . --verbose --no-banner 2>&1 || true
-          echo "Secret scan complete (non-blocking)"

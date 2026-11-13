@@ -150,7 +150,7 @@ export async function handleTokenRoutes(
 ): Promise<boolean> {
   // LiveKit URL endpoint - rate limit: 100/min (simple read-only endpoint)
   if (pathname === '/token-url') {
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'token-url' })) {
       return true;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -160,7 +160,7 @@ export async function handleTokenRoutes(
 
   // Demo status endpoint - rate limit: 60/min (prevent status polling abuse)
   if (pathname === '/demo-status') {
-    if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'demo-status' })) {
       return true;
     }
     const ip = getClientIp(req);

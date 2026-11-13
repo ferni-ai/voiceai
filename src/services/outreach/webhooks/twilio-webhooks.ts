@@ -21,7 +21,7 @@ import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/i
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
-import { heldSender, last4 } from '../checkin-replies.js';
+import { heldSenderStrict, last4 } from '../checkin-replies.js';
 import { answerCallMe, CALL_SCHEDULED, CALLING, NO_CALL } from '../sms-call-me.js';
 import { findAccountByVerifiedPhone } from './sms-sender-account.js';
 
@@ -273,13 +273,14 @@ export function isSignedInboundSms(
 /**
  * Handle an inbound text. `called`: a "call me" text placed a call now, or for later.
  * `crisis`: the route's screen read this text as a crisis (its "call me" rings now).
+ * `unverified`: from no member's verified phone and not a maybe-"stop" (SMS_REPLY_UNVERIFIED).
  */
 export async function handleInboundSMSWebhook(
   payload: TwilioInboundSMSPayload,
   signature?: string,
   url?: string,
   { crisis = false }: { crisis?: boolean } = {}
-): Promise<{ success: boolean; twiml?: string; called?: 'now' | 'later' }> {
+): Promise<{ success: boolean; twiml?: string; called?: 'now' | 'later'; unverified?: true }> {
   if (!isSignedInboundSms(payload, signature, url)) return { success: false };
 
   const { MessageSid, Body, From, NumMedia } = payload;
@@ -305,9 +306,7 @@ export async function handleInboundSMSWebhook(
   const numMedia = parseInt(NumMedia, 10) || 0;
   for (let i = 0; i < numMedia; i++) {
     const mediaUrl = (payload as unknown as Record<string, string>)[`MediaUrl${i}`];
-    if (mediaUrl) {
-      mediaUrls.push(mediaUrl);
-    }
+    if (mediaUrl) mediaUrls.push(mediaUrl);
   }
 
   // Create inbound message record
@@ -394,7 +393,7 @@ export async function handleInboundSMSWebhook(
   if (isMemberIdentity(userId)) {
     try {
       const stop = said?.kind === 'maybe-opt-out';
-      const held = await heldSender(userId, From); // MINOR_CARE_SHARED_HOLD: answered, not kept
+      const held = await heldSenderStrict(userId, From); // MINOR_CARE: answered, not kept
       const routeResult = await routeInboundSMS(userId, From, Body, stop, held);
 
       log.info(
@@ -425,7 +424,8 @@ export async function handleInboundSMSWebhook(
     }
   }
 
-  return { success: true }; // no auto-reply
+  const unverified = !isMemberIdentity(userId) && said?.kind !== 'maybe-opt-out';
+  return { success: true, ...(unverified && { unverified }) }; // no auto-reply here
 }
 
 /**

@@ -17,7 +17,7 @@
  * @module AnticipatoryTriggerEngine
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import type {
   AnticipatoryIntelligence,
   AnticipatedOutcomeType,
@@ -372,7 +372,7 @@ export function processPartialInput(
       sessionId,
       anticipatedOutcome: detection.anticipatedOutcome,
       confidence: detection.overallConfidence.toFixed(2),
-      verbalResponse,
+      verbalResponse: replyForLog(verbalResponse),
       inputLen: partialInput.length,
     },
     '⚡ Firing anticipatory response'

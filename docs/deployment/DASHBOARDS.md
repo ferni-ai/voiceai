@@ -81,23 +81,23 @@
 
 ## API Endpoints
 
-All dashboards connect to the health server (default port 8080):
+All dashboards connect to the health server (default port 8080). Its diagnostic routes answer only an admin: send an admin's Firebase ID token.
 
 ```bash
 # Cognitive state (current snapshot)
-curl http://localhost:8080/api/cognitive/state
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/cognitive/state
 
 # Cognitive history (recent events)
-curl http://localhost:8080/api/cognitive/history
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/cognitive/history
 
 # Full metrics snapshot
-curl http://localhost:8080/api/metrics
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/metrics
 
 # Metrics summary
-curl http://localhost:8080/api/metrics/summary
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/metrics/summary
 
 # Active sessions only
-curl http://localhost:8080/api/metrics/sessions
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/metrics/sessions
 ```
 
 ### WebSocket (Real-time)
@@ -182,7 +182,7 @@ open http://localhost:5173/tools-dashboard.html
 **No data appearing:**
 1. Start a conversation to generate events
 2. Use Ctrl+D for demo mode (simulated data)
-3. Check API directly: `curl http://localhost:8080/api/cognitive/state`
+3. Check API directly: `curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/cognitive/state`
 
 **WebSocket keeps reconnecting:**
 1. Backend may be restarting (normal during dev)

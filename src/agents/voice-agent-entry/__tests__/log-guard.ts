@@ -66,7 +66,7 @@ const ERROR_TEXT =
 
 /** A value that says only whether, how many, how long or which kind; or a helper that reduces it so. */
 export const SHAPE =
-  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
+  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
 
 export interface Exemptions {
   /** Whole calls left as they are, by exact source text: [file suffix, exact argument text]. */

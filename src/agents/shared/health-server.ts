@@ -6,18 +6,19 @@
  *
  * Used by ALL agents regardless of persona.
  *
- * Endpoints:
+ * Endpoints (public: /, /health, /health/ready, /health/warmup, /api/warmup;
+ * every other route answers only an admin, see public-routes.ts):
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
  * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
- * - GET /health/crash-analytics - Crash analytics summary
+ * - GET /health/crash-analytics - Crash analytics summary (admin only)
  * - GET /api/cognitive - Current cognitive state (admin only: names users)
  * - GET /api/cognitive/history - Recent cognitive events (admin only)
  * - GET /api/metrics - Full persistence metrics snapshot
  * - GET /api/metrics/summary - Concise metrics summary
  * - GET /api/metrics/sessions - Active sessions only
- * - GET /api/crash-analytics - Crash analytics summary (alias)
- * - GET /api/crash-analytics/history - Full crash event history
+ * - GET /api/crash-analytics - Crash analytics summary (alias, admin only)
+ * - GET /api/crash-analytics/history - Full crash event history (admin only)
  * - GET /api/diagnostics - Latency summary and bottleneck analysis
  * - GET /api/diagnostics/pipeline - Pipeline stage breakdown with targets
  * - GET /api/diagnostics/session?sessionId=<id> - Per-session diagnostics
@@ -29,6 +30,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isPublicRoute } from './public-routes.js';
 import {
   getReadinessState,
   markHealthServerReady,
@@ -121,11 +123,16 @@ async function initWebSocketServer(httpServer: Server) {
   }
 }
 
+/** False once the 401 (no or a bad credential) or 403 (not an admin) is sent. */
+async function isVerifiedAdmin(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+  const { requireAdmin } = await import('../../api/auth-middleware.js');
+  return (await requireAdmin(req, res)) !== null;
+}
+
 /** Cognitive state/history: every user's events (as /ws/cognitive), so admin only (401/403). */
 async function handleCognitiveAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
-  const { requireAdmin } = await import('../../api/auth-middleware.js');
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await isVerifiedAdmin(req, res))) return;
   const url = req.url || '/';
   const broadcast = await getCognitiveBroadcast();
 
@@ -240,21 +247,6 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
       return;
     }
 
-    if (url === '/api/memory/cleanup') {
-      // Force cleanup
-      const result = await monitor.forceCleanup();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          data: result,
-          message: `Cleaned ${result.cleaned} items, freed ~${result.freedMB.toFixed(2)}MB`,
-          timestamp: new Date().toISOString(),
-        })
-      );
-      return;
-    }
-
     if (url === '/api/memory/health') {
       // Memory system health check - verifies all components
       const components: Record<string, 'up' | 'down' | 'degraded'> = {
@@ -362,11 +354,12 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
   }
 }
 
-/**
- * Handle crash analytics API requests
- */
-async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promise<void> {
+/** Crash analytics: every live session and every recent crash, so admin only (401/403). */
+async function handleCrashAnalyticsAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
+  // Defence in depth: holds even if the router ever makes these paths public.
+  if (!(await isVerifiedAdmin(req, res))) return;
+  const url = req.url || '/';
 
   try {
     const { getCrashHistory } = await import('./shutdown-handler.js');
@@ -385,7 +378,6 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
     }
 
     if (url === '/health/crash-analytics' || url === '/api/crash-analytics') {
-      // Return crash analytics summary
       const memUsage = process.memoryUsage();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -788,6 +780,9 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
     void (async () => {
       const url = req.url || '/';
 
+      // Deny by default: only the probes in public-routes.ts answer without an admin.
+      if (!isPublicRoute(url) && !(await isVerifiedAdmin(req, res))) return;
+
       // Liveness check - Cloud Run uses this to know the process is alive
       // Always returns 200 if the server is running
       if (url === '/' || url === '/health') {
@@ -1054,7 +1049,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
 
       // Crash analytics API endpoints
       if (url.startsWith('/health/crash-analytics') || url.startsWith('/api/crash-analytics')) {
-        await handleCrashAnalyticsAPI(url, res);
+        await handleCrashAnalyticsAPI(req, res);
         return;
       }
 

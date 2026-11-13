@@ -15,7 +15,7 @@
  */
 
 import { callLLM } from '../services/llm-utils.js';
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../utils/safe-logger.js';
 import type { MusicTrack } from './music-player.js';
 import { TEMP_CONTENT, MAX_TOKENS_TINY } from '../config/gemini-config.js';
 import { HTTP_TIMEOUT_SHORT_MS } from '../config/resilience-config.js';
@@ -487,7 +487,7 @@ export async function generateLLMInterjection(
           }
         }
 
-        log.debug({ cacheKey, content: cleaned }, 'LLM interjection generated');
+        log.debug({ cacheKey, content: replyForLog(cleaned) }, 'LLM interjection generated');
         return cleaned;
       }
 

@@ -527,7 +527,7 @@ function recommendCognitiveHandoff(
  * @param unlockedMemberIds - Optional list of unlocked member IDs. If provided,
  *                            commentary will only reference these members.
  */
-export function generateTeamCommentary(
+function generateTeamCommentary(
   personaId: string,
   topic: string,
   context: 'handoff' | 'reflection' | 'collaboration',
