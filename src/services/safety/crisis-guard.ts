@@ -93,7 +93,10 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
-  /** Read for CRISIS_MEANS_IN_HAND when meansInHand is unset; default process.env. */
+  /**
+   * The request's env, default process.env. Read for CRISIS_MEANS_IN_HAND when meansInHand is
+   * unset, and for CRISIS_SELF_HARM_911_LINE in the severe script (crisis-script-lines.ts).
+   */
   env?: Record<string, string | undefined>;
   /**
    * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
@@ -371,7 +374,7 @@ export function detectCrisis(
   const imminent = !callerCheck && indicators.includes('imminent_danger');
   const script = emergency
     ? EMERGENCY_FOR_THEM
-    : getCrisisResponse(severity, subject, score.language, imminent);
+    : getCrisisResponse(severity, subject, score.language, imminent, options?.env);
 
   return {
     isCrisis,
