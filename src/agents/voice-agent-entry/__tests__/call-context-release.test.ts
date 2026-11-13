@@ -11,8 +11,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-const { setupCallTypeContexts, finishCallTypeContexts } = await import('../metadata-parser.js');
-const { callTypeEnd, releaseCallTypeContexts } = await import('../call-end.js');
+const { setupCallTypeContexts } = await import('../metadata-parser.js');
+const { callEndFor } = await import('../call-end.js');
 const inbound =
   await import('../../../intelligence/context-builders/external/inbound-call-context.js');
 const outbound =
@@ -78,17 +78,36 @@ function contextsUnder(key: string): unknown[] {
   ].filter((c) => c !== undefined);
 }
 
+interface Call {
+  sessionId: string;
+  /** The call's end as the entrypoint wires it: the real report, then the real release. */
+  end: (steps?: { finish?: () => Promise<void> }) => ReturnType<typeof callEndFor>;
+  /** Shutdown callbacks the call's end registered, as LiveKit holds them. */
+  shutdown: () => Promise<unknown>;
+}
+
 /** Set up a call exactly as the agent does: signed job metadata, through the real parser. */
 async function startCall(
   dispatch: Record<string, unknown>,
   sessionId: string,
   room: string | undefined,
   signed = true
-): Promise<Record<string, unknown>> {
+): Promise<Call> {
   const raw = JSON.stringify(signed ? signDispatch(dispatch, SECRET) : dispatch);
   const metadata = JSON.parse(raw) as Record<string, unknown>;
-  await setupCallTypeContexts(metadata, dispatch.type as string, sessionId, room, raw);
-  return metadata;
+  const callType = dispatch.type as string | undefined;
+  await setupCallTypeContexts(metadata, callType, sessionId, room, raw);
+  const callbacks: Array<() => Promise<void>> = [];
+  const ctx = {
+    addShutdownCallback: (cb: () => Promise<void>) => void callbacks.push(cb),
+    job: { metadata: raw, room: room === undefined ? undefined : { name: room } },
+  };
+  return {
+    sessionId,
+    end: (steps) =>
+      callEndFor(ctx, { metadata, callType, sessionId, startTime: Date.now() - 60_000 }, steps),
+    shutdown: () => Promise.all(callbacks.map((cb) => cb())), // LiveKit runs them in parallel
+  };
 }
 
 const usedKeys = new Set<string>();
@@ -111,7 +130,7 @@ afterEach(() => {
   usedKeys.clear();
 });
 
-describe('releaseCallTypeContexts', () => {
+describe('call end releases the call context', () => {
   it.each([
     ['inbound', inboundCall, true],
     ['on-behalf', onBehalfCall, false], // unsigned: the context is set without starting call state
@@ -122,11 +141,11 @@ describe('releaseCallTypeContexts', () => {
     async (kind, make, signed) => {
       const sessionId = key(`s-${kind}`);
       const room = key(`room-${kind}`);
-      const metadata = await startCall(make(), sessionId, room, signed);
+      const call = await startCall(make(), sessionId, room, signed);
       expect(contextsUnder(sessionId)).not.toHaveLength(0);
       expect(contextsUnder(room)).not.toHaveLength(0);
 
-      await releaseCallTypeContexts(metadata, sessionId, room);
+      await call.end().end();
 
       expect(contextsUnder(sessionId)).toEqual([]);
       expect(contextsUnder(room)).toEqual([]);
@@ -136,10 +155,10 @@ describe('releaseCallTypeContexts', () => {
   it('releases an on-behalf call with no room under its call-<callId> key', async () => {
     const sessionId = key('s-ob-roomless');
     key('call-ob-test-1');
-    const metadata = await startCall(onBehalfCall(), sessionId, undefined, false);
+    const call = await startCall(onBehalfCall(), sessionId, undefined, false);
     expect(outbound.getOutboundCallContext('call-ob-test-1')).toBeDefined();
 
-    await releaseCallTypeContexts(metadata, sessionId, undefined);
+    await call.end().end();
 
     expect(contextsUnder('call-ob-test-1')).toEqual([]);
     expect(contextsUnder(sessionId)).toEqual([]);
@@ -148,7 +167,7 @@ describe('releaseCallTypeContexts', () => {
   it("a later call in the same room never sees the earlier caller's context", async () => {
     const room = key('room-reused');
     const first = await startCall(inboundCall(), key('s-first'), room);
-    await releaseCallTypeContexts(first, 's-first', room); // the first call ends
+    await first.end().end(); // the first call ends
 
     // An app call in the same room sets no call-type context of its own.
     await setupCallTypeContexts({}, undefined, key('s-app'), room);
@@ -168,7 +187,7 @@ describe('releaseCallTypeContexts', () => {
     const juno = { phone: '+15550100333', name: 'Juno Marsh', notes: 'New caller.' };
     await startCall(inboundCall(juno), key('s-late'), room); // same room, before the first call's end ran
 
-    await releaseCallTypeContexts(first, 's-early', room);
+    await first.end().end();
 
     expect(inbound.getInboundCallContext('s-early')).toBeUndefined();
     expect(inbound.getInboundCallContext(room)?.callerName).toBe('Juno Marsh');
@@ -176,25 +195,22 @@ describe('releaseCallTypeContexts', () => {
   });
 });
 
-describe('callTypeEnd', () => {
+describe('callEndFor', () => {
   it('on shutdown, releases only after the call report has read the context', async () => {
-    const callbacks: Array<() => Promise<void>> = [];
     const sessionId = key('s-report');
     const room = key('room-report');
-    const metadata = await startCall(onBehalfCall(), sessionId, room, false);
+    const call = await startCall(onBehalfCall(), sessionId, room, false);
     let reportSaw: unknown = 'not run';
-    callTypeEnd(
-      { addShutdownCallback: (cb) => void callbacks.push(cb) },
-      async () => {
+    call.end({
+      finish: async () => {
         await new Promise((r) => {
           setTimeout(r, 20);
         }); // the report's own reads take time
         reportSaw = outbound.getOutboundCallContext(sessionId)?.callId;
       },
-      () => releaseCallTypeContexts(metadata, sessionId, room)
-    );
+    });
 
-    await Promise.all(callbacks.map((cb) => cb())); // LiveKit runs shutdown callbacks in parallel
+    await call.shutdown();
 
     expect(reportSaw).toBe('ob-test-1');
     expect(contextsUnder(sessionId)).toEqual([]);
@@ -211,70 +227,56 @@ describe('voice entry exit paths', () => {
     if (i < 0) throw new Error(`index.ts: no line matches ${pattern}`);
     return i;
   };
-  const multiStart = lineOf(/Multi-agent session returned/);
-  const multiEnd = lineOf(/unregisterSession\(sessionId, 'multi_agent_exit'\)/);
-  const cleanStart = lineOf(/= await runUntilCallEnds\(/); // it closes the agent session
-  const cleanEnd = lineOf(/unregisterSession\(sessionId, 'clean_exit'\)/);
+  const range = (from: number, to: number): number[] =>
+    Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  // From the context setup on, every line each exit path can run, in order.
+  const setup = lineOf(/await setupCallTypeContexts\(/);
+  const multiBranch = lineOf(/if \(multiAgentActivatedEarly \|\| roomClosedEarly/, setup);
+  const multiEnd = lineOf(/unregisterSession\(sessionId, 'multi_agent_exit'\)/, multiBranch);
+  const multiReturn = lineOf(/^\s*return;/, multiEnd);
+  const cleanEnd = lineOf(/unregisterSession\(sessionId, 'clean_exit'\)/, multiReturn);
   const crashStart = lineOf(/^ {2}\} catch \(error\) \{/, cleanEnd);
   const crashEnd = lineOf(/unregisterSession\(sessionId, `crash_in_/, crashStart);
+  const paths = [
+    ['multi_agent_exit', range(setup, multiEnd)],
+    ['clean_exit', [...range(setup, multiBranch - 1), ...range(multiReturn + 1, cleanEnd)]],
+    ['crash', range(crashStart, crashEnd)],
+  ] as const;
 
-  /** The order of finish, session close and release on one exit path, read from index.ts. */
-  function stepsOf(from: number, to: number): string[] {
-    return entry.slice(from, to + 1).flatMap((line) => {
+  /** The order of session close and call end on one exit path, read from index.ts. */
+  function stepsOf(lines: readonly number[]): string[] {
+    return lines.flatMap((n) => {
+      const line = entry[n];
       if (/^\s*\/\//.test(line)) return [];
-      if (/await (finishCallType)(\?\.)?\(\)/.test(line)) return ['finish'];
-      if (/await releaseCallType(\?\.)?\(\)/.test(line)) return ['release'];
+      if (/callEnd\??\.end\(/.test(line)) return ['end'];
       if (/await closeAgentSession\(|= await runUntilCallEnds\(/.test(line)) return ['close'];
       return [];
     });
   }
 
-  it.each([
-    ['multi_agent_exit', multiStart, multiEnd],
-    ['clean_exit', cleanStart, cleanEnd],
-    ['crash', crashStart, crashEnd],
-  ] as const)(
-    '%s: a turn before the session closes still sees the third party on the line',
-    async (path, from, to) => {
-      const steps = stepsOf(from, to);
-      expect([...steps].sort()).toEqual(['close', 'finish', 'release']);
+  it.each(paths)('%s: the call ends once, after the agent session is closed', (_path, lines) => {
+    expect(stepsOf(lines)).toEqual(['close', 'end']);
+  });
 
+  it.each(paths)(
+    '%s: a turn before the session closes still sees the third party on the line',
+    async (path, lines) => {
       const { outboundPartiesFor } = await import('../../shared/outbound-opener.js');
       const sessionId = key(`s-path-${path}`);
       const room = key(`room-path-${path}`);
-      const metadata = await startCall(onBehalfCall(), sessionId, room, false);
-      const end = callTypeEnd(
-        { addShutdownCallback: () => undefined },
-        async () =>
-          finishCallTypeContexts(metadata, 'on_behalf_call', sessionId, 60_000, undefined),
-        async () => releaseCallTypeContexts(metadata, sessionId, room)
-      );
+      const call = (await startCall(onBehalfCall(), sessionId, room, false)).end();
       let closed = false;
-      for (const step of steps) {
+      for (const step of stepsOf(lines)) {
         // Until the session closes, a turn can still run and ask who is on the line.
         if (!closed) expect(outboundPartiesFor(sessionId), `before ${step}`).toBeDefined();
         // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
-        if (step === 'finish') await end.finish();
-        // eslint-disable-next-line no-await-in-loop -- the steps run in the path's order
-        if (step === 'release') await end.release();
+        if (step === 'end') await call.end();
         if (step === 'close') closed = true;
       }
       expect(contextsUnder(sessionId)).toEqual([]);
       expect(contextsUnder(room)).toEqual([]);
     }
   );
-
-  it('the crash path finishes before it closes the session, and releases after', () => {
-    expect(stepsOf(crashStart, crashEnd)).toEqual(['finish', 'close', 'release']);
-  });
-
-  it('every exit path releases right before it unregisters the session', () => {
-    for (const end of [multiEnd, cleanEnd, crashEnd]) {
-      expect(entry.slice(end - 3, end).join('\n'), `before line ${end + 1}`).toMatch(
-        /await releaseCallType(\?\.)?\(\)/
-      );
-    }
-  });
 });
 
 describe('call context stores are capped', () => {

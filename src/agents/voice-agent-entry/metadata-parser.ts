@@ -18,7 +18,6 @@ import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
 import { livePersonaId } from '../../personas/index.js';
-import { roomKeyOf } from './call-end.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -371,6 +370,11 @@ export async function setupCallTypeContexts(
       process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${errorText(error)}\n`);
     }
   }
+}
+
+/** The second key a call's context is stored under: its room, or `call-<callId>` without one. */
+export function roomKeyOf(metadata: Record<string, unknown>, roomName: string | undefined): string {
+  return roomName || `call-${metadata.callId}`;
 }
 
 /**

@@ -3,7 +3,7 @@
  * outbound call, proactive reason).
  *
  * Each call's context is released at call end (releaseCallTypeContexts in
- * voice-agent-entry/metadata-parser.ts). The cap is the backstop for a call
+ * voice-agent-entry/call-end.ts). The cap is the backstop for a call
  * whose end never ran: a long-lived worker serves call after call, so a missed
  * release would otherwise keep that context until the process exits.
  *

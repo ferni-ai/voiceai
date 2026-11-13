@@ -1,62 +1,101 @@
 /**
- * The end of a call's call-type work, on every exit path.
- *
- * finishOnce runs the call report (on-behalf outcome, family check-in stop);
- * callTypeEnd pairs it with releasing the call's context, so per-call context
- * is released at call end and never outlives the call in a long-lived worker.
+ * The end of a call's call-type work, on every exit path: report the call
+ * (on-behalf outcome, family check-in stop), then release its context, so
+ * per-call context never outlives the call in a long-lived worker.
  *
  * @module agents/voice-agent-entry/call-end
  */
 
+import { finishCallTypeContexts, roomKeyOf } from './metadata-parser.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
+
+const log = createLogger({ module: 'call-end' });
+
+/** What callEndFor needs from the LiveKit job. */
+interface CallEndJob {
+  addShutdownCallback: (callback: () => Promise<void>) => void;
+  job: { metadata: string; room?: { name: string } };
+}
+
+/** The call being ended, as the entrypoint parsed it. */
+interface CallEndCall {
+  metadata: Record<string, unknown>;
+  callType: string | undefined;
+  sessionId: string;
+  /** When the entrypoint started (ms epoch); the report gives the call's length. */
+  startTime: number;
+}
+
+export interface CallEnd {
+  /**
+   * Report the call, then release its context. Run it once the agent session
+   * is closed: the outbound context is how every in-call read knows a third
+   * party is on the line, and dropped while a turn can still run, that person
+   * would be treated as the account owner. Never throws; a failure is logged
+   * by error class only.
+   */
+  end(): Promise<void>;
+}
+
 /**
- * Runs `finish` once, from whichever comes first: the entrypoint's own exit
+ * The call's end, run once from whichever comes first: an entrypoint exit
+ * path, or LiveKit's shutdown callbacks (which run in parallel).
+ *
+ * `steps` replaces the report or the release, for tests.
+ */
+export function callEndFor(
+  ctx: CallEndJob,
+  call: CallEndCall,
+  steps: { finish?: () => Promise<void>; release?: () => Promise<void> } = {}
+): CallEnd {
+  const { metadata, callType, sessionId, startTime } = call;
+  const report = (): Promise<void> => {
+    const durationMs = Date.now() - startTime;
+    return finishCallTypeContexts(metadata, callType, sessionId, durationMs, ctx.job.metadata);
+  };
+  const finish = once(ctx, steps.finish ?? report);
+  const releaseStep =
+    steps.release ?? (() => releaseCallTypeContexts(metadata, sessionId, ctx.job.room?.name));
+  const release = once(ctx, async () => {
+    await finish().catch(() => undefined); // the report reads the context release drops
+    await releaseStep();
+  });
+  return {
+    async end() {
+      await finish().catch((error) =>
+        log.error({ errorClass: errorClass(error) }, 'Call report failed at call end')
+      );
+      await release().catch((error) =>
+        log.error({ errorClass: errorClass(error) }, 'Call context not released at call end')
+      );
+    },
+  };
+}
+
+/**
+ * Runs `step` once, from whichever comes first: the entrypoint's own exit
  * path, or LiveKit's shutdown callbacks. The job gives the entrypoint only 15 s
  * after the room closes (ENTRYPOINT_SHUTDOWN_TIMEOUT in @livekit/agents) and
  * then exits the process, but it awaits its shutdown callbacks first. Without
  * this, a call report still running at the end of a slow cleanup (the LLM read
  * of the call, the requester's push and records) was dropped with no log line.
  */
-function finishOnce(
-  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
-  finish: () => Promise<void>
-): () => Promise<void> {
+function once(ctx: CallEndJob, step: () => Promise<void>): () => Promise<void> {
   let running: Promise<void> | undefined;
-  const once = (): Promise<void> => (running ??= finish());
-  ctx.addShutdownCallback(once);
-  return once;
-}
-
-/**
- * A call's two end steps, each run once from whichever comes first: the
- * entrypoint's exit paths or LiveKit's shutdown callbacks, which run in
- * parallel. `release` waits for `finish`, because the call report reads the
- * context `release` drops.
- */
-export function callTypeEnd(
-  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
-  finish: () => Promise<void>,
-  release: () => Promise<void>
-): { finish: () => Promise<void>; release: () => Promise<void> } {
-  const finishCall = finishOnce(ctx, finish);
-  const releaseCall = finishOnce(ctx, async () => {
-    await finishCall().catch(() => undefined); // its own shutdown callback reports the failure
-    await release();
-  });
-  return { finish: finishCall, release: releaseCall };
+  const run = (): Promise<void> => (running ??= step());
+  ctx.addShutdownCallback(run);
+  return run;
 }
 
 /**
  * Release this call's context (inbound caller, outbound call, proactive
  * reason) from every store, under every key setupCallTypeContexts wrote.
  *
- * Call it only once the agent session is closed. The outbound context is how
- * every in-call read knows a third party is on the line; dropped while a turn
- * can still run, that person would be treated as the account owner.
- *
  * A room key is removed only while it still holds this session's context, so a
  * later call in the same room keeps its own.
  */
-export async function releaseCallTypeContexts(
+async function releaseCallTypeContexts(
   metadata: Record<string, unknown>,
   sessionId: string,
   roomName: string | undefined
@@ -97,9 +136,4 @@ function releaseFromStore(
   if (own === undefined) return;
   clear(sessionId);
   if (get(roomKey) === own) clear(roomKey);
-}
-
-/** The second key a call's context is stored under: its room, or `call-<callId>` without one. */
-export function roomKeyOf(metadata: Record<string, unknown>, roomName: string | undefined): string {
-  return roomName || `call-${metadata.callId}`;
 }

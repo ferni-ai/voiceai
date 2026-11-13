@@ -65,12 +65,8 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import {
-  finishCallTypeContexts,
-  parseJobMetadata,
-  setupCallTypeContexts,
-} from './metadata-parser.js';
-import { callTypeEnd, releaseCallTypeContexts } from './call-end.js';
+import { parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { callEndFor, type CallEnd } from './call-end.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona, callerSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
@@ -203,10 +199,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
   // Forward-declared variables used across phases and in cleanup
   let userId: string | null = null;
-  // Closes out call-type work (e.g. reports an on-behalf call) on any exit path
-  let finishCallType: (() => Promise<void>) | undefined;
-  // Releases the call's context; each exit path runs it after the session is closed
-  let releaseCallType: (() => Promise<void>) | undefined;
+  let callEnd: CallEnd | undefined;
   let personaId = 'ferni';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let services: any = null;
@@ -253,13 +246,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
-    // Both also run on shutdown: the job exits 15 s after the room closes
-    ({ finish: finishCallType, release: releaseCallType } = callTypeEnd(
-      ctx,
-      async () =>
-        finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata),
-      async () => releaseCallTypeContexts(metadata, sessionId, ctx.job.room?.name)
-    ));
+    // Reports the call and releases its context on every exit path, and on shutdown
+    callEnd = callEndFor(ctx, { metadata, callType, sessionId, startTime });
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
     await setupCallTypeContexts(
@@ -747,7 +735,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // started (handlers returned before session.start), so this is a no-op today.
       await closeAgentSession(session, { sessionId, endReason: sessionEndReason });
       e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
-      await finishCallType();
+      await callEnd.end();
 
       try {
         const sessionDurationMs = Date.now() - startTime;
@@ -809,7 +797,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
 
       process.stderr.write(`[voice-agent-entry] Session ended cleanly (multi-agent).\n`);
-      await releaseCallType();
       unregisterSession(sessionId, 'multi_agent_exit');
       return;
     }
@@ -886,7 +873,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
 
-    await finishCallType();
+    await callEnd.end();
 
     // FinOps end-of-session
     const sessionDurationMs = Date.now() - startTime;
@@ -932,12 +919,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     process.stderr.write(`[voice-agent-entry] Session ended cleanly.\n`);
-    await releaseCallType();
     unregisterSession(sessionId, 'clean_exit');
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
-    await finishCallType?.().catch(() => undefined);
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${errorText(error)}\n`);
 
     recordCrash('uncaught_exception', errObj, sessionId, { roomName, connectionState: currentPhase });
@@ -997,7 +982,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // After the wait, so a spoken error message isn't cut off.
     await closeAgentSession(session, { sessionId, endReason: 'error' });
-    await releaseCallType?.().catch(() => undefined); // after the close: no turn can read it now
+    await callEnd?.end(); // after the close, so no turn is left to read the context
 
     unregisterSession(sessionId, `crash_in_${currentPhase}`);
   }
