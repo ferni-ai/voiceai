@@ -357,8 +357,8 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
 /** Crash analytics: every live session and every recent crash, so admin only (401/403). */
 async function handleCrashAnalyticsAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
-  const { requireAdmin } = await import('../../api/auth-middleware.js');
-  if (!(await requireAdmin(req, res))) return;
+  // Defence in depth: holds even if the router ever makes these paths public.
+  if (!(await isVerifiedAdmin(req, res))) return;
   const url = req.url || '/';
 
   try {
