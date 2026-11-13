@@ -309,7 +309,7 @@ index 047893c809b6f2b1c6760b49f5a1548b45dab34a..89534ef2b68f8a68b1b43b67dcb22350
    Event,
    ExpFilter,
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4edab15a8d77 100644
+index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e07845cd0e 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -240,6 +240,12 @@ class AutoToolReplyTurnHold {
@@ -346,7 +346,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4eda
 +    // PATCHED(ferni): every final transcript cancelled the pause, interrupting the
 +    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
-+      this.logger.info({ user_input: ev.alternatives[0].text }, "BACKCHANNEL_KEEPS_PAUSE");
++      this.logger.info({ user_input_len: String(ev.alternatives[0].text ?? "").length }, "BACKCHANNEL_KEEPS_PAUSE");
 +      return;
 +    }
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
@@ -388,7 +388,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4eda
 +    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
 +      this.cancelPreemptiveGeneration();
-+      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
++      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length }, "BACKCHANNEL_NOT_A_TURN");
 +      const __resume = (tries) => { if (!this.pausedSpeech || this.pausedSpeech.handle.interrupted) return; if (this.agentSession.userState === "speaking" && tries < 20) { this.__ferniResumeTimer = setTimeout(() => __resume(tries + 1), 150); return; } this.startFalseInterruptionTimer(0); }; clearTimeout(this.__ferniResumeTimer); this.__ferniResumeTimer = setTimeout(() => __resume(0), 350);
 +      return true;
 +    }
@@ -406,7 +406,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4eda
 +    this.__ferniHoldExpired = void 0;
 +    if (__holdMs > 0 && this.audioRecognition) {
 +      const recognition = this.audioRecognition;
-+      this.logger.info({ user_input: info.newTranscript, holdMs: __holdMs }, "UNFINISHED_TURN_HELD");
++      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length, holdMs: __holdMs }, "UNFINISHED_TURN_HELD");
 +      this.__ferniHeldTurnTimer = setTimeout(() => {
 +        this.__ferniHeldTurnTimer = void 0;
 +        if (this.closeAbort.signal.aborted || recognition.speaking || recognition.audioTranscript !== info.newTranscript) return;
@@ -428,7 +428,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4eda
 +      const __pSameCtx = preemptive.chatCtx.isEquivalent(chatCtx);
 +      const __pSameTools = preemptive.tools.equals(this.tools);
 +      const __pSameChoice = (0, import_tool_context.isSameToolChoice)(preemptive.toolChoice, this.toolChoice);
-+      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight_len: String(preemptive.info.newTranscript ?? "").length, final_len: String((userMessage == null ? void 0 : userMessage.rawTextContent) ?? "").length }, 'PREEMPTIVE_DECISION');
 +      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
 +      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
 +      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
@@ -510,7 +510,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4eda
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f16529410a3e8909 100644
+index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee7c02ebfa 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -293,6 +293,12 @@ class AutoToolReplyTurnHold {
@@ -547,7 +547,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f1652941
 +    // PATCHED(ferni): every final transcript cancelled the pause, interrupting the
 +    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
-+      this.logger.info({ user_input: ev.alternatives[0].text }, "BACKCHANNEL_KEEPS_PAUSE");
++      this.logger.info({ user_input_len: String(ev.alternatives[0].text ?? "").length }, "BACKCHANNEL_KEEPS_PAUSE");
 +      return;
 +    }
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
@@ -589,7 +589,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f1652941
 +    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
 +      this.cancelPreemptiveGeneration();
-+      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
++      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length }, "BACKCHANNEL_NOT_A_TURN");
 +      const __resume = (tries) => { if (!this.pausedSpeech || this.pausedSpeech.handle.interrupted) return; if (this.agentSession.userState === "speaking" && tries < 20) { this.__ferniResumeTimer = setTimeout(() => __resume(tries + 1), 150); return; } this.startFalseInterruptionTimer(0); }; clearTimeout(this.__ferniResumeTimer); this.__ferniResumeTimer = setTimeout(() => __resume(0), 350);
 +      return true;
 +    }
@@ -607,7 +607,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f1652941
 +    this.__ferniHoldExpired = void 0;
 +    if (__holdMs > 0 && this.audioRecognition) {
 +      const recognition = this.audioRecognition;
-+      this.logger.info({ user_input: info.newTranscript, holdMs: __holdMs }, "UNFINISHED_TURN_HELD");
++      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length, holdMs: __holdMs }, "UNFINISHED_TURN_HELD");
 +      this.__ferniHeldTurnTimer = setTimeout(() => {
 +        this.__ferniHeldTurnTimer = void 0;
 +        if (this.closeAbort.signal.aborted || recognition.speaking || recognition.audioTranscript !== info.newTranscript) return;
@@ -629,7 +629,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f1652941
 +      const __pSameCtx = preemptive.chatCtx.isEquivalent(chatCtx);
 +      const __pSameTools = preemptive.tools.equals(this.tools);
 +      const __pSameChoice = isSameToolChoice(preemptive.toolChoice, this.toolChoice);
-+      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight: String(preemptive.info.newTranscript).slice(0, 60), final: String(userMessage == null ? void 0 : userMessage.rawTextContent).slice(0, 60) }, 'PREEMPTIVE_DECISION');
++      this.logger.info({ used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice, sameTranscript: __pSameText, sameChatCtx: __pSameCtx, sameTools: __pSameTools, sameToolChoice: __pSameChoice, leadMs: Date.now() - preemptive.createdAt, preflight_len: String(preemptive.info.newTranscript ?? "").length, final_len: String((userMessage == null ? void 0 : userMessage.rawTextContent) ?? "").length }, 'PREEMPTIVE_DECISION');
 +      // PATCHED(ferni): the same decision as an event, for the TURN_RECEIPT (turn-receipt.ts)
 +      this.agentSession.emit("ferni_preemptive_decision", { type: "ferni_preemptive_decision", used: __pSameText && __pSameCtx && __pSameTools && __pSameChoice });
 +      if (__pSameText && __pSameCtx && __pSameTools && __pSameChoice) {
@@ -711,7 +711,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f1652941
      }
    }
 diff --git a/dist/voice/audio_recognition.cjs b/dist/voice/audio_recognition.cjs
-index e2de266631f0c3fffc6fdc7e33dde9720722d341..ab89b5a9075b52f0fc07d5d0abebfe26c20ebfcd 100644
+index e2de266631f0c3fffc6fdc7e33dde9720722d341..39fde0ce94c7f4a0c479e0cbb0dca7db7768c1b8 100644
 --- a/dist/voice/audio_recognition.cjs
 +++ b/dist/voice/audio_recognition.cjs
 @@ -738,13 +738,18 @@ class AudioRecognition {
@@ -730,7 +730,7 @@ index e2de266631f0c3fffc6fdc7e33dde9720722d341..ab89b5a9075b52f0fc07d5d0abebfe26
 +    }
 +    // PATCHED(ferni): make dropped held events visible (backchannels, or a lost turn)
 +    if (__ferniDropped.length > 0) {
-+      this.logger.info({ dropped: __ferniDropped.map((e) => { var _a; return `${e.type}:${String(((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text).slice(0, 40)}`; }), audioTranscript: String(this.audioTranscript).slice(0, 60) }, "HELD_STT_DROPPED");
++      this.logger.info({ dropped: __ferniDropped.map((e) => { var _a; return `${e.type}:${String((((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text) ?? "").length}`; }), audioTranscript_len: String(this.audioTranscript ?? "").length }, "HELD_STT_DROPPED");
      }
    }
    flushHeldTranscripts(resolvedAt, vadSpeechStartedAt) {
@@ -743,7 +743,7 @@ index e2de266631f0c3fffc6fdc7e33dde9720722d341..ab89b5a9075b52f0fc07d5d0abebfe26
 +      // carries no text and nothing re-sends it: the agent's end of speech or a backchannel
 +      // verdict trims it as overlap, the turn is never committed, and the words go unanswered.
 +      if (ev.type === import_stt.SpeechEventType.END_OF_SPEECH && this.transcriptBuffer.length === 0 && this.audioTranscript) {
-+        this.logger.info({ transcript: this.audioTranscript.slice(0, 60), agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
++        this.logger.info({ transcript_len: String(this.audioTranscript).length, agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
 +        this.processSTTEvent(ev);
 +        return;
 +      }
@@ -778,7 +778,7 @@ index e2de266631f0c3fffc6fdc7e33dde9720722d341..ab89b5a9075b52f0fc07d5d0abebfe26
            const { done, value: ev } = res;
            if (done) break;
 diff --git a/dist/voice/audio_recognition.js b/dist/voice/audio_recognition.js
-index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..8fe7329f39f8640bc795d8a6f97e863a81bf4f82 100644
+index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..e3da07ff98ebd1c607ee96ee2126c503bca897cb 100644
 --- a/dist/voice/audio_recognition.js
 +++ b/dist/voice/audio_recognition.js
 @@ -26,7 +26,7 @@ import { createStreamChannel } from "../stream/stream_channel.js";
@@ -806,7 +806,7 @@ index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..8fe7329f39f8640bc795d8a6f97e863a
 +    }
 +    // PATCHED(ferni): make dropped held events visible (backchannels, or a lost turn)
 +    if (__ferniDropped.length > 0) {
-+      this.logger.info({ dropped: __ferniDropped.map((e) => { var _a; return `${e.type}:${String(((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text).slice(0, 40)}`; }), audioTranscript: String(this.audioTranscript).slice(0, 60) }, "HELD_STT_DROPPED");
++      this.logger.info({ dropped: __ferniDropped.map((e) => { var _a; return `${e.type}:${String((((_a = e.alternatives) == null ? void 0 : _a[0]) == null ? "" : e.alternatives[0].text) ?? "").length}`; }), audioTranscript_len: String(this.audioTranscript ?? "").length }, "HELD_STT_DROPPED");
      }
    }
    flushHeldTranscripts(resolvedAt, vadSpeechStartedAt) {
@@ -819,7 +819,7 @@ index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..8fe7329f39f8640bc795d8a6f97e863a
 +      // carries no text and nothing re-sends it: the agent's end of speech or a backchannel
 +      // verdict trims it as overlap, the turn is never committed, and the words go unanswered.
 +      if (ev.type === SpeechEventType.END_OF_SPEECH && this.transcriptBuffer.length === 0 && this.audioTranscript) {
-+        this.logger.info({ transcript: this.audioTranscript.slice(0, 60), agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
++        this.logger.info({ transcript_len: String(this.audioTranscript).length, agentSpeaking: this.isAgentSpeaking }, "END_OF_SPEECH_PASSTHROUGH");
 +        this.processSTTEvent(ev);
 +        return;
 +      }
