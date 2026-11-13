@@ -91,6 +91,164 @@ describe('the check-in words', () => {
   });
 });
 
+/** #3773 follow-up: a wider word list, and a plain denial is not a reason to check in. */
+const WIDER_EN = [
+  'i can’t go on.',
+  "i can't go on, i'm so tired",
+  'i have nothing left to live for',
+  "there's no point in living",
+  "i'm tired of living",
+  "i've given up on life",
+  "i hope i don't wake up tomorrow",
+  'i never want to wake up again',
+  'i just want to disappear forever',
+  'i keep thinking i should hang myself',
+  'i want to slit my wrists',
+];
+const WIDER_ES = [
+  'estoy pensando en suicidarme',
+  'pienso en el suicidio',
+  'quiero ahorcarme',
+  'a veces quiero lastimarme',
+  'no tengo razón para vivir',
+  'no vale la pena vivir',
+  'ya no puedo más',
+  'ya no aguanto mas, en serio',
+];
+const WIDER_NOT = [
+  "i can't go on vacation this year",
+  "i can't go on like this at work", // a recall hard negative's shape: stays as on main
+  'we gave up on the old car',
+  'my sister is tired of living in ohio',
+  'the battery will disappear for good if you drop it', // no wanting
+  'ya no puedo más con este calor',
+];
+const DENIED = [
+  "i'm not going to hurt myself",
+  'I would never kill myself',
+  "i'm not suicidal, just really sad",
+  "i won't hurt myself, i promise",
+  'i will not hurt myself',
+  'i would not hurt myself',
+  'i am not going to hurt myself',
+  "i won't ever hurt myself",
+  "i'm not trying to hurt myself",
+  "i wouldn't hurt myself",
+  "i'd never hurt myself",
+  'i never would hurt myself',
+  "i'm never gonna kill myself",
+  "i'm not planning on hurting myself",
+  "i'm not about to kill myself",
+  'i have no thoughts of hurting myself',
+  'no voy a hacerme daño',
+  'nunca voy a matarme',
+  'no pienso matarme',
+];
+const KEPT = [
+  "i'm not okay and i want to die",
+  "i'm not okay, i keep thinking about killing myself",
+  "I can't go on anymore",
+  "i'm not going to hurt myself but i can't go on anymore",
+  'i would never kill myself. i just want to die',
+  "i won't hurt myself, i just wish i was dead",
+  "i don't want to die", // wanting not to is not a denial
+  "i'm trying not to hurt myself",
+  "i tried but i couldn't kill myself",
+  "i didn't hurt myself this week",
+];
+const HEDGED_ROWS = [
+  "i'm not going to hurt myself?",
+  "i won't hurt myself if things get better",
+  "i won't kill myself unless he leaves",
+  "maybe i won't kill myself",
+  "i probably won't hurt myself",
+  "i won't hurt myself, i might just drink",
+  "i hope i won't hurt myself",
+  "i won't hurt myself, i think",
+  "i can't promise i won't hurt myself",
+  "i cannot promise i won't hurt myself",
+  "i'm not sure i won't hurt myself",
+  "i don't know whether i won't hurt myself",
+  "i'm not going to kill myself yet",
+  "i'm not going to hurt myself tonight",
+  "i won't hurt myself today",
+  "i'm not suicidal right now",
+  "i won't hurt myself again",
+  "i'm not suicidal anymore",
+  "i'm not suicidal any more",
+  'i would never kill myself, but things are really bad',
+  "i won't hurt myself, though some days are hard",
+  "i won't hurt myself, although it crosses my mind",
+  'no voy a hacerme daño, no sé',
+  'tal vez no voy a matarme',
+  'quizás no voy a hacerme daño',
+  'ojalá no voy a hacerme daño',
+  'todavía no voy a matarme',
+  'no voy a hacerme daño esta noche',
+  'hoy no voy a hacerme daño',
+  'ahora no voy a matarme',
+  'no voy a hacerme daño otra vez',
+  'ya no voy a hacerme daño',
+  'no voy a hacerme daño pero estoy mal',
+  'no voy a hacerme daño, aunque lo pienso',
+];
+const KEPT_ES = ['no voy a hacerme daño pero quiero morir', 'no quiero matarme'];
+
+describe('the wider word list', () => {
+  it.each(WIDER_EN)('check in, in English, on "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+    expect(await said(line)).toContain('Are you safe right now?');
+  });
+
+  it.each(WIDER_ES)('check in, in Spanish, on "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+    expect(await said(line)).toContain('¿Estás a salvo ahora mismo?');
+  });
+
+  it.each(WIDER_NOT)('do not fire on "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(false);
+  });
+});
+
+describe('a plain denial', () => {
+  it.each(DENIED)('is not a check-in: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(false);
+  });
+
+  /** Never lower: a mention the caller does not plainly deny keeps the check-in. */
+  it.each(KEPT)('keeps the check-in: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+  });
+
+  it.each(KEPT_ES)('keeps the check-in, in Spanish: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+    expect(await said(line)).toContain('¿Estás a salvo ahora mismo?');
+  });
+
+  /** One row per hedge: each turns a denial back into a check-in. */
+  it.each(HEDGED_ROWS)('keeps the check-in when the line hedges: "%s"', async (line) => {
+    expect(await checksIn(line)).toBe(true);
+  });
+
+  it('changes nothing with the flag off: every new row goes to the gate', async () => {
+    const rows = [
+      ...WIDER_EN,
+      ...WIDER_ES,
+      ...WIDER_NOT,
+      ...DENIED,
+      ...KEPT,
+      ...KEPT_ES,
+      ...HEDGED_ROWS,
+    ];
+    expect(rows.length).toBeGreaterThan(80);
+    const envs = [{ CRISIS_TIMEOUT_CHECKIN: 'off' }, {}];
+    const decided = await Promise.all(
+      envs.flatMap((env) => rows.map(async (line) => decide(line, { env })))
+    );
+    expect(decided).toEqual(Array(envs.length * rows.length).fill(ESCALATED));
+  });
+});
+
 describe('checkin.escalation', () => {
   it('is the check-in for a failed read, a pattern pass and safety words, with the flag on', async () => {
     expect(await decide(UNSAFE)).toEqual({ action: 'guide', guidance: await guidance() });

@@ -6,9 +6,14 @@
  * (crisis-classifier.ts), and the gate then speaks an ordinary reply. On main, "i have a bottle
  * of pills and i want to take them all" with the classifier timing out got no 988 at all. With
  * the flag on, a turn the patterns read as nothing, whose read failed, and whose latest caller
- * line holds a word from CHECKIN_WORDS gets the check-in: Ferni asks, warmly, whether they are
- * safe right now, offers 988, and carries on. Never the crisis script, and never silent: when the
- * reply lacks 988 or a safety question, code says them after it (withCheckinEnding).
+ * line holds a word from EN_WORDS or ES_WORDS gets the check-in: Ferni asks, warmly, whether
+ * they are safe right now, offers 988, and carries on. Never the crisis script, and never
+ * silent: when the reply lacks 988 or a safety question, code says them after it
+ * (withCheckinEnding).
+ *
+ * A plain denial ("i'm not going to hurt myself") is not a reason to check in, but only in a line
+ * that neither hedges, limits it in time, turns on a contrast nor asks; one mention the caller
+ * does not deny keeps the check-in.
  *
  * Only adds: never on a turn the patterns, a gentle offer or a re-ask already handle, and never
  * when the classifier answered (a "none" is a read). Notes no call risk; logs counts only.
@@ -27,6 +32,9 @@ const log = createLogger({ module: 'CrisisTimeoutCheckin' });
 
 type Env = Record<string, string | undefined>;
 
+/** The words end their clause: "i can't go on." but not "i can't go on the trip". */
+const CLAUSE_END = '(?=\\s*(?:[.!?,;]|$))';
+
 /**
  * Words next to risk to the caller's own life or safety. Narrow on purpose, unlike the agreement
  * gate's list (hasRiskContent), which only keeps an escalation: this one adds a check-in.
@@ -36,8 +44,13 @@ const EN_WORDS = [
   'suicid\\w*|kill(?:ing)? myself|kms|ctb|unaliv\\w*|sewer ?slide|want(?:ed)? to die\\b(?! (?:my|your|her|his|their|the|it)\\b)|wanna die|wish i (?:was|were) dead|better off dead',
   "end(?:ing)? (?:it all|my life|things)|take my (?:own )?life|no reason to live|better off without me|don'?t want to (?:be here|live|exist|wake up)|not (?:be|being) (?:here|around|alive) (?:anymore|tomorrow)",
   "can'?t go on (?:anymore|any ?longer|living)|can'?t (?:do|take) (?:this|it) anymore|can'?t keep going(?: like this| anymore| on)\\b",
+  `can'?t go on${CLAUSE_END}`,
+  `nothing (?:left )?to live for|no point (?:in )?(?:living|being alive|going on)|tired of living${CLAUSE_END}|(?:give|giving|gave|given) up on (?:life|living)`,
+  "(?:hope|wish) i (?:don'?t|never|won'?t) wake up|never want to wake up",
+  '(?:want(?:ed)? to|wanna|wish i could) disappear (?:forever|for good)',
   // self-harm
   'self[- ]?harm\\w*|(?:cut|cutting|hurt|hurting|harm|harming|burn|burning|starv\\w*) myself',
+  '(?:hang|shoot|drown|stab) myself|slit my wrists?',
   // means
   'overdos\\w*(?! on\\b)|(?:all|bottle|handful|whole bunch) of (?:my |the |these |those )?(?:pills|meds|tablets)|take them all|swallow(?:ed)? (?:them|it) all|noose|razor ?blades?|gun to my',
   'jump(?:ing)? (?:off|from) (?:a|the|this|that) (?:bridge|roof|building|ledge|cliff|balcony|overpass)|in front of (?:a|the) (?:train|bus|truck|car)',
@@ -47,19 +60,58 @@ const EN_WORDS = [
 const ES_WORDS = [
   'matarme|quitarme la vida|(?:me )?quiero morir(?:me)?|no quiero (?:vivir|seguir viviendo|despertar)|acabar con (?:todo|mi vida)',
   'hacerme da(?:ñ|n)o|cortarme|todas (?:las|mis) pastillas|tomarme todas|no estoy a salvo',
+  'suicidarme|suicidio|ahorcarme|lastimarme',
+  `no (?:tengo|hay) (?:raz(?:ó|o)n|motivo) para vivir|no vale la pena vivir|ya no (?:puedo|aguanto) m(?:á|a)s${CLAUSE_END}`,
 ];
-const pattern = (list: readonly string[]): RegExp => new RegExp(`\\b(?:${list.join('|')})\\b`);
+const pattern = (list: readonly string[]): RegExp => new RegExp(`\\b(?:${list.join('|')})\\b`, 'g');
 const EN = pattern(EN_WORDS);
 const ES = pattern(ES_WORDS);
+
+/**
+ * A plain denial right before the words: "i'm not going to hurt myself", "i would never kill
+ * myself", "no thoughts of hurting myself", "no voy a hacerme daño". Wanting not to ("i don't
+ * want to die"), trying not to, couldn't and didn't are not denials and stay check-ins.
+ */
+const DENIED_BEFORE = new RegExp(
+  `(?:${[
+    "\\b(?:i'?m|am|will|would|i'?ll) not",
+    "\\b(?:won'?t|wouldn'?t)",
+    '\\bnever(?: (?:would|will|ever))?',
+    '\\bno (?:plans?|intention|intent|thoughts?|desire|urges?) (?:to|of|about)',
+    '\\b(?:no|nunca|jam(?:á|a)s) (?:voy a|pienso|planeo|me voy a)',
+  ].join('|')})(?: (?:ever|even))?(?: (?:going|gonna|planning|about|trying)(?: (?:to|on))?)?\\s+$`
+);
+
+/**
+ * A line that hedges, limits a denial in time, turns on a contrast or asks keeps every check-in:
+ * "i won't hurt myself tonight", "maybe i won't", "i'd never kill myself, but...".
+ */
+const HEDGED = new RegExp(
+  [
+    '\\?',
+    "\\b(?:if|unless|maybe|probably|might|hope|think|can'?t promise|cannot promise|not sure|don'?t know (?:if|whether))\\b",
+    '\\b(?:yet|tonight|today|now|again|any ?more|but|though|although)\\b',
+    '\\b(?:no s(?:é|e)|tal vez|quiz(?:á|a)s?|ojal(?:á|a)|todav(?:í|i)a|esta noche|hoy|ahora|otra vez|ya no|pero|aunque)(?![\\wáéíóúñ])',
+  ].join('|')
+);
 
 const wordsOf = (line: string): string =>
   line.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'");
 
-/** Which check-in words the caller's line holds: 'es' for the Spanish ones, or null for none. */
+/** Words the caller plainly denies, in a line with no hedge, are not a reason to check in. */
+const denied = (words: string, at: number): boolean =>
+  DENIED_BEFORE.test(words.slice(0, at)) && !HEDGED.test(words);
+
+/**
+ * Which check-in words the caller's line holds and does not deny: 'es' for the Spanish ones, or
+ * null for none. One mention that is not denied is enough.
+ */
 function checkinWordsIn(line: string): 'en' | 'es' | null {
   const words = wordsOf(line);
-  if (ES.test(words)) return 'es';
-  return EN.test(words) ? 'en' : null;
+  const said = (list: RegExp): boolean =>
+    [...words.matchAll(list)].some((m) => !denied(words, m.index ?? 0));
+  if (said(ES)) return 'es';
+  return said(EN) ? 'en' : null;
 }
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
