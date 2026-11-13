@@ -293,13 +293,16 @@ async function runTurn(
   };
 }
 
-beforeEach(() => {
+/** Crisis read state the safety modules keep across turns (the classifier caches its verdicts). */
+function resetCrisisState() {
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
   resetClassifierBlocked();
   resetGroundedRelease();
-});
+}
+
+beforeEach(resetCrisisState);
 
 const CRISIS_TURNS: Array<[string, Level, string, Record<string, string>, string?]> = [
   [
@@ -531,10 +534,7 @@ describe('the bond message to the client', () => {
     messages.filter(
       (m) => m.type === 'micro_expression' && m.data?.expressionType === 'warmth_pulse'
     ).length;
-  /**
-   * PREDICTION, read from main's code and not yet run: what main's source sends on each line
-   * read as ordinary, as [bond, warmth]. Replaced by a main-source run in a later commit.
-   */
+  /** What main's source sends on each line read as ordinary, run with this file: [bond, warmth]. */
   const AS_ON_MAIN: Record<string, [number, number]> = {
     [THANKS]: [1, 1],
     [HEAVY]: [1, 1],
@@ -551,6 +551,7 @@ describe('the bond message to the client', () => {
       expect(bond(ordinary)).toBeGreaterThan(0); // the block fires on this line
       expect([bond(ordinary), warmth(ordinary)]).toEqual(AS_ON_MAIN[line]);
 
+      resetCrisisState(); // else the classifier answers the same line from its cache
       const held = await runTurn(line, LIVE, CRISIS, 'sad', 3, distress);
       expect(held.level).not.toBe('pass');
       expect(held.distress).toBe(distress);
