@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: a first call's hello (and an unplaced caller's) is told to ask how it's going, not what's on their mind or how they're holding up (first-call-stranger.ts easyStrangerDirection). Off: the stranger direction is the same string as before.
+// on: on an English call (every language tag English; first-call-stranger.ts englishOnlyCall), a first call's hello (and an unplaced caller's) is told to ask how it's going, not what's on their mind or how they're holding up (easyStrangerDirection). Spanish, mixed and untagged (phone) calls, and off: the stranger direction is the same string as before.
 export const STRANGER_GREETING_EASY = {
   default: 'off',
   owner: 'voice',

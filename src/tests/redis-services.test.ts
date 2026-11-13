@@ -25,8 +25,7 @@ const mockRedisCache = {
   setPersonaAffinity: vi.fn(() => Promise.resolve()),
   getEmotionalState: vi.fn(() => Promise.resolve(null)),
   setEmotionalState: vi.fn(() => Promise.resolve()),
-  getUserPresence: vi.fn(() => Promise.resolve(null)),
-  setUserPresence: vi.fn(() => Promise.resolve()),
+  isUserActive: vi.fn(() => Promise.resolve(false)),
 };
 
 vi.mock('../memory/redis-cache.js', () => ({
