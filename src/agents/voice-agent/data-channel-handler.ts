@@ -30,7 +30,7 @@ import {
   getHandoffQueueState,
 } from '../../handoff/index.js';
 import { completeHandoff } from '../../handoff/actions.js';
-import type { UserData } from '../shared/types.js';
+import { replyForLog } from '../../utils/reply-for-log.js';
 
 // New coordinator-based handoff system
 import { getSessionAdapter } from '../shared/handoff/coordinator-adapter.js';
@@ -372,12 +372,12 @@ async function handleGameStartRequest(
     // Cast gameType since it comes from user input via data channel
     type GameType = import('../../services/games/types.js').GameType;
     const welcomeMessage = await engine.startGame(gameType as GameType);
-    getLogger().info({ gameType, welcomeMessage }, '🎮 Game engine returned welcome message');
+    getLogger().info({ gameType, welcomeMessage: replyForLog(welcomeMessage) }, '🎮 Game welcome');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
     // Use coordinated speech - text is already written, no need for LLM
     if (welcomeMessage && session) {
-      getLogger().info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
+      getLogger().info({ welcomeMessage: replyForLog(welcomeMessage) }, '🎮 Speaking welcome');
       coordinatedSay(ctx.sessionId, welcomeMessage, { allowInterruptions: true });
       getLogger().info('🎮 Agent spoke welcome message');
     }

@@ -97,7 +97,7 @@ describe('the reply-text log lines use it', () => {
 
   it("the crash record keeps Ferni's last message as a length", () => {
     expect(read('src/agents/shared/crash-analytics.ts')).toContain(
-      '? replyForLog(messages.lastAgentMessage, 200)'
+      'lastAgentMessage: replyForLog(messages?.lastAgentMessage, 200),'
     );
   });
 
@@ -106,7 +106,7 @@ describe('the reply-text log lines use it', () => {
     expect(adapter).toContain('goodbye: replyForLog(finalGoodbye),');
     expect(adapter).toContain('greeting: replyForLog(finalGreeting),');
     const gemini = read('src/agents/model-provider/gemini-live.ts');
-    expect(gemini).toContain(': replyForLog(eventStr, 2000);');
+    expect(gemini).toContain('const truncated = replyForLog(eventStr, 2000);');
     expect(read('src/agents/multi-agent/agent-setup.ts')).toContain('${replyForLog(evt.delta)}');
   });
 
@@ -116,5 +116,52 @@ describe('the reply-text log lines use it', () => {
     expect(src).toContain('ttsText: replyForLog(ttsOutputBuffer),');
     expect(src).not.toMatch(/rawOutput: (?!replyForLog)/);
     expect(src).not.toMatch(/ttsText: (?!replyForLog)/);
+  });
+});
+
+/**
+ * Lines that log reply text through replyForLog/repliesForLog, per file. A file below its floor has
+ * lost a wrap (the raw field is back in a log call): log-text-ratchet only sees slices, not a bare
+ * `{ text }`. Raise a floor when a site is added; lower one only when the site is deleted.
+ */
+const WRAPPED_LINES: Record<string, number> = {
+  'src/agents/integrations/live-backchanneling-integration.ts': 1,
+  'src/agents/integrations/slow-turn-sound.ts': 1,
+  'src/agents/integrations/turn-opening-sound.ts': 2,
+  'src/agents/model-provider/gemini-live.ts': 1,
+  'src/agents/multi-agent/agent-setup.ts': 4,
+  'src/agents/multi-agent/orchestrator.ts': 6,
+  'src/agents/shared/crash-analytics.ts': 1,
+  'src/agents/shared/greeting-audio-cache.ts': 2,
+  'src/agents/shared/handoff/coordinator-adapter.ts': 2,
+  'src/agents/shared/performance/cache-aware-tts.ts': 3,
+  'src/agents/shared/sanitizer/index.ts': 2,
+  'src/agents/shared/tts-wrapper.ts': 13,
+  'src/agents/shared/voiced-take-render.ts': 2,
+  'src/agents/voice-agent/data-channel-handler.ts': 2,
+  'src/agents/voice-agent/transcript-handler.ts': 2,
+  'src/audio/dj-speech-engine.ts': 1,
+  'src/audio/music-humanization.ts': 1,
+  'src/intelligence/triggers/anticipatory-trigger-engine.ts': 1,
+  'src/personas/bundles/ferni/llm-expression-generator.ts': 1,
+  'src/services/evalops/response-evaluator.ts': 1,
+  'src/services/performance/speculative-tts.ts': 1,
+  'src/speech/coordination/coordinated-tool-executor.ts': 1,
+  'src/speech/coordination/speech-coordinator.ts': 3,
+  'src/speech/direction/director.ts': 3,
+  'src/speech/tts-gateway/gateway-tts-node.ts': 13,
+  'src/speech/tts-gateway/gateway.ts': 8,
+  'src/speech/tts-gateway/index.ts': 7,
+  'src/speech/tts-gateway/ssml/processor.ts': 6,
+  'src/tools/domains/communication/outreach/message-crafting.ts': 1,
+};
+
+describe('no reply-text log line loses its wrap', () => {
+  const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
+  const wrapped = (src: string) =>
+    src.split('\n').filter((l) => /(replyForLog|repliesForLog)\(/.test(l)).length;
+
+  it.each(Object.entries(WRAPPED_LINES))('%s keeps at least %i wrapped lines', (rel, floor) => {
+    expect(wrapped(read(rel))).toBeGreaterThanOrEqual(floor);
   });
 });

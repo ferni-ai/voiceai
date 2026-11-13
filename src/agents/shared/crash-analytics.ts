@@ -289,10 +289,7 @@ export function recordCrash(
       ...additionalContext,
       turnCount: session?.turnCount,
       lastUserMessage: messages?.lastUserMessage?.slice(0, 200), // Truncate for logging
-      // Ferni's words: a length on prod (getCrashSummary hands this record out)
-      lastAgentMessage: messages?.lastAgentMessage
-        ? replyForLog(messages.lastAgentMessage, 200)
-        : undefined,
+      lastAgentMessage: replyForLog(messages?.lastAgentMessage, 200), // a length on prod
       connectionState: session?.state,
       uptimeMs: session ? Date.now() - new Date(session.timestamp).getTime() : undefined,
       memoryUsageMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),

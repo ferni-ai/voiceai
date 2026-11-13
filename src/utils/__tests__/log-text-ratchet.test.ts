@@ -47,7 +47,6 @@ const PENDING_2656: Record<string, number> = {
 const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/tools/domains/marketing/content-generator.ts': 1, // LLM marketing copy that failed to parse
   'src/services/performance/performance-metrics.ts': 1, // contextInjections: builder timings
-  'src/services/performance/speculative-tts.ts': 1, // fixed warm-up phrases (RESPONSE_STARTERS), debug
   'src/services/experiments/hypothesis-generator.ts': 1, // marketing variant copy
   'src/services/landing-intelligence/variant-generator.ts': 1, // marketing CTA copy
   'src/config/gemini-config.ts': 1, // a fixed test prompt

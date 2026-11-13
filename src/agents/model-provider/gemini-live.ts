@@ -483,11 +483,8 @@ export class GeminiLiveProvider implements ModelProvider {
       for (const eventName of eventsToTrace) {
         modelWithEvents.on(eventName, (event: unknown) => {
           const eventStr = JSON.stringify(event, null, 2);
-          // error/close carry no words; every other event may (a transcript, a reply)
-          const truncated =
-            eventName === 'error' || eventName === 'close'
-              ? eventStr.slice(0, 2000)
-              : replyForLog(eventStr, 2000);
+          // events can carry a transcript or a reply: a length on prod
+          const truncated = replyForLog(eventStr, 2000);
 
           if (debugAll) {
             process.stderr.write(`\n📡 [GEMINI ${eventName}] ${truncated}\n`);
