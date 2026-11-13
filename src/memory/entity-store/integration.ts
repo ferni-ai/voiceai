@@ -13,12 +13,7 @@ import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, hasEntityStore } from './storage.js';
 import { extractFacts, extractTopics } from './capture-extraction.js';
 import { getFirestoreDatabase } from '../../config/environment.js';
-import type {
-  PersonCaptureInput,
-  CaptureContext,
-  CaptureResult,
-  MentionType,
-} from './types.js';
+import type { PersonCaptureInput, CaptureContext, CaptureResult, MentionType } from './types.js';
 
 const log = createLogger({ module: 'entity-store:integration' });
 
@@ -54,6 +49,9 @@ export async function initializeEntityStore(): Promise<void> {
     // The EntityStore that proactive surfacing reads needs its own init (was never called).
     await (await import('./store.js')).getEntityStore().initialize();
     initialized = true;
+    // A failed earlier attempt (the one made on load) must not keep the store
+    // marked not ready after this one succeeded.
+    initializationError = null;
     log.info('Entity store initialized');
   } catch (error) {
     initializationError = String(error);

@@ -94,13 +94,16 @@ export interface CrisisDetectionOptions {
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
   /**
+   * The request's env, default process.env. Read for CRISIS_MEANS_IN_HAND when meansInHand is
+   * unset, and for CRISIS_SELF_HARM_911_LINE in the severe script (crisis-script-lines.ts).
+   */
+  env?: Record<string, string | undefined>;
+  /**
    * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
    * Default true. The background turn passes false (turn-crisis.ts): there the voice only raises
    * severity, so a third-party read keeps its guidance, as on main.
    */
   voiceCallerCheck?: boolean;
-  /** The request's env for flags this read checks (CRISIS_SELF_HARM_911_LINE); default process.env. */
-  env?: Record<string, string | undefined>;
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -301,7 +304,7 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
+  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode(options?.env));
   const score = scoreText(text, forms);
   const indicators = [...score.indicators];
   let { severity, subject } = score;

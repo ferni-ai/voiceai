@@ -1,4 +1,4 @@
-import { SELF_HARM_911_LINE } from '../../services/safety/index.js';
+import { TALK_TO_988_ES, SELF_HARM_911_LINE } from '../../services/safety/index.js';
 
 /**
  * Every line of wording in the crisis and safety scripts (7 files), which
@@ -182,7 +182,7 @@ const SCRIPT_WORDING = [
   "You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.",
   "What's going on with them right now?",
   'Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.',
-  'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988. Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.',
+  'Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.',
   'Estoy aquí contigo. ¿Me cuentas qué está pasando?',
   "I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.",
   "If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.",
@@ -269,4 +269,8 @@ const SCRIPT_WORDING = [
   'CRISIS_GROUNDED_RELEASE',
 ];
 
-export const SAFETY_WORDING: readonly string[] = [...SCRIPT_WORDING, SELF_HARM_911_LINE];
+export const SAFETY_WORDING: readonly string[] = [
+  ...SCRIPT_WORDING,
+  TALK_TO_988_ES,
+  SELF_HARM_911_LINE,
+];
