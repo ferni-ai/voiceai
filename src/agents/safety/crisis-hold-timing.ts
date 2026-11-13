@@ -1,6 +1,6 @@
 /**
  * The crisis gate's hold on a turn's TURN_RECEIPT: while the classifier's verdict is
- * pending, the model's reply is held (crisis-gate.ts holdUntilCleared). The wait its
+ * pending, the model's reply is held (crisis-gate-hold.ts holdUntilCleared). The wait its
  * first words had goes to turn-timing.ts, keyed by the session the verdict holds
  * (crisis-gate-signal.ts), so a latency A/B can see the crisis share of a slow turn.
  *

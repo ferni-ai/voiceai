@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { onTurnTiming, turnHoldTimer, type TurnTimingKind } from '../turn-timing.js';
 import { OpenerGate } from '../../../agents/personas/opener-gate.js';
-import { holdUntilCleared } from '../../../agents/personas/crisis-gate.js';
+import { holdUntilCleared } from '../../../agents/personas/crisis-gate-hold.js';
 import { noteCrisisVerdictPending } from '../../../agents/safety/crisis-gate-signal.js';
 
 const SID = 'RM_timing';
