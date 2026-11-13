@@ -12,6 +12,8 @@
  * Firestore store, the dispute writer, and the routers that pick a bypass return. The turn's
  * crisis read is wrapped only to make it fail or hang. All lines invented.
  */
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Risk = 'none' | 'imminent';
@@ -382,13 +384,16 @@ describe('no read: nothing written (fail closed)', () => {
 });
 
 /**
- * The hold follows the turn's own crisis read. When the classifier gives no answer, that read
- * is the patterns' reading: on a line no pattern flags it reads as ordinary, and the
- * correction is written as on main. Shown, not changed here.
+ * KNOWN GAP (not changed here): a classifier that gives no answer is indistinguishable from an
+ * ordinary read. A timeout, an error or an unusable reply resolves the verdict to null
+ * (services/safety/crisis-classifier.ts), a null verdict leaves the patterns as they are
+ * (crisis-classifier-verdict.ts), and the settled read carries no mark of the missing answer.
+ * So a line no pattern flags, whose classifier read never came, writes its correction and may
+ * take a bypass return, as on main.
  */
-describe('the classifier gives no answer', () => {
+describe('known gap: the classifier gives no answer', () => {
   it.each(['fails', 'hangs'] as const)(
-    'model call %s: the turn reads as its patterns (ordinary here) and writes as on main',
+    'known gap: model call %s on a line no pattern flags: read as ordinary, 1 write as on main',
     async (mode) => {
       vi.stubEnv('CRISIS_CLASSIFIER_TIMEOUT_MS', '100');
       h.classifier = mode;
@@ -400,6 +405,43 @@ describe('the classifier gives no answer', () => {
       ]);
     }
   );
+
+  it('known gap: model call never answers on the FTIS route: the bypass return, 1 write', async () => {
+    vi.stubEnv('CRISIS_CLASSIFIER_TIMEOUT_MS', '100');
+    h.classifier = 'hangs';
+    h.route = 'ftis';
+    const turn = await oneTurn(CALL[1], 'imminent');
+    expect(h.bypass).toEqual([true]);
+    expect(turn.path).toBe('ftis-bypass');
+    expect(turn.writes.map((w) => w.slice(0, 3))).toEqual([
+      ['autoRecord', 'uid-invented', CALL[1]],
+    ]);
+  });
+});
+
+/** A new return path writes nothing until it is wrapped; this row says so when it is added. */
+describe('the shape of processTurn', () => {
+  it('every return of processTurn passes its result through withCorrection', () => {
+    const path = new URL('../process-turn.ts', import.meta.url);
+    const file = ts.createSourceFile(
+      'process-turn.ts',
+      readFileSync(path, 'utf8'),
+      ts.ScriptTarget.Latest
+    );
+    const fn = file.statements.find(
+      (st): st is ts.FunctionDeclaration =>
+        ts.isFunctionDeclaration(st) && st.name?.text === 'processTurn'
+    );
+    const returns: string[] = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isFunctionLike(node)) return; // a nested function's returns are its own
+      if (ts.isReturnStatement(node))
+        returns.push(node.expression?.getText(file).split('(')[0] ?? '');
+      ts.forEachChild(node, visit);
+    };
+    fn?.body?.statements.forEach(visit);
+    expect(returns).toEqual(['withCorrection', 'withCorrection', 'withCorrection']);
+  });
 });
 
 describe('FRIEND_REPAIR and DISPUTE_DENIED_FACTS on', () => {
