@@ -19,7 +19,7 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { SessionServices } from '../../../services/types.js';
 import type { UserData } from '../types.js';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
 
 // New coordinator system
@@ -460,7 +460,7 @@ export class CoordinatorAdapter {
           fromPersonaId,
           toPersonaId,
           wasIntelligent: banterResult.wasIntelligent,
-          goodbye: finalGoodbye,
+          goodbye: replyForLog(finalGoodbye),
         },
         '🎭 Speaking soft open (goodbye)'
       );
@@ -614,7 +614,7 @@ export class CoordinatorAdapter {
           toPersonaId,
           fromPersonaId,
           wasIntelligent: banterResult.wasIntelligent,
-          greeting: finalGreeting,
+          greeting: replyForLog(finalGreeting),
           estimatedDurationMs,
         },
         '🎭 Speaking arriving welcome'

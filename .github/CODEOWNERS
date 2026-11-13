@@ -88,6 +88,7 @@
 /src/agents/shared/call-wrap-up.ts @sethdford
 /src/agents/shared/caller-activity.ts @sethdford
 /src/agents/shared/farewell-risk.ts @sethdford
+/src/agents/shared/gateway/reconnection.ts @sethdford
 /src/agents/shared/goodbye-phrases.ts @sethdford
 /src/agents/shared/goodbye-read.ts @sethdford
 /src/agents/shared/phone-goodbye.ts @sethdford
@@ -225,6 +226,7 @@
 /src/services/monetization/persistence.ts @sethdford
 /src/services/monetization/tip-jar.ts @sethdford
 /src/services/monetization/value-capture.ts @sethdford
+/src/services/outreach/morning-brief/freshness.ts @sethdford
 /src/services/outreach/outreach-intelligence.ts @sethdford
 /src/services/outreach/proactive-channels/pondered-triggers.ts @sethdford
 /src/services/outreach/proactive-channels/triggers.ts @sethdford

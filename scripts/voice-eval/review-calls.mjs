@@ -118,6 +118,13 @@ export function linesOf(session, lines, others) {
   return { lines: own, interleaved };
 }
 
+/**
+ * What the agent logs for a reply it may not log: its length, e.g. "[148 chars]", in the
+ * field that holds the text on dev with LOG_FULL_RESPONSES (replyForLog in safe-logger.ts).
+ * Prod logs only this, so a prod review has timings but no reply words.
+ */
+export const isRedacted = (t) => /^\[\d+ chars\]$/.test(String(t ?? '').trim());
+
 const ssml = (t) =>
   t
     .replace(/<[^>]+>/g, ' ')
@@ -129,9 +136,9 @@ export function timelineOf(session, lines) {
   const out = [];
   for (const l of lines) {
     const t = l.time - session.start;
-    if (l.msg === 'Processing user turn' && l.preview)
+    if (l.msg === 'Processing user turn' && l.preview && !isRedacted(l.preview))
       out.push({ t, who: 'user', text: l.preview });
-    else if (l.trace === 'E2E_TTS_OUTPUT' && l.ttsText && !l.isEmpty) {
+    else if (l.trace === 'E2E_TTS_OUTPUT' && l.ttsText && !l.isEmpty && !isRedacted(l.ttsText)) {
       const text = ssml(l.ttsText);
       if (text) out.push({ t, who: 'agent', text });
     }

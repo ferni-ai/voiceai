@@ -389,6 +389,9 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   // Adds a check-in on the voice gate only; ON equals OFF wherever a read stands.
   CRISIS_TIMEOUT_CHECKIN: 'src/agents/personas/__tests__/crisis-gate-timeout-checkin.test.ts',
   CRISIS_TRANSFER_EVERYDAY: 'src/services/safety/__tests__/crisis-transfer-request.test.ts',
+  // Memory only: crisis and vulnerability moments keep no words and are never a callback. No
+  // reader, script, injection or data message changes.
+  CRISIS_WORDS_NEVER_RESURFACE: 'src/intelligence/relationship/__tests__/wordless-moments.test.ts',
   // The typed agent chat's prompt; its crisis read runs first either way (chat-routes-crisis).
   CUSTOM_AGENT_CHAT_HONESTY: 'src/api/custom-agent/__tests__/chat-routes.test.ts',
   DATES_IN_HELLO: 'src/agents/multi-agent/__tests__/greeting-date-arbiter.test.ts',

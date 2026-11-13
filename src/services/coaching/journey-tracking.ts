@@ -22,7 +22,7 @@ const log = createLogger({ module: 'JourneyTracking' });
 // TYPES
 // ============================================================================
 
-export type MilestoneType =
+type MilestoneType =
   | 'session_count' // 10th, 25th, 50th, 100th conversation
   | 'time_duration' // 1 month, 3 months, 6 months, 1 year
   | 'goal_completed'
@@ -31,7 +31,7 @@ export type MilestoneType =
   | 'habit_streak'
   | 'challenge_overcome';
 
-export interface JourneyMilestone {
+interface JourneyMilestone {
   id: string;
   userId: string;
   type: MilestoneType;
@@ -42,7 +42,7 @@ export interface JourneyMilestone {
   celebrationNote?: string;
 }
 
-export interface JourneySnapshot {
+interface JourneySnapshot {
   date: Date;
   sessionCount: number;
   activeGoals: number;
@@ -52,7 +52,7 @@ export interface JourneySnapshot {
   keyMoment?: string;
 }
 
-export interface JourneyProfile {
+interface JourneyProfile {
   userId: string;
 
   // When it all started
@@ -237,7 +237,7 @@ function createMilestone(
 /**
  * Record a goal completion as a journey milestone
  */
-export function recordGoalCompletion(userId: string, goalTitle: string): JourneyMilestone {
+function recordGoalCompletion(userId: string, goalTitle: string): JourneyMilestone {
   const profile = getOrCreateProfile(userId);
   profile.metrics.goalsCompleted++;
 
@@ -252,7 +252,7 @@ export function recordGoalCompletion(userId: string, goalTitle: string): Journey
 /**
  * Record a breakthrough moment
  */
-export function recordBreakthrough(userId: string, description: string): JourneyMilestone {
+function recordBreakthrough(userId: string, description: string): JourneyMilestone {
   const profile = getOrCreateProfile(userId);
   profile.metrics.breakthroughMoments++;
 
@@ -262,7 +262,7 @@ export function recordBreakthrough(userId: string, description: string): Journey
 /**
  * Mark a milestone as celebrated
  */
-export function markMilestoneCelebrated(userId: string, milestoneId: string, note?: string): void {
+function markMilestoneCelebrated(userId: string, milestoneId: string, note?: string): void {
   const profile = journeyProfiles.get(userId);
   if (!profile) return;
 
@@ -337,7 +337,7 @@ export function generateJourneyReflection(userId: string): JourneyReflection | n
 /**
  * Get journey summary for a user
  */
-export function getJourneySummary(userId: string): {
+function getJourneySummary(userId: string): {
   daysTogether: number;
   totalSessions: number;
   goalsCompleted: number;
@@ -397,11 +397,11 @@ export function buildJourneyContext(userId: string): string | null {
 // PERSISTENCE
 // ============================================================================
 
-export function exportJourneyProfile(userId: string): JourneyProfile | null {
+function exportJourneyProfile(userId: string): JourneyProfile | null {
   return journeyProfiles.get(userId) || null;
 }
 
-export function importJourneyProfile(profile: JourneyProfile): void {
+function importJourneyProfile(profile: JourneyProfile): void {
   profile.firstSessionDate = new Date(profile.firstSessionDate);
   profile.lastUpdated = new Date(profile.lastUpdated);
   profile.milestones.forEach((m) => {
@@ -413,19 +413,3 @@ export function importJourneyProfile(profile: JourneyProfile): void {
   journeyProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported journey profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  recordSession,
-  recordGoalCompletion,
-  recordBreakthrough,
-  markMilestoneCelebrated,
-  generateJourneyReflection,
-  getJourneySummary,
-  buildJourneyContext,
-  exportJourneyProfile,
-  importJourneyProfile,
-};

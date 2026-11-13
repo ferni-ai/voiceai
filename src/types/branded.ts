@@ -221,15 +221,6 @@ export function isSessionIdLike(value: unknown): value is SessionId {
   return typeof value === 'string' && value.startsWith('sess_');
 }
 
-/**
- * Check if a string is a valid PersonaId
- */
-export function isValidPersonaId(value: unknown): value is PersonaId {
-  if (typeof value !== 'string') return false;
-  const validPersonas = ['ferni', 'maya', 'peter', 'alex', 'jordan', 'nayan', 'jackie', 'bogle'];
-  return validPersonas.includes(value.toLowerCase());
-}
-
 // ============================================================================
 // UNSAFE COERCION (Use sparingly!)
 // ============================================================================

@@ -318,7 +318,7 @@ Each person's conversations are private.
 `.trim();
 }
 
-export function buildUnknownCallerGuidance(): string {
+function buildUnknownCallerGuidance(): string {
   return `
 UNKNOWN CALLER - POTENTIAL FAMILY MEMBER
 

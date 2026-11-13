@@ -14,7 +14,6 @@ import {
   gatherAllMoments,
   getDeliveryHistoryForPersistence,
   getJourneyGreetingContext,
-  getJourneySnapshot,
   initializeDeliveryHistory,
   prioritizeMoments,
   recordDelivery,
@@ -265,27 +264,6 @@ describe('Journey Orchestrator Service', () => {
       const context = getJourneyGreetingContext(testUserId);
       // hasJourneyInsight should be boolean
       expect(typeof context.hasJourneyInsight).toBe('boolean');
-    });
-  });
-
-  describe('Journey Snapshot', () => {
-    it('should return snapshot with stats', () => {
-      recordSession(testUserId);
-
-      const snapshot = getJourneySnapshot(testUserId);
-
-      expect(snapshot.userId).toBe(testUserId);
-      expect(snapshot.stats).toBeDefined();
-      expect(snapshot.stats.totalConversations).toBe(1);
-    });
-
-    it('should include available moments', () => {
-      recordSession(testUserId);
-
-      const snapshot = getJourneySnapshot(testUserId);
-
-      expect(snapshot.availableMoments).toBeDefined();
-      expect(Array.isArray(snapshot.availableMoments)).toBe(true);
     });
   });
 

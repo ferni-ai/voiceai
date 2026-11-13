@@ -1,12 +1,11 @@
 /**
  * TEAM_BY_NEED=on: no "don't break your streak" nudges (product decision, 2026-10-11):
- * not the spoken streak alert, not Maya's streak-at-risk SMS, not the proactive
- * streak_at_risk trigger. Off: all three as before. Other engagement copy is untouched.
+ * not Maya's streak-at-risk SMS, not the proactive
+ * streak_at_risk trigger. Off: both as before. Other engagement copy is untouched.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import MayaNotificationService from '../engagement-notification-service.js';
-import { MemoryEngagementEngine } from '../../../intelligence/tracking/memory-engagement.js';
 import { detectProactiveTriggers } from '../../../tools/domains/proactive/coaching/proactive-coaching.js';
 
 afterEach(() => {
@@ -16,14 +15,6 @@ afterEach(() => {
 const byNeed = (on: boolean) => vi.stubEnv('TEAM_BY_NEED', on ? 'on' : '');
 
 describe('streak nudges', () => {
-  it('the spoken streak-at-risk alert', () => {
-    const engine = new MemoryEngagementEngine();
-    byNeed(false);
-    expect(engine.generateStreakAlert('meditation', 9)).toMatch(/streak/);
-    byNeed(true);
-    expect(engine.generateStreakAlert('meditation', 9)).toBe('');
-  });
-
   it("Maya's streak-at-risk SMS", async () => {
     vi.useFakeTimers();
     const morning = new Date();

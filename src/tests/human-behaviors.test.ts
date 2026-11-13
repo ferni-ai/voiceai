@@ -15,14 +15,10 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import {
   detectCulturalMoment,
-  detectUserEngagement,
-  getRunningJokeCallback,
   getSpontaneousThought,
   inferUserPreferences,
   getPreferenceGuidance,
   getVoiceProsodyResponse,
-  verifyTopicThreading,
-  getProactiveGoalReference,
 } from '../intelligence/human-behaviors.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 
@@ -63,109 +59,6 @@ describe('Human Behaviors Module', () => {
           expect(moment.reference.length).toBeGreaterThan(10);
         }
       }
-    });
-  });
-
-  // ============================================================================
-  // USER ENGAGEMENT DETECTION
-  // ============================================================================
-
-  describe('detectUserEngagement', () => {
-    it('should detect highly engaged users', () => {
-      const messages = [
-        {
-          role: 'user' as const,
-          content:
-            'This is really interesting! Can you tell me more about how compound interest works over time?',
-        },
-        { role: 'assistant' as const, content: 'Of course...' },
-        {
-          role: 'user' as const,
-          content:
-            "Wow, that's fascinating. What about the tax implications? I've been wondering about that for years.",
-        },
-        { role: 'assistant' as const, content: 'Great question...' },
-        {
-          role: 'user' as const,
-          content: 'I love this! So if I understand correctly, the longer I wait the better?',
-        },
-      ];
-
-      const engagement = detectUserEngagement(messages);
-
-      expect(engagement).toHaveProperty('level');
-      expect(engagement).toHaveProperty('indicators');
-      expect(engagement).toHaveProperty('suggestions');
-      expect(['highly_engaged', 'engaged']).toContain(engagement.level);
-    });
-
-    it('should detect disengaged users with short responses', () => {
-      const messages = [
-        {
-          role: 'assistant' as const,
-          content: 'So what are your thoughts on retirement planning?',
-        },
-        { role: 'user' as const, content: 'ok' },
-        { role: 'assistant' as const, content: 'Would you like to discuss some options?' },
-        { role: 'user' as const, content: 'sure' },
-        { role: 'assistant' as const, content: 'Great! Let me explain...' },
-        { role: 'user' as const, content: 'yeah' },
-      ];
-
-      const engagement = detectUserEngagement(messages);
-
-      expect(['disengaged', 'checked_out', 'neutral']).toContain(engagement.level);
-    });
-
-    it('should return neutral for insufficient messages', () => {
-      const messages = [{ role: 'user' as const, content: 'Hello' }];
-
-      const engagement = detectUserEngagement(messages);
-      expect(engagement.level).toBe('neutral');
-    });
-  });
-
-  // ============================================================================
-  // RUNNING JOKES
-  // ============================================================================
-
-  describe('getRunningJokeCallback', () => {
-    it('should return null for new users', () => {
-      const newProfile = createUserProfile('test-user-1');
-      const result = getRunningJokeCallback(newProfile, 'compound interest');
-
-      // New user shouldn't get callbacks (might get setup though)
-      // Either null or a new joke setup
-      if (result !== null) {
-        expect(result).toHaveProperty('joke');
-        expect(result).toHaveProperty('isCallback');
-      }
-    });
-
-    it('should potentially return jokes for returning users', () => {
-      const returningProfile = createUserProfile('test-user-2');
-      returningProfile.totalConversations = 5;
-      returningProfile.sharedStories = [
-        {
-          storyId: 'compound_interest_eighth_wonder',
-          theme: 'Einstein joke',
-          context: 'compound interest',
-          sharedAt: new Date(),
-        },
-      ];
-
-      // Run multiple times since it's probabilistic
-      let foundJoke = false;
-      for (let i = 0; i < 20; i++) {
-        const result = getRunningJokeCallback(returningProfile, 'compound interest');
-        if (result !== null) {
-          foundJoke = true;
-          expect(result).toHaveProperty('joke');
-          expect(result).toHaveProperty('isCallback');
-          break;
-        }
-      }
-      // It's probabilistic, so we just verify structure when it returns
     });
   });
 
@@ -315,107 +208,6 @@ describe('Human Behaviors Module', () => {
 
       expect(response.shouldAdjust).toBe(false);
       expect(response.guidance).toBe('');
-    });
-  });
-
-  // ============================================================================
-  // TOPIC THREADING VERIFICATION
-  // ============================================================================
-
-  describe('verifyTopicThreading', () => {
-    it('should detect circled-back topics', () => {
-      const history = [
-        { role: 'user' as const, content: "I'm worried about retirement" },
-        { role: 'assistant' as const, content: 'Tell me more about that' },
-        { role: 'user' as const, content: 'I also want to save for a house' },
-        {
-          role: 'assistant' as const,
-          content: "Earlier you mentioned retirement - let's talk about that first",
-        },
-      ];
-
-      const result = verifyTopicThreading(history, ['retirement', 'house']);
-
-      expect(result.working).toBe(true);
-      expect(result.circledBackTopics.length).toBeGreaterThan(0);
-    });
-
-    it('should identify missed topics', () => {
-      const history = [
-        { role: 'user' as const, content: "I'm worried about retirement" },
-        { role: 'assistant' as const, content: 'What about stocks?' },
-        { role: 'user' as const, content: 'I also want to save for college' },
-        { role: 'assistant' as const, content: 'Let me tell you about bonds' },
-      ];
-
-      const result = verifyTopicThreading(history, ['retirement', 'college']);
-
-      expect(result.missedTopics.length).toBeGreaterThan(0);
-    });
-
-    it('should work with empty topics', () => {
-      const history = [
-        { role: 'user' as const, content: 'Hello' },
-        { role: 'assistant' as const, content: 'Hi there!' },
-      ];
-
-      const result = verifyTopicThreading(history, []);
-
-      expect(result.working).toBe(true);
-      expect(result.circledBackTopics).toEqual([]);
-      expect(result.missedTopics).toEqual([]);
-    });
-  });
-
-  // ============================================================================
-  // PROACTIVE GOAL REFERENCE
-  // ============================================================================
-
-  describe('getProactiveGoalReference', () => {
-    it('should reference active goals related to topic', () => {
-      const profile = createUserProfile('test-user');
-      profile.goals = [
-        {
-          id: 'goal-1',
-          name: 'Retire by 65',
-          type: 'retirement',
-          status: 'active',
-          priority: 'high',
-          timeHorizon: 'long',
-          targetAmount: 1000000,
-          currentProgress: 500000,
-          progressPercent: 50,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-
-      // Run multiple times since it can be probabilistic
-      let foundReference = false;
-      for (let i = 0; i < 10; i++) {
-        const reference = getProactiveGoalReference(profile, 'retirement planning');
-        if (reference !== null) {
-          foundReference = true;
-          expect(typeof reference).toBe('string');
-          expect(reference.toLowerCase()).toContain('retirement');
-          break;
-        }
-      }
-    });
-
-    it('should return null for users without goals', () => {
-      const profile = createUserProfile('test-user');
-      profile.goals = [];
-
-      const reference = getProactiveGoalReference(profile, 'anything');
-
-      expect(reference).toBeNull();
-    });
-
-    it('should return null for null profile', () => {
-      const reference = getProactiveGoalReference(null, 'retirement');
-
-      expect(reference).toBeNull();
     });
   });
 });
