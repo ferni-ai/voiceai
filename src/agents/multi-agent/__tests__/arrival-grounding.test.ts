@@ -13,7 +13,11 @@ vi.mock('../../../utils/safe-logger.js', () => {
     error: vi.fn(),
   };
   log.child = () => log;
-  return { createLogger: () => log, getLogger: () => log };
+  return {
+    createLogger: () => log,
+    getLogger: () => log,
+    replyForLog: (text: unknown) => String(text ?? ''),
+  };
 });
 vi.mock('../../../services/diagnostic-logger.js', () => ({ diag: { entry: vi.fn() } }));
 vi.mock('../../../conversation/advanced-humanization-integration.js', () => ({

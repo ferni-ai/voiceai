@@ -754,7 +754,7 @@ const TOPIC_RELEVANCE: Record<string, string[]> = {
 /**
  * Check if the current context is relevant for mentioning a team member
  */
-export function isTeamReferenceRelevant(
+function isTeamReferenceRelevant(
   aboutPersona: string,
   context: TeamReferenceContext
 ): { relevant: boolean; reason?: string } {
@@ -799,7 +799,7 @@ export function isTeamReferenceRelevant(
 /**
  * Get the most relevant team member to reference based on context
  */
-export function getMostRelevantTeamMember(
+function getMostRelevantTeamMember(
   fromPersona: string,
   context: TeamReferenceContext
 ): { persona: string; reason: string } | null {
@@ -851,7 +851,7 @@ export function shouldIncludeTeamReference(
  *
  * Returns the reference phrase and which team member, or null if not appropriate.
  */
-export function getContextualTeamReference(
+function getContextualTeamReference(
   fromPersona: string,
   context: TeamReferenceContext,
   config: TeamChemistryConfig = getTeamChemistryConfig()

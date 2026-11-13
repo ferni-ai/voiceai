@@ -125,22 +125,13 @@ export {
 
 export {
   // THE superhuman signal
-  VoiceTextMismatchDetector,
   detectMismatch as detectVoiceTextMismatch,
-  type MismatchResult,
-  type MismatchType,
-  type MismatchGuidance,
 } from './unified/mismatch-detector.js';
 
 export {
   // Consolidated humanization
-  HumanizationOrchestrator,
   humanize,
-  type HumanizationInput,
   type HumanizationResult,
-  type ActiveListeningCue,
-  type EmotionalMirror,
-  type SpontaneousElement,
 } from './unified/humanization-orchestrator.js';
 
 export {
@@ -185,42 +176,23 @@ export {
 
 // Session State - Centralized session state management
 export {
-  // Cognitive state helpers
-  addReasoningApproach,
-  addUserMessageForStyleDetection,
-  getActiveReasoningChain,
-  getCognitiveState,
   // Core state management
   getCustomState,
-  // Lovable presence helpers
-  getLovableState,
   // Session flow helpers
   getSessionFlowState,
   getSessionState,
   incrementTurnCount,
-  isInsightOnCooldown,
-  markHabitUsed,
-  markInsightShared,
   markMemoryReferenced,
-  markQuirkUsed,
   recordKeyMoment,
   SessionStateManager,
-  setActiveReasoningChain,
   setCustomState,
   updateCognitiveLoad,
   updateEmotionalTrajectory,
-  updateLovableState,
   updateSessionFlowState,
-  updateUserCognitiveStyle,
   updateVoiceEmotion,
-  wasHabitUsed,
-  wasInsightShared,
   wasMemoryReferenced,
-  wasQuirkUsed,
-  type CognitiveReasoningState,
   type ConversationFlowState,
   type EmotionalTrajectory,
-  type LovablePresenceState,
   type PatternState,
   // Types
   type CognitiveLoadState as SessionCognitiveLoadState,
@@ -288,16 +260,12 @@ export {
 // Human-Like Behaviors
 export {
   detectCulturalMoment,
-  detectUserEngagement,
   getPreferenceGuidance,
-  getProactiveGoalReference,
-  getRunningJokeCallback,
   getSpontaneousThought,
   getVoiceProsodyResponse,
   HumanBehaviors,
   inferUserPreferences,
   shouldInjectBackchannel,
-  verifyTopicThreading,
 } from './human-behaviors.js';
 
 // Conversation Quality & Advanced Features
@@ -495,7 +463,6 @@ export {
 // ============================================================================
 
 export {
-  buildConversationContext,
   createCriticalInjection,
   createHintInjection,
   createInjection,
@@ -1106,7 +1073,6 @@ export {
   type EmotionalTrajectory as RelEmotionalTrajectory,
   type SessionMood,
   type Milestone,
-  type MilestoneType,
   type SessionStartResult,
   type StageConfig,
 } from './relationship/index.js';
@@ -1117,11 +1083,9 @@ export {
 
 export {
   // Engine functions
-  getCognitiveProfile,
   buildConstraints,
   buildCognitiveContext,
   buildCognitivePromptInjection,
-  getCognitiveEngineResult,
   getPersonaQuestion,
   getInsightLeadIn,
   getDisagreementPhrase,
@@ -1140,7 +1104,6 @@ export {
   type CognitiveContext,
   type CognitiveConstraints,
   type CognitiveContextInput,
-  type CognitiveEngineResult,
 } from './cognitive/index.js';
 
 export default {

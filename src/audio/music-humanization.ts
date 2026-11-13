@@ -28,7 +28,7 @@ import {
   getMusicCommentary,
   hasArtistInfo,
 } from '../tools/domains/entertainment/music-commentary.js';
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MusicHumanization' });
 
@@ -166,7 +166,7 @@ async function generateLLMInterjection(
           }
         }
 
-        log.debug({ cacheKey, content: cleaned }, '🎵 LLM interjection generated');
+        log.debug({ cacheKey, content: replyForLog(cleaned) }, '🎵 LLM interjection generated');
         return cleaned;
       }
 

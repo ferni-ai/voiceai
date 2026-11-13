@@ -20,14 +20,21 @@ vi.mock('../../services/outreach/webhooks/sms-sender-account.js', () => ({
   findAccountByVerifiedPhone,
 }));
 const heldSenderStrict = vi.hoisted(() => vi.fn());
+// A held number's hold id (a keyed hash in production); a row may give its own.
+const hold = vi.hoisted(() => ({ id: 'phone#example-hash' }));
 vi.mock('../../services/outreach/checkin-replies.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/outreach/checkin-replies.js')>()),
   recordCheckinReply: vi.fn(async () => null),
   heldSenderStrict,
-  phoneHoldId: () => 'phone#example-hash',
+  phoneHoldId: () => hold.id,
 }));
 vi.mock('../../services/messaging/consent.js', () => ({ recordInboundSmsConsent: vi.fn() }));
-vi.mock('../../services/messaging/consent-grants.js', () => ({ recordContactYes: vi.fn() }));
+vi.mock('../../services/messaging/consent-grants.js', () => ({
+  recordContactYes: vi.fn(async () => null),
+}));
+// SMS_REPLY_UNVERIFIED's fixed reply, faked: it answers whenever the route asks it.
+const smsUnverifiedReply = vi.hoisted(() => vi.fn());
+vi.mock('../../services/outreach/sms-reply/sms-unverified.js', () => ({ smsUnverifiedReply }));
 vi.mock('../../services/messaging/holder-verification.js', () => ({
   recordHolderCode: vi.fn(async () => false),
 }));
@@ -59,6 +66,7 @@ const DECIDE_MS = 2_000;
 const MAIN_CRISIS = smsReplyTwiml(SMS_CRISIS_REPLY);
 const MINOR_CRISIS = smsReplyTwiml(`${SMS_CRISIS_REPLY} ${SMS_AI_REMINDER}`);
 const HOUR = 3_600_000;
+const UNVERIFIED_REPLY = 'Hi, this is Ferni, an AI friend (fixed unverified reply).';
 const READ_MS = 25;
 const HANDLER_MS = 60;
 const after = <T>(ms: number, value: T): Promise<T> =>
@@ -99,6 +107,7 @@ beforeEach(() => {
     .mockImplementation(async () => ({ success: true, twiml: HANDLER_TWIML }));
   findAccountByVerifiedPhone.mockReset();
   heldSenderStrict.mockReset();
+  smsUnverifiedReply.mockReset().mockImplementation(async () => UNVERIFIED_REPLY);
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -251,5 +260,49 @@ describe('the route crisis screen and the SB 243 reminder', () => {
     expect(heldSenderStrict).toHaveBeenCalled();
     // Both reads one after the other take 2 x 25 ms; run after the handler, they would add that.
     expect(withLookup - handlerAlone).toBeLessThan(READ_MS);
+  });
+});
+
+describe('a stranger (unverified number) and the crisis screen', () => {
+  const unverified = { success: true, twiml: HANDLER_TWIML, unverified: true };
+  beforeEach(() => {
+    handleInboundSMSWebhook.mockImplementation(async () => unverified);
+  });
+
+  it("a crisis text from a held number with no account: main's crisis reply and the reminder, nothing else", async () => {
+    hold.id = 'phone#example-hash-stranger'; // its own cadence, not an earlier row's
+    findAccountByVerifiedPhone.mockResolvedValue(null);
+    heldSenderStrict.mockResolvedValue(true);
+    expect(await text('crisis row')).toBe(MINOR_CRISIS);
+    expect(smsUnverifiedReply).not.toHaveBeenCalled();
+  });
+
+  it("a crisis text from a stranger not held: main's crisis reply, byte for byte", async () => {
+    findAccountByVerifiedPhone.mockResolvedValue(null);
+    heldSenderStrict.mockResolvedValue(false);
+    expect(await text('crisis row')).toBe(MAIN_CRISIS);
+    expect(smsUnverifiedReply).not.toHaveBeenCalled();
+  });
+
+  it(`the reminder's ${DECIDE_MS} ms bound still counts from the screen for a stranger`, async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const neverAnswers = (): void => {
+      // The lookup hangs: this promise never settles.
+    };
+    findAccountByVerifiedPhone.mockImplementation(async () => new Promise<string>(neverAnswers));
+    handleInboundSMSWebhook.mockImplementation(async () => after(1_500, unverified));
+    let sent: string | undefined;
+    void text('crisis row').then((twiml) => {
+      sent = twiml;
+    });
+    await vi.advanceTimersByTimeAsync(DECIDE_MS);
+    expect(sent).toBe(MAIN_CRISIS);
+    expect(smsUnverifiedReply).not.toHaveBeenCalled();
+  });
+
+  it('an ordinary text from a stranger: the fixed unverified reply, and no hold read', async () => {
+    expect(await text('walked Biscuit in the rain')).toBe(smsReplyTwiml(UNVERIFIED_REPLY));
+    expect(smsUnverifiedReply).toHaveBeenCalledWith('+15555550142');
+    expect(heldSenderStrict).not.toHaveBeenCalled();
   });
 });

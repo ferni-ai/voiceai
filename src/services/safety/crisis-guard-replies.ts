@@ -5,6 +5,8 @@
  * @module CrisisGuardReplies
  */
 
+import type { Env } from '../../config/env-flag.js';
+import { SELF_HARM_911_LINE, selfHarm911LineOn } from './crisis-script-lines.js';
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
 
@@ -46,7 +48,8 @@ export function getCrisisResponse(
   severity: number,
   subject: CrisisSubject | undefined,
   language: 'en' | 'es' | undefined,
-  imminent: boolean
+  imminent: boolean,
+  env: Env = process.env
 ): string {
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
@@ -71,9 +74,10 @@ Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
   }
   if (severity >= SEVERITY.block) {
     // Severe crisis - immediate support + resources
+    const after988 = selfHarm911LineOn(env) ? ` ${SELF_HARM_911_LINE}` : ''; // CRISIS_SELF_HARM_911_LINE
     return `I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.
 
-If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.
+If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.${after988}
 
 I'm here with you right now. Can you tell me more about what you're going through?`;
   }

@@ -17,11 +17,7 @@ export {
   getUserDistortionStats,
   isCommonDistortion,
 } from './distortion-detector.js';
-export type {
-  CognitiveDistortion,
-  ConversationContext,
-  DistortionDetection,
-} from './distortion-detector.js';
+export type { CognitiveDistortion, ConversationContext } from './distortion-detector.js';
 
 export {
   antTracker,
@@ -50,45 +46,6 @@ export const cognitiveIntelligence = {
 };
 
 export default cognitiveIntelligence;
-
-/**
- * Build complete cognitive intelligence context for a user's message.
- * This is the main entry point for cognitive analysis.
- */
-export function buildCognitiveIntelligenceContext(
-  userId: string,
-  text: string,
-  context: {
-    emotion?: string;
-    emotionIntensity?: number;
-    relationshipStage?: string;
-  } = {}
-): {
-  hasDistortion: boolean;
-  primary: ReturnType<typeof distortionDetector.detect>[0] | null;
-  contextInjection: { llmContext: string } | null;
-} {
-  const detections = distortionDetector.detect(userId, text, {
-    emotionalState: context.emotion,
-    relationshipStage: context.relationshipStage,
-  });
-
-  if (detections.length === 0) {
-    return {
-      hasDistortion: false,
-      primary: null,
-      contextInjection: null,
-    };
-  }
-
-  const llmContext = getDistortionContextInjection(detections);
-
-  return {
-    hasDistortion: true,
-    primary: detections[0],
-    contextInjection: { llmContext },
-  };
-}
 
 // ============================================================================
 // ADDITIONAL EXPORTS FOR SCHEDULED JOBS

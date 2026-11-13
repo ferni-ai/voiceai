@@ -1,8 +1,8 @@
 /**
  * emotional_data/{uid}/points against the Firestore emulator, with the real
  * @google-cloud/firestore client: legacy points carrying the caller's words are
- * stripped on load (getEmotionalDataPoints) and by the one-off job. The dry run
- * counts and writes nothing; --apply strips every slice; a re-run writes 0.
+ * stripped by the one-off job. The dry run counts and writes nothing; --apply
+ * strips every slice; a re-run writes 0.
  * Skips unless FIRESTORE_EMULATOR_HOST is set:
  *
  *   firebase emulators:exec --only firestore --project demo-emotion \
@@ -17,7 +17,6 @@ const handle = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock('../../../src/utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => handle.db }));
 
 const { main, strip } = await import('../strip-emotional-data-snippets.js');
-const { getEmotionalDataPoints } = await import('../../../src/personality/pattern-persistence.js');
 
 const T = '2026-09-01T10:00:00.000Z';
 const PEOPLE = 3;
@@ -69,12 +68,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       }
     });
     afterEach(() => vi.restoreAllMocks());
-
-    it('loading strips the words and skips a point without a valid time', async () => {
-      const read = await getEmotionalDataPoints('person-0');
-      expect(leakedPieces(read)).toEqual([]);
-      expect(read.map((p) => p.emotion).sort()).toEqual(['anxious', 'happy', 'sad']);
-    });
 
     it('dry run counts and writes nothing; apply strips every slice; a re-run writes 0', async () => {
       const before = await all();

@@ -1,4 +1,4 @@
-import { TALK_TO_988_ES, LATE_911_LINE } from '../../services/safety/index.js';
+import { TALK_TO_988_ES, SELF_HARM_911_LINE, LATE_911_LINE } from '../../services/safety/index.js';
 
 /**
  * Every line of wording in the crisis and safety scripts (7 files), which
@@ -167,6 +167,8 @@ const SCRIPT_WORDING = [
   'You are their lifeline right now. Be fully present.',
   '🚨 CRISIS DETECTED - Overriding response',
   'Crisis detected (severity:',
+  '../../config/env-flag.js',
+  './crisis-script-lines.js',
   './crisis-guard.js',
   'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.',
   'You can also',
@@ -267,4 +269,9 @@ const SCRIPT_WORDING = [
   'CRISIS_GROUNDED_RELEASE',
 ];
 
-export const SAFETY_WORDING: readonly string[] = [...SCRIPT_WORDING, TALK_TO_988_ES, LATE_911_LINE];
+export const SAFETY_WORDING: readonly string[] = [
+  ...SCRIPT_WORDING,
+  TALK_TO_988_ES,
+  SELF_HARM_911_LINE,
+  LATE_911_LINE,
+];

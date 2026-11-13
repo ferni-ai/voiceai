@@ -14,7 +14,7 @@
  */
 
 import type { voice } from '@livekit/agents';
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { arrivalCooldownMs } from './arrival-cooldown.js';
 import {
   isTTSGatewayEnabled,
@@ -758,8 +758,8 @@ export class SpeechCoordinator {
 
         log.debug(
           {
-            original: truncateForLog(request.text, 50),
-            cleanText: truncateForLog(ssmlResult.text, 50),
+            original: replyForLog(request.text),
+            cleanText: replyForLog(ssmlResult.text),
             hadSSML: ssmlResult.hadSSML,
             config: ssmlResult.config,
           },
@@ -773,7 +773,7 @@ export class SpeechCoordinator {
           process.stderr.write(`  🆔 Request ID: ${request.id}\n`);
           process.stderr.write(`  📊 Priority: ${request.priority}\n`);
           process.stderr.write(`  ⏱️ Queue wait: ${queueWaitTime}ms\n`);
-          process.stderr.write(`  📝 Text: "${truncateForLog(request.text, 100)}"\n`);
+          process.stderr.write(`  📝 Text: ${replyForLog(request.text)}\n`);
           process.stderr.write(`  🎙️ Persona: ${this.personaId || 'ferni'}\n`);
         }
 

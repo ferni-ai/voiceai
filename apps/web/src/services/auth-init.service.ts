@@ -8,7 +8,6 @@
  * 1. Initialize Firebase Auth (check for existing session)
  * 2. Subscribe to auth state changes
  * 3. Update app state with auth info
- * 4. Trigger migration if device user is upgrading to Firebase
  *
  * Note: Users must sign in with Google or Apple before using the app.
  * No anonymous accounts are created.
@@ -16,8 +15,7 @@
  * @module AuthInitService
  */
 
-import { STORAGE_KEYS } from '../config/index.js';
-import { getDeviceId, updateAuthState } from '../state/app.state.js';
+import { updateAuthState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { installApiAuthFetch } from './api-auth-fetch.js';
 import { forgetThisPersonAndReload } from './forget-this-person.js';
@@ -39,75 +37,6 @@ let isInitialized = false;
 let initPromise: Promise<void> | null = null;
 
 // ============================================================================
-// MIGRATION CHECK
-// ============================================================================
-
-/**
- * Check if we need to migrate device-based data to Firebase UID.
- * Returns true if:
- * - User has device-based data (from before Firebase auth)
- * - User now has a Firebase UID
- * - Migration hasn't been done yet
- */
-function needsMigration(firebaseUid: string | null): boolean {
-  if (!firebaseUid) return false;
-
-  try {
-    // Check if we have a legacy device-based user ID
-    const legacyUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-    if (!legacyUserId) return false;
-
-    // If legacy ID starts with 'device:', we might need migration
-    if (!legacyUserId.startsWith('device:')) return false;
-
-    // Check if we've already migrated this device to this Firebase UID
-    const migratedUid = localStorage.getItem('ferni_migrated_uid');
-    if (migratedUid === firebaseUid) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Request migration of device data to Firebase UID.
- * This calls the backend migration endpoint.
- */
-async function requestMigration(deviceId: string, firebaseUid: string): Promise<void> {
-  log.info('Requesting data migration', {
-    deviceId: deviceId.substring(0, 8) + '...',
-    firebaseUid: firebaseUid.substring(0, 8) + '...',
-  });
-
-  try {
-    const response = await fetch('/api/auth/migrate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': `device:${deviceId}`, // Legacy auth for this request
-      },
-      body: JSON.stringify({
-        deviceId,
-        firebaseUid,
-      }),
-    });
-
-    if (response.ok) {
-      // Mark migration as complete
-      localStorage.setItem('ferni_migrated_uid', firebaseUid);
-      log.info('Migration successful');
-    } else {
-      const error = (await response.json().catch(() => ({ error: 'Unknown' }))) as { error?: string };
-      log.warn('Migration failed', { status: response.status, error });
-    }
-  } catch (error) {
-    log.error('Migration request failed:', error);
-    // Don't throw - app should still work without migration
-  }
-}
-
-// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -117,7 +46,6 @@ async function requestMigration(deviceId: string, firebaseUid: string): Promise<
  * This function:
  * 1. Initializes Firebase Auth (anonymous if no session)
  * 2. Connects auth state to app state
- * 3. Triggers migration if needed
  *
  * Safe to call multiple times - will only initialize once.
  */
@@ -150,16 +78,10 @@ export async function initializeAuth(): Promise<AuthState> {
     let pageUid = authState.uid;
     onAuthStateChange((newState) => {
       updateAuthState(newState);
-      if (pageUid === null) pageUid = newState.uid; // the first sign-in, on the gate
+      if (pageUid === null)
+        pageUid = newState.uid; // the first sign-in, on the gate
       else if (newState.uid !== pageUid) void forgetThisPersonAndReload();
     });
-
-    // Check if we need to migrate device data
-    if (authState.uid && needsMigration(authState.uid)) {
-      const deviceId = getDeviceId();
-      // Don't await - migration happens in background
-      void requestMigration(deviceId, authState.uid);
-    }
 
     isInitialized = true;
     log.info('Authentication initialized', {

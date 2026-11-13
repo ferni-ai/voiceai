@@ -677,55 +677,6 @@ describe('Deep Extraction Worker', () => {
 });
 
 // ============================================================================
-// CONTEXT BUILDER INTEGRATION TESTS
-// ============================================================================
-
-describe('Dynamic Memory Context Builder', () => {
-  // Mock Firestore for context builder tests
-  const mockFirestoreData: {
-    entities: Array<Record<string, unknown>>;
-    facts: Array<Record<string, unknown>>;
-    relationships: Array<Record<string, unknown>>;
-  } = {
-    entities: [],
-    facts: [],
-    relationships: [],
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockFirestoreData.entities = [];
-    mockFirestoreData.facts = [];
-    mockFirestoreData.relationships = [];
-  });
-
-  describe('Configuration', () => {
-    it('should allow configuration', async () => {
-      const { configureDynamicMemory } =
-        await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
-
-      // Should not throw
-      configureDynamicMemory({
-        maxEntities: 5,
-        maxFactsPerEntity: 3,
-      });
-    });
-  });
-
-  describe('Builder Registration', () => {
-    it('should export builder with correct structure', async () => {
-      const { dynamicMemoryContextBuilder } =
-        await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
-
-      expect(dynamicMemoryContextBuilder).toBeDefined();
-      expect(dynamicMemoryContextBuilder.name).toBe('dynamic-memory');
-      expect(dynamicMemoryContextBuilder.priority).toBe(75);
-      expect(typeof dynamicMemoryContextBuilder.build).toBe('function');
-    });
-  });
-});
-
-// ============================================================================
 // FULL E2E ROUND-TRIP TESTS
 // ============================================================================
 

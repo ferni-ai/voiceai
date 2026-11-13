@@ -551,14 +551,9 @@ import {
   removeAccessToken,
 } from './plaid-items.js';
 
-// Re-export for external use
-export {
-  storeAccessToken,
-  getStoredAccessToken,
-  hasLinkedAccounts,
-  getTokenData,
-  removeAccessToken,
-};
+export { storeAccessToken, getStoredAccessToken, getTokenData, removeAccessToken };
+/** @public handler.ts reads it via a module spread, which knip can't follow. */
+export { hasLinkedAccounts };
 
 // ============================================================================
 // TOOL DEFINITIONS

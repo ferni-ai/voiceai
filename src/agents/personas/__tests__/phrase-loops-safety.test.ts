@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { LATE_911_LINE, TALK_TO_988_ES } from '../../../services/safety/crisis-guard-replies.js';
+import { SELF_HARM_911_LINE } from '../../../services/safety/crisis-script-lines.js';
 import { SAFETY_WORDING } from '../phrase-loops-safety.generated.js';
 
 const ROOT = join(__dirname, '..', '..', '..', '..');
@@ -35,13 +36,18 @@ const IMPORTED = [
     line: TALK_TO_988_ES,
   },
   {
+    name: 'SELF_HARM_911_LINE',
+    from: '../../services/safety/index.js',
+    line: SELF_HARM_911_LINE,
+  },
+  {
     name: 'LATE_911_LINE',
     from: '../../services/safety/index.js',
     line: LATE_911_LINE,
   },
 ] as const;
 
-/** One import per module, its names in IMPORTED order (eslint import/no-duplicates). */
+/** One import per module the IMPORTED lines come from (the lint bans duplicate imports). */
 const importLines = (): string =>
   [...new Set(IMPORTED.map((i) => i.from))]
     .map((from) => {

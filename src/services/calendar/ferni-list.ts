@@ -35,29 +35,6 @@ export async function ferniListToday(userId: string, now = new Date()): Promise<
   return describeFerniList((await getDayOverview(userId, now)).events);
 }
 
-/**
- * Awareness with no calendar connected (#1547): Ferni's list is named when it has
- * items; otherwise only the persona that suggests connecting gets a line.
- */
-export async function notConnectedAwareness(
-  userId: string,
-  suggestConnect: boolean
-): Promise<{ isConnected: false; contextInjection: string | null }> {
-  const onList = await ferniListToday(userId);
-  if (onList) {
-    return {
-      isConnected: false,
-      contextInjection: `[CALENDAR: No calendar is connected. On Ferni's own list today: ${onList}. Say it is Ferni's list, not their calendar.]`,
-    };
-  }
-  return {
-    isConnected: false,
-    contextInjection: suggestConnect
-      ? '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]'
-      : null,
-  };
-}
-
 /** The schedule read with nothing connected: Ferni's list for the day asked, or null when empty. */
 export async function ferniScheduleReply(userId: string, dateArg?: string): Promise<string | null> {
   const parsed = dateArg ? parseNaturalDate(dateArg) : null;
