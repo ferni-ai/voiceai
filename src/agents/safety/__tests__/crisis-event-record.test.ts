@@ -7,6 +7,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ReadableStream } from 'node:stream/web';
 import { setImmediate as tick } from 'node:timers/promises';
 
@@ -255,6 +257,17 @@ describe('CRISIS_EVENT_RECORD on', () => {
     // createdAt is the only date: an expiry under another name (deleteAt, ttlAt) fails here too
     const dates = Object.entries(doc).filter(([, value]) => value instanceof Date);
     expect(dates.map(([name]) => name)).toEqual(['createdAt']);
+  });
+
+  it('no TTL policy is declared for crisis_events (records written earlier still carry expireAt)', () => {
+    const { fieldOverrides } = JSON.parse(
+      readFileSync(join(__dirname, '../../../../firestore.indexes.json'), 'utf8')
+    ) as { fieldOverrides: Array<{ collectionGroup: string; ttl?: boolean }> };
+    // The file does declare TTL policies, so an empty answer below is not a misread file
+    expect(fieldOverrides.filter((o) => o.ttl).length).toBeGreaterThan(0);
+    expect(fieldOverrides.filter((o) => o.collectionGroup === 'crisis_events' && o.ttl)).toEqual(
+      []
+    );
   });
 
   it('records the classifier as the reader when it escalates to the script', async () => {
