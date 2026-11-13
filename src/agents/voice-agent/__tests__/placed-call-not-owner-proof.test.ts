@@ -27,9 +27,6 @@ const store = new InMemoryStore();
 const line = vi.hoisted(() => ({ found: 'none' as 'none' | 'stranger' | 'known' }));
 
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store }));
-vi.mock('../../../services/identity/identity-linking.js', () => ({
-  autoLinkOnAuth: vi.fn(async () => undefined),
-}));
 vi.mock('../../../services/superhuman/commitment-prefetch.js', () => ({
   prefetchUserCommitments: vi.fn(async () => {}),
 }));
@@ -190,7 +187,8 @@ describe('web/app and inbound calls: unchanged by the flag', () => {
 });
 
 /** Tools a self-call's agent may hold: phone-safe ones, a human hand-off, and the owner's account tools. */
-const tool = () => llm.tool({ description: 't', parameters: z.object({}), execute: async () => 'ok' });
+const tool = () =>
+  llm.tool({ description: 't', parameters: z.object({}), execute: async () => 'ok' });
 const CALL_TOOLS = ['provideCrisisResources', 'quickCrisisResources', 'getWeather', 'connectToHumanExpert', 'getInboxSummary', 'getCalendarToday', 'recallFromMemory']; // prettier-ignore
 const PHONE_SAFE = ['provideCrisisResources', 'quickCrisisResources', 'getWeather'];
 
@@ -226,11 +224,15 @@ describe("the tools a call's next turn offers", () => {
     expect(await offered(selfCall())).toEqual([...CALL_TOOLS].sort());
   }, 30_000);
 
-  it.each(['off', 'on'])('flag %s: the app keeps every tool; a recognised inbound caller gets the phone-safe set only', async (flag) => {
-    vi.stubEnv('PLACED_CALL_NOT_OWNER_PROOF', flag);
-    vi.stubEnv('CALLER_RECOGNITION', 'on');
-    expect(await offered(appSession())).toEqual([...CALL_TOOLS].sort());
-    line.found = 'known';
-    expect(await offered(inbound())).toEqual([...PHONE_SAFE].sort()); // no hand-off added: not a call Ferni placed
-  }, 30_000);
+  it.each(['off', 'on'])(
+    'flag %s: the app keeps every tool; a recognised inbound caller gets the phone-safe set only',
+    async (flag) => {
+      vi.stubEnv('PLACED_CALL_NOT_OWNER_PROOF', flag);
+      vi.stubEnv('CALLER_RECOGNITION', 'on');
+      expect(await offered(appSession())).toEqual([...CALL_TOOLS].sort());
+      line.found = 'known';
+      expect(await offered(inbound())).toEqual([...PHONE_SAFE].sort()); // no hand-off added: not a call Ferni placed
+    },
+    30_000
+  );
 });

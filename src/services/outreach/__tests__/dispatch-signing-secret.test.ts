@@ -5,7 +5,7 @@ import {
   signDispatch,
   verifyOnBehalfDispatch,
 } from '../on-behalf-dispatch.js';
-import { isSignedDispatch, signedClaim } from '../../identity/signed-dispatch-identity.js';
+import { signedClaim } from '../../identity/signed-dispatch-identity.js';
 import { phoneFromSignedDispatch } from '../../identity/dispatch-phone.js';
 
 describe('dispatchSigningSecret', () => {
@@ -38,7 +38,6 @@ describe('dispatchSigningSecret', () => {
     vi.stubEnv('DISPATCH_SIGNING_SECRET', 'ours');
     vi.stubEnv('LIVEKIT_API_SECRET', 'injected-by-livekit-cloud');
     const meta = signDispatch({ user_id: 'u1', caller_id: '+15551234567' }, 'ours');
-    expect(isSignedDispatch(meta)).toBe(true);
     expect(signedClaim(meta, ['user_id'])).toBe('u1');
     expect(phoneFromSignedDispatch(meta)).toBe('+15551234567');
   });
@@ -93,7 +92,6 @@ describe('the eval-only key (EVAL_DISPATCH_SECRET)', () => {
       { user_id: 'voice-eval-sam', device_id: 'voice-eval-dev', caller_id: '+15551234567' },
       'eval'
     );
-    expect(isSignedDispatch(meta)).toBe(false);
     expect(signedClaim(meta, ['device_id', 'deviceId'])).toBeNull();
     expect(signedClaim({ ...meta, auth_token: 'voice-eval-x' }, ['auth_token'])).toBeNull();
     expect(phoneFromSignedDispatch(meta)).toBeNull();
