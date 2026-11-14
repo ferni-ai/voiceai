@@ -143,6 +143,9 @@ describe('every file the crisis derivation finds is covered', () => {
     expect(derived.named).toContain(
       'src/agents/processors/turn-processor/caller-correction-crisis-hold.ts'
     );
+    // The classifier's Gemini generate, moved out of crisis-classifier.ts: by name and by place.
+    expect(derived.named).toContain('src/services/safety/crisis-classifier-gemini.ts');
+    expect(derived.modules).toContain('src/services/safety/crisis-classifier-gemini.ts');
     // 988 helpers by export, and the reviewed ones.
     expect(derived.helpers).toContain('src/tools/domains/life-coaching-shared/safety-guards.ts');
     expect(derived.helpers).toContain('src/services/safety/crisis-line-speech.ts');
