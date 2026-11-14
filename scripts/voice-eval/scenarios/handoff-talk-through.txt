@@ -1,0 +1,12 @@
+# Talking over a handoff goodbye (#63, HANDOFF_TALK_THROUGH). Ask for a teammate, then talk
+# 1.2 s into the reply that carries the handoff: over the goodbye, or over the line said with the
+# handoff call while the goodbye waits behind it (nightly 2026-11-13: "goodbye not stopped" x2,
+# the goodbye then played over the caller). Run with EVAL_TIER=partner so Jordan is unlocked.
+# Scored as talk-through (capabilities.json): the handoff still completes, and the goodbye yields
+# to the caller (interruptYield). "@interrupt <ms> <line>": spoken <ms> after the reply starts.
+Hey Ferni. Can I talk to Jordan? I want to plan a picnic.
+@interrupt 1200 Oh, and tell Jordan it's for twelve people, on the Saturday after next.
+Great. So what should I bring?
+Okay, thanks Jordan. Can you take me back to Ferni?
+@interrupt 1200 And tell Ferni my dentist moved my cleaning to Thursday at four.
+Thanks. That's all for now.
