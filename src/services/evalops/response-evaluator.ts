@@ -17,7 +17,7 @@
  * judge that can objectively assess quality.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { devStubOrUnavailable } from '../../utils/dev-stub.js';
 import { getMockEvaluationResponse } from './mock-evaluation.js';
 import type { ResponseEvaluation, EvaluationContext, SamplingConfig } from './types.js';
@@ -305,7 +305,7 @@ function parseEvaluationResponse(
       },
     };
   } catch (error) {
-    log.error({ error, response }, 'Failed to parse evaluation response');
+    log.error({ error, response: replyForLog(response) }, 'Failed to parse evaluation response');
 
     // Return a fallback evaluation based on heuristics
     return createHeuristicEvaluation(context, aiResponse, userMessage, startTime);

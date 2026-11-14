@@ -363,16 +363,4 @@ export function saveReflectionMoment(profile: UserProfile, moment: ReflectionMom
   log.debug({ momentId: moment.id, type: moment.type }, 'Saved reflection moment');
 }
 
-/**
- * Mark a moment as reflected on
- */
-export function markMomentReflectedOn(profile: UserProfile, momentId: string): void {
-  const moments = getReflectionMoments(profile);
-  const moment = moments.find((m) => m.id === momentId);
-  if (moment) {
-    moment.reflectedOn = true;
-    moment.reflectedOnAt = new Date();
-  }
-}
-
 export { reflectionTemplates, calculateAppropiateness };

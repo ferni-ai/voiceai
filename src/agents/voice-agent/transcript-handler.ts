@@ -121,7 +121,7 @@ import {
   recordEchoDetected,
 } from '../../speech/coordination/index.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
 import { updateToolsAfterReplyStarts } from './deferred-tool-update.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
@@ -1074,7 +1074,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       if (cached) {
         diag.state('⚡ CACHE BYPASS - Speaking cached response immediately', {
           intent: cached.intent,
-          response: cached.response.slice(0, 50),
+          response: replyForLog(cached.response),
         });
 
         // Say the cached response immediately (with SSML if available) via coordinated speech
@@ -1197,7 +1197,7 @@ function processResponseAnticipation(sessionId: string, event: TranscriptEvent):
           anticipator.markCacheHit(anticipation.intent);
           diag.state('⚡ CACHE HIT - Cached response ready', {
             intent: anticipation.intent,
-            response: cached.response.slice(0, 50),
+            response: replyForLog(cached.response),
             confidence: anticipation.confidence,
           });
         }

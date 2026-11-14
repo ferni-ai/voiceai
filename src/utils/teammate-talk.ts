@@ -146,7 +146,7 @@ function ownWords(clause: string): string {
 }
 
 /** The caller's line with every request for, plan to go to, and name said to a teammate taken out. */
-export function withoutTeammateTalk(line: string): string {
+function withoutTeammateTalk(line: string): string {
   const parts = clauses(line);
   const own = parts.map(ownWords);
   if (own.every((o, i) => o === parts[i])) return line.trim(); // nothing taken: as they said it

@@ -297,7 +297,7 @@ export const FORGET_READERS: readonly ForgetReader[] = [
   {
     id: 'outbound.briefReminders',
     file: 'src/services/outreach/morning-brief/default-deps.ts',
-    site: 'remindersDueToday',
+    site: 'pendingReminderItems',
     reaches: 'outbound',
     check: 'none',
     fix: 'PR2a',
@@ -546,14 +546,6 @@ export const NOT_A_READER: Readonly<Record<string, string>> = {
  * they may not also be listed as a reader, NOT_A_READER or UNCLASSIFIED.
  */
 export const DEAD_PATH: Readonly<Record<string, string>> = {
-  'src/intelligence/context-builders/session/conversation-recap.ts':
-    'loaded only by builder-imports.ts; deleted by step 6',
-  'src/intelligence/context-builders/session/cross-session-threading.ts':
-    'loaded only by builder-imports.ts (revived-builders.ts names it in a comment); deleted by step 6. The live cross-session reader is prompt.semanticThreads',
-  'src/intelligence/context-builders/engagement/shared-content.ts':
-    'loaded only by builder-imports.ts; deleted by step 6. content-injector stays live through src/context (prompt.sharedContent)',
-  'src/intelligence/context-builders/memory/unified-memory-orchestrator.ts':
-    'loaded only by the builder registry; deleted by step 6',
   'src/memory/orchestrator.ts':
     'its session-priming text reaches the prompt only through unified-memory-orchestrator; the live persona briefings call getMemoryHealth (counts). The live session primer is session-manager → handoff.summary',
 };
@@ -571,7 +563,6 @@ export const UNCLASSIFIED: readonly string[] = [
   'src/api/superhuman-metrics-routes.ts',
   'src/context/context-builders.ts',
   'src/context/context-manager.class.ts',
-  'src/intelligence/context-builders/memory/dynamic-memory-context.ts',
   'src/intelligence/core/context-service.ts',
   'src/intelligence/surfacing/proactive-surfacing-engine.ts',
   'src/memory/operations/memory-lifecycle.ts',
@@ -591,7 +582,6 @@ export const UNCLASSIFIED: readonly string[] = [
   'src/services/outreach/semantic-message-system.ts',
   'src/services/persona/profile-personalizer.ts',
   'src/services/superhuman/commitment-keeper.ts',
-  'src/services/superhuman/insight-generation/generators/persona-voiced-observations.ts',
   'src/services/superhuman/semantic-intelligence/ferni-commitments.ts',
   'src/services/superhuman/semantic-intelligence/promise-keeper.ts',
   'src/services/superhuman/unified-user-knowledge.ts',

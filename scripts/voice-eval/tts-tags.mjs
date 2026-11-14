@@ -7,6 +7,8 @@
 // (trace E2E_TTS_OUTPUT); capture it while the eval runs, e.g.
 //   lk agent logs --project ferni-dev --config <abs>/livekit.toml > agent.log &
 // The lines carry no session id, so one log should cover one batch of runs.
+// Only the dev agent with LOG_FULL_RESPONSES=true logs the text; elsewhere the field holds
+// a length such as "[148 chars]", and those replies are skipped.
 import { readFileSync } from 'node:fs';
 
 const TAG = /\[([a-z ]+)\]/gi;
@@ -23,6 +25,7 @@ for (const file of process.argv.slice(2)) {
       continue;
     }
     if (entry.trace !== 'E2E_TTS_OUTPUT' || entry.isEmpty || !entry.ttsText) continue;
+    if (/^\[\d+ chars\]$/.test(entry.ttsText)) continue;
     replies += 1;
     // Count a tag once per reply: "how often he laughs", not how many times.
     const tags = new Set([...entry.ttsText.matchAll(TAG)].map((m) => m[1].toLowerCase()));

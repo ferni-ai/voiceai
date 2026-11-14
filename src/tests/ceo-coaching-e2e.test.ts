@@ -4,7 +4,6 @@
  * Validates the complete flow from:
  * - Tool registration and loading
  * - Storage operations
- * - Context builder injection
  * - Cross-persona integration (Jordan, Maya)
  *
  * @module tests/ceo-coaching-e2e
@@ -322,72 +321,6 @@ describe('CEO Coaching E2E: Storage Functions', () => {
 // CONTEXT BUILDER TESTS
 // ============================================================================
 
-describe('CEO Coaching E2E: Context Builder', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should be directly importable', async () => {
-    // Directly import the context builder (avoids mock interference)
-    const { buildCEOCoachingContext } =
-      await import('../intelligence/context-builders/engagement/ceo-coaching-context.js');
-
-    // Verify the function exists and is callable
-    expect(buildCEOCoachingContext).toBeDefined();
-    expect(typeof buildCEOCoachingContext).toBe('function');
-  });
-
-  it('should be importable via builder imports path', async () => {
-    // Import the actual module directly (this bypasses any mock issues)
-    const module =
-      await import('../intelligence/context-builders/engagement/ceo-coaching-context.js');
-
-    expect(module).toBeDefined();
-    expect(module.buildCEOCoachingContext).toBeDefined();
-    expect(typeof module.buildCEOCoachingContext).toBe('function');
-  });
-
-  it('should export buildCEOCoachingContext function', async () => {
-    const { buildCEOCoachingContext } =
-      await import('../intelligence/context-builders/engagement/ceo-coaching-context.js');
-
-    expect(typeof buildCEOCoachingContext).toBe('function');
-  });
-
-  it('should return empty array for non-early turns', async () => {
-    const { buildCEOCoachingContext } =
-      await import('../intelligence/context-builders/engagement/ceo-coaching-context.js');
-
-    // Mock input with turn > 3
-    const input = {
-      services: { userId: TEST_USER_ID, sessionId: 'test-session' },
-      userData: { turnCount: 5 },
-      persona: null,
-      userText: '',
-      analysis: null,
-    };
-
-    const injections = await buildCEOCoachingContext(input as any);
-    expect(injections).toEqual([]);
-  });
-
-  it('should return empty array for missing userId', async () => {
-    const { buildCEOCoachingContext } =
-      await import('../intelligence/context-builders/engagement/ceo-coaching-context.js');
-
-    const input = {
-      services: { sessionId: 'test-session' },
-      userData: { turnCount: 1 },
-      persona: null,
-      userText: '',
-      analysis: null,
-    };
-
-    const injections = await buildCEOCoachingContext(input as any);
-    expect(injections).toEqual([]);
-  });
-});
-
 // ============================================================================
 // CROSS-PERSONA INTEGRATION TESTS
 // ============================================================================
@@ -499,15 +432,6 @@ describe('CEO Coaching E2E: Maya Integration', () => {
 
     expect(typeof getEnergyTrend).toBe('function');
     expect(typeof getRecentEnergyEntries).toBe('function');
-  });
-
-  it('should have maya-habit-insights builder with energy awareness', async () => {
-    const { mayaHabitInsightsBuilder } =
-      await import('../intelligence/context-builders/personas/maya-habit-insights.js');
-
-    expect(mayaHabitInsightsBuilder).toBeDefined();
-    expect(mayaHabitInsightsBuilder.name).toBe('maya-habit-insights');
-    expect(typeof mayaHabitInsightsBuilder.build).toBe('function');
   });
 });
 
@@ -637,7 +561,7 @@ describe('CEO Coaching E2E: Type Exports', () => {
 // ============================================================================
 
 describe('CEO Coaching E2E: Full Flow Simulation', () => {
-  it('should simulate user tracking a win → Jordan sees it → context injected', async () => {
+  it('should simulate user tracking a win → Jordan sees it', async () => {
     // Step 1: Verify trackWin tool exists
     const { getToolDefinitions } = await import('../tools/domains/ceo-coaching/index.js');
     const tools = await getToolDefinitions();
@@ -682,33 +606,7 @@ describe('CEO Coaching E2E: Full Flow Simulation', () => {
     expect(Array.isArray(opportunities)).toBe(true);
     expect(opportunities.length).toBeGreaterThan(0);
 
-    // Step 4: Verify CEO coaching context builder exists
-    const { buildCEOCoachingContext } =
-      await import('../intelligence/context-builders/engagement/ceo-coaching-context.js');
-    expect(typeof buildCEOCoachingContext).toBe('function');
-
-    console.log('✅ Full flow verified: Win tracking → Jordan celebration → Context injection');
-  });
-
-  it('should simulate low energy → Maya suggests habit', async () => {
-    // Step 1: Verify trackEnergy tool exists
-    const { getToolDefinitions } = await import('../tools/domains/ceo-coaching/index.js');
-    const tools = await getToolDefinitions();
-    const trackEnergyTool = tools.find((t) => t.id === 'trackEnergy');
-    expect(trackEnergyTool).toBeDefined();
-
-    // Step 2: Verify Maya builder imports energy functions
-    const { mayaHabitInsightsBuilder } =
-      await import('../intelligence/context-builders/personas/maya-habit-insights.js');
-    expect(mayaHabitInsightsBuilder).toBeDefined();
-
-    // Step 3: Verify energy functions are accessible
-    const { getEnergyTrend, getRecentEnergyEntries } =
-      await import('../tools/domains/ceo-coaching/storage.js');
-    expect(typeof getEnergyTrend).toBe('function');
-    expect(typeof getRecentEnergyEntries).toBe('function');
-
-    console.log('✅ Full flow verified: Energy tracking → Maya energy awareness');
+    console.log('✅ Full flow verified: Win tracking → Jordan celebration');
   });
 
   it('should simulate morning briefing with calendar', async () => {

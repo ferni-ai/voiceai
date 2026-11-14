@@ -26,7 +26,7 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
@@ -1464,7 +1464,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Track agent speech (when audio is played)
       const agentSpeechHandler = (event: unknown) => {
         const evt = event as { text?: string };
-        process.stderr.write(`\n🔊 [AGENT SPEECH] "${evt.text?.slice(0, 100) || '(no text)'}"\n`);
+        process.stderr.write(`\n🔊 [AGENT SPEECH] ${replyForLog(evt.text)}\n`);
       };
       sessionWithEvents.on('agent_speech', agentSpeechHandler);
       sessionEventHandlers.push({ event: 'agent_speech', handler: agentSpeechHandler });
@@ -1498,16 +1498,14 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Track text output
       const textDeltaHandler = (event: unknown) => {
         const evt = event as { delta?: string };
-        process.stderr.write(`📝 [TEXT DELTA] "${evt.delta || ''}"`);
+        process.stderr.write(`📝 [TEXT DELTA] "${replyForLog(evt.delta)}"`);
       };
       sessionWithEvents.on('response.text.delta', textDeltaHandler);
       sessionEventHandlers.push({ event: 'response.text.delta', handler: textDeltaHandler });
 
       const textDoneHandler = (event: unknown) => {
         const evt = event as { text?: string };
-        process.stderr.write(
-          `\n📝 [TEXT DONE] Full text: "${evt.text?.slice(0, 200) || '(empty)'}"\n`
-        );
+        process.stderr.write(`\n📝 [TEXT DONE] Full text: ${replyForLog(evt.text)}\n`);
       };
       sessionWithEvents.on('response.text.done', textDoneHandler);
       sessionEventHandlers.push({ event: 'response.text.done', handler: textDoneHandler });
@@ -2211,7 +2209,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
         {
           personaId: persona.id,
           sessionId,
-          textPreview: text.slice(0, 60),
+          textPreview: replyForLog(text),
           allowInterruptions: options?.allowInterruptions ?? true,
         },
         '🎭 [SAY] Agent speaking via coordinatedSay...'

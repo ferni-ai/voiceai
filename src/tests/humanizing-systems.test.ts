@@ -38,9 +38,6 @@ import {
 import {
   getRelationshipBehaviors,
   calculateRelationshipStage,
-  isBehaviorAllowed,
-  getChallengePhrase,
-  getDeepQuestion,
   mapUserProfileStageToHumanizing,
   mapHumanizingStageToUserProfile,
   getRelationshipStageFromProfile,
@@ -600,46 +597,6 @@ describe('Relationship-Gated Behaviors', () => {
       expect(behaviors.promptInjection).toContain('RELATIONSHIP LEVEL');
       expect(behaviors.promptInjection).toContain('ACQUAINTANCE');
       expect(behaviors.promptInjection).toContain('YOU CAN:');
-    });
-  });
-
-  describe('isBehaviorAllowed', () => {
-    it('should not allow challenges for strangers', () => {
-      expect(isBehaviorAllowed('challenge', 'stranger')).toBe(false);
-    });
-
-    it('should allow challenges for friends', () => {
-      expect(isBehaviorAllowed('challenge', 'friend')).toBe(true);
-    });
-
-    it('should allow basic behaviors for all stages', () => {
-      expect(isBehaviorAllowed('open-ended questions', 'stranger')).toBe(true);
-    });
-  });
-
-  describe('getChallengePhrase', () => {
-    it('should return null for strangers', () => {
-      const phrase = getChallengePhrase('stranger');
-      // Strangers don't have challenge phrases
-      expect(phrase).toBeNull();
-    });
-
-    it('should return a phrase for friends', () => {
-      const phrase = getChallengePhrase('friend');
-      expect(phrase).not.toBeNull();
-    });
-  });
-
-  describe('getDeepQuestion', () => {
-    it('should return basic questions for strangers', () => {
-      const question = getDeepQuestion('stranger');
-      expect(question).not.toBeNull();
-      expect(question).toContain('?');
-    });
-
-    it('should return deeper questions for trusted advisors', () => {
-      const question = getDeepQuestion('trusted_advisor');
-      expect(question).not.toBeNull();
     });
   });
 });

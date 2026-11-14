@@ -160,13 +160,6 @@ describe('Service Wiring Integration', () => {
     });
   });
 
-  describe('Coaching Services Import Validation', () => {
-    it('coaching persistence imports correct hook', async () => {
-      const module = await import('../../coaching/persistence.js');
-      expect(module).toBeDefined();
-    });
-  });
-
   describe('Health Services Import Validation', () => {
     it('apple-health-sync imports correct hook', async () => {
       const module = await import('../../identity/apple-health-sync.js');
@@ -291,21 +284,6 @@ describe('Hook Exports Validation', () => {
     expect(hooks.onFriendMemoryChange).toBeDefined();
     expect(hooks.onProfessionalContactChange).toBeDefined();
     expect(hooks.onCommunicationPreferenceChange).toBeDefined();
-  });
-
-  it('coaching-hooks exports all required hooks', async () => {
-    const hooks = await import('../hooks/coaching-hooks.js');
-
-    expect(hooks.onCoachingInsightChange).toBeDefined();
-    expect(hooks.onBreakthroughMomentChange).toBeDefined();
-    expect(hooks.onStuckPatternChange).toBeDefined();
-    expect(hooks.onReframeSuggestionChange).toBeDefined();
-    expect(hooks.onGrowthEdgeChange).toBeDefined();
-    expect(hooks.onStrengthIdentifiedChange).toBeDefined();
-    expect(hooks.onBlindSpotChange).toBeDefined();
-    expect(hooks.onAccountabilityItemChange).toBeDefined();
-    expect(hooks.onBehaviorChangeEntity).toBeDefined();
-    expect(hooks.onMotivationInsightChange).toBeDefined();
   });
 
   it('health-hooks exports all required hooks', async () => {

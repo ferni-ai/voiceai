@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildGoodbyeContext } from '../../../intelligence/context-builders/goodbye.js';
 import {
   composeGreeting,
   type GreetingContext,
@@ -325,35 +324,6 @@ describe('NAME_GATE_V2: prompt line and greeting atoms', () => {
     const off = firstCallNote(ctx, firstCall, 'Okay, I gotta go.', { FIRST_CALL_RAPPORT: 'on' });
     expect(on).toContain(NAME_PLACEMENT_RULE);
     expect(off).not.toContain(NAME_PLACEMENT_RULE);
-  });
-
-  it('adds the line to the goodbye guidance only with the flag on', () => {
-    const input = {
-      userText: 'Goodbye, talk to you later!',
-      analysis: {
-        intent: {
-          primary: 'conversation',
-          confidence: 0.8,
-          isQuestion: false,
-          suggestedApproach: [],
-        },
-        emotion: { primary: 'neutral', valence: 0.5, arousal: 0.5, confidence: 0.7, secondary: [] },
-        topics: { detected: [], keywords: [] },
-        state: { phase: 'exploring', engagement: 0.7, rapport: 0.6 },
-      },
-      userData: { turnCount: 10, wasInterrupted: false, userWentSilent: false },
-      persona: { id: 'ferni', name: 'Ferni', role: 'life-coach', voice: {}, cognitive: {} },
-    } as never;
-    const goodbye = () => buildGoodbyeContext(input).find((i) => i.source === 'goodbye')?.content;
-    try {
-      vi.stubEnv('NAME_GATE_V2', 'on');
-      expect(goodbye()).toContain(`Say goodbye by name if you know it. ${NAME_PLACEMENT_RULE}`);
-      vi.stubEnv('NAME_GATE_V2', 'off');
-      expect(goodbye()).toContain('Say goodbye by name if you know it\n');
-      expect(goodbye()).not.toContain(NAME_PLACEMENT_RULE);
-    } finally {
-      vi.unstubAllEnvs();
-    }
   });
 
   it('turns a name atom into "Hey Sam." with no hello before it', () => {

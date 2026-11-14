@@ -21,7 +21,7 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import {
   stripInstructionBlocks,
   containsInstructionBlocks,
@@ -707,13 +707,13 @@ export function createGatewayTTSNode(
 
     log.info(
       {
-        text: truncateForLog(fullText, 100),
+        text: replyForLog(fullText),
         voiceId,
         sessionId,
         personaId,
         trace: 'GATEWAY_TTS_START',
       },
-      `🚀 Gateway TTS: Processing "${truncateForLog(fullText, 50)}"`
+      `🚀 Gateway TTS: Processing ${replyForLog(fullText)}`
     );
 
     // 2. PARSE SSML AND EXTRACT PROSODY
@@ -722,10 +722,7 @@ export function createGatewayTTSNode(
     const cleanText = ssmlResult.cleanText;
 
     if (!cleanText.trim()) {
-      log.debug(
-        { sessionId, originalText: truncateForLog(fullText, 50) },
-        'Empty text after SSML strip'
-      );
+      log.debug({ sessionId, originalText: replyForLog(fullText) }, 'Empty text after SSML strip');
       // Return empty completed stream instead of null to avoid LiveKit SDK errors
       // ("WritableStream is closed" when SDK tries to close already-closed streams)
       return createEmptyAudioStream();
@@ -736,8 +733,8 @@ export function createGatewayTTSNode(
     if (isJsonFunctionCall(cleanText)) {
       log.warn(
         {
-          text: truncateForLog(cleanText, 100),
-          fullText: truncateForLog(fullText, 100),
+          text: replyForLog(cleanText),
+          fullText: replyForLog(fullText),
           sessionId,
           personaId,
           trace: 'GATEWAY_TTS_JSON_FILTERED',
@@ -761,8 +758,8 @@ export function createGatewayTTSNode(
       finalText = stripInstructionBlocks(cleanText);
       log.warn(
         {
-          original: truncateForLog(cleanText, 100),
-          cleaned: truncateForLog(finalText, 100),
+          original: replyForLog(cleanText),
+          cleaned: replyForLog(finalText),
           sessionId,
           personaId,
           trace: 'GATEWAY_TTS_INSTRUCTION_STRIPPED',
@@ -829,7 +826,7 @@ export function createGatewayTTSNode(
       });
 
       log.debug(
-        { text: truncateForLog(finalText, 30), sessionId },
+        { text: replyForLog(finalText), sessionId },
         '🚀 Speculative synthesis started in parallel with cache check'
       );
     }
@@ -860,7 +857,7 @@ export function createGatewayTTSNode(
 
         log.info(
           {
-            text: truncateForLog(finalText, 50),
+            text: replyForLog(finalText),
             voiceId,
             sessionId,
             hitLatencyMs: hitLatency,
@@ -882,7 +879,7 @@ export function createGatewayTTSNode(
 
     log.info(
       {
-        text: truncateForLog(finalText, 50),
+        text: replyForLog(finalText),
         voiceId,
         sessionId,
         prosody,
@@ -922,7 +919,7 @@ export function createGatewayTTSNode(
 
       log.info(
         {
-          text: truncateForLog(finalText, 50),
+          text: replyForLog(finalText),
           voiceId,
           sessionId,
           synthesisLatencyMs: synthesisLatency,
@@ -944,7 +941,7 @@ export function createGatewayTTSNode(
         await cache.set(finalText, voiceId, audio, durationMs, prosody);
 
         log.debug(
-          { text: truncateForLog(finalText, 30), voiceId, durationMs },
+          { text: replyForLog(finalText), voiceId, durationMs },
           'Cached synthesized audio'
         );
       }
@@ -959,7 +956,7 @@ export function createGatewayTTSNode(
       log.error(
         {
           error: String(error),
-          text: truncateForLog(finalText, 50),
+          text: replyForLog(finalText),
           voiceId,
           sessionId,
         },

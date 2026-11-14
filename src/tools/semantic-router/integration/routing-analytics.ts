@@ -92,6 +92,11 @@ export interface ToolPerformance {
 
 const events: RoutingEvent[] = [];
 const MAX_EVENTS = 100000; // Keep last 100K events in memory
+/** Crisis turns routed since the process started: all one leaves here (routed-turn.ts) */
+let crisisTurns = 0;
+export function countCrisisTurn(): void {
+  crisisTurns++;
+}
 
 // ============================================================================
 // EVENT RECORDING
@@ -178,7 +183,7 @@ export function recordRoutingEvent(
  * Update event with outcome: its named fields only, so a field a caller adds (what the
  * tool heard, say) never reaches getRoutingEvents() or the dashboard
  */
-export function recordRoutingOutcome(eventId: string, outcome: RoutingOutcome): void {
+export function recordRoutingOutcome(eventId: string | undefined, outcome: RoutingOutcome): void {
   const event = events.find((e) => e.id === eventId);
   if (event) {
     const { toolExecuted, executionSuccess, userSatisfied, corrected, llmFallbackUsed } = outcome;
@@ -377,6 +382,7 @@ export interface DashboardData {
   toolPerformance: ToolPerformance[];
   recentEvents: RoutingEvent[];
   alerts: DashboardAlert[];
+  crisisTurns: number; // countCrisisTurn: a crisis turn records nothing else
 }
 
 export interface DashboardAlert {
@@ -452,6 +458,7 @@ export function getDashboardData(): DashboardData {
     toolPerformance: toolPerformance.slice(0, 20), // Top 20 tools
     recentEvents: events.slice(-50).reverse(), // Last 50 events
     alerts,
+    crisisTurns,
   };
 }
 
@@ -464,6 +471,7 @@ export function getDashboardData(): DashboardData {
  */
 export function clearRoutingEvents(): void {
   events.length = 0;
+  crisisTurns = 0;
 }
 
 /**

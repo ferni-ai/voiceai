@@ -17,6 +17,12 @@ function deps(answer = ''): UsersAdminDeps & {
 
 const evil = 'a@b.com; touch /tmp/pwned';
 
+// A handler sets process.exitCode when its script fails: put it back after each test.
+const startingExitCode = process.exitCode;
+afterEach(() => {
+  process.exitCode = startingExitCode;
+});
+
 describe('no shell: user input stays one argv element', () => {
   it.each([
     ['users show', () => handleUsers, ['show', evil], 'check-my-data.ts', `--email=${evil}`],
@@ -92,6 +98,7 @@ describe('users dump', () => {
     };
     await handleUsers(['dump', UNLISTED], d);
     expect(result.status).toBe(1);
+    expect(process.exitCode).toBe(1); // the refusal is the command's exit code too
     expect(result.output.trim()).toBe('uid not in allowlist');
     expect(result.output).not.toContain(UNLISTED);
   }, 30_000);
@@ -157,5 +164,32 @@ describe('users undo-dnc', () => {
       ],
       { stdio: 'inherit' }
     );
+  });
+});
+
+describe("a script's exit code is the command's", () => {
+  it.each([
+    ['users dump', () => handleUsers, ['dump', 'u1'], 'full-user-dump.ts'],
+    ['users list', () => handleUsers, ['list'], 'list-all-users.ts'],
+    ['waitlist stats', () => handleWaitlist, ['stats'], 'waitlist-admin.ts'],
+  ])('%s exits with the status of a script that refuses', async (_name, handler, args, script) => {
+    const d = deps();
+    d.run.mockReturnValue({ status: 3 });
+    await handler()(args, d);
+    expect(d.run.mock.calls[0]?.[1]?.[1]).toBe(`/repo/scripts/${script}`);
+    expect(process.exitCode).toBe(3);
+  });
+
+  it('exits 1 when a signal killed the script', async () => {
+    const d = deps();
+    d.run.mockReturnValue({ status: null });
+    await handleUsers(['find-rich'], d);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('leaves the exit code alone when the script succeeds', async () => {
+    const d = deps();
+    await handleUsers(['find-rich'], d);
+    expect(process.exitCode).toBe(startingExitCode);
   });
 });

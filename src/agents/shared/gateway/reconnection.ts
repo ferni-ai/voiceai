@@ -24,6 +24,7 @@ const log = getLogger();
 
 import type { GatewayOptions, GatewayResult } from './types.js';
 import { sayInOwnWords } from '../../../speech/direction/index.js';
+import { holdStepAwayForCrisis, STILL_HERE_LINE } from './step-away-crisis-hold.js';
 
 // ============================================================================
 // SESSION REGISTRY & RECONNECTION TRACKING
@@ -36,6 +37,8 @@ export const sessionObjects = new Map<string, voice.AgentSession>();
 const reconnectionAttempts = new Map<string, { count: number; lastAttempt: number }>();
 const MAX_RECONNECTION_ATTEMPTS = 2;
 const RECONNECTION_COOLDOWN_MS = 30_000; // 30s between reconnection attempts
+/** Calls whose step-away exit was held and that have heard STILL_HERE_LINE (once per call). */
+const stillHereSaid = new Set<string>();
 
 /** Callbacks for session registration - set by main gateway to avoid circular imports */
 type ReconnectionCallbacks = {
@@ -66,6 +69,7 @@ export function registerSessionForReconnection(
 export function unregisterSessionForReconnection(sessionId: string): void {
   sessionObjects.delete(sessionId);
   reconnectionAttempts.delete(sessionId);
+  stillHereSaid.delete(sessionId);
   reconnectionCallbacks.onSessionUnregistered?.(sessionId);
 }
 
@@ -87,7 +91,9 @@ export async function generateReplyBySessionId(
 
     if (options.fallbackMessage) {
       try {
-        sayInOwnWords(sessionId, options.fallbackMessage, 'fallback:no-session', { allowInterruptions: true });
+        sayInOwnWords(sessionId, options.fallbackMessage, 'fallback:no-session', {
+          allowInterruptions: true,
+        });
         return {
           success: false,
           usedFallback: true,
@@ -172,7 +178,9 @@ export async function handleGeminiDeath(sessionId: string): Promise<boolean> {
 
     log.info({ sessionId }, '✅ [GATEWAY] Gemini reconnection successful!');
 
-    sayInOwnWords(sessionId, "I'm back! What were you saying?", 'reconnected', { allowInterruptions: true });
+    sayInOwnWords(sessionId, "I'm back! What were you saying?", 'reconnected', {
+      allowInterruptions: true,
+    });
 
     return true;
   } catch (err) {
@@ -187,6 +195,10 @@ export async function handleGeminiDeath(sessionId: string): Promise<boolean> {
 /**
  * Trigger a graceful exit when LLM is completely unresponsive.
  * Attempts reconnection FIRST before giving up.
+ *
+ * Never for a caller at risk (step-away-crisis-hold.ts): checked before the step-away line and
+ * again just before `conversation_end`, since a crisis read can start while the line plays.
+ * Held, Ferni says STILL_HERE_LINE once per call and the caller ends the call.
  */
 export async function triggerGracefulExit(sessionId: string): Promise<void> {
   const reconnected = await handleGeminiDeath(sessionId);
@@ -194,6 +206,7 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
     log.info({ sessionId }, '🔄 [GATEWAY] Reconnected during graceful exit - continuing session');
     return;
   }
+  if (await holdStepAwayForCrisis(sessionId, 'before_line')) return stayOnTheLine(sessionId);
 
   const goodbyeMessages = [
     'Oh, looks like I need to step away for a moment. Talk to you soon!',
@@ -211,6 +224,7 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
 
     await new Promise((resolve) => setTimeout(resolve, GRACEFUL_EXIT_TTS_WAIT_MS));
 
+    if (await holdStepAwayForCrisis(sessionId, 'before_signal')) return stayOnTheLine(sessionId);
     const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
     await sendFrontendSignal(
       'conversation_end',
@@ -228,5 +242,16 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
       { error: String(err), sessionId },
       '👋 [GATEWAY] Graceful exit failed - user may be stuck'
     );
+  }
+}
+
+/** The step-away exit was held: Ferni stays, saying STILL_HERE_LINE once per call. */
+function stayOnTheLine(sessionId: string): void {
+  if (stillHereSaid.has(sessionId)) return;
+  stillHereSaid.add(sessionId);
+  try {
+    coordinatedSay(sessionId, STILL_HERE_LINE, { allowInterruptions: true });
+  } catch (err) {
+    log.error({ error: String(err), sessionId }, '👋 [GATEWAY] Still-here line failed');
   }
 }

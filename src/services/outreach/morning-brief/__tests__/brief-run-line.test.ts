@@ -58,6 +58,8 @@ describe('MORNING_BRIEF_RUN', () => {
         eligible: 0,
         sent: 0,
         skippedBy: { 'nothing-today': 1 },
+        segments: { events: 0, due: 0, open: 0 },
+        dropped: {},
         enabled: true,
         commitments: 'off',
       },

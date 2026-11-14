@@ -18,7 +18,6 @@ import { isSuccess } from '../../../types/index.js';
 
 const store = new InMemoryStore();
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store }));
-vi.mock('../identity-linking.js', () => ({ autoLinkOnAuth: vi.fn(async () => undefined) }));
 
 const { identifyFromMetadata, setGlobalStore } = await import('../user-identification.js');
 const { identifyWithVoice } = await import('../../voice/voice-identification.js');

@@ -66,7 +66,6 @@ describe('Nayan Patel: late wife', () => {
   it('no former name for his wife remains on his surfaces', () => {
     const surfaces = [
       ...listFiles(NAYAN),
-      join(SRC, 'personality/moments/nayan-moments.ts'),
       join(SRC, 'personas/easter-eggs.ts'),
       join(SRC, 'personas/persona-pronouns.ts'),
       join(SRC, 'tests/nayan-patel-persona-e2e.test.ts'),

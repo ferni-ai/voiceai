@@ -22,6 +22,7 @@
  */
 
 import { isCustomAgentId } from '../services/custom-agent/custom-agent-ids.js';
+import type { PersonaId } from '../types/branded.js';
 import { personaRegistry } from './persona-registry.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -242,6 +243,15 @@ export function isKnownId(id: string): boolean {
 }
 
 /**
+ * Type guard: is this value a known persona id or alias (case-insensitive)?
+ * Reads ALIAS_TO_CANONICAL's own keys, so it cannot drift from this table and
+ * inherited keys such as "constructor" stay out.
+ */
+export function isValidPersonaId(value: unknown): value is PersonaId {
+  return typeof value === 'string' && canonicalForAlias(value.toLowerCase()) !== undefined;
+}
+
+/**
  * Convert ANY persona ID/alias to canonical form.
  * This is the ONLY function that should be used to normalize IDs.
  *
@@ -456,6 +466,7 @@ export default {
   fromFrontend,
   isCanonicalId,
   isKnownId,
+  isValidPersonaId,
   isSamePersona,
   isCoach,
   isTeamMember,

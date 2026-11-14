@@ -3,9 +3,9 @@
  *
  * Route limits keyed a person as `user:<uid>` with no route prefix, so about
  * sixty routes shared one counter per person, and whichever route created the
- * entry set its window. A few GDPR calls could make /api/auth/migrate answer
- * 429, and migrate's one-hour window could keep a per-minute route from ever
- * resetting.
+ * entry set its window. A few GDPR calls could make an hourly route answer
+ * 429, and that route's one-hour window could keep a per-minute route from ever
+ * resetting. The hourly route here is the anonymous-account merge (5 an hour).
  *
  * Real handlers and the real in-memory limiter; the person is bound the way the
  * API server binds a verified uid at the door. No token is sent, so a request
@@ -13,7 +13,7 @@
  * means "rate limited", anything else means "not rate limited".
  */
 import type { IncomingMessage, ServerResponse } from 'http';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { rememberVerifiedUid } = await import('../rate-limit-identity.js');
 const { handleMigrationRoutes } = await import('../migration-routes.js');
@@ -22,7 +22,7 @@ const { limitServerRequest, API_GLOBAL_LIMIT } = await import('../global-rate-li
 const { handlePlaidRoutes } = await import('../../servers/api/routes/plaid.js');
 const { handleTokenRoutes } = await import('../../servers/api/routes/token.js');
 
-const MIGRATE_PER_HOUR = 5;
+const MERGE_PER_HOUR = 5;
 const GDPR_PER_MINUTE = 10;
 
 function response() {
@@ -46,9 +46,11 @@ function request(uid: string, method: string, url: string): IncomingMessage {
   return req;
 }
 
-async function migrateStatus(uid: string): Promise<number> {
+const MERGE_PATH = '/api/identity/merge-anonymous';
+
+async function mergeStatus(uid: string): Promise<number> {
   const res = response();
-  await handleMigrationRoutes(request(uid, 'POST', '/api/auth/migrate'), res, '/api/auth/migrate');
+  await handleMigrationRoutes(request(uid, 'POST', MERGE_PATH), res, MERGE_PATH);
   return res.statusCode;
 }
 
@@ -64,7 +66,11 @@ async function statuses(n: number, call: () => Promise<number>): Promise<number[
   return out;
 }
 
-afterEach(() => vi.useRealTimers());
+beforeEach(() => vi.stubEnv('IDENTITY_MERGE_ANON', 'on'));
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe('per-route rate-limit buckets', () => {
   it('spending one route budget does not 429 another route for the same person', async () => {
@@ -74,26 +80,26 @@ describe('per-route rate-limit buckets', () => {
     expect(gdpr.slice(0, GDPR_PER_MINUTE)).not.toContain(429);
     expect(gdpr[GDPR_PER_MINUTE]).toBe(429);
 
-    expect(await migrateStatus(uid)).not.toBe(429);
+    expect(await mergeStatus(uid)).not.toBe(429);
   });
 
   it("one route's window does not set another's", async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T10:00:00Z') });
     const uid = 'uid-route-buckets-b';
 
-    // Migrate (5 an hour) makes the first entry for this person. The GDPR calls
-    // stay under ten even if counted with it, so only the window can refuse one.
-    expect(await migrateStatus(uid)).not.toBe(429);
+    // The merge route (5 an hour) makes the first entry for this person. The GDPR
+    // calls stay under ten even if counted with it, so only the window can refuse one.
+    expect(await mergeStatus(uid)).not.toBe(429);
     expect(await statuses(GDPR_PER_MINUTE - 1, () => gdprStatus(uid))).not.toContain(429);
 
-    // A minute later GDPR has a fresh minute, not the rest of migrate's hour
+    // A minute later GDPR has a fresh minute, not the rest of the merge route's hour
     vi.setSystemTime(new Date('2026-11-12T10:01:01Z'));
     expect(await statuses(GDPR_PER_MINUTE, () => gdprStatus(uid))).not.toContain(429);
 
-    // and migrate keeps its hour: four more, then refused
-    const migrate = await statuses(MIGRATE_PER_HOUR, () => migrateStatus(uid));
-    expect(migrate.slice(0, MIGRATE_PER_HOUR - 1)).not.toContain(429);
-    expect(migrate[MIGRATE_PER_HOUR - 1]).toBe(429);
+    // and the merge route keeps its hour: four more, then refused
+    const merge = await statuses(MERGE_PER_HOUR, () => mergeStatus(uid));
+    expect(merge.slice(0, MERGE_PER_HOUR - 1)).not.toContain(429);
+    expect(merge[MERGE_PER_HOUR - 1]).toBe(429);
   });
 });
 

@@ -49,11 +49,11 @@ export async function initializeEntityStore(): Promise<void> {
     // The EntityStore that proactive surfacing reads needs its own init (was never called).
     await (await import('./store.js')).getEntityStore().initialize();
     initialized = true;
-    // A failed earlier attempt (the one made on load) must not keep the store
-    // marked not ready after this one succeeded.
+    // Attempts overlap (load-time + retry): a failure before or after this must not unset ready.
     initializationError = null;
     log.info('Entity store initialized');
   } catch (error) {
+    if (initialized) return; // an overlapping attempt already succeeded
     initializationError = String(error);
     log.warn(
       { error: initializationError },

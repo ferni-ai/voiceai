@@ -16,7 +16,6 @@ import {
   createSessionId,
   createTurnId,
   createUserId,
-  isValidPersonaId,
 } from '../../types/branded.js';
 
 // Local constant for testing valid persona IDs
@@ -155,37 +154,6 @@ describe('Branded Type Creation', () => {
 // ============================================================================
 
 describe('Branded Type Validation', () => {
-  describe('isValidPersonaId', () => {
-    it('should return true for valid persona IDs', () => {
-      expect(isValidPersonaId('ferni')).toBe(true);
-      expect(isValidPersonaId('peter')).toBe(true);
-      expect(isValidPersonaId('alex')).toBe(true);
-      expect(isValidPersonaId('maya')).toBe(true);
-      expect(isValidPersonaId('jordan')).toBe(true);
-      expect(isValidPersonaId('nayan')).toBe(true);
-    });
-
-    it('should return false for invalid persona IDs', () => {
-      expect(isValidPersonaId('invalid')).toBe(false);
-      expect(isValidPersonaId('unknown')).toBe(false);
-      expect(isValidPersonaId('')).toBe(false);
-      expect(isValidPersonaId('not-a-persona')).toBe(false);
-    });
-
-    it('should handle case-insensitive validation', () => {
-      // The implementation converts to lowercase before checking
-      expect(isValidPersonaId('FERNI')).toBe(true);
-      expect(isValidPersonaId('Peter')).toBe(true);
-      expect(isValidPersonaId('ALEX')).toBe(true);
-    });
-
-    it('should include additional personas', () => {
-      // Jackie and Bogle are also valid
-      expect(isValidPersonaId('jackie')).toBe(true);
-      expect(isValidPersonaId('bogle')).toBe(true);
-    });
-  });
-
   describe('extractRawId', () => {
     it('should extract the raw string from SessionId', () => {
       const sessionId = createSessionId('sess_123');
@@ -304,11 +272,5 @@ describe('Persona ID Validation Comprehensive', () => {
   it('should not contain duplicates', () => {
     const uniqueIds = new Set(VALID_PERSONA_IDS);
     expect(uniqueIds.size).toBe(VALID_PERSONA_IDS.length);
-  });
-
-  it('all test constants should pass isValidPersonaId', () => {
-    VALID_PERSONA_IDS.forEach((id) => {
-      expect(isValidPersonaId(id)).toBe(true);
-    });
   });
 });
