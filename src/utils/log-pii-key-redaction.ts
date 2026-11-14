@@ -4,7 +4,7 @@
  * The SDK logs what was said under keys named `lk.pii.*` ("lk.pii.user_input",
  * "lk.pii.message", "lk.pii.arguments", ...), at info and warn, on ordinary turns. Its
  * own redaction only reaches the OpenTelemetry export, not the JSON line written to
- * stdout. So outside dev (isNonProdDatabase, as replyForLog), every value under a key
+ * stdout. So outside dev (isKnownDevDatabase, as replyForLog), every value under a key
  * the SDK marks as personal data, at any depth inside plain objects and arrays, is
  * logged as its length, whatever its type: a string as `[N chars]`, an Error as the
  * length of its message, anything else as the length of its JSON or text. A value that
@@ -40,7 +40,7 @@
  *
  * @module utils/log-pii-key-redaction
  */
-import { isNonProdDatabase } from '../config/firestore-database.js';
+import { isKnownDevDatabase } from '../config/firestore-database.js';
 import { onSdkLogger } from './sdk-logger-slot.js';
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -155,7 +155,7 @@ function walkObject(value: Fields, depth: number, lenient: boolean, path: Set<ob
  * prod a copy with every pii value replaced. Never throws, and never the original on prod.
  */
 function redactPiiLogKeys(value: Fields, inner?: LogFormatter): Fields {
-  if (isNonProdDatabase(liveEnv)) return inner ? inner(value) : value;
+  if (isKnownDevDatabase(liveEnv)) return inner ? inner(value) : value;
   let obj: Fields;
   try {
     obj = inner ? inner(value) : value;

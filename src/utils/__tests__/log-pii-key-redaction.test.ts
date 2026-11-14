@@ -203,6 +203,28 @@ describe('dev or prod is decided on every record, not once at install', () => {
   });
 });
 
+// The check asks for dev's database by its exact name. Any other name is not known to be dev's,
+// so the values are lengths, as on prod. The names are made from dev's at run time.
+describe('a database name that is not exactly the dev name counts as prod', () => {
+  const name = DEV.FIRESTORE_DATABASE;
+  it.each([
+    ['misspelt', `${name.slice(0, 1)}q${name.slice(2)}`],
+    ['in another case', name.toUpperCase()],
+    ['with a space before it', ` ${name}`],
+    ['with a newline after it', `${name}\n`],
+    ['with a suffix', `${name}-old`],
+  ])('%s: lengths, as on prod', (_label, database) => {
+    expect(database).not.toBe(name); // the change really made another name
+    initializeSdkLogger({ NODE_ENV: 'production', FIRESTORE_DATABASE: database });
+    log().info({ 'lk.pii.message': SAID }, 'wrong name');
+    expect(leakedPieces(written.join(''))).toEqual([]);
+    expect(records()[0]).toMatchObject({
+      msg: 'wrong name',
+      'lk.pii.message': `[${SAID.length} chars]`,
+    });
+  });
+});
+
 /** One record through the real SDK logger on a prod process, read back from stdout. */
 function logOne(obj: Record<string, unknown>): Record<string, unknown> {
   initializeSdkLogger(PROD);

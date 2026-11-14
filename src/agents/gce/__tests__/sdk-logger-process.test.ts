@@ -84,4 +84,25 @@ describe('initializeSdkLogger in its own process', () => {
     expect(root.callerPhone).toBe('***0123');
     expect(r.stdout).not.toContain('5550123');
   });
+
+  // Here the name arrives from a real process env. One that is not exactly dev's is not known
+  // to be dev's: lengths, as on prod.
+  it.each([
+    ['in another case', 'ferni-dev'.toUpperCase()],
+    ['with a newline after it', 'ferni-dev\n'],
+  ])("dev's name %s: lengths only", (_label, database) => {
+    const r = run(database);
+    expect(r.status).toBe(0);
+    const out = `${r.stdout}\n${r.stderr}`;
+    for (const words of WORDS) {
+      for (let i = 0; i + 8 <= words.length; i++) {
+        expect(out).not.toContain(words.slice(i, i + 8));
+      }
+    }
+    const [root] = sdkRecords(r.stdout);
+    expect(root).toMatchObject({
+      msg: 'sdk pii line',
+      'lk.pii.user_input': `[${WORDS[0].length} chars]`,
+    });
+  });
 });
