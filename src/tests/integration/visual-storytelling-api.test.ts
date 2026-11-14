@@ -10,11 +10,21 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type http from 'http';
+import { Readable } from 'node:stream';
 
-// Mock auth for tests
-vi.mock('../../api/middleware/auth.js', () => ({
-  validateAuth: vi.fn().mockReturnValue({ uid: 'test-user-123' }),
+// Signed in as test-user-123. The routes check the caller owns the path's user id
+// (api/path-owner.ts), so only that user's paths answer with data.
+vi.mock('../../api/auth-middleware.js', () => ({
+  requireAuth: vi.fn().mockResolvedValue({ userId: 'test-user-123', isAdmin: false }),
 }));
+
+// A query result as Firestore returns it: the routes iterate with forEach.
+const snapshot = <T>(docs: T[]) => ({
+  docs,
+  empty: docs.length === 0,
+  size: docs.length,
+  forEach: (fn: (doc: T) => void) => docs.forEach(fn),
+});
 
 // Mock Firestore
 const mockFirestore = {
@@ -37,14 +47,8 @@ vi.mock('../../memory/firestore-store.js', () => ({
   }),
 }));
 
-vi.mock('../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+// safe-logger is mocked for every test in src/tests/setup.ts (with getLogger,
+// which this file's narrower mock lacked, so the suite failed to load).
 
 // Import after mocks
 import { handleVisualStorytellingRoutes } from '../../api/visual-storytelling-routes.js';
@@ -55,22 +59,16 @@ describe('Visual Storytelling API', () => {
     method: string,
     url: string,
     body?: unknown
-  ): Partial<http.IncomingMessage> => ({
-    method,
-    url,
-    headers: {
-      authorization: 'Bearer test-token',
-      'content-type': 'application/json',
-    },
-    on: vi.fn((event, callback) => {
-      if (event === 'data' && body) {
-        callback(JSON.stringify(body));
-      }
-      if (event === 'end') {
-        callback();
-      }
-    }),
-  });
+  ): Partial<http.IncomingMessage> =>
+    // A real stream: the routes read the body with the capped JSON reader (api/helpers.ts).
+    Object.assign(Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]), {
+      method,
+      url,
+      headers: {
+        authorization: 'Bearer test-token',
+        'content-type': 'application/json',
+      },
+    }) as unknown as Partial<http.IncomingMessage>;
 
   const createMockResponse = (): Partial<http.ServerResponse> & {
     _statusCode: number;
@@ -122,14 +120,10 @@ describe('Visual Storytelling API', () => {
         set: vi.fn().mockResolvedValue(undefined),
       }),
       where: vi.fn().mockReturnValue({
-        get: vi.fn().mockResolvedValue({
-          docs: [],
-        }),
+        get: vi.fn().mockResolvedValue(snapshot([])),
         orderBy: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
-            get: vi.fn().mockResolvedValue({
-              docs: [],
-            }),
+            get: vi.fn().mockResolvedValue(snapshot([])),
           }),
         }),
       }),
@@ -221,12 +215,13 @@ describe('Visual Storytelling API', () => {
       );
 
       expect(handled).toBe(true);
-      expect(mockFirestore.collection).toHaveBeenCalledWith('sleepPatterns');
+      expect(res._statusCode).toBe(200);
+      expect(mockFirestore.collection).toHaveBeenCalledWith('user_sleep_patterns');
     });
 
     it('should validate wake time range', async () => {
       const invalidPattern = {
-        wakeTime: 15, // Invalid: should be 0-12
+        wakeTime: 24, // Invalid: hours run 0 to 23.99
         sleepTime: 23,
         isNightOwl: false,
         isEarlyBird: false,
@@ -264,7 +259,8 @@ describe('Visual Storytelling API', () => {
       );
 
       expect(handled).toBe(true);
-      expect(mockFirestore.collection).toHaveBeenCalledWith('milestones');
+      expect(res._statusCode).toBe(200);
+      expect(mockFirestore.collection).toHaveBeenCalledWith('user_milestones');
     });
   });
 
@@ -296,9 +292,7 @@ describe('Visual Storytelling API', () => {
         where: vi.fn().mockReturnValue({
           orderBy: vi.fn().mockReturnValue({
             limit: vi.fn().mockReturnValue({
-              get: vi.fn().mockResolvedValue({
-                docs: lateNightSessions,
-              }),
+              get: vi.fn().mockResolvedValue(snapshot(lateNightSessions)),
             }),
           }),
         }),
@@ -347,52 +341,57 @@ describe('Visual Storytelling API', () => {
       expect(handled).toBe(true);
     });
   });
-});
-
-describe('Stage Calculation', () => {
-  it('should correctly map conversation counts to stages', () => {
-    const stageThresholds = [
-      { count: 0, expected: 'first-meeting' },
-      { count: 2, expected: 'first-meeting' },
-      { count: 3, expected: 'getting-started' },
-      { count: 9, expected: 'getting-started' },
-      { count: 10, expected: 'building-trust' },
-      { count: 24, expected: 'building-trust' },
-      { count: 25, expected: 'established' },
-      { count: 49, expected: 'established' },
-      { count: 50, expected: 'deep-partnership' },
-      { count: 100, expected: 'deep-partnership' },
-    ];
-
-    // Import the determineStage function or test via API
-    for (const { count, expected } of stageThresholds) {
-      // These would be tested via the API response
-      expect(count).toBeGreaterThanOrEqual(0);
-      expect(expected).toBeTruthy();
-    }
-  });
-});
-
-describe('Team Progress Calculation', () => {
-  it('should unlock team members based on conversation count', () => {
-    const unlockThresholds = {
-      ferni: 0,
-      maya: 5,
-      alex: 10,
-      peter: 15,
-      jordan: 20,
-      nayan: 30,
+  // determineStage and calculateTeamProgress are private, so these go through the
+  // route with the profile's conversation count set per case. (They replaced two
+  // tests that only compared the test's own constants and could not fail.)
+  describe('stage and team unlocks from the conversation count', () => {
+    const fetchFor = async (conversationCount: number) => {
+      const { getFirestoreStore } = await import('../../memory/firestore-store.js');
+      vi.mocked(getFirestoreStore).mockReturnValueOnce({
+        getProfile: vi.fn().mockResolvedValue({ conversationCount, createdAt: new Date() }),
+      } as unknown as ReturnType<typeof getFirestoreStore>);
+      const req = createMockRequest('GET', '/api/visual-storytelling/test-user-123');
+      const res = createMockResponse();
+      await handleVisualStorytellingRoutes(
+        req as http.IncomingMessage,
+        res as http.ServerResponse,
+        '/api/visual-storytelling/test-user-123'
+      );
+      return JSON.parse(res._data);
     };
 
-    // With 15 conversations:
-    // ferni ✓, maya ✓, alex ✓, peter ✓, jordan ✗, nayan ✗
-    const conversationCount = 15;
+    it.each([
+      [0, 'first-meeting'],
+      [2, 'first-meeting'],
+      [3, 'getting-started'],
+      [9, 'getting-started'],
+      [10, 'building-trust'],
+      [24, 'building-trust'],
+      [25, 'established'],
+      [49, 'established'],
+      [50, 'deep-partnership'],
+      [100, 'deep-partnership'],
+    ])('%i conversations is the %s stage', async (count, stage) => {
+      const data = await fetchFor(count);
+      expect(data.relationship.stage).toBe(stage);
+    });
 
-    expect(conversationCount >= unlockThresholds.ferni).toBe(true);
-    expect(conversationCount >= unlockThresholds.maya).toBe(true);
-    expect(conversationCount >= unlockThresholds.alex).toBe(true);
-    expect(conversationCount >= unlockThresholds.peter).toBe(true);
-    expect(conversationCount >= unlockThresholds.jordan).toBe(false);
-    expect(conversationCount >= unlockThresholds.nayan).toBe(false);
+    it('unlocks each team member at their threshold', async () => {
+      const data = await fetchFor(15);
+      const unlocked = Object.fromEntries(
+        (data.teamProgress as Array<{ personaId: string; isUnlocked: boolean }>).map((m) => [
+          m.personaId,
+          m.isUnlocked,
+        ])
+      );
+      expect(unlocked).toEqual({
+        ferni: true,
+        maya: true,
+        alex: true,
+        peter: true,
+        jordan: false,
+        nayan: false,
+      });
+    });
   });
 });
