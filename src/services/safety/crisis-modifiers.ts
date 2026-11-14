@@ -70,8 +70,20 @@ const SHORTHAND: [RegExp, string][] = [
   ],
 ];
 
+/**
+ * Marks that change no word but break a pattern: zero-width space, non-joiner and joiner, word
+ * joiner, byte-order mark, and the soft hyphen. Typed text can carry them ("wo\u00adrd").
+ */
+const HIDDEN_MARKS = /[\u200B-\u200D\u2060\uFEFF\u00AD]/g;
+
+/**
+ * The text every pattern reader in detectCrisis reads. NFKC first, so look-alike forms
+ * (fullwidth letters, ligatures) read as the plain letters, then the hidden marks go.
+ */
 export function normalize(message: string): string {
   let text = message
+    .normalize('NFKC')
+    .replace(HIDDEN_MARKS, '')
     .toLowerCase()
     .replace(/[\u2018\u2019\u02bc]/g, "'")
     .replace(/\s+/g, ' ')
