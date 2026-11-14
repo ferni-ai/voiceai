@@ -1,8 +1,7 @@
 /**
- * No happy memory of a crisis turn. A turn the crisis read replaced, guided or gave a soft
- * check-in never becomes shared humor, a breakthrough, a win, a deep talk, a gratitude
- * milestone, a callback moment or "our song": "lol" on a line about ending a life is not a
- * laugh to bring back on a later call.
+ * A crisis turn records nothing. A turn the crisis read replaced, guided or gave a soft check-in
+ * becomes no moment of any type, no gratitude milestone, no callback moment and no "our song",
+ * and semantic intelligence never sees it.
  *
  * The read is the turn's own: processTurn's crisis field (turn-crisis.ts, the pattern guard
  * with the live classifier's verdict), the field the turn handler turns into the crisis script,
@@ -10,7 +9,13 @@
  * counts as a crisis turn (fail closed), as an unmarked turn does for transfer aliases
  * (services/safety/crisis-turn-mark.ts).
  *
- * Moments that name the turn for what it was (crisis_support, vulnerability) still record.
+ * Moments of every type are held, crisis_support and vulnerability included. Until 2026-11-13
+ * those two still recorded, as moments that name the turn for what it was. The owner reversed
+ * that on 2026-11-13: their stored words were coming back on later calls as callback hints. Holding
+ * the moment also holds what the moment recorder does with it (personality-bridge.ts
+ * recordUnifiedMoment): the caller's phrase kept in the relationship engine, the personality
+ * service's record and its signals, and the bond data message to the client
+ * (dispatchEmotionalBondSignal).
  *
  * @module voice-agent/crisis-turn-memory
  */
@@ -20,14 +25,6 @@ import type { CrisisDetection } from '../processors/types.js';
 
 const log = createLogger({ module: 'CrisisTurnMemory' });
 
-/** Unified moments that keep a turn as a happy or warm memory (personality-bridge.ts). */
-const HAPPY_MOMENTS: ReadonlySet<string> = new Set([
-  'breakthrough',
-  'celebration',
-  'laughter',
-  'deep_conversation',
-]);
-
 /** Whether the turn's crisis read replaced the reply, guided it, or gave a soft check-in. */
 export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
   return !crisis || crisis.shouldOverrideLLM || crisis.isCrisis || crisis.softCheck === true;
@@ -35,15 +32,16 @@ export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
 
 /**
  * The turn's unified moment recorder (personality-bridge.ts recordUnifiedMoment): on a crisis
- * turn it holds the happy moments and records the rest. Logs the moment's type, never words.
+ * turn it holds every moment; on any other turn it records them all. Logs the moment's type,
+ * never words.
  */
 export function momentRecorder<M extends { type: string }>(
   record: (moment: M) => Promise<unknown>,
   crisisTurn: boolean
 ): (moment: M) => Promise<void> {
   return async (moment) => {
-    if (crisisTurn && HAPPY_MOMENTS.has(moment.type)) {
-      log.debug({ type: moment.type }, 'Happy moment held on a crisis turn');
+    if (crisisTurn) {
+      log.debug({ type: moment.type }, 'Moment held on a crisis turn');
       return;
     }
     await record(moment);

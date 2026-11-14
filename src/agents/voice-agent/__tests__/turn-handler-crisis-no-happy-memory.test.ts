@@ -6,11 +6,16 @@
  * a shared callback moment or "our song", ready to come back on a later call as a happy memory.
  * Now the turn's own crisis read (processTurn's crisis field: the pattern guard with the live
  * classifier's verdict, built here as process-turn.ts builds it) holds every one of those writes
- * when it replaced the reply, guided it, or gave a soft check-in. A turn the read passes records
- * them as before, and the crisis_support moment still records on a crisis turn.
+ * when it replaced the reply, guided it, or gave a soft check-in. A crisis turn records no
+ * unified moment of any kind, crisis_support and vulnerability included, and hands semantic
+ * intelligence a crisis read on both of its paths, so it skips the turn. A turn the read passes
+ * records them all as before.
  *
  * Only the stores are stubbed (the unified moment bridge, shared moments, Our Songs, relational
- * memory, collective learning, the music player). All lines fictional.
+ * memory, collective learning, the music player, the semantic intelligence entry point, the
+ * corrections store), and the real model client refuses, so every read goes through the turn's
+ * injected model call. The last block pins a known gap: no classifier answer on a line the
+ * patterns miss records as on main. All lines fictional.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +41,37 @@ const state = vi.hoisted(() => ({
   n: 0,
   result: undefined as unknown,
   writes: [] as string[],
+  semanticReads: [] as unknown[],
+  turnCount: 3,
+  distress: 0.2,
+  /** Classifier asks through the turn's injected model call, and through a real model client. */
+  asked: 0,
+  realClient: 0,
+}));
+
+// No row may reach a real model: every read in this file goes through the injected `generate`
+vi.mock('../../../config/gemini-config.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  getGeminiClient: async () => {
+    state.realClient++;
+    throw new Error('no real model client in this test');
+  },
+}));
+
+// The correction and preference recorders' store (turn-learning.ts)
+vi.mock('../../../services/superhuman/user-corrections.js', () => ({
+  userCorrections: {
+    autoRecord: async () => void state.writes.push('correction'),
+    recordImplicitPreference: async () => void state.writes.push('preference'),
+  },
+}));
+
+// Both semantic intelligence entry points (turn-handler.ts direct and processTurnLearning) land here
+vi.mock('../../../services/superhuman/semantic-intelligence/integration.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  processSemanticIntelligence: vi.fn(async (data: { crisisTurn?: unknown }) => {
+    state.semanticReads.push(data.crisisTurn);
+  }),
 }));
 
 vi.mock('../../../personality/bridge/personality-bridge.js', async (orig) => ({
@@ -86,18 +122,23 @@ vi.mock('../../processors/index.js', async (orig) => ({
   processTurn: vi.fn(async (ctx: { userText: string }) => {
     const turnCrisis = startTurnCrisis(
       ctx.userText,
-      { recentTranscripts: [ctx.userText], turnCount: 3 },
+      { recentTranscripts: [ctx.userText], turnCount: state.turnCount },
       {
         sessionId: `no-happy-memory-${++state.n}`,
         env: state.env,
-        generate: async () => (state.read === 'blocked' ? BLOCKED_REPLY : state.read),
+        generate: () => {
+          state.asked++;
+          if (state.read === NEVER) return new Promise<string>(() => {}); // past its deadline
+          if (state.read === FAILS) return Promise.reject(new Error('classifier unavailable'));
+          return Promise.resolve(state.read === 'blocked' ? BLOCKED_REPLY : state.read);
+        },
       }
     );
     const emotion = { primary: state.emotion, intensity: 0.9 };
     state.result = {
       analysis: { analysis: { emotion, intent: 'unknown' } },
       context: { injections: [], elapsedMs: 0 },
-      emotional: { ...emotion, distressLevel: 0.2 },
+      emotional: { ...emotion, distressLevel: state.distress },
       response: {},
       identity: {},
       crisis: await turnCrisis.summary(),
@@ -119,6 +160,10 @@ const LIVE = {
 };
 const NO_RISK = '{"risk":"none","subject":"self"}';
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
+const CRISIS = '{"risk":"crisis","subject":"self"}';
+/** The classifier's model call never answers, or fails: either way the classifier gives no verdict. */
+const NEVER = 'never';
+const FAILS = 'fails';
 
 /** Words that make every happy write fire: a laugh, a breakthrough, a win, thanks. */
 const HAPPY = 'lol i finally get it now, i passed every exam, thank you for listening, ';
@@ -135,6 +180,18 @@ const HAPPY_WRITES = [
   'our-song',
 ];
 
+/** Every unified moment type the turn handler records (personality-bridge.ts). */
+const ALL_MOMENTS = [
+  'moment:breakthrough',
+  'moment:vulnerability',
+  'moment:celebration',
+  'moment:crisis_support',
+  'moment:laughter',
+  'moment:deep_conversation',
+];
+/** Words that make every unified moment fire on a sad, intense turn (with LONG in front). */
+const EVERY_MOMENT = `${HAPPY}i admit i was scared, `;
+
 interface Crisis {
   isCrisis: boolean;
   shouldOverrideLLM: boolean;
@@ -146,8 +203,26 @@ const levelOf = (c: Crisis): Level =>
   c.shouldOverrideLLM ? 'replace' : c.isCrisis ? 'guide' : c.softCheck ? 'soft' : 'pass';
 
 /** One turn through the real handler: its crisis level, its safety output and every store write. */
-async function runTurn(userText: string, env: Record<string, string>, read = '', emotion = 'sad') {
-  Object.assign(state, { env, read, emotion, result: undefined, writes: [] });
+async function runTurn(
+  userText: string,
+  env: Record<string, string>,
+  read = '',
+  emotion = 'sad',
+  turnCount = 3,
+  distress = 0.2
+) {
+  Object.assign(state, {
+    env,
+    read,
+    emotion,
+    turnCount,
+    distress,
+    result: undefined,
+    writes: [],
+    semanticReads: [],
+    asked: 0,
+    realClient: 0,
+  });
   resetFireAndForgetMetrics();
   const sent: string[] = [];
   await handleUserTurn({
@@ -156,11 +231,15 @@ async function runTurn(userText: string, env: Record<string, string>, read = '',
     contextOnly: true,
     persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
     services: { sessionId: 'no-happy-memory', userId: 'user-no-happy-memory' },
-    userData: { turnCount: 3 }, // a multiple of 3: the shared-moment and Our Songs branch runs
+    userData: { turnCount }, // a multiple of 3: the shared-moment and Our Songs branch runs
     sendDataMessage: async (type: string) => void sent.push(type),
   } as unknown as Ctx);
   await vi.waitFor(() => {
-    for (const context of ['unified-personality-recording', 'bth-v4-relational-memory']) {
+    for (const context of [
+      'unified-personality-recording',
+      'bth-v4-relational-memory',
+      'semantic-intelligence',
+    ]) {
       const m = getFireAndForgetMetrics().byContext.find((c) => c.context === context);
       expect(m && m.successes + m.failures, context).toBe(1);
     }
@@ -176,6 +255,9 @@ async function runTurn(userText: string, env: Record<string, string>, read = '',
       .filter((c) => c === 'crisis_response' || c === 'safety_soft_check'),
     sent,
     writes: state.writes,
+    semanticReads: state.semanticReads,
+    asked: state.asked,
+    realClient: state.realClient,
   };
 }
 
@@ -247,11 +329,23 @@ describe('turn handler: no happy memory of a crisis turn', () => {
     expect(turn.writes).not.toContain('moment:deep_conversation');
   });
 
-  it('still records the crisis_support moment on a crisis turn', async () => {
-    const turn = await runTurn(HAPPY + 'im standing on the bridge and im going to jump', PATTERNS);
-    expect(turn.level).toBe('guide');
-    expect(turn.writes).toContain('moment:crisis_support');
-  });
+  it.each(CRISIS_TURNS)(
+    'records no unified moment of any kind when %s',
+    async (_name, level, core, env, read) => {
+      const turn = await runTurn(LONG + EVERY_MOMENT + core, env, read);
+      expect(turn.level).toBe(level);
+      expect(turn.writes.filter((w) => w.startsWith('moment:'))).toEqual([]);
+    }
+  );
+
+  it.each(CRISIS_TURNS)(
+    'hands semantic intelligence the crisis read on both paths when %s',
+    async (_name, level, line, env, read) => {
+      const turn = await runTurn(line, env, read);
+      expect(turn.level).toBe(level);
+      expect(turn.semanticReads).toEqual([true, true]);
+    }
+  );
 
   it('counts a turn with no crisis read as a crisis turn (fail closed)', () => {
     expect(crisisReadTurn(undefined)).toBe(true);
@@ -285,9 +379,104 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
     for (const write of HAPPY_WRITES) expect(turn.writes, write).toContain(write);
   });
 
+  it('records every unified moment type on a turn the read passes', async () => {
+    const turn = await runTurn(`${LONG}${EVERY_MOMENT}and today was a good day`, LIVE, NO_RISK);
+    expect(turn.level).toBe('pass');
+    for (const moment of ALL_MOMENTS) expect(turn.writes, moment).toContain(moment);
+  });
+
+  it('hands semantic intelligence an ordinary read on both paths', async () => {
+    const turn = await runTurn('the garden had a good week', LIVE, NO_RISK, 'joy');
+    expect(turn.level).toBe('pass');
+    expect(turn.semanticReads).toEqual([false, false]);
+  });
+
   it('records a deep conversation on a long line with no risk', async () => {
     const turn = await runTurn(LONG + 'and today was a good day', LIVE, NO_RISK, 'joy');
     expect(turn.level).toBe('pass');
     expect(turn.writes).toContain('moment:deep_conversation');
   });
+});
+
+/**
+ * KNOWN GAP, pinned here so the crisis read fix flips it on purpose. When the classifier gives no
+ * verdict (its model call never answers within its deadline, or fails) and the patterns miss the
+ * line, the settled read carries no "no answer" marker (crisis-classifier.ts classifyCrisis
+ * resolves null; crisis-classifier-verdict.ts applyClassifierVerdict returns the patterns
+ * unchanged), so the turn reads as ordinary and every recorder here records, exactly as on main.
+ * The expectation below is what main's own source records on this turn. The fix belongs to the
+ * crisis read, in its own PR.
+ */
+describe('known gap: the classifier gives no answer on a line the patterns miss', () => {
+  /** A laugh, thanks, a correction, a preference and a line the patterns do not flag. */
+  const GAP =
+    "lol thank you for listening, actually it's the blue mug, i always drink my tea in the " +
+    'morning, honestly nothing feels worth it lately';
+  /** What main's source records on this turn, run with this file (sorted). */
+  const AS_ON_MAIN = [
+    'correction',
+    'milestone:expressed-gratitude',
+    'moment:crisis_support',
+    'moment:laughter',
+    'preference',
+    'shared-moment',
+  ];
+
+  it.each([NEVER, FAILS])(
+    'model call %s: the turn reads as ordinary and records as on main',
+    async (read) => {
+      const turn = await runTurn(GAP, LIVE, read, 'sad', 6);
+      expect(turn.asked).toBeGreaterThan(0);
+      expect(turn.realClient).toBe(0);
+      expect(turn.level).toBe('pass');
+      expect([...turn.writes].sort()).toEqual(AS_ON_MAIN);
+      expect(turn.semanticReads).toHaveLength(2);
+    }
+  );
+
+  it('the same line with a crisis verdict is a crisis turn and records nothing', async () => {
+    const turn = await runTurn(GAP, LIVE, CRISIS, 'sad', 6);
+    expect(turn.realClient).toBe(0);
+    expect(turn.level).not.toBe('pass');
+    expect(turn.writes).toEqual([]);
+  });
+});
+
+describe('the first-vulnerability milestone', () => {
+  const VULNERABLE = 'milestone:first-vulnerability';
+  /** Lines the patterns miss: one says it is scared, one is heavy and carries high distress. */
+  const SCARED = "i'm scared about the move next week, honestly nothing feels worth it lately";
+  const HEAVY = 'the move next week has been a lot, honestly nothing feels worth it lately';
+  const TRIGGERS: Array<[string, string, number]> = [
+    ['says it is scared', SCARED, 0.2],
+    ['carries distress over 0.5', HEAVY, 0.9],
+  ];
+  /** What main's source records on each line read as ordinary, run with this file (sorted). */
+  const AS_ON_MAIN: Record<string, string[]> = {
+    [SCARED]: [
+      VULNERABLE,
+      'moment:crisis_support',
+      'moment:vulnerability',
+      'our-song',
+      'shared-moment',
+    ],
+    [HEAVY]: [VULNERABLE, 'moment:crisis_support', 'shared-moment'],
+  };
+
+  it.each(TRIGGERS)('a crisis turn that %s writes no milestone', async (_name, line, distress) => {
+    const turn = await runTurn(line, LIVE, CRISIS, 'sad', 3, distress);
+    expect(turn.level).not.toBe('pass');
+    expect(turn.writes).not.toContain(VULNERABLE);
+    expect(turn.writes).toEqual([]);
+  });
+
+  it.each(TRIGGERS)(
+    'the same line read as ordinary (%s) writes it, as on main',
+    async (_name, line, distress) => {
+      const turn = await runTurn(line, LIVE, NO_RISK, 'sad', 3, distress);
+      expect(turn.level).toBe('pass');
+      expect(turn.writes).toContain(VULNERABLE);
+      expect([...turn.writes].sort()).toEqual(AS_ON_MAIN[line]);
+    }
+  );
 });

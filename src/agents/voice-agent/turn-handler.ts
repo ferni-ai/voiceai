@@ -2199,7 +2199,7 @@ IMPORTANT:
     // ================================================================
     // LEARNING & TRUST RECORDING
     // ================================================================
-    const crisisTurn = crisisReadTurn(result.crisis); // keeps no happy memory (crisis-turn-memory.ts)
+    const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
     const learningCtx: LearningContext = {
       userId: services.userId ?? null,
       sessionId: services.sessionId,
@@ -2257,7 +2257,7 @@ IMPORTANT:
       try {
         const { recordUnifiedMoment } =
           await import('../../personality/bridge/personality-bridge.js');
-        // Holds the happy moments on a crisis turn; crisis_support and vulnerability still record.
+        // Holds every moment on a crisis turn (crisis-turn-memory.ts).
         const record = momentRecorder(recordUnifiedMoment, crisisTurn);
 
         // Detect shared moments based on emotional intensity and content
@@ -2540,10 +2540,9 @@ IMPORTANT:
     // ================================================================
     fireAndForget(async () => {
       try {
+        if (crisisTurn) return; // no trust milestone of any kind on a crisis turn
         const relMem = getRelationalMemory();
-
-        // Detect and record trust milestones; no gratitude milestone of a crisis turn
-        if (!crisisTurn && /thank(s| you)|grateful|appreciate/i.test(userText)) {
+        if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
           await relMem.addMilestone(services.userId || 'anonymous', {
             type: 'expressed-gratitude',
             description: `User expressed gratitude during turn ${turnNumber}`,
@@ -2601,23 +2600,23 @@ IMPORTANT:
         sessionCount: services.userProfile?.totalConversations,
         relationshipStage: services.userProfile?.relationshipStage,
         mentionedPerson, // V3.1: Enhanced person extraction
+        crisisTurn,
       };
 
       // Fire-and-forget to not block turn completion
       fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
 
       // NEW: Unified intelligence turn learning (cross-domain correlation & pattern detection)
-      if (services.userId) {
-        processTurnLearning({
-          userId: services.userId,
-          sessionId: services.sessionId,
-          turnNumber,
-          transcript: userText,
-          emotion: result.emotional.primary,
-          topics: result.analysis.analysis.topics?.detected || [],
-          reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
-        });
-      }
+      processTurnLearning({
+        userId: services.userId,
+        sessionId: services.sessionId,
+        turnNumber,
+        transcript: userText,
+        emotion: result.emotional.primary,
+        topics: result.analysis.analysis.topics?.detected || [],
+        reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
+        crisisTurn,
+      });
 
       // ================================================================
       // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling

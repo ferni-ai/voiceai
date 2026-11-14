@@ -39,6 +39,12 @@ import { extractPersonsHybrid, detectAdviceHybrid } from './llm-detector.js';
 // V3.2 Proactive Intelligence
 import { openLoops, processUserTextForLoops } from './open-loops.js';
 import { trackResponsePromises } from './follow-through.js';
+import {
+  FOLLOW_THROUGH_PATTERNS,
+  NOT_FOLLOW_PATTERNS,
+  POSITIVE_OUTCOME_PATTERNS,
+  NEGATIVE_OUTCOME_PATTERNS,
+} from './advice-outcome-patterns.js';
 
 // V3.3 Relational Network
 import { relationshipGraph, upsertPerson } from './relationship-graph.js';
@@ -121,6 +127,13 @@ export interface TurnSemanticData {
   personaId: string;
   turnNumber: number;
 
+  /**
+   * The turn's crisis read replaced, guided or soft-checked the reply (crisisReadTurn,
+   * agents/voice-agent/crisis-turn-memory.ts). Only `false` feeds the systems below; true or a
+   * missing value skips the whole turn.
+   */
+  crisisTurn: boolean;
+
   // Text data
   userText: string;
   topic?: string;
@@ -188,6 +201,13 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
 
   // Anonymous users, and MINOR_CARE: a caller under 18 by their own words (every system writes)
   if (!isMemberIdentity(userId) || writeHeld(userId, data.sessionId)) return;
+
+  // A crisis turn, or one whose read is unknown, feeds nothing: every system below stores,
+  // embeds or sends the turn to a model.
+  if (data.crisisTurn !== false) {
+    log.debug({ turnNumber: data.turnNumber }, 'Semantic intelligence skipped on a crisis turn');
+    return;
+  }
 
   // V4.1: Log when semantic intelligence runs (helps debug data capture issues)
   log.info(
@@ -1010,53 +1030,6 @@ export async function recordAdviceOutcome(
 // ============================================================================
 // ADVICE OUTCOME DETECTION (Auto-detect when user mentions advice results)
 // ============================================================================
-
-/**
- * Patterns that indicate user is talking about following advice.
- */
-const FOLLOW_THROUGH_PATTERNS = [
-  /\bi tried\b/i,
-  /\bi did what you/i,
-  /\byou suggested\b.*\bi\b/i,
-  /\btook your advice\b/i,
-  /\bfollowed your\b/i,
-  /\bdid the thing\b/i,
-  /\bactually did\b/i,
-  /\bfinally did\b/i,
-  /\bwent ahead and\b/i,
-];
-
-const NOT_FOLLOW_PATTERNS = [
-  /\bdidn't try\b/i,
-  /\bcouldn't do\b/i,
-  /\bdidn't do\b/i,
-  /\bnever got around\b/i,
-  /\bforgot to\b/i,
-  /\bdidn't follow\b/i,
-  /\bignored your\b/i,
-];
-
-const POSITIVE_OUTCOME_PATTERNS = [
-  /\bit worked\b/i,
-  /\bhelped\b/i,
-  /\bfeel(s|ing)? better\b/i,
-  /\bmade a difference\b/i,
-  /\bso glad\b/i,
-  /\bthank(s| you)\b/i,
-  /\bwas right\b/i,
-  /\bgreat advice\b/i,
-  /\bworked out\b/i,
-];
-
-const NEGATIVE_OUTCOME_PATTERNS = [
-  /\bdidn't work\b/i,
-  /\bdidn't help\b/i,
-  /\bmade (it )?worse\b/i,
-  /\bbackfired\b/i,
-  /\bstill (feel|feeling)\b/i,
-  /\bno difference\b/i,
-  /\bwaste of time\b/i,
-];
 
 /**
  * Detect if user is reporting on advice outcome.
