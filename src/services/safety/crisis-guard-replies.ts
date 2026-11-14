@@ -5,6 +5,8 @@
  * @module CrisisGuardReplies
  */
 
+import type { Env } from '../../config/env-flag.js';
+import { SELF_HARM_911_LINE, selfHarm911LineOn } from './crisis-script-lines.js';
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
 
@@ -14,6 +16,10 @@ export const IN_DANGER_NOW =
 
 /** The caller's own 988 line, in the in-danger reply's words (the caller check speaks it). */
 export const TALK_TO_988 = IN_DANGER_NOW.slice(IN_DANGER_NOW.indexOf('You can also'));
+
+/** The 988 line in Spanish, in the Spanish crisis reply's words (the timeout check-in reuses it). */
+export const TALK_TO_988_ES =
+  'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';
 
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
@@ -33,7 +39,8 @@ export function getCrisisResponse(
   severity: number,
   subject: CrisisSubject | undefined,
   language: 'en' | 'es' | undefined,
-  imminent: boolean
+  imminent: boolean,
+  env: Env = process.env
 ): string {
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
@@ -52,15 +59,16 @@ What's going on with them right now?`;
   if (language === 'es') {
     return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
 
-Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988. Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
+${TALK_TO_988_ES} Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
 
 Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
   }
   if (severity >= SEVERITY.block) {
     // Severe crisis - immediate support + resources
+    const after988 = selfHarm911LineOn(env) ? ` ${SELF_HARM_911_LINE}` : ''; // CRISIS_SELF_HARM_911_LINE
     return `I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.
 
-If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.
+If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.${after988}
 
 I'm here with you right now. Can you tell me more about what you're going through?`;
   }

@@ -423,27 +423,6 @@ describe('Cross-Persona Integration', () => {
     vi.clearAllMocks();
   });
 
-  it('should ensure all persona builders are registered in loader', async () => {
-    const { BUILDER_MANIFEST } = await import('../intelligence/context-builders/core/loader.js');
-    const { BuilderCategory } = await import('../intelligence/context-builders/index.js');
-
-    const personaBuilders = BUILDER_MANIFEST[BuilderCategory.PERSONA] || [];
-
-    // All persona-specific insight builders should be registered
-    const requiredBuilders = [
-      'peter-research-insights',
-      'maya-coaching-insights',
-      'jordan-milestone-insights',
-      'nayan-wisdom-insights',
-      'alex-communication-insights',
-      'ferni-coordinator-insights',
-    ];
-
-    for (const required of requiredBuilders) {
-      expect(personaBuilders).toContain(required);
-    }
-  });
-
   it('should have consistent injection structure across all builders', async () => {
     // Import all builders
     const { buildPeterResearchInsightsContext } =

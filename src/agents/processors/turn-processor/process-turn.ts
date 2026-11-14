@@ -707,7 +707,6 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     }));
 
     const toolExecData = userData?.conversationState?.getToolExecutionData?.();
-    const recentTools = toolExecData?.recentlyUsedTools || [];
 
     const routingUserId = services.userId || 'unknown';
     const routingContext = {
@@ -715,7 +714,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       sessionId: services.sessionId,
       personaId: ctx.persona.id,
       conversationHistory,
-      recentTools,
+      recentTools: toolExecData?.recentlyUsedTools || [],
+      crisisTurn: hasCrisisSignal(crisisResult),
     };
 
     if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(routingUserId)) {

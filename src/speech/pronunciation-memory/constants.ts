@@ -19,7 +19,6 @@ export const COMMON_DIFFICULT_NAMES: Record<string, string> = {
   // FERNI TEAM PERSONAS - Ensure consistent pronunciation
   // ==========================================================================
   ferni: 'Fur-nee',
-  nayan: 'Nuh-yahn',
   // Note: Peter, Alex, Maya, Jordan are standard English names
 
   // ==========================================================================

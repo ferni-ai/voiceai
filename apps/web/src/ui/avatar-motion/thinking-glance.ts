@@ -11,10 +11,15 @@
  * listener read `detail.isThinking` from it, which nothing sends, so the
  * glance never ran at all.
  *
+ * No glance under prefers-reduced-motion or while the crisis face is held
+ * (motion-allowed.ts): the thinking turn is still tracked, but `start` is not
+ * called, so Ferni keeps looking at the caller.
+ *
  * @module ui/avatar-motion/thinking-glance
  */
 
 import { isMotionFlagOn } from '../../config/motion-flags.js';
+import { avatarMotionAllowed } from './motion-allowed.js';
 
 /** Window event fired once per settled turn change, detail `{ speaker }` (turn-driver.ts). */
 export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
@@ -41,7 +46,7 @@ export function onThinkingTurns(start: () => void, end: () => void): () => void 
     if (speaker === undefined) return;
     if (speaker === 'thinking' && !thinking) {
       thinking = true;
-      start();
+      if (avatarMotionAllowed('thinkingLook')) start();
     } else if (speaker !== 'thinking' && thinking) {
       thinking = false;
       end();

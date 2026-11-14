@@ -43,7 +43,7 @@ export type LandingResult =
   | 'missed' // Didn't resonate
   | 'unknown'; // Can't tell yet
 
-export type ResponseType =
+type ResponseType =
   | 'advice' // We gave advice
   | 'reflection' // We reflected back
   | 'question' // We asked a question
@@ -53,7 +53,7 @@ export type ResponseType =
   | 'humor' // We used humor
   | 'information'; // We provided info
 
-export interface ResponseAttempt {
+interface ResponseAttempt {
   turn: number;
   timestamp: number;
   responseType: ResponseType;
@@ -62,7 +62,7 @@ export interface ResponseAttempt {
   userEmotionBefore?: number; // 0-1 intensity
 }
 
-export interface UserReaction {
+interface UserReaction {
   turn: number;
   wordCount: number;
   emotionalChange: number; // Positive = opened up, negative = closed down
@@ -74,7 +74,7 @@ export interface UserReaction {
   responseLatencyMs?: number;
 }
 
-export interface LandingAssessment {
+interface LandingAssessment {
   result: LandingResult;
   confidence: number;
   evidence: string[];
@@ -348,7 +348,7 @@ interface TrackerState {
   lastCheckInTurn: number;
 }
 
-export class SelfAwarenessTracker {
+class SelfAwarenessTracker {
   private state: TrackerState;
   private sessionId: string;
   private personaId: string;
@@ -524,16 +524,6 @@ export class SelfAwarenessTracker {
 // ============================================================================
 
 const trackers = new Map<string, SelfAwarenessTracker>();
-
-export function getSelfAwarenessTracker(
-  sessionId: string,
-  personaId?: string
-): SelfAwarenessTracker {
-  if (!trackers.has(sessionId)) {
-    trackers.set(sessionId, new SelfAwarenessTracker(sessionId, personaId));
-  }
-  return trackers.get(sessionId)!;
-}
 
 export function resetSelfAwarenessTracker(sessionId: string): void {
   trackers.delete(sessionId);

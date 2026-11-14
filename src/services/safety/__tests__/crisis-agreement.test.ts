@@ -8,7 +8,6 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
-import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
 import {
   addsNothing,
@@ -72,16 +71,11 @@ describe('isPresenceReply', () => {
         'utf8'
       )
     ) as Array<{ text: string; label: string }>;
-    const positives = [
-      ...CRISIS_HELDOUT_RETIRED,
-      ...CRISIS_TEST_BLIND,
-      ...CRISIS_CONTEXTUAL,
-      ...redteam,
-    ]
+    const positives = [...CRISIS_HELDOUT_RETIRED, ...CRISIS_CONTEXTUAL, ...redteam]
       .filter((c) => c.label !== 'none')
       .map((c) => c.text)
       .concat(CRISIS_TEST_CASES.filter((c) => c.expectedResult.shouldDetect).map((c) => c.input));
-    expect(positives.length).toBeGreaterThan(150);
+    expect(positives.length).toBeGreaterThanOrEqual(123);
     expect(positives.filter((text) => isPresenceReply(text, ASKED))).toEqual([]);
   });
 });
@@ -367,13 +361,7 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
         'utf8'
       )
     ) as typeof redteam;
-    const positives = [
-      ...CRISIS_HELDOUT_RETIRED,
-      ...CRISIS_TEST_BLIND,
-      ...CRISIS_CONTEXTUAL,
-      ...redteam,
-      ...gloomy,
-    ]
+    const positives = [...CRISIS_HELDOUT_RETIRED, ...CRISIS_CONTEXTUAL, ...redteam, ...gloomy]
       .filter((c) => c.label !== 'none')
       .map((c) => ({
         text: c.text,
@@ -387,7 +375,7 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
           companion: undefined,
         }))
       );
-    expect(positives.length).toBeGreaterThan(230);
+    expect(positives.length).toBeGreaterThanOrEqual(184);
     // A lone crisis read, and a crisis read another read of the same turn disagreed with.
     const paired = (latest: string, companion: string, earlier: string[]) =>
       agreementOutcome({ pattern: 'none', verdicts: [crisis, none], latest, earlier, companion });

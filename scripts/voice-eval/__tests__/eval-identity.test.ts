@@ -75,7 +75,7 @@ describe('a voice-eval dispatch, through the agent identity resolution', () => {
 
   it('never lets the eval key name a real account', async () => {
     const real = signDispatch(
-      { ...JOB_META, user_id: 'vdSfkCCXaiXpnVCvgKxHMYrNFr72' },
+      { ...JOB_META, user_id: 'testOwnerUid0000000000000000' },
       AGENT_ENV.EVAL_DISPATCH_SECRET
     );
     const caller = await agentIdentity(real);

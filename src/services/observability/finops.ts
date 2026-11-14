@@ -15,83 +15,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { PRICING } from './finops-prices.js';
 
 const log = createLogger({ module: 'FinOps' });
 
-// ============================================================================
-// PRICING CONSTANTS (Updated Dec 2024)
-// ============================================================================
-
-/**
- * Cost per unit for each service provider.
- * Keep these updated as pricing changes!
- */
-export const PRICING = {
-  // Gemini 2.0 Flash (our primary model)
-  llm: {
-    'gemini-2.0-flash-exp': { inputPer1KTokens: 0.000075, outputPer1KTokens: 0.0003 },
-    'gemini-2.0-flash-live-001': { inputPer1KTokens: 0.000075, outputPer1KTokens: 0.0003 },
-    'gemini-1.5-flash': { inputPer1KTokens: 0.000075, outputPer1KTokens: 0.0003 },
-    'gemini-1.5-pro': { inputPer1KTokens: 0.00125, outputPer1KTokens: 0.005 },
-    // Fallback for unknown models
-    default: { inputPer1KTokens: 0.000075, outputPer1KTokens: 0.0003 },
-  },
-
-  // Cartesia TTS (primary voice synthesis)
-  tts: {
-    cartesia: { perCharacter: 0.000015 }, // $15/1M chars
-    elevenlabs: { perCharacter: 0.00003 },
-    default: { perCharacter: 0.000015 },
-  },
-
-  // Deepgram STT (primary transcription)
-  stt: {
-    deepgram: { perMinute: 0.0043 },
-    whisper: { perMinute: 0.006 },
-    default: { perMinute: 0.0043 },
-  },
-
-  // LiveKit (voice transport)
-  livekit: {
-    perMinute: 0.004, // Approximate
-  },
-
-  // Infrastructure (amortized)
-  infrastructure: {
-    gcePerHour: 0.1, // n1-standard-2 ~$73/mo = $0.10/hr
-    firestorePerRead: 0.0000006, // $0.06/100K
-    firestorePerWrite: 0.0000018, // $0.18/100K
-    firestorePerGB: 0.18,
-  },
-
-  // ============================================================================
-  // OPERATING OVERHEAD - The "true cost" beyond API calls
-  // ============================================================================
-  // This captures all the invisible costs that make Ferni possible:
-  // - Cloud infrastructure (Firebase, Cloud Run, monitoring, storage)
-  // - Development & maintenance time
-  // - Support & operations
-  // - Error handling, retries, redundancy
-  overhead: {
-    // Multiplier on API costs for cloud infrastructure overhead
-    // API costs are typically 30-40% of total cloud bill
-    // (networking, storage, monitoring, logging, build, etc.)
-    cloudInfraMultiplier: 1.5, // 1.5x = API + 50% cloud overhead
-
-    // Fixed per-minute overhead for session infrastructure
-    // (LiveKit rooms, Firestore writes, monitoring, etc.)
-    perMinuteInfra: 0.002, // $0.002/min = $0.12/hr session overhead
-
-    // Operator cost - your time, monitoring, support
-    // Small bootstrapped operation: ~$0.01 per conversation minute
-    // This represents the human element keeping Ferni running
-    operatorPerMinute: 0.01, // $0.01/min = $0.60/hr of your time
-
-    // Minimum floor per conversation (covers fixed costs for very short convos)
-    // Even a 1-minute call has setup/teardown costs
-    minimumPerSession: 0.02, // $0.02 minimum per conversation
-  },
-} as const;
+// Prices live in finops-prices.ts, each with its source and date.
+export { PRICING };
 
 // ============================================================================
 // TYPES
@@ -233,11 +162,7 @@ export interface FinOpsAlert {
   id: string;
   severity: 'info' | 'warning' | 'critical';
   type:
-    | 'high_burn_rate'
-    | 'unprofitable_user'
-    | 'cost_spike'
-    | 'margin_warning'
-    | 'budget_exceeded';
+    'high_burn_rate' | 'unprofitable_user' | 'cost_spike' | 'margin_warning' | 'budget_exceeded';
   message: string;
   data?: Record<string, unknown>;
 }
@@ -427,7 +352,7 @@ export function recordSTTCost(params: {
   sessionId?: string;
   tier?: 'free' | 'friend' | 'partner';
 }): void {
-  const { provider = 'deepgram', durationSeconds, userId, sessionId, tier = 'free' } = params;
+  const { provider = 'cartesia', durationSeconds, userId, sessionId, tier = 'free' } = params;
 
   const pricing = PRICING.stt[provider as keyof typeof PRICING.stt] || PRICING.stt.default;
   const cost = (durationSeconds / 60) * pricing.perMinute;

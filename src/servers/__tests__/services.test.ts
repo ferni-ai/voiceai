@@ -9,22 +9,41 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock the persistence store
+// Mock the persistence store: one map per store stands in for Firestore
 vi.mock('../../services/persistence/index.js', () => ({
-  createPersistenceStore: vi.fn(() => ({
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn(),
-    setImmediate: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-    flush: vi.fn().mockResolvedValue(undefined),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-    getStats: vi.fn().mockReturnValue({ cached: 0, dirty: 0 }),
-    load: vi.fn().mockResolvedValue(null),
-    clearCache: vi.fn(),
-    clearAllCaches: vi.fn(),
-    markDirty: vi.fn(),
-    flushUser: vi.fn().mockResolvedValue(undefined),
-  })),
+  createPersistenceStore: vi.fn(() => {
+    const docs = new Map<string, Record<string, unknown>>();
+    const read = (id: string) => (docs.has(id) ? structuredClone(docs.get(id)!) : null);
+    return {
+      get: vi.fn(async (id: string) => read(id)),
+      load: vi.fn(async (id: string) => read(id)),
+      set: vi.fn(),
+      setImmediate: vi.fn(async (id: string, data: Record<string, unknown>) => {
+        docs.set(id, structuredClone(data));
+      }),
+      updateIfUnchanged: vi.fn(
+        async (
+          id: string,
+          unchanged: (c: Record<string, unknown>) => boolean,
+          fields: Record<string, unknown>
+        ) => {
+          const doc = read(id);
+          if (!doc) return 'missing';
+          if (!unchanged(doc)) return 'changed';
+          docs.set(id, { ...doc, ...structuredClone(fields) });
+          return 'updated';
+        }
+      ),
+      delete: vi.fn(async (id: string) => void docs.delete(id)),
+      flush: vi.fn().mockResolvedValue(undefined),
+      shutdown: vi.fn().mockResolvedValue(undefined),
+      getStats: vi.fn().mockReturnValue({ cached: 0, dirty: 0 }),
+      clearCache: vi.fn(),
+      clearAllCaches: vi.fn(),
+      markDirty: vi.fn(),
+      flushUser: vi.fn().mockResolvedValue(undefined),
+    };
+  }),
   shutdownPersistence: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -140,7 +159,7 @@ describe('Demo Sessions Service', () => {
       ferniNotes: 'Follow up on job interview next session',
     });
 
-    expect(success).toBe(true);
+    expect(success).toBe('updated');
 
     const session = await getDemoSession(roomName);
     expect(session?.conversation.highlights).toContain(
@@ -150,14 +169,14 @@ describe('Demo Sessions Service', () => {
     expect(session?.conversation.userMood).toBe('anxious');
   });
 
-  it('should return false for non-existent session update', async () => {
+  it('should report missing for non-existent session update', async () => {
     const { updateDemoSessionConversation } = await import('../api/services/demo-sessions.js');
 
     const success = await updateDemoSessionConversation('non-existent-room', {
       highlights: ['test'],
     });
 
-    expect(success).toBe(false);
+    expect(success).toBe('missing');
   });
 });
 

@@ -12,7 +12,9 @@
  * - any message whose `concernLevel` is `crisis` (the humanization signal
  *   `concern_detected`, emotion-event-dispatcher).
  * The server sends nothing that ends a crisis, so the hold lasts until the call
- * ends (onCallEnded, app/call-end.ts). No message releases it.
+ * ends (onCallEnded, app/call-end.ts). No message releases it. While it holds,
+ * only warmth and glow play: no hop, sparkle, lamp bounce, tap reaction or
+ * celebration (crisisAffectAllows, ui/face/crisis-face-hold.ts).
  *
  * @module app/crisis-face
  */
@@ -20,6 +22,7 @@
 import { DURATION } from '../config/animation-constants.js';
 import { CRISIS_CALM_FACES } from '../config/crisis-faces.js';
 import type { DataMessage } from '../types/events.js';
+import { coachUI } from '../ui/coach.ui.js';
 import { holdCrisisFace } from '../ui/face/crisis-face-hold.js';
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
@@ -37,9 +40,14 @@ function isCrisisSignal(message: DataMessage): boolean {
 
 /** Puts the safety face on every layer that draws one, so nothing showing before stays. */
 function showSafetyFace(): void {
-  presenceUI.setVoiceEmotion('empathetic'); // glow and the legacy data-emotion eyes
-  luxoExpressions.setExpression('empathetic'); // data-expression, which luxo also mirrors to data-emotion
-  ferniExpressions.setExpression(CRISIS_CALM_FACES[0], DURATION.MODERATE); // lids, or the face engine
+  try {
+    presenceUI.setVoiceEmotion('empathetic'); // glow and the legacy data-emotion eyes
+    luxoExpressions.setExpression('empathetic'); // data-expression, which luxo also mirrors to data-emotion
+    ferniExpressions.setExpression(CRISIS_CALM_FACES[0], DURATION.MODERATE); // lids, or the face engine
+  } finally {
+    // A joy, excited or sparkling ring from before the crisis goes calm, even if a layer above threw
+    coachUI.resetRingToCalm();
+  }
 }
 
 /** Start (or renew) the crisis face hold when a crisis or safety message arrives. */

@@ -18,6 +18,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('AvatarTapReactions');
@@ -170,7 +171,7 @@ function pickReaction(): TapReaction {
 function playReaction(reaction: TapReaction): void {
   const avatar = document.getElementById('coachAvatar');
   const coach = document.getElementById('coach');
-  if (!avatar || !coach) return;
+  if (!avatar || !coach || !crisisAffectAllows('tap-reaction')) return;
 
   // Check reduced motion preference
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -207,7 +208,7 @@ function playReaction(reaction: TapReaction): void {
 function playSpecialReaction(): void {
   const avatar = document.getElementById('coachAvatar');
   const coach = document.getElementById('coach');
-  if (!avatar || !coach) return;
+  if (!avatar || !coach || !crisisAffectAllows('tap-reaction')) return;
 
   log.debug('Special reaction triggered (rapid taps)');
 

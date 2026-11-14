@@ -55,6 +55,7 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
 import {
   addForgottenTopic,
+  bumpForgetGeneration,
   firestoreForgottenStore,
   forgetGenerationSeen,
   noteUnstoredForget,
@@ -64,6 +65,8 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
 export { isForgotten, factText };
+/** For a write outside this module that hides memory (api/routes/known-action-store.ts). */
+export { bumpForgetGeneration };
 export { parseTopics } from '../adapters/firestore/forgotten-store.js';
 
 const log = createLogger({ module: 'forget' });
@@ -349,6 +352,7 @@ export async function closeWorldFacts(
     for (const id of ids.slice(i, i + 400)) batch.update(col.doc(id), closed);
     await batch.commit();
   }
+  if (ids.length > 0) await bumpForgetGeneration(db, userId);
 }
 
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
@@ -391,6 +395,8 @@ export const firestoreForgetStore: ForgetStore = {
       userId,
       refs.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
     );
+    // Hidden by id or by a dispute as well as by topic: what was built from them is stale.
+    if (refs.length > 0) await bumpForgetGeneration(db, userId);
   },
   async deleteFacts(userId, refs) {
     const db = getFirestoreDb();

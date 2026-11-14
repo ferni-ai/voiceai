@@ -13,6 +13,7 @@
 
 import { emotionState, type EmotionId } from '../../emotion/emotion-state.js';
 import { soulStatsService } from '../../services/soul-stats.service.js';
+import { avatarMotionAllowed } from '../../ui/avatar-motion/motion-allowed.js';
 import { ferniExpressions, type EmotionalExpression } from '../../ui/ferni-expressions.ui.js';
 import { createLogger } from '../../utils/logger.js';
 import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
@@ -390,7 +391,7 @@ export function playMicroExpression(type: MicroExpressionType): void {
 
       case 'contemplation':
         soul.setPupilDilation('CONTRACTED', 'slow');
-        soul.glanceAway(400);
+        if (avatarMotionAllowed('thinkingLook')) soul.glanceAway(400); // not during the crisis hold
         break;
     }
   })();

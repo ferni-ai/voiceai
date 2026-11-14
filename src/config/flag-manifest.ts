@@ -253,7 +253,6 @@ const LEGACY_FLAG_MANIFEST = {
   // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
   LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
-  LOG_BUILDER_CATEGORIES: { default: 'off', owner: 'intelligence', kind: 'config' },
   LOG_CONTEXT_BUILDS: { default: 'off', owner: 'voice', kind: 'config' },
   LOG_FULL_RESPONSES: { default: 'off', owner: 'platform', kind: 'config' },
   LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },

@@ -128,7 +128,7 @@ describe('recordHolderCode', () => {
     await startHolderVerification('sponsored_mom', 'seth', deps());
     for (let i = 0; i < 5; i++) {
       // eslint-disable-next-line no-await-in-loop
-      expect(await recordHolderCode(MOM, '000000', deps())).toBe(false);
+      expect(await recordHolderCode(MOM, '000000', deps())).toBe('wrong-code');
     }
     expect(await recordHolderCode(MOM, '482913', deps())).toBe(false);
     expect(identities.get('sponsored_mom')?.phoneVerifiedAt).toBeUndefined();
@@ -145,7 +145,8 @@ describe('recordHolderCode', () => {
     await startHolderVerification('sponsored_mom', 'seth', deps());
     expect(await recordHolderCode('+12025550199', '482913', deps())).toBe(false);
     now = new Date(now.getTime() + 16 * 60 * 1000);
-    expect(await recordHolderCode(MOM, '482913', deps())).toBe(false);
+    // this number's own code, too late: still a code text ('wrong-code'), never a proof
+    expect(await recordHolderCode(MOM, '482913', deps())).toBe('wrong-code');
     expect(identities.get('sponsored_mom')?.phoneVerifiedAt).toBeUndefined();
   });
 });

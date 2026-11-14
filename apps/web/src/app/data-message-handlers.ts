@@ -48,6 +48,7 @@ import { handleMomentMessage } from './moment-messages.js';
 import { routeExpressionMessage } from './expression-routes.js';
 import { observeListenSignal } from './backchannel-signal.js';
 import { observeCrisisSignal } from './crisis-face.js';
+import { crisisAffectAllows } from '../ui/face/crisis-face-hold.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -1566,7 +1567,7 @@ export function handleCelebration(event: CelebrationEvent): void {
   // Milestone/achievement - warm acknowledgement with held pose
   if (event.celebrationType === 'milestone' || event.celebrationType === 'achievement') {
     celebrationsUI.warmthGlow({ intensity: 'warm' });
-    delightService.haptic('light');
+    if (crisisAffectAllows('celebration')) delightService.haptic('light'); // no buzz in a crisis
     waveformUI.celebrate();
 
     // 🎬 Pixar: Held pose at peak excitement
@@ -1582,9 +1583,8 @@ export function handleCelebration(event: CelebrationEvent): void {
   if (event.celebrationType === 'aha_moment' || event.celebrationType === 'good_news') {
     celebrationsUI.gentleBounce();
     celebrationsUI.warmthGlow({ intensity: 'gentle' });
-    delightService.haptic('light');
+    if (crisisAffectAllows('celebration')) delightService.haptic('light'); // no buzz in a crisis
     presenceUI.bounce();
-    // Flash encouraging emotion for aha moments
     presenceUI.flashEmotion('encouraging', 800);
 
     // 🎬 Pixar: Double-take for "aha!" moments (like WALL-E noticing something)

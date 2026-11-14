@@ -26,6 +26,7 @@ import { timezoneOf } from '../proactive-channels/proactive-tick.js';
 import { isUserQuiet, quietEndsAt, savedQuietHours, type QuietHoursUser } from '../quiet-hours.js';
 import { composeMorningBriefSegments, joinSegments, type MorningBriefInput } from './compose.js';
 import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
+import { freshDay, type DayRefs, type DropReason, type FreshnessReads } from './freshness.js';
 
 const log = createLogger({ module: 'MorningBrief' });
 
@@ -36,7 +37,8 @@ export const MORNING_BRIEF_LATEST_HOUR = 12;
 export const MORNING_BRIEF_GAP_MS = 20 * 60 * 60 * 1000;
 const ALEX = 'alex-chen';
 
-export type DayItems = Omit<MorningBriefInput, 'timeZone' | 'name'>;
+/** `refs` says where each item came from, for the freshness gate; without it nothing is dropped. */
+export type DayItems = Omit<MorningBriefInput, 'timeZone' | 'name'> & { refs?: DayRefs };
 
 export interface MorningBriefDeps {
   env: Env;
@@ -52,6 +54,8 @@ export interface MorningBriefDeps {
     now: Date
   ) => Promise<DayItems>;
   claims: BriefingClaimStore | null;
+  /** MORNING_BRIEF_FRESHNESS (default on): drops todos already dealt with (freshness.ts). */
+  freshness?: FreshnessReads;
   sendText: (t: GuardedText) => Promise<TextOutcome>;
   sendPush: (
     userId: string,
@@ -66,6 +70,10 @@ export interface MorningBriefReport {
   reasons: Record<string, number>;
   /** Sent as a push instead, by why the text didn't go. */
   pushedInstead: Record<string, number>;
+  /** Items in the briefs written, by section; counts only. */
+  segments: { events: number; due: number; open: number };
+  /** Items the freshness gate left out, by why; counts only. */
+  dropped: Partial<Record<DropReason, number>>;
 }
 
 export function morningBriefUsers(env: Env): string[] {
@@ -156,11 +164,14 @@ export function briefToSend(input: MorningBriefInput, userId: string, env: Env):
 /** MORNING_BRIEF_RUN. nothing-today with commitments off: only calendar, reminders and tasks counted. */
 function logBriefRun(report: MorningBriefReport, composed: number, env: Env): void {
   const counts = { considered: report.checked, eligible: composed, sent: report.sent };
+  const { segments, dropped } = report;
   logJobRun(
     log,
     'MORNING_BRIEF',
     { ...counts, skippedBy: report.reasons },
     {
+      segments,
+      dropped,
       enabled: flagOn('MORNING_BRIEF', env),
       commitments: flagOn('MORNING_BRIEF_COMMITMENTS', env) ? 'on' : 'off',
     }
@@ -178,9 +189,11 @@ export async function runMorningBriefs(
     skipped: 0,
     reasons: {},
     pushedInstead: {},
+    segments: { events: 0, due: 0, open: 0 },
+    dropped: {},
   };
-  const count = (into: Record<string, number>, reason: string): void => {
-    into[reason] = (into[reason] ?? 0) + 1;
+  const count = (into: Record<string, number>, reason: string, n = 1): void => {
+    into[reason] = (into[reason] ?? 0) + n;
   };
   const skip = (reason: string): void => {
     report.skipped++;
@@ -224,13 +237,29 @@ export async function runMorningBriefs(
       }
       claimed = dateKey;
 
-      const day = await deps.readDay(userId, user, zone, now);
+      const read = await deps.readDay(userId, user, zone, now);
+      const fresh =
+        deps.freshness && flagOn('MORNING_BRIEF_FRESHNESS', deps.env)
+          ? await freshDay(userId, read, deps.freshness, now)
+          : { day: read, dropped: {}, spent: [] };
+      const { day } = fresh;
+      for (const [why, n] of Object.entries(fresh.dropped)) count(report.dropped, why, n);
+      // Mentions behind what was left out are spent once this morning's brief is settled.
+      const spend = () =>
+        deps.freshness?.consume(userId, fresh.spent).catch((e: unknown) => {
+          log.warn({ error: String(e) }, 'Morning brief mentions not spent');
+        });
       const body = briefToSend({ ...day, timeZone: zone, name: firstName(user) }, userId, deps.env);
       if (!body) {
-        await release('nothing-today');
+        // Everything left was already dealt with: no text today, never an empty one.
+        if (Object.keys(fresh.dropped).length) await spend();
+        await release(Object.keys(fresh.dropped).length ? 'all-stale' : 'nothing-today');
         continue;
       }
       composed++;
+      report.segments.events += day.events.length;
+      report.segments.due += day.reminders.length;
+      report.segments.open += day.tasks.length + day.commitments.length;
       const text = await deps.sendText({
         userId,
         body,
@@ -240,6 +269,7 @@ export async function runMorningBriefs(
       });
       if (text.sent) {
         report.sent++;
+        await spend();
         continue;
       }
       // Already texted this morning (a lost claim): a push now would be a second
@@ -259,6 +289,7 @@ export async function runMorningBriefs(
         continue;
       }
       report.sent++;
+      await spend();
       count(report.pushedInstead, text.reason);
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Morning brief failed');

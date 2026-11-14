@@ -388,21 +388,6 @@ describe('Context Builder Integration with Superhuman', () => {
       }
     });
   });
-
-  describe('Nayan Wisdom Insights', () => {
-    it('should include superhuman context in briefing', async () => {
-      const { buildNayanWisdomInsightsContext } =
-        await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
-
-      const input = createMockInput('nayan-patel', `nayan-test-${Date.now()}`);
-      const result = await buildNayanWisdomInsightsContext(input as never);
-
-      expect(Array.isArray(result)).toBe(true);
-      if (result.length > 0) {
-        expect(result[0]).toHaveProperty('content');
-      }
-    });
-  });
 });
 
 // ============================================================================
@@ -445,25 +430,6 @@ describe('Performance Benchmarks', () => {
 
     const start = Date.now();
     await buildMayaCoachingInsightsContext(input as never);
-    const duration = Date.now() - start;
-
-    expect(duration).toBeLessThan(MAX_BUILDER_TIME_MS);
-  });
-
-  it('should build Nayan context within time limit', async () => {
-    const { buildNayanWisdomInsightsContext } =
-      await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
-
-    const input = {
-      services: { personaId: 'nayan-patel', userId: 'perf-test', sessionId: 'perf-session' },
-      userData: { turnCount: 0 },
-      userProfile: { userId: 'perf-test' },
-      analysis: {},
-      persona: { id: 'nayan-patel' },
-    };
-
-    const start = Date.now();
-    await buildNayanWisdomInsightsContext(input as never);
     const duration = Date.now() - start;
 
     expect(duration).toBeLessThan(MAX_BUILDER_TIME_MS);

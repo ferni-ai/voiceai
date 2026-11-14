@@ -8,7 +8,8 @@ const models = vi.hoisted(() => ({
   reply: (_system: string): string | undefined => undefined,
 }));
 
-vi.mock('../../../utils/safe-logger.js', () => {
+vi.mock('../../../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('../../../tests/helpers/real-reply-for-log.js');
   const log: Record<string, unknown> = {
     debug: vi.fn(),
     info: vi.fn(),
@@ -16,7 +17,11 @@ vi.mock('../../../utils/safe-logger.js', () => {
     error: vi.fn(),
   };
   log.child = () => log;
-  return { createLogger: () => log, getLogger: () => log };
+  return {
+    createLogger: () => log,
+    getLogger: () => log,
+    ...(await realReplyForLog()),
+  };
 });
 vi.mock('../../../services/diagnostic-logger.js', () => ({ diag: { entry: vi.fn() } }));
 vi.mock('../../../config/generative-model.js', () => ({

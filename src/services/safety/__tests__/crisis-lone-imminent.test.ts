@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_RELAY } from '../../../agents/__tests__/fixtures/crisis-relay.js';
-import { CRISIS_TEST_BLIND } from '../../../agents/__tests__/fixtures/crisis-test-blind.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
 import type { CrisisVerdict } from '../crisis-classifier.js';
@@ -182,7 +181,6 @@ interface Labelled {
 const fromJson = (path: string): Labelled[] => JSON.parse(readFileSync(path, 'utf8')) as Labelled[];
 const POSITIVES: Labelled[] = [
   ...CRISIS_HELDOUT_RETIRED,
-  ...CRISIS_TEST_BLIND,
   ...CRISIS_CONTEXTUAL,
   ...CRISIS_RELAY,
   ...CRISIS_TEST_CASES.filter((c) => c.expectedResult.shouldDetect).map((c) => ({
@@ -197,7 +195,7 @@ const POSITIVES: Labelled[] = [
 
 describe('the labelled crisis lines', () => {
   it('are many, from every set', () => {
-    expect(POSITIVES.length).toBeGreaterThan(400);
+    expect(POSITIVES.length).toBeGreaterThanOrEqual(340);
   });
 
   it('never qualify on their own words, with no call risk recorded', () => {

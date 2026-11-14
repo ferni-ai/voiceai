@@ -30,7 +30,7 @@ import { relationshipStageService } from '../services/relationship-stage.service
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
-import { crisisFaceAllows } from './face/crisis-face-hold.js';
+import { crisisAffectAllows, crisisFaceAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('CoachUI');
 
@@ -152,7 +152,6 @@ export function initCoachUI(): void {
       statusIndicator: getElementById('statusIndicator'),
     };
 
-    // Set up state subscriptions
     setupSubscriptions();
     
     // 🎭 Subscribe to dynamic Ferni subtitle changes
@@ -163,7 +162,6 @@ export function initCoachUI(): void {
       }
     });
 
-    // Initial render
     const persona = appState.get('activePersona');
     updatePersonaDisplay(persona);
 
@@ -231,7 +229,7 @@ function startBreathingAnimation(): void {
  * Brand: warm, grounded, present.
  */
 function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy', maxDuration = Infinity): void {
-  if (!elements) return;
+  if (!elements || ((type === 'bounce' || type === 'joy') && !crisisAffectAllows('squash'))) return;
 
   const profile = getAnimationProfile();
 
@@ -302,11 +300,10 @@ export const PERSONA_SWAP_MAX_MS = 350;
 export function updatePersonaDisplay(persona: PersonaConfig): void {
   if (!elements) return;
   
-  // Update current persona ID for animation profile
   currentPersonaId = persona.id;
 
   // Ring sparkle (CSS) and the persona's entrance bounce, both starting now
-  addClass(elements.container, 'persona-transitioning');
+  if (crisisAffectAllows('sparkle')) addClass(elements.container, 'persona-transitioning');
   playReaction('bounce', PERSONA_SWAP_MAX_MS);
   trackedTimeout(() => {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
@@ -336,7 +333,6 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     });
   }
 
-  // Update theme class
   if (persona.themeClass) {
     // Remove other theme classes
     elements.container.className = elements.container.className
@@ -344,10 +340,9 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
       .trim();
     addClass(elements.container, persona.themeClass);
     // Re-add transition class since we just modified className
-    addClass(elements.container, 'persona-transitioning');
+    if (crisisAffectAllows('sparkle')) addClass(elements.container, 'persona-transitioning');
   }
 
-  // Apply persona-specific colors
   if (persona.colors) {
     elements.avatar.style.background = persona.colors.gradient;
     elements.avatarRing.style.borderColor = persona.colors.primary;
@@ -356,7 +351,6 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     elements.container.style.setProperty('--persona-glow', persona.colors.glow);
   }
   
-  // Restart breathing animation with new persona timing
   startBreathingAnimation();
 }
 
@@ -489,11 +483,9 @@ export function setEmotion(emotion: VoiceEmotion): void {
     removeClass(elements.container, currentEmotionClass);
   }
 
-  // Add new emotion class
   currentEmotionClass = EMOTION_CLASSES[emotion] || 'emotion-neutral';
   addClass(elements.container, currentEmotionClass);
   
-  // Play Pixar-style reaction animation
   const reaction = EMOTION_REACTIONS[emotion];
   if (reaction) {
     const profile = getAnimationProfile();
@@ -503,11 +495,18 @@ export function setEmotion(emotion: VoiceEmotion): void {
   }
 }
 
-/**
- * Bounce avatar - for positive moments
- */
+/** Bounce avatar - for positive moments */
 export function bounce(): void {
   playReaction('bounce');
+}
+
+/** The crisis hold began: the ring drops joy, excitement or a sparkle for its calm state. */
+export function resetRingToCalm(): void {
+  if (!elements) return;
+  if (currentEmotionClass) removeClass(elements.container, currentEmotionClass);
+  removeClass(elements.container, 'persona-transitioning');
+  currentEmotionClass = EMOTION_CLASSES.calm;
+  addClass(elements.container, currentEmotionClass);
 }
 
 /**
@@ -538,6 +537,7 @@ export const coachUI = {
   setDimmed,
   setEmotion,
   bounce,
+  resetRingToCalm,
   dispose,
   // Expose for advanced usage
   playReaction,

@@ -11,6 +11,11 @@
  * - the legacy data-emotion eyes and glow (presence) and the coach's emotion
  *   reactions, which never reach the engine.
  *
+ * Every playful affect asks `crisisAffectAllows(kind)` the same way (the kinds
+ * are listed in config/crisis-faces.ts): hops and bounces, sparkles and flashes,
+ * the lamp's bounce, shake and perk-up, tap reactions, and celebrations. Only
+ * warmth and glow play during the hold, with the calm nods, tilts and pulses.
+ *
  * Only the call's end releases the hold. No message does: the server sends no
  * "crisis over" signal, so a missing, unknown or malformed signal, or a
  * reconnect mid-call, keeps the hold (fails closed).
@@ -18,19 +23,43 @@
  * @module ui/face/crisis-face-hold
  */
 
-import { CRISIS_CALM_FACES } from '../../config/crisis-faces.js';
+import {
+  CRISIS_CALM_AFFECT,
+  CRISIS_CALM_FACES,
+  type CrisisAffect,
+} from '../../config/crisis-faces.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('CrisisFaceHold');
 
 const CALM: ReadonlySet<string> = new Set(CRISIS_CALM_FACES);
+const CALM_AFFECT: ReadonlySet<CrisisAffect> = new Set(CRISIS_CALM_AFFECT);
 
 let held = false;
+const holdStartListeners = new Set<() => void>();
+
+/**
+ * Run `listener` each time a hold starts, for state that must be dropped then
+ * rather than checked later (a celebration already waiting in a queue).
+ * Returns a function that stops listening.
+ */
+export function onCrisisHoldStart(listener: () => void): () => void {
+  holdStartListeners.add(listener);
+  return () => holdStartListeners.delete(listener);
+}
 
 /** A crisis or safety message arrived: hold the calm faces until the call ends. */
 export function holdCrisisFace(): void {
-  if (!held) log.info('Crisis face hold on until the call ends');
-  held = true;
+  if (held) return;
+  held = true; // first, so a listener that throws cannot stop the hold
+  log.info('Crisis face hold on until the call ends');
+  for (const listener of holdStartListeners) {
+    try {
+      listener();
+    } catch (error) {
+      log.warn('Crisis hold start listener failed', { error: String(error) });
+    }
+  }
 }
 
 /** The call ended: faces are free again for the next call. */
@@ -46,5 +75,12 @@ export function isCrisisFaceHeld(): boolean {
 export function crisisFaceAllows(name: string): boolean {
   if (!held || CALM.has(name)) return true;
   log.debug('Face refused during crisis hold', { name });
+  return false;
+}
+
+/** Whether a kind of affect may play now: anything outside a crisis, only warmth and glow inside one. */
+export function crisisAffectAllows(kind: CrisisAffect): boolean {
+  if (!held || CALM_AFFECT.has(kind)) return true;
+  log.debug('Affect refused during crisis hold', { kind });
   return false;
 }

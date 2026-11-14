@@ -152,7 +152,19 @@ export async function sharedHeldStrict(
   timeoutMs = STRICT_READ_MS
 ): Promise<boolean> {
   if (!sharedHoldOn(env) || !holdable(userId)) return false;
-  if (userHeld(userId, env)) return true;
+  return userHeld(userId, env) || sharedRecordHeldStrict(userId, env, timeoutMs);
+}
+
+/**
+ * sharedHeldStrict without the in-process holds (userHeld): only the shared record, which only an
+ * age hold writes (minor-care-purge.ts). Unreadable or late means held.
+ */
+export async function sharedRecordHeldStrict(
+  userId: string | undefined,
+  env: Env = process.env,
+  timeoutMs = STRICT_READ_MS
+): Promise<boolean> {
+  if (!sharedHoldOn(env) || !holdable(userId)) return false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`no answer in ${timeoutMs} ms`)), timeoutMs);

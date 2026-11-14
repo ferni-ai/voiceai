@@ -158,6 +158,17 @@ ENV VITE_TOAST_REGION=$VITE_TOAST_REGION
 # Calm one-hero idle screen (apps/web/src/config/calm-idle.ts); off unless exactly "true".
 ARG VITE_CALM_IDLE=""
 ENV VITE_CALM_IDLE=$VITE_CALM_IDLE
+# Reconnect / End call prompt (apps/web/src/config/agent-drop-prompt-flag.ts); off unless exactly "true".
+ARG VITE_AGENT_DROP_PROMPT=""
+ENV VITE_AGENT_DROP_PROMPT=$VITE_AGENT_DROP_PROMPT
+# After-call card, no streaks, report a reply: each ON unless "false".
+ARG VITE_AFTER_CALL_CARD=""
+ARG VITE_NO_STREAKS=""
+ARG VITE_REPORT_REPLY=""
+ENV VITE_AFTER_CALL_CARD=$VITE_AFTER_CALL_CARD VITE_NO_STREAKS=$VITE_NO_STREAKS VITE_REPORT_REPLY=$VITE_REPORT_REPLY
+# Stripe's browser key (apps/web/src/config/stripe-key.ts); unset means no card payments.
+ARG VITE_STRIPE_PUBLISHABLE_KEY=""
+ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
 # Avatar motion switches (apps/web/src/config/motion-flags.ts); each off unless "on" or "true".
 ARG VITE_NATURAL_BLINK=""
 ARG VITE_LID_BLEND=""

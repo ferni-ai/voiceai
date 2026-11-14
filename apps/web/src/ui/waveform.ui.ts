@@ -26,6 +26,7 @@ import type { SpeakerId } from '../types/persona.js';
 import { createFrameLoop } from '../utils/frame-loop.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { crisisAffectAllows } from './face/crisis-face-hold.js';
 
 const log = createLogger('Waveform');
 
@@ -404,6 +405,7 @@ export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
 }
 
 export function celebrate(): void {
+  if (!crisisAffectAllows('celebration')) return;
   setEmotion('excited', 1);
   container?.classList.add('celebrating');
   trackedTimeout(() => container?.classList.remove('celebrating'), 1000);
@@ -473,7 +475,6 @@ const barsLoop = createFrameLoop((timestamp) => {
   const deltaTime = Math.min(timestamp - lastTimestamp, 50);
   lastTimestamp = timestamp;
 
-  // Update phase
   const shapeSpeed = targetShape.speed * currentConfig.speed;
   wavePhase += deltaTime * 0.004 * shapeSpeed;
 
@@ -485,7 +486,6 @@ const barsLoop = createFrameLoop((timestamp) => {
   // Interpolate shape curve toward target
   interpolateShape();
 
-  // Update bars
   updateBars();
 }, isLive);
 
@@ -786,7 +786,7 @@ function createRipple(): void {
  * Like confetti or joy bubbles!
  */
 function createParticleBurst(): void {
-  if (!particleContainer || !barsContainer) return;
+  if (!particleContainer || !barsContainer || !crisisAffectAllows('sparkle')) return;
 
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

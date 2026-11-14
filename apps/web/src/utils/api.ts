@@ -362,6 +362,10 @@ export async function apiPost<T = unknown>(
 /**
  * Make an authenticated PUT request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * The body is sent as given, with no `userId` added: every PUT route acts on
+ * the verified caller, and strict edits (a family member's details) refuse any
+ * key they don't edit, so an injected id turned each save into a 400.
  */
 export async function apiPut<T = unknown>(
   path: string,
@@ -384,11 +388,6 @@ export async function apiPut<T = unknown>(
   try {
     const url = new URL(path, window.location.origin);
 
-    // Always include userId in body if not already present
-    const userId = getUserId();
-    const bodyWithUser =
-      body && typeof body === 'object' ? { userId, ...(body as Record<string, unknown>) } : body;
-
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(true);
 
@@ -398,7 +397,7 @@ export async function apiPut<T = unknown>(
       {
         method: 'PUT',
         headers,
-        body: JSON.stringify(bodyWithUser),
+        body: JSON.stringify(body),
       },
       { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
     );

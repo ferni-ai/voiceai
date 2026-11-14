@@ -36,7 +36,7 @@ function isFresh(signedAt: unknown, now: number): boolean {
 }
 
 /** True when this metadata, as dispatched, carries our server's signature and was signed recently. */
-export function isSignedDispatch(
+function isSignedDispatch(
   metadata: Record<string, unknown>,
   secret: DispatchSecrets = dispatchVerifySecrets(),
   now: number = Date.now()

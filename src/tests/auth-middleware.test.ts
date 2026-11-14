@@ -444,7 +444,7 @@ describe('Auth Middleware', () => {
       const req = createMockRequest({ remoteAddress: `192.168.1.${Date.now()}` });
       const res = createMockResponse();
 
-      rateLimit(req, res, { maxRequests: 100, windowMs: 60000 });
+      rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'test' });
 
       expect(res._headers['X-RateLimit-Limit']).toBe(100);
       expect(res._headers['X-RateLimit-Remaining']).toBeDefined();
@@ -459,13 +459,13 @@ describe('Auth Middleware', () => {
       for (let i = 0; i < 3; i++) {
         const req = createMockRequest({ remoteAddress: ip });
         const res = createMockResponse();
-        rateLimit(req, res, { maxRequests: 3, windowMs: 60000 });
+        rateLimit(req, res, { maxRequests: 3, windowMs: 60000, keyPrefix: 'test' });
       }
 
       // Next request should be blocked
       const req = createMockRequest({ remoteAddress: ip });
       const res = createMockResponse();
-      const blocked = rateLimit(req, res, { maxRequests: 3, windowMs: 60000 });
+      const blocked = rateLimit(req, res, { maxRequests: 3, windowMs: 60000, keyPrefix: 'test' });
 
       expect(blocked).toBe(true);
       expect(res._statusCode).toBe(429);

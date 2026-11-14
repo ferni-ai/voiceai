@@ -39,7 +39,7 @@ on:
     # Tests, Security Scan, Quality Gates. Integration Tests, Build and the other
     # slow jobs skip on pull_request (a skipped job still reports its check), so PR
     # runs stop starving the merge queue for runners. The queue runs the required
-    # checks only. AGI Feature Tests, Build, Validation and E2E Validation are
+    # checks only. AGI Feature Tests and Build are
     # required by nothing: they run on every push
     # to main, even when queue-tested skips the required suite, and nightly; and
     # nightly-health.yml opens a main-red issue when the push run fails
@@ -1228,125 +1228,12 @@ jobs:
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
-  # ============================================================================
-  # VALIDATION (using unified validate CLI)
-  # ============================================================================
-  validation:
-    name: Validation Checks
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 15
-    needs: setup
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Restore node_modules cache
-        id: nm-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            packages/*/node_modules
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: false
-
-      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
-      # and cache eviction (10 GB repo limit) both leave it missing; install
-      # instead of failing a job that has nothing wrong with it.
-      - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Validate voices
-        run: pnpm validate voices
-        continue-on-error: true
-
-      - name: Validate integrations
-        run: pnpm validate integrations
-        continue-on-error: true
-
-  # ============================================================================
-  # E2E VALIDATION - Validate all user actions (tools, commands, API)
-  # ============================================================================
-  e2e-validation:
-    name: E2E Validation
-    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 30
-    needs: setup
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Restore node_modules cache
-        id: nm-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            node_modules
-            apps/*/node_modules
-            packages/*/node_modules
-          key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: false
-
-      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
-      # and cache eviction (10 GB repo limit) both leave it missing; install
-      # instead of failing a job that has nothing wrong with it.
-      - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Build CLI and backend
-        run: pnpm build:fast
-        continue-on-error: true
-
-      - name: Run E2E validation
-        run: node dist/apps/cli/src/index.js validate e2e --ci --report json > e2e-report.json || true
-        continue-on-error: true
-
-      - name: Check E2E coverage threshold
-        run: |
-          if [ -f e2e-report.json ]; then
-            COVERAGE=$(cat e2e-report.json | grep -o '"coverage":[0-9]*' | head -1 | grep -o '[0-9]*' || echo "0")
-            CI_PASSED=$(cat e2e-report.json | grep -o '"ciPassed":[a-z]*' | head -1 | grep -o '[a-z]*' || echo "false")
-            echo "E2E Coverage: ${COVERAGE}%"
-            echo "CI Passed: ${CI_PASSED}"
-            if [ "$CI_PASSED" = "false" ]; then
-              echo "❌ E2E coverage ${COVERAGE}% is below 80% threshold"
-              # Don't fail build for now, just warn
-              # exit 1
-            else
-              echo "✅ E2E coverage ${COVERAGE}% meets 80% threshold"
-            fi
-          else
-            echo "⚠️ E2E report not generated - skipping threshold check"
-          fi
-
-      - name: Upload E2E report
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: e2e-validation-report
-          path: e2e-report.json
-          retention-days: 30
+  # Validation Checks and E2E Validation were deleted (#3520). Both ran their checks
+  # with continue-on-error and could not fail; both also crashed on every run on a
+  # path that moved (validate.ts looked for scripts/ under apps/cli/src/commands,
+  # the E2E step for dist/apps/cli/src/index.js), and validate-e2e reports 100%
+  # coverage even when it cannot load a single tool. Tool schemas are checked in
+  # Lint & Type Check; the backend build in Build.
 
   # ============================================================================
   # FRONTEND QUALITY

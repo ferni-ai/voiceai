@@ -61,43 +61,6 @@ const SCHEDULER_JOBS: SchedulerJob[] = [
   // BACKGROUND TASK PROCESSING
   // ==========================================================================
   {
-    name: 'background-task-processor',
-    description: 'Process pending background tasks (replaces in-process setInterval)',
-    schedule: '* * * * *', // Every minute
-    timezone: 'America/Los_Angeles',
-    uri: `${UI_SERVER_URL}/api/jobs/process-background-tasks`,
-    httpMethod: 'POST',
-    retryCount: 2,
-    minBackoff: '10s',
-    maxBackoff: '60s',
-    timeout: '60s',
-    enabled: true,
-  },
-  {
-    name: 'scheduled-job-checker',
-    description: 'Check and trigger user-scheduled jobs',
-    schedule: '* * * * *', // Every minute
-    timezone: 'America/Los_Angeles',
-    uri: `${UI_SERVER_URL}/api/jobs/check-scheduled`,
-    httpMethod: 'POST',
-    retryCount: 2,
-    enabled: true,
-  },
-
-  // ==========================================================================
-  // SESSION CLEANUP
-  // ==========================================================================
-  {
-    name: 'session-cleanup',
-    description: 'Clean up orphaned sessions to prevent memory leaks',
-    schedule: '*/5 * * * *', // Every 5 minutes
-    timezone: 'America/Los_Angeles',
-    uri: `${UI_SERVER_URL}/api/jobs/cleanup-sessions`,
-    httpMethod: 'POST',
-    retryCount: 1,
-    enabled: true,
-  },
-  {
     name: 'old-task-cleanup',
     description: 'Clean up completed/failed tasks older than 7 days',
     schedule: '0 3 * * *', // Daily at 3 AM

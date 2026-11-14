@@ -171,8 +171,6 @@ Replaces in-process `setInterval` calls:
 | Job | Schedule | Replaces |
 |-----|----------|----------|
 | `intelligence-batch-processor` | Every 5 min | fire-and-forget intelligence calls |
-| `background-task-processor` | Every 1 min | `setInterval` in background-tasks.ts |
-| `session-cleanup` | Every 5 min | `startSessionCleanup()` |
 | `community-insights-aggregation` | Daily 3am | Manual aggregation |
 | `trust-profile-sync` | Every 6 hours | Batch trust updates |
 
@@ -184,9 +182,7 @@ Endpoints for Cloud Scheduler:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `POST /api/jobs/process-background-tasks` | Process pending tasks |
-| `POST /api/jobs/check-scheduled` | Trigger due jobs |
-| `POST /api/jobs/cleanup-sessions` | Clean orphaned sessions |
+| `POST /api/jobs/cleanup-old-tasks` | Delete old finished tasks |
 | `POST /api/jobs/aggregate-community-insights` | Daily aggregation |
 
 ---
@@ -241,9 +237,9 @@ setInterval(() => {
 
 **After (Cloud Scheduler):**
 ```yaml
-- name: background-task-processor
-  schedule: "* * * * *"
-  uri: https://ui-server/api/jobs/process-background-tasks
+- name: old-task-cleanup
+  schedule: "0 3 * * *"
+  uri: https://ui-server/api/jobs/cleanup-old-tasks
 ```
 
 ---

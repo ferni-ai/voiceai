@@ -3,7 +3,9 @@
  * from that person's own stores and stores it (person-model-store.ts). Call-sheet plan, M2.
  *
  * Nobody unless this server has PERSON_MODEL=on, then only people whose own cohort flag is
- * on, re-checked per person. Bounded per run and per person, stalest sheet first. The hash
+ * on, re-checked per person. A MINOR_CARE-held person (held now, a held call's window still
+ * stored, or a hold that can't be read) is skipped before their memory is read; a sheet
+ * already stored stays as it is. Bounded per run and per person, stalest sheet first. The hash
  * of inputs, version and UTC day makes a same-day rerun write nothing. No LLM yet (M4).
  * The answer and the log carry 8-character id prefixes and counts only.
  *
@@ -22,6 +24,10 @@ import {
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import type { StoredPersonModel } from '../../services/stores/person-model-store.js';
 import { TimeoutError, withTimeout } from '../../utils/async.js';
+import {
+  backgroundHeld,
+  type BackgroundHoldReader,
+} from '../../utils/minor-care-background-hold.js';
 import { countReason, logJobRun } from '../../utils/job-run.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
@@ -32,7 +38,8 @@ const MAX_PER_RUN = 25;
 const PER_USER_TIMEOUT_MS = 20_000;
 const RUN_BUDGET_MS = 120_000;
 
-type Gate = 'flag-off' | 'not-member' | 'no-record' | 'no-calls' | 'forgotten-unreadable';
+type Gate =
+  'flag-off' | 'not-member' | 'minor-care' | 'no-record' | 'no-calls' | 'forgotten-unreadable';
 type SkipReason = Gate | 'unchanged' | 'erased' | 'deferred' | 'timeout' | 'error';
 
 interface UserOutcome {
@@ -62,6 +69,8 @@ export interface PersonModelJobDeps {
   read: (uid: string) => Promise<StoredPersonModel | null>;
   load: (uid: string) => Promise<PersonModelInputs | null>;
   save: (uid: string, model: PersonModel, inputHash: string) => Promise<Saved>;
+  /** MINOR_CARE: a test's hold reader; unset, the one the route loads (fails closed). */
+  held?: BackgroundHoldReader;
 }
 
 interface PersonModelJobOptions {
@@ -106,6 +115,7 @@ async function buildOne(
 ): Promise<Omit<UserOutcome, 'user'>> {
   const skip = (reason: SkipReason) => ({ outcome: 'skipped' as const, reason });
   if (!isMemberIdentity(uid)) return skip('not-member');
+  if (await backgroundHeld(uid, deps.held)) return skip('minor-care');
   if ((await deps.ownFlag(uid)) !== 'on') return skip('flag-off');
   const inputs = await deps.load(uid);
   if (!inputs) return skip('no-record');
@@ -194,6 +204,8 @@ export async function handlePersonModel(
 ): Promise<void> {
   const dryRun = ['true', '1'].includes(new URL(req.url ?? '/', 'http://x').searchParams.get('dryRun') ?? ''); // prettier-ignore
   try {
+    // MINOR_CARE: registers the hold reader the job asks first; without it everyone is skipped
+    await import('../../services/outreach/minor-care-background-read.js');
     const result = await runPersonModelJob(deps ?? defaultDeps, { dryRun });
     const { candidates, built, written, skipped } = result;
     logJobRun(log, 'PERSON_MODEL', { considered: candidates, eligible: built, sent: written, skippedBy: skipped }, { dryRun }); // prettier-ignore

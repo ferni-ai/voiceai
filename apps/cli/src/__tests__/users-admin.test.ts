@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleUsers, handleWaitlist, type UsersAdminDeps } from '../commands/users/users-admin.js';
 
 function deps(answer = ''): UsersAdminDeps & {
@@ -15,11 +17,16 @@ function deps(answer = ''): UsersAdminDeps & {
 
 const evil = 'a@b.com; touch /tmp/pwned';
 
+// A handler sets process.exitCode when its script fails: put it back after each test.
+const startingExitCode = process.exitCode;
+afterEach(() => {
+  process.exitCode = startingExitCode;
+});
+
 describe('no shell: user input stays one argv element', () => {
   it.each([
     ['users show', () => handleUsers, ['show', evil], 'check-my-data.ts', `--email=${evil}`],
     ['users grant', () => handleUsers, ['grant', evil], 'grant-access.ts', `--email=${evil}`],
-    ['users dump', () => handleUsers, ['dump', evil], 'full-user-dump.ts', `--user=${evil}`],
   ])('%s', async (_name, handler, args, script, flag) => {
     const d = deps();
     await handler()(args, d);
@@ -49,6 +56,52 @@ describe('no shell: user input stays one argv element', () => {
     }
     for (const [cmd] of d.run.mock.calls) expect(cmd).toBe('npx');
   });
+});
+
+describe('users dump', () => {
+  // Fictional ids of the same shape as a real uid.
+  const LISTED = 'testOwnerUid0000000000000000';
+  const UNLISTED = 'testOtherUid0000000000000000';
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('passes the target as FERNI_USER_ID, never as an argument', async () => {
+    const d = deps();
+    await handleUsers(['dump', evil], d);
+    expect(d.run).toHaveBeenCalledTimes(1);
+    const [cmd, args, opts] = d.run.mock.calls[0]!;
+    expect([cmd, args]).toEqual(['npx', ['tsx', '/repo/scripts/full-user-dump.ts']]);
+    expect(opts).toMatchObject({ stdio: 'inherit', env: { FERNI_USER_ID: evil } });
+  });
+
+  it('an unlisted target is refused by the real script, which prints only the refusal', async () => {
+    vi.stubEnv('MEMORY_EVAL_ALLOWED_UIDS', LISTED);
+    let result = { status: null as number | null, output: '' };
+    const d: UsersAdminDeps = {
+      scriptsDir: join(import.meta.dirname, '../../../../scripts'),
+      ask: async () => '',
+      // Runs the command for real, capturing output; any Firestore call would go to a
+      // closed local port, never a real project.
+      run: (_cmd, args, opts) => {
+        const res = spawnSync(process.execPath, ['--import', 'tsx', ...args.slice(1)], {
+          env: {
+            ...opts.env,
+            FIRESTORE_EMULATOR_HOST: '127.0.0.1:9',
+            GOOGLE_APPLICATION_CREDENTIALS: '/nonexistent',
+          },
+          encoding: 'utf8',
+          timeout: 30_000,
+          killSignal: 'SIGKILL',
+        });
+        result = { status: res.status, output: `${res.stdout}${res.stderr}` };
+        return { status: res.status };
+      },
+    };
+    await handleUsers(['dump', UNLISTED], d);
+    expect(result.status).toBe(1);
+    expect(process.exitCode).toBe(1); // the refusal is the command's exit code too
+    expect(result.output.trim()).toBe('uid not in allowlist');
+    expect(result.output).not.toContain(UNLISTED);
+  }, 30_000);
 });
 
 describe.each([
@@ -111,5 +164,32 @@ describe('users undo-dnc', () => {
       ],
       { stdio: 'inherit' }
     );
+  });
+});
+
+describe("a script's exit code is the command's", () => {
+  it.each([
+    ['users dump', () => handleUsers, ['dump', 'u1'], 'full-user-dump.ts'],
+    ['users list', () => handleUsers, ['list'], 'list-all-users.ts'],
+    ['waitlist stats', () => handleWaitlist, ['stats'], 'waitlist-admin.ts'],
+  ])('%s exits with the status of a script that refuses', async (_name, handler, args, script) => {
+    const d = deps();
+    d.run.mockReturnValue({ status: 3 });
+    await handler()(args, d);
+    expect(d.run.mock.calls[0]?.[1]?.[1]).toBe(`/repo/scripts/${script}`);
+    expect(process.exitCode).toBe(3);
+  });
+
+  it('exits 1 when a signal killed the script', async () => {
+    const d = deps();
+    d.run.mockReturnValue({ status: null });
+    await handleUsers(['find-rich'], d);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('leaves the exit code alone when the script succeeds', async () => {
+    const d = deps();
+    await handleUsers(['find-rich'], d);
+    expect(process.exitCode).toBe(startingExitCode);
   });
 });

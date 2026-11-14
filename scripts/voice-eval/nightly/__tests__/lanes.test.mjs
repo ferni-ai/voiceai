@@ -1,7 +1,7 @@
 // The lane files and capabilities.json must agree: every lane line's capability lists its
 // scenario (else the scorecard never sees the run), every listed scenario is run by some lane
 // (else it reports "no run" every night), and every scenario and seed file exists.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -19,8 +19,22 @@ const lines = ['a', 'b'].flatMap((l) =>
 );
 
 describe('nightly lanes', () => {
-  it('run the 10-21 set plus asked-once: 17 + 32 calls', () => {
-    expect(lines).toHaveLength(49);
+  it('run the 10-21 set plus asked-once and the five teammates: 17 + 37 calls', () => {
+    expect(lines).toHaveLength(54);
+  });
+
+  it('call every teammate-* scenario once, as a partner, tagged teammate (#3752)', () => {
+    const onDisk = readdirSync(SCENARIOS)
+      .filter((f) => /^teammate-.*\.txt$/.test(f))
+      .map((f) => f.slice(0, -4));
+    expect(onDisk.length).toBeGreaterThanOrEqual(5);
+    for (const sc of onDisk) {
+      expect(readFileSync(join(SCENARIOS, `${sc}.txt`), 'utf8')).toMatch(/^#@persona \S+/m);
+      const mine = lines.filter(([, s]) => s === sc);
+      expect(mine.map(([env, , , , cap]) => [env, cap])).toEqual([
+        ['EVAL_TIER=partner', 'teammate'],
+      ]);
+    }
   });
 
   it.each(lines.map(([env, sc, label, uid, cap]) => [sc, label, cap, env, uid]))(

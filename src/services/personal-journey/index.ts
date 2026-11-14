@@ -23,7 +23,6 @@ export type {
   // Orchestrator types
   JourneyMoment,
   JourneyMomentType,
-  JourneySnapshot,
   LifeChapter,
   // Chapter types
   LifeChapters,
@@ -52,7 +51,6 @@ export {
   acknowledgeMilestone,
   clearRhythmCache,
   getMilestoneMessage,
-  getRhythm,
   getRhythmForPersistence,
   getRhythmGreetingContext,
   getRhythmStats,
@@ -111,7 +109,6 @@ export {
   getJourneyGreetingContext,
   // 🌟 Metrics for monitoring
   getJourneyMetrics,
-  getJourneySnapshot,
   initializeDeliveryHistory,
   prioritizeMoments,
   recordDelivery,

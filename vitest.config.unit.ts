@@ -51,8 +51,10 @@ export default defineConfig({
       '**/e2e/**',
       // No name-based Firestore exclusion: '*firebase*' and '*firestore*' also matched
       // mocked unit tests and the firebase-admin guard, which then never ran in CI.
-      // Tests that need the emulator are named *.emulator.test.ts and skip without
-      // FIRESTORE_EMULATOR_HOST.
+      // Tests that need the emulator are named *.emulator.test.ts and run in
+      // vitest.config.emulator.ts (data-layer-e2e.yml, Emulator Tests). Here they
+      // only skipped, and the skips read as green.
+      '**/*.emulator.test.{ts,mjs}',
       // Exclude src/tests directory (mixed unit/integration), except voice-eval (above)
       'src/tests/*.test.ts',
       'src/tests/!(voice-eval)/**',

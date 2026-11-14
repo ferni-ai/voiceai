@@ -8,7 +8,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   checkDynamicTriggers,
-  buildTriggerContext,
   calculateProbabilityBoost,
   shouldSkipDueToNeverWhen,
   recordTriggerCheck,
@@ -349,59 +348,6 @@ describe('Dynamic Trigger Utils', () => {
       expect(result).not.toBeNull();
       // The distress trigger should have higher confidence
       expect(result?.confidence).toBeGreaterThan(0.5);
-    });
-  });
-
-  // ============================================================================
-  // buildTriggerContext
-  // ============================================================================
-  describe('buildTriggerContext', () => {
-    it('should build context with all available data', () => {
-      const userText = 'Hello, how are you?';
-      const analysis = {
-        emotion: { primary: 'happy', intensity: 0.7 },
-        topics: { primary: 'greeting' },
-      };
-      const userData = {
-        turnCount: 5,
-        recentTopics: ['work', 'health'],
-        relationshipStage: 'friend',
-        lastSessionDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      };
-
-      const context = buildTriggerContext(userText, analysis, userData);
-
-      expect(context.userText).toBe(userText);
-      expect(context.emotion).toBe('happy');
-      expect(context.emotionIntensity).toBe(0.7);
-      expect(context.turnCount).toBe(5);
-      expect(context.relationshipStage).toBe('friend');
-      expect(context.recentTopics).toEqual(['work', 'health']);
-      expect(context.daysSinceLastSession).toBe(3);
-      expect(context.currentHour).toBeDefined();
-      expect(typeof context.isLateNight).toBe('boolean');
-    });
-
-    it('should handle missing analysis data', () => {
-      const context = buildTriggerContext('Hello', undefined, undefined);
-
-      expect(context.userText).toBe('Hello');
-      expect(context.emotion).toBeUndefined();
-      expect(context.emotionIntensity).toBeUndefined();
-      expect(context.turnCount).toBe(0);
-      expect(context.relationshipStage).toBe('stranger');
-    });
-
-    it('should merge additional context', () => {
-      const context = buildTriggerContext('Hello', undefined, undefined, {
-        isLateNight: true,
-        currentHour: 3,
-        userData: { custom: 'data' },
-      });
-
-      expect(context.isLateNight).toBe(true);
-      expect(context.currentHour).toBe(3);
-      expect(context.userData).toEqual({ custom: 'data' });
     });
   });
 

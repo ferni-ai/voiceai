@@ -13,8 +13,13 @@
  */
 import type { AgentId } from '../../services/agent-bus.js';
 import type { HandoffResult } from './executor.js';
-import { type HandoffSessionState, setCurrentAgent as setSessionAgent } from './session-state.js';
-import { setCurrentAgent } from './state.js';
+import {
+  getSessionState,
+  hasSessionState,
+  type HandoffSessionState,
+  setCurrentAgent as setSessionAgent,
+} from './session-state.js';
+import { getCurrentAgent, isSameAgent, setCurrentAgent, takeBackHandoff } from './state.js';
 
 export interface UnconfirmedHandoff {
   sessionState: HandoffSessionState | null;
@@ -38,4 +43,20 @@ export function handoffNotConfirmed(h: UnconfirmedHandoff): HandoffResult {
     greetingSpoken: false,
     instructionsUpdated: false,
   };
+}
+
+/**
+ * A handoff was reported failed after the tool had been told it worked
+ * (multi-agent/llm-handoff.ts). The tool returned success, so the executor put nothing
+ * back: this names `onCall`, the persona the orchestrator has on the call, as current again
+ * and takes the handoff back out of the history, so the next ask for the same teammate
+ * isn't refused as "Already with" them. Does nothing when `target` is the one on the call
+ * (the swap went through and a later step failed), or when the tools no longer name
+ * `target` (someone else came on since).
+ */
+export function handoffUndone(sessionId: string, onCall: string, target: string): void {
+  if (isSameAgent(onCall, target) || !isSameAgent(getCurrentAgent(), target)) return;
+  if (hasSessionState(sessionId)) setSessionAgent(getSessionState(sessionId), onCall as AgentId);
+  setCurrentAgent(onCall as AgentId);
+  takeBackHandoff(target as AgentId);
 }

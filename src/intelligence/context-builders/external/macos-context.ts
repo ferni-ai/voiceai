@@ -83,12 +83,6 @@ export interface MacOSContextPayload {
   timestamp?: number;
 }
 
-export interface MacOSContextMessage {
-  type: 'macos_context';
-  payload: MacOSContextPayload;
-  timestamp: number;
-}
-
 // MARK: - Context Building
 
 /**
@@ -212,32 +206,13 @@ ${parts.join('\n')}
 `.trim();
 }
 
-/**
- * Parse a data channel message and extract macOS context if present
- */
-export function parseMacOSContextMessage(data: Buffer | string): MacOSContextPayload | null {
-  try {
-    const message = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
-
-    if (message.type === 'macos_context' && message.payload) {
-      log.debug({ payloadKeys: Object.keys(message.payload) }, 'Received macOS context');
-      return message.payload as MacOSContextPayload;
-    }
-
-    return null;
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to parse macOS context message');
-    return null;
-  }
-}
-
 // MARK: - Context Insights
 
 /**
  * Generate proactive insights based on macOS context
  * These can be used by the agent to offer unprompted help
  */
-export function generateContextInsights(ctx: MacOSContextPayload): string[] {
+function generateContextInsights(ctx: MacOSContextPayload): string[] {
   const insights: string[] = [];
 
   // Meeting prep opportunity
@@ -283,7 +258,7 @@ export function generateContextInsights(ctx: MacOSContextPayload): string[] {
 
 // MARK: - Work Context Classification
 
-export type WorkContextType =
+type WorkContextType =
   | 'communication'
   | 'email'
   | 'coding'
@@ -300,7 +275,7 @@ export type WorkContextType =
 /**
  * Classify the work context from the active app
  */
-export function classifyWorkContext(activeApp: string): WorkContextType {
+function classifyWorkContext(activeApp: string): WorkContextType {
   const app = activeApp.toLowerCase();
 
   if (app.includes('slack') || app.includes('discord') || app.includes('teams')) {
@@ -351,23 +326,6 @@ export function classifyWorkContext(activeApp: string): WorkContextType {
   return 'other';
 }
 
-/**
- * Get suggested persona based on work context
- */
-export function getSuggestedPersona(workContext: WorkContextType): string | null {
-  switch (workContext) {
-    case 'communication':
-    case 'email':
-      return 'alex'; // Communication specialist
-    case 'spreadsheet':
-      return 'peter'; // Research/analysis
-    case 'presentation':
-      return 'jordan'; // Planning/organization
-    default:
-      return null; // No specific suggestion
-  }
-}
-
 // MARK: - Context Builder Registration
 
 /**
@@ -378,7 +336,7 @@ export function getSuggestedPersona(workContext: WorkContextType): string | null
  * Reads macOS context from userData.macOS (stored by data-channel-handler)
  * and generates context injections for the LLM.
  */
-export const macOSContextBuilder: ContextBuilder = {
+const macOSContextBuilder: ContextBuilder = {
   name: 'macos-context',
   description: 'Injects macOS desktop context (calendar, focus mode, active app) from menubar app',
   priority: 30, // Early priority - informs other builders about context

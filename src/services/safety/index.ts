@@ -28,7 +28,8 @@ export {
   detectCrisis as scoreCrisisLanguage,
   IN_DANGER_NOW,
 } from './crisis-guard.js';
-export { EMERGENCY_FOR_THEM } from './crisis-guard-replies.js';
+export { EMERGENCY_FOR_THEM, TALK_TO_988_ES } from './crisis-guard-replies.js';
+export { SELF_HARM_911_LINE } from './crisis-script-lines.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
@@ -40,6 +41,8 @@ export { offersCrisisLine } from './crisis-line-speech.js';
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
+// A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
+export { checkin } from './crisis-timeout-checkin.js';
 export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
@@ -91,6 +94,8 @@ export {
 } from './abuse-disclosure-turn.js';
 export { abuseOnlyRead } from './abuse-disclosure.js';
 export { abuseHoldNow, abuseHoldsOutreach, trackAbuseRead } from './abuse-outreach-hold.js';
+// Whether a stored todo is a safety item by its kind, so outreach never drops or closes it (safety-item.ts).
+export { isSafetyItem } from './safety-item.js';
 
 // ============================================================================
 // ESCALATION PATHWAYS
