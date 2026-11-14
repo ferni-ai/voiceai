@@ -7,8 +7,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Director, type Line } from '../director-notes.js';
 import { isSafetyLine } from '../phrase-loops.js';
 import { formatTold, keptTold, toldThisCall } from '../told-this-call.js';
-import { isCareTalk, isSafetyTalk, reachesHelp } from '../../safety/crisis-guard.js';
+import { reachesHelp } from '../../safety/crisis-guard.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import { isCareTalk, isSafetyTalk } from '../../../services/safety/safety-talk.js';
 
 const user = (text: string): Line => ({ speaker: 'user', text });
 const ferni = (text: string): Line => ({ speaker: 'ferni', text });
