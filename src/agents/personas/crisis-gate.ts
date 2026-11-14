@@ -85,10 +85,10 @@ import {
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
-import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
+import { holdUntilCleared } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
@@ -299,8 +299,8 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
-  return { decision, escalation, reask };
+  const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
+  return { decision, escalation: checkin.escalation(verdictRead, checkinTurn, escalate), reask };
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -309,66 +309,6 @@ export function textReply(text: string): ReadableStream<Chunk> {
     start(controller) {
       controller.enqueue(text);
       controller.close();
-    },
-  });
-}
-
-/**
- * Hold the model's reply until the escalation settles. No escalation: release
- * what was held and pass the rest through. An escalation: drop the reply and
- * stream the replacement instead.
- */
-export function holdUntilCleared(
-  reply: ReadableStream<Chunk>,
-  escalation: Promise<CrisisGateDecision | null>,
-  replacement: (decision: CrisisGateDecision) => Promise<ReadableStream<Chunk> | null>
-): ReadableStream<Chunk> {
-  const reader = reply.getReader();
-  let dropped = false;
-  return new ReadableStream<Chunk>({
-    async start(controller) {
-      const held: Chunk[] = [];
-      let firstHeldAt = 0;
-      let released = false;
-      let pumpError: unknown;
-      const pump = (async () => {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done || dropped) return;
-          if (released) controller.enqueue(value);
-          else if (held.push(value) === 1) firstHeldAt = Date.now();
-        }
-      })().catch((error: unknown) => {
-        pumpError = error;
-      });
-
-      try {
-        const decision = await escalation.catch(() => null);
-        if (!decision) {
-          released = true;
-          // How long a ready reply waited on the classifier: the latency this gate adds.
-          log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
-          for (const chunk of held) controller.enqueue(chunk);
-          held.length = 0;
-          await pump;
-          if (pumpError !== undefined) throw pumpError;
-          controller.close();
-          return;
-        }
-        dropped = true;
-        await reader.cancel().catch(() => undefined);
-        const next = await replacement(decision);
-        if (next)
-          for await (const chunk of next as unknown as AsyncIterable<Chunk>)
-            controller.enqueue(chunk);
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-    async cancel(reason) {
-      dropped = true;
-      await reader.cancel(reason).catch(() => undefined);
     },
   });
 }
