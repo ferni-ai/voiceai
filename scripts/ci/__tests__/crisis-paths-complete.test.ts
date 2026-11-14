@@ -73,6 +73,8 @@ const PINNED = [
   'src/agents/personas/phrase-loops-safety.generated.ts', // SAFETY_WORDING never rewritten
   'src/tools/handoff/transfer-aliases.ts', // 911 / 988 transfer detection
   'src/services/superhuman/emotional-first-aid.ts', // passive-SI detection, 988
+  // the advice outcome pattern lists moved out of integration.ts (crisis lane) unchanged (#3840)
+  'src/services/superhuman/semantic-intelligence/advice-outcome-patterns.ts',
 ];
 /**
  * Importers of a crisis module that aren't crisis logic, each with a one-line reason. Every

@@ -43,6 +43,7 @@ async function turnAfterAge(c: Case): Promise<void> {
     sessionId,
     personaId: 'ferni',
     turnNumber: 4,
+    crisisTurn: false,
     userText: "I'm going to tell my mom I want to live with my dad, I've decided.",
     topic: 'family',
     textEmotion: 'sad',

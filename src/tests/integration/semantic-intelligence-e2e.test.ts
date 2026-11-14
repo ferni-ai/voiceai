@@ -33,6 +33,7 @@ describe('Semantic Intelligence E2E', () => {
         sessionId: TEST_SESSION_ID,
         personaId: 'ferni',
         turnNumber: 5,
+        crisisTurn: false,
         userText: 'I talked to my mom today and felt really happy about our conversation',
         topic: 'family',
         topics: ['family', 'relationships'],
