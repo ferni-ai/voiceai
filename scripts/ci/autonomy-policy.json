@@ -203,6 +203,7 @@
         "src/services/superhuman/emotional-first-aid.ts",
         "src/services/superhuman/inside-joke-memory.ts",
         "src/services/superhuman/relationship-network.ts",
+        "src/services/superhuman/semantic-intelligence/advice-outcome-patterns.ts",
         "src/services/superhuman/semantic-intelligence/integration.ts",
         "src/services/superhuman/user-corrections.ts",
         "src/services/superhuman/wins.ts",
