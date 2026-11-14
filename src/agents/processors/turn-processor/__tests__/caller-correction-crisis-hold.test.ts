@@ -11,10 +11,18 @@
  * (getGeminiClient), the correction store (userCorrections.autoRecord), FRIEND_REPAIR's
  * Firestore store, the dispute writer, and the routers that pick a bypass return. The turn's
  * crisis read is wrapped only to make it fail or hang. All lines invented.
+ *
+ * The model guard, in every row: llm-utils answers as a failed call does, embeddings answer
+ * locally, the model SDKs' client constructors and the auth library's client are counted and
+ * refused, and fetch is counted and refused. A row that builds a
+ * real model client or reaches the network fails, by name, with the stack that did it. After the
+ * last row the file waits for detached generations (up to 10 s), then counts. The detached
+ * dynamic-content generation is switched off for the whole file (S0 shows it): which turns would
+ * reach it depends on a clock-seeded roll, so with it on the file's path changes per process.
  */
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Risk = 'none' | 'crisis' | 'imminent';
 const h = vi.hoisted(() => ({
@@ -44,6 +52,39 @@ const h = vi.hoisted(() => ({
   routed: [] as string[],
   writes: [] as Array<[string, ...unknown[]]>,
 }));
+const spy = vi.hoisted(() => ({
+  /**
+   * The guard: real model clients built and network calls attempted since the last row's check,
+   * each with the row it landed in and the stack that made it (printed only on failure).
+   */
+  realCalls: 0,
+  realSdk: [] as string[],
+  realLog: [] as string[],
+  /** Rows' real calls, file-wide, for the after-all check. */
+  realTotal: 0,
+}));
+/** One guard hit: counted, with where it landed and who made it. */
+const guardHit = vi.hoisted(() => (what: string) => {
+  const limit = Error.stackTraceLimit;
+  Error.stackTraceLimit = 40; // deep enough to show the caller past the SDK and our own frames
+  const stack = (new Error().stack ?? '').split('\n').slice(2, 14).join('\n');
+  Error.stackTraceLimit = limit;
+  spy.realCalls++;
+  spy.realSdk.push(what);
+  spy.realLog.push(
+    `${what} during "${expect.getState().currentTestName ?? '(between rows)'}"\n${stack}`
+  );
+});
+/** A model SDK's client constructor: counted and refused, so a path left unstubbed fails its row. */
+const noModelClient = vi.hoisted(
+  () => (sdk: string) =>
+    class {
+      constructor() {
+        guardHit(sdk);
+        throw new Error(`no model client in this test (${sdk})`);
+      }
+    }
+);
 
 vi.mock('../../../../config/gemini-config.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -184,8 +225,46 @@ vi.mock('../turn-crisis.js', async (orig) => {
     },
   };
 });
+// Every row: llm-utils answers as a FAILED real call does (callLLM and callLLMForJSON give null,
+// the two caller factories '' and the warm-up false). An explicit factory, no import of the real
+// module: an export not named here fails loudly.
+vi.mock('../../../../services/llm-utils.js', () => {
+  const api = {
+    callLLM: async () => null,
+    callLLMForJSON: async () => null,
+    createEmotionLLMCaller: () => async () => '',
+    createSummarizationLLMCaller: () => async () => '',
+  };
+  return { ...api, warmVertexClient: async () => false, default: api };
+});
+// The model SDKs' clients: any path that still builds one is counted and refused (the guard).
+vi.mock('@google-cloud/vertexai', async (orig) => ({
+  ...(await orig<object>()),
+  VertexAI: noModelClient('vertexai'),
+}));
+vi.mock('@google/genai', async (orig) => ({
+  ...(await orig<object>()),
+  GoogleGenAI: noModelClient('genai'),
+}));
+vi.mock('openai', async (orig) => ({
+  ...(await orig<object>()),
+  default: noModelClient('openai'),
+  OpenAI: noModelClient('openai'),
+}));
+// The auth library's client, as the embeddings path builds it for a Vertex token.
+vi.mock('google-auth-library', async (orig) => ({
+  ...(await orig<object>()),
+  GoogleAuth: noModelClient('google-auth'),
+}));
 
 import { createMockServices } from '../../__tests__/test-utils.js';
+import {
+  expectFileClean,
+  expectRealEmbeddingRefused,
+  expectRealLlmUtilsRefused,
+  expectRowClean,
+  expectSameContentStats,
+} from '../../__tests__/model-guard.js';
 
 const { processTurn } = await import('../process-turn.js');
 const { crisisReadTurn } = await import('../../../voice-agent/crisis-turn-memory.js');
@@ -196,6 +275,10 @@ const { resetCallRiskSnapshots } =
   await import('../../../../services/safety/crisis-lone-imminent.js');
 const { resetClassifierBlocked } =
   await import('../../../../services/safety/crisis-classifier-blocked.js');
+const { LocalEmbeddings, setEmbeddingProvider } =
+  await import('../../../../memory/vectors/embeddings.js');
+/** Bound once at load, before the last row's module reset: the after-all check reads the rows' copy. */
+const contentStats = await import('../../../../services/llm/llm-dynamic-content.js');
 
 type Ctx = Parameters<typeof processTurn>[0];
 type Result = Awaited<ReturnType<typeof processTurn>>;
@@ -294,7 +377,44 @@ beforeEach(() => {
   vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
   vi.stubEnv('CRISIS_GUARD_MODE', 'live');
 });
-afterEach(() => vi.unstubAllEnvs());
+
+/** The network guard, in every row: a call counts as a real call and fails. */
+function guardNetwork(): void {
+  vi.stubGlobal('fetch', async () => {
+    guardHit('fetch');
+    throw new Error('no network in this test');
+  });
+}
+beforeEach(guardNetwork);
+
+/**
+ * Embeddings answer locally in every row, whatever is configured: with a project set and Vertex
+ * on, the provider is Vertex (embeddings.ts:594-605) and every token builds an auth client
+ * (:577-579). With nothing configured the provider is already local (:615-616).
+ */
+beforeEach(() => setEmbeddingProvider(new LocalEmbeddings()));
+
+// Every row runs with the detached generation off (the switch read per call,
+// llm-dynamic-content.ts:451): set on process.env, which vi.unstubAllEnvs() leaves alone.
+const generationSwitch = process.env.LLM_DYNAMIC_CONTENT_ENABLED;
+beforeAll(() => {
+  process.env.LLM_DYNAMIC_CONTENT_ENABLED = 'false';
+});
+afterAll(() => {
+  if (generationSwitch === undefined) delete process.env.LLM_DYNAMIC_CONTENT_ENABLED;
+  else process.env.LLM_DYNAMIC_CONTENT_ENABLED = generationSwitch;
+});
+
+/** No row may build a real model client or reach the network (the guard's counter, not log text). */
+afterEach(() => {
+  vi.unstubAllEnvs();
+  expectRowClean(spy);
+});
+
+/** After the last row: waits up to 10 s for detached generations, then counts the file's hits. */
+afterAll(async () => {
+  await expectFileClean(spy, contentStats);
+}, 15_000);
 
 describe('an invented 10-turn call', () => {
   async function call(risk: Risk): Promise<boolean[]> {
@@ -733,4 +853,41 @@ describe('two-segment turn (known gap)', () => {
     expect([crisisReadTurn(one.crisis), crisisReadTurn(two.crisis)]).toEqual([false, true]);
     expect(h.writes.map((w) => w.slice(0, 3))).toEqual([['autoRecord', 'uid-invented', first]]);
   });
+});
+
+/**
+ * The guard's own rows, last in the file (the last resets the module registry). G0 checks the
+ * binding the after-all check reads; S0 that the generation switch holds. The other two each
+ * build through a real production path with the guard's mocks in place: the build is counted and
+ * refused, and the call fails as it does with no client. Their own refused builds are expected,
+ * so each clears its counts at the end; the after-row check covers the rest.
+ */
+describe('the model guard', () => {
+  it('G0 the content module the rows load is the one the after-all check reads', async () => {
+    // Production imports it through the re-export (question-patterns/engine.ts:13).
+    const viaReExport = await import('../../../../services/llm-dynamic-content.js');
+    expectSameContentStats(viaReExport, contentStats);
+  });
+
+  it('S0 the generation switch holds: a fallback request starts no generation', () => {
+    const before = contentStats.getContentMetrics().templateFallbacks;
+    contentStats.getContentWithFallback({
+      contentType: 'acknowledgment',
+      userMessage: 'an invented line for the switch row',
+    });
+    expect(contentStats.getContentMetrics().templateFallbacks - before).toBe(1);
+    expect(contentStats.getContentCacheStats().pendingGenerations).toBe(0);
+  });
+
+  // The real llm-utils, Vertex on and an invented OpenAI key (model-guard.ts).
+  it('a real llm-utils call: the Vertex and OpenAI builds are counted and refused, and it answers null', () =>
+    expectRealLlmUtilsRefused(spy, () =>
+      vi.importActual<typeof import('../../../../services/llm-utils.js')>(
+        '../../../../services/llm-utils.js'
+      )
+    ));
+
+  // A fresh embeddings module (the registry is reset), project and Vertex on (model-guard.ts).
+  it('a real Vertex embedding: the auth client build is counted and refused, and the embed rejects', () =>
+    expectRealEmbeddingRefused(spy, () => import('../../../../memory/vectors/embeddings.js')));
 });
