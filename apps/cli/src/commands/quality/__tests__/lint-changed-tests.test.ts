@@ -350,8 +350,8 @@ describe('the entry, run in a repository of its own', () => {
     return run.stdout.trim();
   };
   /** The entry's exit code and what it printed, measured from the commit made in beforeEach. */
-  const gate = () => {
-    const env = { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', QUALITY_BASE: base };
+  const gate = (extra: Record<string, string> = {}) => {
+    const env = { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', QUALITY_BASE: base, ...extra }; // prettier-ignore
     const run = spawnSync(join(ROOT, 'node_modules/.bin/tsx'), [ENTRY], { cwd: repo, env, encoding: 'utf8' }); // prettier-ignore
     return { code: run.status, said: `${run.stdout}${run.stderr}` };
   };
@@ -398,6 +398,25 @@ describe('the entry, run in a repository of its own', () => {
     expect(gate()).toEqual({
       code: 0,
       said: expect.stringContaining('Changed test files: 0 linted'),
+    });
+  }, 60_000);
+
+  // The rows above start the entry with no CI variable. The workflow sets one, and the typed rows
+  // that set it call the gate's parts: a main() that left early only in CI would pass them all.
+  it('exits 1 with CI set, as the workflow runs it, when a commit after the base adds an error', () => {
+    write(repo, { [OLD]: 'var kept = 1;\nvar more = 2;\n' });
+    git('commit', '--quiet', '-am', 'head');
+    expect(gate({ CI: 'true' })).toEqual({
+      code: 1,
+      said: expect.stringContaining(`${OLD}: errors grew 1 → 2`),
+    });
+  }, 60_000);
+
+  it('exits 0 with CI set when an edit keeps the old error', () => {
+    write(repo, { [OLD]: 'var kept = 1;\n// a comment\n' });
+    expect(gate({ CI: 'true' })).toEqual({
+      code: 0,
+      said: expect.stringContaining('Changed test files: 1 linted'),
     });
   }, 60_000);
 });
