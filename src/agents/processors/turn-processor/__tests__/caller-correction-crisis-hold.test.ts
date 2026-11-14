@@ -238,20 +238,24 @@ vi.mock('../../../../services/llm-utils.js', () => {
   return { ...api, warmVertexClient: async () => false, default: api };
 });
 // The model SDKs' clients: any path that still builds one is counted and refused (the guard).
+// outbound-guard: own-refusing-mock (rest kept; new VertexAI counts and throws)
 vi.mock('@google-cloud/vertexai', async (orig) => ({
   ...(await orig<object>()),
   VertexAI: noModelClient('vertexai'),
 }));
+// outbound-guard: own-refusing-mock (rest kept; new GoogleGenAI counts and throws)
 vi.mock('@google/genai', async (orig) => ({
   ...(await orig<object>()),
   GoogleGenAI: noModelClient('genai'),
 }));
+// outbound-guard: own-refusing-mock (rest kept; new OpenAI or new default counts and throws)
 vi.mock('openai', async (orig) => ({
   ...(await orig<object>()),
   default: noModelClient('openai'),
   OpenAI: noModelClient('openai'),
 }));
 // The auth library's client, as the embeddings path builds it for a Vertex token.
+// outbound-guard: own-refusing-mock (rest kept; new GoogleAuth counts and throws)
 vi.mock('google-auth-library', async (orig) => ({
   ...(await orig<object>()),
   GoogleAuth: noModelClient('google-auth'),

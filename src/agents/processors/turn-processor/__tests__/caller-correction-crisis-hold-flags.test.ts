@@ -186,20 +186,24 @@ vi.mock('../../../../tools/semantic-router/integration/index.js', async (orig) =
   isIntelligentRouterInitialized: () => false,
 }));
 // The model SDKs' clients: any path that still builds one is counted and refused (the guard).
+// outbound-guard: own-refusing-mock (rest kept; new VertexAI counts and throws)
 vi.mock('@google-cloud/vertexai', async (orig) => ({
   ...(await orig<object>()),
   VertexAI: noModelClient('vertexai'),
 }));
+// outbound-guard: own-refusing-mock (rest kept; new GoogleGenAI counts and throws)
 vi.mock('@google/genai', async (orig) => ({
   ...(await orig<object>()),
   GoogleGenAI: noModelClient('genai'),
 }));
+// outbound-guard: own-refusing-mock (rest kept; new OpenAI or new default counts and throws)
 vi.mock('openai', async (orig) => ({
   ...(await orig<object>()),
   default: noModelClient('openai'),
   OpenAI: noModelClient('openai'),
 }));
 // The auth library's client, as the embeddings path builds it for a Vertex token.
+// outbound-guard: own-refusing-mock (rest kept; new GoogleAuth counts and throws)
 vi.mock('google-auth-library', async (orig) => ({
   ...(await orig<object>()),
   GoogleAuth: noModelClient('google-auth'),
@@ -279,6 +283,11 @@ const drain = (ms = 150) =>
     setTimeout(resolve, ms);
   });
 
+/** Read first in every turn row; production reads it per call (llm-dynamic-content.ts:451). */
+function expectGenerationOn(): void {
+  expect(process.env.LLM_DYNAMIC_CONTENT_ENABLED, 'generation switch').toBe('true');
+}
+
 /** One turn after Ferni's line, with an earlier caller line so the adjudicator can judge it. */
 function start(
   line: string,
@@ -286,6 +295,7 @@ function start(
   previous = REPLY,
   history = [EARLIER, line]
 ): Promise<Result> {
+  expectGenerationOn();
   h.risk = risk;
   const userData = { turnCount: 3, recentTranscripts: history, lastAgentResponse: previous };
   return processTurn({
@@ -339,6 +349,10 @@ beforeEach(() => {
   );
   vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
   vi.stubEnv('CRISIS_GUARD_MODE', 'live');
+  // The generation stays on in every row, whatever the shared test setup writes (#3882 sets
+  // 'false' for every file; unset, as on main, it is on): 28 turn rows assert zero model-helper
+  // calls, and a zero only means something while the generation could have run.
+  vi.stubEnv('LLM_DYNAMIC_CONTENT_ENABLED', 'true');
 });
 
 /**
@@ -568,6 +582,7 @@ describe('CRISIS_CLASSIFIER_ONLY_CHECKIN=live without the switch (held)', () => 
 
 /** The real turn hook; the handler stand-in builds the turn context as turn-handler.ts:555-564. */
 async function hookTurn(line: string, risk: Risk): Promise<Result | undefined> {
+  expectGenerationOn();
   h.risk = risk;
   let result: Result | undefined;
   const callData = { turnCount: 3, recentTranscripts: [EARLIER, line], lastAgentResponse: REPLY };
