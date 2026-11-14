@@ -16,8 +16,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
+import { humanizationConcernLevel } from '../processors/task-help-distress.js';
 import {
-  getConcernLevelFromDistress,
   CONCERN_MIN_DISTRESS,
   EMOTION_TO_CONCERN_TYPE,
   MISMATCH_MIN_CONFIDENCE,
@@ -187,7 +187,7 @@ export async function dispatchEmotionEvents(
     // ========================================================================
     // 1. CONCERN DETECTION - "Better Than Human" distress awareness
     // ========================================================================
-    const concernLevel = getConcernLevelFromDistress(distressLevel);
+    const concernLevel = humanizationConcernLevel(distressLevel, emotionalState.distressCapped);
 
     if (concernLevel !== 'none') {
       const concernType = getConcernType(emotionalState);
@@ -739,7 +739,7 @@ export async function dispatchEmotionWithExpression(
 
   // If distressed, use concern-based expression
   if (distressLevel > CONCERN_MIN_DISTRESS) {
-    const concernLevel = getConcernLevelFromDistress(distressLevel);
+    const concernLevel = humanizationConcernLevel(distressLevel, emotionalState.distressCapped);
     await dispatchExpressionUpdate(
       { concernLevel, intensity: distressLevel, duration: 400 },
       sendDataMessage

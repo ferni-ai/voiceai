@@ -35,7 +35,8 @@ export interface EmotionalStateWithMismatch extends EmotionalState {
  */
 export function buildEmotionalState(
   ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
+  analysisResult: TurnAnalysisResult,
+  distressCapped = false
 ): EmotionalStateWithMismatch {
   const { userData, userText } = ctx;
   const { analysis } = analysisResult;
@@ -76,5 +77,6 @@ export function buildEmotionalState(
     responseGuidance: combinedGuidance,
     transitionPhrase: transitionPhrase || undefined,
     mismatch: mismatch.hasMismatch ? mismatch : undefined,
+    ...(distressCapped ? { distressCapped } : {}),
   };
 }
