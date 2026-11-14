@@ -50,22 +50,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 type Risk = 'none' | 'crisis' | 'imminent';
 type Answer = 'checkin' | 'escalate' | 'fails' | 'hangs';
 type Reader = 'classifier' | 'who' | 'afterCheck' | 'grounded' | 'adjudicator' | 'easing' | 'other';
-const h = vi.hoisted(() => ({
-  risk: 'none' as 'none' | 'crisis' | 'imminent',
-  /** What the adjudicator's model call answers. */
-  adjudicator: 'escalate' as 'checkin' | 'escalate' | 'fails' | 'hangs',
-  /** The adjudicator's answer waits for this when set. */
-  adjudicatorGate: null as null | Promise<void>,
+const h = vi.hoisted(() => {
   /** Model calls per reader, told apart by request shape (maxOutputTokens, then the prompt). */
-  calls: {} as Record<string, number>,
-  fetches: 0,
-  writes: [] as Array<[string, ...unknown[]]>,
-  /** parseAdjudicatorReply: a checkin needs high confidence and no caller risk quoted. */
-  replies: {
-    checkin: '{"decision":"checkin","confidence":"high","caller_risk":""}',
-    escalate: '{"decision":"escalate","confidence":"high","caller_risk":""}',
-  },
-}));
+  const calls: Record<string, number> = {};
+  return {
+    risk: 'none' as 'none' | 'crisis' | 'imminent',
+    /** What the adjudicator's model call answers. */
+    adjudicator: 'escalate' as 'checkin' | 'escalate' | 'fails' | 'hangs',
+    /** The adjudicator's answer waits for this when set. */
+    adjudicatorGate: null as null | Promise<void>,
+    calls,
+    fetches: 0,
+    writes: [] as Array<[string, ...unknown[]]>,
+    /** parseAdjudicatorReply: a checkin needs high confidence and no caller risk quoted. */
+    replies: {
+      checkin: '{"decision":"checkin","confidence":"high","caller_risk":""}',
+      escalate: '{"decision":"escalate","confidence":"high","caller_risk":""}',
+    },
+  };
+});
 
 /** 60: the classifier's generate, also used by the who read and the after-check read (by prompt). */
 function readerOf(req: { config?: { maxOutputTokens?: number; systemInstruction?: unknown } }) {
