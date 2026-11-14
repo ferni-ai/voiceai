@@ -177,47 +177,6 @@ describe('Phase 2: BM25 Hybrid Search', () => {
 });
 
 // ============================================================================
-// PHASE 3: GRAPH EXPANSION TESTS
-// ============================================================================
-
-describe('Phase 3: Graph Expansion', () => {
-  describe('Relational Graph Expander', () => {
-    it('should initialize without Spanner dependency', async () => {
-      const { RelationalGraphExpander } =
-        await import('../../memory/spanner-graph/graph-expansion.js');
-
-      const expander = new RelationalGraphExpander();
-      expect(expander.getType()).toBe('relational');
-    });
-
-    it('should provide GQL upgrade path', async () => {
-      const { GQLGraphExpander } = await import('../../memory/spanner-graph/graph-expansion.js');
-
-      const expander = new GQLGraphExpander();
-      expect(expander.getType()).toBe('gql');
-      expect(expander.isAvailable()).toBe(false); // Not implemented yet
-    });
-
-    it('should select best available expander', async () => {
-      const { getGraphExpander } = await import('../../memory/spanner-graph/graph-expansion.js');
-
-      const expander = getGraphExpander();
-      // Should fall back to relational since GQL isn't available
-      expect(expander.getType()).toBe('relational');
-    });
-  });
-
-  describe('Path Finder', () => {
-    it('should initialize path finder', async () => {
-      const { getPathFinder } = await import('../../memory/spanner-graph/path-finder.js');
-
-      const finder = getPathFinder();
-      expect(finder).toBeDefined();
-    });
-  });
-});
-
-// ============================================================================
 // PHASE 4: CROSS-ENCODER RERANKING TESTS
 // ============================================================================
 

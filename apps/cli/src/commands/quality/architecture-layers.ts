@@ -114,7 +114,7 @@ export const LAYER_MAP: Record<string, string> = {
   // L1: adapters for storage, models, speech engines and telemetry.
   ...under('src', 'L1', ['agents/model-provider', 'diagnostics']),
   ...under('src/speech', 'L1', ['tts-gateway', 'providers', 'sonata', 'tts']),
-  ...under('src/memory', 'L1', ['storage', 'vectors', 'firestore-vector-store', 'spanner-graph']),
+  ...under('src/memory', 'L1', ['storage', 'vectors', 'firestore-vector-store']),
   ...under('src/services', 'L1', ['redis', 'cache', 'persistence', 'stores', 'data', 'data-layer', 'llm', 'tts', 'pubsub']),
   ...under('src/services', 'L1', ['external-apis', 'apple', 'linkedin', 'observability', 'analytics', 'performance']),
   ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'email-transport']),

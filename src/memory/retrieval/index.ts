@@ -614,7 +614,6 @@ export {
   searchAnchors,
   searchSessionSummaries,
   searchFacts,
-  indexMemory,
   indexMemoriesBatch,
   removeIndexedMemory,
   toSemanticMatches,

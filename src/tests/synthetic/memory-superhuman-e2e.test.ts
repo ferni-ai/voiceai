@@ -4,7 +4,6 @@
  * Tests for:
  * 1. Semantic memory search integration
  * 2. Recall attribution parsing
- * 3. Graph context queries
  *
  * @module tests/synthetic/memory-superhuman-e2e
  */
@@ -58,73 +57,6 @@ vi.mock('../../memory/embeddings.js', () => ({
   embedBatch: vi.fn().mockResolvedValue([new Array(768).fill(0.1)]),
 }));
 
-// Mock Spanner
-vi.mock('../../memory/spanner-graph/client.js', () => ({
-  isSpannerReady: vi.fn().mockReturnValue(true),
-  getMemoryThreadsByUser: vi.fn().mockResolvedValue([
-    {
-      threadId: 'thread_career',
-      theme: 'Career Concerns',
-      rollingSummary: 'Multiple conversations about job security and career growth',
-      sessionCount: 5,
-      confidence: 0.8,
-      lastUpdated: new Date(),
-    },
-  ]),
-  getMemoryAnchorsByUser: vi.fn().mockResolvedValue([
-    {
-      anchorId: 'anchor_commitment1',
-      anchorType: 'commitment',
-      payload: {
-        summary: 'User committed to updating their resume this week',
-        context: 'Career planning discussion',
-      },
-      significanceScore: 0.9,
-      recallCount: 2,
-      createdAt: new Date(),
-    },
-  ]),
-  markAnchorRecalled: vi.fn(),
-}));
-
-// Mock Spanner graph queries
-vi.mock('../../memory/spanner-graph/queries.js', () => ({
-  getEntityContext: vi.fn().mockResolvedValue({
-    entity: {
-      entityId: 'entity_sarah',
-      name: 'Sarah',
-      entityType: 'person',
-      facts: [
-        { key: 'relationship', value: 'colleague' },
-        { key: 'workplace', value: 'Tech Company' },
-      ],
-    },
-    relatedEntities: [
-      {
-        entity: { name: 'Mike', entityType: 'person' },
-        relationshipType: 'works_with',
-        strength: 0.7,
-      },
-    ],
-    summary:
-      '**Sarah** (person)\n\nWhat you know:\n- relationship: colleague\n- workplace: Tech Company',
-  }),
-  getRelationshipContext: vi.fn().mockResolvedValue({
-    entity1: { name: 'Sarah' },
-    entity2: { name: 'Mike' },
-    directRelationship: { relationship: { relationshipType: 'works_with' } },
-    sharedConnections: [],
-    summary: '**Sarah** and **Mike** are connected: works_with',
-  }),
-  searchFactsAboutEntity: vi.fn().mockResolvedValue({
-    entity: { name: 'Sarah' },
-    facts: [{ key: 'job_title', value: 'Senior Engineer', domain: 'work' }],
-    summary: "**Sarah's work situation:**\n- job_title: Senior Engineer",
-  }),
-  getEntityWithFacts: vi.fn().mockResolvedValue(null),
-  getEntityRelationships: vi.fn().mockResolvedValue([]),
-}));
-
 // ============================================================================
 // TEST IMPORTS (after mocks)
 // ============================================================================
@@ -147,11 +79,6 @@ import {
   getInjectedMemories,
   type InjectedMemory,
 } from '../../memory/retrieval/hybrid-continuity-retrieval.js';
-
-import {
-  detectEntityMentions,
-  detectRelationshipMentions,
-} from '../../intelligence/context-builders/memory/graph-context.js';
 
 // ============================================================================
 // SEMANTIC SEARCH TESTS
@@ -300,49 +227,6 @@ describe('Recall Attribution Parser', () => {
     expect(aggregated.totalAttributed).toBe(4);
     expect(aggregated.overallRate).toBe(0.5);
     expect(aggregated.explicitRate).toBeCloseTo(0.375, 2);
-  });
-});
-
-// ============================================================================
-// GRAPH CONTEXT TESTS
-// ============================================================================
-
-describe('Graph Context - Entity Detection', () => {
-  it('should detect entity mentions in user input', () => {
-    const testCases = [
-      { input: 'What do I know about Sarah?', expected: 'Sarah' },
-      { input: 'Tell me about Mike', expected: 'Mike' },
-      { input: 'Who is John?', expected: 'John' },
-      { input: 'How is Lisa doing?', expected: 'Lisa' },
-    ];
-
-    for (const { input, expected } of testCases) {
-      const mentions = detectEntityMentions(input);
-      expect(mentions.length).toBeGreaterThan(0);
-      expect(mentions[0].name.toLowerCase()).toBe(expected.toLowerCase());
-    }
-  });
-
-  it('should detect domain-specific entity queries', () => {
-    const mentions = detectEntityMentions("What's Sarah's work situation?");
-
-    expect(mentions.length).toBeGreaterThan(0);
-    expect(mentions[0].name).toBe('Sarah');
-    expect(mentions[0].domain).toBe('work');
-  });
-
-  it('should detect relationship queries', () => {
-    const testCases = [
-      { input: 'How are Sarah and Mike connected?', entity1: 'Sarah', entity2: 'Mike' },
-      { input: "What's the connection between John and Lisa?", entity1: 'John', entity2: 'Lisa' },
-    ];
-
-    for (const { input, entity1, entity2 } of testCases) {
-      const mentions = detectRelationshipMentions(input);
-      expect(mentions.length).toBeGreaterThan(0);
-      expect(mentions[0].entity1.toLowerCase()).toBe(entity1.toLowerCase());
-      expect(mentions[0].entity2.toLowerCase()).toBe(entity2.toLowerCase());
-    }
   });
 });
 
