@@ -76,8 +76,9 @@ export async function expectFileClean(spy: GuardCounters, stats: ContentStats): 
   }
   expect(left, 'pending count unavailable').toBeTypeOf('number');
   expect(left, `${left} detached generations still pending after 10 s`).toBe(0);
-  const real = guardReport([...spy.realSdk], [...spy.realLog]);
-  expect(spy.realTotal + spy.realCalls, `after the last row: ${real}`).toBe(0);
+  const total = spy.realTotal + spy.realCalls;
+  const since = `since the last row's check: ${guardReport([...spy.realSdk], [...spy.realLog])}`;
+  expect(total, `after the last row: ${total} guard hit(s) in the file; ${since}`).toBe(0);
 }
 
 /**
