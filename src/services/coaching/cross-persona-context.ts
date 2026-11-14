@@ -110,10 +110,7 @@ function shareContext(userId: string, context: Omit<SharedContext, 'sharedAt'>):
     userContext.sharedContexts = userContext.sharedContexts.slice(-20);
   }
 
-  log.info(
-    { userId, topic: context.topic, from: context.sharedBy },
-    '🔗 Context shared across personas'
-  );
+  log.info({ userId, from: context.sharedBy }, '🔗 Context shared across personas');
 }
 
 /**
@@ -177,10 +174,7 @@ function addCrossPersonaItem(
     createdAt: new Date(),
   });
 
-  log.info(
-    { userId, item: item.slice(0, 50), origin: originPersona },
-    '📌 Cross-persona item added'
-  );
+  log.info({ userId, itemLen: item.length, origin: originPersona }, '📌 Cross-persona item added');
 }
 
 // ============================================================================

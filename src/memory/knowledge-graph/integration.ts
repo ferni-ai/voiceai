@@ -81,10 +81,7 @@ export async function integrateContact(
     });
   }
 
-  log.debug(
-    { userId, entityId: entity.id, name: entity.canonicalName },
-    'Integrated contact into knowledge graph'
-  );
+  log.debug({ userId, entityId: entity.id }, 'Integrated contact into knowledge graph');
 
   return entity;
 }
@@ -149,7 +146,7 @@ export async function integrateCommitment(
   }
 
   log.debug(
-    { userId, entityId: entity.id, description: commitment.description.slice(0, 50) },
+    { userId, entityId: entity.id, descriptionLen: commitment.description.length },
     'Integrated commitment into knowledge graph'
   );
 
@@ -254,7 +251,7 @@ export async function processConversationTurn(
           emotionalIntensity: turn.emotionalIntensity,
         });
       } catch (error) {
-        log.warn({ error: String(error), name }, 'Failed to process extracted name');
+        log.warn({ error: String(error) }, 'Failed to process extracted name');
       }
     }
   }

@@ -662,7 +662,6 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
                     diag.session('🔮 Proactive insight: commitments due soon', {
                       userId,
                       dueCount: dueCommitments.length,
-                      commitments: dueCommitments.map((c) => c.description.slice(0, 50)),
                     });
                   }
                 }
@@ -686,7 +685,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
                   const frequentTopics = profile.recentTopics.filter((t) => t.frequency >= 3);
                   if (frequentTopics.length > 0) {
                     diag.debug('Frequent topics identified for conversation continuity', {
-                      topics: frequentTopics.map((t) => t.topic),
+                      topicCount: frequentTopics.length,
                     });
                   }
                 }

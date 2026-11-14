@@ -435,10 +435,7 @@ export class CrossSessionThreader {
       this.promisedFollowUps = this.promisedFollowUps.slice(-20);
     }
 
-    getLogger().info(
-      { type, description: description.slice(0, 50) },
-      'Promised follow-up recorded'
-    );
+    getLogger().info({ type, descriptionLen: description.length }, 'Promised follow-up recorded');
 
     return followUp;
   }
