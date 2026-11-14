@@ -59,17 +59,15 @@ export function voiceEmotionSnapshot(
  * Keep: fastCapture, then the short-term record, as before; resolves to the capture. Hold: the
  * short-term record only, marked session only, with nothing captured from the words; null.
  */
-export function captureTurnMemory(
+export async function captureTurnMemory(
   site: string,
   verdict: Promise<TurnMemoryVerdict>,
   capture: TurnCapture
 ): Promise<FastCaptureResult | null> {
   const { input, personaId, voiceEmotion } = capture;
   const { sessionId, userId, transcript, turnNumber } = input;
-  return (async () => {
-    const kept = await memoryKept(site, sessionId, verdict);
-    const result = kept ? await fastCapture(input) : noCapture();
-    recordTurn(sessionId, userId, result, transcript, turnNumber, personaId, voiceEmotion, !kept);
-    return kept ? result : null;
-  })();
+  const kept = await memoryKept(site, sessionId, verdict);
+  const result = kept ? await fastCapture(input) : noCapture();
+  recordTurn(sessionId, userId, result, transcript, turnNumber, personaId, voiceEmotion, !kept);
+  return kept ? result : null;
 }

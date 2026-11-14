@@ -2644,7 +2644,8 @@ IMPORTANT:
               sessionId: services.sessionId,
               turnNumber,
               transcript: userText,
-              voiceEmotion: result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
+              voiceEmotion:
+                result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
               personaId: persona.id, // For multi-persona data attribution
             },
             personaId: persona.id,

@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const spy = vi.hoisted(() => ({
   captured: [] as string[],
   held: [] as Record<string, unknown>[],
+  /** fireAndForget's failure logs (module SafeFireAndForget): fields and message. */
+  wrapper: [] as unknown[],
 }));
 
 vi.mock('../../../utils/safe-logger.js', async (orig) => {
@@ -24,11 +26,18 @@ vi.mock('../../../utils/safe-logger.js', async (orig) => {
     fatal: quiet,
   };
   hold.child = () => hold;
+  const record = (fields: unknown, msg: unknown) => spy.wrapper.push([fields, msg]);
+  const wrapper: Record<string, unknown> = { ...hold, info: quiet, warn: record, error: record };
+  wrapper.child = () => wrapper;
   const create = base.createLogger as (opts?: unknown) => unknown;
   return {
     ...base,
     createLogger: (opts?: { module?: string }) =>
-      opts?.module === 'TurnMemoryCapture' ? hold : create(opts),
+      opts?.module === 'TurnMemoryCapture'
+        ? hold
+        : opts?.module === 'SafeFireAndForget'
+          ? wrapper
+          : create(opts),
   };
 });
 
@@ -55,6 +64,11 @@ vi.mock('../fast-capture.js', async (orig) => {
 
 import { captureTurnMemory, type TurnCapture } from '../turn-memory-capture.js';
 import {
+  fireAndForget,
+  getFireAndForgetMetrics,
+  resetFireAndForgetMetrics,
+} from '../../../utils/safe-fire-and-forget.js';
+import {
   cleanupSession,
   getEmotionalTrajectory,
   getRecentTurns,
@@ -73,9 +87,15 @@ function capture(transcript: string, turnNumber: number): TurnCapture {
   };
 }
 
+/** A capture whose input is missing, so the function throws at its first line; every other field
+ * carries a marker that must never reach a log. */
+const MARKER = 'Zephyrine-orchard';
+const BAD = { personaId: MARKER, voiceEmotion: { ...VOICE, primary: MARKER } } as never;
+
 afterEach(() => {
   spy.captured.length = 0;
   spy.held.length = 0;
+  spy.wrapper.length = 0;
   cleanupSession(SESSION);
 });
 
@@ -111,6 +131,44 @@ describe('captureTurnMemory', () => {
     ]);
     // Words-free: the site, the reason and the session.
     expect(spy.held).toEqual([{ site: 'test-site', reason: 'crisis', sessionId: SESSION }]);
+  });
+
+  // captureTurnMemory is an async function: a bad argument throws inside it, so the caller gets a
+  // rejected promise, never a synchronous throw, and nothing is captured or recorded.
+  it('a bad argument rejects the returned promise: no synchronous throw, nothing captured or recorded', async () => {
+    let returned: Promise<unknown> | undefined;
+    expect(() => {
+      returned = captureTurnMemory('test-site', Promise.resolve('keep'), BAD);
+    }).not.toThrow();
+    await expect(returned).rejects.toBeInstanceOf(TypeError);
+    expect(spy.captured).toEqual([]);
+    expect(getRecentTurns(SESSION)).toEqual([]);
+    expect(spy.held).toEqual([]);
+  });
+
+  // Pins the turn handler's handling of a failed capture (no row had it). It stays green whether
+  // captureTurnMemory throws synchronously or rejects, so it proves nothing about the async change.
+  it("the turn handler's wrapper takes that rejection: one failure, logged without the call's words, nothing unhandled", async () => {
+    // As turn-handler.ts:2640-2667 calls it: awaited inside fireAndForget's async callback.
+    resetFireAndForgetMetrics();
+    fireAndForget(async () => {
+      await captureTurnMemory('turn-handler', Promise.resolve('keep'), BAD);
+    }, 'dynamic-memory-capture');
+    await vi.waitFor(() => {
+      const row = getFireAndForgetMetrics().byContext.find(
+        (c) => c.context === 'dynamic-memory-capture'
+      );
+      expect([row?.calls, row?.successes, row?.failures]).toEqual([1, 0, 1]);
+    });
+    // One failure log: the engine's TypeError about the missing input, nothing from the call.
+    expect(spy.wrapper).toHaveLength(1);
+    expect(spy.wrapper[0]).toMatchObject([
+      { context: 'dynamic-memory-capture', error: expect.stringContaining('input') },
+      'Fire-and-forget "dynamic-memory-capture" failed',
+    ]);
+    expect(JSON.stringify(spy.wrapper)).not.toContain(MARKER);
+    expect(spy.captured).toEqual([]);
+    expect(getRecentTurns(SESSION)).toEqual([]);
   });
 
   it('promotion readers skip a session-only turn: promotable turns, emotions and voice', async () => {

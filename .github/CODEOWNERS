@@ -205,6 +205,7 @@
 /src/intelligence/world-model/temporal/validate.ts @sethdford
 /src/memory/dynamic/deep-extraction-worker.ts @sethdford
 /src/memory/dynamic/fast-capture.ts @sethdford
+/src/memory/dynamic/turn-memory-capture.ts @sethdford
 /src/memory/knowledge-graph/services/knowledge-capture.ts @sethdford
 /src/personality/bridge/personality-bridge.ts @sethdford
 /src/personality/infrastructure/firestore-personality-repository.ts @sethdford

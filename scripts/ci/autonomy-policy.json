@@ -168,6 +168,7 @@
         "src/intelligence/world-model/temporal/validate.ts",
         "src/memory/dynamic/deep-extraction-worker.ts",
         "src/memory/dynamic/fast-capture.ts",
+        "src/memory/dynamic/turn-memory-capture.ts",
         "src/memory/knowledge-graph/services/knowledge-capture.ts",
         "src/personality/bridge/personality-bridge.ts",
         "src/personality/infrastructure/firestore-personality-repository.ts",

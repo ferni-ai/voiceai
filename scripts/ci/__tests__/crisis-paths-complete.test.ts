@@ -73,6 +73,7 @@ const PINNED = [
   'src/agents/personas/phrase-loops-safety.generated.ts', // SAFETY_WORDING never rewritten
   'src/tools/handoff/transfer-aliases.ts', // 911 / 988 transfer detection
   'src/services/superhuman/emotional-first-aid.ts', // passive-SI detection, 988
+  'src/memory/dynamic/turn-memory-capture.ts', // keeps a crisis turn's memory to the call
 ];
 /**
  * Importers of a crisis module that aren't crisis logic, each with a one-line reason. Every
