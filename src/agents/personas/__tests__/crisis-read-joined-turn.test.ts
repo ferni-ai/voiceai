@@ -408,7 +408,7 @@ describe('CRISIS_READ_JOINED_TURN gate rows (flags on)', () => {
 });
 
 /**
- * Never lower than off (crisis-all-flags-never-lower.test.ts points here): with a classifier
+ * Never lower than off (crisis-reply-never-lower.test.ts reads the reply itself): with a classifier
  * that has no fragment false alarm, every way a held line can settle notes call risk and a
  * decision at least as strong as off, and a line that gets no reply is read as often.
  * Model-free: the classifier is a stub.
