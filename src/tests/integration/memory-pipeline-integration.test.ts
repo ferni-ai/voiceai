@@ -36,27 +36,44 @@ const mockFirestoreGetByUser = vi.fn().mockResolvedValue([]);
 const mockFirestoreDelete = vi.fn().mockResolvedValue(undefined);
 const mockFirestoreHealth = vi.fn().mockResolvedValue({ healthy: true, initialized: true });
 
-vi.mock('../../utils/firestore-utils.js', () => ({
-  getFirestoreDb: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        set: mockFirestoreStore,
-        get: vi.fn(() => Promise.resolve({ exists: false, data: () => undefined })),
-        delete: mockFirestoreDelete,
+vi.mock('../../utils/firestore-utils.js', () => {
+  // Documents have subcollections (memories live at users/{uid}/memories/{id}).
+  const fakeCollection = (): unknown => ({
+    doc: vi.fn(() => ({
+      set: mockFirestoreStore,
+      get: vi.fn(() => Promise.resolve({ exists: false, data: () => undefined })),
+      delete: mockFirestoreDelete,
+      collection: vi.fn(fakeCollection),
+    })),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
+  });
+  return {
+    getFirestoreDb: vi.fn(() => ({
+      collection: vi.fn(fakeCollection),
+      collectionGroup: vi.fn(() => ({
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
       })),
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
     })),
-    collectionGroup: vi.fn(() => ({
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
-    })),
-  })),
-}));
+  };
+});
+
+// The unified store's Firestore adapter opens its client through sharedFirestore
+// now, not getFirestoreDb: hand it the same fake database.
+vi.mock('../../utils/shared-firestore.js', async () => {
+  const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+  return {
+    sharedFirestore: () => getFirestoreDb(),
+    isSharedFirestore: () => true,
+    resetSharedFirestore: () => undefined,
+    resolveSharedSettings: (settings: unknown) => settings,
+  };
+});
 
 // Mock Spanner
 const mockSpannerReady = vi.fn().mockReturnValue(true);
@@ -173,7 +190,7 @@ describe('Memory Pipeline Integration', () => {
 
       expect(memory.id).toBeDefined();
       expect(memory.emotionalWeight).toBe(0.85);
-      
+
       // High-importance memories should trigger immediate Spanner sync
       // The sync is async, so we just verify the memory was stored
       expect(memory.peopleMentioned).toContain('Sarah');
@@ -194,7 +211,7 @@ describe('Memory Pipeline Integration', () => {
       });
 
       await store.initialize();
-      
+
       // Store should still work even if Spanner is down
       const memory = await store.store(createTestMemory());
       expect(memory.id).toBeDefined();
@@ -209,7 +226,8 @@ describe('Memory Pipeline Integration', () => {
 
   describe('SpannerAdapter Operations', () => {
     it('should store entities to Spanner', async () => {
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
+      const { SpannerAdapter } =
+        await import('../../memory/unified-store/adapters/spanner-adapter.js');
       const adapter = new SpannerAdapter();
       await adapter.initialize();
 
@@ -237,7 +255,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should store facts to Spanner', async () => {
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
+      const { SpannerAdapter } =
+        await import('../../memory/unified-store/adapters/spanner-adapter.js');
       const adapter = new SpannerAdapter();
       await adapter.initialize();
 
@@ -263,7 +282,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should store relationships to Spanner', async () => {
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
+      const { SpannerAdapter } =
+        await import('../../memory/unified-store/adapters/spanner-adapter.js');
       const adapter = new SpannerAdapter();
       await adapter.initialize();
 
@@ -290,7 +310,8 @@ describe('Memory Pipeline Integration', () => {
     it('should skip writes when Spanner unavailable', async () => {
       mockSpannerReady.mockReturnValue(false);
 
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
+      const { SpannerAdapter } =
+        await import('../../memory/unified-store/adapters/spanner-adapter.js');
       const adapter = new SpannerAdapter();
       await adapter.initialize();
 
@@ -325,9 +346,8 @@ describe('Memory Pipeline Integration', () => {
 
   describe('Memory Intelligence Learning Persistence', () => {
     it('should save profile to Firestore', async () => {
-      const { saveProfile, loadProfile } = await import(
-        '../../intelligence/memory-intelligence/learning/persistence.js'
-      );
+      const { saveProfile, loadProfile } =
+        await import('../../intelligence/memory-intelligence/learning/persistence.js');
 
       const profile = {
         userId: TEST_USER_ID,
@@ -351,9 +371,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should save surfacing records to Firestore', async () => {
-      const { saveRecords, loadRecords } = await import(
-        '../../intelligence/memory-intelligence/learning/persistence.js'
-      );
+      const { saveRecords, loadRecords } =
+        await import('../../intelligence/memory-intelligence/learning/persistence.js');
 
       const records = [
         {
@@ -382,9 +401,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should get stats for a user', async () => {
-      const { getStats } = await import(
-        '../../intelligence/memory-intelligence/learning/persistence.js'
-      );
+      const { getStats } =
+        await import('../../intelligence/memory-intelligence/learning/persistence.js');
 
       const stats = await getStats(TEST_USER_ID);
 
@@ -396,9 +414,8 @@ describe('Memory Pipeline Integration', () => {
 
   describe('Real-Time Sync for High-Importance Memories', () => {
     it('should identify high-importance memories for immediate sync', async () => {
-      const { shouldSyncImmediately } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
+      const { shouldSyncImmediately } =
+        await import('../../memory/dynamic/firestore-spanner-sync.js');
 
       // High emotional weight
       expect(shouldSyncImmediately({ emotionalWeight: 0.8 })).toBe(true);
@@ -415,9 +432,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should sync high-importance memory immediately', async () => {
-      const { syncMemoryImmediately } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
+      const { syncMemoryImmediately } =
+        await import('../../memory/dynamic/firestore-spanner-sync.js');
 
       const memory = {
         id: 'test-mem-1',
@@ -438,9 +454,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should queue medium-importance memories for priority sync', async () => {
-      const { queueForPrioritySync, getPrioritySyncQueue, clearPrioritySyncQueue } = await import(
-        '../../memory/dynamic/firestore-spanner-sync.js'
-      );
+      const { queueForPrioritySync, getPrioritySyncQueue, clearPrioritySyncQueue } =
+        await import('../../memory/dynamic/firestore-spanner-sync.js');
 
       clearPrioritySyncQueue();
 
@@ -543,7 +558,8 @@ describe('Memory Pipeline Integration', () => {
       mockSpannerReady.mockReturnValue(true);
       mockUpsertEntity.mockRejectedValueOnce(new Error('Spanner error'));
 
-      const { SpannerAdapter } = await import('../../memory/unified-store/adapters/spanner-adapter.js');
+      const { SpannerAdapter } =
+        await import('../../memory/unified-store/adapters/spanner-adapter.js');
       const adapter = new SpannerAdapter();
       await adapter.initialize();
 
