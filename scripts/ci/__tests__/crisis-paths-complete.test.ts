@@ -139,6 +139,10 @@ describe('every file the crisis derivation finds is covered', () => {
     expect(derived.importers.length).toBeGreaterThan(120);
     // By name, including the SELF_HARM spelling.
     expect(derived.named).toContain('src/config/flags/THIRD_PARTY_SELF_HARM.ts');
+    // The turn's caller-correction hold, by its name (it imports no crisis root).
+    expect(derived.named).toContain(
+      'src/agents/processors/turn-processor/caller-correction-crisis-hold.ts'
+    );
     // 988 helpers by export, and the reviewed ones.
     expect(derived.helpers).toContain('src/tools/domains/life-coaching-shared/safety-guards.ts');
     expect(derived.helpers).toContain('src/services/safety/crisis-line-speech.ts');
