@@ -139,6 +139,7 @@ const SCRIPT_WORDING = [
   './crisis-who-guidance.js',
   './crisis-patterns.js',
   './emergency-number.js',
+  './safety-talk.js',
   './crisis-classifier-verdict.js',
   'explicit_crisis_language',
   'plan_or_means',
