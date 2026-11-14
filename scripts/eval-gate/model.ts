@@ -135,7 +135,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     crisis_classifier: crisisClassifier,
     tool_retrieval: toolRetrieval,
   };
-  const suites = selectSuites(process.env.EVAL_GATE_SUITES, Object.keys(runners));
+  // persona.ts runs the persona suite; the workflow skips this step when it is the only one.
+  const spec = process.env.EVAL_GATE_SUITES?.split(',').filter((s) => s.trim() !== 'persona');
+  if (spec?.length === 0) throw new Error('EVAL_GATE_SUITES names no model suite');
+  const suites = selectSuites(spec?.join(','), Object.keys(runners));
   const parts = await Promise.all(suites.map((s) => runners[s]()));
   const current = Object.assign({}, ...parts) as Record<string, number>;
   if (args.includes('--json')) console.log(JSON.stringify(current, null, 2));
