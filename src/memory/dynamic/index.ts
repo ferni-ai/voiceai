@@ -69,6 +69,9 @@ export {
   type SessionSTM,
 } from './stm-buffer.js';
 
+// A capture of a caller turn: a crisis turn stays in this call only (turn-memory-capture.ts)
+export { captureTurnMemory, voiceEmotionSnapshot } from './turn-memory-capture.js';
+
 // L1 → L2: STM promotion (session end → Firestore)
 export {
   promoteSessionToFirestore,
