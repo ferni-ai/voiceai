@@ -29,8 +29,10 @@ const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'lint-coverage-ba
  * Production trees linted by this ratchet (`pnpm lint` covers only part of src/). scripts/ joined
  * on 2026-11-11: ESLint ignored it outright, so lint on it could never fail.
  */
-const ROOTS = ['src', 'apps/cli/src/commands/deploy', 'scripts'];
+export const ROOTS = ['src', 'apps/cli/src/commands/deploy', 'scripts'];
 const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|(^|\/)(tests|e2e)\/)/;
+/** A test-shaped path. This ratchet skips it; lint-changed-tests.ts lints it when a change touches it. */
+export const isTestFile = (file: string): boolean => TEST.test(file);
 
 export interface EslintFile {
   filePath: string;
@@ -51,6 +53,10 @@ export function ignoredFiles(results: EslintFile[]): string[] {
     .filter((file) => file.messages.some((m) => m.message.startsWith(IGNORED)))
     .map((file) => file.filePath);
 }
+
+/** The problem line for a file ESLint skipped (see ignoredFiles). */
+export const skippedByEslint = (file: string): string =>
+  `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`;
 
 export function regressions(base: ErrorBaseline, now: ErrorBaseline): string[] {
   return Object.keys(now)
@@ -100,7 +106,7 @@ function walk(dir: string, out: string[]): string[] {
 }
 
 function productionFiles(): string[] {
-  return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !TEST.test(file));
+  return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !isTestFile(file));
 }
 
 const DEPLOY = 'apps/cli/src/commands/deploy/';
@@ -249,14 +255,7 @@ function main(): void {
     return;
   }
 
-  const problems = [
-    ...ignored.map(
-      (file) =>
-        `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`
-    ),
-    ...regressions(baseline, errors),
-    ...stale,
-  ];
+  const problems = [...ignored.map(skippedByEslint), ...regressions(baseline, errors), ...stale];
   console.log(
     `Lint coverage: ${Object.keys(errors).length} files with ${total} errors (baseline ${Object.values(baseline).reduce((s, n) => s + n, 0)}), ${warnings} warnings (not gated).`
   );
