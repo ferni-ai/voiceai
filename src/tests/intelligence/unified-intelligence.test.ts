@@ -210,6 +210,7 @@ describe('Unified Intelligence System', () => {
           userId: TEST_USER_ID,
           sessionId: TEST_SESSION_ID,
           turnNumber: 3,
+          crisisTurn: false,
           transcript: 'I completed my morning routine today',
           topics: ['routine', 'morning'],
           emotion: 'satisfied',
@@ -223,6 +224,7 @@ describe('Unified Intelligence System', () => {
           userId: TEST_USER_ID,
           sessionId: TEST_SESSION_ID,
           turnNumber: 4,
+          crisisTurn: false,
           transcript: "That's a great insight, thank you!",
           reactionToInsight: 'positive',
         });
@@ -317,6 +319,7 @@ describe('Unified Intelligence System', () => {
         userId: TEST_USER_ID,
         sessionId: TEST_SESSION_ID,
         turnNumber: 1,
+        crisisTurn: false,
         transcript: 'Good morning!',
         emotion: 'neutral',
       });
