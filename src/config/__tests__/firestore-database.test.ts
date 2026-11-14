@@ -11,7 +11,7 @@
  * The name is taken as written. Space around it is part of it: such a name is bound as it is
  * (so prod work is skipped, as before), and it is never dev's.
  */
-import { readdirSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join, relative } from 'path';
 import { describe, expect, it } from 'vitest';
 
@@ -108,20 +108,34 @@ const codeLines = (file: string): string[] =>
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line && !/^(\/\/|\/\*|\*)/.test(line));
+/** Each production file with a code line that matches, and those lines as written. */
+const linesWith = (matches: (line: string) => boolean): Record<string, string[]> =>
+  Object.fromEntries(
+    PRODUCTION.map((file) => [file, codeLines(file).filter(matches)] as const)
+      .filter(([, lines]) => lines.length > 0)
+      .sort()
+  );
 /** Each production file with a code line that matches, and how many such lines it has. */
 const filesWith = (pattern: RegExp): Record<string, number> =>
   Object.fromEntries(
-    PRODUCTION.map((file) => [file, codeLines(file).filter((l) => pattern.test(l)).length] as const)
-      .filter(([, count]) => count > 0)
-      .sort()
+    Object.entries(linesWith((line) => pattern.test(line))).map(([file, lines]) => [
+      file,
+      lines.length,
+    ])
   );
+/** The pin's refusal message, the line that names the env key (a template in the source). */
+const PIN_MESSAGE_LINE =
+  '`"${expected}" (FIRESTORE_DATABASE, FIRESTORE_DB_PIN=refuse; utils/firestore-db-pin.ts).`';
 
 describe('isNonProdDatabase is only for skipping prod work', () => {
   // A new log line that asks it would bring the fail-open back. Each test below closes one
   // way of asking it: by name, through a wrapper, through the skip helper, spelt out, or
-  // handed to something else to compare. Not closed, and left to review: the name kept in a
-  // variable and compared later, the env key built from pieces, and the name set as an
-  // object's field (databaseId: ...) and read back.
+  // through any new line that mentions the database name at all. Not closed, and left to
+  // review: the env key or the helper's name built from pieces, the name read back from
+  // a client or an options object a plain bind line made (its databaseId, on a later line),
+  // a new comparison of a variable that already holds the name in a file whose lines are
+  // written out below, and a walk over the whole environment (Object.entries) that never
+  // names the key.
   it('is named by no production file but its own and config/environment.ts', () => {
     expect(Object.keys(filesWith(/\bisNonProdDatabase\b/))).toEqual([
       'src/config/environment.ts',
@@ -142,11 +156,14 @@ describe('isNonProdDatabase is only for skipping prod work', () => {
   });
 
   // The skip helper answers the same question, so it could carry it into a log line. Each
-  // file below skips prod work with it, once: its import and its one call.
+  // file below skips prod work with it, once: its import and its one call. The graph writer's
+  // gate is deleted with the Spanner graph (#3711, in the merge queue as this is written), so
+  // it is listed for as long as the file is there: this holds whichever of the two merges first.
   it('skipOnNonProdDatabase is used by the publishers, the workers and the graph writer only', () => {
+    const graphGate = 'src/memory/spanner-graph/graph-write-gate.ts';
     expect(filesWith(/\bskipOnNonProdDatabase\b/)).toEqual({
       'src/config/environment.ts': 2,
-      'src/memory/spanner-graph/graph-write-gate.ts': 2,
+      ...(existsSync(join(ROOT, graphGate)) ? { [graphGate]: 2 } : {}),
       'src/services/communication/intelligence-publisher.ts': 2,
       'src/services/pubsub/pubsub-client.ts': 2,
       'src/workers/base-worker.ts': 2,
@@ -170,21 +187,77 @@ describe('isNonProdDatabase is only for skipping prod work', () => {
     });
   });
 
-  // The old question asked with no comparison sign: the name handed to something that compares
-  // it (a helper of one's own, Object.is, a set's has, a switch), or standing first on a line
-  // of a longer expression. Each line below binds a client, names the key in a message or
-  // lists it. A line added here is read by whoever adds it: it must not decide what is logged.
-  it('hands the database name on, or starts a line with it, only where listed', () => {
-    const handed = new RegExp(String.raw`(?:^|[(,[]\s*)(?:[\w.]*[.[]['"]?)?${name}`);
-    expect(filesWith(handed)).toEqual({
-      'src/api/habit-routes.ts': 1,
-      'src/api/review-queue.ts': 1,
+  // Every other way of asking goes through the name itself: a method on it (trim, lower case),
+  // its length, a template literal, a negation, a ternary, a switch, a lookup, a helper of
+  // one's own, a destructured or spread read, the name kept in a variable. So every production
+  // line that mentions the name (the env key, the helper, or prod's name written out) is
+  // accounted for, as a whole line. It is the helper imported under its own name, or a client
+  // bound to the name and nothing else on the line, or it is written out below with why. A new
+  // line of any other shape is red until someone reads it and writes it here: it must not
+  // decide what is logged. A line below that changes is red too.
+  it('mentions the database name only on a plain import or bind line, or on a line written out here', () => {
+    const mention = /\bFIRESTORE_DATABASE\b|\bgetFirestoreDatabase\b|['"`]\(default\)['"`]/;
+    // The name as a client takes it: the helper's answer, or the env read with prod's for unset.
+    const bound = String.raw`(?:getFirestoreDatabase\(\)|process\.env\.FIRESTORE_DATABASE \|\| '\(default\)')`;
+    const option = String.raw`databaseId: (?:[\w?.]+ \|\| )?${bound}`;
+    const plain = [
+      // The helper imported under its own name (no alias, no rename).
+      /^import \{(?![^}]*\bas\b)[^}]*\} from '[^']*\/config\/(?:environment|firestore-database|index)\.js';$/,
+      /^const \{(?![^}]*:)[^}]*\} = await import\('[^']*\/config\/environment\.js'\);$/,
+      // A client bound to the name: the option on a line of its own,
+      new RegExp(`^${option},$`),
+      // a client made on one line,
+      new RegExp(
+        String.raw`^(?:(?:this\.)?\w+ = (?:\w+ \|\| )?)?(?:new Firestore|sharedFirestore)\(\{ (?:\w+: [\w()]+, )?${option} \}\);$`
+      ),
+      // or the name handed to getFirestore.
+      new RegExp(
+        String.raw`^(?:return |\w+ = )(?:getFirestore|getDefaultFirestore)\((?:\w+\(\), )?${bound}\);$`
+      ),
+    ];
+    const other = (line: string): boolean =>
+      mention.test(line) && !plain.some((form) => form.test(line));
+    expect(linesWith(other)).toEqual({
+      // The child's warm-up read: a client bound inline, then one fixed document read.
+      'src/agents/gce/child-firestore-warm.ts': [
+        'await sharedFirestore({ databaseId: getFirestoreDatabase() }).doc(STRICT_WARMUP_DOC).get();',
+      ],
       // The generated list of every env name the code reads.
-      'src/config/env-read-names.generated.ts': 1,
-      'src/intelligence/deep-understanding/persistence.ts': 1,
-      'src/utils/firebase-admin-app.ts': 1,
-      // The pin's refusal message names the key.
-      'src/utils/firestore-db-pin.ts': 1,
+      'src/config/env-read-names.generated.ts': ['FIRESTORE_DATABASE'],
+      // The import from the module, the re-export of the helper, and the config object's entry.
+      'src/config/environment.ts': [
+        "import { getFirestoreDatabase, isNonProdDatabase } from './firestore-database.js';",
+        'export { getFirestoreDatabase };',
+        'getFirestoreDatabase,',
+      ],
+      // The helper and the two questions.
+      'src/config/firestore-database.ts': [
+        'export function getFirestoreDatabase(',
+        "return env.FIRESTORE_DATABASE || '(default)';",
+        "return getFirestoreDatabase(env) !== '(default)';",
+        'return getFirestoreDatabase(env) === DEV_FIRESTORE_DATABASE;',
+      ],
+      // The cost label on a model call (dev or prod): a label, no caller words.
+      'src/config/gemini-billing-labels.ts': [
+        'const db = env.FIRESTORE_DATABASE;',
+        "return nodeEnv === 'staging' || (db && db !== '(default)') ? 'dev' : 'prod';",
+      ],
+      // The helper in the config package's export list.
+      'src/config/index.ts': ['getFirestoreDatabase,'],
+      // The database pin: a client bound to another database than the process names.
+      'src/utils/firestore-db-pin.ts': [
+        PIN_MESSAGE_LINE,
+        'const expected = getFirestoreDatabase(env);',
+        "const actual = databaseOf(this) ?? '(default)';",
+        "if (firestoreDbPinMode(env) === 'off' || actual === getFirestoreDatabase(env)) {",
+        "const database = this.databaseId ?? '(default)';",
+      ],
+      // A client with no database named is prod's.
+      'src/utils/shared-firestore.ts': [
+        "return { databaseId: settings.databaseId ?? '(default)', projectId, ignoreUndefinedProperties };",
+      ],
+      // Prod's name as a constant, for the synthetic test user's guard.
+      'src/utils/synthetic-user.ts': ["export const PROD_FIRESTORE_DATABASE = '(default)';"],
     });
   });
 });
