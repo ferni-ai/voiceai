@@ -70,6 +70,8 @@ const spy = vi.hoisted(() => ({
   realTotal: 0,
   /** Model reads by any reader the stub does not know ('other'), since the last row's check. */
   otherCalls: 0,
+  /** Set as the after-all check starts: a hit from then on is recorded as after the last row. */
+  afterLast: false,
 }));
 /** One guard hit: counted, with where it landed and who made it. */
 const guardHit = vi.hoisted(() => (what: string) => {
@@ -79,9 +81,9 @@ const guardHit = vi.hoisted(() => (what: string) => {
   Error.stackTraceLimit = limit;
   spy.realCalls++;
   spy.realSdk.push(what);
-  spy.realLog.push(
-    `${what} during "${expect.getState().currentTestName ?? '(between rows)'}"\n${stack}`
-  );
+  // The last row's name is still set during the after-all check, so it is not used there.
+  const row = expect.getState().currentTestName ?? '(between rows)';
+  spy.realLog.push(`${what} ${spy.afterLast ? 'after the last row' : `during "${row}"`}\n${stack}`);
 });
 /** A model SDK's client constructor: counted and refused, so a path left unstubbed fails its row. */
 const noModelClient = vi.hoisted(
@@ -264,14 +266,17 @@ vi.mock('../../../services/llm-utils.js', () => {
   return { ...api, warmVertexClient: async () => false, default: api };
 });
 // The model SDKs' clients: any path that still builds one is counted and refused (the guard).
+// outbound-guard: own-refusing-mock (VertexAI: a class that counts and throws; rest kept)
 vi.mock('@google-cloud/vertexai', async (orig) => ({
   ...(await orig<object>()),
   VertexAI: noModelClient('vertexai'),
 }));
+// outbound-guard: own-refusing-mock (GoogleGenAI: a class that counts and throws; rest kept)
 vi.mock('@google/genai', async (orig) => ({
   ...(await orig<object>()),
   GoogleGenAI: noModelClient('genai'),
 }));
+// outbound-guard: own-refusing-mock (OpenAI and default: a class that counts and throws; rest kept)
 vi.mock('openai', async (orig) => ({
   ...(await orig<object>()),
   default: noModelClient('openai'),
@@ -397,6 +402,12 @@ interface LiveOptions {
 
 /** A session wired as agent-setup.ts wires a call: the switch read, the pusher, the handler. */
 function liveSession(opts: LiveOptions = {}) {
+  // Every turn row starts its call here (directly or through drivenTurn), so a stub that is
+  // missing or set in the wrong hook fails each of them here, by name, before the turn runs.
+  expect(
+    process.env.LLM_DYNAMIC_CONTENT_ENABLED,
+    'the generation switch, stubbed on for every row (generationOn)'
+  ).toBe('true');
   const sessionId = nextSessionId();
   const userId = `member-${sessionId}`;
   const session = new EventEmitter();
@@ -531,6 +542,7 @@ function resetSpies(): void {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   guardNetwork(); // a row that resets mid-way (the landing-order row) stays guarded
+  generationOn(); // and keeps the generation its counts were taken with
   // The classifier's per-line verdicts and the call's reads: no row inherits another's.
   resetCrisisClassifierCache();
   resetCrisisAdjudicatorCache();
@@ -547,6 +559,20 @@ function guardNetwork(): void {
   });
 }
 beforeEach(guardNetwork);
+
+/**
+ * The background reply generation on, in every row. The code runs it unless the switch reads
+ * 'false' (llm-dynamic-content.ts:451, per call; the manifest lists 'on', flag-manifest.ts:253),
+ * and every stamped count here was taken with it able to run, so every row keeps that. No row
+ * turns it off. Stubbed, not left to the environment, because a shared test setup may write
+ * 'false' to process.env for every file; a stub wins over that in either order, and
+ * vi.unstubAllEnvs() puts back whatever was there. Applied again in resetSpies, because this
+ * file's own per-row reset unstubs every env. liveSession reads the switch by name first.
+ */
+function generationOn(): void {
+  vi.stubEnv('LLM_DYNAMIC_CONTENT_ENABLED', 'true');
+}
+beforeEach(generationOn);
 
 /**
  * The humanizer's roll, pinned. Unpinned, its id carries the process start time
@@ -605,6 +631,7 @@ afterEach(async () => {
 
 /** Work still pending after the last row (fire-and-forget model calls) is guarded too. */
 afterAll(async () => {
+  spy.afterLast = true;
   try {
     await new Promise((r) => {
       setTimeout(r, 500);
@@ -617,6 +644,7 @@ afterAll(async () => {
   } finally {
     // The pin ends with the file: the next caller gets a fresh humanizer, as production does.
     resetConversationHumanizer('ferni');
+    vi.unstubAllEnvs(); // the generation stub ends with the file too
   }
 });
 
@@ -853,6 +881,7 @@ describe('ordinary turns on the live path: the captures and the call end main ma
     const fires = createDeterministicTrigger(HUMANIZER_PIN, 'ferni');
     const misses = [3, 4, 5, 6, 7].filter((n) => !fires(n, 'guidance_question_suggestion', 0.4));
     expect(misses).toEqual([]);
+    // The suggestion asks llm-utils through the background generation (on: read in liveSession).
     expect(spy.modelCalls.filter((m) => m === 'llm-utils').length).toBe(1);
     // Call end: every write, in order, and human signals' input, as on main.
     expect(await callEnd(call)).toMatchSnapshot();
