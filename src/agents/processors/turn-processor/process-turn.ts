@@ -111,6 +111,7 @@ import {
 } from '../../integrations/better-than-human-integration.js';
 
 import { hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
+import { heldCallerCorrection } from './caller-correction-crisis-hold.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -152,6 +153,8 @@ import { isFtisEnabled } from '../../../config/tool-config.js';
 export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult> {
   const startTime = Date.now();
   const { turnCtx, userText, userData, services, logger } = ctx;
+  // USER CORRECTIONS: every return goes through it (caller-correction-crisis-hold.ts)
+  const withCorrection = heldCallerCorrection(ctx);
 
   // DEV TELEMETRY: Create turn trace for E2E observability
   const isDev = process.env.NODE_ENV === 'development' || process.env.DEV_TELEMETRY === 'true';
@@ -223,28 +226,6 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         // Non-blocking
       }
     }
-  }
-
-  // USER CORRECTIONS: Auto-detect and record when user corrects Ferni (fire-and-forget)
-  if (
-    ownerWriteId(services.userId) &&
-    userText.trim().length > 0 &&
-    (userData.lastAgentResponse?.length ?? 0) > 0
-  ) {
-    const uid = services.userId!;
-    const prevFerni = userData.lastAgentResponse as string;
-    const personaId = ctx.persona?.id;
-    safeFireAndForget(
-      async () => {
-        try {
-          const { recordCallerCorrection } = await import('./caller-correction.js');
-          await recordCallerCorrection(uid, userText, prevFerni, personaId, services.sessionId);
-        } catch {
-          // Non-blocking
-        }
-      },
-      { context: 'turn-processor:autoRecordCorrection' }
-    );
   }
 
   const debugTiming = process.env.DEBUG_TURN_TIMING === 'true';
@@ -753,7 +734,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         resultChars: (ftisResult.toolResult.output ?? ftisResult.toolResult.speakableResponse ?? '').length,
       });
 
-      return {
+      return withCorrection({
         analysis: analysisResult,
         context: {
           injections: [],
@@ -788,7 +769,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           shouldOverrideLLM: false,
         },
         semanticRouting: ftisSemanticRouting,
-      };
+      });
     }
 
     if (ftisResult.classification && ftisResult.classification.confidence >= 0.5) {
@@ -816,7 +797,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         reason: shortCircuitResult.reason,
         checkTimeMs: shortCircuitResult.checkTimeMs,
       });
-      return shortCircuitResult.result;
+      return withCorrection(shortCircuitResult.result);
     }
 
     if (process.env.DEBUG_ROUTING === 'true') {
@@ -1492,7 +1473,7 @@ If they're just conversing, respond naturally without a tool call.`,
     );
   }
 
-  return {
+  return withCorrection({
     analysis: analysisResult,
     context: {
       injections: filteredInjections,
@@ -1518,5 +1499,5 @@ If they're just conversing, respond naturally without a tool call.`,
           memoriesSurfacedThisSession: ctx.memoriesSurfacedThisSession || [],
         }
       : undefined,
-  };
+  });
 }
