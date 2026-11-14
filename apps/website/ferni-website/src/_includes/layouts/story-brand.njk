@@ -70,7 +70,7 @@
   
   {# ====== ADDITIONAL SEO ====== #}
   <link rel="canonical" href="https://ferni.ai{{ page.url }}">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="{% if noindex or homeNext %}noindex, nofollow{% else %}index, follow{% endif %}">
   <meta name="author" content="Ferni">
   
   {# ====== JSON-LD STRUCTURED DATA ====== #}

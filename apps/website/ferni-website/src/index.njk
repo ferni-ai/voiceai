@@ -2,8 +2,16 @@
 layout: layouts/story-brand.njk
 title: Ferni - A Friend Who Actually Listens
 description: A friend you can call any hour, with a small team of specialists who listen, remember what matters to you, and help you grow.
+# Two pages from this template: / and, with homeNext, the calmer /home-next/ preview
+# (docs/plans/2026-10-31-design-elevation.md): eight sections, "Meet Ferni", and a
+# Hear Ferni button. The preview is noindex and left out of the sitemap.
+homeVariants: [false, true]
+pagination:
+  data: homeVariants
+  size: 1
+  alias: homeNext
+permalink: "{% if homeNext %}/home-next/{% else %}/{% endif %}"
 ---
-
 {# ========== SKIP TO CONTENT (Accessibility) ========== #}
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -63,7 +71,7 @@ description: A friend you can call any hour, with a small team of specialists wh
 
 {# ========== HERO ========== #}
 <main id="main-content">
-<section class="section hero">
+<section class="section hero"{% if homeNext %} data-hero-copy="fixed"{% endif %}>
   {# Animated Background #}
   <div class="hero__bg">
     <div class="hero__bg-gradient"></div>
@@ -123,7 +131,7 @@ description: A friend you can call any hour, with a small team of specialists wh
         </svg>
       </div>
       
-      <p class="hero__tagline">Better than human.</p>
+      <p class="hero__tagline">{% if homeNext %}Meet Ferni{% else %}Better than human.{% endif %}</p>
       
       <h1 class="hero__headline">
         Finally, someone who <span class="hero__headline-accent">gets it.</span>
@@ -143,6 +151,12 @@ description: A friend you can call any hour, with a small team of specialists wh
           Call Now
         </a>
       </div>
+      {% if homeNext %}
+      <button type="button" class="hear-ferni" data-hear-ferni aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+        <span data-hear-ferni-label>Hear Ferni</span>
+      </button>
+      {% endif %}
 
       <p class="hero__note">Ferni is software, not a person. <a href="/what-ferni-is/">What Ferni is</a></p>
 
@@ -233,6 +247,7 @@ description: A friend you can call any hour, with a small team of specialists wh
   </div>
 </section>
 
+{% if not homeNext %}
 {# STATS BAR #}
 <section class="stats-bar">
   <div class="stats-bar__inner content-grid">
@@ -254,7 +269,9 @@ description: A friend you can call any hour, with a small team of specialists wh
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if not homeNext %}
 {# PRODUCT SHOWCASE #}
 <section class="showcase" id="product">
   <div class="showcase__inner">
@@ -326,6 +343,7 @@ description: A friend you can call any hour, with a small team of specialists wh
     </div>
   </div>
 </section>
+{% endif %}
 
 {# MEMORY DEMONSTRATION - Show what remembering feels like #}
 <section class="section memory-demo" id="memory">
@@ -401,6 +419,7 @@ description: A friend you can call any hour, with a small team of specialists wh
   </div>
 </section>
 
+{% if not homeNext %}
 {# OUR STORY - Chapter Cards Design #}
 <section class="section story" id="story">
   <div class="container">
@@ -498,7 +517,9 @@ description: A friend you can call any hour, with a small team of specialists wh
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if not homeNext %}
 {# USE CASES #}
 <section class="section use-cases" id="use-cases">
   <div class="container">
@@ -577,6 +598,7 @@ description: A friend you can call any hour, with a small team of specialists wh
     </div>
   </div>
 </section>
+{% endif %}
 
 {# TEAM #}
 <section class="section" id="team">
@@ -620,6 +642,7 @@ description: A friend you can call any hour, with a small team of specialists wh
   </div>
 </section>
 
+{% if not homeNext %}
 {# JOURNEY VISUALIZATION - How the relationship deepens #}
 <section class="section journey" id="journey">
   <div class="container">
@@ -731,6 +754,7 @@ description: A friend you can call any hour, with a small team of specialists wh
     </p>
   </div>
 </section>
+{% endif %}
 
 {# HOW IT WORKS - VISUAL STEPS #}
 <section class="section how-it-works" id="how-it-works">
@@ -787,6 +811,7 @@ description: A friend you can call any hour, with a small team of specialists wh
   </div>
 </section>
 
+{% if not homeNext %}
 {# FEATURES #}
 <section class="section features" id="features">
   <div class="container">
@@ -847,7 +872,9 @@ description: A friend you can call any hour, with a small team of specialists wh
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if not homeNext %}
 {# LIFE ASSISTANT - Complete Life Companion #}
 <section class="section assistant" id="assistant">
   <div class="container">
@@ -969,7 +996,9 @@ description: A friend you can call any hour, with a small team of specialists wh
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if not homeNext %}
 {# BETTER THAN HUMAN - Dramatic Proof Section #}
 <section class="section proof" id="proof">
   <div class="container">
@@ -1096,6 +1125,7 @@ description: A friend you can call any hour, with a small team of specialists wh
     <p class="care-note">I'm not a therapist or a doctor, and I'm not a substitute for professional help. If you're in crisis in the US, call or text <a href="tel:988">988</a>, any hour.</p>
   </div>
 </section>
+{% endif %}
 
 {# ========== SECURITY & PRIVACY ========== #}
 <section class="section security" id="security">
@@ -1480,3 +1510,7 @@ description: A friend you can call any hour, with a small team of specialists wh
 })();
 </script>
 
+{% if homeNext %}
+<link rel="stylesheet" href="/css/hear-ferni.css">
+<script defer src="/js/hear-ferni.js"></script>
+{% endif %}
