@@ -1,11 +1,11 @@
 /**
- * Throwaway. One lint error on purpose (the `var` below), so CI shows the changed-test-files
- * lint step failing on a new test file. This file is never merged.
+ * Throwaway. The planted lint error (a `var`) is fixed here, so CI shows the changed-test-files
+ * lint step passing on the same new test file. This file is never merged.
  */
 import { expect, it } from 'vitest';
 
-var leftover = 1;
+const leftover = 1;
 
-it('carries one lint error on purpose', () => {
+it('carried one lint error on purpose, now fixed', () => {
   expect(leftover).toBe(1);
 });
