@@ -42,7 +42,7 @@ test('flag on: "Talk to Ferni" leads, above sign-in, and fits a phone', async ({
   const talk = talkButton(page);
   await expect(talk).toBeVisible();
   await expect(talk).toHaveText('Talk to Ferni');
-  await expect(page.getByText('No account needed. Just say hello.')).toBeVisible();
+  await expect(page.getByText('No account needed. Nothing you say is saved,')).toBeVisible();
   await expect(
     page.getByText('Say hello first. Sign in whenever you want to keep the conversation.')
   ).toBeVisible();
