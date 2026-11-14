@@ -19,6 +19,11 @@
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  allowCrisisAdjudicatorLiveForTests,
+  resetCrisisAdjudicatorCache,
+} from '../../../services/safety/crisis-adjudicator.js';
+import { resolveCrisisAgreementGate } from '../../../services/safety/crisis-agreement.js';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   BLOCKED_REPLY,
@@ -51,9 +56,18 @@ const state = vi.hoisted(() => ({
   processCalls: 0,
   /** The crisis field processTurn hands back: the settled read, or absent (undefined / null). */
   crisisField: 'read' as CrisisField,
+  /** processTurn hands back a frozen result and a frozen crisis read (strict code: a write throws). */
+  freeze: false,
   /** Classifier asks through the turn's injected model call, and through a real model client. */
   asked: 0,
   realClient: 0,
+  /** Ferni's line before this one, and the caller's earlier lines (the gate and adjudicator read both). */
+  companion: undefined as string | undefined,
+  earlier: [] as string[],
+  lineInList: true, // false: the current line is not in the earlier list yet (a race on a live call)
+  /** The adjudicator's injected model call: what it answers, and how often it was asked. */
+  adjudicate: '',
+  adjudicated: 0,
 }));
 
 // No row may reach a real model: every read in this file goes through the injected `generate`
@@ -131,7 +145,19 @@ vi.mock('../../processors/index.js', async (orig) => ({
     if (state.fail) throw new Error('Turn processing hard timeout');
     const turnCrisis = startTurnCrisis(
       ctx.userText,
-      { recentTranscripts: [ctx.userText], turnCount: state.turnCount },
+      {
+        turnCount: state.turnCount,
+        // As on a live call: the handler's userData carries the caller's earlier lines and
+        // Ferni's previous reply only with the agreement gate on (turn-intelligence.ts).
+        ...(resolveCrisisAgreementGate(state.env)
+          ? {
+              recentTranscripts: state.lineInList
+                ? [...state.earlier, ctx.userText]
+                : [...state.earlier],
+              lastAgentResponse: state.companion,
+            }
+          : {}),
+      },
       {
         sessionId: `no-happy-memory-${++state.n}`,
         env: state.env,
@@ -141,10 +167,15 @@ vi.mock('../../processors/index.js', async (orig) => ({
           if (state.read === FAILS) return Promise.reject(new Error('classifier unavailable'));
           return Promise.resolve(state.read === 'blocked' ? BLOCKED_REPLY : state.read);
         },
+        // Always injected, so an adjudicator a row turns on never reaches a model client.
+        adjudicate: () => {
+          state.adjudicated++;
+          return Promise.resolve(state.adjudicate);
+        },
       }
     );
     const emotion = { primary: state.emotion, intensity: 0.9 };
-    state.result = {
+    const result = {
       analysis: { analysis: { emotion, intent: 'unknown' } },
       context: { injections: [], elapsedMs: 0 },
       emotional: { ...emotion, distressLevel: state.distress },
@@ -156,7 +187,9 @@ vi.mock('../../processors/index.js', async (orig) => ({
         null: null,
       }[state.crisisField],
     };
-    return state.result;
+    if (state.freeze) Object.freeze(Object.freeze(result).crisis);
+    state.result = result;
+    return result;
   }),
 }));
 
@@ -215,7 +248,10 @@ type Level = 'replace' | 'guide' | 'soft' | 'pass';
 const levelOf = (c: Crisis): Level =>
   c.shouldOverrideLLM ? 'replace' : c.isCrisis ? 'guide' : c.softCheck ? 'soft' : 'pass';
 
-type Message = { type: string; data?: Record<string, unknown> };
+interface Message {
+  type: string;
+  data?: Record<string, unknown>;
+}
 
 /** The real handler on one line: every client data message it sends, with its payload. */
 async function callHandler(userText: string, turnCount: number) {
@@ -244,7 +280,21 @@ async function runTurn(
   emotion = 'sad',
   turnCount = 3,
   distress = 0.2,
-  crisisField: CrisisField = 'read'
+  {
+    crisisField = 'read',
+    freeze = false,
+    companion,
+    earlier = [],
+    lineInList = true,
+    adjudicate = '',
+  }: {
+    crisisField?: CrisisField;
+    freeze?: boolean;
+    companion?: string;
+    earlier?: string[];
+    lineInList?: boolean;
+    adjudicate?: string;
+  } = {}
 ) {
   Object.assign(state, {
     env,
@@ -260,6 +310,12 @@ async function runTurn(
     fail: false,
     processCalls: 0,
     crisisField,
+    freeze,
+    companion,
+    earlier,
+    lineInList,
+    adjudicate,
+    adjudicated: 0,
   });
   resetFireAndForgetMetrics();
   const { sent, messages } = await callHandler(userText, turnCount);
@@ -296,6 +352,7 @@ async function runTurn(
 /** Crisis read state the safety modules keep across turns (the classifier caches its verdicts). */
 function resetCrisisState() {
   resetCrisisClassifierCache();
+  resetCrisisAdjudicatorCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
   resetClassifierBlocked();
@@ -469,7 +526,7 @@ describe('known gap: the classifier gives no answer on a line the patterns miss'
     }
   );
 
-  it('the same line with a crisis verdict is a crisis turn and records nothing', async () => {
+  it("the same line with a crisis verdict is a crisis turn and the handler's recorders record nothing", async () => {
     const turn = await runTurn(GAP, LIVE, CRISIS, 'sad', 6);
     expect(turn.realClient).toBe(0);
     expect(turn.level).not.toBe('pass');
@@ -516,6 +573,15 @@ describe('the first-vulnerability milestone', () => {
   );
 });
 
+/** The handler's bond messages and warmth pulses to the client on one turn. */
+const bond = ({ messages }: { messages: Message[] }) =>
+  messages.filter(
+    (m) => m.type === 'humanization_signal' && m.data?.signalType === 'emotional_bond_deepen'
+  ).length;
+const warmth = ({ messages }: { messages: Message[] }) =>
+  messages.filter((m) => m.type === 'micro_expression' && m.data?.expressionType === 'warmth_pulse')
+    .length;
+
 describe('the bond message to the client', () => {
   /** Lines the patterns miss, one per trigger of the bond block (turn-handler.ts). */
   const THANKS = 'thank you for sitting with me tonight, honestly nothing feels worth it lately';
@@ -526,14 +592,6 @@ describe('the bond message to the client', () => {
     ['distress above 0.4', HEAVY, 0.45],
     ['an "i\'m worried" phrase', WORRIED, 0.2],
   ];
-  const bond = ({ messages }: { messages: Message[] }) =>
-    messages.filter(
-      (m) => m.type === 'humanization_signal' && m.data?.signalType === 'emotional_bond_deepen'
-    ).length;
-  const warmth = ({ messages }: { messages: Message[] }) =>
-    messages.filter(
-      (m) => m.type === 'micro_expression' && m.data?.expressionType === 'warmth_pulse'
-    ).length;
   /** What main's source sends on each line read as ordinary, run with this file: [bond, warmth]. */
   const AS_ON_MAIN: Record<string, [number, number]> = {
     [THANKS]: [1, 1],
@@ -560,13 +618,29 @@ describe('the bond message to the client', () => {
     }
   );
 
+  // Every crisis level, on a line with a thanks word (HAPPY), after the same line read as
+  // ordinary has sent the bond message, so each zero is read after a run that sends one.
+  it.each(CRISIS_TURNS)(
+    'sends no bond and no warmth pulse when %s',
+    async (_name, level, core, env, read) => {
+      const ordinary = await runTurn(THANKS, LIVE, NO_RISK);
+      expect(bond(ordinary)).toBeGreaterThan(0); // the block fires on a grateful line
+
+      resetCrisisState();
+      const held = await runTurn(HAPPY + core, env, read);
+      expect(held.level).toBe(level);
+      expect(bond(held)).toBe(0);
+      expect(warmth(held)).toBe(0);
+    }
+  );
+
   it.each(['undefined', 'null'] as const)(
     'a turn whose crisis field is %s is held (fail closed)',
     async (field) => {
       const ordinary = await runTurn(THANKS, LIVE, NO_RISK);
       expect(bond(ordinary)).toBeGreaterThan(0); // the block fires on this line
 
-      const held = await runTurn(THANKS, LIVE, NO_RISK, 'sad', 3, 0.2, field);
+      const held = await runTurn(THANKS, LIVE, NO_RISK, 'sad', 3, 0.2, { crisisField: field });
       expect(held.level).toBe('absent');
       expect(bond(held)).toBe(0);
       expect(warmth(held)).toBe(0);
@@ -582,12 +656,216 @@ describe('the bond message to the client', () => {
   ])(
     'a turn whose processing fails, as the hard timeout fails it, sends neither on %s',
     async (_name, line) => {
-      Object.assign(state, { fail: true, processCalls: 0, result: undefined });
+      Object.assign(state, {
+        fail: true,
+        processCalls: 0,
+        result: undefined,
+        writes: [],
+        semanticReads: [],
+      });
       const turn = await callHandler(line, 3);
       expect(state.processCalls).toBe(1);
       expect(state.result).toBeUndefined();
       expect(bond(turn)).toBe(0);
       expect(warmth(turn)).toBe(0);
+      expect(state.writes).toEqual([]); // no record of any kind this PR holds
+      expect(state.semanticReads).toEqual([]);
+    }
+  );
+});
+
+/**
+ * The crisis read under its non-default flags. LIVE runs the agreement gate on; before these rows
+ * every classifier-live row ran with it on and none with it off. A held turn records nothing here:
+ * no moment, no happy write, a crisis read to semantic intelligence on both paths, no bond message.
+ */
+describe('crisis read flags beyond the default', () => {
+  const LIVE_NO_GATE = { ...LIVE, CRISIS_AGREEMENT_GATE: 'off' };
+  const LIVE_SHADOW = { ...LIVE, CRISIS_ADJUDICATOR: 'shadow' };
+  const WORTH = 'honestly nothing feels worth it lately';
+  const expectHeld = (turn: Awaited<ReturnType<typeof runTurn>>) => {
+    expect(turn.writes.filter((w) => w.startsWith('moment:') || HAPPY_WRITES.includes(w))).toEqual(
+      []
+    );
+    expect(turn.semanticReads).toEqual([true, true]);
+    expect([bond(turn), warmth(turn)]).toEqual([0, 0]);
+  };
+  const softGuidance = () =>
+    (state.result as { crisis: { softGuidance?: string } }).crisis.softGuidance;
+
+  it.each([
+    [
+      'the classifier replaces the reply',
+      'replace',
+      'lol i am going to kill myself right now',
+      IMMINENT,
+    ],
+    ['the classifier guides the reply', 'guide', WORTH, CRISIS],
+    [
+      'a blocked read gives a soft check-in',
+      'soft',
+      'i guess i just give up on everything',
+      'blocked',
+    ],
+  ] as const)(
+    'agreement gate off: %s, and nothing is recorded',
+    async (_name, level, line, read) => {
+      const ordinary = await runTurn(HAPPY + WORTH, LIVE_NO_GATE, NO_RISK); // a line the patterns miss
+      expect(ordinary.semanticReads).toEqual([false, false]);
+      expect(bond(ordinary)).toBeGreaterThan(0);
+
+      resetCrisisState();
+      const held = await runTurn(HAPPY + line, LIVE_NO_GATE, read);
+      expect(held.level).toBe(level);
+      expectHeld(held);
+    }
+  );
+
+  describe.each([true, false])(
+    'gate on, the current line already in the earlier list: %s',
+    (lineInList) => {
+      // A short question back about Ferni's own line, read as crisis by the classifier only: the gate's
+      // agreement path softens it (crisis-agreement.ts, outcome 'soft'). Not the blocked branch: the
+      // classifier answered a verdict, and the soft read carries no guidance of its own.
+      it('agreement gate on: a classifier-only crisis softened by the gate is held', async () => {
+        const turn = {
+          companion: 'thanks for telling me about the trip, which part was the best?',
+          lineInList,
+        };
+        const line = 'which part, the trip?';
+        const ordinary = await runTurn(line, LIVE, NO_RISK, 'sad', 3, 0.2, turn);
+        expect(ordinary.level).toBe('pass');
+        expect(ordinary.semanticReads).toEqual([false, false]);
+
+        resetCrisisState();
+        const gateOff = await runTurn(line, LIVE_NO_GATE, CRISIS, 'sad', 3, 0.2, turn);
+        expect(gateOff.level).toBe('guide'); // the same read without the gate
+
+        resetCrisisState();
+        const soft = await runTurn(line, LIVE, CRISIS, 'sad', 3, 0.2, turn);
+        expect(soft.asked).toBeGreaterThan(0);
+        expect(soft.level).toBe('soft');
+        expect(softGuidance()).toBeUndefined();
+        expectHeld(soft);
+      });
+
+      // PIN of today's behaviour, not a hold: whoever changes the presence policy edits this row.
+      // The gate releases a classifier-only crisis on a bare "still here" to Ferni's "you still
+      // there?" (crisis-agreement.ts, outcome 'presence'; turn-crisis.ts returns the patterns' read).
+      it('agreement gate on, presence outcome: records as an ordinary turn (policy with the owner)', async () => {
+        const turn = { companion: 'are you still there?', lineInList };
+        const presence = await runTurn("yeah, i'm still here", LIVE, CRISIS, 'sad', 3, 0.2, turn);
+        expect(state.read).toBe(CRISIS);
+        expect(presence.asked).toBeGreaterThan(0);
+        expect(presence.level).toBe('pass');
+        expect(presence.semanticReads).toEqual([false, false]);
+      });
+
+      // Shadow logs its decision and never changes the turn: the same lists whatever it decides.
+      it.each([
+        [
+          'agrees',
+          '{"caller_risk":"nothing feels worth it","decision":"escalate","confidence":"high"}',
+        ],
+        ['disagrees', '{"caller_risk":"","decision":"checkin","confidence":"high"}'],
+      ])('agreement gate on, adjudicator in shadow that %s: held', async (_name, adjudicate) => {
+        const turn = {
+          companion: 'how has the week been?',
+          earlier: ['the move is next week'],
+          lineInList,
+          adjudicate,
+        };
+        const held = await runTurn(HAPPY + WORTH, LIVE_SHADOW, CRISIS, 'sad', 3, 0.2, turn);
+        await vi.waitFor(() => expect(state.adjudicated).toBeGreaterThan(0));
+        expect(held.realClient).toBe(0);
+        expect(held.level).toBe('guide');
+        expectHeld(held);
+      });
+
+      it('adjudicator live and its check-in softens the turn: held', async () => {
+        allowCrisisAdjudicatorLiveForTests(true);
+        const turn = {
+          companion: 'how has the week been?',
+          earlier: ['the move is next week'],
+          lineInList,
+          adjudicate: '{"caller_risk":"","decision":"checkin","confidence":"high"}',
+        };
+        const env = { ...LIVE, CRISIS_ADJUDICATOR: 'live' };
+        const held = await runTurn(HAPPY + WORTH, env, CRISIS, 'sad', 3, 0.2, turn).finally(() =>
+          allowCrisisAdjudicatorLiveForTests(false)
+        );
+        expect(state.adjudicated).toBeGreaterThan(0);
+        expect(held.level).toBe('soft');
+        expectHeld(held);
+      });
+    }
+  );
+
+  // CONSTRUCTED SHAPE, a pin, not a hold: the same turn with the caller's earlier risk line in the
+  // list, and missing from it (a tool-routed or never-pushed line, transcript-handler.ts). A missing
+  // risk line leaves the gate's quiet check true (crisis-agreement.ts:249-250).
+  it('constructed shape, an earlier risk line missing from the list: records as an ordinary turn (policy with the owner)', async () => {
+    const turn = {
+      companion: 'are you still there?',
+      earlier: ['honestly just tired of the whole week'],
+    };
+    const present = await runTurn("yeah, i'm still here", LIVE, CRISIS, 'sad', 3, 0.2, turn);
+    expect(present.level).toBe('guide');
+    expectHeld(present);
+
+    resetCrisisState();
+    const absent = await runTurn("yeah, i'm still here", LIVE, CRISIS, 'sad', 3, 0.2, {
+      ...turn,
+      earlier: [],
+    });
+    expect(absent.level).toBe('pass');
+    expect(absent.semanticReads).toEqual([false, false]);
+  });
+});
+
+/**
+ * The crisis read is taken once, right after processTurn returns (turn-handler.ts), and every
+ * hold uses that value. Nothing may write the read or the result later in the turn: here both are
+ * frozen, so any write throws (module code is strict). A throw in the handler's own body lands in
+ * its catch and skips the recorders runTurn waits for; a throw inside a fire-and-forget block is
+ * kept as that block's lastError, which the row reads after every block has settled.
+ */
+describe('the hoisted crisis read', () => {
+  const FROZEN_WRITE = /read.only|not extensible|frozen|Cannot assign|Cannot add property/i;
+  const settledErrors = async () => {
+    await vi.waitFor(
+      () => {
+        for (const c of getFireAndForgetMetrics().byContext) {
+          expect(c.successes + c.failures, c.context).toBe(c.calls);
+        }
+      },
+      { timeout: 5000 }
+    );
+    return getFireAndForgetMetrics()
+      .byContext.filter((c) => c.lastError && FROZEN_WRITE.test(c.lastError))
+      .map((c) => `${c.context}: ${c.lastError}`);
+  };
+
+  it.each([
+    ['an ordinary turn', `${LONG}${EVERY_MOMENT}and today was a good day`, LIVE, NO_RISK],
+    ['a crisis turn', `${HAPPY}im standing on the bridge and im going to jump`, PATTERNS, ''],
+  ] as const)(
+    'on %s, a frozen result and crisis read change nothing and nothing writes them',
+    async (_name, line, env, read) => {
+      const open = await runTurn(line, env, read);
+      expect(await settledErrors()).toEqual([]);
+
+      resetCrisisState();
+      const frozen = await runTurn(line, env, read, 'sad', 3, 0.2, { freeze: true });
+      expect(Object.isFrozen(state.result)).toBe(true);
+      expect(await settledErrors()).toEqual([]);
+      expect(frozen.level).toBe(open.level);
+      expect([...frozen.writes].sort()).toEqual([...open.writes].sort());
+      expect(frozen.semanticReads).toEqual(open.semanticReads);
+      expect([frozen.sent.length, frozen.messages.length]).toEqual([
+        open.sent.length,
+        open.messages.length,
+      ]);
     }
   );
 });

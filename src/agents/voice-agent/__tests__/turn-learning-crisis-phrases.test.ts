@@ -40,7 +40,7 @@ type Ctx = Parameters<typeof recordAllLearningData>[0];
 const LINE = "actually, it's the blue mug, i always drink my tea in the morning";
 
 /** Turn 6: even, so the preference check runs, and a multiple of 3, so the shared moment can. */
-function learningTurn(crisisTurn: boolean | undefined): Ctx {
+function learningTurn(crisisTurn: boolean | null | undefined): Ctx {
   const ctx = {
     userId: 'user-learning-phrases',
     sessionId: 'learning-phrases',
@@ -52,11 +52,11 @@ function learningTurn(crisisTurn: boolean | undefined): Ctx {
     turnResult: { emotional: { primary: 'happy', intensity: 0.9 }, context: {} },
     crisisTurn,
   };
-  return ctx as Ctx; // crisisTurn undefined: a context built without the read
+  return ctx as Ctx; // crisisTurn undefined or null: a context built without a usable read
 }
 
 /** Runs the recorders and waits for their fire-and-forget writes to settle. */
-async function keptFor(crisisTurn: boolean | undefined): Promise<string[]> {
+async function keptFor(crisisTurn: boolean | null | undefined): Promise<string[]> {
   state.kept = [];
   await recordAllLearningData(learningTurn(crisisTurn));
   await new Promise((resolve) => {
@@ -86,6 +86,10 @@ describe('learning recorders keep no caller words of a crisis turn', () => {
 
   it('a context missing the read keeps none either (unknown holds)', async () => {
     expect(await keptFor(undefined)).toEqual([]);
+  });
+
+  it('a context whose read is null keeps none either (unknown holds)', async () => {
+    expect(await keptFor(null)).toEqual([]);
   });
 
   it('any other turn keeps all three, as on main', async () => {
