@@ -17,7 +17,6 @@ import {
   getGCPProjectId,
   isGoogleCloud,
   isMusicEnabled,
-  isNonProdDatabase,
   loadConfig,
   resetConfig,
   validateConfig,
@@ -137,21 +136,6 @@ describe('Environment Configuration', () => {
     it('should return custom database from env var', () => {
       vi.stubEnv('FIRESTORE_DATABASE', 'custom-db');
       expect(getFirestoreDatabase()).toBe('custom-db');
-    });
-  });
-
-  describe('isNonProdDatabase', () => {
-    it("is false on prod's (default) database, set or unset", () => {
-      expect(isNonProdDatabase()).toBe(false);
-      vi.stubEnv('FIRESTORE_DATABASE', '');
-      expect(isNonProdDatabase()).toBe(false);
-      vi.stubEnv('FIRESTORE_DATABASE', '(default)');
-      expect(isNonProdDatabase()).toBe(false);
-    });
-
-    it('is true on any other database', () => {
-      vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
-      expect(isNonProdDatabase()).toBe(true);
     });
   });
 

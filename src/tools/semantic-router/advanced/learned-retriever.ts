@@ -17,7 +17,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { isNonProdDatabase } from '../../../config/environment.js';
+import { isKnownDevDatabase } from '../../../config/firestore-database.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
 import { getKeywordWord, getKeywordWeight } from '../types.js';
 import { getEmbedding } from '../embedding-providers.js';
@@ -78,10 +78,12 @@ interface LearnedRetrieverConfig {
 
 /**
  * What a log line keeps of the caller's words: the length everywhere, the words
- * themselves only on dev and PR previews (a non-prod Firestore database)
+ * themselves only on dev's Firestore database (the dev agent and PR previews).
  */
 function queryForLog(query: string): { queryLength: number; query?: string } {
-  return isNonProdDatabase() ? { queryLength: query.length, query } : { queryLength: query.length };
+  return isKnownDevDatabase()
+    ? { queryLength: query.length, query }
+    : { queryLength: query.length };
 }
 
 export class LearnedRetriever {
