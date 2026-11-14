@@ -39,7 +39,8 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { avatarMotionAllowed } from './avatar-motion/motion-allowed.js';
 import { onThinkingTurns } from './avatar-motion/thinking-glance.js';
-import { crisisAffectAllows } from './face/crisis-face-hold.js';
+import { crisisAffectAllows, onCrisisHoldStart } from './face/crisis-face-hold.js';
+import { leanBack, leanCloser } from './avatar-motion/protective-lean.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('AvatarSoul');
@@ -243,6 +244,8 @@ const GLOW_BLEED_MAX_RADIUS = 90;
 let grainOverlay: HTMLElement | null = null;
 let memorySparkElement: HTMLElement | null = null;
 let comfortPulseElement: HTMLElement | null = null;
+/** Stops the comfort pulse when a crisis hold starts; the hold allows no pulse. */
+let stopPulseOnHold: (() => void) | null = null;
 let anticipationRing: HTMLElement | null = null;
 let growthCelebrationElement: HTMLElement | null = null;
 let warmthBloomElement: HTMLElement | null = null;
@@ -293,6 +296,7 @@ export function initAvatarSoul(): void {
   createGrainOverlay();
   createMemorySparkEffect();
   createComfortPulseEffect();
+  stopPulseOnHold ??= onCrisisHoldStart(stopComfortPulse);
   createAnticipationRing();
   createGrowthCelebration();
   createWarmthBloom();
@@ -1052,6 +1056,7 @@ export function triggerMemorySpark(): void {
  */
 export function startComfortPulse(): void {
   if (!comfortPulseElement || state.comfortPulseActive || state.reducedMotion) return;
+  if (!avatarMotionAllowed('comfortPulse')) return;
 
   state.comfortPulseActive = true;
 
@@ -1324,14 +1329,8 @@ export function enterProtectiveMode(): void {
 
   state.protectiveMode = true;
 
-  // Scale up slightly (drawing closer)
-  if (avatarContainer) {
-    gsap.to(avatarContainer, {
-      scale: 1.03,
-      duration: 0.6,
-      ease: EASING.GENTLE,
-    });
-  }
+  // Draw closer; during a crisis hold, one slow calm lean that stays (protective-lean.ts)
+  if (avatarContainer) leanCloser(avatarContainer);
 
   // Warm, protective glow
   setGlowBleed(0.45, GLOW_COLORS.PROTECTIVE);
@@ -1356,13 +1355,7 @@ export function exitProtectiveMode(): void {
 
   state.protectiveMode = false;
 
-  if (avatarContainer) {
-    gsap.to(avatarContainer, {
-      scale: 1,
-      duration: 0.8,
-      ease: EASING.GENTLE,
-    });
-  }
+  if (avatarContainer) leanBack(avatarContainer);
 
   stopComfortPulse();
   setGlowBleed(0.1);
@@ -2025,6 +2018,8 @@ function injectSoulStyles(): void {
 export function disposeAvatarSoul(): void {
   // FIX BUG: Clear all tracked timeouts first
   _clearAllTimeouts();
+  stopPulseOnHold?.();
+  stopPulseOnHold = null;
 
   // Kill all GSAP animations
   if (pupilTimeline) pupilTimeline.kill();

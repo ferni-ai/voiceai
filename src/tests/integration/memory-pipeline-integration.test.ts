@@ -34,27 +34,44 @@ const mockFirestoreGetByUser = vi.fn().mockResolvedValue([]);
 const mockFirestoreDelete = vi.fn().mockResolvedValue(undefined);
 const mockFirestoreHealth = vi.fn().mockResolvedValue({ healthy: true, initialized: true });
 
-vi.mock('../../utils/firestore-utils.js', () => ({
-  getFirestoreDb: vi.fn(() => ({
-    collection: vi.fn(() => ({
-      doc: vi.fn(() => ({
-        set: mockFirestoreStore,
-        get: vi.fn(() => Promise.resolve({ exists: false, data: () => undefined })),
-        delete: mockFirestoreDelete,
+vi.mock('../../utils/firestore-utils.js', () => {
+  // Documents have subcollections (memories live at users/{uid}/memories/{id}).
+  const fakeCollection = (): unknown => ({
+    doc: vi.fn(() => ({
+      set: mockFirestoreStore,
+      get: vi.fn(() => Promise.resolve({ exists: false, data: () => undefined })),
+      delete: mockFirestoreDelete,
+      collection: vi.fn(fakeCollection),
+    })),
+    where: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
+  });
+  return {
+    getFirestoreDb: vi.fn(() => ({
+      collection: vi.fn(fakeCollection),
+      collectionGroup: vi.fn(() => ({
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
       })),
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
     })),
-    collectionGroup: vi.fn(() => ({
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn(() => Promise.resolve({ empty: true, docs: [] })),
-    })),
-  })),
-}));
+  };
+});
+
+// The unified store's Firestore adapter opens its client through sharedFirestore
+// now, not getFirestoreDb: hand it the same fake database.
+vi.mock('../../utils/shared-firestore.js', async () => {
+  const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+  return {
+    sharedFirestore: () => getFirestoreDb(),
+    isSharedFirestore: () => true,
+    resetSharedFirestore: () => undefined,
+    resolveSharedSettings: (settings: unknown) => settings,
+  };
+});
 
 // Mock embeddings
 vi.mock('../../memory/embeddings.js', () => ({
@@ -141,7 +158,7 @@ describe('Memory Pipeline Integration', () => {
 
       expect(memory.id).toBeDefined();
       expect(memory.emotionalWeight).toBe(0.85);
-      
+
       expect(memory.peopleMentioned).toContain('Sarah');
 
       await store.shutdown();
@@ -158,7 +175,7 @@ describe('Memory Pipeline Integration', () => {
       });
 
       await store.initialize();
-      
+
       const memory = await store.store(createTestMemory());
       expect(memory.id).toBeDefined();
 
@@ -182,9 +199,8 @@ describe('Memory Pipeline Integration', () => {
 
   describe('Memory Intelligence Learning Persistence', () => {
     it('should save profile to Firestore', async () => {
-      const { saveProfile, loadProfile } = await import(
-        '../../intelligence/memory-intelligence/learning/persistence.js'
-      );
+      const { saveProfile, loadProfile } =
+        await import('../../intelligence/memory-intelligence/learning/persistence.js');
 
       const profile = {
         userId: TEST_USER_ID,
@@ -208,9 +224,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should save surfacing records to Firestore', async () => {
-      const { saveRecords, loadRecords } = await import(
-        '../../intelligence/memory-intelligence/learning/persistence.js'
-      );
+      const { saveRecords, loadRecords } =
+        await import('../../intelligence/memory-intelligence/learning/persistence.js');
 
       const records = [
         {
@@ -239,9 +254,8 @@ describe('Memory Pipeline Integration', () => {
     });
 
     it('should get stats for a user', async () => {
-      const { getStats } = await import(
-        '../../intelligence/memory-intelligence/learning/persistence.js'
-      );
+      const { getStats } =
+        await import('../../intelligence/memory-intelligence/learning/persistence.js');
 
       const stats = await getStats(TEST_USER_ID);
 

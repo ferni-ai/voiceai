@@ -69,6 +69,7 @@ import {
   validWeak,
   WEAK,
 } from './log-object-redaction.js';
+import { onSdkLogger } from './sdk-logger-slot.js';
 
 const MAX_DIGITS = 15;
 const GROUP = /\d+/g;
@@ -447,23 +448,11 @@ export function redactPinoLogger<T>(logger: T): T {
   return logger;
 }
 
-const SDK_LOGGER = Symbol.for('@livekit/agents:logger');
-
-/** Redacts the SDK logger now and every time initializeLogger replaces it. */
+/** Redacts the SDK logger now and every time initializeLogger replaces it (sdk-logger-slot.ts). */
 function redactSdkLogger(): void {
-  const g = globalThis as Record<symbol, unknown>;
-  let current = g[SDK_LOGGER];
-  redactWrites(pinoDestination(current));
-  redactPinoLogger(current);
-  Object.defineProperty(g, SDK_LOGGER, {
-    configurable: true,
-    enumerable: false,
-    get: () => current,
-    set: (logger: unknown) => {
-      current = logger;
-      redactWrites(pinoDestination(logger));
-      redactPinoLogger(logger);
-    },
+  onSdkLogger((logger) => {
+    redactWrites(pinoDestination(logger));
+    redactPinoLogger(logger);
   });
 }
 

@@ -69,6 +69,7 @@ import {
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
 import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
@@ -85,10 +86,10 @@ import {
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
-import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
+import { holdUntilCleared } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
@@ -118,6 +119,7 @@ export interface CrisisGateTurn {
   escalation: Promise<CrisisGateDecision | null> | null;
   /** The caller went quiet after a release: this reply asks the direct question again. */
   reask?: boolean;
+  read?: Promise<ScriptRead>; // CRISIS_SCRIPT_IMMINENT_READ: a scripted turn's read
 }
 
 type Chunk = llm.ChatChunk | string | object;
@@ -203,15 +205,17 @@ export function startCrisisGate(
   // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('gate', userData, detection.subject);
   let who: ReturnType<typeof startWhoRead> | undefined;
+  const at = { pattern, env, generate, scope, call, secondRead } as const;
   const read = (): Promise<CrisisVerdict | null> | undefined => {
-    const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
+    const run = startCrisisClassifier(said, at);
     if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
     who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
     return run.verdict;
   };
   const wait = decision.action === 'pass' && !gentle && !reask ? options.readAfter?.() : null;
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
-  if (!verdictRead) return { decision, escalation: null, reask };
+  const scripted = scriptRead(said, detection, decision, at); // CRISIS_SCRIPT_IMMINENT_READ
+  if (!verdictRead) return { decision, escalation: null, reask, read: scripted };
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
@@ -279,17 +283,8 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
-    const lone = {
-      call,
-      input: said,
-      verdict,
-      detection,
-      pattern,
-      env,
-      generate,
-      source: 'gate',
-    } as const;
-    const eased = await afterCheckLoneRead(lone); // CRISIS_CONFIRMED_CALL_RISK
+    const lone = { call, input: said, verdict, detection, pattern, env, generate } as const;
+    const eased = await afterCheckLoneRead({ ...lone, source: 'gate' }); // CRISIS_CONFIRMED_CALL_RISK
     if (eased) return guide(eased.guidance);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
@@ -299,8 +294,8 @@ export function startCrisisGate(
     if (!options.noReply) shadowGrade({ source: 'gate', ...at, detection, verdict, ...said }, env);
     return stronger;
   };
-  const escalation = checkin.escalation(verdictRead, { decision, reask, latest, env }, escalate);
-  return { decision, escalation, reask };
+  const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
+  return { decision, escalation: checkin.escalation(verdictRead, checkinTurn, escalate), reask };
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -309,66 +304,6 @@ export function textReply(text: string): ReadableStream<Chunk> {
     start(controller) {
       controller.enqueue(text);
       controller.close();
-    },
-  });
-}
-
-/**
- * Hold the model's reply until the escalation settles. No escalation: release
- * what was held and pass the rest through. An escalation: drop the reply and
- * stream the replacement instead.
- */
-export function holdUntilCleared(
-  reply: ReadableStream<Chunk>,
-  escalation: Promise<CrisisGateDecision | null>,
-  replacement: (decision: CrisisGateDecision) => Promise<ReadableStream<Chunk> | null>
-): ReadableStream<Chunk> {
-  const reader = reply.getReader();
-  let dropped = false;
-  return new ReadableStream<Chunk>({
-    async start(controller) {
-      const held: Chunk[] = [];
-      let firstHeldAt = 0;
-      let released = false;
-      let pumpError: unknown;
-      const pump = (async () => {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done || dropped) return;
-          if (released) controller.enqueue(value);
-          else if (held.push(value) === 1) firstHeldAt = Date.now();
-        }
-      })().catch((error: unknown) => {
-        pumpError = error;
-      });
-
-      try {
-        const decision = await escalation.catch(() => null);
-        if (!decision) {
-          released = true;
-          // How long a ready reply waited on the classifier: the latency this gate adds.
-          log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
-          for (const chunk of held) controller.enqueue(chunk);
-          held.length = 0;
-          await pump;
-          if (pumpError !== undefined) throw pumpError;
-          controller.close();
-          return;
-        }
-        dropped = true;
-        await reader.cancel().catch(() => undefined);
-        const next = await replacement(decision);
-        if (next)
-          for await (const chunk of next as unknown as AsyncIterable<Chunk>)
-            controller.enqueue(chunk);
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-    async cancel(reason) {
-      dropped = true;
-      await reader.cancel(reason).catch(() => undefined);
     },
   });
 }
@@ -431,7 +366,7 @@ export async function gatedReply(
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
     noteTurn(session, callerWords(chatCtx).latest, undefined);
-    return textReply(script(gate.decision.script));
+    return scriptReply(script(gate.decision.script), gate.read, script, env);
   }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at

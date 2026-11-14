@@ -32,13 +32,8 @@ import { buildCrisisGuidance, detectCrisis } from '../../safety/crisis-guard.js'
 import { EventEmitter } from 'node:events';
 import { attachTurnOpeningSound } from '../../integrations/turn-opening-sound.js';
 import { OpenerGate } from '../opener-gate.js';
-import {
-  gatedReply,
-  holdUntilCleared,
-  startCrisisGate,
-  textReply,
-  type CrisisGateDecision,
-} from '../crisis-gate.js';
+import { gatedReply, startCrisisGate, textReply, type CrisisGateDecision } from '../crisis-gate.js';
+import { holdUntilCleared } from '../crisis-gate-hold.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };

@@ -28,7 +28,14 @@ export {
   detectCrisis as scoreCrisisLanguage,
   IN_DANGER_NOW,
 } from './crisis-guard.js';
-export { EMERGENCY_FOR_THEM, TALK_TO_988_ES } from './crisis-guard-replies.js';
+export {
+  EMERGENCY_FOR_THEM,
+  getCrisisResponse,
+  LATE_911_LINE,
+  names911,
+  namesCrisisLine,
+  TALK_TO_988_ES,
+} from './crisis-guard-replies.js';
 export { SELF_HARM_911_LINE } from './crisis-script-lines.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
@@ -43,7 +50,13 @@ export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
 export { checkin } from './crisis-timeout-checkin.js';
-export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
+// A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
+export {
+  resolveCrisisClassifierTimeoutMs,
+  startCrisisClassifier,
+  type CrisisClassifierInput,
+  type StartCrisisClassifierOptions,
+} from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
 export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
@@ -294,13 +307,11 @@ export function performSafetyCheck(
 /** Which reader made the gate's replace decision (crisis-gate.ts). */
 export type CrisisReader = 'pattern' | 'classifier';
 
-/** How long a crisis event is kept: a TTL policy on expireAt deletes it after this. */
-export const CRISIS_EVENT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
-
 /**
  * One crisis_events document (CRISIS_EVENT_RECORD, agents/safety/crisis-event-record.ts):
- * ids, fixed enums and times, never the caller's words. Erased and exported with the
- * account (user-stores.ts, user-records-export.ts).
+ * ids, fixed enums and a time, never the caller's words. Kept permanently: it carries no
+ * expiry field, so no TTL policy can delete it (Seth, 2026-11-13). Erased and exported with
+ * the account (user-stores.ts, user-records-export.ts).
  */
 export interface StoredCrisisEvent {
   userId: string;
@@ -312,8 +323,6 @@ export interface StoredCrisisEvent {
   /** The script spoken names 988 or 911 */
   resourcesProvided: boolean;
   createdAt: Date;
-  /** The TTL field, a Date (stored as a Timestamp): createdAt + CRISIS_EVENT_RETENTION_MS */
-  expireAt: Date;
 }
 
 /**
@@ -322,12 +331,10 @@ export interface StoredCrisisEvent {
  * logged with ids and an error code only.
  */
 export async function recordCrisisEvent(
-  event: Omit<StoredCrisisEvent, 'createdAt' | 'expireAt'>,
+  event: Omit<StoredCrisisEvent, 'createdAt'>,
   firestore?: Firestore
 ): Promise<void> {
   const { userId, sessionId, personaId, crisisType, severity, reader, resourcesProvided } = event;
-  const createdAt = new Date();
-  const expireAt = new Date(createdAt.getTime() + CRISIS_EVENT_RETENTION_MS);
   const stored: StoredCrisisEvent = {
     userId,
     sessionId,
@@ -336,8 +343,7 @@ export async function recordCrisisEvent(
     severity,
     reader,
     resourcesProvided,
-    createdAt,
-    expireAt,
+    createdAt: new Date(),
   };
   const db = firestore ?? getFirestoreInstance();
   try {
