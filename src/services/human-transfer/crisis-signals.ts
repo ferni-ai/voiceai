@@ -22,6 +22,30 @@ const DAY_MS = 86_400_000;
 /** Every signal above 0 is logged; read past low-level ones to find a crisis. */
 const SIGNALS_READ = 50;
 
+/**
+ * The records this process kept without a session id (a non-member's), by the call that wrote
+ * them and each record's caller and timestamp, so their same-call note can fade too. In memory
+ * only: nothing more is stored. Unknown here (another process wrote it, or this one restarted
+ * mid-call) counts as an earlier call, so the note keeps showing and never fades early.
+ */
+const writtenThisCall = new Map<string, Set<string>>();
+const CALLS_KEPT = 2_000;
+
+/** Note a record logCrisisSignal kept without a session id, under the call that wrote it. */
+export function noteWrittenThisCall(sessionId: string, userId: string, timestamp: string): void {
+  const kept = writtenThisCall.get(sessionId) ?? new Set<string>();
+  writtenThisCall.delete(sessionId); // re-inserted last: the oldest call is the first to go
+  writtenThisCall.set(sessionId, kept.add(`${userId}|${timestamp}`));
+  const [oldest] = writtenThisCall.keys();
+  if (writtenThisCall.size > CALLS_KEPT && oldest !== undefined) writtenThisCall.delete(oldest);
+}
+
+/** Whether a record was logged on this call: by its session id, else by this process's memory. */
+function loggedThisCall(crisis: CrisisEventRecord, sessionId: string): boolean {
+  if (crisis.sessionId !== undefined) return crisis.sessionId === sessionId;
+  return writtenThisCall.get(sessionId)?.has(`${crisis.userId}|${crisis.timestamp}`) === true;
+}
+
 /** Crisis event record (crisis follow-up shape). */
 export interface CrisisEventRecord {
   userId: string;
@@ -90,7 +114,8 @@ const SAME_CALL_NOTE_TURNS = 3;
  * #3000; Seth: fade after a few turns). A crisis from an earlier call counts as on
  * main. One logged earlier on this call counts for SAME_CALL_NOTE_TURNS caller turns
  * after its own; a new signal on the call is newer and restarts the count. Without
- * a turn on either side (an older doc, no counter) it counts as on main.
+ * a turn on either side (an older doc, no counter) it counts as on main. A record without a
+ * session id is from this call only if this process wrote it on this call (noteWrittenThisCall).
  *
  * Turns are caller turns (userData.callerTurn, agents/shared/caller-turn-count.ts):
  * one per turn the caller takes. userData.turnCount is not used; the live voice
@@ -108,7 +133,7 @@ export function followUpCrisis(
   return crises?.find(
     (c) =>
       !sessionId ||
-      c.sessionId !== sessionId ||
+      !loggedThisCall(c, sessionId) ||
       c.turn === undefined ||
       turn === undefined ||
       turn - c.turn <= SAME_CALL_NOTE_TURNS

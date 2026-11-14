@@ -28,7 +28,8 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite } from './avatar-motion/compositor.js';
-import { crisisAffectAllows, crisisFaceAllows } from './face/crisis-face-hold.js';
+import { crisisAffectAllows, crisisFaceAllows, isCrisisFaceHeld, onCrisisHoldStart } from './face/crisis-face-hold.js';
+import { avatarMotionAllowed } from './avatar-motion/motion-allowed.js';
 import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
 import { startAvatarGlowPulse } from './avatar-motion/glow-layer.js';
 import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
@@ -79,6 +80,7 @@ let isListening = false;
 let breathingAnimation: Animation | null = null;
 let glowAnimation: Animation | null = null; // Secondary action
 let leanInAnimation: Animation | null = null; // 🎬 Attentive lean-in (warm, present)
+let stopSettleOnHold: (() => void) | null = null; // a crisis hold settles the lean and idle moves
 let lastMouseX = 0;
 let lastMouseY = 0;
 
@@ -134,9 +136,9 @@ export function initPresenceUI(): void {
   
   if (!initGaze()) startEyeTracking(); // ferni:gaze owns the eyes when on, else mouse tracking
   
-  // 🆕 Human-like behaviors - makes avatar feel alive
-  startBlinking();
+  startBlinking(); // human-like behaviors: blinks and idle moves make the avatar feel alive
   startMicroIdleMovements();
+  stopSettleOnHold ??= onCrisisHoldStart(settleForHold);
   
   // 🔊 NEW: Initialize three-layer speaking system (body, halo, lid)
   speakingSystem.init();
@@ -314,11 +316,8 @@ function startAttentiveLeanIn(): void {
     leanInAnimation.cancel();
   }
   
-  // Check for reduced motion preference
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-  
+  if (!avatarMotionAllowed('listenLean')) return; // reduced motion or the crisis hold
+
   // Attentive lean-in keyframes - like leaning toward someone who's speaking
   const leanInKeyframes: Keyframe[] = [
     // Start: Natural position
@@ -377,39 +376,35 @@ function startAttentiveLeanIn(): void {
  */
 function stopAttentiveLeanIn(): void {
   if (!avatarContainer || !leanInAnimation) return;
-  
-  // Get current transform state
-  const computedStyle = getComputedStyle(avatarContainer);
-  const currentTransform = computedStyle.transform || 'none';
-  
-  // Cancel the looping animation
-  leanInAnimation.cancel();
+  const currentTransform = getComputedStyle(avatarContainer).transform || 'none';
+  leanInAnimation.cancel(); // the loop stops; the settle below eases from where it was
   leanInAnimation = null;
   
-  // Check for reduced motion
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-  
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
   // Smooth return to neutral
   const settleBackKeyframes: Keyframe[] = [
     { transform: currentTransform, offset: 0 },
-    // Slight overshoot past neutral
-    { transform: 'translateY(1px) scale(1.001, 0.999) rotate(-0.2deg)', offset: 0.5 },
+    // Slight overshoot past neutral, but none in a crisis hold: it eases straight to rest
+    ...(isCrisisFaceHeld() ? [] : [{ transform: 'translateY(1px) scale(1.001, 0.999) rotate(-0.2deg)', offset: 0.5 }]),
     // Settle to neutral
     { transform: 'translateY(0) scale(1, 1) rotate(0deg)', offset: 1 },
   ];
   
-  const settleAnimation = avatarContainer.animate(settleBackKeyframes, {
+  avatarContainer.animate(settleBackKeyframes, {
     duration: DURATION.DELIBERATE,
-    easing: EASING.STANDARD,
+    easing: isCrisisFaceHeld() ? EASING.GENTLE : EASING.STANDARD,
     fill: 'forwards',
     composite: 'add',
   });
-  
-  settleAnimation.onfinish = () => {
-    // Animation complete, breathing handles the rest
-  };
+}
+
+/** A crisis hold started: the listening lean eases back, and an idle move heading out turns back. */
+function settleForHold(): void {
+  stopAttentiveLeanIn();
+  // An idle move goes out and back; past halfway it is already returning to rest
+  const idle = microIdleAnimation;
+  if (idle && (idle.effect?.getComputedTiming().progress ?? 1) < 0.5) idle.reverse();
 }
 
 /**
@@ -535,8 +530,8 @@ function startMicroIdleMovements(): void {
 function performMicroIdleMovement(): void {
   if (!avatarContainer) return;
   
-  // Don't do micro-movements while actively doing something
-  if (isSpeaking || isListening || microIdleAnimation) return;
+  // Not while actively doing something, under reduced motion, or in a crisis hold
+  if (isSpeaking || isListening || microIdleAnimation || !avatarMotionAllowed('idleMove')) return;
   
   // Random movement type
   const movementType = Math.floor(Math.random() * 4);
@@ -1290,6 +1285,8 @@ export function dispose(): void {
   disposeGaze();
   stopBlinking();
   stopMicroIdleMovements();
+  stopSettleOnHold?.();
+  stopSettleOnHold = null;
 
   if (breathingAnimation) {
     breathingAnimation.cancel();
