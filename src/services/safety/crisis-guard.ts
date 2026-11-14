@@ -48,6 +48,7 @@ import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
+  laterImminent,
   PASSIVE_IDEATION_PATTERNS,
   PLAN_OR_MEANS_PATTERNS,
   SESSION_CONTEXT_PATTERNS,
@@ -133,18 +134,6 @@ interface TextScore {
   hardSelf: boolean;
   /** What this turn counts for in a later turn's session check: its self read as before #2528. */
   sessionSeverity: number;
-}
-
-/**
- * Whether an imminent pattern after index `from` reads plainly (no negation, past, joke,
- * condition or someone else). The read stops at its first plain match, which must never hide a
- * later 911: "i want to die. i just took all my pills" is imminent.
- */
-function laterImminent(text: string, from: number): boolean {
-  return EXPLICIT_CRISIS_PATTERNS.slice(from).some(({ re, imminent }) => {
-    const match = imminent ? re.exec(text) : null;
-    return !!match && !explicitModifier(text, match.index, match.index + match[0].length, true);
-  });
 }
 
 /** Score one message from its words alone. */
