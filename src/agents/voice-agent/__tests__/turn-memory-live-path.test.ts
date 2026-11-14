@@ -79,7 +79,9 @@ const guardHit = vi.hoisted(() => (what: string) => {
   Error.stackTraceLimit = limit;
   spy.realCalls++;
   spy.realSdk.push(what);
-  spy.realLog.push(`${what} during "${expect.getState().currentTestName ?? '(between rows)'}"\n${stack}`);
+  spy.realLog.push(
+    `${what} during "${expect.getState().currentTestName ?? '(between rows)'}"\n${stack}`
+  );
 });
 /** A model SDK's client constructor: counted and refused, so a path left unstubbed fails its row. */
 const noModelClient = vi.hoisted(
@@ -202,7 +204,7 @@ vi.mock('../../../config/gemini-config.js', async (orig) => {
     const crisis = spy.gemini && JSON.stringify(req).includes('Quillmere');
     // The classifier's user content is JSON {latest, earlier, companion} (classifyCrisis).
     const parts = (req as { contents?: Array<{ parts?: Array<{ text?: string }> }> }).contents;
-    let seen: { latest?: string; earlier?: string[] } = {};
+    let seen: { latest?: string; earlier?: string[] };
     try {
       seen = JSON.parse(parts?.[0]?.parts?.[0]?.text ?? '{}');
     } catch {
@@ -223,7 +225,12 @@ vi.mock('../../../config/gemini-config.js', async (orig) => {
 // The semantic detector is out of scope here: "nothing detected", no model call. Its regex-first
 // fallback is not copied; the turn path keeps its own regex reads (integration.ts:779-797).
 vi.mock('../../../services/superhuman/semantic-intelligence/llm-detector.js', () => {
-  const noAdvice = () => ({ containsAdvice: false, adviceText: null, category: null, confidence: 0 });
+  const noAdvice = () => ({
+    containsAdvice: false,
+    adviceText: null,
+    category: null,
+    confidence: 0,
+  });
   return {
     detectAdviceWithLLM: async () => noAdvice(),
     extractPersonsWithLLM: async () => [],
@@ -781,7 +788,10 @@ async function drivenTurn(
   const waiting = new Map<number, () => void>();
   const call = liveSession({
     ...opts,
-    gate: (text) => new Promise((go) => waiting.set(texts.indexOf(text) + 1, go)),
+    gate: (text) =>
+      new Promise((go) => {
+        waiting.set(texts.indexOf(text) + 1, go);
+      }),
   });
   for (const segment of segments) call.say(segment);
   call.agentThinks();
