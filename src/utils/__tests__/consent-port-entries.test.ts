@@ -18,7 +18,6 @@ vi.mock('../../services/outreach/forget-follow-ups-adapter.js', () => ({
 }));
 vi.mock('../../memory/dynamic/async-events-config.js', () => ({ configureAsyncEvents: vi.fn() }));
 vi.mock('../../memory/dynamic/index.js', () => ({
-  configureSyncService: vi.fn(),
   startDeepExtractionWorker: vi.fn(),
 }));
 vi.mock('../../memory/knowledge-graph/index.js', () => ({

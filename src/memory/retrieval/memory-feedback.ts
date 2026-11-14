@@ -13,7 +13,6 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { isSpannerReady, markAnchorRecalled } from '../spanner-graph/index.js';
 import type { AttributionResult } from './recall-attribution.js';
 
 const log = createLogger({ module: 'MemoryFeedback' });
@@ -74,33 +73,6 @@ export async function applyAttributionFeedback(
       },
       '📈 Attribution feedback applied (learning engine integration pending full memory context)'
     );
-  }
-
-  // Original Spanner feedback
-  if (!isSpannerReady()) return;
-
-  for (const attr of attributions) {
-    try {
-      if (attr.type === 'anchor') {
-        // Update anchor recall count in Spanner
-        await markAnchorRecalled(userId, attr.fullId);
-
-        log.debug(
-          {
-            userId,
-            anchorId: attr.fullId,
-            explicit: attr.explicit,
-            confidence: attr.confidence,
-          },
-          '📈 Updated anchor recall count'
-        );
-      }
-
-      // Thread attribution tracking is handled by the thread's session count
-      // Semantic matches don't need persistent tracking (they're dynamic)
-    } catch (error) {
-      log.debug({ error: String(error), attr }, 'Failed to apply feedback for attribution');
-    }
   }
 }
 
@@ -206,7 +178,7 @@ export function adjustScoreForUsage(
  * This is a heavy operation - use sparingly.
  */
 export async function applyDecayForUser(_userId: string): Promise<void> {
-  // Note: This would require a Spanner batch update query.
+  // Note: This would require a batch update of stored memories.
   // For now, decay is applied at retrieval time using calculateSignificanceDecay.
   // A background job could implement this later for true persistence.
   log.debug('Decay is applied at retrieval time, not persisted');
