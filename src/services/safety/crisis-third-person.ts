@@ -89,6 +89,88 @@ const NOT_BREATHING = new RegExp(
 );
 const UNRESPONSIVE = new RegExp(String.raw`\b${OTHER}(?: [a-z]+)?${AUX} unresponsive\b`);
 
+/** A child who "went down" is down for a nap (owner, 2026-11-07): "my son just went down". No alarm. */
+const NAP = String.raw`(?!(?:son|daughter|kid|niece|nephew|grandson|granddaughter)(?:'s| has)?(?: just)? (?:went|gone) down\b)`;
+/**
+ * Someone close, by who they are to the caller: never a pronoun, so a story about "he" stays one.
+ * Family past the household and the people around them count too (owner, 2026-11-07: a third person
+ * who collapsed is 911 first, always): "my uncle collapsed", "my neighbor fainted".
+ */
+const CLOSE = String.raw`(?:my|our) (?:best )?${NAP}(?:dad|mom|mum|father|mother|grandma|grandmother|grandpa|grandfather|brother|sister|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|friend|roommate|uncle|aunt|auntie|cousin|niece|nephew|grandson|granddaughter|neighbor|neighbour|coworker)`;
+const PLACE = String.raw`(?:(?:back|over|out|in|right) there|(?:on|onto|in|into|at|down|off|outside|by|near) (?:the |a |an |his |her |their |our |my )?(?:floor|ground|kitchen|bathroom|shower|tub|bathtub|stairs|staircase|steps|driveway|yard|backyard|garden|garage|hallway|hall|bedroom|living room|street|sidewalk|road|parking lot|store|shop|office|work|gym|church|toilet|porch|deck|patio|basement|attic|lobby|restaurant|bus|train|car)(?: floor)?)`;
+/** Long enough ago that the fall is a story: "last year", "a few years ago", "back in 2019". */
+const LONG_AGO = String.raw`last (?:week|month|year|summer|winter|spring|fall|autumn|christmas)|(?:a|one|two|three|four|five|a few|a couple(?: of)?|several|\d+) (?:weeks?|months?|years?) (?:ago|back)|(?:weeks|months|years) ago|a while (?:ago|back)|(?:back )?in (?:19|20)\d\d`;
+/** Now, or close to it: read after a fall (WHEN), and it always keeps the 911 for them (closeWentDownIn). */
+const RECENT = String.raw`just now|right now|again|today|tonight|this (?:morning|afternoon|evening)|earlier(?: today)?|yesterday|last night|(?:(?:a|an|a few|a couple(?: of)?) )?(?:seconds?|minutes?|moments?|hours?) ago`;
+const WHEN = String.raw`${RECENT}|hard|${LONG_AGO}`;
+/** Up and well again, said plainly: "he's fine now", "she has recovered", "they're back on their feet". */
+const RECOVERED = String.raw`\b(?:(?:he|she|they)(?:'s|'re| is| are)|${CLOSE}(?:'s| is))(?: (?:totally|completely|all|doing))? (?:fine|okay|ok|alright|all right|all good|good|better|great|well) now\b|\b(?:he|she|they)(?:'s| has|'ve| have)(?: fully| totally| completely)? (?:recovered|healed)\b|\b(?:he|she|they) got better\b|\b(?:he's|she's|they're|he is|she is|they are) back on (?:his|her|their) feet\b`;
+/** What mask() leaves where it took out an everyday idiom: "my mom fell and can't get up to date". */
+const IDIOM_LATER = ' _ ';
+/** The clause ends after the fall, the place or the time: "my dad collapsed", "...on the floor, help". */
+const CLAUSE_END = String.raw`(?=$|[,;:]| (?:and|but|then|now|please|help|oh|um|uh|i|i'm|we|he|she|they|it|someone|somebody|call|can|can't|is|isn't|what)\b)`;
+/**
+ * Someone close went down, and nothing else is said about it (owner, 2026-11-07): "my dad
+ * collapsed", "my wife just fainted on the kitchen floor". Imminent, the same as "fell and can't
+ * get up". Never a fall long ago or one they are fine from ("my dad fell last year and he's fine
+ * now"), never a maybe ("if my mom fainted"), never a fall with an object or a direction after
+ * it ("passed out flyers", "went down to the store"), and never one an everyday idiom later in the
+ * sentence explains. Floor, ground or a not-getting-up word still reads it again unmasked. A fall
+ * "just now" or "right now" reads whatever follows ("my dad collapsed just now in the kitchen in
+ * march heat"), and "back there" is a place.
+ */
+const CLOSE_WENT_DOWN = new RegExp(
+  String.raw`(?<!\b(?:if|whether|case) |'s )\b${CLOSE}(?:(?:'s| has)(?: just)? (?:fallen|collapsed|passed out|fainted|blacked out|gone down)|(?: just)? (?:${DOWN}(?: down| over)?|went down))(?!(?: ${PLACE})? (?:${LONG_AGO})\b)(?:(?: ${PLACE}| (?:${WHEN})){0,2}${CLAUSE_END}|(?: ${PLACE})? (?:just now|right now)\b)`,
+  'g'
+);
+const RECOVERED_LATER = new RegExp(RECOVERED, 'g');
+/** A date long ago: "in march", "last march", "in 2019", "last year", "years ago". */
+const DATED = String.raw`(?:in|last) (?:january|february|march|april|may|june|july|august|september|october|november|december)|${LONG_AGO}`;
+/**
+ * Grief, and only this (fe, 2026-11-11; deny by default after two fail-open rounds, 2026-11-12):
+ * the fall's own clause goes on, word for word, to a death and then a date, "my mom collapsed and
+ * passed away in march", "...and died years ago". Nothing else drops the 911 for them: not a date
+ * earlier in the sentence, not "ever since" or "back when", and never a death alone ("my dad just
+ * collapsed and he died"). A long-ago time right after the fall ("my dad collapsed years ago",
+ * "when my mom fainted in 2019") never reads as a fall at all (CLOSE_WENT_DOWN).
+ */
+const DIED_LONG_AGO = new RegExp(
+  String.raw`^,? and (?:then )?(?:died|passed away|passed on)(?: ${PLACE})? (?:${DATED})\b`
+);
+/** Now, still down, or still happening, anywhere in the sentence: "yesterday", "now", "isn't breathing". */
+const NOW_OR_STILL = new RegExp(String.raw`\b(?:now|just|hard|${RECENT}|${NOT_UP})\b`);
+/** Any fall, even one told with "he" or "she": a second one in the sentence is never grief. */
+const A_FALL = new RegExp(String.raw`\b(?:${DOWN}|went down|gone down)\b`, 'g');
+/** Time words read after a fall, at most this far: each check stays linear in the text. */
+const NEAR = 120;
+/** The sentence says it is now or still an emergency, or tells a second fall: the grief guard never applies. */
+const nowOrStill = (said: string): boolean => {
+  if (NOW_OR_STILL.test(said) || STILL_EMERGENCY.test(said)) return true;
+  let falls = 0;
+  for (const _fall of said.matchAll(A_FALL)) if (++falls > 1) return true;
+  return false;
+};
+/**
+ * Read in two plain passes, never a lookahead (#3587: a lookahead re-scanned the rest of the
+ * sentence at every "my dad fell and", quadratic on a long message). The fall reads when it is
+ * told after the last "he's fine now" or masked idiom in its sentence, never before one, and
+ * unless its own clause is grief (DIED_LONG_AGO) in a sentence that says nothing of now
+ * (nowOrStill, read once, the first time a fall needs it).
+ */
+const closeWentDownIn = (said: string): boolean => {
+  let explained = said.lastIndexOf(IDIOM_LATER);
+  for (const later of said.matchAll(RECOVERED_LATER)) explained = Math.max(explained, later.index);
+  let stillHere: boolean | undefined;
+  for (const down of said.matchAll(CLOSE_WENT_DOWN)) {
+    const end = down.index + down[0].length;
+    if (end <= explained) continue;
+    if (!DIED_LONG_AGO.test(said.slice(end, end + NEAR))) return true;
+    stillHere ??= nowOrStill(said);
+    if (stillHere) return true;
+  }
+  return false;
+};
+
 /**
  * Everyday idioms built from the same words. Each one masks only its own words, and the rest of
  * the sentence is read again, so "cracked up laughing, then he fell and can't get up" still reads.
@@ -133,8 +215,22 @@ const reads = (said: string, masked: string): boolean =>
  * with nothing masked, so no idiom ever outweighs "on the floor" or "I shook him". Sleep gets no
  * clearance: "fell asleep and won't wake up", for any reason, is read as said. In doubt, recall wins.
  */
-export const thirdPartyEmergency = (text: string): boolean =>
+const readsIn = (text: string, read: (said: string, masked: string) => boolean): boolean =>
   text.split(/[.!?]+/).some((said) => {
     const masked = mask(said);
-    return reads(masked, masked) || (STILL_EMERGENCY.test(masked) && reads(said, masked));
+    return read(masked, masked) || (STILL_EMERGENCY.test(masked) && read(said, masked));
   });
+export const thirdPartyEmergency = (text: string): boolean => readsIn(text, reads);
+/** Someone close went down, read the same way (CLOSE_WENT_DOWN): crisis-guard.ts keeps the caller's own read beside it. */
+export const someoneCloseWentDown = (text: string): boolean => readsIn(text, closeWentDownIn);
+/** What a caller says about their own safety, said or denied: "suicidal", "kill myself", "hopeless". */
+const OWN_SAFETY = String.raw`suicid\w*|(?:kill|hurt|harm|cut)(?:ting|ing)? myself|cutting|end(?:ing)? (?:it|my life)|(?:want|wanna|wanted) to die|(?:could|gonna|going to) die|be here anymore|hopeless|a burden|anything stupid|do this anymore|unalive`;
+/** Up to six words from "I" to it, none of them someone else: "I'm not suicidal", never "I think he could die". */
+const SPOKE_OF_SELF = new RegExp(
+  String.raw`\bi(?:'m|'ve|'d|'ll)?(?: (?!(?:he|she|they|him|her|them|his)\b)[a-z']+){0,6} (?:${OWN_SAFETY})\b`
+);
+/**
+ * The caller spoke of their own safety in the turn, even to deny or soften it ("I'm not suicidal"):
+ * beside someone close going down, 988 goes with the 911 for them (owner, 2026-11-07).
+ */
+export const spokeOfSelf = (text: string): boolean => SPOKE_OF_SELF.test(text);
