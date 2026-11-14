@@ -179,8 +179,13 @@ describe('test files that step around the outbound guard', () => {
   }
   const { problems, marked } = census(texts, NAMED);
 
-  it('are on the list with their number of steps, or marked at each mock', () => {
-    console.info(markedReport(marked));
+  it('are on the list with their number of steps, or marked at each mock', async ({ annotate }) => {
+    // The marked set, where a reviewer can see it grow: a notice on the CI run (the github-actions
+    // reporter prints annotations), and the console for a local run with --silent=false. A plain
+    // local pass shows neither: vitest hides the output of passing rows.
+    const report = markedReport(marked);
+    console.info(report);
+    await annotate(report);
     expect(problems).toEqual([]);
   });
 
