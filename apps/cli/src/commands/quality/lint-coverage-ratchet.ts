@@ -54,10 +54,6 @@ export function ignoredFiles(results: EslintFile[]): string[] {
     .map((file) => file.filePath);
 }
 
-/** The problem line for a file ESLint skipped (see ignoredFiles). */
-export const skippedByEslint = (file: string): string =>
-  `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`;
-
 export function regressions(base: ErrorBaseline, now: ErrorBaseline): string[] {
   return Object.keys(now)
     .filter((file) => now[file]! > (base[file] ?? 0))
@@ -255,7 +251,14 @@ function main(): void {
     return;
   }
 
-  const problems = [...ignored.map(skippedByEslint), ...regressions(baseline, errors), ...stale];
+  const problems = [
+    ...ignored.map(
+      (file) =>
+        `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`
+    ),
+    ...regressions(baseline, errors),
+    ...stale,
+  ];
   console.log(
     `Lint coverage: ${Object.keys(errors).length} files with ${total} errors (baseline ${Object.values(baseline).reduce((s, n) => s + n, 0)}), ${warnings} warnings (not gated).`
   );

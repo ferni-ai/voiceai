@@ -20,10 +20,8 @@ import { pathToFileURL } from 'url';
 import { ESLint } from 'eslint';
 import {
   ROOTS,
-  ignoredFiles,
   isTestFile,
   regressions,
-  skippedByEslint,
   type ErrorBaseline,
   type EslintFile,
 } from './lint-coverage-ratchet.js';
@@ -57,6 +55,19 @@ function errorCounts(root: string, results: EslintFile[]): ErrorBaseline {
       .filter((file) => file.errorCount > 0)
       .map((file) => [relative(root, file.filePath), file.errorCount] as const)
   );
+}
+
+/** How each of ESLint's "not linted" answers starts: an ignore pattern, or no configuration for the file. */
+const NOT_LINTED = 'File ignored';
+
+/** One problem line per file ESLint did not lint: a file that is not linted reads as clean. */
+function notLinted(root: string, results: EslintFile[]): string[] {
+  return results.flatMap((file) => {
+    const why = file.messages.find((message) => message.message.startsWith(NOT_LINTED));
+    return why
+      ? [`${relative(root, file.filePath)}: eslint skipped this file (${why.message}), so it is not checked.`] // prettier-ignore
+      : [];
+  });
 }
 
 export interface ChangedTestLint {
@@ -94,17 +105,29 @@ export async function lintChangedTests(
     if (text !== undefined) base.push(...(await linter.text(text, file)));
   }
 
-  const ignored = ignoredFiles(head).map((file) => skippedByEslint(relative(root, file)));
   return {
     files,
-    problems: [...ignored, ...regressions(errorCounts(root, base), errorCounts(root, head))],
+    problems: [
+      ...notLinted(root, head),
+      ...regressions(errorCounts(root, base), errorCounts(root, head)),
+    ],
     warnings: head.reduce((sum, file) => sum + file.warningCount, 0),
   };
 }
 
-/** ESLint itself, in this process: one config load for the head files and the base texts. */
+/**
+ * ESLint itself, in this process: one config load for the head files and the base texts.
+ *
+ * Never as a "single run". In CI the TypeScript parser builds each project's program once and
+ * sends the second parse of a path to a program of that one file, with no imports and no lib
+ * (its fallback for a fix cycle). A base text is that second parse: its type-aware rules would
+ * see no types, so an old floating promise would read as new, and an `await` the base got
+ * right would read as an old error and hide a new one. Outside a single run both parses go
+ * through the watch program, which takes the text it is handed. One thread, so that order holds.
+ */
 export function eslintLinter(root = process.cwd()): Linter {
-  const eslint = new ESLint({ cwd: root });
+  process.env.TSESTREE_SINGLE_RUN = 'false';
+  const eslint = new ESLint({ cwd: root, concurrency: 'off' });
   return {
     files: (paths) => eslint.lintFiles(paths),
     text: (text, path) => eslint.lintText(text, { filePath: path, warnIgnored: true }),
