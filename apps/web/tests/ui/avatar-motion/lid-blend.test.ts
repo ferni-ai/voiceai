@@ -68,9 +68,8 @@ async function mountHappyAvatar(): Promise<void> {
         <div id="coachAvatar"></div>
       </div>
     </div>`;
+  // The same instance gsap-setup bundles, from this test's module graph.
   const { gsap } = await import('gsap');
-  // Production loads GSAP from the CDN as window.gsap; gsap-setup reads it at import.
-  (window as unknown as { gsap: typeof gsap }).gsap = gsap;
   const expressions = await import('../../../src/ui/ferni-expressions.ui.js');
   expressions.initFerniExpressions();
   expressions.setExpression('happy');
