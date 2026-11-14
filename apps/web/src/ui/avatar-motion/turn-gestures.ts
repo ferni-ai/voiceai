@@ -26,6 +26,7 @@
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
+import { avatarMotionAllowed } from './motion-allowed.js';
 
 const log = createLogger('TurnGestures');
 
@@ -133,6 +134,8 @@ export interface GestureTargets {
 export interface TurnGesturesDeps {
   targets: GestureTargets;
   reducedMotion(): boolean;
+  /** True while the body must stay still (the crisis hold), like reduced motion. */
+  steady?(): boolean;
 }
 
 export interface TurnGestures {
@@ -245,7 +248,7 @@ export function createTurnGestures(deps: TurnGesturesDeps): TurnGestures {
       }
       const gestures = gesturesFor(previous, next);
       previous = next;
-      const still = deps.reducedMotion();
+      const still = deps.reducedMotion() || (deps.steady?.() ?? false);
       for (const gesture of gestures) {
         // Releasing only undoes motion, so it runs even under reduced motion.
         if (still && gesture !== 'release-think') continue;
@@ -272,6 +275,7 @@ const defaultDeps: TurnGesturesDeps = {
   reducedMotion: () =>
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  steady: () => !avatarMotionAllowed('bodyTurn'),
 };
 
 let gestures: TurnGestures | null = null;

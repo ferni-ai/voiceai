@@ -79,6 +79,8 @@ let lidsFollowVoice = false;
 // DOM Elements
 let avatarContainer: HTMLElement | null = null;
 let avatarRing: HTMLElement | null = null;
+/** What the body and halo show: the voice, or, once motion is stopped, a level easing to rest. */
+let pulseLevel = 0;
 let lidTop: SVGPathElement | null = null;
 let lidBottom: SVGPathElement | null = null;
 let haloWaves: HTMLElement[] = [];
@@ -195,7 +197,7 @@ export function startSpeaking(): void {
   isSpeaking = true;
   lidBlendOn = isLidBlendEnabled();
   
-  if (animationFrame === null) {
+  if (animationFrame === null && avatarMotionAllowed('voicePulse')) {
     beginLoop();
     log.debug('🔊 Speaking animation started');
   }
@@ -231,7 +233,7 @@ export function updateVolume(volume: number): void {
   currentVolume = Math.max(0, Math.min(1, level));
   
   // Auto-start if volume comes in while not speaking
-  if (currentVolume > 0.05 && animationFrame === null) {
+  if (currentVolume > 0.05 && animationFrame === null && avatarMotionAllowed('voicePulse')) {
     isSpeaking = true;
     beginLoop();
   }
@@ -264,9 +266,20 @@ function animateLoop(): void {
     return;
   }
   
+  // Reduced motion or the crisis hold: the pulse eases to rest at the release
+  // rate (no snap), then the loop stops, as nothing else here may move then.
+  const pulsing = avatarMotionAllowed('voicePulse');
+  pulseLevel = pulsing ? smoothedVolume : pulseLevel * (1 - CONFIG.body.smoothingRelease);
+  if (!pulsing && pulseLevel < 0.001) {
+    pulseLevel = 0;
+    resetAllLayers();
+    animationFrame = null;
+    return;
+  }
+
   // Update all three layers
-  updateBodyPulse(smoothedVolume);
-  updateHaloPulse(smoothedVolume);
+  updateBodyPulse(pulseLevel);
+  updateHaloPulse(pulseLevel);
   updateLidMouth(smoothedVolume);
   
   // Continue loop
