@@ -7,14 +7,15 @@
  * - Tracks sanitization effectiveness over time
  *
  * What it records: a match is a piece of Ferni's reply, and replies echo callers' words.
- * On prod (any process not on a non-prod Firestore database) the log line and the stats
- * hold each issue's fixed pattern label and the reply's length, never the matched text or
- * a preview. A dev process records the matched text and a preview, for debugging.
+ * Anywhere but dev (any process not on dev's Firestore database, by its exact name) the
+ * log line and the stats hold each issue's fixed pattern label and the reply's length,
+ * never the matched text or a preview. A dev process records the matched text and a
+ * preview, for debugging.
  *
  * @module TTSMonitoring
  */
 
-import { isNonProdDatabase } from '../../config/firestore-database.js';
+import { isKnownDevDatabase } from '../../config/firestore-database.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -113,9 +114,9 @@ function unsafeMatches(text: string, pattern: SuspiciousPattern): string[] {
   );
 }
 
-/** What a log line or the stats may hold for an issue: its label on prod, its match on dev. */
+/** What a log line or the stats may hold for an issue: its match on dev, its label anywhere else. */
 function recordedIssue(issue: TTSIssue): string {
-  return isNonProdDatabase() ? issue.match : issue.label;
+  return isKnownDevDatabase() ? issue.match : issue.label;
 }
 
 /**
@@ -216,7 +217,7 @@ export function trackTTSCheck(result: TTSMonitorResult): void {
   if (result.hasIssues) {
     stats.issuesFound++;
     stats.lastIssueTime = new Date();
-    stats.lastIssueText = isNonProdDatabase() ? result.originalText.substring(0, 100) : undefined;
+    stats.lastIssueText = isKnownDevDatabase() ? result.originalText.substring(0, 100) : undefined;
     stats.lastIssueLength = result.originalText.length;
 
     // Count pattern occurrences

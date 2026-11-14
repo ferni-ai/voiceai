@@ -217,7 +217,7 @@ jobs:
           set -euo pipefail
           META="$RUNNER_TEMP/draft-meta.json"
           file=${DRAFT#"$GITHUB_WORKSPACE/"}
-          title=$(sed -n 's/^title: //p' "$DRAFT" | head -1 | jq -r .)
+          title=$(sed -n 's/^title: //p' "$DRAFT" | sed -n 1p | jq -r .)
           day=$(date -u +%F)
           branch="blog/draft-$TYPE-$day"
           if gh api "repos/$REPO/git/ref/heads/$branch" > /dev/null 2>&1; then

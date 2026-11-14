@@ -114,7 +114,7 @@ export async function confirmCallReportReached(
     };
     if (!items.some(holds)) return;
     offer.reached = true; // before any await: a second request this turn marks nothing
-    // holdUntilCleared (crisis-gate.ts) releases the reply only when there is no verdict.
+    // holdUntilCleared (crisis-gate-hold.ts) releases the reply only when there is no verdict.
     const verdict: unknown = await Promise.resolve(turn.held).catch(() => null);
     if (verdict == null) await markCarried(offer.userId, report);
     else offer.reached = false;

@@ -508,7 +508,6 @@ export const NOT_A_READER: Readonly<Record<string, string>> = {
   'src/memory/recall/forget.ts': 'forget itself',
   'src/memory/retrieval/bm25-search.ts': 'keyword leg read through prompt.hybridKeywordLegs',
   'src/memory/signals/user-memory-indexer.ts': 'indexer; checks forget before indexing',
-  'src/memory/spanner-graph/fact-sync-ops.ts': 'graph sync; skips forgotten facts',
   'src/memory/storage/call-summaries.ts': 'store behind recall.callSummaries',
   'src/memory/storage/episode-store.ts': 'store behind recall.episodes',
   'src/memory/storage/dispute-store.ts': 'writes disputes',

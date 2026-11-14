@@ -229,7 +229,7 @@ export async function correctRemembered(
     extractedAt: at,
     source: 'user-correction',
     corrects: id,
-    // the graph sync picks up only unsynced facts (fact-sync-ops.ts), as extraction writes them
+    // written as extraction writes it; the graph sync that read it has been removed
     syncedToSpanner: false,
   };
   // Every copy of the wrong fact, or recall serves the old value next to the new one

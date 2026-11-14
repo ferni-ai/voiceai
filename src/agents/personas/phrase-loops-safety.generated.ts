@@ -1,4 +1,4 @@
-import { TALK_TO_988_ES, SELF_HARM_911_LINE } from '../../services/safety/index.js';
+import { TALK_TO_988_ES, SELF_HARM_911_LINE, LATE_911_LINE } from '../../services/safety/index.js';
 
 /**
  * Every line of wording in the crisis and safety scripts (7 files), which
@@ -273,4 +273,5 @@ export const SAFETY_WORDING: readonly string[] = [
   ...SCRIPT_WORDING,
   TALK_TO_988_ES,
   SELF_HARM_911_LINE,
+  LATE_911_LINE,
 ];
