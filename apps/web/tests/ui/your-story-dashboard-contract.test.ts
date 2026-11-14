@@ -547,9 +547,9 @@ describe('Your Story care block ("What I\'ve Done for You"), a successful /api/s
     const care = () => frame('viz-actions-taken');
     await vi.waitFor(() => expect(care()?.querySelector('.viz-stat-card')).not.toBeNull());
 
-    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url))).toContain(
-      '/api/story/actions?limit=10'
-    );
+    expect(
+      vi.mocked(fetch).mock.calls.map(([url]) => (url instanceof Request ? url.url : String(url)))
+    ).toContain('/api/story/actions?limit=10');
     const stats = [...care()!.querySelectorAll('.viz-stat-card')].map((card) => [
       card.querySelector('.viz-stat-card__value')?.textContent,
       card.querySelector('.viz-stat-card__label')?.textContent,
@@ -560,7 +560,7 @@ describe('Your Story care block ("What I\'ve Done for You"), a successful /api/s
       ['2', t('visualizations.actionsTaken.reminders')],
       ['4', t('ferniKnows.commitments')],
     ]);
-    const text = care()!.textContent!;
+    const text = care()!.textContent;
     expect(text).toContain(t('visualizations.actionsTaken.keptProgress', { kept: 4, total: 5 }));
     expect(text).toContain('Called the bakery to move your cake pickup to Saturday');
     expect(text).toContain('Checked in about the pottery class, like I said I would');

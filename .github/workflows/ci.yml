@@ -1288,12 +1288,19 @@ jobs:
           cd apps/web
           pnpm typecheck
 
+      # tsconfig.json covers apps/web/src only, so apps/web/tests was never typechecked
+      # (503 old errors). The count of errors in tests/ may only go down (baseline:
+      # apps/web/tests-tsc-error-baseline.json); errors in root src files the tests import
+      # are the root typecheck's job and are not counted. A tsc crash fails the step.
+      - name: Web tests typecheck (ratchet)
+        run: node scripts/ci/web-tests-typecheck-ratchet.mjs
+
       - name: Architecture tests (layers, cycles, boundaries, naming, file size)
         run: |
           cd apps/web
           pnpm test:arch
 
-      # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
+      # Web ESLint has 283 old errors, so plain `pnpm lint` can't gate. The ratchet fails
       # when a rule gains errors or a baselined rule reports none (baseline:
       # ratchet-baseline.json "webEslint"). ESLint exits 1 for findings; any other exit (a
       # crash, a config it can't load) fails the step.
@@ -1301,6 +1308,17 @@ jobs:
         run: |
           (cd apps/web && pnpm lint --format json --output-file eslint.json) || [ $? -eq 1 ]
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
+
+      # The same web rules over apps/web/tests, which `pnpm lint` (src only) never reached.
+      # 305 old errors, ratcheted per rule the same way (baseline: ratchet-baseline.json
+      # "webTestsEslint"). Typed linting builds the tests' program, which pulls in the root
+      # src files they import, hence the bigger heap.
+      - name: Web tests ESLint (ratchet)
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: |
+          (cd apps/web && pnpm lint:tests --format json --output-file "$RUNNER_TEMP/web-tests-eslint.json") || [ $? -eq 1 ]
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint "$RUNNER_TEMP/web-tests-eslint.json" --as webTestsEslint
 
       # The design-system rules (eslint.design.config.mjs) on apps/web and packages/ferni-react.
       # ~6,600 old violations, so the ratchet fails only when a rule gains errors (baseline:

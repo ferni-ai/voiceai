@@ -1569,5 +1569,15 @@
   "@ferni/design-system/no-hardcoded-durations": 334,
   "@ferni/design-system/no-console-in-ui": 26,
   "@ferni/design-system/prefer-design-tokens": 136
+ },
+ "webTestsEslint": {
+  "@typescript-eslint/no-base-to-string": 21,
+  "@typescript-eslint/no-unused-vars": 79,
+  "no-misleading-character-class": 1,
+  "@typescript-eslint/no-unnecessary-type-assertion": 118,
+  "@typescript-eslint/no-redundant-type-constituents": 1,
+  "@typescript-eslint/unbound-method": 81,
+  "@typescript-eslint/no-explicit-any": 3,
+  "no-empty-pattern": 1
  }
 }

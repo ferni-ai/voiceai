@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "lint:tests": "eslint tests",
     "lint:tokens": "node scripts/validate-design-tokens.js",
     "lint:result-types": "node scripts/lint-result-types.js",
     "lint:i18n": "node scripts/lint-i18n.js",
