@@ -46,7 +46,7 @@ export function getGCPProjectId(): string | undefined {
   );
 }
 
-export { getFirestoreDatabase, isNonProdDatabase };
+export { getFirestoreDatabase };
 
 /** isNonProdDatabase(), logging what the caller is skipping because of it. */
 export function skipOnNonProdDatabase(what: string): boolean {
@@ -399,6 +399,5 @@ export default {
   isMusicEnabled,
   getGCPProjectId,
   getFirestoreDatabase,
-  isNonProdDatabase,
   skipOnNonProdDatabase,
 };
