@@ -97,8 +97,8 @@ const entries = readdirSync(folder).filter(
 );
 
 describe('the entries hand report() to process.exit', () => {
-  it('finds the offline and the model entry', () => {
-    expect(entries).toEqual(expect.arrayContaining(['model.ts', 'offline.ts']));
+  it('finds the offline, the model and the benchmark entry', () => {
+    expect(entries).toEqual(expect.arrayContaining(['bth.ts', 'model.ts', 'offline.ts']));
   });
 
   it.each(entries)('%s: every report() call is the argument of process.exit', (file) => {
