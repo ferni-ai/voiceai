@@ -237,6 +237,13 @@ const ALL_MOMENTS = [
 ];
 /** Words that make every unified moment fire on a sad, intense turn (with LONG in front). */
 const EVERY_MOMENT = `${HAPPY}i admit i was scared, `;
+/**
+ * A laugh, thanks, a correction, a preference and a line the patterns do not flag: on a turn read
+ * as ordinary (turn count a multiple of 3) every post-turn site of the handler writes.
+ */
+const EVERY_RECORDER =
+  "lol thank you for listening, actually it's the blue mug, i always drink my tea in the " +
+  'morning, honestly nothing feels worth it lately';
 
 interface Crisis {
   isCrisis: boolean;
@@ -500,10 +507,6 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
  * crisis read, in its own PR.
  */
 describe('known gap: the classifier gives no answer on a line the patterns miss', () => {
-  /** A laugh, thanks, a correction, a preference and a line the patterns do not flag. */
-  const GAP =
-    "lol thank you for listening, actually it's the blue mug, i always drink my tea in the " +
-    'morning, honestly nothing feels worth it lately';
   /** What main's source records on this turn, run with this file (sorted). */
   const AS_ON_MAIN = [
     'correction',
@@ -517,7 +520,7 @@ describe('known gap: the classifier gives no answer on a line the patterns miss'
   it.each([NEVER, FAILS])(
     'model call %s: the turn reads as ordinary and records as on main',
     async (read) => {
-      const turn = await runTurn(GAP, LIVE, read, 'sad', 6);
+      const turn = await runTurn(EVERY_RECORDER, LIVE, read, 'sad', 6);
       expect(turn.asked).toBeGreaterThan(0);
       expect(turn.realClient).toBe(0);
       expect(turn.level).toBe('pass');
@@ -527,7 +530,7 @@ describe('known gap: the classifier gives no answer on a line the patterns miss'
   );
 
   it("the same line with a crisis verdict is a crisis turn and the handler's recorders record nothing", async () => {
-    const turn = await runTurn(GAP, LIVE, CRISIS, 'sad', 6);
+    const turn = await runTurn(EVERY_RECORDER, LIVE, CRISIS, 'sad', 6);
     expect(turn.realClient).toBe(0);
     expect(turn.level).not.toBe('pass');
     expect(turn.writes).toEqual([]);
@@ -644,6 +647,39 @@ describe('the bond message to the client', () => {
       expect(held.level).toBe('absent');
       expect(bond(held)).toBe(0);
       expect(warmth(held)).toBe(0);
+    }
+  );
+
+  // A missing crisis field counts as a crisis turn at every post-turn site: the learning context
+  // (correction, preference, shared moment), the moment recorder, both relational milestones
+  // (thanks, and distress over 0.5), and semantic intelligence on both paths. The ordinary run of
+  // the same line and distress proves each site writes, so each held zero follows a run that writes.
+  it.each(['undefined', 'null'] as const)(
+    'a turn whose crisis field is %s is held at every post-turn site (fail closed)',
+    async (field) => {
+      const ordinary = await runTurn(EVERY_RECORDER, LIVE, NO_RISK, 'sad', 6, 0.9);
+      expect(ordinary.level).toBe('pass');
+      expect(bond(ordinary)).toBeGreaterThan(0);
+      for (const write of [
+        'correction', // the learning context
+        'preference',
+        'shared-moment',
+        'moment:laughter', // the moment recorder
+        'milestone:expressed-gratitude', // relational memory
+        'milestone:first-vulnerability',
+      ]) {
+        expect(ordinary.writes, write).toContain(write);
+      }
+      expect(ordinary.semanticReads).toEqual([false, false]); // both semantic paths
+
+      const held = await runTurn(EVERY_RECORDER, LIVE, NO_RISK, 'sad', 6, 0.9, {
+        crisisField: field,
+      });
+      expect(held.level).toBe('absent');
+      expect(bond(held)).toBe(0);
+      expect(warmth(held)).toBe(0);
+      expect(held.writes).toEqual([]);
+      expect(held.semanticReads).toEqual([true, true]);
     }
   );
 
