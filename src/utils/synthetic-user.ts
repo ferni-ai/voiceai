@@ -146,10 +146,13 @@ const DEMO_USER_PREFIX = `device:${DEMO_DEVICE_ID_PREFIX}`;
 
 /**
  * Whether this id is an anonymous try-first (demo) visitor's: someone who tapped "Talk to Ferni"
- * without signing in. A new id every call, so it names nobody who could export or delete it.
+ * without signing in. /demo-token mints a new id for each visit, so it names nobody who could
+ * export or delete it.
  *
- * PRIVACY: the visitor was told "No account needed", and nothing from the call is kept: no
- * transcript, summary, memory, knowledge graph or profile. This is the one check for that, asked
+ * PRIVACY: the visitor was told "No account needed", and nothing from the call is kept (no
+ * transcript, summary, memory, knowledge graph or profile) except a minimal safety note when the
+ * call had a crisis: its time, crisis flags, severity and caller turn, never words, kept
+ * permanently (human-transfer/index.ts logCrisisSignal). This is the one check for that, asked
  * where the stores already decide: session/validation.ts validateUserId (the session's own
  * profile, conversation and turns), memory/storage/profile-save-guard.ts notStored (every profile
  * save), minor-care.ts memoryHeld and userHeld (every writer's hold, and every
