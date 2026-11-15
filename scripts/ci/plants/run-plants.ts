@@ -2,29 +2,44 @@
 /**
  * Planted-bug checks: does each test a PR names actually catch the bug it claims to?
  * A plant breaks one spot in the code (a literal `find` that must occur exactly once,
- * replaced by `replace`) and names the test that must then fail. The runner plants one
+ * replaced by `replace`) and names the test row that must then fail. The runner plants one
  * at a time, runs only that test file in its own vitest process, restores the file and
  * requires a clean tree before the next plant.
  *
- * A plant counts only as RED: its `expectRed` test failed with an AssertionError. A
- * file that failed to load, a different test failing, a throw that is not an assertion,
- * a timeout or a pass all count against it. The baseline (the test file unplanted) must
- * pass first, with the `expectRed` test in it.
+ * A plant counts only as RED: its `expectRed` row (the full title, suites and test joined by
+ * " > ", matched exactly) failed with an error whose name is AssertionError. A file that
+ * failed to load, a different row failing, a throw that is not an assertion, a timeout or a
+ * pass all count against it. The baseline (the test file unplanted) must pass first, with the
+ * `expectRed` row in it.
  *
- * The logs are public (public repo), so the runner prints only plant ids, verdicts,
- * failing test names, error classes and seconds: never an assertion message, a diff or
- * source. vitest's own output is discarded; its JSON report goes to a temp file. A plant
- * on a held-out, sealed, blind, corpus or fixture path is refused before anything is
- * written. Tests run with an allowlisted environment, so no token reaches them.
+ * The logs are public (public repo), so the runner prints only plant ids, verdicts, failing
+ * row titles, error names and seconds: never an assertion message, a diff or source. vitest's
+ * own output is discarded, and a small reporter writes only titles, states and error names.
+ *
+ * Paths are checked where they really lead, before anything is written: a plant or test on a
+ * held-out, sealed, blind, corpus or fixture path, outside the checkout, or reached through a
+ * symbolic link anywhere in the path, is refused. Tests run with an allowlisted environment
+ * and a throwaway HOME, so no token and no file under the real HOME reaches them.
  *
  *   node --experimental-strip-types scripts/ci/plants/run-plants.ts --root <checkout> <manifest.json>...
+ * PLANT_TIMEOUT_MS (default 180000) caps each vitest process; PLANT_VITEST_CONFIG (default
+ * vitest.config.unit.ts) picks its config.
  * Manifest: {"plants": [{"id", "file", "find", "replace", "test", "expectRed"}]}.
  * Exit 0 when every plant is RED, 1 when any is not, 2 on a bad manifest.
  */
 import { execFileSync, spawnSync } from 'child_process';
-import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  appendFileSync,
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
-import { isAbsolute, join, normalize, resolve } from 'path';
+import { isAbsolute, join, normalize, relative, resolve, sep } from 'path';
 import { pathToFileURL } from 'url';
 
 export type Plant = {
@@ -49,11 +64,13 @@ export type Verdict =
   | 'NO SUCH TEST'
   | 'REFUSED (sealed path)'
   | 'REFUSED (outside repo)'
+  | 'REFUSED (link)'
   | 'DIRTY'
   | 'SKIPPED';
 
+/** One test row: its full title, its state, and the name of its first error. */
 export type TestCase = { fullName: string; status: string; errorClass?: string };
-/** One vitest run, reduced to what may be printed: names, statuses, error classes. */
+/** One vitest run, reduced to what may be printed: titles, states, error names. */
 export type TestReport =
   | { kind: 'report'; loadFailed: boolean; tests: TestCase[] }
   | { kind: 'timeout' }
@@ -78,7 +95,37 @@ export function isSealedPath(path: string): boolean {
 
 function insideRepo(path: string): boolean {
   const p = normalize(path);
-  return !isAbsolute(p) && p !== '..' && !p.startsWith('../');
+  return !isAbsolute(p) && p !== '..' && !p.startsWith(`..${sep}`);
+}
+
+/**
+ * Refuses a path by where it really leads, not by how it is spelt. `realRoot` must already be
+ * a realpath. The spelling is checked first, then the realpath of the target (outside the
+ * checkout, or onto a sealed path), then every part of the path is lstat'd so that a link to
+ * an ordinary file is refused too: the plant would be written through it and not restored.
+ */
+export function pathVerdict(realRoot: string, rel: string): Verdict | null {
+  if (isSealedPath(rel)) return 'REFUSED (sealed path)';
+  if (!insideRepo(rel)) return 'REFUSED (outside repo)';
+  const full = join(realRoot, rel);
+  if (existsSync(full)) {
+    const real = realpathSync(full);
+    const back = relative(realRoot, real);
+    if (back === '' || !insideRepo(back)) return 'REFUSED (outside repo)';
+    if (isSealedPath(back)) return 'REFUSED (sealed path)';
+  }
+  let at = realRoot;
+  for (const part of normalize(rel).split(sep).filter(Boolean)) {
+    at = join(at, part);
+    let isLink: boolean;
+    try {
+      isLink = lstatSync(at).isSymbolicLink();
+    } catch {
+      return null; // missing from here on: nothing to follow, and nothing will be written
+    }
+    if (isLink) return 'REFUSED (link)';
+  }
+  return null;
 }
 
 const FIELDS = ['id', 'file', 'find', 'replace', 'test', 'expectRed'] as const;
@@ -112,10 +159,13 @@ function occurrences(text: string, find: string): number {
   return n;
 }
 
+/** The row a plant names: the whole title, exactly. A part of a title names nothing. */
+const isRow = (t: TestCase, title: string) => t.fullName === title;
+
 const failingNames = (r: TestReport): string[] =>
   r.kind === 'report' ? r.tests.filter((t) => t.status === 'failed').map((t) => t.fullName) : [];
 
-/** The verdict for one planted run. Pure: reads names, statuses and classes only. */
+/** The verdict for one planted run. Pure: reads titles, states and error names only. */
 export function judge(
   report: TestReport,
   expectRed: string
@@ -126,20 +176,19 @@ export function judge(
   }
   const failed = report.tests.filter((t) => t.status === 'failed');
   if (failed.length === 0) return { verdict: 'GREEN' };
-  const target = failed.filter((t) => t.fullName.includes(expectRed));
-  if (target.length === 0) return { verdict: 'RED (other test)' };
-  const asserted = target.find((t) => t.errorClass === 'AssertionError');
-  return asserted
+  const target = failed.find((t) => isRow(t, expectRed));
+  if (!target) return { verdict: 'RED (other test)' };
+  return target.errorClass === 'AssertionError'
     ? { verdict: 'RED', errorClass: 'AssertionError' }
-    : { verdict: 'RED (not an assertion)', errorClass: target[0].errorClass };
+    : { verdict: 'RED (not an assertion)', errorClass: target.errorClass };
 }
 
-/** A baseline is usable when it loaded, nothing failed, and the expectRed test passed. */
+/** A baseline is usable when it loaded, nothing failed, and the expectRed row passed. */
 function baselineVerdict(report: TestReport, expectRed: string): Verdict | null {
   if (report.kind !== 'report' || report.loadFailed || failingNames(report).length > 0) {
     return 'BASELINE RED';
   }
-  const named = report.tests.some((t) => t.fullName.includes(expectRed) && t.status === 'passed');
+  const named = report.tests.some((t) => isRow(t, expectRed) && t.status === 'passed');
   return named ? null : 'NO SUCH TEST';
 }
 
@@ -152,7 +201,8 @@ const clean = (root: string) => git(root, ['status', '--porcelain']).trim() === 
 export function runPlants(plants: Plant[], root: string, runTest: RunTest): Result[] {
   const results: Result[] = [];
   const baselines = new Map<string, TestReport>();
-  let stopped = !clean(root);
+  const realRoot = realpathSync(root);
+  let stopped = !clean(realRoot);
   for (const p of plants) {
     const t0 = Date.now();
     const done = (verdict: Verdict, extra: Partial<Result> = {}) =>
@@ -161,12 +211,9 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
       done(results.length === 0 ? 'DIRTY' : 'SKIPPED');
       continue;
     }
-    if (isSealedPath(p.file) || isSealedPath(p.test)) {
-      done('REFUSED (sealed path)');
-      continue;
-    }
-    if (!insideRepo(p.file) || !insideRepo(p.test)) {
-      done('REFUSED (outside repo)');
+    const refused = pathVerdict(realRoot, p.file) ?? pathVerdict(realRoot, p.test);
+    if (refused) {
+      done(refused);
       continue;
     }
     if (!baselines.has(p.test)) baselines.set(p.test, runTest(p.test));
@@ -175,7 +222,7 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
       done(base);
       continue;
     }
-    const path = join(root, p.file);
+    const path = join(realRoot, p.file);
     const text = existsSync(path) ? readFileSync(path, 'utf8') : '';
     const hits = occurrences(text, p.find);
     if (hits !== 1) {
@@ -187,13 +234,13 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
       text.replace(p.find, () => p.replace)
     );
     let report: TestReport = { kind: 'no-report' };
-    const planted = git(root, ['status', '--porcelain', '--', p.file]).trim() !== '';
+    const planted = git(realRoot, ['status', '--porcelain', '--', p.file]).trim() !== '';
     try {
       if (planted) report = runTest(p.test);
     } finally {
-      git(root, ['checkout', '--', p.file]);
+      git(realRoot, ['checkout', '--', p.file]);
     }
-    if (!clean(root)) {
+    if (!clean(realRoot)) {
       stopped = true;
       done('DIRTY');
       continue;
@@ -208,44 +255,74 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
   return results;
 }
 
-type VitestJson = {
-  testResults?: Array<{
-    status?: string;
-    message?: string;
-    assertionResults?: Array<{ fullName?: string; status?: string; failureMessages?: string[] }>;
+/** What the reporter below writes: no message, stack, diff or value, only these fields. */
+type PlantReportJson = {
+  unhandled?: number;
+  modules?: Array<{
+    errors?: number;
+    tests?: Array<{ fullName?: unknown; status?: unknown; errorName?: unknown }>;
   }>;
 };
 
-/** Reduces vitest's JSON report to names, statuses and error classes; messages are dropped. */
-export function parseVitestJson(json: VitestJson): TestReport {
-  const files = json.testResults ?? [];
+/**
+ * Reduces the reporter's file to titles, states and error names. Anything else in it is
+ * dropped. A module-level error, an unhandled error, or no module at all is a load failure.
+ */
+export function parsePlantReport(json: PlantReportJson): TestReport {
+  const modules = json.modules ?? [];
+  let loadFailed = modules.length === 0 || (json.unhandled ?? 0) > 0;
   const tests: TestCase[] = [];
-  let loadFailed = files.length === 0;
-  for (const f of files) {
-    const cases = f.assertionResults ?? [];
-    if (f.status === 'failed' && cases.length === 0) loadFailed = true;
-    for (const c of cases) {
-      const first = c.failureMessages?.[0] ?? '';
-      const errorClass = /^([A-Za-z_$][\w$]*(?:Error|Exception))\b/.exec(first)?.[1];
-      tests.push({ fullName: c.fullName ?? '', status: c.status ?? 'unknown', errorClass });
+  for (const m of modules) {
+    if ((m.errors ?? 0) > 0) loadFailed = true;
+    for (const t of m.tests ?? []) {
+      const errorClass = typeof t.errorName === 'string' ? t.errorName : undefined;
+      tests.push({
+        fullName: typeof t.fullName === 'string' ? t.fullName : '',
+        status: typeof t.status === 'string' ? t.status : 'unknown',
+        ...(errorClass ? { errorClass } : {}),
+      });
     }
   }
   return { kind: 'report', loadFailed, tests };
 }
 
-/** Only these reach the test process: no GITHUB_TOKEN, no secrets. */
-const ENV_ALLOW = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'CI', 'NODE_OPTIONS'];
+/**
+ * A vitest reporter that writes only each row's full title, its state and its first error's
+ * name to `out`. The error name is the thrown object's own name (AssertionError for a failed
+ * expect), never parsed out of a message.
+ */
+const reporterSource = (out: string) => `import { writeFileSync } from 'node:fs';
+export default class PlantReporter {
+  onTestRunEnd(modules, unhandled) {
+    const report = { unhandled: unhandled.length, modules: [] };
+    for (const m of modules) {
+      const tests = [];
+      for (const t of m.children.allTests()) {
+        const name = t.result().errors?.[0]?.name;
+        tests.push({ fullName: t.fullName, status: t.result().state, errorName: typeof name === 'string' ? name : null });
+      }
+      report.modules.push({ errors: m.errors().length, tests });
+    }
+    writeFileSync(${JSON.stringify(out)}, JSON.stringify(report));
+  }
+}
+`;
+
+/** Only these reach the test process: no GITHUB_TOKEN, no secrets. HOME is the run's own temp dir. */
+const ENV_ALLOW = ['PATH', 'TMPDIR', 'LANG', 'CI', 'NODE_OPTIONS'];
 
 /** The real runner: one vitest process per call, its output discarded, its report parsed. */
 export function vitestRunner(root: string, config: string, timeoutMs: number): RunTest {
   return (testFile) => {
     const dir = mkdtempSync(join(tmpdir(), 'plants-'));
     const out = join(dir, 'report.json');
-    const env: NodeJS.ProcessEnv = { NODE_ENV: 'test' };
+    const reporter = join(dir, 'reporter.mjs');
+    writeFileSync(reporter, reporterSource(out));
+    const env: NodeJS.ProcessEnv = { NODE_ENV: 'test', HOME: dir };
     for (const k of ENV_ALLOW) if (process.env[k] !== undefined) env[k] = process.env[k];
     try {
       const bin = join(root, 'node_modules/.bin/vitest');
-      const args = ['run', '--config', config, testFile, '--reporter=json', `--outputFile=${out}`];
+      const args = ['run', '--config', config, testFile, `--reporter=${reporter}`];
       const run = spawnSync(bin, args, {
         cwd: root,
         env,
@@ -256,7 +333,7 @@ export function vitestRunner(root: string, config: string, timeoutMs: number): R
       if (run.error && (run.error as NodeJS.ErrnoException).code === 'ETIMEDOUT')
         return { kind: 'timeout' };
       if (!existsSync(out)) return { kind: 'no-report' };
-      return parseVitestJson(JSON.parse(readFileSync(out, 'utf8')) as VitestJson);
+      return parsePlantReport(JSON.parse(readFileSync(out, 'utf8')) as PlantReportJson);
     } catch {
       return { kind: 'no-report' };
     } finally {
