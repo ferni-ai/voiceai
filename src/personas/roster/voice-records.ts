@@ -9,6 +9,7 @@
  * @module personas/roster/voice-records
  */
 
+import type { Env } from '../../config/env-flag.js';
 import { RETIRED_CLONES } from '../../config/voice-ids.js';
 import { FULL_LEGEND_CONSENT, type ConsentedCloneRecord } from './domain/voice-record.js';
 
@@ -28,8 +29,12 @@ export const LEGEND_VOICE_RECORDS: readonly ConsentedCloneRecord[] = [
   },
 ];
 
-/** The record for a listing, or undefined when it has none. */
-export function legendVoiceRecordFor(listingId: string): ConsentedCloneRecord | undefined {
-  const id = listingId.trim().toLowerCase();
-  return LEGEND_VOICE_RECORDS.find((r) => r.listingId === id);
+/**
+ * Every legend clone voice id that is configured. Only its own listing may
+ * speak in one, so anything else (a custom agent) must refuse them all.
+ */
+export function configuredLegendVoiceIds(env: Env = process.env): string[] {
+  return LEGEND_VOICE_RECORDS.map((r) => env[r.voiceSetting]?.trim()).filter((id): id is string =>
+    Boolean(id)
+  );
 }

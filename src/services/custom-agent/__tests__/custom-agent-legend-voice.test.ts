@@ -1,7 +1,7 @@
 /**
  * A custom agent may never speak in a legend's consented clone: only the legend
- * its record names may (personas/roster). A configured legend voice is refused
- * with LEGENDS_AS_THEMSELVES on or off. The voice id here is invented.
+ * its record names may (personas/roster). A configured legend voice is refused.
+ * The voice id here is invented.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { configuredLegendVoiceIds } from '../../../personas/roster/index.js';
@@ -20,8 +20,7 @@ describe('a custom agent and a legend voice', () => {
     expect(isForbiddenCustomAgentVoiceId(INVENTED_VOICE)).toBe(false);
   });
 
-  it.each(['off', 'on'])('may never use a configured legend voice (flag %s)', (flag) => {
-    vi.stubEnv('LEGENDS_AS_THEMSELVES', flag);
+  it('may never use a configured legend voice', () => {
     vi.stubEnv('LEGEND_VOICE_JOHN_BOGLE', INVENTED_VOICE);
     expect(configuredLegendVoiceIds()).toEqual([INVENTED_VOICE]);
     expect(isForbiddenCustomAgentVoiceId(INVENTED_VOICE)).toBe(true);

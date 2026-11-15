@@ -9,8 +9,8 @@
  *
  * An agent may use a stock library voice listed here, or its own clone (only
  * the clone route writes `type: 'cloned'`), and never a retired clone or a
- * persona's voice, and never a legend's consented clone (personas/roster), set
- * or admitted. Checked when the voice is written and again at runtime.
+ * persona's voice, and never a legend's consented clone once its setting holds
+ * one (personas/roster). Checked when the voice is written and again at runtime.
  *
  * @module services/custom-agent/custom-agent-voice-policy
  */
