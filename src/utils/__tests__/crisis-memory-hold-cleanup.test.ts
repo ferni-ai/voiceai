@@ -96,7 +96,8 @@ import {
   resetCrisisCallRisk,
   trackCrisisRead,
 } from '../../services/safety/crisis-call-risk.js';
-import { bindSessionUser, memoryHeld, resetMinorCare } from '../minor-care.js';
+import { bindSessionUser, memoryHeld, resetMinorCare, userHeld } from '../minor-care.js';
+import { holdForSexualTopic, resetSexualTopicHold } from '../sexual-topic-hold.js';
 import type { SessionServices } from '../../services/types.js';
 import type { PersonaConfig } from '../../personas/types.js';
 
@@ -133,6 +134,8 @@ beforeEach(() => {
 afterEach(() => {
   resetCrisisCallRisk();
   resetMinorCare();
+  resetSexualTopicHold();
+  vi.unstubAllEnvs();
 });
 
 describe('cleanup-handler after a crisis read', { timeout: BUDGET_MS + 10_000 }, () => {
@@ -160,6 +163,16 @@ describe('cleanup-handler after a crisis read', { timeout: BUDGET_MS + 10_000 },
     await ending;
     expect(memoryHeld(sessionId)).toBe(true);
     expect(w.promote).not.toHaveBeenCalled();
+  });
+
+  it('a call not held, its caller held on another call (userHeld): no promotion', async () => {
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    const { sessionId, userId } = call();
+    holdForSexualTopic(`${sessionId}-other`, userId);
+    expect([memoryHeld(sessionId), userHeld(userId)]).toEqual([false, true]);
+    await cleanup(sessionId, userId);
+    expect(w.promote).not.toHaveBeenCalled();
+    expect(w.trust).not.toHaveBeenCalled();
   });
 
   it('an ordinary call still promotes with the real userId', async () => {

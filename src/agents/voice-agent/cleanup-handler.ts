@@ -15,7 +15,7 @@ import {
 } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
-import { heldReadsSettled, memoryHeld, minorHeld } from '../../utils/minor-care.js';
+import { heldReadsSettled, memoryHeld, minorHeld, userHeld } from '../../utils/minor-care.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { purgeHeldUser } from './minor-care-purge.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
@@ -395,7 +395,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // memoryUserId: undefined when held (MINOR_CARE, a sexual topic or a crisis; reads settle first)
   // or an on-behalf call's id. Raw userId: in-memory clears, trial time, A/B, tallies; seeds held.
   await heldReadsSettled(sessionId);
-  const [held, unowned] = [memoryHeld(sessionId), ownerWritesBlocked(userId)];
+  const [held, unowned] = [memoryHeld(sessionId) || userHeld(userId), ownerWritesBlocked(userId)];
   const memoryUserId = held || unowned ? undefined : userId;
   // Async event for background processing (the trust and predictions workers persist on it)
   emitConversationEnd({
