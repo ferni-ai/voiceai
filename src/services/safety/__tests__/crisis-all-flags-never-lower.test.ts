@@ -17,8 +17,9 @@
  * The rest of the crisis lane (every crisis-named flag plus every flag a crisis-lane source file
  * reads, crisis-lane-flags.ts) acts outside these readers. The guard at the bottom makes each of
  * those either be shown at the reply itself (SHOWN_ON, checked by the seventh reader,
- * agents/personas/__tests__/crisis-reply-never-lower.test.ts) or sit on a list that may only
- * shrink (NOT_YET_COVERED, crisis-flag-homes.ts).
+ * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
+ * changes a reply nor captures more (MEMORY_ONLY), or sit on a list that may only shrink
+ * (NOT_YET_COVERED). Both lists are in crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
@@ -32,6 +33,8 @@
  * the crisis script as the caller hears it (minorCrisisScript over crisis-guard's script): it
  * may gain a line, but never lose one of the script's, nor its 988 or 911.
  */
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
@@ -47,7 +50,12 @@ import { checkWarnings } from '../../wellbeing-tracking/early-warning.js';
 import { getWellbeingProfile } from '../../wellbeing-tracking/index.js';
 import { detectCrisis } from '../crisis-guard.js';
 import { performSafetyCheck } from '../index.js';
-import { NOT_YET_COVERED, NOT_YET_COVERED_CEILING } from './crisis-flag-homes.js';
+import {
+  MEMORY_ONLY,
+  type MemoryOnlyRow,
+  NOT_YET_COVERED,
+  NOT_YET_COVERED_CEILING,
+} from './crisis-flag-homes.js';
 import {
   CRISIS_FLAGS,
   flagReadsIn,
@@ -112,7 +120,7 @@ const ACTION = ['continue', 'check_in', 'resources', 'immediate_referral'];
 let profiles = 0;
 
 /** Sorted resource names, so a loss is named in the failure. */
-const names = (resources: readonly { name: string }[] | undefined): string[] =>
+const names = (resources: ReadonlyArray<{ name: string }> | undefined): string[] =>
   (resources ?? []).map((r) => r.name).sort();
 
 /** Whether a number appears anywhere in what the readers hand the reply. */
@@ -383,6 +391,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         name in SHOWN_ON && 'SHOWN_ON',
         name in LOWERS_A_REPLY && 'LOWERS_A_REPLY',
         NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
+        name in MEMORY_ONLY && 'MEMORY_ONLY',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
       if (homes.length !== 1) unaccounted.push(`${name}: ${homes.join(', ') || 'nowhere'}`);
@@ -398,6 +407,27 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     }
   });
 
+  it('finds each MEMORY_ONLY row in the test file it names', () => {
+    const missing = Object.entries(MEMORY_ONLY).flatMap(([name, row]) =>
+      missingRows(row).map((gap) => `${name}: ${gap}`)
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('reports a MEMORY_ONLY row whose file or title is missing', () => {
+    const self = 'src/services/safety/__tests__/crisis-all-flags-never-lower.test.ts';
+    const title = 'only shrinks NOT_YET_COVERED';
+    expect(missingRows({ file: self, rows: [title] })).toEqual([]);
+    expect(missingRows({ file: `${self}.gone`, rows: [title] })).toEqual([
+      `${self}.gone: no such file`,
+    ]);
+    // A row must be a whole it() or test() title: a prefix of one, or the words in a string, is not.
+    expect(missingRows({ file: self, rows: [title, 'only shrinks'] })).toEqual([
+      `${self}: no it() or test() titled 'only shrinks'`,
+    ]);
+    expect(missingRows({ file: self, rows: [] })).toEqual([`${self}: names no title`]);
+  });
+
   it('skips only runner markers a crisis module still reads', () => {
     for (const name of Object.keys(RUNNER_MARKERS)) {
       expect(name in FLAG_MANIFEST, name).toBe(true);
@@ -405,3 +435,18 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     }
   });
 });
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** What of a MEMORY_ONLY row is missing: its file, or a title not written as an it() or test(). */
+function missingRows({ file, rows }: MemoryOnlyRow): string[] {
+  const path = join(ROOT, file);
+  if (!existsSync(path)) return [`${file}: no such file`];
+  if (rows.length === 0) return [`${file}: names no title`];
+  const source = readFileSync(path, 'utf8');
+  return rows
+    .filter(
+      (row) => !new RegExp(`\\b(?:it|test)\\(\\s*(['"\`])${escapeRegExp(row)}\\1`).test(source)
+    )
+    .map((row) => `${file}: no it() or test() titled '${row}'`);
+}

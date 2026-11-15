@@ -1,8 +1,9 @@
 /**
  * Crisis-lane flags no never-lower check drives yet. A ratchet: it may only shrink. A flag
  * leaves when the six readers read it (crisis-all-flags-never-lower.test.ts) or a call shows it
- * at the reply (SHOWN_ON, agents/personas/__tests__/crisis-reply.never-lower.ts). A new
- * crisis-lane flag gets one of those, never a name here.
+ * at the reply (SHOWN_ON, agents/personas/__tests__/crisis-reply.never-lower.ts), or, for a
+ * flag that by design never changes a reply, a MEMORY_ONLY row (below). A new crisis-lane flag
+ * gets one of those, never a name here.
  *
  * 2026-11-13: the rows of the old COVERED_ELSEWHERE table moved here. That table named a test
  * file per flag and checked only that the file contained the flag's name.
@@ -206,3 +207,23 @@ export const NOT_YET_COVERED_CEILING: readonly string[] = [
   'WEEKLY_PREDICTION',
   'WELLBEING_AFTER_CALL',
 ];
+
+/** A test that drives a memory-only flag on a crisis turn: its file, and each of its titles. */
+export interface MemoryOnlyRow {
+  /** Path from the repo root. */
+  readonly file: string;
+  /** Titles of it() or test() calls in that file, exactly as written. */
+  readonly rows: readonly string[];
+}
+
+/**
+ * Crisis-lane flags that by design never change a reply: they act on what is captured or kept.
+ * A crisis-lane module reads them, so the census counts them, yet the six readers and SHOWN_ON
+ * cannot see them. This home is open only to flags whose named row proves, on a crisis-guided
+ * turn and a held turn, that the reply is unchanged AND nothing more is captured with the flag
+ * on. Both halves matter: the home exists for memory, not replies.
+ *
+ * The census (crisis-all-flags-never-lower.test.ts) checks only that each named file exists and
+ * holds each title as an it() or test() call. What a row asserts is a reviewer's check.
+ */
+export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {};
