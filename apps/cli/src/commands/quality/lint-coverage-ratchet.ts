@@ -29,8 +29,10 @@ const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'lint-coverage-ba
  * Production trees linted by this ratchet (`pnpm lint` covers only part of src/). scripts/ joined
  * on 2026-11-11: ESLint ignored it outright, so lint on it could never fail.
  */
-const ROOTS = ['src', 'apps/cli/src/commands/deploy', 'scripts'];
+export const ROOTS = ['src', 'apps/cli/src/commands/deploy', 'scripts'];
 const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|(^|\/)(tests|e2e)\/)/;
+/** A test-shaped path. This ratchet skips it; lint-changed-tests.ts lints it when a change touches it. */
+export const isTestFile = (file: string): boolean => TEST.test(file);
 
 export interface EslintFile {
   filePath: string;
@@ -100,7 +102,7 @@ function walk(dir: string, out: string[]): string[] {
 }
 
 function productionFiles(): string[] {
-  return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !TEST.test(file));
+  return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !isTestFile(file));
 }
 
 const DEPLOY = 'apps/cli/src/commands/deploy/';
