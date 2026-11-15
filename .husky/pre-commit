@@ -176,21 +176,6 @@ else
 fi
 
 # =============================================================================
-# FRONTEND VALIDATION
-# =============================================================================
-echo ""
-echo "🎨 Frontend checks..."
-
-# Run lint-staged in frontend if it exists
-if [ -d "frontend-typescript" ]; then
-  cd frontend-typescript
-  npx lint-staged 2>/dev/null || true
-  cd ..
-fi
-
-echo "  ✓ Frontend checks passed"
-
-# =============================================================================
 # SECURITY QUICK SCAN (Non-blocking)
 # =============================================================================
 echo ""

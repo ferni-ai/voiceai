@@ -240,6 +240,7 @@
 /src/services/superhuman/emotional-first-aid.ts @sethdford
 /src/services/superhuman/inside-joke-memory.ts @sethdford
 /src/services/superhuman/relationship-network.ts @sethdford
+/src/services/superhuman/semantic-intelligence/advice-outcome-patterns.ts @sethdford
 /src/services/superhuman/semantic-intelligence/integration.ts @sethdford
 /src/services/superhuman/user-corrections.ts @sethdford
 /src/services/superhuman/wins.ts @sethdford
