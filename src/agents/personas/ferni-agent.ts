@@ -32,6 +32,7 @@ import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { dropLeadingSaidBy } from './said-by.js';
 import { withCutReplyCheck } from './cut-reply-guard.js';
 import { getModelProvider } from '../model-provider/index.js';
+import { requireMainLane } from '../model-provider/lane-request.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 import { sttReusableAcrossHandoff } from './stt-handoff-reuse.js';
@@ -592,16 +593,20 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
 
     // Use gateway for proper error handling and session readiness
     fireAndForget(async () => {
-      await generateReply(this.session as unknown as voice.AgentSession<unknown>, derivedSessionId, {
-        instructions: `You are Ferni. ${contextHint}
+      await generateReply(
+        this.session as unknown as voice.AgentSession<unknown>,
+        derivedSessionId,
+        {
+          instructions: `You are Ferni. ${contextHint}
 
 Generate a warm, brief greeting (1-2 sentences max).
 
 Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak naturally.`,
-        context: 'ferni-greeting',
-        fallbackMessage: 'Hey! Nice to meet you.',
-        priority: 'high', // Greetings are important
-      });
+          context: 'ferni-greeting',
+          fallbackMessage: 'Hey! Nice to meet you.',
+          priority: 'high', // Greetings are important
+        }
+      );
     }, 'ferni-agent-greeting');
   }
 
@@ -684,8 +689,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
       ?.sessionId;
-    const model = withCutReplyCheck(this.session, async (request: llm.ChatContext) => {
+    const model = withCutReplyCheck(this.session, async (request: llm.ChatContext, lane) => {
       const ctx = withCallerTurn(request);
+      // The request as sent carries the gate's lane: the router and the receipt both read it.
+      if (lane?.mainLane) requireMainLane(ctx);
       const turn = toolsForRequest(request, tools); // UNVERIFIED_TURN_TOOLS (#3305)
       noteRequest(this.session, ctx, turn.tools); // the request as sent, for its TURN_RECEIPT
       const said = turn.reply(super.llmNode(ctx, turn.tools, modelSettings));

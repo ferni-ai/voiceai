@@ -44,7 +44,6 @@
   "src/agents/personas/__tests__/teammate-tools-and-notes.test.ts",
   "src/agents/personas/__tests__/turn-shape.test.ts",
   "src/agents/personas/__tests__/turn-style.test.ts",
-  "src/agents/personas/ferni-agent.ts",
   "src/agents/personas/ledger-retraction.ts",
   "src/agents/personas/life-ledger.ts",
   "src/agents/personas/phrase-loops.ts",
