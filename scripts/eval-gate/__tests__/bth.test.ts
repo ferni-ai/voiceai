@@ -6,19 +6,38 @@
  * file to this tree, recount the benchmark without its runner, and keep the
  * file from being loosened.
  *
+ * The detectors keep a profile per user in a store that asks for a Firestore
+ * client. Neither this file nor the entry builds one: here the class is mocked
+ * with one that counts the asking and refuses; the entry refuses for itself,
+ * and is run as a child process under a counter to show it.
+ *
  * Not seen here: the crisis_detection capability (not gated yet); a row whose
  * expected answer is edited (a diff in the rows file, which reads as "improved"
- * here); and whether the offline job is a required check (the repository's
- * ruleset, not a file here).
+ * here); whether the offline job is a required check (the repository's
+ * ruleset, not a file here); and a Firestore client built from a second
+ * installed copy of the package (there is one copy today).
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 
-// The unsaid-signals detector keeps a profile per user and saves it; nothing is stored here.
+// The stores ask for a Firestore client once and work from memory when there is none.
+const firestore = vi.hoisted(() => ({ asked: 0 }));
+vi.mock('@google-cloud/firestore', async (original) => ({
+  ...(await original<typeof import('@google-cloud/firestore')>()),
+  Firestore: class {
+    constructor() {
+      firestore.asked += 1;
+      throw new Error('bth.test.ts stores nothing: no Firestore client in this file');
+    }
+  },
+}));
+
+// The commitment detector reaches Firestore through this module; nothing is stored here.
 vi.mock('../../../src/services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => null,
   cleanForFirestore: vi.fn((obj: unknown) => obj),
@@ -30,6 +49,7 @@ vi.mock('../../../src/services/superhuman/firestore-utils.js', () => ({
 }));
 
 import type { AdversarialTestCase } from '../../../src/services/better-than-human-validation/types.js';
+import { flushAllStores, getAllStats } from '../../../src/services/persistence/index.js';
 import { detectCommitment } from '../../../src/services/superhuman/commitment-keeper.js';
 import { COMMITMENT_TEST_CASES } from '../../../src/services/superhuman/validation/capability-benchmark.js';
 import { READING_BETWEEN_LINES_CASES } from '../../../src/services/superhuman/validation/reading-between-lines-cases.js';
@@ -200,6 +220,113 @@ describe('the exit code on this baseline', () => {
   });
 });
 
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+
+/**
+ * Loaded into every process of a child run before anything else: counts each
+ * time the real Firestore constructor is reached and lets none finish, so a
+ * run that should build no client can never leave one behind either.
+ */
+const COUNTER = `
+const { createRequire } = require('node:module');
+const { appendFileSync } = require('node:fs');
+const { Firestore } = createRequire(process.env.BTH_ROOT + 'package.json')('@google-cloud/firestore');
+let reached = 0;
+Firestore.prototype.validateAndApplySettings = function () {
+  reached += 1;
+  throw new Error('counted by bth.test.ts and not built');
+};
+process.on('exit', () => appendFileSync(process.env.BTH_REACHED, reached + '\\n'));
+`;
+
+/** A script run with tsx, as the offline job runs the entry, under the counter. */
+function runCounted(script: string): {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+  /** Times the real constructor was reached, over every process; NaN when none reported. */
+  reached: number;
+} {
+  const dir = mkdtempSync(join(tmpdir(), 'eval-gate-bth-child-'));
+  try {
+    const [counter, reached] = [join(dir, 'counter.cjs'), join(dir, 'reached.txt')];
+    writeFileSync(counter, COUNTER);
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => !name.startsWith('VITEST'))
+    );
+    const out = spawnSync(join(ROOT, 'node_modules/.bin/tsx'), [script, '--json'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      timeout: 150_000,
+      env: {
+        ...env,
+        // What the offline job's step sets (eval-gate.yml).
+        NODE_ENV: 'test',
+        LOG_LEVEL: 'silent',
+        NODE_OPTIONS: `--require ${JSON.stringify(counter)}`,
+        BTH_ROOT: ROOT,
+        BTH_REACHED: reached,
+        GITHUB_STEP_SUMMARY: join(dir, 'summary.md'),
+      },
+    });
+    const lines = existsSync(reached)
+      ? readFileSync(reached, 'utf8').split('\n').filter(Boolean)
+      : [];
+    return {
+      status: out.status,
+      stdout: out.stdout,
+      stderr: out.stderr,
+      reached: lines.length ? lines.reduce((sum, line) => sum + Number(line), 0) : NaN,
+    };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+describe('no Firestore client is built', () => {
+  // Red when the stores stop asking for a client at all (a harmless change): then the mock
+  // above and this row have nothing left to refuse, and both can go.
+  it('in this file: the stores asked, were refused, and a flush saves nothing', async () => {
+    expect(firestore.asked).toBeGreaterThan(0);
+    const unsaved = (): number =>
+      Object.values(getAllStats()).reduce((sum, store) => sum + store.dirty, 0);
+    const before = unsaved();
+    expect(before).toBeGreaterThan(0);
+    await flushAllStores();
+    expect(unsaved()).toBe(before);
+  });
+
+  it('by the entry: every metric at its baseline, and the real constructor never reached', () => {
+    const run = runCounted('scripts/eval-gate/bth.ts');
+    expect(run.status, run.stderr).toBe(0);
+    const printed = /^\{\n[\s\S]*?\n\}$/m.exec(run.stdout)?.[0] ?? '{}';
+    const moved = compare(baseline, JSON.parse(printed) as Record<string, number>);
+    expect(moved.filter((row) => row.status !== 'ok')).toEqual([]);
+    expect(moved).toHaveLength(Object.keys(baseline.metrics).length);
+    expect(run.reached).toBe(0);
+    // The entry says how often it refused: the stores did ask.
+    expect(Number(/clients asked for and refused: (\d+)/.exec(run.stdout)?.[1])).toBeGreaterThan(0);
+    // A refusal is caught where it is thrown: no stack is printed.
+    expect(run.stderr + run.stdout).not.toMatch(/^\s+at .+:\d+:\d+\)?$/m);
+  }, 180_000);
+
+  it('the counter counts: a client built the way the stores build one is 1', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'eval-gate-bth-one-'));
+    try {
+      const script = join(dir, 'build-one.mts');
+      const shared = pathToFileURL(join(ROOT, 'src/utils/shared-firestore.ts')).href;
+      writeFileSync(
+        script,
+        `const { sharedFirestore } = await import(${JSON.stringify(shared)});\n` +
+          `try { sharedFirestore({ databaseId: undefined }); } catch {}\nprocess.exit(0);\n`
+      );
+      expect(runCounted(script).reached).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 180_000);
+});
+
 describe('the offline job runs for a change to what the benchmark measures', () => {
   const file = fileURLToPath(new URL('../../../.github/workflows/eval-gate.yml', import.meta.url));
   const workflow = parse(readFileSync(file, 'utf8')) as {
@@ -217,6 +344,7 @@ describe('the offline job runs for a change to what the benchmark measures', () 
     'src/services/superhuman/validation/capability-benchmark.ts',
     'src/services/superhuman/validation/reading-between-lines-cases.ts',
     'src/services/better-than-human-validation/types.ts',
+    'src/utils/commitment-filters.ts',
     'scripts/eval-gate/bth.ts',
     'evals/baselines/bth.json',
   ])('%s is on the path list', (path) => {
