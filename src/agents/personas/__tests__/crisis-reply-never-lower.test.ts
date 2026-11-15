@@ -22,7 +22,9 @@
  * nothing at all. Every word is tried alone, and on top of every other flag set to on and to
  * live.
  *
- * The calls happen at 12:00, two at 0:00, on one date, with no timezone for the caller. That is
+ * The calls happen at 12:00, two at 0:00, on one date, on Ferni's home clock (America/Denver,
+ * the zone FERNI_STATE reads; WORLD_NOW reads a call with no zone in UTC), whatever zone the
+ * process runs in, with no timezone for the caller. That is
  * enough only for a reply that does not depend on the time of day, and three things keep it so:
  * - asking the clock inside a reply is counted. Reading the hour, the minute, the weekday, the
  *   date or the timezone off a Date (CLOCK_READS), or formatting one with Intl.DateTimeFormat,
@@ -164,6 +166,7 @@ import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imm
 import { resetSecondReadTurns } from '../../../services/safety/crisis-second-read-turn.js';
 import { resetWhoReads } from '../../../services/safety/crisis-who.js';
 import { CRISIS_LINE_SPOKEN } from '../../../services/safety/crisis-line-speech.js';
+import { FERNI_HOME_TZ } from '../ferni-state.js';
 import { EMERGENCY_NUMBER } from '../../../services/safety/emergency-number.js';
 import { gatedReply } from '../crisis-gate.js';
 import {
@@ -399,6 +402,8 @@ const streamOf = (text: string): ReadableStream<unknown> =>
   });
 
 let sessions = 0;
+/** The instant the last place() set, before any turn ran. */
+let placedAt = Number.NaN;
 /**
  * What the crisis modules remember about calls, emptied before each call here. No call sees an
  * earlier one, and the run does not slow as calls pile up: the clock here never reaches the
@@ -422,7 +427,10 @@ const FORGET_CALLS = [
 
 /** Another moment for every call. What is left out stays as the call has it. */
 interface At {
-  /** The local date and time; the calls' own is June 10, 2026 at their hour, on the hour. */
+  /**
+   * The date and time on the wall clock of the moment's zone (Ferni's home zone when it has
+   * none, or one Intl does not know); the calls' own is June 10, 2026 at their hour, on the hour.
+   */
   month?: number;
   day?: number;
   hour?: number;
@@ -435,12 +443,56 @@ interface At {
   callMinutes?: number;
 }
 
+/**
+ * Moments are built on a zone's wall clock, not the process's: a Mac in New York and CI in UTC
+ * put "3:00" at two different Denver hours, and a row held on one and failed on the other
+ * (11-15). Built from Intl alone, never from the clock code under test.
+ */
+const HOME_ZONE = 'America/Denver';
+const knownZone = (zone: string): boolean => {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+};
+const zoneOf = (at?: At): string => (at?.zone && knownZone(at.zone) ? at.zone : HOME_ZONE);
+/** [year, month (0-11), day, hour, minute] on `zone`'s wall clock at `ms`. */
+const wallClock = (ms: number, zone: string): number[] => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  }).formatToParts(ms);
+  const part = (type: string): number => Number(parts.find((p) => p.type === type)?.value);
+  return [part('year'), part('month') - 1, part('day'), part('hour') % 24, part('minute')];
+};
+const asUtc = (f: readonly number[]): number => Date.UTC(f[0], f[1], f[2], f[3], f[4]);
+/** The instant `zone`'s wall clock reads `fields` (the offset found twice, for a date near a change). */
+function instantIn(zone: string, fields: readonly number[]): number {
+  let at = asUtc(fields);
+  for (let pass = 0; pass < 2; pass++) at = asUtc(fields) - (asUtc(wallClock(at, zone)) - at);
+  return at;
+}
+const fieldsOf = (hour: number, at?: At): number[] => [
+  2026,
+  at?.month ?? 5,
+  at?.day ?? 10,
+  at?.hour ?? hour,
+  at?.minute ?? 0,
+];
+const instantOf = (hour: number, at?: At): number => instantIn(zoneOf(at), fieldsOf(hour, at));
+
 /** One call through the real gate, turn by turn, on one session, at its own hour or at `at`. */
 async function place(call: ReplyCall, answer: Answer, at?: At): Promise<Heard[]> {
   for (const forget of FORGET_CALLS) forget();
-  vi.setSystemTime(
-    new Date(2026, at?.month ?? 5, at?.day ?? 10, at?.hour ?? call.hour ?? 12, at?.minute ?? 0)
-  );
+  vi.setSystemTime(instantOf(call.hour ?? 12, at));
+  placedAt = Date.now();
   let holdAsked = 0;
   const session = recorded({
     userData: {
@@ -1190,8 +1242,43 @@ describe('no flag lowers what a caller in crisis hears', () => {
     }
   });
 
+  it('places each moment at the wall clock it names, in its zone, on a day with no clock change', async () => {
+    expect(FERNI_HOME_TZ).toBe(HOME_ZONE);
+    const hours = [...new Set([12, ...CALLS.map((call) => call.hour ?? 12)])];
+    for (const [moment, at] of Object.entries(MOMENTS)) {
+      for (const hour of hours) {
+        const [zone, want] = [zoneOf(at), fieldsOf(hour, at)];
+        const named = `${moment}, a call at ${hour}:00, in ${zone}`;
+        expect(wallClock(instantOf(hour, at), zone), named).toEqual(want);
+        const offset = (h: number, m: number): number => {
+          const ms = instantIn(zone, [want[0], want[1], want[2], h, m]);
+          return asUtc(wallClock(ms, zone)) - ms;
+        };
+        expect(offset(0, 0), `${named}: the clock changes that day`).toBe(offset(23, 59));
+      }
+    }
+    expect(wallClock(instantOf(0), 'America/Denver')).toEqual([2026, 5, 10, 0, 0]);
+    expect(wallClock(instantOf(12, MOMENTS['a timezone far ahead']), 'Pacific/Kiritimati')).toEqual(
+      [2026, 5, 10, 21, 0]
+    );
+    expect(zoneOf(MOMENTS['a timezone that does not exist'])).toBe(HOME_ZONE);
+    // And place() sets that instant, so no reading sits on the process's own clock.
+    const [call, answer] = [CALLS[0], ANSWERS[0]];
+    for (const [moment, at] of Object.entries(MOMENTS)) {
+      await place(call, answer, at);
+      expect(placedAt, `${moment}: the clock place() set`).toBe(instantOf(call.hour ?? 12, at));
+    }
+  });
+
   // The readings below read something: with the flag on, the two moments are not asked alike.
   it.each(REACHES)('%s: %s and %s do not read the same', async (name, one, other) => {
+    // Two moments that set the hour are two hours on Ferni's home clock, which FERNI_STATE
+    // reads, so the comparison below cannot pass on two equal clocks.
+    const homeHour = (moment: string): number | string =>
+      MOMENTS[moment].hour === undefined
+        ? moment
+        : wallClock(instantOf(12, MOMENTS[moment]), HOME_ZONE)[3];
+    expect(homeHour(one)).not.toBe(homeHour(other));
     const at = (moment: string): Promise<Readings> =>
       placeAllUnder({ [name]: 'on' }, false, MOMENTS[moment]);
     expect(Object.fromEntries(await at(one))).not.toEqual(Object.fromEntries(await at(other)));
