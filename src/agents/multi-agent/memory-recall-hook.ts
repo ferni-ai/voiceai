@@ -70,6 +70,7 @@ import {
 } from '../personas/life-updates.js';
 import { loadRepairRecall, type RepairStore } from '../personas/friend-repair.js';
 import { growthRecallFor, withGrowth } from '../personas/persona-growth-recall.js';
+import { crisisSignalOnCall } from './recall-note.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import {
   coachFollowThroughMode,
@@ -152,7 +153,8 @@ export interface MemoryRecall {
   ready: Promise<void>;
   /**
    * The recall note for this transcript, or null. Synchronous: never waits on
-   * the store. `final: false` marks an interim transcript.
+   * the store. `final: false` marks an interim transcript. FERNI_SELF_RECALL's
+   * note is not in it: takeSelfNote gives it, to send on its own.
    */
   noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
@@ -161,6 +163,17 @@ export interface MemoryRecall {
   lastPick(): RecallPick | null;
   /** What was loaded at call start, once it is (for the name lift); undefined before. */
   snapshot(): RecallSnapshot | undefined;
+  /**
+   * FERNI_SELF_RECALL's note for the last transcript, sent on its own (turn-packet.ts
+   * sendRecall), and whether a crisis signal held it. Taken once: then empty.
+   */
+  takeSelfNote(): SelfNote;
+}
+
+/** The self note of one transcript: none when nothing answers or a crisis signal held it. */
+export interface SelfNote {
+  note: string | null;
+  crisis: boolean;
 }
 
 /**
@@ -239,6 +252,17 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let allTold: LedgerFact[] = [];
   let canon: Record<string, string> = {};
   let selfNoteGiven = false;
+  let selfNow: SelfNote = { note: null, crisis: false };
+  // A crisis signal on these words or this call holds the self note, as it holds the growth
+  // note (persona-growth-recall.ts). No call id, or a failed check, holds it too.
+  const selfHeld = (said: string): boolean => {
+    try {
+      return !deps.sessionId || crisisSignalOnCall(deps.sessionId, said);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Self note crisis check failed; holding it');
+      return true;
+    }
+  };
   const ledger = loadLedger(
     deps.userId,
     personaId,
@@ -326,6 +350,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         callerTurn++;
       }
       week.heard(text);
+      selfNow = { note: null, crisis: selfRecall && !!text && selfHeld(text) };
       if (!snapshot || !text) return null;
       index?.observe(text);
       episodes?.observe(text);
@@ -405,15 +430,16 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         threadInBudget(deps.sessionId) // PROACTIVE_BUDGET: last, so only a line it would ask claims
           ? OPENER_FOLLOW_UP_LINE
           : null;
-      // Once a turn, when they ask about him and something answers it.
+      // Once a turn, when they ask about him and something answers it; never on a crisis signal.
       const self =
-        selfRecall && !selfNoteGiven
+        selfRecall && !selfNoteGiven && !selfNow.crisis
           ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
           : null;
       if (self) selfNoteGiven = true;
       const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
       const loopsNow = loops?.note() ?? null;
       // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
+      // The self note still counts for whether there is a note, but is sent apart (takeSelfNote).
       const noteWith = (shown: RecallFact[]): string | null =>
         [
           checkIn,
@@ -430,12 +456,12 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             ? quietLedger(formatLedger(extraTold, deps.userName, Date.now(), { bridge }), text)
             : null,
           episode,
-          self,
         ]
           .filter(Boolean)
           .join('\n\n') || null;
       const note = noteWith(facts);
-      if (!note) return null;
+      if (!note && !self) return null;
+      selfNow = { ...selfNow, note: self };
       lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
       if (insideJokes.length > 0) jokeOffered = true;
@@ -467,6 +493,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         'Recall added'
       );
       return note;
+    },
+    takeSelfNote() {
+      const taken = selfNow;
+      selfNow = { note: null, crisis: false };
+      return taken;
     },
     lastPick: () => lastPick,
     newTurn() {
