@@ -8,5 +8,5 @@ export const TURN_PATH_SINGLE_CAPTURE = {
   expires: '2027-02-13',
   issue: '#3892',
   context:
-    'Keep if the turn-number rows match the old path and in-call memory reads the same with one capture; else delete.',
+    'Do not turn on in dev or prod until the all-sites capture row for a crisis turn (the early-memory-hold PR) is green; then keep if the turn-number rows match the old path, else delete.',
 } as const satisfies FlagSpec;

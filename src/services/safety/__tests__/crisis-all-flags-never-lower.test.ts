@@ -460,6 +460,7 @@ const COVERED_ELSEWHERE: Readonly<Record<string, string>> = {
   TOOL_HUM: 'src/agents/integrations/__tests__/tool-hum-crisis-pending.test.ts',
   TRANSFER_NAME_ALIASES: 'src/tools/handoff/__tests__/transfer-aliases.test.ts',
   TURN_INTELLIGENCE: 'src/agents/multi-agent/__tests__/turn-intelligence.test.ts',
+  TURN_PATH_SINGLE_CAPTURE: 'src/agents/voice-agent/__tests__/turn-path-single-capture.test.ts',
   USE_SMART_CONTEXT_ROUTING: 'src/utils/__tests__/minor-care-cleanup.test.ts',
   WEEKLY_PREDICTION: 'src/agents/multi-agent/__tests__/prediction-check-in.test.ts',
   WELLBEING_AFTER_CALL: 'src/services/wellbeing-tracking/__tests__/after-call.test.ts',
