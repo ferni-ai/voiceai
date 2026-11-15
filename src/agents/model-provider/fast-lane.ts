@@ -88,7 +88,7 @@ export function asksAQuestion(text: string): boolean {
 
 type WordsReason = 'after_tool' | 'no_words' | 'teammate' | 'request' | 'question' | 'chat';
 /** 'crisis': the crisis gate kept the request on the main model (routeOf). */
-export type LaneReason = 'crisis' | WordsReason;
+type LaneReason = 'crisis' | WordsReason;
 
 /**
  * Why a reply to these words goes where it goes (logged, so a misroute shows).
@@ -97,7 +97,7 @@ export type LaneReason = 'crisis' | WordsReason;
  * Those words are not in MAY_NEED_TOOL on purpose: its other readers (tool acks, lead-ins,
  * the slow-turn sound) would then treat every "can I talk to Maya" as a tool request.
  */
-export function laneReason(text: string | null): WordsReason {
+function laneReason(text: string | null): WordsReason {
   if (text === null) return 'after_tool';
   if (!text) return 'no_words';
   if (asksForTeammate(text)) return 'teammate';
@@ -116,11 +116,14 @@ export interface LaneRoute {
   reason: LaneReason;
 }
 
+/** What routeOf reads: a chat context, or any request with its items. */
+export type RoutedRequest = { items: readonly unknown[] };
+
 /**
  * Where a request goes, for FastLaneLLM and the turn receipt alike: the main model when the
  * crisis gate marked it (lane-request.ts), else by the caller's words.
  */
-export function routeOf(request: { items: readonly unknown[] }): LaneRoute {
+export function routeOf(request: RoutedRequest): LaneRoute {
   const reason = mainLaneRequired(request)
     ? 'crisis'
     : laneReason(callerTurn(request.items as readonly ItemView[]));

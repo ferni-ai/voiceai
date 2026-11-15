@@ -35,7 +35,7 @@
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { fastLaneEnabled, routeOf } from '../model-provider/fast-lane.js';
+import { fastLaneEnabled, routeOf, type RoutedRequest } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { EouMetric, LlmMetric } from './turn-metrics.js';
 import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
@@ -254,11 +254,7 @@ export class TurnReceiptRecorder {
   }
 
   /** A request to the model (preemptive, final or after tools): the last one's prompt counts. */
-  onRequest(
-    request: { items: readonly unknown[] },
-    toolsOffered: number,
-    schemaChars?: number
-  ): void {
+  onRequest(request: RoutedRequest, toolsOffered: number, schemaChars?: number): void {
     const items = request.items as readonly ItemView[];
     const turn = this.open();
     const note = this.reminder;

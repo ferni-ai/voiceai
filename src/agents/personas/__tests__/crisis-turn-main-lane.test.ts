@@ -62,9 +62,9 @@ import {
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { checkin } from '../../../services/safety/index.js';
-import { FastLaneLLM, laneReason, routeOf } from '../../model-provider/fast-lane.js';
+import { FastLaneLLM, routeOf } from '../../model-provider/fast-lane.js';
 import { HedgedLLM } from '../../model-provider/hedged-llm.js';
-import { requireMainLane } from '../../model-provider/lane-request.js';
+import { withLane } from '../../model-provider/lane-request.js';
 import type { TurnReceipt } from '../../shared/turn-receipt.js';
 import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import { detectCrisis } from '../../safety/crisis-guard.js';
@@ -303,7 +303,8 @@ describe.each(GATE_STATES)('crisis turns, fast lane on (%s)', (_state, env) => {
     // The line, not the fix, must not decide the row: patterns pass, the router reads chat, and a
     // failed read on it is the timeout check-in.
     expect(decisionFor(detectCrisis(CHECKIN_WORDS))).toEqual({ action: 'pass' });
-    expect(laneReason(CHECKIN_WORDS)).toBe('chat');
+    const alone = { items: [{ type: 'message', role: 'user', textContent: CHECKIN_WORDS }] };
+    expect(routeOf(alone).reason).toBe('chat');
     const failed = {
       decision: { action: 'pass' },
       latest: CHECKIN_WORDS,
@@ -367,7 +368,7 @@ describe('the hedge never hands a marked request to the fast model', () => {
     const router = new FastLaneLLM(new HedgedLLM(flash, main, 20), main);
     const chatCtx = llm.ChatContext.empty();
     chatCtx.addMessage({ role: 'user', content: CHAT });
-    if (mark) requireMainLane(chatCtx);
+    withLane(chatCtx, { mainLane: mark });
     let out = '';
     for await (const chunk of router.chat({ chatCtx, connOptions: CONN }))
       out += chunk.delta?.content ?? '';
