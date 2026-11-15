@@ -7,7 +7,8 @@
  * requires a clean tree before the next plant.
  *
  * A plant counts only as RED: its `expectRed` row (the full title, suites and test joined by
- * " > ", matched exactly) failed with an error whose name is AssertionError. A file that
+ * " > ", matched exactly) failed with an error whose name is AssertionError and that carries an
+ * assertion's expected or actual value, as a failed expect does. A file that
  * failed to load, a different row failing, a throw that is not an assertion, a timeout or a
  * pass all count against it. The baseline (the test file unplanted) must pass first, with the
  * `expectRed` row in it.
@@ -18,8 +19,12 @@
  *
  * Paths are checked where they really lead, before anything is written: a plant or test on a
  * held-out, sealed, blind, corpus or fixture path, outside the checkout, or reached through a
- * symbolic link anywhere in the path, is refused. Tests run with an allowlisted environment
- * and a throwaway HOME, so no token and no file under the real HOME reaches them.
+ * symbolic link anywhere in the path, is refused. A test path that names no file is refused.
+ * vitest reads a file argument as a filter (a substring of each included path, and an absolute
+ * one also as a prefix), so one argument can run other files: every run must be exactly the
+ * requested test file, judged by the realpath of each module the reporter saw, or it is
+ * refused with no row title kept. Tests run with an allowlisted environment and a throwaway
+ * HOME, so no token and no file under the real HOME reaches them.
  *
  *   node --experimental-strip-types scripts/ci/plants/run-plants.ts --root <checkout> <manifest.json>...
  * PLANT_TIMEOUT_MS (default 180000) caps each vitest process; PLANT_VITEST_CONFIG (default
@@ -65,14 +70,27 @@ export type Verdict =
   | 'REFUSED (sealed path)'
   | 'REFUSED (outside repo)'
   | 'REFUSED (link)'
+  | 'REFUSED (no test file)'
+  | 'REFUSED (other test files)'
   | 'DIRTY'
   | 'SKIPPED';
 
-/** One test row: its full title, its state, and the name of its first error. */
-export type TestCase = { fullName: string; status: string; errorClass?: string };
-/** One vitest run, reduced to what may be printed: titles, states, error names. */
+/**
+ * One test row: its full title, its state, the name of its first error, and whether that error
+ * carries an assertion's expected or actual value (an Error renamed by hand does not).
+ */
+export type TestCase = {
+  fullName: string;
+  status: string;
+  errorClass?: string;
+  assertion?: boolean;
+};
+/**
+ * One vitest run, reduced to titles, states and error names, plus the path of each test module
+ * that ran. The paths are compared, never printed.
+ */
 export type TestReport =
-  | { kind: 'report'; loadFailed: boolean; tests: TestCase[] }
+  | { kind: 'report'; loadFailed: boolean; tests: TestCase[]; files: string[] }
   | { kind: 'timeout' }
   | { kind: 'no-report' };
 export type RunTest = (testFile: string) => TestReport;
@@ -86,7 +104,7 @@ export type Result = {
 
 /** The eight sealed-set exclusions every grep carries, plus held_out. Case-insensitive. */
 const SEALED_NAME = /fixtures|heldout|held-out|held_out|blind|sealed|corpus/i;
-const SEALED_DIR = /^scripts\/(crisis-eval|voice-eval)(\/|$)/i;
+const SEALED_DIR = /(^|\/)scripts\/(crisis-eval|voice-eval)(\/|$)/i;
 
 export function isSealedPath(path: string): boolean {
   const p = normalize(path).replace(/\\/g, '/');
@@ -126,6 +144,24 @@ export function pathVerdict(realRoot: string, rel: string): Verdict | null {
     if (isLink) return 'REFUSED (link)';
   }
   return null;
+}
+
+/**
+ * True only when the run was exactly the requested test file: at least one module ran, and
+ * every module's realpath is the realpath of `test` under `realRoot`. A missing file, a module
+ * path that no longer resolves, or any other file in the run makes it false.
+ */
+export function ranExactly(realRoot: string, test: string, files: string[]): boolean {
+  const real = (p: string): string | null => {
+    try {
+      return realpathSync(p);
+    } catch {
+      return null;
+    }
+  };
+  const want = real(join(realRoot, test));
+  if (want === null || files.length === 0) return false;
+  return files.every((f) => real(f) === want);
 }
 
 const FIELDS = ['id', 'file', 'find', 'replace', 'test', 'expectRed'] as const;
@@ -178,7 +214,7 @@ export function judge(
   if (failed.length === 0) return { verdict: 'GREEN' };
   const target = failed.find((t) => isRow(t, expectRed));
   if (!target) return { verdict: 'RED (other test)' };
-  return target.errorClass === 'AssertionError'
+  return target.errorClass === 'AssertionError' && target.assertion === true
     ? { verdict: 'RED', errorClass: 'AssertionError' }
     : { verdict: 'RED (not an assertion)', errorClass: target.errorClass };
 }
@@ -211,13 +247,23 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
       done(results.length === 0 ? 'DIRTY' : 'SKIPPED');
       continue;
     }
-    const refused = pathVerdict(realRoot, p.file) ?? pathVerdict(realRoot, p.test);
+    const refused =
+      pathVerdict(realRoot, p.file) ??
+      pathVerdict(realRoot, p.test) ??
+      (existsSync(join(realRoot, p.test)) ? null : 'REFUSED (no test file)');
     if (refused) {
       done(refused);
       continue;
     }
+    // A run that was not exactly this test file keeps nothing: no verdict from it, no titles.
+    const exact = (r: TestReport) => r.kind !== 'report' || ranExactly(realRoot, p.test, r.files);
     if (!baselines.has(p.test)) baselines.set(p.test, runTest(p.test));
-    const base = baselineVerdict(baselines.get(p.test) as TestReport, p.expectRed);
+    const baseline = baselines.get(p.test) as TestReport;
+    if (!exact(baseline)) {
+      done('REFUSED (other test files)');
+      continue;
+    }
+    const base = baselineVerdict(baseline, p.expectRed);
     if (base) {
       done(base);
       continue;
@@ -249,6 +295,10 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
       done('NOT PLANTED');
       continue;
     }
+    if (!exact(report)) {
+      done('REFUSED (other test files)');
+      continue;
+    }
     const { verdict, errorClass } = judge(report, p.expectRed);
     done(verdict, { errorClass, failing: failingNames(report) });
   }
@@ -259,37 +309,48 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
 type PlantReportJson = {
   unhandled?: number;
   modules?: Array<{
+    file?: unknown;
     errors?: number;
-    tests?: Array<{ fullName?: unknown; status?: unknown; errorName?: unknown }>;
+    tests?: Array<{
+      fullName?: unknown;
+      status?: unknown;
+      errorName?: unknown;
+      assertion?: unknown;
+    }>;
   }>;
 };
 
 /**
- * Reduces the reporter's file to titles, states and error names. Anything else in it is
- * dropped. A module-level error, an unhandled error, or no module at all is a load failure.
+ * Reduces the reporter's file to titles, states, error names and module paths. Anything else
+ * in it is dropped. A module-level error, an unhandled error, or no module at all is a load
+ * failure.
  */
 export function parsePlantReport(json: PlantReportJson): TestReport {
   const modules = json.modules ?? [];
   let loadFailed = modules.length === 0 || (json.unhandled ?? 0) > 0;
   const tests: TestCase[] = [];
+  const files: string[] = [];
   for (const m of modules) {
     if ((m.errors ?? 0) > 0) loadFailed = true;
+    files.push(typeof m.file === 'string' ? m.file : '');
     for (const t of m.tests ?? []) {
       const errorClass = typeof t.errorName === 'string' ? t.errorName : undefined;
       tests.push({
         fullName: typeof t.fullName === 'string' ? t.fullName : '',
         status: typeof t.status === 'string' ? t.status : 'unknown',
         ...(errorClass ? { errorClass } : {}),
+        ...(t.assertion === true ? { assertion: true } : {}),
       });
     }
   }
-  return { kind: 'report', loadFailed, tests };
+  return { kind: 'report', loadFailed, tests, files };
 }
 
 /**
- * A vitest reporter that writes only each row's full title, its state and its first error's
- * name to `out`. The error name is the thrown object's own name (AssertionError for a failed
- * expect), never parsed out of a message.
+ * A vitest reporter that writes only each module's path, and each row's full title, its state,
+ * its first error's name and whether that error carries expected or actual, to `out`. The
+ * error name is the thrown object's own name (AssertionError for a failed expect), never parsed
+ * out of a message; the expected and actual values themselves are never written.
  */
 const reporterSource = (out: string) => `import { writeFileSync } from 'node:fs';
 export default class PlantReporter {
@@ -298,10 +359,12 @@ export default class PlantReporter {
     for (const m of modules) {
       const tests = [];
       for (const t of m.children.allTests()) {
-        const name = t.result().errors?.[0]?.name;
-        tests.push({ fullName: t.fullName, status: t.result().state, errorName: typeof name === 'string' ? name : null });
+        const e = t.result().errors?.[0];
+        const name = e?.name;
+        const assertion = !!e && typeof e === 'object' && ('expected' in e || 'actual' in e);
+        tests.push({ fullName: t.fullName, status: t.result().state, errorName: typeof name === 'string' ? name : null, assertion });
       }
-      report.modules.push({ errors: m.errors().length, tests });
+      report.modules.push({ file: m.moduleId, errors: m.errors().length, tests });
     }
     writeFileSync(${JSON.stringify(out)}, JSON.stringify(report));
   }
@@ -311,8 +374,14 @@ export default class PlantReporter {
 /** Only these reach the test process: no GITHUB_TOKEN, no secrets. HOME is the run's own temp dir. */
 const ENV_ALLOW = ['PATH', 'TMPDIR', 'LANG', 'CI', 'NODE_OPTIONS'];
 
-/** The real runner: one vitest process per call, its output discarded, its report parsed. */
+/**
+ * The real runner: one vitest process per call, its output discarded, its report parsed. The
+ * test is passed as an absolute path, which narrows vitest's filter but does not make it exact
+ * (a longer path that starts with it, or one containing its relative form, still matches), so
+ * runPlants refuses any run that was not exactly that file.
+ */
 export function vitestRunner(root: string, config: string, timeoutMs: number): RunTest {
+  const realRoot = realpathSync(resolve(root));
   return (testFile) => {
     const dir = mkdtempSync(join(tmpdir(), 'plants-'));
     const out = join(dir, 'report.json');
@@ -321,10 +390,16 @@ export function vitestRunner(root: string, config: string, timeoutMs: number): R
     const env: NodeJS.ProcessEnv = { NODE_ENV: 'test', HOME: dir };
     for (const k of ENV_ALLOW) if (process.env[k] !== undefined) env[k] = process.env[k];
     try {
-      const bin = join(root, 'node_modules/.bin/vitest');
-      const args = ['run', '--config', config, testFile, `--reporter=${reporter}`];
+      const bin = join(realRoot, 'node_modules/.bin/vitest');
+      const args = [
+        'run',
+        '--config',
+        config,
+        resolve(realRoot, testFile),
+        `--reporter=${reporter}`,
+      ];
       const run = spawnSync(bin, args, {
-        cwd: root,
+        cwd: realRoot,
         env,
         stdio: 'ignore',
         timeout: timeoutMs,

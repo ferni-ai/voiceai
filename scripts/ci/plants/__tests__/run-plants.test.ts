@@ -2,7 +2,7 @@
  * run-plants.ts plants one bug at a time and counts it only when the named row fails on an
  * assertion. Most rows run it against a throwaway git repo of invented files with a fake test
  * runner that reads the planted file, so every verdict path is exercised without starting
- * vitest. The last group drives the real vitest runner on a tiny invented test.
+ * vitest. The last groups drive the real vitest runner on tiny invented tests.
  */
 import { execFileSync, spawnSync } from 'child_process';
 import {
@@ -10,6 +10,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -23,6 +24,7 @@ import {
   judge,
   parseManifest,
   parsePlantReport,
+  ranExactly,
   runPlants,
   vitestRunner,
   type Plant,
@@ -71,7 +73,7 @@ function repo(
   return dir;
 }
 
-type Rule = { when: string; fail: string; errorClass?: string };
+type Rule = { when: string; fail: string; errorClass?: string; assertion?: boolean };
 
 /** A fake vitest: both rows pass, unless src/calc.ts contains a rule's `when` text. */
 function fake(
@@ -88,11 +90,12 @@ function fake(
     const hit = (name: string) => rules.find((r) => r.fail === name && text.includes(r.when));
     const tests = [BLANK, TWICE].map((fullName) => {
       const r = hit(fullName);
-      return r
-        ? { fullName, status: 'failed', errorClass: r.errorClass ?? 'AssertionError' }
-        : { fullName, status: 'passed' };
+      if (!r) return { fullName, status: 'passed' };
+      const errorClass = r.errorClass ?? 'AssertionError';
+      const assertion = r.assertion ?? errorClass === 'AssertionError';
+      return { fullName, status: 'failed', errorClass, ...(assertion ? { assertion } : {}) };
     });
-    return { kind: 'report', loadFailed: false, tests };
+    return { kind: 'report', loadFailed: false, tests, files: [join(root, test)] };
   };
   return { run, calls };
 }
@@ -139,6 +142,15 @@ describe('runPlants verdicts', () => {
       failing: [TWICE],
     });
     expect(runPlants([plant()], root, fake(root).run)[0].verdict).toBe('GREEN');
+  });
+
+  it('an Error renamed AssertionError by hand, with no expected or actual, does not count', () => {
+    const root = repo();
+    const { run } = fake(root, [{ ...breaksBlank, assertion: false }]);
+    expect(runPlants([plant()], root, run)[0]).toMatchObject({
+      verdict: 'RED (not an assertion)',
+      errorClass: 'AssertionError',
+    });
   });
 
   it('NOT PLANTED when find is missing or the replacement changes nothing', () => {
@@ -193,9 +205,10 @@ describe('runPlants verdicts', () => {
 
   it('LOAD ERROR when the planted file fails to collect, runs no tests, or leaves no report; TIMEOUT on a timeout', () => {
     const root = repo();
+    const files = [join(root, TEST)];
     const cases: Array<[TestReport, string]> = [
-      [{ kind: 'report', loadFailed: true, tests: [] }, 'LOAD ERROR'],
-      [{ kind: 'report', loadFailed: false, tests: [] }, 'LOAD ERROR'],
+      [{ kind: 'report', loadFailed: true, tests: [], files }, 'LOAD ERROR'],
+      [{ kind: 'report', loadFailed: false, tests: [], files }, 'LOAD ERROR'],
       [{ kind: 'no-report' }, 'LOAD ERROR'],
       [{ kind: 'timeout' }, 'TIMEOUT'],
     ];
@@ -227,10 +240,99 @@ describe('runPlants verdicts', () => {
     expect(calls).toEqual([]);
   });
 
+  it('a test path that names no file is refused before anything runs', () => {
+    const root = repo();
+    const { run, calls } = fake(root, [breaksBlank]);
+    const [r] = runPlants([plant({ test: 'src/calc.tes' })], root, run);
+    expect(r).toMatchObject({ verdict: 'REFUSED (no test file)', failing: [] });
+    expect(calls).toEqual([]);
+  });
+
+  it('a run that also ran another test file is refused, and no row title from it is printed', () => {
+    const root = repo();
+    const other = 'OTHER-FILE-ROW-MUST-NOT-PRINT';
+    const wider = (files: string[]): TestReport => ({
+      kind: 'report',
+      loadFailed: false,
+      tests: [
+        { fullName: BLANK, status: 'failed', errorClass: 'AssertionError', assertion: true },
+        { fullName: other, status: 'failed', errorClass: 'AssertionError', assertion: true },
+      ],
+      files,
+    });
+    const both = [join(root, TEST), join(root, 'src/held-out/calc.test.ts')];
+    const atBaseline = fake(root, [], () => wider(both));
+    const planted = fake(root, [breaksBlank], (text) =>
+      text.includes("!== ''") ? wider(both) : undefined
+    );
+    const results = [
+      ...runPlants([plant({ id: 'base' })], root, atBaseline.run),
+      ...runPlants([plant({ id: 'planted' })], root, planted.run),
+    ];
+    expect(results.map((r) => [r.verdict, r.failing])).toEqual([
+      ['REFUSED (other test files)', []],
+      ['REFUSED (other test files)', []],
+    ]);
+    expect(atBaseline.calls).toEqual([TEST]);
+    expect(planted.calls).toEqual([TEST, TEST]);
+    expect(formatResults(results)).not.toContain(other);
+    expect(readFileSync(join(root, 'src/calc.ts'), 'utf8')).toBe(SOURCE);
+  });
+
+  it('a run of a different file only, or of no file at all, is refused too', () => {
+    const root = repo();
+    for (const files of [[join(root, 'src/calc.ts')], []]) {
+      const { run } = fake(root, [breaksBlank], (text) =>
+        text.includes("!== ''")
+          ? {
+              kind: 'report',
+              loadFailed: false,
+              tests: [
+                {
+                  fullName: BLANK,
+                  status: 'failed',
+                  errorClass: 'AssertionError',
+                  assertion: true,
+                },
+              ],
+              files,
+            }
+          : undefined
+      );
+      expect(runPlants([plant()], root, run)[0].verdict, `${files.length}`).toBe(
+        'REFUSED (other test files)'
+      );
+    }
+  });
+
   it('writes the replacement literally ($& and $1 are not patterns)', () => {
     const root = repo();
     const { run } = fake(root, [{ when: "'$&'", fail: BLANK }]);
     expect(runPlants([plant({ replace: "=== '$&'" })], root, run)[0].verdict).toBe('RED');
+  });
+});
+
+describe('ranExactly: the run must be the requested test file and nothing else', () => {
+  it('the requested file alone is exact, however its module path is spelt', () => {
+    const root = repo();
+    const real = realpathSync(root);
+    expect(ranExactly(real, TEST, [join(root, TEST)])).toBe(true);
+    expect(ranExactly(real, TEST, [join(root, 'src/../src/calc.test.ts')])).toBe(true);
+  });
+
+  it('the requested file plus another is not exact', () => {
+    const root = repo();
+    const real = realpathSync(root);
+    expect(ranExactly(real, TEST, [join(root, TEST), join(root, 'src/calc.ts')])).toBe(false);
+  });
+
+  it('another file alone, no file at all, a path that does not resolve, or a missing requested file is not exact', () => {
+    const root = repo();
+    const real = realpathSync(root);
+    expect(ranExactly(real, TEST, [join(root, 'src/calc.ts')])).toBe(false);
+    expect(ranExactly(real, TEST, [])).toBe(false);
+    expect(ranExactly(real, TEST, [join(root, TEST), ''])).toBe(false);
+    expect(ranExactly(real, 'src/nosuch.test.ts', [join(root, 'src/nosuch.test.ts')])).toBe(false);
   });
 });
 
@@ -263,6 +365,36 @@ describe('sealed and outside paths are refused before anything runs', () => {
     ]);
     expect(calls).toEqual([]);
     expect(status(root)).toBe('');
+  });
+
+  it('refuses a sealed segment at any depth, for every sealed name', () => {
+    const nested = [
+      'apps/x/scripts/crisis-eval/a.ts',
+      'apps/x/scripts/voice-eval/a.ts',
+      'apps/x/src/fixtures/a.ts',
+      'apps/x/heldout/a.ts',
+      'apps/x/held-out/a.ts',
+      'apps/x/blind/a.ts',
+      'apps/x/sealed/a.ts',
+      'apps/x/corpus/a.ts',
+    ];
+    const root = repo();
+    const { run, calls } = fake(root, [breaksBlank]);
+    for (const path of nested) {
+      expect(isSealedPath(path), path).toBe(true);
+      const results = runPlants(
+        [plant({ id: 'f', file: path }), plant({ id: 't', test: path })],
+        root,
+        run
+      );
+      expect(
+        results.map((r) => r.verdict),
+        path
+      ).toEqual(['REFUSED (sealed path)', 'REFUSED (sealed path)']);
+    }
+    expect(calls).toEqual([]);
+    expect(isSealedPath('apps/x/scripts/ci/a.ts')).toBe(false);
+    expect(isSealedPath('apps/x/scripts/crisis-evaluation/a.ts')).toBe(false);
   });
 
   it('allows an ordinary source path, and refuses paths outside the checkout', () => {
@@ -359,7 +491,13 @@ describe('what reaches the public log', () => {
         errors: 0,
         message: SENTINEL,
         tests: [
-          { fullName: BLANK, status: 'failed', errorName: 'AssertionError', message: SENTINEL },
+          {
+            fullName: BLANK,
+            status: 'failed',
+            errorName: 'AssertionError',
+            assertion: true,
+            message: SENTINEL,
+          },
           { fullName: TWICE, status: 'failed', errorName: 'TypeError', stack: SENTINEL },
         ],
       },
@@ -367,14 +505,18 @@ describe('what reaches the public log', () => {
   };
 
   it('parsePlantReport keeps titles, states and error names, and drops every other field', () => {
-    const parsed = parsePlantReport(report);
+    const parsed = parsePlantReport({
+      ...report,
+      modules: report.modules.map((m) => ({ ...m, file: '/checkout/src/calc.test.ts' })),
+    });
     expect(parsed).toEqual({
       kind: 'report',
       loadFailed: false,
       tests: [
-        { fullName: BLANK, status: 'failed', errorClass: 'AssertionError' },
+        { fullName: BLANK, status: 'failed', errorClass: 'AssertionError', assertion: true },
         { fullName: TWICE, status: 'failed', errorClass: 'TypeError' },
       ],
+      files: ['/checkout/src/calc.test.ts'],
     });
     expect(JSON.stringify(parsed)).not.toContain(SENTINEL);
     expect(judge(parsed, BLANK)).toEqual({ verdict: 'RED', errorClass: 'AssertionError' });
@@ -388,18 +530,25 @@ describe('what reaches the public log', () => {
     expect(parsePlantReport({ unhandled: 1, modules: [{ errors: 0, tests: [] }] })).toMatchObject({
       loadFailed: true,
     });
-    expect(parsePlantReport({})).toEqual({ kind: 'report', loadFailed: true, tests: [] });
+    expect(parsePlantReport({})).toEqual({
+      kind: 'report',
+      loadFailed: true,
+      tests: [],
+      files: [],
+    });
   });
 
   it('the results table carries no message text', () => {
     const root = repo();
+    const file = join(root, TEST);
     const run: RunTest = () =>
       parsePlantReport(
         readFileSync(join(root, 'src/calc.ts'), 'utf8').includes("!== ''")
-          ? report
+          ? { ...report, modules: report.modules.map((m) => ({ ...m, file })) }
           : {
               modules: [
                 {
+                  file,
                   errors: 0,
                   tests: [
                     { fullName: BLANK, status: 'passed' },
@@ -420,12 +569,11 @@ describe('the real vitest runner, on a tiny invented test', () => {
   const NODE_MODULES = resolve(__dirname, '../../../../node_modules');
 
   /** A project of invented files that borrows this checkout's node_modules through a link. */
-  function project(): string {
-    const dir = tempDir('plants-vitest-');
+  function project(dir = tempDir('plants-vitest-'), include = '*.test.mjs'): string {
     symlinkSync(NODE_MODULES, join(dir, 'node_modules'));
     writeFileSync(
       join(dir, 'vitest.config.mjs'),
-      `export default { cacheDir: ${JSON.stringify(join(dir, '.vite'))}, test: { include: ['*.test.mjs'] } };\n`
+      `export default { cacheDir: ${JSON.stringify(join(dir, '.vite'))}, test: { include: [${JSON.stringify(include)}] } };\n`
     );
     writeFileSync(
       join(dir, 'tiny.test.mjs'),
@@ -435,6 +583,11 @@ describe('tiny', () => {
   it('fails on an assertion', () => expect('${SENTINEL}').toBe(''));
   it('throws a type error', () => { throw new TypeError('${SENTINEL}'); });
   it('throws a string that starts like an assertion', () => { throw 'AssertionError: ${SENTINEL}'; });
+  it('throws an Error named AssertionError by hand', () => {
+    const e = new Error('${SENTINEL}');
+    e.name = 'AssertionError';
+    throw e;
+  });
   it('sees no token and not the real HOME', () => {
     expect(process.env.PLANT_INVENTED_TOKEN).toBeUndefined();
     expect(process.env.HOME).not.toBe(${JSON.stringify(process.env.HOME ?? '')});
@@ -460,13 +613,24 @@ describe('tiny', () => {
       delete process.env.PLANT_INVENTED_TOKEN;
     }
     expect(report.kind).toBe('report');
+    expect(
+      report.kind === 'report' && ranExactly(realpathSync(dir), 'tiny.test.mjs', report.files)
+    ).toBe(true);
     const rows = report.kind === 'report' ? report.tests : [];
     const row = (title: string) => rows.find((t) => t.fullName === `tiny > ${title}`);
     expect(row('passes')?.status).toBe('passed');
     expect(row('fails on an assertion')).toMatchObject({
       status: 'failed',
       errorClass: 'AssertionError',
+      assertion: true,
     });
+    expect(judge(report, 'tiny > fails on an assertion').verdict).toBe('RED');
+    const byHand = row('throws an Error named AssertionError by hand');
+    expect(byHand).toMatchObject({ status: 'failed', errorClass: 'AssertionError' });
+    expect(byHand?.assertion).not.toBe(true);
+    expect(judge(report, 'tiny > throws an Error named AssertionError by hand').verdict).toBe(
+      'RED (not an assertion)'
+    );
     expect(row('throws a type error')).toMatchObject({ status: 'failed', errorClass: 'TypeError' });
     expect(row('throws a string that starts like an assertion')?.status).toBe('failed');
     expect(row('throws a string that starts like an assertion')?.errorClass).not.toBe(
@@ -485,6 +649,83 @@ describe('tiny', () => {
       kind: 'timeout',
     });
   }, 60_000);
+});
+
+describe('the real vitest runner: one test argument can match other files', () => {
+  const SEALED_ROW = 'SEALED-ROW-MUST-NOT-PRINT';
+  const NODE_MODULES = resolve(__dirname, '../../../../node_modules');
+  const row = (title: string, pass: boolean) =>
+    `import { expect, it } from 'vitest';\nit('${title}', () => expect(${pass ? 1 : 0}).toBe(1));\n`;
+
+  /**
+   * A committed repo of invented tests with vitest including every *.test.mjs. vitest reads
+   * a file argument as a substring filter, and an absolute one also as a path prefix, so each
+   * case below makes one argument match a second file.
+   */
+  function project(): string {
+    const dir = repo({
+      '.gitignore': 'node_modules\n.vite\n',
+      'vitest.config.mjs':
+        "export default { cacheDir: '.vite', test: { include: ['**/*.test.mjs'] } };\n",
+      'tiny.test.mjs': row('tiny passes', true),
+      'held-out/tiny.test.mjs': row(SEALED_ROW, false),
+      'blind/nosuch.test.mjs': row(SEALED_ROW, false),
+      'pre.test.mjs': row('pre passes', true),
+      'pre.test.mjs-sealed/x.test.mjs': row(SEALED_ROW, false),
+      'one.test.mjs': row('one passes', true),
+      'one.test.mjs.test.mjs': row('the longer name passes', true),
+    });
+    symlinkSync(NODE_MODULES, join(dir, 'node_modules'));
+    return dir;
+  }
+
+  const plantFor = (id: string, test: string): Plant => ({
+    id,
+    file: 'pre.test.mjs',
+    find: 'pre passes',
+    replace: 'pre fails',
+    test,
+    expectRed: 'pre passes',
+  });
+
+  it('an ordinary test name inside a sealed-named path, a missing name that matches a sealed file, and a name that prefixes a sealed folder are refused with no sealed row printed', () => {
+    const dir = project();
+    const run = vitestRunner(dir, 'vitest.config.mjs', 60_000);
+    const results = runPlants(
+      [
+        plantFor('substring', 'tiny.test.mjs'),
+        plantFor('missing', 'nosuch.test.mjs'),
+        plantFor('prefix', 'pre.test.mjs'),
+      ],
+      dir,
+      run
+    );
+    expect(results.map((r) => [r.id, r.verdict, r.failing])).toEqual([
+      ['substring', 'REFUSED (other test files)', []],
+      ['missing', 'REFUSED (no test file)', []],
+      ['prefix', 'REFUSED (other test files)', []],
+    ]);
+    expect(formatResults(results)).not.toContain(SEALED_ROW);
+    expect(status(dir)).toBe('');
+  }, 120_000);
+
+  it('of two ordinary files where one name is a prefix of the other, the shorter is refused, not judged on both', () => {
+    const dir = project();
+    const run = vitestRunner(dir, 'vitest.config.mjs', 60_000);
+    const report = run('one.test.mjs');
+    // vitest ran both files (the absolute path is a prefix of the longer one) ...
+    expect(report.kind === 'report' ? report.tests.map((t) => t.fullName).sort() : []).toEqual([
+      'one passes',
+      'the longer name passes',
+    ]);
+    // ... so the run is refused, with nothing from it kept.
+    const [r] = runPlants(
+      [{ ...plantFor('shorter', 'one.test.mjs'), expectRed: 'one passes' }],
+      dir,
+      run
+    );
+    expect([r.verdict, r.failing]).toEqual(['REFUSED (other test files)', []]);
+  }, 120_000);
 });
 
 describe('parseManifest', () => {
