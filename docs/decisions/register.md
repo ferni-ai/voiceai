@@ -203,8 +203,8 @@ one hears about it in the queue rather than at PR time.
 - **Why:** consent is what separates honouring someone from impersonating
   them.
 - **Enforcement:** existing tests
-  `src/personas/roster/__tests__/voice-records.test.ts` (the record keeps the
-  consent's scope and date, never a document or a voice id) and
+  `src/personas/roster/__tests__/voice-records.test.ts` (the records name a
+  voice setting and never hold a voice id) and
   `src/services/custom-agent/__tests__/custom-agent-legend-voice.test.ts` (a
   custom agent never gets a configured legend voice). The admission check
   (no legend speaks as the person until its record, its voice setting and an

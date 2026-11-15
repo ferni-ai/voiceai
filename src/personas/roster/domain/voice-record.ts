@@ -20,7 +20,7 @@ export type ConsentScope = 'name' | 'voice' | 'new-words';
 export const FULL_LEGEND_CONSENT: readonly ConsentScope[] = ['name', 'voice', 'new-words'];
 
 /** Written consent from a person's estate, held by the owner. */
-export interface EstateConsent {
+interface EstateConsent {
   /** The person, as the public record names them. */
   readonly person: string;
   readonly basis: 'estate';

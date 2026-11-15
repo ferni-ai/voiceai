@@ -13,7 +13,7 @@ import type { Env } from '../../config/env-flag.js';
 import { RETIRED_CLONES } from '../../config/voice-ids.js';
 import { FULL_LEGEND_CONSENT, type ConsentedCloneRecord } from './domain/voice-record.js';
 
-export const LEGEND_VOICE_RECORDS: readonly ConsentedCloneRecord[] = [
+const LEGEND_VOICE_RECORDS: readonly ConsentedCloneRecord[] = [
   {
     kind: 'consented-clone',
     listingId: 'john-bogle',
