@@ -10,7 +10,7 @@
  *
  * @module tools/domains/memory/surface-key-moment
  */
-import { contentWords } from '../../../memory/recall/session-recall.js';
+import { contentWords } from '../../../memory/index.js';
 
 /** Shared content words a moment needs before it counts as the same memory. */
 const MIN_SHARED_WORDS = 2;
