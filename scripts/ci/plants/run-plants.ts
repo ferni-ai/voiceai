@@ -26,13 +26,21 @@
  * refused with no row title kept. Tests run with an allowlisted environment and a throwaway
  * HOME, so no token and no file under the real HOME reaches them.
  *
+ * Each vitest run leads its own process group, and the plant is restored only once that group
+ * is empty: vitest's forks worker can outlive its main process, and a time limit that killed
+ * only the main process would leave the worker running the planted test. On the limit the whole
+ * group gets TERM, then KILL; after any exit, whatever is left in the group is killed the same
+ * way. A group still not empty after that is refused, and no further plant runs. TERM, INT or
+ * HUP to the runner kills the running group and restores the planted file before it exits.
+ *
  *   node --experimental-strip-types scripts/ci/plants/run-plants.ts --root <checkout> <manifest.json>...
  * PLANT_TIMEOUT_MS (default 180000) caps each vitest process; PLANT_VITEST_CONFIG (default
  * vitest.config.unit.ts) picks its config.
  * Manifest: {"plants": [{"id", "file", "find", "replace", "test", "expectRed"}]}.
- * Exit 0 when every plant is RED, 1 when any is not, 2 on a bad manifest.
+ * Exit 0 when every plant is RED, 1 when any is not, 2 on a bad manifest, 128 + the signal's
+ * number when stopped by TERM, INT or HUP.
  */
-import { execFileSync, spawnSync } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import {
   appendFileSync,
   existsSync,
@@ -43,7 +51,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'fs';
-import { tmpdir } from 'os';
+import { constants, tmpdir } from 'os';
 import { isAbsolute, join, normalize, relative, resolve, sep } from 'path';
 import { pathToFileURL } from 'url';
 
@@ -72,6 +80,7 @@ export type Verdict =
   | 'REFUSED (link)'
   | 'REFUSED (no test file)'
   | 'REFUSED (other test files)'
+  | 'REFUSED (child processes left)'
   | 'DIRTY'
   | 'SKIPPED';
 
@@ -87,18 +96,22 @@ export type TestCase = {
 };
 /**
  * One vitest run, reduced to titles, states and error names, plus the path of each test module
- * that ran. The paths are compared, never printed.
+ * that ran. The paths are compared, never printed. `children-left` is a run whose process group
+ * could not be emptied: `leftover` processes survived TERM and KILL.
  */
 export type TestReport =
   | { kind: 'report'; loadFailed: boolean; tests: TestCase[]; files: string[] }
   | { kind: 'timeout' }
-  | { kind: 'no-report' };
-export type RunTest = (testFile: string) => TestReport;
+  | { kind: 'no-report' }
+  | { kind: 'children-left'; leftover: number };
+/** A runner may answer at once (the fakes in the tests) or later (the real vitest runner). */
+export type RunTest = (testFile: string) => TestReport | Promise<TestReport>;
 export type Result = {
   id: string;
   verdict: Verdict;
   failing: string[];
   errorClass?: string;
+  leftover?: number;
   secs: number;
 };
 
@@ -207,6 +220,7 @@ export function judge(
   expectRed: string
 ): Pick<Result, 'verdict' | 'errorClass'> {
   if (report.kind === 'timeout') return { verdict: 'TIMEOUT' };
+  if (report.kind === 'children-left') return { verdict: 'REFUSED (child processes left)' };
   if (report.kind === 'no-report' || report.loadFailed || report.tests.length === 0) {
     return { verdict: 'LOAD ERROR' };
   }
@@ -233,8 +247,37 @@ const git = (root: string, args: string[]) =>
 
 const clean = (root: string) => git(root, ['status', '--porcelain']).trim() === '';
 
-/** Plants one at a time. Stops (the rest SKIPPED) the moment the tree is left dirty. */
-export function runPlants(plants: Plant[], root: string, runTest: RunTest): Result[] {
+/**
+ * Cleanups for a runner stopped by a signal mid-plant, run newest first: the running process
+ * group is killed before the planted file is restored. Each registration returns its removal.
+ */
+const aborts: Array<() => void> = [];
+function onAbort(fn: () => void): () => void {
+  aborts.push(fn);
+  return () => {
+    const at = aborts.lastIndexOf(fn);
+    if (at !== -1) aborts.splice(at, 1);
+  };
+}
+function abortAll(): void {
+  for (const fn of aborts.splice(0).reverse()) {
+    try {
+      fn();
+    } catch {
+      // the next cleanup still runs
+    }
+  }
+}
+
+/**
+ * Plants one at a time. Stops (the rest SKIPPED) the moment the tree is left dirty or a run's
+ * process group could not be emptied.
+ */
+export async function runPlants(
+  plants: Plant[],
+  root: string,
+  runTest: RunTest
+): Promise<Result[]> {
   const results: Result[] = [];
   const baselines = new Map<string, TestReport>();
   const realRoot = realpathSync(root);
@@ -257,8 +300,16 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
     }
     // A run that was not exactly this test file keeps nothing: no verdict from it, no titles.
     const exact = (r: TestReport) => r.kind !== 'report' || ranExactly(realRoot, p.test, r.files);
-    if (!baselines.has(p.test)) baselines.set(p.test, runTest(p.test));
+    // A run that left processes no signal could end stops everything after it.
+    const childrenLeft = (r: TestReport): boolean => {
+      if (r.kind !== 'children-left') return false;
+      stopped = true;
+      done('REFUSED (child processes left)', { leftover: r.leftover });
+      return true;
+    };
+    if (!baselines.has(p.test)) baselines.set(p.test, await runTest(p.test));
     const baseline = baselines.get(p.test) as TestReport;
+    if (childrenLeft(baseline)) continue;
     if (!exact(baseline)) {
       done('REFUSED (other test files)');
       continue;
@@ -281,10 +332,13 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
     );
     let report: TestReport = { kind: 'no-report' };
     const planted = git(realRoot, ['status', '--porcelain', '--', p.file]).trim() !== '';
+    const restore = () => git(realRoot, ['checkout', '--', p.file]);
+    const offAbort = onAbort(restore);
     try {
-      if (planted) report = runTest(p.test);
+      if (planted) report = await runTest(p.test);
     } finally {
-      git(realRoot, ['checkout', '--', p.file]);
+      offAbort();
+      restore();
     }
     if (!clean(realRoot)) {
       stopped = true;
@@ -295,6 +349,7 @@ export function runPlants(plants: Plant[], root: string, runTest: RunTest): Resu
       done('NOT PLANTED');
       continue;
     }
+    if (childrenLeft(report)) continue;
     if (!exact(report)) {
       done('REFUSED (other test files)');
       continue;
@@ -374,15 +429,120 @@ export default class PlantReporter {
 /** Only these reach the test process: no GITHUB_TOKEN, no secrets. HOME is the run's own temp dir. */
 const ENV_ALLOW = ['PATH', 'TMPDIR', 'LANG', 'CI', 'NODE_OPTIONS'];
 
+/** How one process group's run ended. */
+export type GroupRun = {
+  timedOut: boolean;
+  /** Processes still in the group when its leader exited; each was then killed. */
+  strays: number;
+  /** Processes still in the group after TERM, KILL and up to 5 s of waiting. */
+  leftover: number;
+};
+
+const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
+
+function signalGroup(pgid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(-pgid, signal);
+  } catch {
+    // the group is already gone
+  }
+}
+
+/** True while any process is in group `pgid`. A permission error counts as alive. */
+function groupAlive(pgid: number): boolean {
+  try {
+    process.kill(-pgid, 0);
+    return true;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code !== 'ESRCH';
+  }
+}
+
+/** The number of live processes in group `pgid`, by `ps -A` (the same on Linux and macOS). */
+function groupSize(pgid: number): number {
+  if (!groupAlive(pgid)) return 0;
+  try {
+    const rows = execFileSync('ps', ['-A', '-o', 'pid=,pgid='], { encoding: 'utf8' }).split('\n');
+    return Math.max(1, rows.filter((l) => Number(l.trim().split(/\s+/)[1]) === pgid).length);
+  } catch {
+    return 1;
+  }
+}
+
+async function groupGone(pgid: number, ms: number): Promise<boolean> {
+  const end = Date.now() + ms;
+  while (groupAlive(pgid)) {
+    if (Date.now() >= end) return false;
+    await pause(100);
+  }
+  return true;
+}
+
+/** TERM to the whole group; KILL if anything is left after 2 s; then up to 3 s more. */
+async function killGroup(pgid: number): Promise<void> {
+  signalGroup(pgid, 'SIGTERM');
+  if (await groupGone(pgid, 2000)) return;
+  signalGroup(pgid, 'SIGKILL');
+  await groupGone(pgid, 3000);
+}
+
 /**
- * The real runner: one vitest process per call, its output discarded, its report parsed. The
- * test is passed as an absolute path, which narrows vitest's filter but does not make it exact
- * (a longer path that starts with it, or one containing its relative form, still matches), so
- * runPlants refuses any run that was not exactly that file.
+ * Runs `cmd` as the leader of a new process group and returns once that group is empty or
+ * cannot be emptied. Past `timeoutMs` the group gets TERM, then KILL 2 s later.
+ */
+export async function runInGroup(
+  cmd: string,
+  args: string[],
+  opts: { cwd: string; env: NodeJS.ProcessEnv },
+  timeoutMs: number
+): Promise<GroupRun> {
+  const child = spawn(cmd, args, { ...opts, stdio: 'ignore', detached: true });
+  const exited = new Promise<void>((done) => {
+    child.once('exit', () => done());
+    child.once('error', () => done());
+  });
+  const pgid = child.pid;
+  if (pgid === undefined || pgid <= 1) {
+    await exited;
+    return { timedOut: false, strays: 0, leftover: 0 };
+  }
+  const offAbort = onAbort(() => signalGroup(pgid, 'SIGKILL'));
+  let timedOut = false;
+  let killLater: NodeJS.Timeout | undefined;
+  const limit = setTimeout(() => {
+    timedOut = true;
+    signalGroup(pgid, 'SIGTERM');
+    killLater = setTimeout(() => signalGroup(pgid, 'SIGKILL'), 2000);
+  }, timeoutMs);
+  try {
+    await exited;
+    clearTimeout(limit);
+    clearTimeout(killLater);
+    const strays = groupSize(pgid);
+    if (strays > 0) await killGroup(pgid);
+    return { timedOut, strays, leftover: groupSize(pgid) };
+  } finally {
+    offAbort();
+  }
+}
+
+/** One run's report: a group that could not be emptied outranks a timeout, which outranks a report. */
+export function reportFrom(run: GroupRun, out: string): TestReport {
+  if (run.leftover > 0) return { kind: 'children-left', leftover: run.leftover };
+  if (run.timedOut) return { kind: 'timeout' };
+  if (!existsSync(out)) return { kind: 'no-report' };
+  return parsePlantReport(JSON.parse(readFileSync(out, 'utf8')) as PlantReportJson);
+}
+
+/**
+ * The real runner: one vitest process group per call, its output discarded, its report parsed.
+ * The test is passed as an absolute path, which narrows vitest's filter but does not make it
+ * exact (a longer path that starts with it, or one containing its relative form, still
+ * matches), so runPlants refuses any run that was not exactly that file.
  */
 export function vitestRunner(root: string, config: string, timeoutMs: number): RunTest {
   const realRoot = realpathSync(resolve(root));
-  return (testFile) => {
+  return async (testFile) => {
     const dir = mkdtempSync(join(tmpdir(), 'plants-'));
     const out = join(dir, 'report.json');
     const reporter = join(dir, 'reporter.mjs');
@@ -398,17 +558,7 @@ export function vitestRunner(root: string, config: string, timeoutMs: number): R
         resolve(realRoot, testFile),
         `--reporter=${reporter}`,
       ];
-      const run = spawnSync(bin, args, {
-        cwd: realRoot,
-        env,
-        stdio: 'ignore',
-        timeout: timeoutMs,
-        killSignal: 'SIGKILL',
-      });
-      if (run.error && (run.error as NodeJS.ErrnoException).code === 'ETIMEDOUT')
-        return { kind: 'timeout' };
-      if (!existsSync(out)) return { kind: 'no-report' };
-      return parsePlantReport(JSON.parse(readFileSync(out, 'utf8')) as PlantReportJson);
+      return reportFrom(await runInGroup(bin, args, { cwd: realRoot, env }, timeoutMs), out);
     } catch {
       return { kind: 'no-report' };
     } finally {
@@ -429,7 +579,13 @@ export function formatResults(results: Result[]): string {
     .join('\n');
 }
 
-function main(argv = process.argv.slice(2), env = process.env): void {
+async function main(argv = process.argv.slice(2), env = process.env): Promise<void> {
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+    process.on(signal, () => {
+      abortAll();
+      process.exit(128 + constants.signals[signal]);
+    });
+  }
   let root = resolve('.');
   const manifests: string[] = [];
   for (let i = 0; i < argv.length; i++) {
@@ -458,7 +614,7 @@ function main(argv = process.argv.slice(2), env = process.env): void {
     process.exit(2);
   }
   const timeoutMs = Number(env.PLANT_TIMEOUT_MS ?? 180_000);
-  const results = runPlants(
+  const results = await runPlants(
     plants,
     root,
     vitestRunner(root, env.PLANT_VITEST_CONFIG ?? 'vitest.config.unit.ts', timeoutMs)
@@ -470,4 +626,10 @@ function main(argv = process.argv.slice(2), env = process.env): void {
   process.exit(results.every((r) => r.verdict === 'RED') ? 0 : 1);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e: unknown) => {
+    // The name only: a message can quote a path or source text.
+    console.error(`run-plants failed: ${e instanceof Error ? e.name : 'unknown error'}`);
+    process.exit(2);
+  });
+}
