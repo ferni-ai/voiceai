@@ -155,13 +155,15 @@ export const LESTER_PRO_V3_VOICE_ID = 'ebaf7477-b6ae-417e-be54-19e6176777ea';
  * Private voice clones the legends used to speak in, cloned from the real people
  * the persona ids are named for. No persona may speak in them, so an environment
  * override that names one is ignored (the clones stay in the Cartesia account;
- * nothing here deletes them).
+ * nothing here deletes them). A legend admitted to speak as the real person may
+ * use its own person's clone (personas/roster/voice-records.ts).
  */
-export const RETIRED_CLONE_VOICE_IDS: ReadonlySet<string> = new Set([
-  '3ebcd114-d280-4eed-a238-b9323a6b8e52', // "joel"
-  '85680374-8d94-43a1-bb15-5eea7a8bdbb8', // "Peter"
-  '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // "john 2" (bogle)
-]);
+export const RETIRED_CLONES = {
+  joel: '3ebcd114-d280-4eed-a238-b9323a6b8e52', // "joel", a living person: no consent on file
+  peter: '85680374-8d94-43a1-bb15-5eea7a8bdbb8', // "Peter", a living person: no consent on file
+  bogle: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // "john 2" (bogle)
+} as const;
+export const RETIRED_CLONE_VOICE_IDS: ReadonlySet<string> = new Set(Object.values(RETIRED_CLONES));
 
 /**
  * Alias for backwards compatibility with cartesia-core.ts
