@@ -85,6 +85,15 @@ describe('surfaceRelevantMemory', () => {
     expect(await run({ userId: 'u1', keyMoments: ['Sam is planning a trip in May'] })).toMatch(NOTHING);
   });
 
+  it('does not count shared stopwords ("with", "the", "that") as a match', async () => {
+    search.mockResolvedValue(null);
+    const out = await run(
+      { userId: 'u1', keyMoments: ['that was the plan with them all along'] },
+      'your sister moved away with the kids that year'
+    );
+    expect(out).toMatch(NOTHING);
+  });
+
   it('matches whole words only: "art" is not in "party", "class" is not in "classroom"', async () => {
     search.mockResolvedValue(null);
     const out = await run(
