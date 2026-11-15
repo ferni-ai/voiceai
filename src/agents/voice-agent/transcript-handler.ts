@@ -178,6 +178,19 @@ export interface TranscriptHandlerContext {
   };
   /** Function to send data messages to frontend */
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
+  /**
+   * True when the turn path (turn intelligence) runs for this call: process-turn and the turn
+   * handler then capture each run into dynamic memory. Unset on the single-agent path.
+   */
+  turnPathHooked?: boolean;
+}
+
+/**
+ * TURN_PATH_SINGLE_CAPTURE=on: with the turn path hooked, its captures cover every line, so a
+ * copy from here only repeats them. Elsewhere this capture is the only one, so it stays.
+ */
+function turnPathCapturesLine(turnPathHooked: boolean | undefined): boolean {
+  return turnPathHooked === true && flagOn('TURN_PATH_SINGLE_CAPTURE');
 }
 
 /**
@@ -281,6 +294,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     autoOptimizer,
     sendDataMessage,
     agent,
+    turnPathHooked,
   } = ctx;
   if (flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH')) installSpeechTracker(session);
 
@@ -1110,6 +1124,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         dynamicToolLoader,
         autoOptimizer,
         agent,
+        turnPathHooked,
       }).catch((err) => {
         diag.warn('processFinalTranscript error', { error: String(err) });
       });
@@ -1263,6 +1278,7 @@ async function processFinalTranscript(
     dynamicToolLoader,
     autoOptimizer,
     agent,
+    turnPathHooked,
   } = ctx;
   // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
@@ -1417,6 +1433,8 @@ async function processFinalTranscript(
   try {
     if (!memoryUserId) {
       diag.debug('Skipping memory capture - no userId');
+    } else if (turnPathCapturesLine(turnPathHooked)) {
+      diag.debug('Skipping memory capture - the turn path captures this line');
     } else {
       const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
       const captureResult = await fastCapture({
