@@ -115,10 +115,7 @@ const sleep = (ms: number): Promise<void> =>
  * True when the call's running crisis reads have all settled (or none is running), so the hold
  * is up to date; false, logged, when they did not within `settleMs`: the call is held.
  */
-export async function crisisReadsDone(
-  sessionId: string,
-  settleMs = CRISIS_READ_WAIT.settleMs
-): Promise<boolean> {
+export async function crisisReadsDone(sessionId: string, settleMs: number): Promise<boolean> {
   const running = crisisReadsSettled(sessionId);
   if (!running) return true;
   let timer: ReturnType<typeof setTimeout> | undefined;

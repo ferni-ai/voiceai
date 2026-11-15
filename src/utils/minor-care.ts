@@ -39,8 +39,12 @@ import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
 import { isAnonymousDemoUser, PLACEHOLDER_IDS } from './synthetic-user.js';
 import { sexualReadsSettled, sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
-import { crisisMemoryHeld, crisisReadsDone, crisisReadsSettled } from './crisis-memory-hold.js';
-export { sexualReadsSettled } from './sexual-topic-hold.js';
+import {
+  CRISIS_READ_WAIT,
+  crisisMemoryHeld,
+  crisisReadsDone,
+  crisisReadsSettled,
+} from './crisis-memory-hold.js';
 export { crisisTurnSettled } from './crisis-memory-hold.js';
 
 const log = createLogger({ module: 'minor-care' });
@@ -297,7 +301,9 @@ export function heldReadsSettled(sessionId: string | undefined): Promise<void> |
 
 /** A capture may queue deep extraction: the call's crisis reads settled, and nothing holds it. */
 export const mayCapture = async (sessionId: string, userId: string) =>
-  (await crisisReadsDone(sessionId)) && !memoryHeld(sessionId) && !userHeld(userId);
+  (await crisisReadsDone(sessionId, CRISIS_READ_WAIT.settleMs)) &&
+  !memoryHeld(sessionId) &&
+  !userHeld(userId);
 
 /** A try-first call that may still be writing: its binding is its hold, so it is never evicted. */
 const liveDemoCall = (sessionId: string): boolean =>

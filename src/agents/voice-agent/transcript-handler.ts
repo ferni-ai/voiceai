@@ -72,7 +72,7 @@ import type { IntegrationResult as VoiceHumanizationIntegration } from '../integ
 import type { UserData } from '../shared/types.js';
 import { crisisTurnSettled, heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
-import { holdOnCrisisPattern } from '../../services/safety/crisis-pattern-hold.js';
+import { holdOnCrisisPattern } from '../../services/safety/index.js';
 import { ownerWriteId, wordsNeverLogged } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,

@@ -38,7 +38,8 @@ import { createTranscriptHandler } from '../../agents/voice-agent/transcript-han
 import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 import { noteCrisisTurnRead, resetCrisisMemoryHold } from '../crisis-memory-hold.js';
 
-const WORDS = 'My mom says I spend too long on my phone, and honestly I feel sad and happy at once.';
+const WORDS =
+  'My mom says I spend too long on my phone, and honestly I feel sad and happy at once.';
 
 type Case = 'held' | 'owner' | 'off';
 let n = 0;

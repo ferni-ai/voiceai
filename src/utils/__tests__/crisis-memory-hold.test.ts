@@ -6,11 +6,7 @@
  * nothing when no read starts or none settles.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  crisisTurnSettled,
-  holdForCrisis,
-  noteCrisisTurnRead,
-} from '../crisis-memory-hold.js';
+import { crisisTurnSettled, holdForCrisis, noteCrisisTurnRead } from '../crisis-memory-hold.js';
 import {
   noteCrisisRisk,
   resetCrisisCallRisk,
@@ -100,7 +96,10 @@ describe('crisisTurnSettled: a capture that can run before its turn read', () =>
 
   it('a read that never settles: false, and the call is held (counts as risk)', async () => {
     const { sessionId } = call();
-    trackCrisisRead(sessionId, WORDS, new Promise<{ risk: string }>(() => undefined));
+    const never = new Promise<{ risk: string }>(() => {
+      // never settles
+    });
+    trackCrisisRead(sessionId, WORDS, never);
     expect(memoryHeld(sessionId)).toBe(false);
     expect(await crisisTurnSettled(sessionId, WORDS, FAST)).toBe(false);
     expect(memoryHeld(sessionId)).toBe(true);

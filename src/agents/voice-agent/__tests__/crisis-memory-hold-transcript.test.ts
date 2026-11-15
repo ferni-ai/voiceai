@@ -41,10 +41,7 @@ vi.mock('../../../memory/dynamic/index.js', async (orig) => ({
 import { createTranscriptHandler } from '../transcript-handler.js';
 import { memoryHeld, resetMinorCare } from '../../../utils/minor-care.js';
 import { CRISIS_READ_WAIT, noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
-import {
-  resetCrisisCallRisk,
-  trackCrisisRead,
-} from '../../../services/safety/crisis-call-risk.js';
+import { resetCrisisCallRisk, trackCrisisRead } from '../../../services/safety/crisis-call-risk.js';
 
 const ORDINARY = 'We drove out to the lake on Saturday and the water was freezing but fun.';
 const PATTERN = 'Honestly I want to kill myself, I am done with all of it.';

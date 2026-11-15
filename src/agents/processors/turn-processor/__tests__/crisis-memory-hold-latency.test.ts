@@ -33,7 +33,10 @@ describe('the capture waits for crisis reads off the reply path', () => {
     Object.assign(CRISIS_READ_WAIT, { settleMs: 3000 });
     const sessionId = 'crisis-latency-1';
     const userId = 'user-crisis-latency-1';
-    trackCrisisRead(sessionId, SAID, new Promise<{ risk: string }>(() => undefined));
+    const never = new Promise<{ risk: string }>(() => {
+      // never settles
+    });
+    trackCrisisRead(sessionId, SAID, never);
     const ctx = {
       userText: SAID,
       userData: { userId, turnCount: 3, recentTranscripts: [SAID] },

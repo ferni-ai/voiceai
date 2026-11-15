@@ -67,7 +67,10 @@ const reply =
   (risk: string): CrisisGenerateFn =>
   async () =>
     `{"risk":"${risk}","subject":"self"}`;
-const never: CrisisGenerateFn = () => new Promise<string>(() => undefined);
+const never: CrisisGenerateFn = () =>
+  new Promise<string>(() => {
+    // never settles
+  });
 const fails: CrisisGenerateFn = async () => {
   throw new Error('invented outage');
 };
@@ -89,13 +92,17 @@ function call(): { sessionId: string; userId: string } {
 
 /** The turn pipeline's read of this turn, as process-turn.ts starts it (process-turn.ts:196). */
 function readTurn(sessionId: string, words: string, generate: CrisisGenerateFn): void {
-  startTurnCrisis(words, { recentTranscripts: [words] }, {
-    sessionId,
-    env: LIVE,
-    generate,
-    adjudicate: generate,
-    groundedReads: [],
-  });
+  startTurnCrisis(
+    words,
+    { recentTranscripts: [words] },
+    {
+      sessionId,
+      env: LIVE,
+      generate,
+      adjudicate: generate,
+      groundedReads: [],
+    }
+  );
 }
 
 /** A deep extraction job queued on an earlier turn of the call, run by the real worker. */
@@ -122,7 +129,9 @@ async function workerRuns(
     timestamp: new Date('2026-11-15T12:00:00Z'),
     priority: 'normal',
     fastCaptureHints: {
-      mentionedEntities: [{ name: 'Sam Rivera', type: 'person', context: 'friend', confidence: 0.9 }],
+      mentionedEntities: [
+        { name: 'Sam Rivera', type: 'person', context: 'friend', confidence: 0.9 },
+      ],
       emotionSignals: [],
       topicHints: ['home'],
       dateSignals: [],
@@ -158,12 +167,15 @@ describe('crisis memory hold: the turn pipeline, then fast capture and the worke
     expect(memoryHeld(sessionId)).toBe(true);
   });
 
-  it.each(CRISIS_TURNS)('%s: an earlier job makes no model call, writes nothing', async (_n, w, g) => {
-    const { sessionId, userId } = call();
-    readTurn(sessionId, w, g);
-    await fastCapture({ transcript: w, userId, sessionId, turnNumber: 2 });
-    expect(await workerRuns(sessionId, userId)).toEqual({ writes: [], modelCalls: 0 });
-  });
+  it.each(CRISIS_TURNS)(
+    '%s: an earlier job makes no model call, writes nothing',
+    async (_n, w, g) => {
+      const { sessionId, userId } = call();
+      readTurn(sessionId, w, g);
+      await fastCapture({ transcript: w, userId, sessionId, turnNumber: 2 });
+      expect(await workerRuns(sessionId, userId)).toEqual({ writes: [], modelCalls: 0 });
+    }
+  );
 
   it('an ordinary turn (a clean none) still queues; the worker calls the model, writes', async () => {
     const { sessionId, userId } = call();
