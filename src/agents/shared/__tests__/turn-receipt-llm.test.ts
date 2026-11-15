@@ -116,6 +116,14 @@ describe('TURN_RECEIPT llm metric', () => {
     expect(r.tools).toMatchObject({ offered: 90, schemaChars: 111 });
   });
 
+  it('records an ask for a teammate as its own reason, on the main lane (counted nightly)', () => {
+    const { rec, end } = recorder({ CASCADE_FAST_LANE: 'on' });
+    const said = [{ type: 'message', role: 'user', textContent: 'can I talk to Maya' }];
+    rec.onRequest(said as never, 90, 111);
+    rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
+    expect(end().prompt.lane).toEqual({ lane: 'main', reason: 'teammate' });
+  });
+
   it("a metric from before the first request of its turn still reports that turn's own request", () => {
     const { rec, end } = recorder();
     rec.onMetric({ ...metric({ ttftMs: 300, promptTokens: 12_000 }) }); // an earlier turn's reply

@@ -5,8 +5,8 @@
  * ~200 ms. gemini-3.5-flash-lite answers in ~650 ms but picks the right tool
  * only 44% of the time (3.5-flash: 85%; eval-choice.ts, 2026-10-09). Most turns
  * need no tool ("it's been a long day"), so those go to the fast model and
- * anything that may need one (a request, a question about the world, the reply
- * after a tool result) stays on the main model. A missed request still has the
+ * anything that may need one (a request, an ask for a teammate, a question about
+ * the world, the reply after a tool result) stays on the main model. A missed request still has the
  * tools, and the fast lane is itself hedged by the main model.
  *
  * CASCADE_FAST_LANE=on turns it on (off by default); CASCADE_FAST_LANE_MODEL
@@ -17,6 +17,7 @@
 
 import { llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
+import { asksForTeammate } from '../../utils/teammate-talk.js';
 import { NO_NEW_WORDS_NOTE, TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { forwardPrewarm } from './forward-prewarm.js';
 
@@ -83,12 +84,19 @@ export function asksAQuestion(text: string): boolean {
   return text.includes('?') && !ABOUT_FERNI.test(text);
 }
 
-export type LaneReason = 'after_tool' | 'no_words' | 'request' | 'question' | 'chat';
+export type LaneReason = 'after_tool' | 'no_words' | 'teammate' | 'request' | 'question' | 'chat';
 
-/** Why a reply to these words goes where it goes (logged, so a misroute shows). */
+/**
+ * Why a reply to these words goes where it goes (logged, so a misroute shows).
+ *
+ * 'teammate': the caller asks for a teammate or says one's name to them (asksForTeammate).
+ * Those words are not in MAY_NEED_TOOL on purpose: its other readers (tool acks, lead-ins,
+ * the slow-turn sound) would then treat every "can I talk to Maya" as a tool request.
+ */
 export function laneReason(text: string | null): LaneReason {
   if (text === null) return 'after_tool';
   if (!text) return 'no_words';
+  if (asksForTeammate(text)) return 'teammate';
   if (mayNeedTool(text)) return 'request';
   if (asksAQuestion(text)) return 'question';
   return 'chat';
