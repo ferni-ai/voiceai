@@ -1252,6 +1252,16 @@ describe('no flag lowers what a caller in crisis hears', () => {
     }
   );
 
+  // Each loss a flag adds on top of THIRD_PARTY_SELF_HARM=live is red in that flag's own on-top row;
+  // this pins the known lowering's own loss on the every-flag-live base, under its own name.
+  it.each(Object.entries(LOWERS_A_REPLY))(
+    '%s on top of every other flag set to live loses only what it loses alone',
+    async (name, known) => {
+      const base = allBut(name, 'live');
+      expect(await losses(base, { ...base, [name]: known.value })).toEqual(known.lost);
+    }
+  );
+
   describe('the holds this grid leans on', () => {
     // The grid gives the adjudicator no answer, so it cannot see a check-in the adjudicator
     // would hand a caller in place of crisis guidance. That is sound only while production
