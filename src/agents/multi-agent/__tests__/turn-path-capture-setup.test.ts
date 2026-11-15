@@ -1,23 +1,25 @@
 /**
- * setupPersonaAgent tells the transcript handler whether the turn path runs for the call
- * (TURN_PATH_SINGLE_CAPTURE reads it): true when turn intelligence is hooked on the session,
- * false under TURN_INTELLIGENCE=off. After a handoff the swapped-in persona joins the call's
- * session (callSession) and builds no second transcript handler, so the first one, still
- * hooked, keeps skipping its capture on the next turn.
+ * TURN_PATH_SINGLE_CAPTURE through the real setup: with turn intelligence on, setupPersonaAgent
+ * attaches the turn path to the call's session (attachTurnContextPusher marks it), so with the
+ * flag on the transcript handler on that session captures nothing; under TURN_INTELLIGENCE=off
+ * nothing is attached and it captures as before. After a handoff the swapped-in persona joins
+ * the call's session (callSession), attaches again to the same session object and builds no
+ * second transcript handler, so the first one keeps skipping its capture on the next turn.
  *
- * Drives the real setup and its deferred handler wiring, and the real transcript handler (the
- * spy calls through). Stubbed: the slow or networked edges (prompts, TTS, tools, the LLM, the
- * call session), the turn hook itself (so no turn is processed; the hook still exists, which is
- * what the setup reads), the stores (write recorder) and fetch (refused). The transcript handler
- * imports fastCapture and recordTurn from '../../memory/dynamic/index.js' (transcript-handler.ts),
- * the module mocked here.
+ * Drives the real setup and its deferred handler wiring, the real attachTurnContextPusher and
+ * the real transcript handler (both spies call through and record the session they got).
+ * Stubbed: the slow or networked edges (prompts, TTS, tools, the LLM, the call session), the
+ * turn hook itself (a no-op, so no turn is processed), the stores (write recorder) and fetch
+ * (refused). The transcript handler imports fastCapture and recordTurn from
+ * '../../memory/dynamic/index.js' (transcript-handler.ts), the module mocked here.
  */
 import { EventEmitter } from 'node:events';
 import { voice } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const w = vi.hoisted(() => ({
-  hooked: [] as Array<boolean | undefined>,
+  handlerSessions: [] as unknown[],
+  attachedSessions: [] as unknown[],
   fastCapture: vi.fn(async () => ({ mentionedEntities: [], asyncJobId: undefined })),
   recordTurn: vi.fn(),
 }));
@@ -27,16 +29,22 @@ vi.mock('../../voice-agent/transcript-handler.js', async (importOriginal) => {
   return {
     ...real,
     createTranscriptHandler: vi.fn((ctx: Parameters<typeof real.createTranscriptHandler>[0]) => {
-      w.hooked.push(ctx.turnPathHooked);
+      w.handlerSessions.push(ctx.session);
       return real.createTranscriptHandler(ctx);
     }),
   };
 });
-vi.mock('../turn-intelligence.js', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  createTurnIntelligenceHook: () => async () => undefined,
-  attachTurnContextPusher: () => () => undefined,
-}));
+vi.mock('../turn-intelligence.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../turn-intelligence.js')>();
+  return {
+    ...real,
+    createTurnIntelligenceHook: () => async () => undefined,
+    attachTurnContextPusher: vi.fn((...args: Parameters<typeof real.attachTurnContextPusher>) => {
+      w.attachedSessions.push(args[2]);
+      return real.attachTurnContextPusher(...args);
+    }),
+  };
+});
 vi.mock('../../../memory/dynamic/index.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   fastCapture: w.fastCapture,
@@ -167,7 +175,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
-  w.hooked.length = 0;
+  w.handlerSessions.length = 0;
+  w.attachedSessions.length = 0;
   w.fastCapture.mockClear();
   w.recordTurn.mockClear();
 });
@@ -177,47 +186,67 @@ const captures = () => ({
   recordTurn: w.recordTurn.mock.calls.length,
 });
 
-/** A handoff, then one final transcript on the call's session; the captures it made. */
-async function turnAfterSwap() {
-  vi.stubEnv('TURN_INTELLIGENCE', 'on');
-  vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'on');
-  const userData: Record<string, unknown> = { userName: 'Sam', turnCount: 0 };
-  const config = firstPersona(userData);
-  const first = await setupPersonaAgent(config);
-  await first.wireHandlers?.();
-  const next = await setupPersonaAgent(swappedIn(config, first.session));
-  await first.release(); // swapPersona releases the outgoing persona once the next is on
-  (first.session as unknown as EventEmitter).emit(voice.AgentSessionEventTypes.UserInputTranscribed, {
+/** One final transcript on the call's session, after the handler's turn-count step. */
+async function finalTranscript(session: unknown, userData: Record<string, unknown>) {
+  const before = userData.turnCount as number;
+  (session as EventEmitter).emit(voice.AgentSessionEventTypes.UserInputTranscribed, {
     transcript: SAID,
     isFinal: true,
   });
   // the transcript handler steps turnCount after its capture block
-  await vi.waitFor(() => expect(userData.turnCount).toBe(1), { timeout: 10_000 });
-  return { next };
+  await vi.waitFor(() => expect(userData.turnCount).toBe(before + 1), { timeout: 10_000 });
 }
 
-describe('setupPersonaAgent → the transcript handler knows whether the turn path runs', () => {
-  it('W-on: turn intelligence on: turnPathHooked is true', async () => {
-    vi.stubEnv('TURN_INTELLIGENCE', 'on');
-    const setup = await setupPersonaAgent(firstPersona());
-    await setup.wireHandlers?.();
-    expect(w.hooked).toEqual([true]);
+/** A call's first persona, set up and wired, under the given TURN_INTELLIGENCE. */
+async function startCall(turnIntelligence: 'on' | 'off') {
+  vi.stubEnv('TURN_INTELLIGENCE', turnIntelligence);
+  const userData: Record<string, unknown> = { userName: 'Sam', turnCount: 0 };
+  const config = firstPersona(userData);
+  const first = await setupPersonaAgent(config);
+  await first.wireHandlers?.();
+  return { config, first, userData };
+}
+
+/** A handoff, then one final transcript on the call's session. */
+async function turnAfterSwap() {
+  vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'on');
+  const { config, first, userData } = await startCall('on');
+  const next = await setupPersonaAgent(swappedIn(config, first.session));
+  await first.release(); // swapPersona releases the outgoing persona once the next is on
+  await finalTranscript(first.session, userData);
+  return { first, next };
+}
+
+describe('setupPersonaAgent → the transcript handler leaves the line to the turn path', () => {
+  it('W-on: turn intelligence on, flag on: the transcript handler does not capture', async () => {
+    vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'on');
+    const { first, userData } = await startCall('on');
+    expect(w.attachedSessions).toHaveLength(1);
+    expect(w.attachedSessions[0]).toBe(first.session);
+    expect(w.handlerSessions[0]).toBe(first.session); // the session the turn path marked
+    await finalTranscript(first.session, userData);
+    expect(captures()).toEqual({ fastCapture: 0, recordTurn: 0 });
     expect(fetches).toBe(0);
   }, 60_000);
 
-  it('W-off: TURN_INTELLIGENCE=off: turnPathHooked is false', async () => {
-    vi.stubEnv('TURN_INTELLIGENCE', 'off');
-    const setup = await setupPersonaAgent(firstPersona());
-    await setup.wireHandlers?.();
-    expect(w.hooked).toEqual([false]);
+  it('W-off: TURN_INTELLIGENCE=off, flag on: nothing attached, captured once as main', async () => {
+    vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'on');
+    const { first, userData } = await startCall('off');
+    expect(w.attachedSessions).toEqual([]);
+    await finalTranscript(first.session, userData);
+    expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
     expect(fetches).toBe(0);
   }, 60_000);
 
   it('W-swap: after a handoff the next turn is still not captured by the transcript handler', async () => {
     vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'on');
-    const { next } = await turnAfterSwap();
+    const { first, next } = await turnAfterSwap();
     expect(next.wireHandlers).toBeUndefined(); // the swapped-in persona wires no handlers
-    expect(w.hooked).toEqual([true]); // one transcript handler for the call, the first persona's
+    // one transcript handler for the call, the first persona's
+    expect(w.handlerSessions).toHaveLength(1);
+    expect(w.handlerSessions[0]).toBe(first.session);
+    expect(w.attachedSessions).toHaveLength(2); // each persona attaches the turn path...
+    expect(w.attachedSessions.every((s) => s === first.session)).toBe(true); // ...to one session
     expect(captures()).toEqual({ fastCapture: 0, recordTurn: 0 });
     expect(fetches).toBe(0);
   }, 60_000);
@@ -225,7 +254,7 @@ describe('setupPersonaAgent → the transcript handler knows whether the turn pa
   it('W-swap control, flag off: the same turn after a handoff is captured once, as main', async () => {
     vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'off');
     await turnAfterSwap();
-    expect(w.hooked).toEqual([true]);
+    expect(w.handlerSessions).toHaveLength(1);
     expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
     expect(fetches).toBe(0);
   }, 60_000);

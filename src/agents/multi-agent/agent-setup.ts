@@ -1569,10 +1569,6 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })
       : undefined;
-  // Built once per call: the first persona wires the transcript handler, and a persona swapped in
-  // later (callSession set) skips wireHandlersImpl but re-attaches its pusher below. TURN_INTELLIGENCE
-  // is not a cohort flag, so the first persona's answer holds for the call (TURN_PATH_SINGLE_CAPTURE).
-  const turnPathHooked = Boolean(turnContextHook && sessionWithEvents.on);
 
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
@@ -1942,7 +1938,6 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           dynamicToolLoader,
           autoOptimizer,
           agent,
-          turnPathHooked,
         });
         // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
         cleanupFunctions.push(wireCallToolLoader(session, agent, dynamicToolLoader, log));

@@ -115,11 +115,8 @@ import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
-import {
-  coordinatedSay,
-  getAdaptiveEchoWindow,
-  recordEchoDetected,
-} from '../../speech/coordination/index.js';
+import { coordinatedSay } from '../../speech/coordination/index.js';
+import { getEchoPreventionCooldownMs, recordEchoDetectionForLearning } from './echo-window.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
@@ -134,6 +131,7 @@ import {
 import { getUserResponseGapMs } from './user-response-gap.js';
 import { handleRejectedTranscript, installSpeechTracker } from './rejected-transcript-policy.js';
 import { flagOn } from '../../config/env-flag.js';
+import { transcriptCaptureSkipped } from '../shared/turn-path-capture.js';
 
 // ============================================================================
 // TYPES
@@ -178,81 +176,6 @@ export interface TranscriptHandlerContext {
   };
   /** Function to send data messages to frontend */
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
-  /**
-   * True when the turn path (turn intelligence) runs for this call: process-turn and the turn
-   * handler then capture each run into dynamic memory. Unset on the single-agent path.
-   */
-  turnPathHooked?: boolean;
-}
-
-/**
- * TURN_PATH_SINGLE_CAPTURE=on: with the turn path hooked, its captures cover every line, so a
- * copy from here only repeats them. Elsewhere this capture is the only one, so it stays.
- */
-function turnPathCapturesLine(turnPathHooked: boolean | undefined): boolean {
-  return turnPathHooked === true && flagOn('TURN_PATH_SINGLE_CAPTURE');
-}
-
-/**
- * ECHO PREVENTION COOLDOWN
- *
- * After the agent finishes speaking, there's a delay before the microphone
- * stops picking up echo and the speech-to-text finishes processing. During
- * this window, we should NOT use cached responses to prevent the agent from
- * responding to its own echo (e.g., Ferni says "how are you?" → mic picks up
- * echo → transcribes "how are you" → matches cached response → says "I'm doing
- * well, thanks for asking!").
- *
- * With REQUIRE_FIX_VOICE=true, uses the adaptive echo window from
- * SpeechCoordinator; otherwise the fixed 2000ms below.
- *
- * Legacy 2 seconds accounts for:
- * - Audio buffer flush (~200-500ms)
- * - Speech-to-text processing (~500-1000ms)
- * - Network latency buffer (~200ms)
- */
-const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
-
-/**
- * Get adaptive echo prevention window.
- * Uses learned timing from SpeechCoordinator when available.
- *
- * CRITICAL FIX: Now content-aware! Pass userTranscript to enable
- * intelligent detection of legitimate requests vs echoes.
- *
- * @param lastUtteranceDurationMs - Duration of last agent utterance
- * @param userTranscript - The user's transcript for content-aware detection
- */
-export function getEchoPreventionCooldownMs(
-  lastUtteranceDurationMs?: number,
-  userTranscript?: string
-): number {
-  // The adaptive window used to be loaded with a bare require(), which throws
-  // under ESM, so every call has run on the fixed 2000ms default. Turning the
-  // adaptive window on changes call timing, so it waits behind its own flag.
-  if (!isAdaptiveEchoWindowEnabled()) return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
-  try {
-    return getAdaptiveEchoWindow(lastUtteranceDurationMs, userTranscript);
-  } catch {
-    return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
-  }
-}
-
-function isAdaptiveEchoWindowEnabled(): boolean {
-  return process.env.REQUIRE_FIX_VOICE === 'true';
-}
-
-/**
- * Record echo detection for adaptive learning.
- * Call this when we detect what appears to be agent echo being picked up.
- */
-export function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
-  if (!isAdaptiveEchoWindowEnabled()) return;
-  try {
-    recordEchoDetected(sessionId, delayMs);
-  } catch {
-    // Learning is best-effort
-  }
 }
 
 export interface TranscriptEvent {
@@ -294,7 +217,6 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     autoOptimizer,
     sendDataMessage,
     agent,
-    turnPathHooked,
   } = ctx;
   if (flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH')) installSpeechTracker(session);
 
@@ -1124,7 +1046,6 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         dynamicToolLoader,
         autoOptimizer,
         agent,
-        turnPathHooked,
       }).catch((err) => {
         diag.warn('processFinalTranscript error', { error: String(err) });
       });
@@ -1278,7 +1199,6 @@ async function processFinalTranscript(
     dynamicToolLoader,
     autoOptimizer,
     agent,
-    turnPathHooked,
   } = ctx;
   // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
@@ -1431,10 +1351,8 @@ async function processFinalTranscript(
   // Deep LLM extraction runs in background worker
   // ===============================================
   try {
-    if (!memoryUserId) {
-      diag.debug('Skipping memory capture - no userId');
-    } else if (turnPathCapturesLine(turnPathHooked)) {
-      diag.debug('Skipping memory capture - the turn path captures this line');
+    if (!memoryUserId || transcriptCaptureSkipped(session)) {
+      diag.debug('Skipping memory capture - no userId, or the turn path captures this line');
     } else {
       const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
       const captureResult = await fastCapture({

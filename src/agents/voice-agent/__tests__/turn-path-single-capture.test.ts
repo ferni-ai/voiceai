@@ -1,7 +1,8 @@
 /**
- * TURN_PATH_SINGLE_CAPTURE: with the turn path hooked for the call, the transcript handler no
- * longer captures a final transcript into dynamic memory (process-turn and the turn handler
- * capture every run that carries it). Where it is the only capture (the single-agent path, or
+ * TURN_PATH_SINGLE_CAPTURE: once the turn path is attached to the call's session
+ * (noteTurnPathAttached, from attachTurnContextPusher), the transcript handler no longer captures
+ * a final transcript into dynamic memory (process-turn and the turn handler capture every run
+ * that carries it). Where nothing attached the turn path (the single-agent path, or
  * TURN_INTELLIGENCE=off) it captures as before, and with the flag off nothing changes.
  *
  * The real transcript handler runs; fastCapture and recordTurn are spies, stores record writes
@@ -53,6 +54,7 @@ vi.mock('../../../memory/dynamic/index.js', async (orig) => ({
   recordTurn: w.recordTurn,
 }));
 
+import { noteTurnPathAttached } from '../../shared/turn-path-capture.js';
 import { createTranscriptHandler } from '../transcript-handler.js';
 
 const MEMBER = 'member-uid-7c2d';
@@ -84,12 +86,12 @@ function stub(): never {
 }
 
 let n = 0;
-/** One final transcript through the real handler, built as the given path builds it. */
-async function finalTranscript(turnPathHooked: boolean | undefined): Promise<void> {
+/** One final transcript through a real handler built on the given call session. */
+async function finalTranscript(session: object): Promise<void> {
   const userData = { userId: MEMBER, turnCount: 2 };
   const { handler } = createTranscriptHandler({
     room: stub(),
-    session: stub(),
+    session: session as never,
     services: stub(),
     sessionPersona: { id: 'ferni', name: 'Ferni' } as never,
     conversationManager: { isAgentSpeaking: () => false } as never,
@@ -105,7 +107,6 @@ async function finalTranscript(turnPathHooked: boolean | undefined): Promise<voi
     },
     agent: stub(),
     autoOptimizer: { processUserMessage: vi.fn() },
-    ...(turnPathHooked === undefined ? {} : { turnPathHooked }),
   });
   handler({ transcript: SAID, isFinal: true } as never);
   // transcript-handler steps turnCount after the capture block, so the block has run by then
@@ -118,34 +119,39 @@ const captures = () => ({
 });
 
 describe('TURN_PATH_SINGLE_CAPTURE', { timeout: 60_000 }, () => {
-  it('B1: the turn path hooked, flag on: the transcript handler captures nothing', async () => {
+  it('B1: the turn path attached, flag on: the transcript handler captures nothing', async () => {
     vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'on');
-    // In-row control: the same handler without the hook reaches the mocked capture, so the 0
-    // below is the skip, not a mock the handler never imports.
-    await finalTranscript(false);
+    const session = stub();
+    // In-row control: on the same session before the turn path attaches, the handler reaches
+    // the mocked capture, so the 0 added below is the skip, not a mock the handler never imports.
+    await finalTranscript(session);
     expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
-    await finalTranscript(true);
+    noteTurnPathAttached(session);
+    await finalTranscript(session);
     expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
     expect(fetches).toBe(0);
   });
 
-  it('B2: the single-agent path (no turn path), flag on: captures as before', async () => {
+  it('B2: no turn path attached (single-agent or TURN_INTELLIGENCE=off): captures', async () => {
     vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'on');
-    await finalTranscript(undefined); // handler-setup.ts passes no turnPathHooked
+    await finalTranscript(stub()); // handler-setup.ts never calls attachTurnContextPusher
     expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
     expect(fetches).toBe(0);
   });
 
-  it('B2: TURN_INTELLIGENCE=off (turn path not hooked), flag on: captures as before', async () => {
+  it('B2: another call attached the turn path, flag on: this call still captures', async () => {
     vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'on');
-    await finalTranscript(false);
+    noteTurnPathAttached(stub()); // a different session in the same process
+    await finalTranscript(stub());
     expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
     expect(fetches).toBe(0);
   });
 
-  it('flag off: the turn path hooked still captures exactly as main', async () => {
+  it('flag off: the turn path attached still captures exactly as main', async () => {
     vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', 'off'); // explicit: a run with every flag on stays honest
-    await finalTranscript(true);
+    const session = stub();
+    noteTurnPathAttached(session);
+    await finalTranscript(session);
     expect(captures()).toEqual({ fastCapture: 1, recordTurn: 1 });
     expect(w.fastCapture).toHaveBeenCalledWith(
       expect.objectContaining({ userId: MEMBER, turnNumber: 0, transcript: SAID })
