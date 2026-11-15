@@ -656,7 +656,8 @@ describe('tiny', () => {
   }
 
   it('after a normal run nothing is left in the group, and the test worker itself is gone', async () => {
-    const dir = project();
+    // vitest matches its file argument against realpaths (macOS tmp is a link to /private/var).
+    const dir = realpathSync(project());
     const vitest = join(dir, 'node_modules/.bin/vitest');
     const env = { PATH: process.env.PATH ?? '', HOME: tempDir('plants-home-') };
     const args = ['run', '--config', 'vitest.config.mjs', join(dir, 'worker.test.mjs')];
@@ -935,15 +936,23 @@ describe('the command line', () => {
     const runner = spawn(
       process.execPath,
       ['--experimental-strip-types', '--no-warnings', SCRIPT, '--root', root, manifest],
-      { stdio: 'ignore' }
+      { stdio: 'ignore', env: { ...process.env, PLANT_VITEST_CONFIG: 'vitest.config.mjs' } }
     );
     const ended = new Promise<number | string>((done) => {
       runner.once('exit', (code, signal) => done(code ?? signal ?? 'none'));
     });
+    let exitedEarly: number | string | undefined;
+    void ended.then((code) => {
+      exitedEarly = code;
+    });
     let worker = 0;
     try {
-      for (const end = Date.now() + 60_000; !existsSync(marker) && Date.now() < end;)
+      const end = Date.now() + 60_000;
+      while (!existsSync(marker) && exitedEarly === undefined && Date.now() < end) {
         await pause(200);
+      }
+      // A runner that ended before the planted test started fails here, with its exit code.
+      expect(exitedEarly).toBeUndefined();
       worker = Number(readFileSync(marker, 'utf8'));
       runner.kill('SIGTERM');
       expect(await ended).toBe(143);
