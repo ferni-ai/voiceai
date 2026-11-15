@@ -12,13 +12,8 @@
  * Firestore store, the dispute writer, and the routers that pick a bypass return. The turn's
  * crisis read is wrapped only to make it fail or hang. All lines invented.
  *
- * The model guard, in every row: llm-utils answers as a failed call does, embeddings answer
- * locally, the model SDKs' client constructors and the auth library's client are counted and
- * refused, and fetch is counted and refused. A row that builds a
- * real model client or reaches the network fails, by name, with the stack that did it. After the
- * last row the file waits for detached generations (up to 10 s), then counts. The detached
- * dynamic-content generation is switched off for the whole file (S0 shows it): which turns would
- * reach it depends on a clock-seeded roll, so with it on the file's path changes per process.
+ * The model guard (model-guard.ts) runs in every row. The detached dynamic-content generation is
+ * off for the whole file (S0): with it on, a clock-seeded roll would change the file's path.
  */
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
@@ -237,7 +232,6 @@ vi.mock('../../../../services/llm-utils.js', () => {
   };
   return { ...api, warmVertexClient: async () => false, default: api };
 });
-// The model SDKs' clients: any path that still builds one is counted and refused (the guard).
 // outbound-guard: own-refusing-mock (rest kept; new VertexAI counts and throws)
 vi.mock('@google-cloud/vertexai', async (orig) => ({
   ...(await orig<object>()),

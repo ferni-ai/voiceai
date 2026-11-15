@@ -3,38 +3,13 @@
  * non-default flags. The hold reads only the turn result's crisis field (crisisReadTurn); with
  * the agreement gate on or the adjudicator not off, the turn's read also waits on, or is decided
  * by, the turn's other reads (turn-crisis.ts: turnVerdicts, agreementOutcome,
- * adjudicatedCheckin). Each row names its flag state:
+ * adjudicatedCheckin). Each row's describe and name carry its flag state; the gate-on rows run
+ * twice, with the adjudicator off and in shadow.
  *
- *   D1  every crisis flag at its default: a classifier-only crisis read is held, an ordinary read
- *       writes (the positive control, under the same mocks as every row below).
- *   G1  CRISIS_AGREEMENT_GATE=on: a classifier-only crisis read escalates, held; control writes.
- *   G2  CRISIS_AGREEMENT_GATE=on: a short question back made of Ferni's own words is a soft
- *       check-in, held; control writes.
- *   G3  CRISIS_AGREEMENT_GATE=on: a bare presence reply or call to Ferni, read as crisis by the
- *       classifier, is eased: the turn records as an ordinary turn. A NAMED PIN of current
- *       behaviour, not a claim that it is right: whether a gate-eased turn counts as crisis for
- *       the hold is policy with the owner; a ruling of "held" is its own crisis-lane production
- *       PR, where this row flips. Beside it, the same lines with the gate off are held.
- *   A1  CRISIS_ADJUDICATOR=shadow: a classifier-only crisis read, held; the adjudicator is asked
- *       once and the turn does not wait for it.
- *   A2  CRISIS_ADJUDICATOR=live WITH the tests-only switch (allowCrisisAdjudicatorLiveForTests):
- *       checkin = soft, held; escalate, fails, no answer = held; control writes.
- *   A3  CRISIS_ADJUDICATOR=live WITHOUT the switch: runs as shadow, held.
- *   L1  CRISIS_AGREEMENT_GATE=on + CRISIS_ADJUDICATOR=live (switch): the read lands after the
- *       correction was taken; processTurn does not return before it lands, and nothing is
- *       written before or after.
- *   E1  CRISIS_CLASSIFIER_ONLY_CHECKIN=live WITHOUT the switch (held mode): with no scope no
- *       easing read starts; with a scope (adjudicator shadow) it starts and changes nothing.
- *   H1  Through the real turn hook (createTurnIntelligenceHook), gate off and on: the hook hands
- *       processTurn Ferni's previous reply only with the gate on
- *       (multi-agent/turn-intelligence.ts:155-160), so with it off nothing is recorded; with it
- *       on, a crisis read is held and an ordinary read writes. The handler stand-in builds the
- *       turn context field for field as voice-agent/turn-handler.ts:555-564 does.
- *   Q1  The humanizer's question suggestion pinned to fire: one model-helper call per turn whose
- *       line has no "?", none otherwise; the hold is unchanged.
- *   Q2  KNOWN, current behaviour pinned: that call's prompt carries the caller line.
- *
- * Every other row calls processTurn directly with userData.lastAgentResponse set.
+ * G3 is a NAMED PIN of current behaviour, not a claim that it is right: whether a gate-eased turn
+ * counts as crisis for the hold is policy with the owner; a ruling of "held" is its own crisis-lane
+ * production PR, where that row flips. Beside it, the same lines with the gate off are held. Q2 is
+ * KNOWN current behaviour (#3874): the question suggestion's prompt carries the caller line.
  *
  * Not covered here: the live classifier-only easing read (CRISIS_CLASSIFIER_ONLY_CHECKIN=live
  * with the switch); its reply is the easing-facts extraction (crisis-classifier-only-live.ts,
@@ -42,22 +17,10 @@
  * from these rows: its only caller is the reply gate (agents/personas/crisis-gate.ts:217), which
  * neither processTurn nor the turn hook calls.
  *
- * Stubbed at the edges only: the model client (getGeminiClient), which answers each reader by
- * its own request shape and counts it; fetch, which throws and counts; and the correction store
- * (a recording mock: one "write" below is one autoRecord CALL, not a stored correction). All
- * lines invented.
- *
- * The model guard, in every row: embeddings answer locally, the model SDKs' client constructors
- * and the auth library's client are counted and refused, and fetch is counted and refused. A row
- * that builds a real model client or reaches the network fails, by name, with the stack that did
- * it. After the last row the file waits for detached generations (up to 10 s), then counts.
- *
- * llm-utils is stubbed. The rows reach it only through the humanizer's question suggestion
- * (pre-llm.ts:188-200 -> question-patterns/engine.ts:308 -> llm-dynamic-content.ts:563 -> :490),
- * which rolls on a per-process session id carrying Date.now() (humanizer.ts:40, :157-164; #3875).
- * Unpinned, the roll (threshold 0.4, humanizer/utils.ts:17-37) decides each run: in the runs where
- * it fired, every row without a "?" reached it. The rows pin it to a session that does not ask,
- * and Q1/Q2 pin one that does.
+ * Stubbed at the edges only: the model client (getGeminiClient, each reader told apart by its
+ * request shape and counted), fetch, the correction store (one "write" is one autoRecord CALL),
+ * llm-utils, and the model SDKs' constructors (the guard, model-guard.ts). The humanizer's question
+ * roll is pinned (R0; humanizer.ts:40, #3875). All lines invented.
  */
 import { llm } from '@livekit/agents';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -185,7 +148,6 @@ vi.mock('../../../../tools/semantic-router/integration/index.js', async (orig) =
   isRoutingEnabled: () => false,
   isIntelligentRouterInitialized: () => false,
 }));
-// The model SDKs' clients: any path that still builds one is counted and refused (the guard).
 // outbound-guard: own-refusing-mock (rest kept; new VertexAI counts and throws)
 vi.mock('@google-cloud/vertexai', async (orig) => ({
   ...(await orig<object>()),
@@ -349,17 +311,13 @@ beforeEach(() => {
   );
   vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
   vi.stubEnv('CRISIS_GUARD_MODE', 'live');
-  // The generation stays on in every row, whatever the shared test setup writes (#3882 sets
-  // 'false' for every file; unset, as on main, it is on): 28 turn rows assert zero model-helper
-  // calls, and a zero only means something while the generation could have run.
+  // Generation on in every row, whatever the shared setup writes (#3882: 'false'; unset on main:
+  // on). Under 'false' a zero model-helper count cannot see the dynamic-content route at all.
   vi.stubEnv('LLM_DYNAMIC_CONTENT_ENABLED', 'true');
 });
 
-/**
- * Embeddings answer locally in every row, whatever is configured: with a project set and Vertex
- * on, the provider is Vertex (embeddings.ts:594-605) and every token builds an auth client
- * (:577-579). With nothing configured the provider is already local (:615-616).
- */
+// Embeddings answer locally in every row: with a project set and Vertex on, the provider is
+// Vertex (embeddings.ts:594-605) and every token builds an auth client (:577-579).
 beforeEach(() => setEmbeddingProvider(new LocalEmbeddings()));
 
 /**
@@ -391,47 +349,58 @@ describe('every crisis flag at its default (positive control)', () => {
   });
 });
 
-describe('CRISIS_AGREEMENT_GATE=on', () => {
-  beforeEach(() => vi.stubEnv('CRISIS_AGREEMENT_GATE', 'on'));
+describe.each(['off', 'shadow'] as const)(
+  'CRISIS_AGREEMENT_GATE=on, CRISIS_ADJUDICATOR=%s',
+  (adj) => {
+    beforeEach(() => {
+      vi.stubEnv('CRISIS_AGREEMENT_GATE', 'on');
+      vi.stubEnv('CRISIS_ADJUDICATOR', adj);
+      // Shadow's verdict disagrees with the gate's escalation on purpose: it must change nothing.
+      h.adjudicator = 'checkin';
+    });
+    // Gate on: a shadow adjudicator is asked once on an escalated crisis read and never awaited.
+    const adjudicated = adj === 'shadow' ? { adjudicator: 1 } : {};
 
-  it.each([
-    ['crisis', 0],
-    ['none', 1],
-  ] as const)('G1 classifier-only %s read: escalates, writes %i', async (risk, count) => {
-    const turn = await oneTurn(ORDINARY, risk);
-    expect(turn.crisis).toMatchObject({ isCrisis: risk === 'crisis', shouldOverrideLLM: false });
-    expect(turn.writes).toBe(count);
-    expectReads({ classifier: 1 });
-  });
-
-  it.each([
-    ['crisis', true, 0],
-    ['none', false, 1],
-  ] as const)(
-    'G2 a question back read %s: a soft check-in is held (soft: %s, writes %i)',
-    async (risk, soft, count) => {
-      const turn = await oneTurn(QUESTION_BACK, risk);
-      expect(turn.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
-      expect(turn.crisis?.softCheck === true).toBe(soft);
+    it.each([
+      ['crisis', 0],
+      ['none', 1],
+    ] as const)('G1 classifier-only %s read: escalates, writes %i', async (risk, count) => {
+      const turn = await oneTurn(ORDINARY, risk);
+      expect(turn.crisis).toMatchObject({ isCrisis: risk === 'crisis', shouldOverrideLLM: false });
+      expect(turn.crisis?.softCheck).toBeUndefined(); // an applied checkin: isCrisis false, soft
       expect(turn.writes).toBe(count);
-      expectReads({ classifier: 1 });
-    }
-  );
+      expectReads({ classifier: 1, ...(risk === 'crisis' ? adjudicated : {}) });
+    });
 
-  it.each([
-    ["yeah, I'm still here", STILL_THERE],
-    ['Ferni?', REPLY],
-  ])(
-    'G3 NAMED PIN, policy with the owner: "%s" read as crisis is eased and records as an ordinary turn (one autoRecord call; the mock stores nothing)',
-    async (line, previous) => {
-      const turn = await oneTurn(line, 'crisis', previous);
-      expect(turn.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
-      expect(turn.crisis?.softCheck).toBeUndefined();
-      expect(turn.writes).toBe(1);
-      expectReads({ classifier: 1 });
-    }
-  );
-});
+    it.each([
+      ['crisis', true, 0],
+      ['none', false, 1],
+    ] as const)(
+      'G2 a question back read %s: a soft check-in is held (soft: %s, writes %i)',
+      async (risk, soft, count) => {
+        const turn = await oneTurn(QUESTION_BACK, risk);
+        expect(turn.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
+        expect(turn.crisis?.softCheck === true).toBe(soft);
+        expect(turn.writes).toBe(count);
+        expectReads({ classifier: 1 });
+      }
+    );
+
+    it.each([
+      ["yeah, I'm still here", STILL_THERE],
+      ['Ferni?', REPLY],
+    ])(
+      'G3 NAMED PIN, policy with the owner: "%s" read as crisis is eased and records as an ordinary turn (one autoRecord call; the mock stores nothing)',
+      async (line, previous) => {
+        const turn = await oneTurn(line, 'crisis', previous);
+        expect(turn.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
+        expect(turn.crisis?.softCheck).toBeUndefined();
+        expect(turn.writes).toBe(1);
+        expectReads({ classifier: 1 });
+      }
+    );
+  }
+);
 
 describe('G3 beside it: the same lines with the gate off', () => {
   it.each([
@@ -449,15 +418,22 @@ describe('CRISIS_ADJUDICATOR=shadow', () => {
   beforeEach(() => vi.stubEnv('CRISIS_ADJUDICATOR', 'shadow'));
 
   it('A1 classifier-only crisis: held, the adjudicator asked once, the turn does not wait', async () => {
+    let released = false;
     let release = (): void => undefined;
     h.adjudicatorGate = new Promise<void>((resolve) => {
-      release = resolve;
+      release = () => {
+        released = true;
+        resolve();
+      };
     });
     h.adjudicator = 'checkin';
-    const result = await start(ORDINARY, 'crisis'); // returns while the adjudicator is held
+    vi.stubEnv('CRISIS_ADJUDICATOR_TIMEOUT_MS', '60000'); // a turn that waited for it would hang
+    const result = await Promise.race([start(ORDINARY, 'crisis'), drain(2000).then(() => null)]);
+    expect(result, 'the turn returned first').not.toBeNull();
+    expect(released, 'the adjudicator gate still unreleased').toBe(false);
     await drain();
-    expect(result.crisis).toMatchObject({ isCrisis: true });
-    expect(result.crisis?.softCheck).toBeUndefined(); // a shadow checkin changes nothing
+    expect(result?.crisis).toMatchObject({ isCrisis: true });
+    expect(result?.crisis?.softCheck).toBeUndefined(); // a shadow checkin changes nothing
     release();
     await drain();
     expect(writes()).toBe(0);
@@ -652,6 +628,8 @@ describe('the humanizer question suggestion fires (pinned session)', () => {
     h.expectedLLM = 1;
     const turn = await oneTurn(ORDINARY, 'crisis');
     expect(turn.crisis).toMatchObject({ isCrisis: true });
+    expect(turn.writes).toBe(0);
+    expectReads({ classifier: 1 });
     expect(h.llmPrompts[0]).toContain(`USER SAID: "${ORDINARY}"`);
   });
 });
