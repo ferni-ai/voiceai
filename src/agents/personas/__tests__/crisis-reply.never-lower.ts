@@ -16,10 +16,12 @@ export type Answer = (typeof ANSWERS)[number];
  * - emergency: code speaks it, with 911, and 911 comes before any 988;
  * - crisis line: code speaks it, with 988;
  * - guided: 988 reaches the caller, spoken by code or as the last thing the model is asked;
+ * - 988 spoken: 988 is in the reply itself. The test's model never says it, so there it is
+ *   code's own line, even on a turn the model speaks;
  * - none: nothing is promised (the reply must still come).
  * The floors below are the kind main gives today (2026-11-13), no more.
  */
-export type Floor = 'emergency' | 'crisis line' | 'guided' | 'none';
+export type Floor = 'emergency' | 'crisis line' | '988 spoken' | 'guided' | 'none';
 type ByAnswer = Readonly<Record<Answer, Floor>>;
 
 export interface ReplyCall {
@@ -108,6 +110,151 @@ export const NEVER_HEARD: readonly string[] = [
   'do not call 988',
 ];
 
+/**
+ * Every field of the session the gate reads on these calls, at the defaults and with every flag
+ * on. Measured by the test, which fails on a field that is not here. Three carry a time:
+ * callerTimezone, evalLocalTime and services.sessionStartTime. The test sets each where it
+ * reads the flags in CLOCK_READ_BY. A new field worked out from the time of day (a late-night
+ * mark, say) goes here only with readings that set it to each value a reply can turn on.
+ */
+export const SESSION_FIELDS_READ: readonly string[] = [
+  'emit',
+  'history',
+  'off',
+  'on',
+  'unfinishedTurnHoldMs',
+  'userData',
+  'userData.callerTimezone',
+  'userData.crisisGatePassedTurn',
+  'userData.evalLocalTime',
+  'userData.evalLocalTime.hour',
+  'userData.evalLocalTime.minute',
+  'userData.isReturningUser',
+  'userData.personaId',
+  'userData.services',
+  'userData.services.devMode',
+  'userData.services.sessionId',
+  'userData.services.sessionStartTime',
+  'userData.services.userId',
+  'userData.services.userProfile',
+  'userData.turnCount',
+  'userData.userId',
+  'userData.userName',
+  'userData.userProfile',
+  'userData.voiceEmotion',
+];
+
+/**
+ * The copies of the environment made while a reply is being made (a spread, Object.assign,
+ * keys, entries, JSON.stringify). A flag read off a copy is not recorded as read, so the test
+ * would never set it. All measured by the test:
+ * - by: the functions that copy. Two today: the classifier's start, which builds its plain
+ *   prompt from a copy with the everyday rules off; and the scripted turn's read
+ *   (CRISIS_SCRIPT_IMMINENT_READ), which gives the classifier a copy with its own deadline;
+ * - lines: the lines of code that copy, by file. The classifier's hands its copy to
+ *   crisisClassifierPrompt and nothing else;
+ * - kept: a copy kept under a name, with every line that names it or the options it is put
+ *   in. The scripted read's goes to startCrisisClassifier and nowhere else;
+ * - readOffTheCopy: the names crisisClassifierPrompt reads off its copy, exactly;
+ * - readOffTheScriptedCopy: the flags startCrisisClassifier reads off the scripted read's copy
+ *   on the calls, exactly. Each name in either list must be a flag the gate also reads off
+ *   the environment itself, where every word of it is tried;
+ * - byFlagAlone: the flags that, set alone, have a reply copy the environment;
+ * - how many copies the calls make, run once: at the defaults, and with every flag the gate
+ *   reads on, and live (the everyday rules take the word on only; the scripted read takes
+ *   live as on).
+ * A new copy in the gate's path changes one of these. Read the flag from the environment
+ * itself, or show here why the copy cannot carry a flag's lowering.
+ */
+export const ENV_COPIED = {
+  /** In the order of `lines`. */
+  by: [
+    'scriptRead in src/agents/personas/crisis-script-imminent.ts',
+    'startCrisisClassifier in src/services/safety/crisis-classifier.ts',
+  ],
+  /** Each file that copies, with its copying lines. Another site is another row. */
+  lines: {
+    'src/agents/personas/crisis-script-imminent.ts': [
+      'const readEnv = { ...env, CRISIS_CLASSIFIER_TIMEOUT_MS: String(waitMs) };',
+    ],
+    'src/services/safety/crisis-classifier.ts': [
+      "? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })",
+    ],
+  } as Readonly<Record<string, readonly string[]>>,
+  /** A copy kept under a name: every line of the file that says one of the names. */
+  kept: {
+    'src/agents/personas/crisis-script-imminent.ts': {
+      names: ['readEnv', 'options'],
+      lines: [
+        'const readEnv = { ...env, CRISIS_CLASSIFIER_TIMEOUT_MS: String(waitMs) };',
+        'const options = { ...at, scope: undefined, env: readEnv, readBlocked: true };',
+        'const run = startCrisisClassifier(said, options);',
+      ],
+    },
+  } as Readonly<Record<string, { names: readonly string[]; lines: readonly string[] }>>,
+  /** Every name crisisClassifierPrompt reads off the copy. */
+  readOffTheCopy: ['CRISIS_AGREEMENT_GATE', 'CRISIS_CLASSIFIER_EVERYDAY_RULES'],
+  /** Every flag startCrisisClassifier reads off the scripted read's copy. */
+  readOffTheScriptedCopy: [
+    'CRISIS_AGREEMENT_GATE',
+    'CRISIS_CLASSIFIER_BLOCKED_SIGNAL',
+    'CRISIS_CLASSIFIER_EVERYDAY_RULES',
+    'CRISIS_CLASSIFIER_SECOND_READ',
+    'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+  ] as readonly string[],
+  byFlagAlone: [
+    'CRISIS_CLASSIFIER_EVERYDAY_RULES',
+    'CRISIS_SCRIPT_IMMINENT_READ',
+  ] as readonly string[],
+  atDefaults: 0,
+  everyFlagOn: 72,
+  everyFlagLive: 36,
+} as const;
+
+/**
+ * The flags that have a reply ask the clock for the hour, the weekday, the date or the
+ * timezone. Measured by the test: a flag does so exactly if it is here. Each is read at every
+ * hour, weekday and month and more (MOMENTS in the test); every other flag only at the calls'
+ * own moments.
+ */
+export const CLOCK_READ_BY: readonly string[] = ['FERNI_STATE', 'WORLD_NOW'];
+
+/**
+ * How much wording the test does not read, counted so the limit can't be stated loosely. The
+ * test measures each number and fails when one is out of date.
+ * - atDefaults.scripted: turns code speaks. Read for 911, 988 and their order only: a sentence
+ *   with no number in it, lost with the flag on and off alike, is not seen.
+ * - atDefaults.guided: turns the model speaks after being asked to give 988. Only the numbers
+ *   in what it is asked are read.
+ * - atDefaults.unguided: turns the model speaks with no number asked. Nothing is read but
+ *   that the reply came, and in time.
+ * - onlyWithFlag: each flag that, set alone, has code speak sentences it does not speak on
+ *   that turn at the defaults (a whole script, or a line added to one or after the model's
+ *   reply), with how many different sentences. They have nothing to be compared with, so
+ *   dropping one is a lowering brought by a flag setting that the test does not see.
+ *   CRISIS_TIMEOUT_CHECKIN brings the check-in's ending after the model's reply: the question
+ *   "Are you safe right now?" and the line that gives 988. Its 988 is read (the '988 spoken'
+ *   floor in SHOWN_ON); the question, and the line's other words, are not.
+ *   CRISIS_SELF_HARM_911_LINE brings one sentence after the crisis-line script, about 911.
+ *   CRISIS_SCRIPT_IMMINENT_READ brings the imminent script after the crisis-line script's
+ *   first sentence, on an imminent read. That its 911 comes first is read (the 'emergency'
+ *   floor in SHOWN_ON); its other words are not.
+ *   `sentences` is how many; `says` is the number those sentences must carry. So a flag's
+ *   sentence dropped whole, or kept with its number taken out, is seen; its other words changed
+ *   is not.
+ */
+export const WORDING_NOT_READ: {
+  atDefaults: { scripted: number; guided: number; unguided: number };
+  onlyWithFlag: Readonly<Record<string, { sentences: number; says: readonly string[] }>>;
+} = {
+  atDefaults: { scripted: 66, guided: 12, unguided: 24 },
+  onlyWithFlag: {
+    CRISIS_SCRIPT_IMMINENT_READ: { sentences: 5, says: ['911', '988'] },
+    CRISIS_SELF_HARM_911_LINE: { sentences: 1, says: ['911'] },
+    CRISIS_TIMEOUT_CHECKIN: { sentences: 2, says: ['988'] },
+  },
+};
+
 /** A call a flag shows on, and, where the flag is there to raise a reply, what it raises. */
 export interface Shown {
   call: string;
@@ -122,7 +269,10 @@ export interface Shown {
  */
 export const SHOWN_ON: Readonly<Record<string, Shown>> = {
   CRISIS_READ_JOINED_TURN: { call: 'a line still held' },
-  CRISIS_TIMEOUT_CHECKIN: { call: 'pills', raises: ['throws', 'guided'] },
+  // A turn the patterns answer with the 988 script is still read: imminent makes it 911-first.
+  CRISIS_SCRIPT_IMMINENT_READ: { call: 'plain', raises: ['imminent', 'emergency'] },
+  // The owner's rule (2026-11-11): a check-in plus 988, and code says the 988 itself.
+  CRISIS_TIMEOUT_CHECKIN: { call: 'pills', raises: ['throws', '988 spoken'] },
   FERNI_STATE: { call: 'ordinary' },
   SEXUAL_TOPIC_BOUNDARY: { call: 'ordinary' },
 };
