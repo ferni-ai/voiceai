@@ -1,12 +1,13 @@
 /**
- * TTS monitoring records no piece of Ferni's reply on prod.
+ * TTS monitoring records no piece of Ferni's reply anywhere but dev.
  *
  * A reply echoes callers' words, and the asterisk / parenthesis / bracket patterns match
  * whatever sits between the delimiters. The monitor feeds three places: its log line, its
- * in-memory stats, and the admin route that serves them. On prod each holds the matching
- * pattern's fixed label and the reply's length; a dev process holds the matched text.
+ * in-memory stats, and the admin route that serves them. Each holds the matching pattern's
+ * fixed label and the reply's length; only a dev process holds the matched text. A database
+ * name that is neither prod's nor dev's (a misspelling) is not dev.
  *
- * The prod-or-dev decision is the real one (config/firestore-database.ts, read at call
+ * The dev-or-not decision is the real one (config/firestore-database.ts, read at call
  * time), driven by FIRESTORE_DATABASE set per case. The logger is this file's own mock, so
  * the assertions read exactly what the module handed it.
  */
@@ -31,7 +32,7 @@ vi.mock('../../../api/auth-middleware.js', () => ({
 }));
 
 import { handleAdminTTSMonitoringRoutes } from '../../../api/v1/admin/tts-monitoring.js';
-import { isNonProdDatabase } from '../../../config/firestore-database.js';
+import { isKnownDevDatabase } from '../../../config/firestore-database.js';
 import { checkTTSText, getTTSStats, resetTTSStats, trackTTSCheck } from '../tts-monitoring.js';
 
 // Invented reply that trips every pattern. Planted tokens sit where open text is matched.
@@ -109,11 +110,18 @@ describe.each([
   ['FIRESTORE_DATABASE unset', undefined],
   ['FIRESTORE_DATABASE empty', ''],
   ['FIRESTORE_DATABASE=(default)', '(default)'],
-])('tts-monitoring on prod (%s)', (_name, database) => {
+  ['FIRESTORE_DATABASE a single space', ' '],
+  ["dev's name with a newline after it", 'ferni-dev\n'],
+  ["prod's name in another case", '(Default)'],
+  ["prod's name without its brackets", 'default'],
+  ["dev's name in another case", 'Ferni-Dev'],
+  ["dev's name misspelt", 'ferni-dve'],
+  ["a longer name that starts with dev's", 'ferni-dev-2'],
+])('tts-monitoring anywhere but dev (%s)', (_name, database) => {
   withDatabase(database);
 
-  it('is prod by the real decision, and the plants are real matches', () => {
-    expect(isNonProdDatabase()).toBe(false);
+  it('is not dev by the real decision, and the plants are real matches', () => {
+    expect(isKnownDevDatabase()).toBe(false);
     const matched = checkTTSText(REPLY).issues.map((issue) => issue.match);
     for (const token of [STAR, PAREN, BRACKET, END_BRACKET]) {
       expect(matched.join(' ')).toContain(token);
@@ -180,7 +188,7 @@ describe('tts-monitoring on dev (FIRESTORE_DATABASE=ferni-dev)', () => {
   withDatabase('ferni-dev');
 
   it('logs and counts the matched text, and serves the preview', async () => {
-    expect(isNonProdDatabase()).toBe(true);
+    expect(isKnownDevDatabase()).toBe(true);
     checkAndTrack(REPLY);
 
     const [logged] = loggedIssues() as string[][];

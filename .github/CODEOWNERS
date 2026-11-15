@@ -149,6 +149,7 @@
 /src/tools/domains/proactive/outreach/owner-message-content.ts @sethdford
 /src/agents/multi-agent/caller-card/index.ts @sethdford
 /src/agents/multi-agent/caller-card/wiring.ts @sethdford
+/src/agents/multi-agent/call-sheet/wiring.ts @sethdford
 /src/agents/multi-agent/greeting-date.ts @sethdford
 /src/memory/recall/proactive-budget.ts @sethdford
 /src/memory/recall/opener-claim.ts @sethdford
@@ -239,6 +240,7 @@
 /src/services/superhuman/emotional-first-aid.ts @sethdford
 /src/services/superhuman/inside-joke-memory.ts @sethdford
 /src/services/superhuman/relationship-network.ts @sethdford
+/src/services/superhuman/semantic-intelligence/advice-outcome-patterns.ts @sethdford
 /src/services/superhuman/semantic-intelligence/integration.ts @sethdford
 /src/services/superhuman/user-corrections.ts @sethdford
 /src/services/superhuman/wins.ts @sethdford

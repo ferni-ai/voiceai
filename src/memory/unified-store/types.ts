@@ -500,7 +500,6 @@ export interface UnifiedStoreHealth {
     firestore: StoreHealth;
     vector: StoreHealth;
     redis: StoreHealth;
-    spanner: StoreHealth;
     memory: StoreHealth;
   };
 
@@ -752,9 +751,7 @@ export interface UnifiedStoreConfig {
   features?: {
     useRedisCache?: boolean;
     useVectorSearch?: boolean;
-    useGraphExpansion?: boolean;
     useHybridSearch?: boolean;
-    useSpannerGraph?: boolean;
   };
 }
 
@@ -773,8 +770,6 @@ export const DEFAULT_CONFIG: UnifiedStoreConfig = {
   features: {
     useRedisCache: true,
     useVectorSearch: true,
-    useGraphExpansion: true,
     useHybridSearch: true,
-    useSpannerGraph: false, // opt-in; idle Spanner is expensive (~$65/mo)
   },
 };
