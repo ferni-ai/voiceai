@@ -2,10 +2,10 @@
  * A crisis read holds the call's memory (utils/crisis-memory-hold.ts), on by default. The real turn
  * pipeline reads the turn (turn-crisis.ts startTurnCrisis, with every model call stubbed), then
  * the real fastCapture runs as process-turn.ts runs it, before the verdict is awaited. Each crisis
- * read (pattern or classifier, either side of a soft check-in, a timeout, a failed read) leaves no
- * deep extraction queued, and a job queued earlier in the call makes no model call and writes
- * nothing; an ordinary turn still queues, calls the model and writes. Storage and the event bus are
- * faked; nothing reaches a network.
+ * read (pattern or classifier, either side of a soft check-in, a timeout, a failed read, a reply
+ * that is not a verdict) leaves no deep extraction queued, and a job queued earlier in the call
+ * makes no model call and writes nothing; an ordinary turn still queues, calls the model and
+ * writes. Storage and the event bus are faked; nothing reaches a network.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -74,6 +74,8 @@ const never: CrisisGenerateFn = () =>
 const fails: CrisisGenerateFn = async () => {
   throw new Error('invented outage');
 };
+/** A reply with no JSON in it: parseClassifierReply gives no verdict. */
+const notJson: CrisisGenerateFn = async () => 'Sure, the garden shed sounds lovely!';
 
 type Turn = [name: string, words: string, generate: CrisisGenerateFn];
 const CRISIS_TURNS: Turn[] = [
@@ -82,6 +84,8 @@ const CRISIS_TURNS: Turn[] = [
   ['a lone imminent goodbye (classifier imminent, a plain sign-off)', GOODBYE, reply('imminent')],
   ['a classifier timeout (no verdict)', ORDINARY, never],
   ['a missing read (the classifier call fails)', ORDINARY, fails],
+  ['an unparseable read (the classifier reply is not JSON)', ORDINARY, notJson],
+  ['an unparseable read (an unknown risk value)', ORDINARY, reply('maybe')],
 ];
 
 let n = 0;
