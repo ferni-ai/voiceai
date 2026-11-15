@@ -420,14 +420,14 @@ export async function toolsForTurn(
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
   const userId = userIdOf(session.userData);
-  // Not a verified owner (an anon: caller included): nothing that reaches other people.
-  // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
-  // anything. The phone-safe set holds no tool that reaches others, so it covers both.
-  // ONBEHALF_WRITE_GATE: a call placed for a member (onbehalf:) acts on nobody's account either.
+  // Not a verified owner (an anon: caller included): nothing that reaches other people. MINOR_CARE
+  // on: a held caller under 18 gets no tool that stores anything; the phone-safe set reaches no
+  // one, so it covers both. ONBEHALF_WRITE_GATE: a call placed for a member acts on no account.
   const others = mayReachOthers(userId, sessionId, sessionIsVerifiedOwner);
   const held = heldAfter(sessionId, callerWords(chatCtx), {
     asked: lastFerniLine(chatCtx.items),
     userId, // userHeld follows
+    careOnly: true, // a crisis hold keeps the call's tools (support, handoffs); each writer refuses
   });
   const allowed =
     phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userId)
