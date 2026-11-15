@@ -30,8 +30,8 @@ const LEGEND_VOICE_RECORDS: readonly ConsentedCloneRecord[] = [
 ];
 
 /**
- * Every legend clone voice id that is configured. Only its own listing may
- * speak in one, so anything else (a custom agent) must refuse them all.
+ * Every legend clone voice id that is configured. No persona speaks in one at
+ * this point, and a custom agent must refuse them all.
  */
 export function configuredLegendVoiceIds(env: Env = process.env): string[] {
   return LEGEND_VOICE_RECORDS.map((r) => env[r.voiceSetting]?.trim()).filter((id): id is string =>

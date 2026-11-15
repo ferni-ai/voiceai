@@ -38,12 +38,13 @@ export interface ConsentedCloneRecord {
   readonly listingId: string;
   /**
    * The setting that holds the clone's voice id. The id is never in code: unset
-   * means the legend is not admitted.
+   * means the legend has no clone voice.
    */
   readonly voiceSetting: string;
   /**
-   * Withheld clones (RETIRED_CLONE_VOICE_IDS) of this same person, which this
-   * listing alone may use once admitted. Every other listing stays blocked.
+   * Withheld clones (RETIRED_CLONE_VOICE_IDS) of this same person, recorded for
+   * this listing. Nothing reads this yet: every withheld clone stays blocked for
+   * every persona.
    */
   readonly reservedCloneIds: readonly string[];
   readonly consent: EstateConsent;
