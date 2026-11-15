@@ -7,7 +7,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { stripSSML, containsSSML, normalizeForComparison, looksLikeName } from '../text-utils.js';
+import {
+  stripSSML,
+  containsSSML,
+  normalizeForComparison,
+  looksLikeName,
+  withoutDashes,
+} from '../text-utils.js';
 
 describe('Text Utils', () => {
   describe('stripSSML', () => {
@@ -142,6 +148,19 @@ describe('Text Utils', () => {
     it('should be case-insensitive for common words', () => {
       expect(looksLikeName('YEAH')).toBe(false);
       expect(looksLikeName('Just')).toBe(false);
+    });
+  });
+
+  describe('withoutDashes', () => {
+    it('turns each em or en dash, and the spaces around it, into a comma', () => {
+      expect(withoutDashes('March — with the recipe – like we said')).toBe(
+        'March, with the recipe, like we said'
+      );
+      expect(withoutDashes('wait—what')).toBe('wait, what');
+    });
+
+    it('leaves hyphens and dash-free text alone', () => {
+      expect(withoutDashes('a well-watered bed')).toBe('a well-watered bed');
     });
   });
 });
