@@ -9,6 +9,7 @@ import { HEARD_AS as HANDOFF_SPELLINGS } from '../../tools/handoff/teammate-name
 import {
   HEARD_AS,
   TEAM_FIRST_NAMES,
+  asksForTeammate,
   isTeammateTalk,
   lifeMoments,
   teammatesOnCall,
@@ -116,5 +117,40 @@ describe('teammatesOnCall', () => {
     expect(on('assistant', "It's Maya's birthday soon, right?")).toEqual([]);
     expect(on('user', 'Jordan got a new job')).toEqual([]);
     expect(on('assistant', 'Jordan would know more about that.')).toEqual([]);
+  });
+});
+
+describe('asksForTeammate', () => {
+  it('hears a live ask for a teammate, or a teammate named to them', () => {
+    for (const line of [
+      'can I talk to Alex',
+      'put me through to Maya',
+      'is Peter around?',
+      'hey Jordan, can you help me plan my week',
+      'hey jordan can you help me plan my week',
+      'nayan please',
+      'Nayan?',
+      'can i talk to jorden real quick',
+      'go back to Ferni',
+      'that was great, thanks Maya',
+      'I got laid off, can I talk to Peter',
+      'Maya, I had a rough day',
+      "I'm fine. Jordan, can you help me plan",
+    ])
+      expect(asksForTeammate(line), line).toBe(true);
+  });
+
+  it('leaves Ferni named to himself, and someone in their life who shares a name', () => {
+    for (const line of [
+      'hey Ferni, long day',
+      'Ferni, I finally finished the painting',
+      'my friend Alex is visiting',
+      'I talked to Maya yesterday',
+      "Jordan's wedding was lovely",
+      'Peter told me he is moving',
+      "it's been a long day",
+      '',
+    ])
+      expect(asksForTeammate(line), line).toBe(false);
   });
 });
