@@ -182,6 +182,22 @@ describe('a rejected crisis escalation', () => {
     expect(JSON.stringify(logged)).not.toContain(SENTINEL);
     expect(JSON.stringify(logged)).not.toContain('sentinel-6d1f');
   });
+
+  it('an error name that is not a class name, a sentence or a lone word, is logged as Error: the name is in no logged field', async () => {
+    for (const name of [SENTINEL, 'sentinel6d1fword']) {
+      logged.length = 0;
+      resetCrisisClassifierCache(); // each turn gets its own read
+      const error = new Error('boom');
+      error.name = name; // name is writable: a thrower can put any text there
+      ease.reject = error;
+      await replyTo(MISSED, { env: LIVE, ...models(IMMINENT) });
+      expect(failures().map(([level, fields]) => [level, fields])).toEqual([
+        ['warn', { action: 'escalation_failed', stage: 'after_verdict', errorClass: 'Error' }],
+      ]);
+      expect(JSON.stringify(logged)).not.toContain('sentinel-6d1f');
+      expect(JSON.stringify(logged)).not.toContain('sentinel6d1f');
+    }
+  });
 });
 
 describe('an escalation that settles', () => {

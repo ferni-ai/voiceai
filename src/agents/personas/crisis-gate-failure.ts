@@ -16,6 +16,18 @@ const log = createLogger({ module: 'CrisisGate' }); // the gate's own log lines
 /** Where the escalation failed: before the classifier's verdict was in, or after it. */
 type EscalationStage = 'before_verdict' | 'after_verdict';
 
+/** The shape of an error class name: TypeError, AbortError, DOMException. A lone word is not. */
+const ERROR_CLASS = /^[A-Z][A-Za-z0-9]{0,58}(Error|Exception)$/;
+
+/**
+ * The error's class for the log line. `name` is a writable property, not a guarantee, so a
+ * thrower could put any text there, the caller's words included, even a single word. Only a
+ * name shaped like an error class is logged; anything else is logged as plain 'Error'.
+ */
+function className(error: Error): string {
+  return ERROR_CLASS.test(error.name) ? error.name : 'Error';
+}
+
 /**
  * The escalation built on `verdict`. If it rejects, one line says whether `verdict`
  * had resolved and what class of error it was; then it rejects with the same error.
@@ -30,7 +42,7 @@ export function loggedEscalation<V, D>(
     return value;
   });
   return escalation(read).catch((error: unknown) => {
-    const errorClass = error instanceof Error ? error.name : typeof error;
+    const errorClass = error instanceof Error ? className(error) : typeof error;
     log.warn({ action: 'escalation_failed', stage, errorClass }, 'CRISIS_GATE');
     throw error;
   });
