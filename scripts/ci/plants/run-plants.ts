@@ -438,7 +438,10 @@ export type GroupRun = {
   leftover: number;
 };
 
-const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
+const pause = (ms: number) =>
+  new Promise<void>((done) => {
+    setTimeout(done, ms);
+  });
 
 function signalGroup(pgid: number, signal: NodeJS.Signals): void {
   try {

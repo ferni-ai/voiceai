@@ -115,7 +115,10 @@ const plant = (over: Partial<Plant> = {}): Plant => ({
 
 const status = (root: string) =>
   execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' });
-const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
+const pause = (ms: number) =>
+  new Promise<void>((done) => {
+    setTimeout(done, ms);
+  });
 /** True when no process has this id (a negative id names a process group). */
 const gone = (id: number) => {
   try {
@@ -934,9 +937,9 @@ describe('the command line', () => {
       ['--experimental-strip-types', '--no-warnings', SCRIPT, '--root', root, manifest],
       { stdio: 'ignore' }
     );
-    const ended = new Promise<number | string>((done) =>
-      runner.once('exit', (code, signal) => done(code ?? signal ?? 'none'))
-    );
+    const ended = new Promise<number | string>((done) => {
+      runner.once('exit', (code, signal) => done(code ?? signal ?? 'none'));
+    });
     let worker = 0;
     try {
       for (const end = Date.now() + 60_000; !existsSync(marker) && Date.now() < end;)
