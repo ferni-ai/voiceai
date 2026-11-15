@@ -70,7 +70,7 @@ import {
 } from '../personas/life-updates.js';
 import { loadRepairRecall, type RepairStore } from '../personas/friend-repair.js';
 import { growthRecallFor, withGrowth } from '../personas/persona-growth-recall.js';
-import { crisisSignalOnCall } from './recall-note.js';
+import { selfNoteSlot, type SelfNote } from './recall-note.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import {
   coachFollowThroughMode,
@@ -170,12 +170,6 @@ export interface MemoryRecall {
   takeSelfNote(): SelfNote;
 }
 
-/** The self note of one transcript: none when nothing answers or a crisis signal held it. */
-export interface SelfNote {
-  note: string | null;
-  crisis: boolean;
-}
-
 /**
  * Facts recalled per user turn. Interim transcripts arrive many times a turn;
  * without a turn budget each one pulled in 4 more facts about the same thing
@@ -252,17 +246,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let allTold: LedgerFact[] = [];
   let canon: Record<string, string> = {};
   let selfNoteGiven = false;
-  let selfNow: SelfNote = { note: null, crisis: false };
-  // A crisis signal on these words or this call holds the self note, as it holds the growth
-  // note (persona-growth-recall.ts). No call id, or a failed check, holds it too.
-  const selfHeld = (said: string): boolean => {
-    try {
-      return !deps.sessionId || crisisSignalOnCall(deps.sessionId, said);
-    } catch (error) {
-      log.warn({ error: String(error) }, 'Self note crisis check failed; holding it');
-      return true;
-    }
-  };
+  const selfSlot = selfNoteSlot(deps.sessionId, selfRecall); // held on a crisis signal
   const ledger = loadLedger(
     deps.userId,
     personaId,
@@ -350,7 +334,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         callerTurn++;
       }
       week.heard(text);
-      selfNow = { note: null, crisis: selfRecall && !!text && selfHeld(text) };
+      selfSlot.heard(text);
       if (!snapshot || !text) return null;
       index?.observe(text);
       episodes?.observe(text);
@@ -432,14 +416,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           : null;
       // Once a turn, when they ask about him and something answers it; never on a crisis signal.
       const self =
-        selfRecall && !selfNoteGiven && !selfNow.crisis
+        selfRecall && !selfNoteGiven && !selfSlot.held()
           ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
           : null;
-      if (self) selfNoteGiven = true;
+      if (selfSlot.set(self)) selfNoteGiven = true; // sent apart from the note (takeSelfNote)
       const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
       const loopsNow = loops?.note() ?? null;
       // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
-      // The self note still counts for whether there is a note, but is sent apart (takeSelfNote).
       const noteWith = (shown: RecallFact[]): string | null =>
         [
           checkIn,
@@ -461,7 +444,6 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           .join('\n\n') || null;
       const note = noteWith(facts);
       if (!note && !self) return null;
-      selfNow = { ...selfNow, note: self };
       lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
       followUpsOffered = true;
       if (insideJokes.length > 0) jokeOffered = true;
@@ -494,11 +476,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       );
       return note;
     },
-    takeSelfNote() {
-      const taken = selfNow;
-      selfNow = { note: null, crisis: false };
-      return taken;
-    },
+    takeSelfNote: () => selfSlot.take(),
     lastPick: () => lastPick,
     newTurn() {
       turnCounted = false;

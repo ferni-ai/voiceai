@@ -149,6 +149,57 @@ export function crisisSignalOnCall(sessionId: string, said: string): boolean {
   return crisisRiskThisCall(sessionId, said) || scoreCrisisLanguage(said).isCrisis;
 }
 
+/** The self note of one transcript: none when nothing answers or a crisis signal held it. */
+export interface SelfNote {
+  note: string | null;
+  crisis: boolean;
+}
+
+/**
+ * The self note of the last transcript, kept apart from the recall note so it is sent on
+ * its own (sendRecall). Each transcript is checked, not latched as the growth note is.
+ */
+export interface SelfNoteSlot {
+  /** A new transcript: held when a crisis signal is on these words or this call. */
+  heard(said: string): void;
+  held(): boolean;
+  /** This transcript's note; true when there is one. */
+  set(note: string | null): boolean;
+  /** Taken once: then empty. */
+  take(): SelfNote;
+}
+
+/**
+ * A self note slot for one call. `on` is FERNI_SELF_RECALL. No call id, or a failed check,
+ * holds the note, as the growth note is held (persona-growth-recall.ts).
+ */
+export function selfNoteSlot(sessionId: string | undefined, on: boolean): SelfNoteSlot {
+  let now: SelfNote = { note: null, crisis: false };
+  const signal = (said: string): boolean => {
+    try {
+      return !sessionId || crisisSignalOnCall(sessionId, said);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Self note crisis check failed; holding it');
+      return true;
+    }
+  };
+  return {
+    heard(said) {
+      now = { note: null, crisis: on && !!said && signal(said) };
+    },
+    held: () => now.crisis,
+    set(note) {
+      now = { ...now, note };
+      return note !== null;
+    },
+    take() {
+      const taken = now;
+      now = { note: null, crisis: false };
+      return taken;
+    },
+  };
+}
+
 /** Take the growth note back out of the chat (a crisis showed on the call); how many went. */
 export function dropGrowthNote(agent: RecallAgent, said?: string): number {
   return dropNotes(agent, (i) => i?.id === GROWTH_NOTE_ID, said);
