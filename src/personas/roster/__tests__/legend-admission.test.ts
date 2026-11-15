@@ -1,16 +1,15 @@
 /**
  * A legend speaks as the real person only when LEGENDS_AS_THEMSELVES is on, its
  * consented-clone record covers the name, the voice and new words, and its voice
- * setting holds a usable voice id. A custom agent never gets a legend voice.
+ * setting holds a usable voice id.
  * The voice ids here are invented; the real ones live only in settings.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { RETIRED_CLONES, RETIRED_CLONE_VOICE_IDS } from '../../../config/voice-ids.js';
-import { isForbiddenCustomAgentVoiceId } from '../../../services/custom-agent/custom-agent-voice-policy.js';
 import { admitLegend } from '../domain/legend-admission.js';
-import { configuredLegendVoiceIds, legendAdmissionFor } from '../index.js';
+import { legendAdmissionFor } from '../index.js';
 import { LEGEND_VOICE_RECORDS, legendVoiceRecordFor } from '../voice-records.js';
 
 const INVENTED_VOICE = '0b0b0b0b-1111-4222-8333-444444444444';
@@ -63,7 +62,8 @@ describe('legendAdmissionFor', () => {
 
 describe('admitLegend', () => {
   it('refuses consent that does not cover the name, the voice and new words', () => {
-    const full = legendVoiceRecordFor('john-bogle')!;
+    const full = legendVoiceRecordFor('john-bogle');
+    if (!full) throw new Error('john-bogle has no record');
     const input = {
       flagOn: true,
       voiceId: INVENTED_VOICE,
@@ -102,25 +102,6 @@ describe('the consented-clone records', () => {
     for (const r of LEGEND_VOICE_RECORDS) {
       expect(r.voiceSetting).toMatch(/^LEGEND_VOICE_[A-Z_]+$/);
       for (const id of r.reservedCloneIds) expect(RETIRED_CLONE_VOICE_IDS.has(id)).toBe(true);
-    }
-  });
-});
-
-describe('a custom agent and a legend voice', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('may never use a configured legend voice, with the flag on or off', () => {
-    vi.stubEnv('LEGEND_VOICE_JOHN_BOGLE', '');
-    expect(configuredLegendVoiceIds()).toEqual([]);
-    expect(isForbiddenCustomAgentVoiceId(INVENTED_VOICE)).toBe(false);
-
-    vi.stubEnv('LEGEND_VOICE_JOHN_BOGLE', INVENTED_VOICE);
-    for (const flag of ['off', 'on']) {
-      vi.stubEnv('LEGENDS_AS_THEMSELVES', flag);
-      expect(isForbiddenCustomAgentVoiceId(INVENTED_VOICE), flag).toBe(true);
-      expect(isForbiddenCustomAgentVoiceId(INVENTED_VOICE.toUpperCase()), flag).toBe(true);
     }
   });
 });

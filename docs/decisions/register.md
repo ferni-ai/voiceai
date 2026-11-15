@@ -202,8 +202,9 @@ one hears about it in the queue rather than at PR time.
   (3.3, R9).
 - **Why:** consent is what separates honouring someone from impersonating
   them.
-- **Enforcement:** existing test
+- **Enforcement:** existing tests
   `src/personas/roster/__tests__/legend-admission.test.ts` (no record, partial
-  consent, unset or withheld voice, or the flag off: not admitted; a custom
-  agent never gets a legend voice). Prompt content: manual.
+  consent, an unset or withheld voice, or the flag off: not admitted) and
+  `src/services/custom-agent/__tests__/custom-agent-legend-voice.test.ts` (a
+  custom agent never gets a configured legend voice). Prompt content: manual.
 - **Scope:** server, spoken text.
