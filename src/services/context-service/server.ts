@@ -11,6 +11,7 @@
  * - GET /ready - Readiness check
  */
 
+import '../../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
 import { createServer, type IncomingMessage, type ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getContextService, type ContextRequest, type SearchRequest } from './index.js';
