@@ -2,7 +2,8 @@
  * info_stock's catch-all pattern made "stock" optional, so any "<anything> today"
  * scored 0.95 for info_stock in the pattern layer: "i feel great today" tied
  * wellness_checkin, and "how many steps did i walk today" routed to stocks.
- * "today" now counts only after "stock".
+ * "today" now counts only after "stock". Plurals ("prices", "quotes") still count, and a
+ * word that only starts with "price" ("priceless") does not.
  */
 import { afterAll, describe, expect, it } from 'vitest';
 import { runCombinedMatching } from '../matcher.js';
@@ -26,6 +27,7 @@ describe('info_stock pattern', () => {
     ['what is on my calendar today', undefined],
     ["what's the news today", 'info_news'],
     ['how many steps did i walk today', undefined],
+    ['this gift is priceless', undefined],
   ])('%j is not a stock ask', (text, top) => {
     const matches = route(text);
     expect(stock(matches)?.layerScores.pattern ?? 0).toBe(0);
@@ -34,12 +36,18 @@ describe('info_stock pattern', () => {
     if (top) expect(matches[0]?.toolId).toBe(top);
   });
 
-  it.each(['apple stock price', 'tesla stock today', 'nvidia price', 'msft quote'])(
-    '%j still routes to info_stock at 0.95 or above',
-    (text) => {
-      const matches = route(text);
-      expect(matches[0]?.toolId).toBe('info_stock');
-      expect(stock(matches)?.confidence ?? 0).toBeGreaterThanOrEqual(0.95);
-    }
-  );
+  it.each([
+    'apple stock price',
+    'tesla stock today',
+    'nvidia price',
+    'msft quote',
+    'apple stock prices',
+    'tech stock quotes',
+    'stock prices today',
+    'nvidia prices',
+  ])('%j still routes to info_stock at 0.95 or above', (text) => {
+    const matches = route(text);
+    expect(matches[0]?.toolId).toBe('info_stock');
+    expect(stock(matches)?.confidence ?? 0).toBeGreaterThanOrEqual(0.95);
+  });
 });
