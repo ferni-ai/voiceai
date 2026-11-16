@@ -81,6 +81,11 @@ lk agent update-secrets --project $P --config $C --secrets "FLAG=on" --secrets "
 - An empty value is rejected, so use `off`.
 - It restarts the agent, so check rooms are empty first.
 - When turning a flag on in prod, record the change in the PR that added the flag.
+- `CRISIS_SCRIPT_IMMINENT_READ=on` changes the crisis words a caller hears. Before setting it
+  anywhere, the `reviewed:` line in
+  `src/agents/personas/__tests__/crisis-script-words.kept.md` must name the owner, and
+  `crisis-script-words.test.ts` must pass on the deployed commit (a stale stamp fails it).
+  `none` means no one has reviewed the words: don't set it.
 
 ## Before promoting to prod: secrets parity
 Run the parity check first. It is read-only (`lk agent secrets` + `lk agent logs`):
