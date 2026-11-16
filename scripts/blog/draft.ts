@@ -219,7 +219,13 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
    */
   const reviseOnce = async (draft: DraftText, markdown: string) => {
     if (!deps.review) return { draft, markdown };
-    const before = await deps.review(markdown, gate.sourceText);
+    let before: JudgeResult;
+    try {
+      before = await deps.review(markdown, gate.sourceText);
+    } catch (error) {
+      // The rewrite is optional: a judge that can't run leaves the draft as it is.
+      before = { status: 'error', model: 'unknown', failures: [`judge failed: ${String(error)}`] };
+    }
     result.review = { before, revised: false };
     const notes = editorNotes(before);
     if (before.status !== 'fail' || notes.length === 0) return { draft, markdown };

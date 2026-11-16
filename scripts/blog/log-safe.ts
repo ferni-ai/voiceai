@@ -58,7 +58,6 @@ export function rejectedSummary(r: Rejected): string[] {
   ];
 }
 
-/** The line an accepted draft prints: its title and slug. */
 /**
  * The judge's scores on the first clean draft and whether a rewrite replaced
  * it. Scores only: the reasons quote the post.
@@ -71,11 +70,12 @@ export function reviewSummary(review: { before: JudgeResult; revised: boolean })
   const outcome = revised
     ? 'rewritten once with its notes'
     : before.status === 'fail' && before.verdict
-      ? 'the rewrite failed the brand gate, so the first draft stands'
+      ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
       : 'kept as drafted';
   return `Judge before revision: ${before.status} (${scores}); ${outcome}`;
 }
 
+/** The line an accepted draft prints: its title and slug. */
 export function writtenSummary(title: string, file: string): string {
   return `Wrote ${JSON.stringify(title)} (slug ${path.basename(file, '.md')})`;
 }

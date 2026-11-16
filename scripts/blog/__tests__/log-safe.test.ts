@@ -12,7 +12,15 @@ import { unsafeOutput } from '../untrusted-text.js';
 
 const MARKER = 'INJECTED-MARKER-7f3a';
 const draftPost = vi.hoisted(() => vi.fn());
-vi.mock('../draft.js', () => ({ draftPost, reviseEnabled: () => false }));
+const reviseEnabled = vi.hoisted(() => vi.fn(() => false));
+const judgePost = vi.hoisted(() => vi.fn());
+vi.mock('../draft.js', () => ({ draftPost, reviseEnabled }));
+vi.mock('../judge.js', async (importActual) => ({
+  ...(await importActual<typeof import('../judge.js')>()),
+  judgePost,
+  claudeJudge: () => ({ name: 'judge', generate: vi.fn() }),
+  truthPack: () => 'truth',
+}));
 vi.mock('../model.js', () => ({ geminiModel: async () => ({ generate: vi.fn() }) }));
 
 class Exit extends Error {
@@ -153,6 +161,35 @@ describe('draft-post.ts on a written draft', () => {
 
     expect(code).toBeUndefined();
     expect(lines).toEqual(['Wrote "Better memory" (slug whats-new-2026-10-19)']);
+  });
+
+  it('wires the judge in only when BLOG_REVISE is on and it is not a dry run, for the right audience', async () => {
+    const reviewOf = () =>
+      (draftPost.mock.calls.at(-1) as [unknown, { review?: (m: string, t: string) => unknown }])[1]
+        .review;
+    draftPost.mockResolvedValue(result({ status: 'dry-run' }));
+
+    reviseEnabled.mockReturnValue(false);
+    await run('draft-post.ts', ['--type', 'whats-new']);
+    expect(reviewOf()).toBeUndefined();
+
+    reviseEnabled.mockReturnValue(true);
+    await run('draft-post.ts', ['--type', 'whats-new', '--dry-run']);
+    expect(reviewOf()).toBeUndefined();
+
+    for (const [type, audience] of [
+      ['whats-new', 'developer'],
+      ['building-in-public', 'consumer'],
+    ]) {
+      await run('draft-post.ts', ['--type', type]);
+      await reviewOf()?.('the post', 'the sources');
+      expect(judgePost).toHaveBeenLastCalledWith(
+        'the post',
+        audience,
+        expect.objectContaining({ truth: 'truth', sourceText: 'the sources' })
+      );
+    }
+    reviseEnabled.mockReturnValue(false);
   });
 
   it("prints the judge's scores before a rewrite, never its reasons", async () => {

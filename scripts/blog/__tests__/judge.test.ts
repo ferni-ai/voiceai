@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  editorNotes,
   DIMENSIONS,
   belowBar,
   judgePost,
@@ -10,6 +11,7 @@ import {
   truthPack,
   type Dimension,
   type JudgeModel,
+  type Verdict,
 } from '../judge.js';
 import { offFlags } from '../live-check.js';
 import { POST_TYPES } from '../post-types.js';
@@ -150,5 +152,33 @@ describe('the drafter prompt', () => {
     }
     expect(consumer).toMatch(/Ferni's owner reads it/);
     expect(developer).not.toMatch(/owner/);
+  });
+});
+
+describe('editorNotes', () => {
+  const scores = (reason: string) =>
+    Object.fromEntries(
+      DIMENSIONS.map((d) => [d, { score: d === 'craft' ? 2 : 5, reason }])
+    ) as Verdict['scores'];
+
+  it('gives one note per failure, with the reason stripped of markup and capped', () => {
+    const reason = `See [this](https://evil.example/x) <b>line</b>. ${'y'.repeat(900)}`;
+    const [note, ...rest] = editorNotes({
+      status: 'fail',
+      model: 'judge',
+      verdict: { scores: scores(reason), summary: '' },
+      failures: ['craft 2 (needs 4)'],
+    });
+    expect(rest).toEqual([]);
+    expect(note.startsWith('craft 2 (needs 4): See this line')).toBe(true);
+    for (const bad of ['http', '<b>', '](']) expect(note).not.toContain(bad);
+    expect(note.length).toBeLessThanOrEqual(
+      'craft 2 (needs 4): '.length + 600 + ' [truncated]'.length
+    );
+    expect(note).toMatch(/\[truncated\]$/);
+  });
+
+  it('gives no notes when there is no verdict', () => {
+    expect(editorNotes({ status: 'error', model: 'judge', failures: ['no verdict'] })).toEqual([]);
   });
 });

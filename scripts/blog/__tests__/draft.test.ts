@@ -577,6 +577,8 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
     expect(matter(judged).data.title).toBe('First draft');
     expect(sourceText).toContain('essentially no users yet');
     expect(prompts).toHaveLength(2);
+    expect(prompts[1].startsWith(prompts[0])).toBe(true);
+    expect(prompts[1]).toContain('FACTS');
     expect(prompts[1]).toContain('YOUR DRAFT');
     expect(prompts[1]).toContain('"title":"First draft"');
     expect(prompts[1]).toContain('- craft 3 (needs 4): craft: says the same thing twice');
@@ -628,5 +630,39 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
     expect(result.review?.revised).toBe(false);
     expect(writes).toHaveLength(1);
     expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on and the judge throws: the first draft stands', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const review = async (): Promise<JudgeResult> => {
+      throw new Error('privacyData.json: ENOENT');
+    };
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(result.status).toBe('written');
+    expect(prompts).toHaveLength(1);
+    expect(result.review).toMatchObject({ revised: false, before: { status: 'error' } });
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on: a draft that needed a gate retry is still judged and rewritten', async () => {
+    const prompts: string[] = [];
+    const answers = [
+      answer('First draft', `${BODY} It is fast \u2014 really fast.`),
+      answer('Second draft'),
+      answer('Third draft', REWRITE),
+    ];
+    const { d, writes } = deps((prompt) => {
+      prompts.push(prompt);
+      return answers[prompts.length - 1];
+    });
+    const result = await draftPost(
+      { type: 'building-in-public' },
+      { ...d, review: async () => verdict(3) }
+    );
+    expect(prompts).toHaveLength(3);
+    expect(prompts[2]).toContain('"title":"Second draft"');
+    expect(result.review?.revised).toBe(true);
+    expect(matter(writes[0].content).data.title).toBe('Third draft');
   });
 });
