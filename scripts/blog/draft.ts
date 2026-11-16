@@ -13,7 +13,7 @@ import { renderPack, sourceList, type GhRunner, type Source } from './grounding.
 import type { DraftModel } from './model.js';
 import { getPostType, type PostType } from './post-types.js';
 import { buildPrompt, parseDraft, type DraftText } from './prompt.js';
-import { characterLabel, letterAuthor, pickPersona } from './team-letter.js';
+import { characterLabel, focusLetter, letterAuthor, pickPersona } from './team-letter.js';
 import { NEEDS_PRS, collectSources } from './type-sources.js';
 import { MAX_ANSWER_CHARS, unsafeOutput } from './untrusted-text.js';
 
@@ -83,12 +83,28 @@ function defaultSince(type: PostType, lastPost: string | undefined, today: strin
   return back(type.id === 'how-ferni-works' ? 30 : 14);
 }
 
+/**
+ * The sources a post actually draws on: every document, and only the pull
+ * requests the body links or names (`#N` or `/pull/N`). The model reads all of them, but a post
+ * that lists PRs it never mentions is scored down for craft (rubric.ts).
+ */
+export function usedSources(sources: Source[], body: string): Source[] {
+  const used = sources.filter((s) => {
+    const n = (s as { number?: unknown }).number;
+    if (typeof n !== 'number') return true;
+    return new RegExp(`(?:/pull/|#)${n}(?!\\d)`).test(body);
+  });
+  // A post that cites nothing keeps the whole list: the gate rejects an empty
+  // `sources`, and the judge should see what the post failed to use.
+  return used.length ? used : sources;
+}
+
 export function renderPost(type: PostType, draft: DraftText, meta: PostMeta): string {
   const q = (s: string): string => JSON.stringify(s);
   const body = [meta.label, draft.body.trim()].filter(Boolean).join('\n\n');
   const words = body.split(/\s+/).filter(Boolean).length;
   const series = type.series ? [`series: ${q(type.series)}`, `seriesPart: ${meta.seriesPart}`] : [];
-  const sources = sourceList(meta.sources).map((s) => `  - ${q(s)}`);
+  const sources = sourceList(usedSources(meta.sources, body)).map((s) => `  - ${q(s)}`);
   return `---
 title: ${q(draft.title)}
 excerpt: ${q(draft.excerpt)}
@@ -151,7 +167,7 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   const persona = pickPersona(isoWeek(deps.today), opts.persona);
   const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, today: deps.today, persona };
   const { prs, docs } = collectSources(type, ctx);
-  const sources = [...prs, ...docs];
+  let sources = [...prs, ...docs];
   const terms = forbiddenTerms(deps.root, type.audience);
   const ask = (feedback?: GateIssue[]): string =>
     buildPrompt(type, sources, existing, [...terms.words, ...terms.phrases], feedback);
@@ -168,6 +184,10 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   if (!deps.model) throw new Error('no model to draft with');
 
   const letter = type.id === 'team-letter';
+  if (letter) {
+    sources = await focusLetter(sources, persona, deps.model);
+    Object.assign(result, { sources, prompt: ask() });
+  }
   const meta: PostMeta = {
     author: letter ? letterAuthor(deps.root, persona) : type.author,
     date: deps.today,
