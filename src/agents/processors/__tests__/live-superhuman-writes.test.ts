@@ -218,10 +218,11 @@ describe('live superhuman writers hold on a call with an abuse disclosure', () =
     expect(commitments.progress).not.toHaveBeenCalled();
   });
 
-  it.each(EVERYDAY)('%s: a suicidal-only call writes as on main', async (_w, said, i) => {
+  // A crisis read holds the call's memory (crisis-memory-hold.ts): on main this call wrote.
+  it.each(EVERYDAY)('%s: a suicidal-only call is held: no writes', async (_w, said, i) => {
     const sessionId = await turn('I want to end my life.', i);
     await turn(said, i, sessionId);
-    expect(wrote()).toBeGreaterThan(0);
+    expect(wrote()).toBe(0);
   });
 
   it('the hold is per call: an abuse disclosure on another call does not hold this one', async () => {

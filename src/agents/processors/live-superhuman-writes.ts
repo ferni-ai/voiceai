@@ -30,7 +30,8 @@ export interface TurnWrite {
  * MINOR_CARE=on: this turn's words read first, so the turn that says "I'm 15 years old" is held too.
  * An abuse disclosure on this call holds too: the person hurting the caller may read a check-in sent
  * to their phone. The turn's own kernel read is noted before these writers run (turn-crisis.ts),
- * and a turn read still in flight is waited on. A call with only suicidal risk is not held.
+ * and a turn read still in flight is waited on. A crisis read, once noted, holds the call too
+ * (utils/crisis-memory-hold.ts).
  */
 export async function turnWritesHeld(
   ctx: Pick<TurnWrite, 'userId' | 'sessionId' | 'userText'>
