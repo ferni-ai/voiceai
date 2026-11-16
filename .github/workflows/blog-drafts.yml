@@ -138,12 +138,18 @@ jobs:
           service_account: ferni-ci-blog@johnb-2025.iam.gserviceaccount.com
 
       # Exits 1 when the draft still fails the brand gate after one retry.
+      # With the BLOG_REVISE repo variable set to `on` (unset means off), the
+      # judge scores the clean draft and a failing one is rewritten once with
+      # its notes (draft.ts); the judge key reaches this step only then.
       - name: Draft the post
         id: draft
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           GOOGLE_CLOUD_PROJECT: johnb-2025
           GOOGLE_CLOUD_LOCATION: global
+          BLOG_REVISE: ${{ vars.BLOG_REVISE == 'on' && 'on' || 'off' }}
+          ANTHROPIC_API_KEY: ${{ vars.BLOG_REVISE == 'on' && secrets.ANTHROPIC_API_KEY || '' }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.BLOG_REVISE == 'on' && secrets.ANTHROPIC_WORKSPACE_ID || '' }}
         run: |
           META="$RUNNER_TEMP/draft-meta.json"
           pnpm tsx scripts/blog/draft-post.ts --type "$TYPE" --meta-out "$META"
