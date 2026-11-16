@@ -32,7 +32,9 @@ function staticClosure(entry: string): Map<string, string[]> {
   return reached;
 }
 
-describe('admin code loads only for admins', () => {
+// Walking the whole app graph takes about 1 s alone but went past the 5 s
+// default once under a loaded full-suite run.
+describe('admin code loads only for admins', { timeout: 20_000 }, () => {
   it('the app entry reaches the module graph it is checked against', () => {
     // Guards the check below from passing on an empty or misnamed graph.
     expect(staticClosure(APP_ENTRY).size).toBeGreaterThan(100);
