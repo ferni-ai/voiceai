@@ -64,7 +64,8 @@ export function wireTrustTabs(root: HTMLElement, onSelect: (tab: string) => void
     (e.target as HTMLElement).scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   });
   strip.addEventListener('scroll', () => updateEdgeFades(strip), { passive: true });
-  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => updateEdgeFades(strip)).observe(strip);
+  if (typeof ResizeObserver !== 'undefined')
+    new ResizeObserver(() => updateEdgeFades(strip)).observe(strip);
   updateEdgeFades(strip);
 }
 
@@ -114,7 +115,8 @@ export const TRUST_TAB_STYLES = `
     .tab-btn:focus-visible { outline: 2px solid var(--color-accent-primary); outline-offset: -2px; }
     .tab-btn.active {
       background: var(--persona-primary);
-      color: var(--color-text-on-accent);
+      /* Each persona's own readable text colour; light when a persona has none */
+      color: var(--persona-on-primary, var(--color-natural-paper-cream));
     }
     @media (prefers-reduced-motion: reduce) {
       .tab-btn { transition: none; }
