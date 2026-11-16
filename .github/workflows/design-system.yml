@@ -159,7 +159,9 @@ jobs:
   # Package check: what each package would publish
   # ============================================================================
   # Runs whatever OPTIONAL_CI says, because a version on npm can't be republished:
-  # a broken entry point has to fail the pull request, not the publish.
+  # a broken entry point has to fail the pull request, not the publish. It holds
+  # no secrets: everything that installs or builds runs here, and publish only
+  # uploads the tarballs this job packed.
   package-check:
     name: Package check
     runs-on: ubuntu-latest
@@ -174,7 +176,7 @@ jobs:
       - name: Build packages
         run: |
           (cd design-system && npm run build:all)
-          (cd packages/ferni-react && npm install --no-audit --no-fund && npx tsup)
+          (cd packages/ferni-react && npm ci --ignore-scripts --no-audit --no-fund && npx tsup)
 
       # Packs each package and fails if a main/module/types/exports target is
       # missing from the tarball, or repository.url isn't this repo (provenance
@@ -182,11 +184,26 @@ jobs:
       - name: Check every entry point is shipped
         run: pnpm tsx scripts/ci/check-package-exports.ts design-system packages/ferni-react
 
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/packs"
+          for dir in design-system packages/ferni-react; do
+            (cd "$dir" && npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/packs")
+          done
+
+      - name: Upload the tarballs
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-packages
+          path: ${{ runner.temp }}/packs/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
   # ============================================================================
   # Publish to npm: every push to main that touches a package
   # ============================================================================
-  # Publishes each package whose package.json version isn't on npm yet, so a
-  # release is a version bump merged to main. Versions already on npm are skipped.
+  # Publishes each tarball whose version isn't on npm yet, so a release is a
+  # version bump merged to main. Versions already on npm are skipped.
   publish:
     name: Publish to npm
     # GitHub-hosted on purpose: this job holds NPM_TOKEN, and the self-hosted CI
@@ -204,43 +221,42 @@ jobs:
     permissions:
       contents: read
       id-token: write # npm provenance
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    # No checkout and no install: no third-party code runs while the token is
+    # in the environment, and only the publish step gets the token.
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
+      - uses: actions/setup-node@v4
         with:
-          frozen-lockfile: 'false'
+          node-version: '22'
 
-      # The literal ${NODE_AUTH_TOKEN} is expanded by npm, so the token is never
-      # written to disk. Later steps find this file through NPM_CONFIG_USERCONFIG.
-      - name: Check the npm token
+      - name: Download the tarballs
+        uses: actions/download-artifact@v8
+        with:
+          name: npm-packages
+          path: packs
+
+      - name: Publish new versions
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
             echo "::error::NPM_TOKEN is not set as a repository secret, so nothing can publish."
             exit 1
           fi
+          # npm expands the literal ${NODE_AUTH_TOKEN}, so the token never touches disk.
           export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/publish.npmrc"
           # shellcheck disable=SC2016 # the ${...} is for npm to expand, not the shell
           printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$NPM_CONFIG_USERCONFIG"
-          echo "NPM_CONFIG_USERCONFIG=$NPM_CONFIG_USERCONFIG" >> "$GITHUB_ENV"
           echo "Publishing as $(npm whoami)"
 
-      - name: Build packages
-        run: |
-          (cd design-system && npm run build:all)
-          (cd packages/ferni-react && npm install --no-audit --no-fund && npx tsup)
-
-      - name: Check every entry point is shipped
-        run: pnpm tsx scripts/ci/check-package-exports.ts design-system packages/ferni-react
-
-      - name: Publish new versions
-        run: |
-          for dir in design-system packages/ferni-react; do
-            name=$(node -p "require('./$dir/package.json').name")
-            version=$(node -p "require('./$dir/package.json').version")
+          shopt -s nullglob
+          tarballs=(packs/*.tgz)
+          if [ "${#tarballs[@]}" -ne 2 ]; then
+            echo "::error::Expected 2 tarballs from Package check, found ${#tarballs[@]}."
+            exit 1
+          fi
+          for tgz in "${tarballs[@]}"; do
+            name=$(tar -xzOf "$tgz" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).name')
+            version=$(tar -xzOf "$tgz" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).version')
             # Only a 404 means "not published yet"; any other error stops the job
             # rather than guessing.
             if seen=$(npm view "$name@$version" version 2>"$RUNNER_TEMP/view.err"); then
@@ -253,7 +269,7 @@ jobs:
               echo "::error::Could not check whether $name@$version is on npm."
               exit 1
             fi
-            (cd "$dir" && npm publish --access public --provenance)
+            npm publish "$tgz" --access public --provenance
             echo "Published $name@$version" | tee -a "$GITHUB_STEP_SUMMARY"
           done
 
