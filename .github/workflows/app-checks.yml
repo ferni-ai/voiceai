@@ -165,20 +165,21 @@ jobs:
     needs: changes
     if: needs.changes.outputs.shared-types == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    env:
+      # Its one dependency, at the version pnpm-lock.yaml resolves for it. A
+      # filtered pnpm install still pulls ~950 root packages (2.5 GB).
+      TYPESCRIPT_VERSION: 5.9.3
     steps:
       - uses: actions/checkout@v7
-      # No version input: action-setup reads package.json "packageManager".
-      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-          cache: pnpm
-      # The package alone, at the lockfile's versions: seconds, not the workspace.
-      - name: Install
-        run: pnpm install --frozen-lockfile --filter @ferni/shared-types
+      # The package's own "typecheck" script, run with that TypeScript.
       - name: Typecheck
-        run: pnpm --filter @ferni/shared-types typecheck
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/tsc" "typescript@$TYPESCRIPT_VERSION"
+          "$RUNNER_TEMP/tsc/node_modules/.bin/tsc" -p packages/shared-types/tsconfig.json --noEmit
 
   ml-training:
     name: ML training lint
