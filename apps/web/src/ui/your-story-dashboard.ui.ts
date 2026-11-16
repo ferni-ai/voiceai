@@ -28,6 +28,7 @@ import {
 } from './visualizations/builders/actions-taken.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { buildYourStoryStatus, type YourStoryStatus } from './your-story-status.js';
+import { pruneEmptySections, STORY_ROW_STYLES } from './your-story-layout.js';
 
 const log = createLogger('YourStoryDashboard');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -497,7 +498,7 @@ class YourStoryUI {
     hero.setAttribute('data-viz', 'relationship-network');
     section.appendChild(hero);
 
-    const row = el('div', 'your-story__viz-row');
+    const row = el('div', 'your-story__viz-row your-story__viz-row--stack');
     const loops = el('div', 'your-story__compact-viz');
     loops.id = 'viz-open-loops';
     loops.setAttribute('data-viz', 'open-loops');
@@ -539,6 +540,7 @@ class YourStoryUI {
       if (!vizData) container?.remove();
       else if (container) this.deviceAdapter.render(container as HTMLElement, viz.type, vizData);
     }
+    if (this.panel) pruneEmptySections(this.panel); // a heading over nothing reads as broken
   }
 
   /**
@@ -1230,12 +1232,7 @@ class YourStoryUI {
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
       }
 
-      .your-story__viz-row {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem; /* md (16px) */
-        margin-bottom: 1rem;
-      }
+${STORY_ROW_STYLES}
 
       /* Hero spans full width on desktop grid */
       .your-story__viz-row > .your-story__hero-viz {

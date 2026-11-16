@@ -211,19 +211,13 @@ function buildMobile(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header: the subtitle only, the story section above already names the block
   const header = createElement('div', 'viz-header');
-  const title = createElement(
-    'h3',
-    'viz-header__title',
-    t('visualizations.actionsTaken.title', "What I've Done for You")
-  );
   const subtitle = createElement(
     'p',
     'viz-header__subtitle',
     t('visualizations.actionsTaken.subtitle', 'Calls, messages, and commitments kept')
   );
-  header.appendChild(title);
   header.appendChild(subtitle);
   container.appendChild(header);
 
@@ -246,12 +240,12 @@ function buildMobile(
     const statBox = createElement('div', 'viz-stat');
     setStyles(statBox, {
       textAlign: 'center',
-      padding: 'var(--viz-space-tight)',
+      padding: 'var(--viz-space-breath)',
     });
 
     const valueEl = createElement('div', 'viz-stat__value');
     setStyles(valueEl, {
-      fontSize: 'var(--font-size-xl)',
+      fontSize: 'var(--viz-text-xl)',
       fontWeight: '600',
       color: 'var(--viz-text-primary)',
     });
@@ -259,7 +253,7 @@ function buildMobile(
 
     const labelEl = createElement('div', 'viz-stat__label');
     setStyles(labelEl, {
-      fontSize: 'var(--font-size-sm)',
+      fontSize: 'var(--viz-text-base)',
       color: 'var(--viz-text-muted)',
     });
     labelEl.textContent = stat.label;
@@ -275,7 +269,7 @@ function buildMobile(
   setStyles(list, {
     display: 'flex',
     flexDirection: 'column',
-    gap: 'var(--viz-space-tight)',
+    gap: 'var(--viz-space-breath)',
   });
 
   const moments = data.recentCare.slice(0, 5);
@@ -297,8 +291,8 @@ function buildMobile(
       setStyles(card, {
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 'var(--viz-space-tight)',
-        padding: 'var(--viz-space-tight)',
+        gap: 'var(--viz-space-breath)',
+        padding: 'var(--viz-space-breath)',
         background: 'var(--viz-bg-secondary)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--viz-border-subtle)',
@@ -315,7 +309,7 @@ function buildMobile(
 
       const narrative = createElement('div', 'viz-care-card__narrative');
       setStyles(narrative, {
-        fontSize: 'var(--font-size-sm)',
+        fontSize: 'var(--viz-text-base)',
         color: 'var(--viz-text-primary)',
         lineHeight: '1.4',
       });
@@ -323,9 +317,9 @@ function buildMobile(
 
       const time = createElement('div', 'viz-care-card__time');
       setStyles(time, {
-        fontSize: 'var(--font-size-xs)',
+        fontSize: 'var(--viz-text-sm)',
         color: 'var(--viz-text-muted)',
-        marginTop: 'var(--viz-space-micro)',
+        marginTop: 'var(--viz-space-2xs)',
       });
       time.textContent = formatMomentTime(moment.timestamp);
 
@@ -389,24 +383,18 @@ function buildTablet(
   setStyles(headerTop, {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 'var(--viz-space-breath)',
   });
 
+  // The subtitle only: the story section above already names the block
   const titleArea = createElement('div');
-  const title = createElement(
-    'h3',
-    'viz-header__title',
-    t('visualizations.actionsTaken.title', "What I've Done for You")
-  );
+  setStyles(titleArea, { minWidth: '0' });
   const subtitle = createElement(
     'p',
     'viz-header__subtitle',
-    t(
-      'visualizations.actionsTaken.subtitle',
-      'Calls, messages, and commitments kept'
-    )
+    t('visualizations.actionsTaken.subtitle', 'Calls, messages, and commitments kept')
   );
-  titleArea.appendChild(title);
   titleArea.appendChild(subtitle);
   headerTop.appendChild(titleArea);
 
@@ -416,12 +404,14 @@ function buildTablet(
     setStyles(badge, {
       display: 'flex',
       alignItems: 'center',
-      gap: 'var(--viz-space-micro)',
-      padding: 'var(--viz-space-micro) var(--viz-space-tight)',
+      gap: 'var(--viz-space-2xs)',
+      padding: 'var(--viz-space-2xs) var(--viz-space-breath)',
       background: 'var(--viz-bg-tertiary)',
       borderRadius: 'var(--radius-full)',
-      fontSize: 'var(--font-size-sm)',
+      fontSize: 'var(--viz-text-base)',
       color: 'var(--viz-text-secondary)',
+      flexShrink: '0',
+      whiteSpace: 'nowrap',
     });
     badge.textContent = t('visualizations.actionsTaken.keptProgress', {
       kept: data.commitmentProgress.kept,
@@ -438,7 +428,7 @@ function buildTablet(
   setStyles(statsGrid, {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: 'var(--viz-space-tight)',
+    gap: 'var(--viz-space-breath)',
     marginBottom: 'var(--viz-space-breath)',
   });
 
@@ -452,19 +442,19 @@ function buildTablet(
   for (const stat of allStats) {
     const statCard = createElement('div', 'viz-stat-card');
     setStyles(statCard, {
-      padding: 'var(--viz-space-tight)',
+      padding: 'var(--viz-space-breath)',
       background: 'var(--viz-bg-secondary)',
       borderRadius: 'var(--radius-md)',
       textAlign: 'center',
     });
 
     const iconEl = createElement('div', 'viz-stat-card__icon');
-    setStyles(iconEl, { fontSize: '1.5rem', marginBottom: 'var(--viz-space-micro)' });
+    setStyles(iconEl, { fontSize: '1.5rem', marginBottom: 'var(--viz-space-2xs)' });
     iconEl.innerHTML = stat.icon;
 
     const valueEl = createElement('div', 'viz-stat-card__value');
     setStyles(valueEl, {
-      fontSize: 'var(--font-size-2xl)',
+      fontSize: 'var(--viz-text-2xl)',
       fontWeight: '600',
       color: 'var(--viz-text-primary)',
     });
@@ -472,7 +462,7 @@ function buildTablet(
 
     const labelEl = createElement('div', 'viz-stat-card__label');
     setStyles(labelEl, {
-      fontSize: 'var(--font-size-xs)',
+      fontSize: 'var(--viz-text-sm)',
       color: 'var(--viz-text-muted)',
     });
     labelEl.textContent = stat.label;
@@ -490,10 +480,10 @@ function buildTablet(
 
   const momentsHeader = createElement('h4', 'viz-section-title');
   setStyles(momentsHeader, {
-    fontSize: 'var(--font-size-sm)',
+    fontSize: 'var(--viz-text-base)',
     fontWeight: '600',
     color: 'var(--viz-text-secondary)',
-    marginBottom: 'var(--viz-space-tight)',
+    marginBottom: 'var(--viz-space-breath)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   });
@@ -505,7 +495,7 @@ function buildTablet(
   setStyles(list, {
     display: 'flex',
     flexDirection: 'column',
-    gap: 'var(--viz-space-tight)',
+    gap: 'var(--viz-space-breath)',
   });
 
   const moments = data.recentCare.slice(0, 8);
@@ -528,8 +518,8 @@ function buildTablet(
       setStyles(card, {
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 'var(--viz-space-tight)',
-        padding: 'var(--viz-space-tight)',
+        gap: 'var(--viz-space-breath)',
+        padding: 'var(--viz-space-breath)',
         background: 'var(--viz-bg-secondary)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--viz-border-subtle)',
@@ -556,7 +546,7 @@ function buildTablet(
 
       const narrative = createElement('div', 'viz-care-card__narrative');
       setStyles(narrative, {
-        fontSize: 'var(--font-size-sm)',
+        fontSize: 'var(--viz-text-base)',
         color: 'var(--viz-text-primary)',
         lineHeight: '1.4',
       });
@@ -565,13 +555,13 @@ function buildTablet(
       const meta = createElement('div', 'viz-care-card__meta');
       setStyles(meta, {
         display: 'flex',
-        gap: 'var(--viz-space-tight)',
-        marginTop: 'var(--viz-space-micro)',
+        gap: 'var(--viz-space-breath)',
+        marginTop: 'var(--viz-space-2xs)',
       });
 
       const time = createElement('span', 'viz-care-card__time');
       setStyles(time, {
-        fontSize: 'var(--font-size-xs)',
+        fontSize: 'var(--viz-text-sm)',
         color: 'var(--viz-text-muted)',
       });
       time.textContent = formatMomentTime(moment.timestamp);
@@ -580,7 +570,7 @@ function buildTablet(
       if (moment.target) {
         const target = createElement('span', 'viz-care-card__target');
         setStyles(target, {
-          fontSize: 'var(--font-size-xs)',
+          fontSize: 'var(--viz-text-sm)',
           color: 'var(--viz-text-muted)',
         });
         target.textContent = `• ${moment.target}`;
@@ -686,9 +676,9 @@ export function injectActionsTakenStyles(): void {
       --viz-text-on-accent: var(--color-text-on-accent, #FFFFFF);
     }
 
-    .viz-care-card {
-      cursor: default;
-    }
+    /* The story's hero box has no padding of its own: inset the content so nothing meets its edge */
+    .viz-actions-taken { padding: var(--viz-space-pause); box-sizing: border-box; min-width: 0; }
+    .viz-care-card { cursor: default; }
 
     .viz-empty {
       min-height: 80px;
