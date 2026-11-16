@@ -2,9 +2,10 @@
  * GROUP_CALL: the name Ferni uses for a guest, in system notes and turn labels.
  *
  * A participant's display name is set by whoever joined, so it is text from outside
- * going into the model's context. Only a plain name gets through: one or two words of
- * letters in a single script (after NFKC), with spaces, hyphens and apostrophes, at most
- * 24 characters, no invisible characters, and at most two combining marks on a letter.
+ * going into the model's context. Only a plain name gets through, checked after NFKC:
+ * one or two words, each with a letter, of letters in a single script with spaces,
+ * hyphens and apostrophes, at most 24 characters, no invisible characters, and at most
+ * two combining marks on a letter.
  * Anything else is "the guest". A name with a word that is, or starts with, the owner's
  * first name (case, accents and Cyrillic or Greek look-alike letters aside), or that
  * reads as one of our own labels, gets " (guest)". Every note and label names her with
@@ -36,6 +37,7 @@ const SCRIPTS = [
 /** Variation selectors, zero-width joiners, bidi controls and every other invisible. */
 const INVISIBLE = /\p{Default_Ignorable_Code_Point}/u;
 const MAX_MARKS_PER_LETTER = 2;
+const LETTER = /\p{L}/u;
 /**
  * Cyrillic and Greek letters that look like Latin ones, lower case (a name is lower-cased
  * first, and capitals that look Latin map through their lower case). Not a full TR39 table.
@@ -89,7 +91,7 @@ function fold(text: string): string {
 function marksOnLetters(text: string): boolean {
   let marks = -1; // -1: not straight after a letter
   for (const c of text.normalize('NFD')) {
-    if (/\p{L}/u.test(c)) marks = 0;
+    if (LETTER.test(c)) marks = 0;
     else if (!/\p{M}/u.test(c)) marks = -1;
     else if (marks < 0 || ++marks > MAX_MARKS_PER_LETTER) return false;
   }
@@ -97,7 +99,7 @@ function marksOnLetters(text: string): boolean {
 }
 
 function oneScript(name: string): boolean {
-  const letters = Array.from(name).filter((c) => /\p{L}/u.test(c));
+  const letters = Array.from(name).filter((c) => LETTER.test(c));
   return SCRIPTS.some((script) => letters.every((c) => script.test(c)));
 }
 
@@ -108,12 +110,17 @@ function readsAsOurs(name: string, ownerFirstName: string): boolean {
   return owner !== '' && name.split(' ').some((word) => fold(word).startsWith(owner));
 }
 
+/**
+ * NFKC first, so every later check sees the text the model will (NFKC can bring out a
+ * combining mark: the spacing acute is a space and a combining acute). Then invisibles,
+ * then marks, then the characters, the script and the words.
+ */
 export function guestDisplayName(raw: string | undefined, ownerFirstName: string): string {
-  if (!raw || INVISIBLE.test(raw) || !marksOnLetters(raw)) return FALLBACK;
-  const trimmed = raw.normalize('NFKC').trim();
-  if (!trimmed || !PLAIN_NAME.test(trimmed) || !oneScript(trimmed)) return FALLBACK;
+  const trimmed = (raw ?? '').normalize('NFKC').trim();
+  if (!trimmed || INVISIBLE.test(trimmed) || !marksOnLetters(trimmed)) return FALLBACK;
+  if (!PLAIN_NAME.test(trimmed) || !oneScript(trimmed)) return FALLBACK;
   const words = trimmed.split(/ +/);
-  if (words.length > MAX_WORDS) return FALLBACK;
+  if (words.length > MAX_WORDS || !words.every((word) => LETTER.test(word))) return FALLBACK;
   const name = Array.from(words.join(' ')).slice(0, MAX_LENGTH).join('').trimEnd();
   return readsAsOurs(name, ownerFirstName) ? `${name}${ROLE}` : name;
 }

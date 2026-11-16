@@ -94,6 +94,19 @@ describe('guestDisplayName', () => {
     expect(guestDisplayName('Sarah \u0301Lee', 'Seth')).toBe('the guest');
   });
 
+  it('checks the name after NFKC, so a mark it brings out is still a stray mark', () => {
+    // NFKC turns the spacing acute ´ into a space and a combining acute.
+    expect(guestDisplayName('\u00b4 \u00b4', 'Seth')).toBe('the guest');
+    expect(guestDisplayName('S\u00b4arah', 'Seth')).toBe('the guest'); // a mark after a space
+    expect(guestDisplayName('Jose\u0301', 'Seth')).toBe('Jos\u00e9'); // decomposed in, composed out
+  });
+
+  it('falls back to "the guest" when a word has no letter', () => {
+    expect(guestDisplayName('---', 'Seth')).toBe('the guest');
+    expect(guestDisplayName('Sarah -', 'Seth')).toBe('the guest');
+    expect(guestDisplayName("' Lee", 'Seth')).toBe('the guest');
+  });
+
   it('gives "the guest" for no name', () => {
     expect(guestDisplayName('', 'Seth')).toBe('the guest');
     expect(guestDisplayName('   ', 'Seth')).toBe('the guest');
