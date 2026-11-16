@@ -13,6 +13,9 @@
  * Nothing records the room or job id against a conversation, so this is the
  * most reliable signal the store has when a session starts.
  *
+ * A held caller (MINOR_CARE, the sexual-topic hold) gets nothing back: no turns are read, and
+ * the call starts fresh. The caller card's gate: unreadable or late means held.
+ *
  * @module agents/multi-agent/resume-after-drop
  */
 
@@ -27,6 +30,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { withoutDashes } from '../../utils/text-utils.js';
 import { calmGreeting, directedGreeting } from './greeting-direction.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { openingNotice } from '../shared/ai-notice.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
@@ -41,6 +46,12 @@ const CLOCK_SKEW_MS = 30_000;
 const MAX_TURNS_READ = 200;
 /** How long the greeting waits for the lookup before greeting cold. */
 const LOOKUP_WAIT_MS = 1500;
+/** How long the hold read may take; late means held (the caller card's CARD_BUDGET_MS). */
+const HOLD_READ_MS = 400;
+
+/** A held caller's kept turns are never read back into a call; unreadable or late means held. */
+const callerHeld = async (userId: string): Promise<boolean> =>
+  userHeld(userId) || sharedHeldStrict(userId, process.env, HOLD_READ_MS);
 
 export function resumeAfterDropMode(
   env: Record<string, string | undefined> = process.env
@@ -61,6 +72,7 @@ export async function findDroppedCall(
   currentConversationId: string | undefined,
   now: number = Date.now()
 ): Promise<DroppedCall | undefined> {
+  if (await callerHeld(userId)) return undefined; // held: nothing read
   const recent = await getRecentConversations(userId, 2);
   const previous = recent.find((c) => c.id !== currentConversationId);
   if (!previous || previous.endedAt) return undefined;
@@ -87,7 +99,7 @@ export function startResumeLookup(
   userId: string | undefined,
   currentConversationId: string | undefined
 ): void {
-  if (!resumeAfterDropMode() || !isMemberIdentity(userId)) return;
+  if (!resumeAfterDropMode() || !isMemberIdentity(userId) || memoryHeld(sessionId)) return;
   const lookup = findDroppedCall(userId, currentConversationId).catch((error: unknown) => {
     log.warn({ error: String(error), sessionId }, 'Dropped-call lookup failed, greeting cold');
     return undefined;
@@ -180,7 +192,9 @@ export async function restoreMovedTurns(
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
   const from = getProactiveSessionContext(sessionId)?.movedFrom;
   if (!from) return { moved: false, turns: 0 };
-  if (!from.conversationId) return { moved: true, turns: 0 }; // memory held: start fresh
+  if (!from.conversationId) return { moved: true, turns: 0 }; // no app conversation was started
+  // Either call held: start fresh, nothing read
+  if (memoryHeld(sessionId) || (await callerHeld(from.userId))) return { moved: true, turns: 0 };
   // A failed read is still a moved call: thrown, the caller would read it as a drop
   const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ).catch(
     (error: unknown) => {
@@ -196,7 +210,7 @@ export async function restoreMovedTurns(
   clearTimeout(timer);
   const last = all.at(-1);
   const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
-  const turns = fresh ? all.slice(-MOVED_TURNS) : [];
+  const turns = fresh && !memoryHeld(sessionId) ? all.slice(-MOVED_TURNS) : []; // held while read
   if (agent && turns.length) await restoreTurns(agent, turns, MOVED_NOTE);
   log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE moved call');
   return { moved: true, turns: turns.length };
@@ -257,7 +271,9 @@ async function firstLine(
   });
   if (moved) lookups.delete(sessionId);
   const call = await takeDroppedCall(sessionId);
-  if (!call || !agent.agent) return directedGreeting(sessionId, agent.personaId, userData);
+  // A hold set while the lookup ran: nothing goes back in
+  if (!call || !agent.agent || memoryHeld(sessionId))
+    return directedGreeting(sessionId, agent.personaId, userData);
   try {
     await restoreDroppedTurns(agent.agent, call);
   } catch (error) {
