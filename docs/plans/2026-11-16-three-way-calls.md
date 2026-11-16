@@ -50,8 +50,9 @@
 
 **Interfaces:**
 - Produces: `mixFrames(frames: readonly Int16Array[]): Int16Array` (sum, clipped to int16), `frameRms(samples: Int16Array): number`.
-- Produces: `class TalkerLedger { note(identity: string, atMs: number, rms: number): void; dominant(fromMs: number, toMs: number): string | null }`, plus `VOICED_RMS = 500`.
-- Produces: `class RoomMixInput extends voice.AudioInput { constructor(owner: string, ledger: TalkerLedger); addTrack(identity: string, frames: ReadableStream<AudioFrame>): void; removeTrack(identity: string): void; get guests(): string[] }`.
+- Produces: `class TalkerLedger { constructor(owner: string); readonly owner: string; note(identity: string, atMs: number, rms: number): void; dominant(fromMs: number, toMs: number): string | null }`, plus `VOICED_RMS = 500`.
+- Produces: `class RoomMixInput extends voice.AudioInput { constructor(ledger: TalkerLedger); addTrack(identity: string, frames: ReadableStream<AudioFrame>): void; removeTrack(identity: string): void; get guests(): string[] }`. The owner is `ledger.owner`.
+- Produces: `mixClock(): number` (`performance.now()`), the one clock for ledger notes and for every window a later task asks the ledger about.
 
 - [ ] **Step 1: Write the failing tests**
   - `mixFrames`: `[1000, -1000] + [2000, -2000]` gives `[3000, -3000]`; `30000 + 10000` clips to `32767`; `-30000 + -10000` clips to `-32768`; frames of unequal length throw.
@@ -75,9 +76,9 @@
 - Test: `src/agents/group-conversation/__tests__/group-hearing.test.ts`, `src/agents/personas/__tests__/stt-chain.test.ts`
 
 **Interfaces:**
-- Consumes: `RoomMixInput`, `TalkerLedger` (Task 1); `roomInputOptions(participant, sessionId)` from `room-input-options.ts` for each person's noise cancellation.
+- Consumes: `new RoomMixInput(new TalkerLedger(ownerIdentity))` and `mixClock()` (Task 1); `roomInputOptions(participant, sessionId)` from `room-input-options.ts` for each person's noise cancellation; `dispatchedUserName` (`src/utils/ferni-intro.ts`) for the owner's first name, falling back to `the caller`.
 - Produces: `attachGroupHearing(args: { session: voice.AgentSession; agent: voice.Agent; room: Room; ownerIdentity: string; sessionId: string }): () => void`. It returns a detach function, and it does nothing unless `flagOn('GROUP_CALL')`.
-- Produces: `groupHearing(sessionId: string): { guestName(identity: string): string | undefined; ledger: TalkerLedger; guestOn(): boolean } | undefined`.
+- Produces: `groupHearing(sessionId: string): { guestName(identity: string): string | undefined; guestNames(): string[]; ledger: TalkerLedger; guestOn(): boolean } | undefined`. `guestNames()` is every guest seen this call, including ones who left (Task 3 needs them).
 - Produces: `sttChain(session, audio, base): Promise<ReadableStream<stt.SpeechEvent | string> | null>`, composing first-turn-fast, name-fix and `labelGuestTurns` in that order.
 - Produces: `labelGuestTurns(events, sessionId): ReadableStream<...>`. On a `FINAL_TRANSCRIPT` whose window (end of the previous final to now) has a guest as `dominant`, it rewrites `alternatives[0].text` to `[<guestName>] <text>`. Owner turns are unchanged.
 
