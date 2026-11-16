@@ -13,6 +13,7 @@ vi.mock('../../config/generative-model.js', () => ({
 
 import { extractEntities } from '../knowledge-graph/extractors/llm-entity-extractor.js';
 import {
+  couldBePerson,
   isPersonaSubject,
   junkReason,
   UNSTATED_RELATIONS,
@@ -268,4 +269,15 @@ describe('isPersonaSubject', () => {
     expect(isPersonaSubject('Rowan')).toBe(false);
     expect(isPersonaSubject('  ')).toBe(false);
   });
+});
+
+describe('couldBePerson (relationship network, prod 2026-11-16)', () => {
+  it.each(['uh', 'Um', 'check', 'Call', 'me', 'her', 'Him', 'uh huh', 'someone', '9', ''])(
+    'rejects "%s"',
+    (name) => expect(couldBePerson(name)).toBe(false)
+  );
+  it.each(['Bria', 'Mel', 'Checkers', 'Herb', 'Will', 'my mom', 'Mom', 'my friend', 'Mary Ann'])(
+    'keeps "%s" (whole words: "me" never drops "Mel")',
+    (name) => expect(couldBePerson(name)).toBe(true)
+  );
 });

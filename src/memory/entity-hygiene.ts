@@ -28,6 +28,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
+import { relationOf } from './domain/person-key.js';
 
 export function entityHygieneOn(env: Env = process.env): boolean {
   return flagOn('ENTITY_HYGIENE', env);
@@ -155,6 +156,34 @@ function isPersona(entity: NamedEntity, name: string, words: string[], env: Env)
   if (!TEAMMATE_ALONE.test(words.join(' '))) return false;
   const relation = entity.relationship?.trim() ?? '';
   return !(entity.type === 'person' && relation !== '' && !NOT_A_RELATION.test(relation));
+}
+
+/**
+ * Spoken fillers and everyday verbs the people regexes catch after "call", "tell", "with" or
+ * "and" ("I talked to uh", "and check", "call me"). None is a given name; names that are
+ * also words (Will, May, Mark, Bill, Grace) are deliberately left out.
+ */
+const NOT_A_PERSON = new Set(
+  'uh uhh um umm er erm ah ahh hm hmm mm mhm oh ooh ok okay yeah yep yup yes no nope nah huh like well so check call text tell ask see go get got do make talk say said meet visit email let help find try take give send thank thanks'.split(
+    ' '
+  )
+);
+
+/**
+ * Whether a name stored for someone in the caller's life can be a person: a name ("Bria",
+ * "Mel", "Checkers") or a relation ("my mom", "Mom"). Never a lone pronoun, filler, verb,
+ * placeholder or number. Whole words only: "me" never drops "Mel". Not flag-gated: prod
+ * 2026-11-16 drew "uh", "check", "call", "me" and "her" in the Your World graph.
+ */
+export function couldBePerson(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed || /^[\d\s.,:/#%$-]+$/.test(trimmed)) return false;
+  if (relationOf(trimmed)) return true;
+  const words = wordsOf(trimmed);
+  if (words.length === 0 || GENERIC.test(trimmed)) return false;
+  if (words.length > 1) return !words.every((w) => NOT_A_NAME.has(w) || NOT_A_PERSON.has(w));
+  const [word] = words as [string];
+  return !NOT_A_NAME.has(word) && !NOT_A_PERSON.has(word) && !PLACEHOLDER.has(word);
 }
 
 /** The entities worth storing; with the flag off, all of them. */

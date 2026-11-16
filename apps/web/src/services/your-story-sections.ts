@@ -224,9 +224,12 @@ const CATEGORIES: Record<string, Relationship['category']> = {
 export function toRelationshipNetwork(
   api: ApiYourWorld | null | undefined
 ): RelationshipNetworkData | undefined {
+  // The server drops non-people ("uh", "her") before this (api/your-story-sections.ts)
   if (!api || api.people.length === 0) return undefined;
+  const people = api.people;
+  const drawn = new Set(people.map((p) => p.name));
   return {
-    relationships: api.people.map((p) => ({
+    relationships: people.map((p) => ({
       name: p.name,
       strength: p.strength,
       lastContact: p.lastMentioned,
@@ -234,9 +237,11 @@ export function toRelationshipNetwork(
       // Only "fading" has a source: not mentioned for 30+ days.
       ...(p.daysSinceMention >= 30 ? { trend: 'fading' as const } : {}),
     })),
-    totalConnections: api.totalConnections,
-    activeConnections: api.activeConnections,
-    needsAttention: api.needsAttention,
+    // Every number on the graph counts the people it draws (the server's top 8), the same
+    // set as the legend: prod 2026-11-16 said "36 connections · 34 active" over 8 nodes.
+    totalConnections: people.length,
+    activeConnections: people.filter((p) => p.daysSinceMention < 30).length,
+    needsAttention: api.needsAttention.filter((name) => drawn.has(name)),
   };
 }
 

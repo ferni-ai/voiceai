@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { couldBePerson, groupOf, relationOf } from '../memory/index.js';
 
 const log = createLogger({ module: 'YourStorySections' });
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -168,6 +169,7 @@ export async function fetchEmotionalArc(userId: string): Promise<EmotionalArcSum
 // YOUR WORLD (superhuman/relationship-network)
 // ============================================================================
 
+/** Counts are over every real connection; `people` is the top 8 of them, the ones drawn. */
 export interface YourWorld {
   totalConnections: number;
   /** Mentioned in the last 30 days */
@@ -198,11 +200,21 @@ export function isConnection(person: { mentionCount?: number; type?: string }): 
   return (person.mentionCount ?? 0) >= 2 || CLOSE_TYPES.has(person.type ?? '');
 }
 
+/** The stored type, or the relation the label names: "my mom" was filed as acquaintance. */
+function typeOf(person: { name: string; type: string }): string {
+  if (person.type !== 'acquaintance') return person.type;
+  const relation = relationOf(person.name);
+  return (relation && groupOf(relation)) || person.type;
+}
+
 export async function fetchYourWorld(userId: string, now = Date.now()): Promise<YourWorld | null> {
   try {
     const { loadNetwork, findConnectionOpportunities } =
       await import('../services/superhuman/relationship-network.js');
-    const network = (await loadNetwork(userId)).filter((p) => isConnection(p));
+    // Stored before the write guard: "uh", "check", "me", "her" were drawn as people
+    const network = (await loadNetwork(userId)).filter(
+      (p) => isConnection(p) && couldBePerson(p.name ?? '')
+    );
     if (network.length === 0) return null;
     const opportunities = await findConnectionOpportunities(userId);
 
@@ -211,7 +223,7 @@ export async function fetchYourWorld(userId: string, now = Date.now()): Promise<
       .slice(0, 8)
       .map((p) => ({
         name: p.name,
-        type: p.type,
+        type: typeOf(p),
         strength: Math.max(0, Math.min(1, p.importance)),
         lastMentioned: new Date(p.lastMentioned).toISOString(),
         daysSinceMention: Math.floor((now - p.lastMentioned) / DAY_MS),
@@ -220,9 +232,8 @@ export async function fetchYourWorld(userId: string, now = Date.now()): Promise<
     return {
       totalConnections: network.length,
       activeConnections: network.filter((p) => now - p.lastMentioned < 30 * DAY_MS).length,
-      needsAttention: [
-        ...new Set(opportunities.map((o) => byId.get(o.personId) ?? o.personName).filter(Boolean)),
-      ],
+      // Only people in this set: a fallback to the opportunity's own name let "him" through
+      needsAttention: [...new Set(opportunities.flatMap((o) => byId.get(o.personId) ?? []))],
       people,
     };
   } catch (error) {

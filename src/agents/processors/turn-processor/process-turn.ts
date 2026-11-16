@@ -498,10 +498,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     safeFireAndForget(
       async () => {
         const extractedNames = extractNames(userText);
-        for (const { name, context } of extractedNames) {
+        for (const { name, context, type } of extractedNames) {
           await recordMention(services.userId!, {
             name,
-            type: 'acquaintance',
+            type: type ?? 'acquaintance',
             context,
           });
           diag.state('📇 Recorded person mention', { name });
