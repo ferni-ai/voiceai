@@ -10,11 +10,11 @@ import { MINOR_CARE_NOTE } from '../../../utils/minor-care.js';
 export const SMS_AFTER_CRISIS_REPLY =
   "I'm here. Want me to give you a call? And if things feel heavy, you can call or text 988 anytime.";
 /** What a reply with crisis guidance always carries when the model's words don't: Seth's line above. */
-export const SMS_LIFELINE = 'If things feel heavy, you can call or text 988 anytime.';
+const SMS_LIFELINE = 'If things feel heavy, you can call or text 988 anytime.';
 /** Seth, 2026-11-11: a minor under care sees this on the first reply, and again 3 h after the last. */
 export const SMS_AI_REMINDER = "(just a reminder, I'm an AI)";
 /** Two SMS segments. */
-export const SMS_REPLY_MAX_CHARS = 320;
+const SMS_REPLY_MAX_CHARS = 320;
 
 const TEXTING_NOTE =
   "[You're texting with them, not on a call. Write the way a friend texts back: one to three short sentences, plain words, no lists, markdown, emoji strings, stage directions or speech markup. Don't say you looked anything up or mention notes or memory.]";

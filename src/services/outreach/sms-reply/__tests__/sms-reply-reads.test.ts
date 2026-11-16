@@ -34,7 +34,7 @@ vi.mock('../../../human-transfer/crisis-signals.js', () => ({
 }));
 vi.mock('../../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => ({}) }));
 
-import { defaultSmsReplyReads, smsSafeFact } from '../sms-reply-reads.js';
+import { defaultSmsReplyReads } from '../sms-reply-reads.js';
 
 const fact = (key: string, value: string) => ({
   entityName: 'user',
@@ -61,11 +61,20 @@ describe('recall for a text', () => {
     expect(count).toBe(1);
   });
 
-  it("the mapper's sensitive rule decides, and what recall never raises first is out too", () => {
-    const f = { entity: 'user', confidence: 0.9 };
-    expect(smsSafeFact({ ...f, key: 'medical', value: 'migraines' })).toBe(false);
-    expect(smsSafeFact({ ...f, key: 'note', value: 'divorce papers came' })).toBe(false);
-    expect(smsSafeFact({ ...f, key: 'pet', value: 'Biscuit' })).toBe(true);
+  it("the mapper's sensitive rule decides, and what recall never raises first is out too", async () => {
+    facts.push(
+      fact('medical', 'migraines'),
+      fact('note', 'divorce papers came'),
+      fact('pet', 'Biscuit')
+    );
+    const { note, count } = await defaultSmsReplyReads.recall(
+      'uid-sam',
+      'Biscuit, migraines, divorce papers'
+    );
+    expect(note).toContain('Biscuit');
+    expect(note).not.toContain('migraines');
+    expect(note).not.toContain('divorce');
+    expect(count).toBe(1);
   });
 });
 

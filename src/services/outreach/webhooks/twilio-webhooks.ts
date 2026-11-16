@@ -24,6 +24,7 @@ import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import { heldSenderStrict, last4 } from '../checkin-replies.js';
 import { answerCallMe, CALL_SCHEDULED, CALLING, NO_CALL } from '../sms-call-me.js';
 import { smsMemberReply } from '../sms-reply/sms-reply.js';
+import type { InboundSmsResult } from './inbound-sms-result.js';
 import { findAccountByVerifiedPhone } from './sms-sender-account.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
@@ -281,13 +282,7 @@ export async function handleInboundSMSWebhook(
   signature?: string,
   url?: string,
   { crisis = false }: { crisis?: boolean } = {}
-): Promise<{
-  success: boolean;
-  twiml?: string;
-  called?: 'now' | 'later';
-  crisis?: true;
-  unverified?: true;
-}> {
+): Promise<InboundSmsResult> {
   if (!isSignedInboundSms(payload, signature, url)) return { success: false };
 
   const { MessageSid, Body, From, NumMedia } = payload;
@@ -308,7 +303,6 @@ export async function handleInboundSMSWebhook(
     return { success: true, ...(reply !== undefined && { twiml: generateTwiML(reply) }) };
   }
 
-  // Collect media URLs
   const mediaUrls: string[] = [];
   const numMedia = parseInt(NumMedia, 10) || 0;
   for (let i = 0; i < numMedia; i++) {
@@ -316,7 +310,6 @@ export async function handleInboundSMSWebhook(
     if (mediaUrl) mediaUrls.push(mediaUrl);
   }
 
-  // Create inbound message record
   const message: InboundMessage = {
     id: MessageSid,
     from: From,
@@ -325,7 +318,6 @@ export async function handleInboundSMSWebhook(
     mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
   };
 
-  // Store for deduplication
   recentInbound.set(MessageSid, message);
 
   // Notify handlers
@@ -432,7 +424,6 @@ export async function handleInboundSMSWebhook(
     }
   }
 
-  // No reply here (SMS_REPLY off or held back); a stranger's text may get the route's fixed one.
   const unverified = !isMemberIdentity(userId) && said?.kind !== 'maybe-opt-out';
   return { success: true, ...(unverified && { unverified }) };
 }

@@ -39,11 +39,14 @@ import type { SmsReplyReads } from '../sms-reply-reads.js';
 import {
   SMS_AFTER_CRISIS_REPLY,
   SMS_AI_REMINDER,
-  SMS_LIFELINE,
-  SMS_REPLY_MAX_CHARS,
   smsReplyPrompt,
   smsReplyText,
 } from '../sms-reply-text.js';
+
+/** The lifeline line, as the reply text appends it (with no words of the model's, the line alone). */
+const SMS_LIFELINE = smsReplyText('', { lifeline: true });
+/** The cap: two SMS segments. */
+const SMS_REPLY_MAX_CHARS = 320;
 
 const MODEL_SAYS = 'Ha, Biscuit sounds like a handful. How did the walk go?';
 const DAY = 86_400_000;
@@ -116,7 +119,8 @@ describe('the sent text (smsReplyText)', () => {
 
   it("with guidance, 988 is always sent: the lifeline when the model's own 988 was cut or never there", () => {
     expect(smsReplyText(`${LONG} Call or text 988.`, { lifeline: true })).toContain(SMS_LIFELINE);
-    expect(smsReplyText('', { lifeline: true })).toBe(SMS_LIFELINE);
+    // Seth's line, word for word (with no words of the model's, the reply is the line alone).
+    expect(SMS_LIFELINE).toBe('If things feel heavy, you can call or text 988 anytime.');
     expect(smsReplyText('You can call or text 988.', { lifeline: true })).toBe(
       'You can call or text 988.'
     );

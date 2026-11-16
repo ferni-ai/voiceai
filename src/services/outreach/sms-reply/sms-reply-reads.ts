@@ -26,7 +26,7 @@ export interface SmsReplyReads {
  * Fit for a lock screen: not what the facts mapper marks sensitive (a health fact,
  * mapDynamicFact), nor what recall never raises first (isSensitiveThread). No new list.
  */
-export function smsSafeFact(f: memory.RecallFact): boolean {
+function smsSafeFact(f: memory.RecallFact): boolean {
   const fact = { entityName: f.entity, key: f.key, value: f.value };
   const mapped = memory.mapDynamicFact(fact, '', '');
   const sensitive = mapped.op !== 'noop' && mapped.proposal.sensitive === true;
