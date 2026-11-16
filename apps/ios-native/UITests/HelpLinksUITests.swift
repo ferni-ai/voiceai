@@ -31,7 +31,7 @@ final class HelpLinksUITests: XCTestCase {
             // At AX5 it's below the fold, and the List only builds what's on screen.
             for _ in 0..<4 where !help.waitForExistence(timeout: 2) { app.swipeUp() }
             XCTAssertTrue(help.exists, "\(size)")
-            defer { app.terminate() }
+            defer { app.quit() }
             return help.frame.height
         }
         let standard = height(at: .standard), ax5 = height(at: .ax5)
@@ -60,7 +60,7 @@ final class HelpLinksUITests: XCTestCase {
             XCTAssertTrue(screen.ready(in: app).exists, "\(screen) is still there")
             pressGetHelpNow()
             assertHelpIsUp(in: app, "\(screen), a second time")
-            app.terminate()
+            app.quit()
         }
     }
 
