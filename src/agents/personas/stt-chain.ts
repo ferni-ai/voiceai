@@ -1,13 +1,11 @@
 /**
  * The persona's STT events, in order: the turn-1 gate (first-turn-fast.ts), Ferni's
- * name put right (name-mishear.ts), then a guest's turns labelled with her name.
+ * name put right (name-mishear.ts), then who said it (GROUP_CALL, group-hearing.ts).
  *
- * GROUP_CALL (group-hearing.ts): while a guest is on the call, every finished turn is
- * labelled from who was voiced in its window (TalkerLedger.attribute): `[Seth] `,
- * `[Sarah] see you at six`, or `[unclear] ` when no one clearly held it. Fail closed:
- * an unsure turn never passes as the owner's. A guest who just left still gets her
- * last words labelled. The window is from the end of the previous final transcript to
- * now, on the room mix's clock. With no guest, or the flag off, events are untouched.
+ * While a guest is on, every final is labelled from TalkerLedger.attribute over its
+ * window (end of the previous final to now, on the mix clock): `[Seth] `, `[Sarah] `,
+ * or fail closed, `[unclear] `. A guest who just left still gets her last words
+ * labelled. With no guest, or the flag off, events are untouched.
  *
  * @module agents/personas/stt-chain
  */

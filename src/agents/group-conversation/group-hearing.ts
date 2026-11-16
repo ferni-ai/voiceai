@@ -1,25 +1,15 @@
 /**
  * GROUP_CALL: Ferni hears a second caller on the owner's call and knows who spoke.
  *
- * When a guest (a remote participant who is not the owner and not an agent) joins,
- * the session's audio input becomes a RoomMixInput: the owner's and the guest's
- * tracks mixed into the one STT stream, with every 10 ms of each person's level
- * noted in a TalkerLedger. While a guest is on, stt-chain.ts labels every finished
- * turn from that ledger: `[Seth] `, `[Sarah] ` or, when it can't be sure, `[unclear] `
- * (fail closed: an unsure turn never reads as the owner's). A system note tells
- * Ferni what the labels mean.
- *
- * Once the mix is the session input the SDK no longer cleans the owner's audio, so
- * each person's track is read with their own noise cancellation (room-input-options.ts),
- * built for the mix's 16 kHz (a phone processor made for 24 kHz passes audio through).
- * RoomIO sets `session.input.audio` only in its start(); a reconnecting owner only
- * re-links its own ParticipantAudioInputStream (room_io.js setParticipant), so the mix
- * stays. The owner's handlers put it back anyway if anything else replaced it.
- *
- * One guest at a time (v1): a second one joining while the first is on is ignored.
- * On a persona handoff the session and its input are kept (persona-swap.ts), but the
- * next persona's context drops system notes (excludeInstructions), so they are added
- * again to whichever persona is on the call when its state next changes.
+ * When a guest (remote, not the owner, not an agent) joins, the session's audio input
+ * becomes a RoomMixInput of both tracks, each person's level noted in a TalkerLedger.
+ * stt-chain.ts labels every finished turn from it while a guest is on: `[Seth] `,
+ * `[Sarah] ` or, fail closed, `[unclear] `. A system note says what the labels mean.
+ * Each track gets that person's own noise cancellation, built for the mix's 16 kHz:
+ * the SDK no longer cleans the session input. RoomIO sets `session.input.audio` only
+ * in start(), so an owner reconnect keeps the mix (it is re-asserted anyway).
+ * One guest at a time (v1). A persona handoff keeps the session and input
+ * (persona-swap.ts) but drops system notes, so they go to the next persona again.
  *
  * @module agents/group-conversation/group-hearing
  */
@@ -34,12 +24,12 @@ import {
   type RemoteTrack,
   type Room,
 } from '@livekit/rtc-node';
-import type { ReadableStream } from 'node:stream/web';
+import { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { firstNameOf } from '../../utils/caller-name.js';
 import { dispatchedUserName } from '../../utils/ferni-intro.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { addRecallNote, type RecallAgent } from '../multi-agent/recall-note.js';
+import { addRecallNote } from '../multi-agent/recall-note.js';
 import { roomInputOptions } from '../multi-agent/room-input-options.js';
 import { MIX_SAMPLE_RATE, RoomMixInput } from './room-mix-input.js';
 import { TalkerLedger } from './talker-ledger.js';
@@ -48,7 +38,7 @@ const log = createLogger({ module: 'GroupHearing' });
 
 /** What the rest of the call can ask about who is on it. */
 export interface GroupHearing {
-  /** A guest's spoken name (every guest seen this call); undefined for the owner or a stranger. */
+  /** A guest's spoken name (any guest seen this call); undefined for anyone else. */
   guestName: (identity: string) => string | undefined;
   /** Every guest seen this call, including ones who left, in the order they joined. */
   guestNames: () => string[];
@@ -59,13 +49,11 @@ export interface GroupHearing {
   ownerLabel: () => string;
 }
 
-interface GroupHearingArgs {
+interface Setup {
   session: voice.AgentSession;
   agent: voice.Agent;
-  room: Room;
-  ownerIdentity: string;
-  sessionId: string;
 }
+type GroupHearingArgs = Setup & { room: Room; ownerIdentity: string; sessionId: string };
 
 const hearings = new Map<string, { hearing: GroupHearing; detach: () => void }>();
 
@@ -100,6 +88,10 @@ function joinNote(guest: string, owner: string): string {
   );
 }
 
+/** AudioStream extends the global ReadableStream, which is node:stream/web's at runtime. */
+const isFrameStream = (s: AudioStream): s is AudioStream & ReadableStream<AudioFrame> =>
+  s instanceof ReadableStream;
+
 /** The persona on the call now: a handoff swaps the session's agent (persona-swap.ts). */
 function agentNow(session: voice.AgentSession, fallback: voice.Agent): voice.Agent {
   try {
@@ -113,7 +105,7 @@ function agentNow(session: voice.AgentSession, fallback: voice.Agent): voice.Age
  * Listen for a guest on this call. Does nothing unless GROUP_CALL is on. Returns the
  * detach for call end: it stops listening, closes the mix and forgets the call.
  */
-export function attachGroupHearing(args: GroupHearingArgs): () => void {
+function attachGroupHearing(args: GroupHearingArgs): () => void {
   if (!flagOn('GROUP_CALL')) return () => undefined;
   const { session, agent, room, ownerIdentity: owner, sessionId } = args;
   hearings.get(sessionId)?.detach(); // a fresh session for the same call replaces the old one
@@ -131,14 +123,13 @@ export function attachGroupHearing(args: GroupHearingArgs): () => void {
     const entry = { note: text, id: `group_call_${sessionId}_${notes.length + 1}` };
     notes.push(entry);
     notedAgent = agentNow(session, agent);
-    addRecallNote(notedAgent as unknown as RecallAgent, entry.note, undefined, entry.id);
+    addRecallNote(notedAgent, entry.note, undefined, entry.id);
   };
   const renote = (): void => {
     const current = agentNow(session, agent);
     if (notes.length === 0 || current === notedAgent) return;
     notedAgent = current;
-    for (const n of notes)
-      addRecallNote(current as unknown as RecallAgent, n.note, undefined, n.id);
+    for (const n of notes) addRecallNote(current, n.note, undefined, n.id);
   };
 
   const readInto = async (person: RemoteParticipant, track: RemoteTrack): Promise<void> => {
@@ -156,8 +147,7 @@ export function attachGroupHearing(args: GroupHearingArgs): () => void {
       frameSizeMs: 10,
       noiseCancellation: inputOptions?.noiseCancellation,
     });
-    // The global ReadableStream AudioStream extends is node:stream/web's at runtime.
-    mix.addTrack(person.identity, frames as unknown as ReadableStream<AudioFrame>);
+    if (isFrameStream(frames)) mix.addTrack(person.identity, frames);
   };
   const hear = (person: RemoteParticipant, track: RemoteTrack): void => {
     if (mixed.get(person.identity) === track) return;
@@ -253,4 +243,24 @@ export function attachGroupHearing(args: GroupHearingArgs): () => void {
     if (isGuest(person)) onGuest(person);
   }
   return detach;
+}
+
+/** GROUP_CALL for the persona that owns the call's session: hears after start, detaches first. */
+export function hearGroupCall(
+  persona: { cleanup: () => Promise<void> },
+  setup: Setup,
+  call: { room: Room; userParticipant: { identity: string } },
+  sessionId: string
+): void {
+  const detach = attachGroupHearing({
+    ...setup,
+    room: call.room,
+    ownerIdentity: call.userParticipant.identity,
+    sessionId,
+  });
+  const cleanup = persona.cleanup;
+  persona.cleanup = async () => {
+    detach();
+    await cleanup();
+  };
 }

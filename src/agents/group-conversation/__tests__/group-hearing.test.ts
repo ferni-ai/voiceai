@@ -55,7 +55,7 @@ vi.mock('../../shared/performance/pre-stt-transform.js', async (importOriginal) 
   return { ...real, PreSTTProcessor: NativeAgcStandIn };
 });
 
-const { attachGroupHearing, groupHearing } = await import('../group-hearing.js');
+const { hearGroupCall, groupHearing } = await import('../group-hearing.js');
 const { RoomMixInput } = await import('../room-mix-input.js');
 
 const SESSION = 'session-group-1';
@@ -111,14 +111,23 @@ function fakeCall(userData: unknown = { userName: 'Seth Ford' }) {
     room.remoteParticipants.delete(p.identity);
     room.emit(RoomEvent.ParticipantDisconnected, p);
   };
-  const detach = attachGroupHearing({
-    session: session as unknown as voice.AgentSession,
-    agent: agent as unknown as voice.Agent,
-    room: room as unknown as Room,
-    ownerIdentity: OWNER,
-    sessionId: SESSION,
-  });
-  return { notes, agent, session, sdkInput, room, owner, join, leave, detach };
+  const cleaned: string[] = [];
+  const persona = {
+    cleanup: async () => {
+      cleaned.push(groupHearing(SESSION) ? 'still hearing' : 'after detach');
+    },
+  };
+  hearGroupCall(
+    persona,
+    {
+      session: session as unknown as voice.AgentSession,
+      agent: agent as unknown as voice.Agent,
+    },
+    { room: room as unknown as Room, userParticipant: { identity: OWNER } },
+    SESSION
+  );
+  const detach = (): void => void persona.cleanup();
+  return { notes, agent, session, sdkInput, room, owner, join, leave, detach, persona, cleaned };
 }
 
 /** Lets the async track reads (noise cancellation lookup) finish. */
@@ -129,7 +138,7 @@ async function settle(): Promise<void> {
   }
 }
 
-describe('attachGroupHearing', () => {
+describe('hearGroupCall', () => {
   let detach: (() => void) | undefined;
   beforeEach(() => {
     opened.length = 0;
@@ -306,6 +315,15 @@ describe('attachGroupHearing', () => {
     expect(call.notes[0]).toContain('by phone with the caller.');
     expect(call.notes[0]).toContain("lines that start with [the caller] are the caller's.");
     expect(groupHearing(SESSION)?.ownerLabel()).toBe('[the caller] ');
+  });
+
+  it("the persona's cleanup detaches first, then runs its own cleanup", async () => {
+    vi.stubEnv('GROUP_CALL', 'on');
+    const call = fakeCall();
+    expect(groupHearing(SESSION)).toBeDefined();
+    await call.persona.cleanup();
+    expect(call.cleaned).toEqual(['after detach']);
+    expect(groupHearing(SESSION)).toBeUndefined();
   });
 
   it('detach stops listening and forgets the call', async () => {
