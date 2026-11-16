@@ -4,9 +4,9 @@
  * A participant's display name is set by whoever joined, so it is text from outside
  * going into the model's context. Only a plain name gets through, checked after NFKC:
  * one or two words, each with a letter, of letters in a single script with spaces,
- * hyphens and apostrophes, at most 24 characters, no invisible characters, and at most
- * two combining marks on a letter.
- * Anything else is "the guest". A name with a word that is, or starts with, the owner's
+ * hyphens and apostrophes, no invisible characters, and at most two combining marks on
+ * a letter. A long name keeps the whole words that fit in 24 characters, never part of
+ * one. Anything else, or a first word longer than that, is "the guest". A name with a word that is, or starts with, the owner's
  * first name (case, accents and Cyrillic or Greek look-alike letters aside), or that
  * reads as one of our own labels, gets " (guest)". Every note and label names her with
  * her role (guestRole, guestLabel), so even a look-alike the fold misses is the guest.
@@ -133,6 +133,17 @@ function oneScript(name: string): boolean {
   return IN_GROUP.some((group) => letters.every((c) => group.test(c)));
 }
 
+/** The leading whole words that fit in MAX_LENGTH characters; '' when the first does not. */
+function wholeWordsThatFit(words: string[]): string {
+  let name = '';
+  for (const word of words) {
+    const longer = name ? `${name} ${word}` : word;
+    if (Array.from(longer).length > MAX_LENGTH) break;
+    name = longer;
+  }
+  return name;
+}
+
 /** Whether the guest's name could pass for the owner's or for one of our labels. */
 function readsAsOurs(name: string, ownerFirstName: string): boolean {
   const owner = fold(ownerFirstName);
@@ -151,7 +162,8 @@ export function guestDisplayName(raw: string | undefined, ownerFirstName: string
   if (!PLAIN_NAME.test(trimmed) || !oneScript(trimmed)) return FALLBACK;
   const words = trimmed.split(/ +/);
   if (words.length > MAX_WORDS || !words.every((word) => LETTER.test(word))) return FALLBACK;
-  const name = Array.from(words.join(' ')).slice(0, MAX_LENGTH).join('').trimEnd();
+  const name = wholeWordsThatFit(words);
+  if (!name) return FALLBACK;
   return readsAsOurs(name, ownerFirstName) ? `${name}${ROLE}` : name;
 }
 

@@ -19,10 +19,14 @@ describe('guestDisplayName', () => {
     expect(guestDisplayName('+15555550123', 'Seth')).toBe('the guest');
   });
 
-  it('cuts a long name to 24 characters', () => {
-    const name = guestDisplayName('A'.repeat(40), 'Seth');
-    expect(name).toBe('A'.repeat(24));
+  it('keeps the whole words of a long name that fit in 24 characters, never part of one', () => {
+    expect(guestDisplayName(`${'C'.repeat(12)} ${'D'.repeat(11)}`, 'Seth')).toBe(
+      `${'C'.repeat(12)} ${'D'.repeat(11)}`
+    );
     expect(guestDisplayName(`${'B'.repeat(23)} Cee`, 'Seth')).toBe('B'.repeat(23));
+    expect(guestDisplayName('Bartholomew Montgomery-Smith', 'Seth')).toBe('Bartholomew');
+    expect(guestDisplayName('A'.repeat(25), 'Seth')).toBe('the guest');
+    expect(guestDisplayName(`${'A'.repeat(25)} Lee`, 'Seth')).toBe('the guest');
   });
 
   it("marks a name that would read as the owner's or as a label", () => {
