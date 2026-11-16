@@ -7,7 +7,8 @@ import matter from 'gray-matter';
 import { findTerm } from '../../apps/cli/src/commands/quality/check-brand-compliance.js';
 import { RETIRED_STACK } from './brand-terms.js';
 
-type Rule = 'front-matter' | 'em-dash' | 'ellipsis' | 'forbidden-word' | 'retired-stack';
+type Rule =
+  'front-matter' | 'em-dash' | 'ellipsis' | 'forbidden-word' | 'retired-stack' | 'repetition';
 export interface GateIssue {
   rule: Rule | 'real-claim' | 'number' | 'length' | 'not-live' | 'unsafe-link' | 'unsafe-html';
   message: string;
@@ -18,6 +19,8 @@ export interface GateOptions {
   /** The grounding pack's text. Without it the number rule is skipped. */
   sourceText?: string;
   words?: { min: number; max: number };
+  /** Reject a line said twice, or the excerpt said again in the body (BLOG_REPEAT_GATE). */
+  repeats?: boolean;
 }
 
 export const REQUIRED_FIELDS =
@@ -73,6 +76,68 @@ function numberIssues(text: string, sourceText: string, postYear: string): GateI
   return issues;
 }
 
+/**
+ * How many words in a row count as saying a line again. Measured 2026-11-16:
+ * six flagged 7 of 25 drafted letters the judge marked down on craft and 5 of
+ * 25 published posts; five flagged 10 published posts, seven missed most
+ * letters. Word counts alone flagged every published post (topic words
+ * repeat), so they aren't checked.
+ */
+export const REPEAT_RUN = 6;
+
+const words = (text: string): string[] =>
+  [
+    ...text
+      .toLowerCase()
+      .replace(/[’']/g, "'")
+      .matchAll(/[a-z0-9][a-z0-9']*/g),
+  ].map((m) => m[0]);
+
+/**
+ * Each stretch of `REPEAT_RUN` or more words in `text` that also appears in
+ * `earlier`, longest match first and not overlapping. With `earlier`
+ * omitted, a stretch counts when it appeared before in `text` itself.
+ */
+export function repeatedRuns(text: string[], earlier?: string[]): string[] {
+  const seen = new Map<string, number>();
+  const from = earlier ?? text;
+  for (let j = 0; j + REPEAT_RUN <= from.length; j++) {
+    const key = from.slice(j, j + REPEAT_RUN).join(' ');
+    if (!seen.has(key)) seen.set(key, j);
+  }
+  const runs: string[] = [];
+  for (let i = 0; i + REPEAT_RUN <= text.length; i++) {
+    const j = seen.get(text.slice(i, i + REPEAT_RUN).join(' '));
+    // Within one text, only a match that ends before this one starts.
+    if (j === undefined || (!earlier && j + REPEAT_RUN > i)) continue;
+    let len = REPEAT_RUN;
+    while (
+      i + len < text.length &&
+      j + len < from.length &&
+      (earlier || j + len < i) &&
+      text[i + len] === from[j + len]
+    )
+      len++;
+    runs.push(text.slice(i, i + len).join(' '));
+    i += len - 1;
+  }
+  return runs;
+}
+
+function repeatIssues(excerpt: string, body: string): GateIssue[] {
+  const bodyWords = words(prose('', '', body));
+  const said = repeatedRuns(bodyWords).map((run) => ({
+    rule: 'repetition' as const,
+    message: `said twice in the post: "${run}". Say it once.`,
+  }));
+  const echoed = repeatedRuns(bodyWords, words(prose('', excerpt, ''))).map((run) => ({
+    rule: 'repetition' as const,
+    message: `the excerpt is repeated in the body: "${run}". Say it in new words or leave it out of the body.`,
+  }));
+  const unique = new Map([...said, ...echoed].map((i) => [i.message, i]));
+  return [...unique.values()].slice(0, 6);
+}
+
 function frontMatterIssues(data: Record<string, unknown>): GateIssue[] {
   return REQUIRED_FIELDS.filter((f) => {
     const v = data[f];
@@ -112,6 +177,7 @@ export function checkPost(markdown: string, opts: GateOptions): GateIssue[] {
   const { data, content: body } = parsed;
   const text = prose(String(data.title ?? ''), String(data.excerpt ?? ''), body);
   const issues = [...frontMatterIssues(data), ...textIssues(text, opts.terms)];
+  if (opts.repeats) issues.push(...repeatIssues(String(data.excerpt ?? ''), body));
 
   if (opts.sourceText !== undefined) {
     const date = data.date instanceof Date ? data.date.toISOString() : String(data.date ?? '');

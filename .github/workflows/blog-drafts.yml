@@ -144,6 +144,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           GOOGLE_CLOUD_PROJECT: johnb-2025
           GOOGLE_CLOUD_LOCATION: global
+          # The repetition rule in the brand gate (brand-gate.ts), off unless the variable is "on".
+          BLOG_REPEAT_GATE: ${{ vars.BLOG_REPEAT_GATE == 'on' && 'on' || 'off' }}
         run: |
           META="$RUNNER_TEMP/draft-meta.json"
           pnpm tsx scripts/blog/draft-post.ts --type "$TYPE" --meta-out "$META"

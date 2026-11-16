@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkPost, type GateIssue } from '../brand-gate.js';
+import { checkPost, repeatedRuns, type GateIssue } from '../brand-gate.js';
 import { forbiddenTerms } from '../brand-terms.js';
 
 const root = path.resolve(__dirname, '../../..');
@@ -104,5 +104,73 @@ describe('the brand gate', () => {
     expect(
       rules(checkPost(post(CLEAN), { terms: consumer, words: { min: 500, max: 900 } }))
     ).toEqual(['length']);
+  });
+});
+
+describe('the repetition rule (BLOG_REPEAT_GATE)', () => {
+  const LINE = 'We would rather tell you we are not sure.';
+  const repeats = (md: string) => checkPost(md, { terms: consumer, sourceText, repeats: true });
+  const said = (md: string) => repeats(md).map((i) => i.message);
+
+  it('is off unless asked for: a post that repeats itself passes as before', () => {
+    const md = post(`${CLEAN} ${LINE} We fixed it. ${LINE}`);
+    expect(check(md)).toEqual([]);
+    expect(checkPost(md, { terms: consumer, sourceText, repeats: false })).toEqual([]);
+  });
+
+  it('passes a clean post with the rule on', () => {
+    expect(repeats(post(CLEAN))).toEqual([]);
+  });
+
+  it('fails a line said twice, quoting the whole repeated stretch once', () => {
+    expect(said(post(`${CLEAN} ${LINE} We fixed it. ${LINE}`))).toEqual([
+      'said twice in the post: "we would rather tell you we are not sure". Say it once.',
+    ]);
+  });
+
+  it('ignores repeats shorter than six words, and the case and apostrophes of a repeat', () => {
+    expect(repeats(post(`${CLEAN} We do not know yet. Later, we do not know yet.`))).toEqual([]);
+    expect(
+      said(post(`${CLEAN} We don't know what comes next. Still, We don’t know what comes next.`))
+    ).toEqual(['said twice in the post: "we don\'t know what comes next". Say it once.']);
+  });
+
+  it('ignores repeats inside code and link targets', () => {
+    const code = '```ts\nconst answer = await ferni.recall(user, topic);\n```';
+    expect(repeats(post(`${CLEAN}\n\n${code}\n\n${code}`))).toEqual([]);
+  });
+
+  it('fails an excerpt said again in the body, once however often it appears', () => {
+    const echo = 'Saying we do not know beats making something up, every time.';
+    const md = post(`${CLEAN} ${echo} We mean it. ${echo}`);
+    expect(said(md)).toEqual([
+      'said twice in the post: "saying we do not know beats making something up every time". Say it once.',
+      'the excerpt is repeated in the body: "saying we do not know beats making something up". Say it in new words or leave it out of the body.',
+    ]);
+  });
+
+  it('reports at most six repeats', () => {
+    const lines = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'].map(
+      (w) => `The ${w} team kept the notes nearby.`
+    );
+    const body = `${CLEAN} ${lines.join(' ')} Then again. ${lines.join(' Then. ')}`;
+    expect(said(post(body))).toHaveLength(6);
+  });
+});
+
+describe('repeatedRuns', () => {
+  const w = (s: string) => s.split(' ');
+
+  it('takes the longest match and does not report its tail again', () => {
+    expect(repeatedRuns(w('a b c d e f g h x a b c d e f g h'))).toEqual(['a b c d e f g h']);
+  });
+
+  it('does not count a stretch that overlaps its own earlier copy', () => {
+    expect(repeatedRuns(w('la la la la la la la'))).toEqual([]);
+  });
+
+  it('finds stretches of one text that appear in another', () => {
+    expect(repeatedRuns(w('x a b c d e f y'), w('a b c d e f'))).toEqual(['a b c d e f']);
+    expect(repeatedRuns(w('x a b c d e y'), w('a b c d e'))).toEqual([]);
   });
 });
