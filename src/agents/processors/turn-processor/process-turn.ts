@@ -35,6 +35,7 @@ import {
 } from '../../../services/intelligence-publisher.js';
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
+import { crisisTurnSettled } from '../../../utils/crisis-memory-hold.js';
 import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
 import { ownerWriteId, ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
@@ -495,15 +496,13 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
     }
 
+    let kept: Promise<boolean> | undefined; // the three tasks below share one crisis-read wait
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         const extractedNames = extractNames(userText);
         for (const { name, context } of extractedNames) {
-          await recordMention(services.userId!, {
-            name,
-            type: 'acquaintance',
-            context,
-          });
+          await recordMention(services.userId!, { name, type: 'acquaintance', context });
           diag.state('📇 Recorded person mention', { name });
         }
       },
@@ -512,6 +511,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         const captureResult = await fastCapture({
           transcript: userText,
           userId: services.userId!,
@@ -538,10 +538,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         try {
           const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
-
           if (!isKnowledgeCaptureReady()) return;
 
           const valenceToNumber = (v?: string): number | undefined => {
