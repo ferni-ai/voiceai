@@ -49,17 +49,20 @@ function categoryProblems(categories: unknown, ids: Set<string>): string[] {
     return ['registry.categories: missing or empty'];
   }
   const problems: string[] = [];
-  categories.forEach((category: unknown, i: number) => {
+  for (const [i, category] of categories.entries()) {
     const where = `categories[${i}]`;
-    if (!isObject(category)) return problems.push(`${where}: not an object`);
+    if (!isObject(category)) {
+      problems.push(`${where}: not an object`);
+      continue;
+    }
     for (const key of ['id', 'name', 'description']) {
       if (!isText(category[key])) problems.push(`${where}.${key}: missing or empty`);
     }
     const { id } = category;
-    if (typeof id !== 'string') return;
+    if (typeof id !== 'string') continue;
     if (ids.has(id)) problems.push(`${where}.id: "${id}" appears twice`);
     ids.add(id);
-  });
+  }
   return problems;
 }
 
@@ -116,11 +119,14 @@ export function registryProblems(registry: unknown): string[] {
     return problems.concat('registry.agents: missing or empty');
   }
   const agentIds = new Set<string>();
-  registry.agents.forEach((agent: unknown, i: number) => {
-    if (!isObject(agent)) return problems.push(`agents[${i}]: not an object`);
+  for (const [i, agent] of registry.agents.entries()) {
+    if (!isObject(agent)) {
+      problems.push(`agents[${i}]: not an object`);
+      continue;
+    }
     const where = `agents[${i}] (${isText(agent.id) ? agent.id : 'no id'})`;
     problems.push(...agentProblems(agent, where, categoryIds, agentIds));
-  });
+  }
   return problems;
 }
 
