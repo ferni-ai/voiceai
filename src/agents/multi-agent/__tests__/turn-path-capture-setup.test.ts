@@ -12,6 +12,11 @@
  * turn hook itself (a no-op, so no turn is processed), the stores (write recorder) and fetch
  * (refused). The transcript handler imports fastCapture and recordTurn from
  * '../../memory/dynamic/index.js' (transcript-handler.ts), the module mocked here.
+ *
+ * Since #3904 the handler captures only once a crisis read of the turn has started (none: no
+ * capture). Each turn notes a clean read first, so a row's 0 is the skip, not a missing read,
+ * and the counts are read once they stop changing. The pattern is
+ * voice-agent/__tests__/crisis-memory-hold-transcript.test.ts.
  */
 import { EventEmitter } from 'node:events';
 import { voice } from '@livekit/agents';
@@ -125,10 +130,16 @@ vi.mock('../../model-provider/index.js', async (importOriginal) => {
 });
 
 const { setupPersonaAgent } = await import('../agent-setup.js');
+const { waitUntilQuiet } = await import('../../../tests/helpers/wait-until-quiet.js');
+const { resetCrisisCallRisk } = await import('../../../services/safety/crisis-call-risk.js');
+const { CRISIS_READ_WAIT, noteCrisisTurnRead } =
+  await import('../../../utils/crisis-memory-hold.js');
 
 type SetupConfig = Parameters<typeof setupPersonaAgent>[0];
 const USER = 'turn-path-user-1';
 const SAID = 'my neighbor Quill Harrowby is moving to Lakeview next month';
+const SESSION = 'turn-path-setup';
+const WAIT = { ...CRISIS_READ_WAIT };
 
 /** A call's first persona: no callSession, so it owns the session and wires the handlers. */
 function firstPersona(userData: Record<string, unknown> = { userName: 'Sam' }): SetupConfig {
@@ -141,9 +152,9 @@ function firstPersona(userData: Record<string, unknown> = { userName: 'Sam' }): 
       off: () => undefined,
       remoteParticipants: new Map(),
     },
-    services: { sessionId: 'turn-path-setup', userId: USER, userProfile: null },
+    services: { sessionId: SESSION, userId: USER, userProfile: null },
     userData,
-    sessionId: 'turn-path-setup',
+    sessionId: SESSION,
     userId: USER,
     conversationManager: { isAgentSpeaking: () => false },
     enableFullHandlers: true,
@@ -167,6 +178,7 @@ beforeEach(() => {
   fetches = 0;
   vi.stubEnv('MEMORY_RECALL', 'off');
   vi.stubEnv('THEORY_OF_MIND', 'off');
+  Object.assign(CRISIS_READ_WAIT, { startMs: 300, settleMs: 300 });
   vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
     fetches += 1;
     throw new Error('no network in tests');
@@ -179,6 +191,8 @@ afterEach(() => {
   w.attachedSessions.length = 0;
   w.fastCapture.mockClear();
   w.recordTurn.mockClear();
+  Object.assign(CRISIS_READ_WAIT, WAIT);
+  resetCrisisCallRisk(); // also the memory hold
 });
 
 const captures = () => ({
@@ -189,12 +203,14 @@ const captures = () => ({
 /** One final transcript on the call's session, after the handler's turn-count step. */
 async function finalTranscript(session: unknown, userData: Record<string, unknown>) {
   const before = userData.turnCount as number;
+  noteCrisisTurnRead(SESSION, SAID); // the turn's crisis read started and came back clean
   (session as EventEmitter).emit(voice.AgentSessionEventTypes.UserInputTranscribed, {
     transcript: SAID,
     isFinal: true,
   });
   // the transcript handler steps turnCount after its capture block
   await vi.waitFor(() => expect(userData.turnCount).toBe(before + 1), { timeout: 10_000 });
+  await waitUntilQuiet(captures); // #3904: the capture lands after the handler returns
 }
 
 /** A call's first persona, set up and wired, under the given TURN_INTELLIGENCE. */

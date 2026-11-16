@@ -11,6 +11,12 @@
  * from '../../memory/dynamic/index.js', the file mocked below. Each row
  * waits for the handler's turn-count step, which comes after the capture block, so a row with
  * zero captures passed that block rather than stopping early. All data is fictional.
+ *
+ * Since #3904 the transcript handler captures only once a crisis read of the turn has started,
+ * and captures nothing when none does (fail closed). Every row notes a clean read for its turn
+ * (noteCrisisTurnRead), so a row's 0 is the skip, not a missing read, and the counts are read
+ * once they stop changing (waitUntilQuiet). The read wait is shortened as in
+ * crisis-memory-hold-transcript.test.ts, the pattern these rows copy.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,15 +69,28 @@ import {
 } from '../../safety/crisis-gate-signal.js';
 import { noteTurnPathAttached } from '../../shared/turn-path-capture.js';
 import { createTranscriptHandler } from '../transcript-handler.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import { CRISIS_READ_WAIT, noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
+import { memoryHeld, resetMinorCare } from '../../../utils/minor-care.js';
+import { waitUntilQuiet } from '../../../tests/helpers/wait-until-quiet.js';
 
 const MEMBER = 'member-uid-7c2d';
 const SAID = 'my neighbor Quill Harrowby is moving to Lakeview next month';
-/** A fictional crisis-worded caller line, written for this file. */
-const CRISIS_SAID = 'honestly i dont see the point anymore, i keep thinking about not waking up';
+/**
+ * The crisis rows' line. The crisis is the gate's (its guide decision, its pending read), not the
+ * words: since #3904 a line that matches a crisis pattern holds the call before the capture block
+ * (crisis-pattern-hold.ts), which would zero the capture with the flag on and off alike and hide
+ * the skip. Each crisis row checks the call is not held.
+ */
+const GATE_TURN_SAID = 'my cousin Tamsin Reed is bringing her two dogs over on sunday afternoon';
+/** Crisis-pattern words: crisis-memory-hold-transcript.test.ts shows this line holds the call. */
+const PATTERN_SAID = 'Honestly I want to kill myself, I am done with all of it.';
+const WAIT = { ...CRISIS_READ_WAIT };
 
 let fetches = 0;
 beforeEach(() => {
   fetches = 0;
+  Object.assign(CRISIS_READ_WAIT, { startMs: 300, settleMs: 300 });
   vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
     fetches += 1;
     throw new Error('no network in tests');
@@ -82,6 +101,9 @@ afterEach(() => {
   vi.unstubAllEnvs();
   w.fastCapture.mockClear();
   w.recordTurn.mockClear();
+  Object.assign(CRISIS_READ_WAIT, WAIT);
+  resetCrisisCallRisk(); // also the memory hold
+  resetMinorCare();
 });
 
 /** Anything the handler touches that isn't under test: every property is a no-op. */
@@ -120,9 +142,11 @@ async function finalTranscript(
     agent: stub(),
     autoOptimizer: { processUserMessage: vi.fn() },
   });
+  noteCrisisTurnRead(sessionId, said); // the turn's crisis read started and came back clean
   handler({ transcript: said, isFinal: true } as never);
   // transcript-handler steps turnCount after the capture block, so the block has run by then
   await vi.waitFor(() => expect(userData.turnCount).toBe(3), { timeout: 10_000 });
+  await waitUntilQuiet(captures); // #3904: the capture lands after the handler returns
   return sessionId;
 }
 
@@ -178,9 +202,10 @@ async function quiet(calls: unknown[][]): Promise<void> {
 }
 
 /**
- * One crisis-worded final transcript on a call with the turn path attached and `mark` left on the
- * session first, with TURN_PATH_SINGLE_CAPTURE set to `flag`. Returns the captures, their
- * arguments, the calls the mark itself made, and every session call the handler made after it.
+ * One final transcript (GATE_TURN_SAID) on a call with the turn path attached and the gate's
+ * `mark` left on the session first, with TURN_PATH_SINGLE_CAPTURE set to `flag`. Returns the
+ * captures, their arguments, the calls the mark itself made, and every session call the handler
+ * made after it.
  */
 async function crisisTurn(flag: 'on' | 'off', mark: (session: object, userData: object) => void) {
   vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', flag);
@@ -191,7 +216,7 @@ async function crisisTurn(flag: 'on' | 'off', mark: (session: object, userData: 
   noteTurnPathAttached(session);
   mark(session, userData);
   const marked = calls.length;
-  const sessionId = await finalTranscript(session, { said: CRISIS_SAID, userData });
+  const sessionId = await finalTranscript(session, { said: GATE_TURN_SAID, userData });
   await quiet(calls);
   return {
     session,
@@ -213,10 +238,10 @@ function capturedAsMain(off: Awaited<ReturnType<typeof crisisTurn>>): void {
       userId: MEMBER,
       sessionId: off.sessionId,
       turnNumber: 0,
-      transcript: CRISIS_SAID,
+      transcript: GATE_TURN_SAID,
     }),
   ]);
-  expect(off.recordTurn[0]).toEqual([off.sessionId, MEMBER, expect.anything(), CRISIS_SAID, 0]);
+  expect(off.recordTurn[0]).toEqual([off.sessionId, MEMBER, expect.anything(), GATE_TURN_SAID, 0]);
 }
 
 const captures = () => ({
@@ -290,6 +315,7 @@ describe('TURN_PATH_SINGLE_CAPTURE', { timeout: 60_000 }, () => {
       expect(run.markCalls).toEqual([
         ['session.emit', 'crisis_gate_decision', { action: 'guide' }],
       ]);
+      expect(memoryHeld(run.sessionId)).toBe(false); // no crisis hold zeroed the capture first
     }
     expect(on.captures).toEqual({ fastCapture: 0, recordTurn: 0 });
     capturedAsMain(off);
@@ -311,10 +337,28 @@ describe('TURN_PATH_SINGLE_CAPTURE', { timeout: 60_000 }, () => {
     for (const run of [on, off]) {
       expect(crisisVerdictPending(run.session)).not.toBeNull(); // still held when the line came
       expect(run.markCalls).toEqual([]);
+      expect(memoryHeld(run.sessionId)).toBe(false); // no crisis hold zeroed the capture first
     }
     expect(on.captures).toEqual({ fastCapture: 0, recordTurn: 0 });
     capturedAsMain(off);
     expect(on.handlerCalls).toEqual(off.handlerCalls);
+    expect(fetches).toBe(0);
+  });
+
+  // #3904's behaviour, not this flag's: the pattern hold (crisis-pattern-hold.ts) stops the line
+  // before the skip is read, so this row stays green with the skip removed.
+  it("crisis-pattern words, turn path attached: #3904's pattern hold stops the line before the skip, flag on and off (green without the skip)", async () => {
+    for (const flag of ['on', 'off'] as const) {
+      vi.stubEnv('TURN_PATH_SINGLE_CAPTURE', flag);
+      w.fastCapture.mockClear();
+      w.recordTurn.mockClear();
+      const session = stub();
+      noteTurnPathAttached(session);
+      const userData = { userId: MEMBER, turnCount: 2 };
+      const sessionId = await finalTranscript(session, { said: PATTERN_SAID, userData });
+      expect(memoryHeld(sessionId), `flag ${flag}`).toBe(true);
+      expect(captures(), `flag ${flag}`).toEqual({ fastCapture: 0, recordTurn: 0 });
+    }
     expect(fetches).toBe(0);
   });
 });
