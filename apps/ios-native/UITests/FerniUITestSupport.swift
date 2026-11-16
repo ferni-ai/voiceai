@@ -25,6 +25,7 @@ enum TextSize: String {
     case ax5 = "UICTContentSizeCategoryAccessibilityXXXL"
 }
 
+@MainActor
 extension XCUIApplication {
     static func ferni(
         _ screen: Screen, size: TextSize = .standard, reduceMotion: Bool = false, reduceTransparency: Bool = false,
@@ -37,8 +38,28 @@ extension XCUIApplication {
             "-FerniReduceMotion", reduceMotion ? "YES" : "NO",
             "-FerniReduceTransparency", reduceTransparency ? "YES" : "NO",
         ] + (account.map { ["-FerniAccount", $0] } ?? [])
+        // Launch only once the last Ferni is gone (a test that didn't quit
+        // leaves one running). On a loaded CI simulator a launch that lands
+        // while the previous process is still exiting can wait ~70 s for a
+        // process that never starts, then fail with "does not have a process
+        // ID" (runs 42312989417 and 42386078903, #3334).
+        app.quit()
         app.launch()
         return app
+    }
+
+    /// Ends this launch and waits for the process to exit, so the next
+    /// `ferni(_:)` starts clean. Use it instead of `terminate()`.
+    func quit() {
+        terminate()
+        waitUntilGone()
+    }
+
+    fileprivate func waitUntilGone() {
+        guard state != .notRunning else { return }
+        if !wait(for: .notRunning, timeout: 15) {
+            XCTFail("Ferni was still running 15 s after it was told to quit (state \(state.rawValue))")
+        }
     }
 
     /// What the views received (UITestEnvironmentProbe).
