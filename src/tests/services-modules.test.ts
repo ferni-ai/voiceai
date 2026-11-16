@@ -37,7 +37,7 @@ describe('env-validator', () => {
       process.env.GOOGLE_API_KEY = 'test-google-key';
       process.env.CARTESIA_API_KEY = 'test-cartesia-key';
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.valid).toBe(true);
@@ -50,7 +50,7 @@ describe('env-validator', () => {
       process.env.LIVEKIT_API_KEY = '';
       process.env.GOOGLE_API_KEY = '';
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.valid).toBe(false);
@@ -67,7 +67,7 @@ describe('env-validator', () => {
       delete process.env.DATABASE_URL;
       delete process.env.REDIS_URL;
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.valid).toBe(true);
@@ -79,7 +79,7 @@ describe('env-validator', () => {
       process.env.LIVEKIT_API_KEY = '   '; // Whitespace only
       process.env.GOOGLE_API_KEY = '';
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.valid).toBe(false);
@@ -94,7 +94,7 @@ describe('env-validator', () => {
       process.env.GOOGLE_API_KEY = 'test-google-key';
       process.env.CARTESIA_API_KEY = 'test-cartesia-key';
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.available).toBeDefined();
@@ -110,7 +110,7 @@ describe('env-validator', () => {
       process.env.GOOGLE_API_KEY = 'test-google-key';
       process.env.CARTESIA_API_KEY = 'test-cartesia-key';
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.livekitCore).toBe(true);
@@ -122,7 +122,7 @@ describe('env-validator', () => {
       delete process.env.LIVEKIT_API_KEY;
       delete process.env.GOOGLE_API_KEY;
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.livekitCore).toBe(false);
@@ -133,7 +133,7 @@ describe('env-validator', () => {
       process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
       process.env.REDIS_URL = 'redis://localhost:6379';
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.postgresMemory).toBe(true);
@@ -145,7 +145,7 @@ describe('env-validator', () => {
       process.env.TWILIO_ACCOUNT_SID = 'test-sid';
       delete process.env.TWILIO_AUTH_TOKEN;
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.smsNotifications).toBe(false);
@@ -159,7 +159,7 @@ describe('env-validator', () => {
       process.env.PLAID_CLIENT_ID = 'test-client-id';
       delete process.env.PLAID_SECRET;
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.plaidBanking).toBe(false);
@@ -174,7 +174,7 @@ describe('env-validator', () => {
       process.env.SPOTIFY_CLIENT_SECRET = 'test-secret';
       process.env.MUSIC_ENABLED = 'false';
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.spotifyMusic).toBe(true);
@@ -188,7 +188,7 @@ describe('env-validator', () => {
     it('should detect market data availability', async () => {
       delete process.env.ALPHA_VANTAGE_API_KEY;
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.marketData).toBe(false);
@@ -201,7 +201,7 @@ describe('env-validator', () => {
     it('should detect Firestore memory when GCP project is set', async () => {
       delete process.env.GOOGLE_CLOUD_PROJECT;
 
-      const { getFeatureAvailability } = await import('../services/env-validator.js');
+      const { getFeatureAvailability } = await import('../services/platform/env-validator.js');
       const features = getFeatureAvailability();
 
       expect(features.firestoreMemory).toBe(false);
@@ -224,7 +224,7 @@ describe('env-validator', () => {
       delete process.env.TWILIO_AUTH_TOKEN;
       delete process.env.TWILIO_PHONE_NUMBER;
 
-      const { isFeatureAvailable } = await import('../services/env-validator.js');
+      const { isFeatureAvailable } = await import('../services/platform/env-validator.js');
 
       expect(isFeatureAvailable('emailNotifications')).toBe(true);
       expect(isFeatureAvailable('smsNotifications')).toBe(false);
@@ -239,13 +239,13 @@ describe('env-validator', () => {
       delete process.env.PLAID_CLIENT_ID;
       delete process.env.PLAID_SECRET;
 
-      const { isFeatureAvailable } = await import('../services/env-validator.js');
+      const { isFeatureAvailable } = await import('../services/platform/env-validator.js');
 
       expect(isFeatureAvailable('plaidBanking')).toBe(false);
     });
 
     it('should handle all feature keys', async () => {
-      const { isFeatureAvailable } = await import('../services/env-validator.js');
+      const { isFeatureAvailable } = await import('../services/platform/env-validator.js');
 
       // Should not throw for any valid feature key
       expect(() => isFeatureAvailable('livekitCore')).not.toThrow();
@@ -273,7 +273,7 @@ describe('env-validator', () => {
       process.env.REDIS_URL = 'redis://localhost:6379';
       process.env.MUSIC_ENABLED = 'false'; // Intentionally disabled
 
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       // Should only mention music since it's intentionally disabled
@@ -281,7 +281,7 @@ describe('env-validator', () => {
     });
 
     it('never lists email notifications as missing (the Workspace mailbox needs no key)', async () => {
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('Email notifications'))).toBe(false);
@@ -290,7 +290,7 @@ describe('env-validator', () => {
     it('should list missing SMS notifications', async () => {
       delete process.env.TWILIO_ACCOUNT_SID;
 
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('SMS notifications'))).toBe(true);
@@ -300,7 +300,7 @@ describe('env-validator', () => {
       delete process.env.PLAID_CLIENT_ID;
       delete process.env.PLAID_SECRET;
 
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('Bank account linking'))).toBe(true);
@@ -309,7 +309,7 @@ describe('env-validator', () => {
     it('should list missing market data', async () => {
       delete process.env.ALPHA_VANTAGE_API_KEY;
 
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('market data'))).toBe(true);
@@ -318,7 +318,7 @@ describe('env-validator', () => {
     it('should list missing Redis cache', async () => {
       delete process.env.REDIS_URL;
 
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('Session caching'))).toBe(true);
@@ -330,7 +330,7 @@ describe('env-validator', () => {
       process.env.SPOTIFY_CLIENT_SECRET = 'test-secret';
       process.env.MUSIC_ENABLED = 'false';
 
-      const { getMissingFeatures } = await import('../services/env-validator.js');
+      const { getMissingFeatures } = await import('../services/platform/env-validator.js');
       const missing = getMissingFeatures();
 
       expect(missing.some((m) => m.includes('MUSIC_ENABLED=true'))).toBe(true);
@@ -352,7 +352,7 @@ describe('env-validator', () => {
       process.env.GOOGLE_API_KEY = 'test-google-key';
       process.env.CARTESIA_API_KEY = 'test-cartesia-key';
 
-      const { validateEnvironmentOrThrow } = await import('../services/env-validator.js');
+      const { validateEnvironmentOrThrow } = await import('../services/platform/env-validator.js');
 
       expect(() => validateEnvironmentOrThrow()).not.toThrow();
     });
@@ -361,7 +361,7 @@ describe('env-validator', () => {
       delete process.env.LIVEKIT_API_KEY;
       delete process.env.GOOGLE_API_KEY;
 
-      const { validateEnvironmentOrThrow } = await import('../services/env-validator.js');
+      const { validateEnvironmentOrThrow } = await import('../services/platform/env-validator.js');
 
       expect(() => validateEnvironmentOrThrow()).toThrow(/Missing required environment variables/);
     });
@@ -370,7 +370,7 @@ describe('env-validator', () => {
       delete process.env.LIVEKIT_API_KEY;
       delete process.env.CARTESIA_API_KEY;
 
-      const { validateEnvironmentOrThrow } = await import('../services/env-validator.js');
+      const { validateEnvironmentOrThrow } = await import('../services/platform/env-validator.js');
 
       try {
         validateEnvironmentOrThrow();
@@ -388,7 +388,7 @@ describe('env-validator', () => {
       const originalProcessEnv = process.env;
       process.env = {} as NodeJS.ProcessEnv;
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.valid).toBe(false);
@@ -400,7 +400,7 @@ describe('env-validator', () => {
     it('should handle very long whitespace in env vars', async () => {
       process.env.LIVEKIT_API_KEY = '                                ';
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.available.LIVEKIT_API_KEY).toBe(false);
@@ -412,7 +412,7 @@ describe('env-validator', () => {
       delete process.env.LIVEKIT_URL;
       delete process.env.GOOGLE_API_KEY;
 
-      const { validateEnvironment } = await import('../services/env-validator.js');
+      const { validateEnvironment } = await import('../services/platform/env-validator.js');
       const result = validateEnvironment();
 
       expect(result.valid).toBe(false);

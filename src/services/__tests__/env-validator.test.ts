@@ -23,7 +23,7 @@ import {
   getFeatureAvailability,
   isFeatureAvailable,
   getMissingFeatures,
-} from '../env-validator.js';
+} from '../platform/env-validator.js';
 
 describe('EnvValidator', () => {
   const originalEnv = process.env;
