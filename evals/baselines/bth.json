@@ -1,0 +1,19 @@
+{
+  "suite": "bth: commitment detection + reading between lines (no model)",
+  "update": "pnpm tsx scripts/eval-gate/bth.ts --write-baseline",
+  "measuredOn": "7c43c1fb6",
+  "metrics": {
+    "commitment_detection.rows": { "value": 48, "maxDrop": 0 },
+    "commitment_detection.true_positives": { "value": 15, "maxDrop": 0 },
+    "commitment_detection.true_negatives": { "value": 19, "maxDrop": 0 },
+    "commitment_detection.false_positives": { "value": 4, "maxRise": 0 },
+    "commitment_detection.false_negatives": { "value": 10, "maxRise": 0 },
+    "commitment_detection.f1": { "value": 0.6818, "maxDrop": 0 },
+    "reading_between_lines.rows": { "value": 39, "maxDrop": 0 },
+    "reading_between_lines.true_positives": { "value": 12, "maxDrop": 0 },
+    "reading_between_lines.true_negatives": { "value": 6, "maxDrop": 0 },
+    "reading_between_lines.false_positives": { "value": 0, "maxRise": 0 },
+    "reading_between_lines.false_negatives": { "value": 21, "maxRise": 0 },
+    "reading_between_lines.f1": { "value": 0.5333, "maxDrop": 0 }
+  }
+}

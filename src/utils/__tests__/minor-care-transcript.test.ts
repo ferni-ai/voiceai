@@ -36,6 +36,10 @@ vi.mock('../../memory/dynamic/index.js', async (orig) => ({
 
 import { createTranscriptHandler } from '../../agents/voice-agent/transcript-handler.js';
 import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
+import { noteCrisisTurnRead, resetCrisisMemoryHold } from '../crisis-memory-hold.js';
+
+const WORDS =
+  'My mom says I spend too long on my phone, and honestly I feel sad and happy at once.';
 
 type Case = 'held' | 'owner' | 'off';
 let n = 0;
@@ -57,6 +61,7 @@ async function turn(c: Case): Promise<{ sessionId: string; userId: string }> {
   vi.stubEnv('MINOR_CARE', c === 'off' ? 'off' : 'on');
   if (c === 'owner') setVerifiedOwnerCheck((id) => id === sessionId);
   noteCallerWords(sessionId, "I'm 16 years old and kind of bored");
+  noteCrisisTurnRead(sessionId, WORDS); // the turn's crisis read (turn-crisis.ts): capture may go on
   const { handler } = createTranscriptHandler({
     room: stub(),
     session: stub(),
@@ -76,11 +81,7 @@ async function turn(c: Case): Promise<{ sessionId: string; userId: string }> {
     agent: stub(),
     autoOptimizer: { processUserMessage: w.feedback },
   });
-  handler({
-    transcript:
-      'My mom says I spend too long on my phone, and honestly I feel sad and happy at once.',
-    isFinal: true,
-  } as never);
+  handler({ transcript: WORDS, isFinal: true } as never);
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 400);
   });
@@ -92,6 +93,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   resetMinorCare();
+  resetCrisisMemoryHold();
   vi.unstubAllEnvs();
 });
 
@@ -164,6 +166,8 @@ describe.each<Case>(['owner', 'off'])('transcript-handler: %s still records', (c
       undefined
     );
     expect(w.ftis).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ userId }));
-    expect(w.fastCapture).toHaveBeenCalledWith(expect.objectContaining({ userId }));
+    await vi.waitFor(() =>
+      expect(w.fastCapture).toHaveBeenCalledWith(expect.objectContaining({ userId }))
+    );
   });
 });

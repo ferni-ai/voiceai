@@ -31,7 +31,7 @@ import {
   markGrowthShared,
   type PersonaGrowthRecord,
 } from '../../services/trust-systems/index.js';
-import { crisisRiskThisCall, scoreCrisisLanguage } from '../../services/safety/index.js';
+import { crisisSignalOnCall } from '../multi-agent/recall-note.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PersonaGrowthRecall' });
@@ -108,11 +108,6 @@ export function onlyPersonaOnCall(sessionId: string | undefined): string | undef
   return seen?.size === 1 ? [...seen][0] : undefined;
 }
 
-/** A crisis read noted or still settling on this call, or crisis words in these caller words. */
-function crisisIn(sessionId: string, text: string): boolean {
-  return crisisRiskThisCall(sessionId, text) || scoreCrisisLanguage(text).isCrisis;
-}
-
 /** Caller turns heard whole, and calm, before the note may come. */
 export const GROWTH_AFTER_TURNS = 2;
 
@@ -180,7 +175,7 @@ export function growthRecallFor(
   const check = (text: string): boolean => {
     try {
       // No call id: the call's risk can't be read, so none is offered.
-      crisis ||= !sessionId || crisisIn(sessionId, text);
+      crisis ||= !sessionId || crisisSignalOnCall(sessionId, text);
     } catch (error) {
       log.warn({ error: String(error) }, 'Persona growth crisis check failed');
       crisis = true; // fail closed
