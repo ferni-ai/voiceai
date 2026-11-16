@@ -25,7 +25,11 @@ names, including ~438 older entries, many read by the UI server or jobs
 rather than the agent, e.g. `CALL_HOURS_GUARD`, `MEMORY_VIEW`).
 
 Of those 172, only flags whose manifest default is `on`, `off` or `shadow`
-can be changed (the 6 numeric `config` flags are shown read-only). The
+can be changed (the 5 numeric `config` flags are shown read-only;
+`CALL_MEMORY_TRACE` is `config`-kind but defaults to `off`, so it is
+switchable). A flag whose reader parses the env value itself offers only
+the words that reader acts on (`CRISIS_MEANS_IN_HAND`: off, shadow, live),
+so the page never sends a value the agent reads as something else. The
 older entries that must never be flipped from a page
 (`ALLOW_PRODUCTION_DATA`, `ALLOW_CLIENT_DEV_MODE`, `FIRESTORE_DB_PIN`,
 `GOOGLE_GENAI_USE_VERTEXAI`) are all outside the 172, so this rule keeps

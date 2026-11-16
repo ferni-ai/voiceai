@@ -39,7 +39,7 @@
 
 - [ ] **Step 1:** Read how `lk agent secrets` builds its request in the livekit-cli source (GitHub `livekit/livekit-cli`, the `agent` command and its cloud-agents client). Note service name, host (project URL or a separate cloud API host) and the JWT grant.
 - [ ] **Step 2:** With `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` read from Secret Manager (`livekit-dev-api-key`, `livekit-dev-api-secret`, project `johnb-2025`) into env vars, call `ListAgentSecrets` for `CA_siTDMHEba4Fg` via `TwirpRpc` + `AccessToken`.
-  Expected: prints only the count of names (~314) and that no `value` is returned. Do not call Update.
+      Expected: prints only the count of names (~314) and that no `value` is returned. Do not call Update.
 - [ ] **Step 3:** If the dev key is refused, stop and report to Seth (a key with Cloud Agent permission goes into Secret Manager first). Otherwise record the findings in Task 4.
 
 ---
@@ -51,27 +51,43 @@ Branch `feat/dev-flag-snapshot` from `origin/main`. Commit the spec and this pla
 ### Task 2: Which flags are switchable, and request validation
 
 **Files:**
+
 - Create: `src/config/agent-flags/domain/switchable.ts`
 - Test: `src/config/agent-flags/__tests__/switchable.test.ts`
 
 **Interfaces:**
+
 - Produces:
+
   ```ts
-  export type FlagValue = 'on' | 'off' | 'shadow';
-  export interface SwitchableFlag { name: string; kind: 'experiment' | 'kill-switch' | 'config'; owner: string; default: string; switchable: boolean; modes: readonly FlagValue[] }
-  export const SHADOW_CAPABLE: ReadonlySet<string>; // CRISIS_EVENT_RECORD, CRISIS_SCRIPT_IMMINENT_READ, SMS_CRISIS_SCREEN, SOUND_CONDUCTOR, CRISIS_MEANS_IN_HAND
-  export function agentFlags(): SwitchableFlag[];            // all 172, sorted by name
-  export type ApplyRequest = { set: Record<string, FlagValue>; reset: string[] };
-  export function validateApply(body: unknown): { ok: true; request: ApplyRequest } | { ok: false; errors: string[] };
+  export type FlagValue = 'on' | 'off' | 'shadow' | 'live' | 'defer' | 'reports';
+  export interface SwitchableFlag {
+    name: string;
+    kind: 'experiment' | 'kill-switch' | 'config';
+    owner: string;
+    default: string;
+    switchable: boolean;
+    modes: readonly FlagValue[];
+  }
+  export const SHADOW_CAPABLE: ReadonlySet<string>; // flagModeOf flags: CRISIS_EVENT_RECORD, CRISIS_SCRIPT_IMMINENT_READ, SMS_CRISIS_SCREEN, SOUND_CONDUCTOR
+  export const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>>; // flags read straight from env: the words their reader acts on
+  export function resolvedValue(name: string, raw: string | undefined): string; // what the agent runs with, as its reader resolves raw
+  export function agentFlags(): SwitchableFlag[]; // all 172, sorted by name
+  type ApplyRequest = { set: Record<string, FlagValue>; reset: string[] }; // module-local until Task 5 imports it (knip)
+  export function validateApply(
+    body: unknown
+  ): { ok: true; request: ApplyRequest } | { ok: false; errors: string[] };
   ```
 
 - [ ] **Step 1: Write the failing tests**
   - `agentFlags()` length equals `Object.keys(FLAG_FILES).length` and contains no name outside the barrel.
-  - The 6 numeric config flags have `switchable: false`; a default-`off` experiment has `modes` `['off','on']`; `CRISIS_MEANS_IN_HAND` has `['off','shadow','on']`.
+  - The 5 numeric config flags have `switchable: false` (`CALL_MEMORY_TRACE` is `config`-kind but defaults to `off`, so it is switchable); a default-`off` experiment has `modes` `['off','on']`; `SOUND_CONDUCTOR` has `['off','shadow','on']`; `CRISIS_MEANS_IN_HAND` has `['off','shadow','live']` (its reader's words).
   - `validateApply({ set: { CARTESIA_MODEL: 'on' }, reset: [] })` → `ok: false` (a real secret, not a flag file).
   - `validateApply` refuses `ALLOW_PRODUCTION_DATA`, a config flag, `shadow` on a non-shadow flag, a name in both `set` and `reset`, an empty request, and a non-object body.
   - `validateApply({ set: { SOUND_CONDUCTOR: 'shadow' }, reset: ['ABUSE_DISCLOSURE_PATTERNS'] })` → `ok: true`.
   - Drift guard: scan `src/**/*.ts` (not tests) for `flagModeOf('NAME'` and assert every per-file NAME found is in `SHADOW_CAPABLE`.
+  - Drift guard: scan `src/**/*.ts` (not tests, not `src/config/flags/`) for `env.NAME`, `process.env.NAME`, `env['NAME']` and assert every switchable per-file NAME found has a `VALUE_OVERRIDES` entry.
+  - `resolvedValue('CRISIS_MEANS_IN_HAND', …)`: `'on'` → `'shadow'`, `'live'` → `'live'`, unset → `'shadow'`; `resolvedValue('ATTUNE_LEDGER', 'true')` → `'off'` (its reader accepts only `on`).
 - [ ] **Step 2:** `pnpm vitest run src/config/agent-flags/__tests__/switchable.test.ts` → FAIL (module missing).
 - [ ] **Step 3:** Implement from `import * as FLAG_FILES from '../../flags/index.generated.js'`. `switchable` = default ∈ {on, off, shadow}.
 - [ ] **Step 4:** Run again → PASS. Break it (drop the default check) and confirm the config-flag test fails, then restore.
@@ -80,6 +96,7 @@ Branch `feat/dev-flag-snapshot` from `origin/main`. Commit the spec and this pla
 ### Task 3: Snapshot on boot
 
 **Files:**
+
 - Create: `src/config/flags/FLAG_SNAPSHOT.ts` via `pnpm flags:new FLAG_SNAPSHOT --default off --owner platform --kind experiment --issue '#N'`
 - Create: `src/config/agent-flags/domain/snapshot.ts`, `src/config/agent-flags/adapters/flag-store.ts`, `src/config/agent-flags/boot-snapshot.ts`
 - Modify: `src/agent.ts` (after the `build-sha` line)
@@ -87,14 +104,32 @@ Branch `feat/dev-flag-snapshot` from `origin/main`. Commit the spec and this pla
 - Test: `src/config/agent-flags/__tests__/snapshot.test.ts`, `boot-snapshot.test.ts`
 
 **Interfaces:**
+
 - Consumes: `agentFlags()` (Task 2), `flagOn`, `flagModeOf`, `Env` (`src/config/env-flag.ts`).
 - Produces:
+
   ```ts
-  export interface FlagSnapshot { startedAt: string; buildSha: string | null; flags: Record<string, { raw: string | null; resolved: string }> }
+  export interface FlagSnapshot {
+    startedAt: string;
+    buildSha: string | null;
+    flags: Record<string, { raw: string | null; resolved: string }>;
+  }
   export function buildFlagSnapshot(env: Env, now: Date, buildSha: string | null): FlagSnapshot;
   // flag-store.ts (Firestore ferni-dev): doc ops/agent_flag_snapshot, collection agent_flag_changes
-  export interface FlagChange { at: string; actor: string; set: Record<string, string>; reset: string[]; result: 'applied' | 'refused' | 'failed'; detail?: string }
-  export interface FlagStore { writeSnapshot(s: FlagSnapshot): Promise<void>; readSnapshot(): Promise<FlagSnapshot | null>; appendChange(c: FlagChange): Promise<void>; recentChanges(limit: number): Promise<FlagChange[]> }
+  export interface FlagChange {
+    at: string;
+    actor: string;
+    set: Record<string, string>;
+    reset: string[];
+    result: 'applied' | 'refused' | 'failed';
+    detail?: string;
+  }
+  export interface FlagStore {
+    writeSnapshot(s: FlagSnapshot): Promise<void>;
+    readSnapshot(): Promise<FlagSnapshot | null>;
+    appendChange(c: FlagChange): Promise<void>;
+    recentChanges(limit: number): Promise<FlagChange[]>;
+  }
   export function firestoreFlagStore(): FlagStore;
   export function writeFlagSnapshotOnBoot(env?: Env, store?: FlagStore): Promise<void>;
   ```
@@ -103,7 +138,7 @@ Branch `feat/dev-flag-snapshot` from `origin/main`. Commit the spec and this pla
   - `buildFlagSnapshot` keys equal `agentFlags()` names exactly; with `{ ABUSE_DISCLOSURE_PATTERNS: 'ON', LIVEKIT_API_SECRET: 'x' }` the snapshot has `raw: 'ON', resolved: 'on'` for the flag and no `LIVEKIT_API_SECRET` key anywhere; an unset kill switch resolves `on`; a config flag resolves to its raw value or default.
   - `writeFlagSnapshotOnBoot` with a fake store: writes once when `FLAG_SNAPSHOT=on` and `FIRESTORE_DATABASE=ferni-dev`; no write when either is off or the database is `(default)`; resolves (does not throw) when the store rejects, and logs a warning.
 - [ ] **Step 2:** Run → FAIL.
-- [ ] **Step 3:** Implement. `resolved` = `flagModeOf` for shadow-capable flags, `flagOn ? 'on' : 'off'` for other switchable flags, raw-or-default for config. In `src/agent.ts` add one line: `void (await import('./config/agent-flags/boot-snapshot.js')).writeFlagSnapshotOnBoot();` (never awaited past the import, so boot is not delayed).
+- [ ] **Step 3:** Implement. `resolved` = `resolvedValue(name, raw)` from Task 2 (the reader's own words for `VALUE_OVERRIDES` flags, `flagModeOf` for shadow-capable flags, `flagOn ? 'on' : 'off'` for other switchable flags, raw-or-default for config). In `src/agent.ts` add one line: `void (await import('./config/agent-flags/boot-snapshot.js')).writeFlagSnapshotOnBoot();` (never awaited past the import, so boot is not delayed).
 - [ ] **Step 4:** Run → PASS; `pnpm typecheck`; `pnpm quality:arch`; ratchet.
 - [ ] **Step 5:** Commit `feat(flags): dev agent writes the flag values it booted with`. Open the PR, merge through the queue.
 - [ ] **Step 6 (lead, after merge):** deploy to dev from `main` (skill `deploy-agent`, rooms empty), then `FLAG_SNAPSHOT=on` with `lk agent update-secrets`. Confirm `ops/agent_flag_snapshot` in `ferni-dev` has 172 flags and a fresh `startedAt`.
@@ -117,17 +152,28 @@ Branch `feat/dev-flag-routes` from `origin/main` after PR 1 merges.
 ### Task 4: LiveKit dev agent adapter
 
 **Files:**
+
 - Create: `src/config/agent-flags/adapters/livekit-dev-agent.ts`
 - Test: `src/config/agent-flags/__tests__/livekit-dev-agent.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 findings (service name, host, grant). `ApplyRequest` (Task 2).
 - Produces:
+
   ```ts
   export const DEV_AGENT_ID = 'CA_siTDMHEba4Fg';
   export const DEV_LIVEKIT_HOST = 'dev-8sm1ba0z.livekit.cloud';
-  export interface DevAgent { flagSecretTimes(): Promise<Record<string, string>>; updateFlags(req: ApplyRequest): Promise<void>; occupiedRooms(): Promise<Array<{ name: string; participants: number }>> }
-  export function liveKitDevAgent(env?: Env, rpc?: Rpc, rooms?: Pick<RoomServiceClient, 'listRooms'>): DevAgent;
+  export interface DevAgent {
+    flagSecretTimes(): Promise<Record<string, string>>;
+    updateFlags(req: ApplyRequest): Promise<void>;
+    occupiedRooms(): Promise<Array<{ name: string; participants: number }>>;
+  }
+  export function liveKitDevAgent(
+    env?: Env,
+    rpc?: Rpc,
+    rooms?: Pick<RoomServiceClient, 'listRooms'>
+  ): DevAgent;
   ```
 
 - [ ] **Step 1: Failing tests** (fake `rpc` and `rooms`)
@@ -141,22 +187,35 @@ Branch `feat/dev-flag-routes` from `origin/main` after PR 1 merges.
 ### Task 5: Apply use case and admin routes
 
 **Files:**
+
 - Create: `src/config/agent-flags/use-cases/apply-flags.ts`, `src/api/v1/admin/agent-flags.ts`
 - Modify: `src/api/v1/admin/index.ts` (route `${BASE_PATH}/agent-flags`, next to `/flags`)
 - Test: `src/config/agent-flags/__tests__/apply-flags.test.ts`, `src/api/__tests__/admin-agent-flags.test.ts`
 
 **Interfaces:**
+
 - Consumes: `validateApply`, `agentFlags` (Task 2); `FlagStore`, `FlagSnapshot` (Task 3); `DevAgent` (Task 4).
 - Produces:
+
   ```ts
   export type ApplyResult =
     | { status: 200; appliedAt: string; auditWarning?: string }
     | { status: 400; errors: string[] }
     | { status: 409; rooms: Array<{ name: string; participants: number }> }
     | { status: 502; error: string };
-  export function applyAgentFlags(body: unknown, actor: string, deps: { agent: DevAgent; store: FlagStore; now?: () => Date }): Promise<ApplyResult>;
-  export function handleAdminAgentFlagsRoutes(req: IncomingMessage, res: ServerResponse, pathname: string, parsedUrl: URL): Promise<boolean>;
+  export function applyAgentFlags(
+    body: unknown,
+    actor: string,
+    deps: { agent: DevAgent; store: FlagStore; now?: () => Date }
+  ): Promise<ApplyResult>;
+  export function handleAdminAgentFlagsRoutes(
+    req: IncomingMessage,
+    res: ServerResponse,
+    pathname: string,
+    parsedUrl: URL
+  ): Promise<boolean>;
   ```
+
   Routes: `GET /api/v1/admin/agent-flags` → `{ flags: SwitchableFlag[], snapshot: FlagSnapshot | null, stale: boolean, changes: FlagChange[] }` (`stale` = any `flagSecretTimes()` value later than `snapshot.startedAt`, or no snapshot). `GET …/rooms` → `{ rooms }`. `POST …/apply` → `ApplyResult` body with its status.
 
 - [ ] **Step 1: Failing tests** for `applyAgentFlags` (fakes)
@@ -180,18 +239,36 @@ Branch `feat/dev-flag-page` from `origin/main` after PR 2 merges.
 ### Task 6: Admin section "Agent flags (dev)"
 
 **Files:**
+
 - Move: `ADMIN_SECTIONS` (`apps/web/src/admin/AdminPortal.ts:75-264`) to `apps/web/src/admin/section-registry.ts`, unchanged, in its own commit (makes room under the ratchet).
 - Modify: `section-registry.ts` (add `{ id: 'agent-flags', name: 'Agent flags (dev)', icon: ICON_FLAGS, … }` after `flags`); `AdminPortal.ts` (open `?section=<id>` on load).
 - Create: `apps/web/src/admin/sections/AgentFlagsSection.ts` (render + events), `apps/web/src/admin/sections/agent-flags-state.ts` (pure)
 - Test: `apps/web/tests/admin/agent-flags-state.test.ts`
 
 **Interfaces:**
+
 - Consumes: the Task 5 routes and their JSON shapes. The web app cannot import from `src/`, so declare `FlagValue`, `SwitchableFlag`, `FlagSnapshot` and `FlagChange` as local response types in `agent-flags-state.ts`, matching Tasks 2–3 field for field.
 - Produces (`agent-flags-state.ts`):
+
   ```ts
-  export interface Staged { set: Record<string, FlagValue>; reset: string[] }
-  export function stage(s: Staged, name: string, value: FlagValue | 'default', running: string, def: string): Staged; // staging the running value removes the entry
-  export function confirmState(snapshot: FlagSnapshot | null, applied: Staged, appliedAt: string, now: Date, timeoutMs: number): 'waiting' | 'live' | 'timeout';
+  export interface Staged {
+    set: Record<string, FlagValue>;
+    reset: string[];
+  }
+  export function stage(
+    s: Staged,
+    name: string,
+    value: FlagValue | 'default',
+    running: string,
+    def: string
+  ): Staged; // staging the running value removes the entry
+  export function confirmState(
+    snapshot: FlagSnapshot | null,
+    applied: Staged,
+    appliedAt: string,
+    now: Date,
+    timeoutMs: number
+  ): 'waiting' | 'live' | 'timeout';
   ```
 
 - [ ] **Step 1: Failing tests:** staging a value equal to the running one leaves `Staged` empty; `'default'` puts the name in `reset`; `confirmState` is `waiting` while `startedAt <= appliedAt`, `live` once a newer snapshot matches every staged value (reset names match the default), `timeout` after `timeoutMs` (use 4 minutes) with no match.
@@ -209,6 +286,7 @@ Branch `feat/dev-flag-page` from `origin/main` after PR 2 merges.
 ### Task 7: Dev Panel link and end-to-end check
 
 **Files:**
+
 - Create: `apps/web/src/ui/dev-panel/dashboard-links.ts` (the "Dashboards & Tools" links as data)
 - Modify: `apps/web/src/ui/dev-panel.ui.ts:~2250-2290` (render the links from that array; add `{ href: '/admin.html?section=agent-flags', icon: 'flag', label: 'Agent flags (dev)' }` next to Feature Flags). The file must end shorter than it started.
 - Test: extend `apps/web/tests/ui/dev-panel.ui.test.ts`: the rendered panel contains a link to `/admin.html?section=agent-flags` and still contains every link it had before.
