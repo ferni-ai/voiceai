@@ -16,12 +16,14 @@ import {
 describe('group call note copy', () => {
   it('the join note names both people and says what the labels mean', () => {
     expect(joinNote('Sarah', 'Seth')).toBe(
-      "Sarah is on this call by phone with Seth. Lines that start with [Sarah] are hers, and lines that start with [Seth] are Seth's. " +
+      "Sarah is on this call by phone with Seth. Lines that start with [Sarah (guest)] are hers, and lines that start with [Seth] are Seth's. " +
         'A line marked [unclear] could be either of them: if it matters who said it, ask. ' +
         'Talk with both of them, use their names, and let them talk to each other. ' +
         "Sarah can hear everything you say, so don't bring up Seth's private things unless Seth does."
     );
-    expect(joinNote('the guest', 'the caller')).toMatch(/^The guest is on this call by phone/);
+    expect(joinNote('the guest', 'the caller')).toMatch(
+      /^The guest is on this call by phone with the caller\. Lines that start with \[the guest\] are hers/
+    );
   });
 
   it('says when the guest leaves, the owner drops off and the owner is back', () => {
