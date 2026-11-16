@@ -12,7 +12,7 @@
 import { flagOn, type Env } from '../env-flag.js';
 import { isKnownDevDatabase } from '../firestore-database.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { FlagStore } from './adapters/flag-store.js';
+import type { FlagStore } from './ports/flag-store.js';
 import { buildFlagSnapshot } from './domain/snapshot.js';
 
 const log = createLogger({ module: 'agent-flag-snapshot' });
