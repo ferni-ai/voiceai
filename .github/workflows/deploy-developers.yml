@@ -58,6 +58,30 @@ jobs:
           ls __tests__/*.test.js
           node --test '__tests__/*.test.js'
 
+      # Remember which version is live, so a failed health check can put it
+      # back. The CLI signs in as the same service account the deploy uses.
+      - name: Record the live version
+        id: before
+        working-directory: apps/website/developers-portal
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          npm install -g firebase-tools@15.10.0 --no-audit --no-fund
+          key="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$key"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$key" >> "$GITHUB_ENV"
+          export GOOGLE_APPLICATION_CREDENTIALS="$key"
+          version=$(firebase hosting:channel:list --site ferni-developers \
+            --project "$FIREBASE_PROJECT_ID" --json |
+            jq -r '.result.channels[] | select(.name | endswith("/channels/live")) | (.release.version.name // "") | split("/") | last')
+          if [ -z "$version" ] || [ "$version" = null ]; then
+            echo "::error::could not read the live version of ferni-developers"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Live before deploy: ferni-developers@$version" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Deploy to Firebase (ferni-developers)
         uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
         with:
@@ -85,11 +109,14 @@ jobs:
           echo "::error::developers.ferni.ai did not return 200 after the deploy"
           exit 1
 
+      # firebase-tools has no hosting:rollback. hosting:clone with a
+      # <site>@<version> source releases that version to live again. Same-site,
+      # so nothing is copied and no new channel (or auth domain) is created.
       - name: Rollback on health check failure
         if: failure() && steps.health.outputs.healthy == 'false'
         working-directory: apps/website/developers-portal
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          VERSION: ${{ steps.before.outputs.version }}
         run: |
-          npm install -g firebase-tools
-          firebase hosting:rollback --site ferni-developers --confirm
+          firebase hosting:clone "ferni-developers@$VERSION" ferni-developers:live
+          echo "Rolled developers.ferni.ai back to ferni-developers@$VERSION" | tee -a "$GITHUB_STEP_SUMMARY"
