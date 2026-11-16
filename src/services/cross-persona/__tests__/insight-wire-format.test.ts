@@ -23,11 +23,17 @@ describe('toClientInsight', () => {
       source: 'ferni',
       category: 'commitment-followup',
       summary: 'You mentioned something you wanted to do: "call mom".',
-      content: 'You mentioned something you wanted to do: "call mom". Just checking in, no pressure.',
+      content:
+        'You mentioned something you wanted to do: "call mom". Just checking in, no pressure.',
       priority: 'high',
       createdAt: 1_700_000_000_000,
       isNew: true,
+      toasted: false,
     });
+  });
+
+  it('says when the app already showed the insight as a toast', () => {
+    expect(toClientInsight({ ...insight, metadata: { toastedAt: 5 } }).toasted).toBe(true);
   });
 });
 
@@ -39,7 +45,8 @@ describe('summarizeInsight', () => {
   });
 
   it('cuts a long sentence at a word boundary with an ellipsis', () => {
-    const long = 'Your keystone habit is holding strong and every small morning walk is making the rest of the week easier to carry';
+    const long =
+      'Your keystone habit is holding strong and every small morning walk is making the rest of the week easier to carry';
     const summary = summarizeInsight(long);
     expect(summary.length).toBeLessThanOrEqual(SUMMARY_MAX_CHARS);
     expect(summary.endsWith('…')).toBe(true);
