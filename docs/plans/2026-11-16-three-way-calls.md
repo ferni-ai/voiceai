@@ -57,7 +57,7 @@
 ## Review Focus
 
 1. **One person stops while the other is mid-sentence.** Ferni must not reply over the second person (Task 3: `end of turn waits for everyone`).
-2. **Speakerphone echo.** A guest's phone may send Ferni's voice back on her track. A guest final that matches Ferni's recent words is dropped (Task 3: `echo is dropped`). Rung 2 measures it on a real phone.
+2. **Speakerphone echo.** A guest's phone may send Ferni's voice back on her track. A guest final that matches Ferni's recent words is dropped (Task 3: `echo is dropped`). Rung 3 measures it on a real phone, including speakerphone.
 3. **You and Sarah talk to each other.** Ferni stays quiet unless named or clearly asked, and still answers after a natural lull (Task 6).
 4. **The owner hangs up, or drops and comes back, while the guest is on.**
    - When the owner leaves, the guest leaves the mix and Ferni waits.
@@ -82,12 +82,12 @@ Branch `feat/group-call-hearing` (PR #3988) has this task built and reviewed, at
 
 **Interfaces:**
 - Produces: `hearGroupCall(persona, setup, call: { room; userParticipant }, sessionId): void`, called once right after `session.start`. It attaches the hearing (a no-op unless the flag is on) and wraps the persona's cleanup so the hearing detaches first.
-- Produces: `groupHearingFor(session): GroupHearing | undefined`. Its value: `{ guestName(identity): string | undefined; guestNames(): string[]; guestOn(): boolean; ownerLabel(): string; guestIdentity(): string | undefined }`.
+- Produces: `groupHearingFor(session): GroupHearing | undefined`. Its value: `{ guestName(identity): string | undefined; guestNames(): string[]; guestOn(): boolean; ownerLabel(): string }`. Task 3 may add a getter for the guest's identity if it needs one to open her stream.
 - Produces: `guestDisplayName(raw: string | undefined, ownerFirstName: string): string`.
 
 Behaviour (tests exist on the branch):
 - **The mix replaces the input** when an admitted guest joins. Each track is read at 16 kHz with that person's noise cancellation.
-- **Join note:** "Sarah is on this call by phone with Seth. Lines that start with [Sarah] are hers, and lines that start with [Seth] are Seth's. Talk with both of them, use their names, and let them talk to each other. Sarah can hear everything you say, so don't bring up Seth's private things unless Seth does." Task 7 replaces the descriptive middle with example lines.
+- **Join note:** "Sarah is on this call by phone with Seth. Lines that start with [Sarah] are hers, and lines that start with [Seth] are Seth's. A line marked [unclear] could be either of them: if it matters who said it, ask. Talk with both of them, use their names, and let them talk to each other. Sarah can hear everything you say, so don't bring up Seth's private things unless Seth does." Task 7 replaces the descriptive middle with example lines.
 - **Guest leaves:** "Sarah has left the call."
 - **Owner leaves:** the guest comes out of the mix, and the note says "Seth has dropped off the call. Wait for Seth to come back, and don't talk about Seth's private things with Sarah." When the owner returns, both tracks go back in.
 - **The STT chain fails closed until Task 3 lands.** While a guest is on, every final is labelled `[unclear] `.
@@ -114,7 +114,7 @@ Behaviour (tests exist on the branch):
   - **INTERIM_TRANSCRIPT** passes for the most recent speaker only, labelled.
   - **PREFLIGHT** is dropped while any other person is speaking.
   - **Timestamps** are rebased to one clock.
-- Produces: `personStream(identity, label, frames, stt, opts: { phone: boolean; keyterms: string[] })`. It opens `stt.stream()` and feeds silence while the SDK's `shouldDiscardInputAudio()` is true.
+- Produces: `personStream(identity, label, frames, stt, opts: { phone: boolean; keyterms: string[] })`. It opens `stt.stream()` and feeds silence while the agent's input should be discarded. The SDK's `shouldDiscardInputAudio()` is a private method of `AgentActivity`; mirror it through the existing read in `stt-audio-diagnostics.ts` rather than adding a second private access.
 - `sttChain` behaviour:
   - With a hearing and a guest on, it drains the mixed input it is given and returns the arbiter's stream.
   - On solo calls, or with the flag off, it is unchanged, byte for byte.
@@ -158,6 +158,7 @@ Behaviour (tests exist on the branch):
 - Produces: `ownerMayAct(session, lastUserText: string): true | { ask: string }`.
   - It returns `true` on a solo call, or when `ownerTurnText` is non-null.
   - Otherwise it returns `{ ask: 'Seth, is that something you want me to do?' }` with the owner's first name, and the tool does not run.
+  - Crisis and support tools (for example `sendSupportCall`, and anything the crisis path calls) are never gated: a guest in crisis gets help at once. A test proves it.
 
 - [ ] **Steps 1–6:**
   - List the gated tools.
@@ -246,7 +247,7 @@ Behaviour (tests exist on the branch):
 **Files:**
 - Create: `src/agents/group-conversation/dial-guest.ts`
 - Modify: `voice-integration.ts` (`group_call_add` and `group_call_remove`)
-- Modify, for the D3 amendment: `docs/decisions/register.md` D3, the guest opener in `src/services/outreach/opening-line.ts`, and its pinning test (`src/agents/outbound-call/__tests__/call-screener.test.ts`). The register and the opener are in the crisis lane in CODEOWNERS, so request that review.
+- Modify, for the D3 amendment: `docs/decisions/register.md` D3, a new guest opener next to `outboundOpener` in `src/services/outreach/opening-line.ts`, and a pinning test for it beside `src/agents/outbound-call/__tests__/call-screener.test.ts`. The register says "To change a decision, ask Seth": Seth ruled on this amendment on 2026-11-16, and the PR quotes the ruling.
 - Delete: `conference-call-manager.ts` and the `/call/add`, `/call/remove` and `/call/answer` routes, with grep proof.
 - Test: `__tests__/dial-guest.test.ts`
 
@@ -256,7 +257,7 @@ Behaviour (tests exist on the branch):
   - The default port uses `SipClient.createSipParticipant(SIP_TRUNK_ID, e164, roomName, { participantIdentity, participantName: name, playDialtone: false, ringingTimeout: 30, waitUntilAnswered: true, timeout: 40 })`.
 - Produces: `hangUpGuest(roomName, identity, sip?)`.
 - **The opener (Seth's ruling):** "Hi Sarah, it's Ferni, Seth's AI friend. Seth brought you into our call, and I'm taking notes for him, is that okay?"
-  - Until she says yes, her finals are held, not added to the conversation.
+  - Until she says yes, her finals are held, not added to the conversation. Crisis detection still runs on held finals, and a crisis signal releases the turn to the crisis path at once.
   - A no, or 10 s with no answer, hangs her up with the note "Sarah didn't want to join, so I let her go."
 
 - [ ] **Step 1: Write the failing tests** with a fake port:
@@ -265,7 +266,7 @@ Behaviour (tests exist on the branch):
   - `already_on`.
   - `no_trunk`.
   - A ringing timeout gives `no_answer`.
-  - Her yes releases the held finals; her no hangs up and nothing she said reaches `chatCtx`.
+  - Her yes releases the held finals; her no hangs up and nothing she said reaches `chatCtx`; a held guest turn with a crisis signal still reaches the crisis path.
   - The owner's session closing removes the guest.
   - The number is masked in logs.
 - [ ] **Steps 2–5:** Run and see the tests fail, implement, then run the tests, `pnpm typecheck` and knip. Prove the tests can fail. Open the PR: `feat(voice): dial an opted-in guest into the caller's own room`.
@@ -317,7 +318,7 @@ Rung 1 is its own small PR (`scripts/group-call/stream-bench.ts`, a dev tool nev
 
 ## Rollout
 
-1. Merge Tasks 2–6 with `GROUP_CALL` off. Rung 1 runs before that, with the flag on only inside the bench process.
+1. Merge Tasks 2–6 with `GROUP_CALL` off. Rung 1 runs once Task 3 is merged and before the flag goes on in dev, with the flag on only inside the bench process.
 2. Deploy to dev from `main` (skill `deploy-agent`), with `lk room list --project ferni-dev` empty. Turn the flag on for dev only: `lk agent update-secrets --project ferni-dev --config livekit.toml --secrets "GROUP_CALL=on"` (the skill holds the exact command). Run rung 2.
 3. Merge Tasks 7–12, deploy each to dev, and run rung 3.
 4. Seth places a real three-way call on dev (web, plus a phone he owns that has opted in). He checks:
