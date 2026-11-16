@@ -118,6 +118,26 @@ export async function handleInsightsRoutes(
 // GET /api/insights/:userId
 // ============================================================================
 
+/**
+ * Relationship milestone: the sessions-together count and first session, in UTC days like
+ * GET /api/relationship/progress, the record every app surface shows. The memory profile's
+ * counter it used before had drifted (777 there while the app showed 59 elsewhere).
+ */
+async function loadRelationship(userId: string): Promise<InsightsResponse['relationship']> {
+  return import('../services/stores/sessions-together.js')
+    .then(({ getSessionsTogether }) => getSessionsTogether(userId))
+    .then((together) =>
+      buildRelationship({ firstContact: together.firstAt, totalConversations: together.count })
+    )
+    .catch((err) => {
+      log.warn(
+        { userId, error: String(err) },
+        'Failed to count sessions together - no relationship card'
+      );
+      return undefined;
+    });
+}
+
 async function handleGetInsights(
   _req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -313,21 +333,7 @@ async function handleGetInsights(
       }
     }
 
-    // Relationship milestone: the sessions-together count and first session, in UTC days like
-    // GET /api/relationship/progress, the record every app surface shows. The memory profile's
-    // counter it used before had drifted (777 there while the app showed 59 elsewhere).
-    const relationship = await import('../services/stores/sessions-together.js')
-      .then(({ getSessionsTogether }) => getSessionsTogether(userId))
-      .then((together) =>
-        buildRelationship({ firstContact: together.firstAt, totalConversations: together.count })
-      )
-      .catch((err) => {
-        log.warn(
-          { userId, error: String(err) },
-          'Failed to count sessions together - no relationship card'
-        );
-        return undefined;
-      });
+    const relationship = await loadRelationship(userId);
 
     // Build response
     const response: InsightsResponse = {
