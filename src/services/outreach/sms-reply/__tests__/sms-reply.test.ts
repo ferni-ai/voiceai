@@ -126,6 +126,31 @@ describe('the sent text (smsReplyText)', () => {
     );
   });
 
+  it.each([
+    'A crisis line can help tonight.', // a line named, no number to text
+    'Text HOME to 741741 if you want.', // another line, not 988
+    'That ticket was $988, wild.', // a price, not the line
+  ])('with guidance, a reply with no 988 to dial still gets the lifeline: %s', (words) => {
+    expect(smsReplyText(words, { lifeline: true })).toBe(`${words} ${SMS_LIFELINE}`);
+  });
+
+  it.each([
+    ['short', 'You can call or text 988 tonight.'],
+    ['long enough to be cut', `${LONG} You can call or text 988 tonight.`],
+  ])(
+    'with guidance, a reply that already sent 988 gets exactly one 988 line (%s)',
+    (_kind, words) => {
+      const sent = smsReplyText(words, { lifeline: true })!;
+      expect(sent.match(/988/g)).toHaveLength(1);
+    }
+  );
+
+  it("after a crisis, Seth's reply word for word", () => {
+    expect(SMS_AFTER_CRISIS_REPLY).toBe(
+      "I'm here. Want me to give you a call? And if things feel heavy, you can call or text 988 anytime."
+    );
+  });
+
   it('against the LONGEST guidance the gate gives: it ends the prompt, and 988 survives the cap', () => {
     const self = {
       isCrisis: true,

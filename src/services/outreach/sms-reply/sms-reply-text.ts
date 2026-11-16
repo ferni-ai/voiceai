@@ -5,12 +5,13 @@
  */
 import type { TypedTurn } from '../../../agents/personas/crisis-gate-text.js';
 import { MINOR_CARE_NOTE } from '../../../utils/minor-care.js';
+import { crisisLines, says988 } from '../../safety/index.js';
 
+const LIFELINE = crisisLines.LIFELINE_988.phone;
 /** Seth, 2026-11-11: the 14 days after a crisis get this, never silence and never a model's words. */
-export const SMS_AFTER_CRISIS_REPLY =
-  "I'm here. Want me to give you a call? And if things feel heavy, you can call or text 988 anytime.";
+export const SMS_AFTER_CRISIS_REPLY = `I'm here. Want me to give you a call? And if things feel heavy, you can call or text ${LIFELINE} anytime.`;
 /** What a reply with crisis guidance always carries when the model's words don't: Seth's line above. */
-const SMS_LIFELINE = 'If things feel heavy, you can call or text 988 anytime.';
+const SMS_LIFELINE = `If things feel heavy, you can call or text ${LIFELINE} anytime.`;
 /** Seth, 2026-11-11: a minor under care sees this on the first reply, and again 3 h after the last. */
 export const SMS_AI_REMINDER = "(just a reminder, I'm an AI)";
 /** Two SMS segments. */
@@ -18,7 +19,6 @@ const SMS_REPLY_MAX_CHARS = 320;
 
 const TEXTING_NOTE =
   "[You're texting with them, not on a call. Write the way a friend texts back: one to three short sentences, plain words, no lists, markdown, emoji strings, stage directions or speech markup. Don't say you looked anything up or mention notes or memory.]";
-const LIFELINE = /\b988\b/;
 
 /** At most `max` characters, cut after the last sentence that fits (else the last whole word). */
 function fit(text: string, max: number): string {
@@ -43,7 +43,7 @@ export function smsReplyText(
   const tail = reminder ? SMS_AI_REMINDER : '';
   const room = (extra: string): number => SMS_REPLY_MAX_CHARS - join('x', extra).length + 1;
   const plain = fit(words, room(tail));
-  if (!lifeline || LIFELINE.test(plain)) return plain ? join(plain, tail) : null;
+  if (!lifeline || says988(plain)) return plain ? join(plain, tail) : null;
   return join(fit(words, room(join(SMS_LIFELINE, tail))), SMS_LIFELINE, tail);
 }
 
