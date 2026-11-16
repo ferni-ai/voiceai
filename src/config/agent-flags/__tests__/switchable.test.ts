@@ -1,18 +1,14 @@
 /**
- * Which agent flags the dev switchboard may flip, and what an apply request may
- * ask for (docs/plans/2026-11-16-dev-flag-switchboard.md, "Which flags").
+ * Which agent flags the dev switchboard may flip, to which values, and what the agent
+ * resolves each one to (docs/plans/2026-11-16-dev-flag-switchboard.md, "Which flags").
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as FLAG_FILES from '../../flags/index.generated.js';
-import {
-  SHADOW_CAPABLE,
-  VALUE_OVERRIDES,
-  agentFlags,
-  resolvedValue,
-  validateApply,
-} from '../domain/switchable.js';
+import { flagModeOf } from '../../env-flag.js';
+import type { FlagName } from '../../flag-manifest.js';
+import { agentFlags, resolvedValue } from '../domain/switchable.js';
 
 const FILE_NAMES = new Set(Object.keys(FLAG_FILES));
 // The flag files whose default is a number (the spec counted 6; CALL_MEMORY_TRACE is
@@ -82,105 +78,6 @@ describe('agentFlags', () => {
   });
 });
 
-describe('validateApply', () => {
-  const refuses = (body: unknown) => {
-    const result = validateApply(body);
-    expect(result.ok).toBe(false);
-    return result.ok ? [] : result.errors;
-  };
-
-  it('refuses a real agent secret that is not a flag file', () => {
-    expect(refuses({ set: { CARTESIA_MODEL: 'on' }, reset: [] })).toEqual([
-      'CARTESIA_MODEL is not a switchable agent flag',
-    ]);
-  });
-
-  it('refuses ALLOW_PRODUCTION_DATA, in set and in reset', () => {
-    expect(refuses({ set: { ALLOW_PRODUCTION_DATA: 'on' }, reset: [] })[0]).toContain(
-      'ALLOW_PRODUCTION_DATA'
-    );
-    expect(refuses({ set: {}, reset: ['ALLOW_PRODUCTION_DATA'] })[0]).toContain(
-      'ALLOW_PRODUCTION_DATA'
-    );
-  });
-
-  it('refuses a numeric config flag, whatever the value', () => {
-    expect(refuses({ set: { LATENCY_ARM_PERCENT: 'off' }, reset: [] })[0]).toContain(
-      'LATENCY_ARM_PERCENT'
-    );
-    expect(refuses({ set: { LATENCY_ARM_PERCENT: 'on' }, reset: [] })[0]).toContain(
-      'LATENCY_ARM_PERCENT'
-    );
-    expect(refuses({ set: {}, reset: ['WORKER_RECYCLE_RSS_MB'] })[0]).toContain(
-      'WORKER_RECYCLE_RSS_MB'
-    );
-  });
-
-  it('refuses shadow on a flag that has no shadow mode', () => {
-    expect(refuses({ set: { ABUSE_DISCLOSURE_PATTERNS: 'shadow' }, reset: [] })[0]).toContain(
-      'ABUSE_DISCLOSURE_PATTERNS'
-    );
-  });
-
-  it('refuses a value the reader of a directly read flag ignores', () => {
-    expect(refuses({ set: { CRISIS_MEANS_IN_HAND: 'on' }, reset: [] })[0]).toContain(
-      'allowed: off, shadow, live'
-    );
-    refuses({ set: { SELF_VOICE_GATE: 'on' }, reset: [] });
-    refuses({ set: { ATTUNE_LEDGER: 'shadow' }, reset: [] });
-  });
-
-  it('accepts live where the reader acts on it', () => {
-    expect(validateApply({ set: { CRISIS_MEANS_IN_HAND: 'live' }, reset: [] })).toEqual({
-      ok: true,
-      request: { set: { CRISIS_MEANS_IN_HAND: 'live' }, reset: [] },
-    });
-  });
-
-  it('refuses a value that is not one of the modes', () => {
-    refuses({ set: { ABUSE_DISCLOSURE_PATTERNS: 'true' }, reset: [] });
-    refuses({ set: { ABUSE_DISCLOSURE_PATTERNS: 'ON' }, reset: [] });
-    refuses({ set: { ABUSE_DISCLOSURE_PATTERNS: 1 }, reset: [] });
-  });
-
-  it('refuses a name in both set and reset', () => {
-    expect(
-      refuses({ set: { SOUND_CONDUCTOR: 'on' }, reset: ['SOUND_CONDUCTOR'] }).join(' ')
-    ).toContain('SOUND_CONDUCTOR');
-  });
-
-  it('refuses an empty request', () => {
-    refuses({ set: {}, reset: [] });
-    refuses({});
-  });
-
-  it('refuses a body that is not an object of the right shape', () => {
-    for (const body of [null, undefined, 'SOUND_CONDUCTOR=on', 42, [], ['SOUND_CONDUCTOR']]) {
-      refuses(body);
-    }
-    refuses({ set: [], reset: [] });
-    refuses({ set: {}, reset: 'SOUND_CONDUCTOR' });
-    refuses({ set: {}, reset: [42] });
-    refuses({ set: {}, reset: ['SOUND_CONDUCTOR', 'SOUND_CONDUCTOR'] });
-    refuses({ set: { SOUND_CONDUCTOR: 'on' }, reset: [], extra: true });
-  });
-
-  it('refuses inherited and prototype names', () => {
-    refuses({ set: {}, reset: ['__proto__'] });
-    refuses({ set: {}, reset: ['toString'] });
-    refuses(JSON.parse('{"set":{"__proto__":"on"},"reset":[]}'));
-  });
-
-  it('accepts shadow on a shadow-capable flag plus a reset', () => {
-    expect(
-      validateApply({ set: { SOUND_CONDUCTOR: 'shadow' }, reset: ['ABUSE_DISCLOSURE_PATTERNS'] })
-    ).toEqual({
-      ok: true,
-      request: { set: { SOUND_CONDUCTOR: 'shadow' }, reset: ['ABUSE_DISCLOSURE_PATTERNS'] },
-    });
-  });
-});
-
 const SRC = join(__dirname, '..', '..', '..');
 const FLAG_FILES_DIR = join(SRC, 'config', 'flags');
 const SEALED = /fixtures|heldout|held-out|blind|sealed|corpus/;
@@ -198,8 +95,8 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-describe('SHADOW_CAPABLE', () => {
-  it('holds every per-file flag the code reads with flagModeOf', () => {
+describe('flags read with flagModeOf', () => {
+  it('get the shadow mode and resolve exactly as flagModeOf reads them', () => {
     const read = new Set<string>();
     for (const file of sourceFiles(SRC)) {
       for (const m of readFileSync(file, 'utf8').matchAll(/flagModeOf\(\s*'([A-Z][A-Z0-9_]+)'/g)) {
@@ -208,7 +105,13 @@ describe('SHADOW_CAPABLE', () => {
     }
     // the scan must find the known readers, or it proves nothing
     expect(read).toContain('SOUND_CONDUCTOR');
-    expect([...read].filter((name) => !SHADOW_CAPABLE.has(name))).toEqual([]);
+    const values = [undefined, '', 'on', ' TRUE ', 'live', 'shadow', 'SHADOW', 'off', '0', 'junk'];
+    const wrong = [...read].filter(
+      (name) =>
+        !byName(name).modes.includes('shadow') ||
+        values.some((v) => resolvedValue(name, v) !== flagModeOf(name as FlagName, { [name]: v }))
+    );
+    expect(wrong).toEqual([]);
   });
 
   it('gives every per-file flag whose default is shadow a shadow mode', () => {
@@ -216,13 +119,9 @@ describe('SHADOW_CAPABLE', () => {
     expect(shadowDefaults.length).toBeGreaterThan(0);
     expect(shadowDefaults.filter((f) => !f.modes.includes('shadow'))).toEqual([]);
   });
-
-  it('names only per-file flags', () => {
-    expect([...SHADOW_CAPABLE].filter((name) => !FILE_NAMES.has(name))).toEqual([]);
-  });
 });
 
-describe('VALUE_OVERRIDES', () => {
+describe('flags read straight from env', () => {
   /** Per-file flags some source file reads straight from env: env.NAME, process.env.NAME, env['NAME']. */
   function readDirectly(): Set<string> {
     const read = new Set<string>();
@@ -236,26 +135,28 @@ describe('VALUE_OVERRIDES', () => {
     return read;
   }
 
-  it('holds every switchable per-file flag the code reads straight from env', () => {
+  it("resolve with their reader's own words, not flagOn's vocabulary", () => {
     const read = readDirectly();
     // the scan must find known readers, or it proves nothing
     expect(read).toContain('ATTUNE_LEDGER');
     expect(read).toContain('CRISIS_MEANS_IN_HAND');
-    const missing = [...read].filter((name) => byName(name).switchable && !VALUE_OVERRIDES[name]);
-    expect(missing).toEqual([]);
+    // No direct reader acts on true or false (only flagOn and flagModeOf do), so each must
+    // leave such a flag at its default; a flag resolved through flagOn would turn on or off.
+    const viaFlagOn = [...read]
+      .map(byName)
+      .filter((f) => f.switchable)
+      .filter((f) => ['true', 'false'].some((v) => resolvedValue(f.name, v) !== f.default))
+      .map((f) => f.name);
+    expect(viaFlagOn).toEqual([]);
   });
+});
 
-  it('names only switchable per-file flags, none of them read with flagModeOf', () => {
-    for (const name of Object.keys(VALUE_OVERRIDES)) {
-      expect(byName(name).switchable, name).toBe(true);
-      expect(SHADOW_CAPABLE.has(name), name).toBe(false);
-    }
-  });
-
-  it("includes each flag's default in its words, so a reset is a value the reader knows", () => {
-    for (const [name, words] of Object.entries(VALUE_OVERRIDES)) {
-      expect(words, name).toContain(byName(name).default);
-    }
+describe('modes', () => {
+  it("include each switchable flag's default, so a reset is a value the reader knows", () => {
+    const missing = agentFlags().filter(
+      (f) => f.switchable && !(f.modes as readonly string[]).includes(f.default)
+    );
+    expect(missing.map((f) => f.name)).toEqual([]);
   });
 });
 

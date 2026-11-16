@@ -1,13 +1,14 @@
 /**
- * Which agent flags the dev switchboard may flip, and what an apply request may
- * ask for (docs/plans/2026-11-16-dev-flag-switchboard.md, "Which flags").
+ * Which agent flags the dev switchboard may flip, to which values, and what the
+ * agent resolves each one to (docs/plans/2026-11-16-dev-flag-switchboard.md,
+ * "Which flags"). Apply requests are checked in apply-request.ts.
  *
  * The list is the per-file flags (src/config/flags/<NAME>.ts), read from the
  * generated barrel, so a new flag file shows up without an edit here. Only a
  * flag whose default is on, off or shadow can be switched; the numeric config
  * flags are listed read-only. Every other agent secret (API keys, tokens, the
  * older manifest entries such as ALLOW_PRODUCTION_DATA) is outside the list and
- * is refused by validateApply, so no denylist is needed.
+ * is refused by validateApply (apply-request.ts), so no denylist is needed.
  *
  * A flag's modes are the words its reader acts on, so the page never shows or
  * sends a value the agent would read as something else: flagModeOf flags take
@@ -22,7 +23,7 @@ import type { FlagSpec } from '../../flag-spec.js';
 import * as FLAG_FILES from '../../flags/index.generated.js';
 
 /** Every word some flag reader acts on ('reports' and 'defer' have one reader each). */
-export type FlagValue = 'on' | 'off' | 'shadow' | 'live' | 'defer' | 'reports';
+type FlagValue = 'on' | 'off' | 'shadow' | 'live' | 'defer' | 'reports';
 
 export interface SwitchableFlag {
   readonly name: string;
@@ -38,7 +39,7 @@ export interface SwitchableFlag {
  * The test fails when a new flagModeOf('NAME' read appears for a flag not
  * listed here.
  */
-export const SHADOW_CAPABLE: ReadonlySet<string> = new Set([
+const SHADOW_CAPABLE: ReadonlySet<string> = new Set([
   'CRISIS_EVENT_RECORD',
   'CRISIS_SCRIPT_IMMINENT_READ',
   'SMS_CRISIS_SCREEN',
@@ -58,7 +59,7 @@ const NONE: readonly FlagValue[] = Object.freeze([]);
  * these readers, which is what resolvedValue reports. The test fails when a
  * new direct env read appears for a switchable flag not listed here.
  */
-export const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.freeze({
+const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.freeze({
   ATTUNE_LEDGER: ON_OFF, // turn-attunement.ts, === 'on'
   BARGE_IN_SOFT_PAUSE: ON_OFF, // barge-in-soft-pause.ts, !== 'on'
   CALL_TELEMETRY: Object.freeze<FlagValue[]>(['off', 'on', 'reports']), // call-telemetry-store.ts
@@ -130,85 +131,6 @@ const BY_NAME: ReadonlyMap<string, SwitchableFlag> = new Map(AGENT_FLAGS.map((f)
 /** Every per-file flag, sorted by name; computed once and frozen. */
 export function agentFlags(): readonly SwitchableFlag[] {
   return AGENT_FLAGS;
-}
-
-interface ApplyRequest {
-  set: Record<string, FlagValue>;
-  reset: string[];
-}
-
-export type ApplyValidation = { ok: true; request: ApplyRequest } | { ok: false; errors: string[] };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-function switchableFlag(name: string): SwitchableFlag | undefined {
-  const flag = BY_NAME.get(name);
-  return flag?.switchable ? flag : undefined;
-}
-
-function checkSet(raw: unknown, errors: string[]): Record<string, FlagValue> {
-  const set: Record<string, FlagValue> = {};
-  if (raw === undefined) return set;
-  if (!isRecord(raw)) {
-    errors.push('set must be an object of flag name to one of its modes');
-    return set;
-  }
-  for (const [name, value] of Object.entries(raw)) {
-    const flag = switchableFlag(name);
-    const mode = flag?.modes.find((m) => m === value);
-    if (!flag) {
-      errors.push(`${name} is not a switchable agent flag`);
-    } else if (!mode) {
-      errors.push(`${name} cannot be set to ${String(value)} (allowed: ${flag.modes.join(', ')})`);
-    } else {
-      set[name] = mode;
-    }
-  }
-  return set;
-}
-
-function checkReset(raw: unknown, errors: string[]): string[] {
-  if (raw === undefined) return [];
-  if (!Array.isArray(raw)) {
-    errors.push('reset must be a list of flag names');
-    return [];
-  }
-  const reset: string[] = [];
-  for (const name of raw as unknown[]) {
-    if (typeof name !== 'string') {
-      errors.push('reset must be a list of flag names');
-    } else if (!switchableFlag(name)) {
-      errors.push(`${name} is not a switchable agent flag`);
-    } else if (reset.includes(name)) {
-      errors.push(`${name} is listed twice in reset`);
-    } else {
-      reset.push(name);
-    }
-  }
-  return reset;
-}
-
-/**
- * Checks a POST /apply body. Every name must be a switchable per-file flag and
- * every value one of that flag's modes; a name may not be both set and reset;
- * the request must change something. Nothing else in the body is allowed.
- */
-export function validateApply(body: unknown): ApplyValidation {
-  if (!isRecord(body)) return { ok: false, errors: ['body must be an object with set and reset'] };
-  const errors: string[] = [];
-  for (const key of Object.keys(body)) {
-    if (key !== 'set' && key !== 'reset') errors.push(`unexpected field ${key}`);
-  }
-  const set = checkSet(body.set, errors);
-  const reset = checkReset(body.reset, errors);
-  for (const name of reset) {
-    if (Object.hasOwn(set, name)) errors.push(`${name} is in both set and reset`);
-  }
-  if (errors.length === 0 && Object.keys(set).length === 0 && reset.length === 0) {
-    errors.push('nothing to change: set and reset are both empty');
-  }
-  return errors.length > 0 ? { ok: false, errors } : { ok: true, request: { set, reset } };
 }
 
 const isFlagName = (name: string): name is FlagName => Object.hasOwn(FLAG_MANIFEST, name);

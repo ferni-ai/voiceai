@@ -32,9 +32,6 @@ await import('./config/refuse-production-data.js'); // loads dotenv, then the gu
 // BUILD_SHA from the image's .build-sha when the env has none, so Sentry and the boot line carry the commit.
 (await import('./config/build-sha.js')).loadBuildSha();
 
-// Dev only, FLAG_SNAPSHOT on: report the flag values this worker booted with. Not awaited; never fails boot.
-void (await import('./config/agent-flags/boot-snapshot.js')).writeFlagSnapshotOnBoot();
-
 // Which token key this process seals and opens with (key id only), to match the web server's.
 await import('./utils/token-key-fingerprint-boot.js');
 // ...and which LOG_HASH_SECRET hashes phone numbers (fingerprint only), to match the web server's.
@@ -42,6 +39,10 @@ await import('./services/outreach/phone-hash-key-boot.js');
 
 // Error reporting (Sentry), before the worker loads; a no-op without SENTRY_DSN.
 await import('./instrument.js');
+
+// Dev only, FLAG_SNAPSHOT on: report the flag values this worker booted with. After Sentry, so
+// firebase-admin loads after it. Not awaited; never fails boot.
+void (await import('./config/agent-flags/boot-snapshot.js')).writeFlagSnapshotOnBoot();
 
 // GCE-optimized worker with clean architecture
 await import('./agents/gce-voice-worker.js');

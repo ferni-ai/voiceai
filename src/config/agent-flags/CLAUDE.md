@@ -18,9 +18,11 @@ Lets the admin page flip the **dev** voice agent's per-file flags
 Files:
 
 - `domain/switchable.ts`: which flags exist, which may be switched and to what,
-  `validateApply`, `resolvedValue`.
+  `resolvedValue`.
+- `domain/apply-request.ts`: `validateApply` for the apply route's body.
 - `domain/snapshot.ts`: `buildFlagSnapshot` (raw + resolved per flag).
 - `adapters/flag-store.ts`: Firestore. Snapshot at `ops/agent_flag_snapshot`
   (replaced on every worker start); audit trail in `agent_flag_changes`.
 - `boot-snapshot.ts`: `writeFlagSnapshotOnBoot`, called un-awaited from
-  `src/agent.ts`; logs a warning on any failure and never fails boot.
+  `src/agent.ts` after Sentry starts; logs a warning on any failure and never
+  fails boot.
