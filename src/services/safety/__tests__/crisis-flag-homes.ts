@@ -221,17 +221,19 @@ export interface MemoryOnlyRow {
  * A crisis-lane module reads them, so the census counts them, yet the six readers and SHOWN_ON
  * cannot see them. This home is open only to flags whose named row proves, on a crisis-guided
  * turn and a held turn, that the reply is unchanged AND nothing the caller said is kept with the
- * flag on. A wordless safety record (flags, times) may be added: every crisis keeps one by the
- * owner's rule (2026-11-11). Both halves matter: the home exists for memory, not replies. The
- * reply grid (crisis-reply-never-lower.test.ts) also runs each of these the gate reads on every
- * call it places, and fails if any reply moves.
+ * flag on. What may be added holds no words: a safety record (flags, severity, times, ids), kept
+ * by the owner's rule (2026-11-11), or only a time with its expiry where no record is kept (a
+ * held caller, a crisis about someone else). Both halves matter: the home exists for memory, not
+ * replies. The reply grid (crisis-reply-never-lower.test.ts) also runs each of these the gate
+ * reads on every call it places, and fails if any reply moves.
  *
  * The census (crisis-all-flags-never-lower.test.ts) checks only that each named file exists and
  * holds each title as an it() or test() call. What a row asserts is a reviewer's check.
  */
 export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
-  // A gate crisis starts the proactive quiet window: a quietUntil time, and for the caller's own
-  // crisis a wordless crisis record. Proactive sends only go quieter; no reply changes.
+  // A gate crisis starts the proactive quiet window. The caller's own crisis: a wordless crisis
+  // record. A held caller, or a crisis about someone else: only a quietUntil time (and its
+  // expireAt) on minor_care_holds. Proactive sends only go quieter; no reply changes.
   CRISIS_QUIET_FROM_GATE: {
     file: 'src/services/outreach/proactive-channels/__tests__/crisis-gate-quiet-path.test.ts',
     rows: [

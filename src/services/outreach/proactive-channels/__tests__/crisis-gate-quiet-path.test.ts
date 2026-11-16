@@ -8,6 +8,7 @@
  * Firestore is in memory; Firebase Auth and the Twilio send are stubbed at the SDK edge.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { setImmediate as tick } from 'node:timers/promises';
@@ -85,6 +86,9 @@ const { CRISIS_QUIET_DAYS, crisisFromSignal, hadCrisisWithin, releaseQuietHere }
 const { getCrisisHistory, hadRecentCrisis, forgetRecentCrisis } =
   await import('../../../human-transfer/index.js');
 const { decisionFor, gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
+const { unfinishedTurnHoldMs } = await import('../../../../agents/multi-agent/unfinished-turn.js');
+const { resetCrisisClassifierCache } = await import('../../../safety/crisis-classifier.js');
+const { detectCrisis } = await import('../../../safety/crisis-guard.js');
 const { quietAfterCrisis } = await import('../../../../agents/safety/crisis-quiet-window.js');
 const { signalGateDecisions } = await import('../../../../agents/safety/crisis-gate-signal.js');
 const { holdSession, resetMinorCare } = await import('../../../../utils/minor-care.js');
@@ -150,6 +154,66 @@ const settle = async (): Promise<void> => {
     await vi.dynamicImportSettled();
   }
 };
+// Fictional lines, written for this test: a fragment the hold waits on (it ends on "the"), then
+// the caller goes on. Only the classifier reads the whole line as risk; no pattern does.
+const HELD_FRAGMENT = 'do my sleeves need to be long enough to hide the';
+const HELD_LINE = `${HELD_FRAGMENT} marks`;
+/** The joined read: its flag, and the live classifier the hold needs (heldSession). */
+const JOINED_READ = {
+  CRISIS_GUARD_MODE: 'live',
+  CRISIS_CLASSIFIER_MODE: 'live',
+  CRISIS_READ_JOINED_TURN: 'on',
+};
+
+/**
+ * A live call as LiveKit hands it to the gate: the unfinished-turn hold installed, and the turn
+ * committed as a conversation_item_added. The classifier stand-in reads risk in the whole line
+ * only, and keeps every line it was asked about.
+ */
+class HeldCall extends EventEmitter {
+  readonly userData = { userId: UID, services: { sessionId: `session-held-${++n}` } };
+  readonly history = llm.ChatContext.empty();
+  readonly unfinishedTurnHoldMs = unfinishedTurnHoldMs;
+  readonly reads: string[] = [];
+  readonly generate = async (_prompt: string, content: string): Promise<string> => {
+    const { latest } = JSON.parse(content) as { latest: string };
+    this.reads.push(latest);
+    return latest.includes('the marks')
+      ? '{"risk":"crisis","subject":"self"}'
+      : '{"risk":"none","subject":"self"}';
+  };
+
+  commit(text: string): void {
+    const item = this.history.addMessage({ role: 'user', content: text });
+    this.emit('conversation_item_added', { item });
+  }
+
+  /** The preemptive request for an uncommitted final, through the real gate. */
+  ask(latest: string): Promise<ReadableStream<unknown> | null> {
+    return gatedReply(
+      request(latest),
+      this as never,
+      model as never,
+      { wrap: (s: ReadableStream<unknown>) => s } as never,
+      { env: JOINED_READ, generate: this.generate as never }
+    ) as Promise<ReadableStream<unknown> | null>;
+  }
+}
+
+/** A held turn: the fragment asked, then the whole line committed with no request of its own. */
+async function heldTurn(): Promise<{ said: string; reads: string[] }> {
+  resetCrisisClassifierCache();
+  const session = new HeldCall();
+  const reply = session.ask(HELD_FRAGMENT);
+  await settle();
+  session.commit(HELD_LINE);
+  const out = await reply;
+  let said = '';
+  for await (const chunk of out as unknown as AsyncIterable<unknown>) said += String(chunk);
+  await settle();
+  return { said, reads: session.reads };
+}
+
 const signalDocs = () => [...docs.entries()].filter(([path]) => path.startsWith(SIGNALS));
 const readable = () => pathFirestore(docs) as never;
 
@@ -284,37 +348,44 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     expect(signalDocs()).toHaveLength(1);
   });
 
-  // The flag's MEMORY_ONLY rows (crisis-flag-homes.ts). A held turn: a live session with the
-  // unfinished-turn hold installed, as crisis-read-joined-turn.ts looks for one.
-  const heldCall = () => ({
-    ...call(),
-    on: () => undefined,
-    off: () => undefined,
-    unfinishedTurnHoldMs: () => 300,
+  // The flag's MEMORY_ONLY rows (crisis-flag-homes.ts): a crisis-guided turn (the patterns, the
+  // 988 script) and a held turn (heldTurn: the joined read, crisis-read-joined-turn.ts).
+  it('the held turn: no pattern reads its line, and the hold waits on its fragment', () => {
+    expect(decisionFor(detectCrisis(HELD_FRAGMENT)).action).toBe('pass');
+    expect(decisionFor(detectCrisis(HELD_LINE)).action).toBe('pass');
+    expect(unfinishedTurnHoldMs(HELD_FRAGMENT)).toBeGreaterThan(0);
   });
 
   it('on a crisis-guided turn and a held turn, Ferni says what it says with the flag off', async () => {
-    const turns = async () => [await speak(call()), await speak(heldCall())];
+    const turns = async () => ({ guided: await speak(call()), held: await heldTurn() });
     vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'off');
     const off = await turns();
     await settle();
     expect(signalDocs()).toHaveLength(0); // off keeps nothing, so on starts from the same state
-    expect(off.every((said) => said.includes('988'))).toBe(true); // crisis turns, not the model
+    expect(off.guided).toContain('988'); // the crisis script, not the model
+    // Held: the classifier read only the whole line, once the caller went on (never the fragment)
+    expect(off.held.reads).toEqual([HELD_LINE]);
     vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'on');
-    expect(await turns()).toEqual(off);
+    const on = await turns();
+    expect(on.held.reads).toEqual([HELD_LINE]);
+    expect({ guided: on.guided, held: on.held.said }).toEqual({
+      guided: off.guided,
+      held: off.held.said,
+    });
     await settle(); // the records are written a tick later: let them land here, not in the next test
-    expect(signalDocs()).toHaveLength(2);
+    expect(signalDocs()).toHaveLength(2); // one per call: the script's, and the held read's guidance
   });
 
   it("what it keeps holds none of the caller's words, on a guided turn and a held turn", async () => {
     const seeded = new Set(docs.keys());
     await speak(call());
-    await speak(heldCall());
+    const held = await heldTurn();
     await settle();
+    expect(held.reads).toEqual([HELD_LINE]);
     const kept = [...docs.entries()].filter(([path]) => !seeded.has(path));
     expect(signalDocs()).toHaveLength(2); // one wordless crisis record per call
     const text = JSON.stringify(kept).toLowerCase();
-    for (const words of ['honestly', 'end my life', 'after this call'])
+    for (const words of ['honestly', 'end my life', 'after this call', 'sleeves', 'the marks'])
       expect(text, words).not.toContain(words);
   });
 
