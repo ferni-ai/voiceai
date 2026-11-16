@@ -25,8 +25,10 @@ Files:
 - `domain/apply-request.ts`: `validateApply`, what an apply request may ask
   for (switchable flags only, each to one of its modes, or reset). Its errors name the
   flag, never the submitted value. The one rule set: the adapter re-runs it too.
-- `domain/dev-agent-error.ts`: `DevAgentError`, the only error the LiveKit adapter
-  throws: method, HTTP status, Twirp `code`, error name, timed out. Never LiveKit's
+  Refuses `FLAG_SNAPSHOT` (`SNAPSHOT_FLAG`): the page reads that snapshot, so only lk
+  changes it.
+- `domain/dev-agent-error.ts`: `DevAgentError`, what the LiveKit adapter throws for
+  every LiveKit failure: method, HTTP status, Twirp `code`, error name, timed out. Never LiveKit's
   `msg`, an SDK message or a body. Log any DevAgent error with `loggableError`.
 - `ports/flag-store.ts`: `FlagStore` and `FlagChange`, the snapshot and audit
   trail contract.
@@ -46,8 +48,10 @@ Files:
   order: validate (400) → `occupiedRooms` (409 while anyone is on a call, since
   an update restarts the agent; best effort, not a lock: someone joining before
   the update is still dropped) → `updateFlags` → `appendChange`. A LiveKit
-  failure is 502 and is **never retried** (LiveKit may have applied and
-  restarted anyway); its text goes to the log, not the reply or the history.
+  failure is 502 and is **never retried**: a Twirp error response is "refused;
+  nothing changed" with its `code`; a timeout, network error or 2xx without
+  `success: true` is "may have applied and restarted the agent". Both are
+  recorded `failed`. LiveKit's text reaches neither the reply, the history nor the log.
   A failed history write after a good update is 200 with `auditWarning`.
 - Routes: `src/api/v1/admin/agent-flags.ts` (`GET /api/v1/admin/agent-flags`
   with `stale` and `pendingRestart`; still 200, stale with a `warning`, when the

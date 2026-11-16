@@ -3,15 +3,17 @@
  * "2. Server"): validate, refuse while anyone is on a dev call (an update restarts the agent
  * and drops live calls), update the agent's flag secrets, record what happened.
  *
- * A failed update is never retried. LiveKit can apply the secrets and restart the agent and
- * still report a failure, so a retry could restart it twice; the admin checks the snapshot
- * and decides. Error text from LiveKit goes to the log only, never into the reply or the
- * audit trail the page shows.
+ * A failed update is never retried. A Twirp error response means LiveKit refused it and
+ * nothing changed; a timeout, a network error or an unconfirmed answer means it may have
+ * applied and restarted the agent, so a retry could restart it twice. The reply says which,
+ * and the admin decides. LiveKit's text never reaches the reply, the audit trail or the log
+ * (domain/dev-agent-error.ts).
  *
  * @module config/agent-flags/use-cases/apply-flags
  */
 import { createLogger } from '../../../utils/safe-logger.js';
 import { validateApply, type ApplyRequest } from '../domain/apply-request.js';
+import { loggableError, refusalCode } from '../domain/dev-agent-error.js';
 import type { DevAgent } from '../ports/dev-agent.js';
 import type { FlagChange, FlagStore } from '../ports/flag-store.js';
 
@@ -21,7 +23,7 @@ export type ApplyResult =
   | { status: 200; appliedAt: string; auditWarning?: string }
   | { status: 400; errors: string[] }
   | { status: 409; rooms: OccupiedRooms }
-  | { status: 502; error: string };
+  | { status: 502; error: string; code?: string };
 
 export interface ApplyDeps {
   agent: DevAgent;
@@ -33,8 +35,9 @@ const log = createLogger({ module: 'apply-agent-flags' });
 
 const ROOMS_UNKNOWN =
   'Could not check the dev rooms for live calls, so nothing was changed. Try again shortly.';
-const UPDATE_FAILED =
-  'LiveKit did not confirm the update. It may still have applied and restarted the agent: check the flags before trying again.';
+const UPDATE_REFUSED = 'LiveKit refused the update; nothing changed';
+const UPDATE_UNCONFIRMED =
+  'LiveKit did not confirm; the update may have applied and restarted the agent';
 const NOT_RECORDED = 'The flags were updated, but the change could not be added to the history.';
 
 /** Appends the change; true when it was recorded. A failure is logged, never thrown. */
@@ -87,7 +90,7 @@ export async function applyAgentFlags(
   try {
     rooms = await deps.agent.occupiedRooms();
   } catch (error) {
-    log.error({ error }, 'Dev rooms not listed; agent flag update refused');
+    log.error({ error: loggableError(error) }, 'Dev rooms not listed; agent flag update refused');
     await record(deps.store, changeOf(request, actor, now(), 'failed', 'room check failed'));
     return { status: 502, error: ROOMS_UNKNOWN };
   }
@@ -101,11 +104,18 @@ export async function applyAgentFlags(
     await deps.agent.updateFlags(request);
   } catch (error) {
     log.error(
-      { error, set: Object.keys(request.set), reset: request.reset },
+      { error: loggableError(error), set: Object.keys(request.set), reset: request.reset },
       'Dev agent flag update failed; not retried'
     );
-    await record(deps.store, changeOf(request, actor, now(), 'failed', 'LiveKit update failed'));
-    return { status: 502, error: UPDATE_FAILED };
+    const code = refusalCode(error);
+    if (code) {
+      const detail = `LiveKit refused the update (${code})`;
+      await record(deps.store, changeOf(request, actor, now(), 'failed', detail));
+      return { status: 502, error: UPDATE_REFUSED, code };
+    }
+    const detail = 'LiveKit did not confirm the update';
+    await record(deps.store, changeOf(request, actor, now(), 'failed', detail));
+    return { status: 502, error: UPDATE_UNCONFIRMED };
   }
 
   const appliedAt = now();

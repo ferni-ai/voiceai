@@ -187,12 +187,17 @@ describe('updateFlags', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it('throws when LiveKit does not confirm the update', async () => {
-    const { rpc } = fakeRpc({ success: false, message: 'agent not found' });
+  it.each([
+    ['success false', { success: false, message: 'agent not found' }],
+    ['no success field', {}],
+  ])('throws, without the LiveKit message, when the answer has %s', async (_label, answer) => {
+    const { rpc } = fakeRpc(answer);
     const agent = liveKitDevAgent(ENV, rpc, noRooms);
-    await expect(agent.updateFlags({ set: { SOUND_CONDUCTOR: 'on' }, reset: [] })).rejects.toThrow(
-      /agent not found/
-    );
+    const err = await agent
+      .updateFlags({ set: { SOUND_CONDUCTOR: 'on' }, reset: [] })
+      .catch((e: unknown) => e);
+    expect(String(err)).toMatch(/CloudAgent\.UpdateAgentSecrets not confirmed/);
+    expect(dump(err)).not.toContain('agent not found');
   });
 });
 

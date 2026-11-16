@@ -519,6 +519,94 @@ describe('LiveKit error text stays out of the logs and the replies', () => {
   });
 });
 
+describe('POST /apply through the real adapter: what LiveKit answered decides the reply', () => {
+  const LEAK = 'fake-secret-do-not-leak-9002';
+  const BODY = { set: { SOUND_CONDUCTOR: 'on' }, reset: [] };
+  const REFUSED = 'LiveKit refused the update; nothing changed';
+  const UNCONFIRMED =
+    'LiveKit did not confirm; the update may have applied and restarted the agent';
+  const noRooms = { listRooms: async (): Promise<never[]> => [] };
+
+  beforeEach(() => {
+    logs.calls.length = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function applyAnswered(answer: () => Promise<Response>) {
+    const fetchFake = vi.fn(answer);
+    vi.stubGlobal('fetch', fetchFake);
+    const f = fakes();
+    const deps = { ...f.deps, agent: () => liveKitDevAgent(LIVEKIT_DEV_ENV, undefined, noRooms) };
+    const r = await call('POST', `${BASE}/apply`, deps, BODY);
+    return { ...r, fetches: fetchFake.mock.calls.length, changes: f.changes };
+  }
+
+  const json = (status: number, body: unknown) => async () =>
+    new Response(JSON.stringify(body), { status });
+
+  it('says nothing changed, with the code, when LiveKit answers a twirp error', async () => {
+    const r = await applyAnswered(json(400, { code: 'invalid_argument', msg: LEAK }));
+    expect(r.status).toBe(502);
+    expect(r.json).toEqual({ error: REFUSED, code: 'invalid_argument' });
+    expect(r.fetches).toBe(1);
+    expect(r.changes).toEqual([
+      expect.objectContaining({
+        result: 'failed',
+        detail: expect.stringContaining('invalid_argument'),
+      }),
+    ]);
+    expect(dump([logs.calls, r.json, r.changes])).not.toContain(LEAK);
+  });
+
+  it.each([
+    [
+      'times out',
+      async (): Promise<Response> => {
+        throw new globalThis.DOMException(`timed out ${LEAK}`, 'TimeoutError');
+      },
+    ],
+    [
+      'fails on the network',
+      async (): Promise<Response> => {
+        throw new TypeError(`fetch failed: ${LEAK}`);
+      },
+    ],
+    ['answers 2xx without success', json(200, {})],
+    ['answers success false', json(200, { success: false, message: LEAK })],
+    [
+      'answers 502 that is not JSON',
+      async () => new Response(`<html>${LEAK}</html>`, { status: 502 }),
+    ],
+  ])('says it may have applied when LiveKit %s, and does not retry', async (_label, answer) => {
+    const r = await applyAnswered(answer);
+    expect(r.status).toBe(502);
+    expect(r.json).toEqual({ error: UNCONFIRMED });
+    expect(r.fetches).toBe(1);
+    expect(r.changes).toEqual([expect.objectContaining({ result: 'failed' })]);
+    expect(dump([logs.calls, r.json, r.changes])).not.toContain(LEAK);
+  });
+
+  it('logs only the error name when any other dev agent fails the update with text', async () => {
+    const f = fakes();
+    vi.mocked(f.agent.updateFlags).mockRejectedValue(new Error(LEAK));
+    const r = await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(r).toMatchObject({ status: 502, json: { error: UNCONFIRMED } });
+    expect(logs.calls.length).toBeGreaterThanOrEqual(1);
+    expect(dump([logs.calls, r.json, f.changes])).not.toContain(LEAK);
+  });
+
+  it('logs only the error name when any other dev agent fails the room check with text', async () => {
+    const f = fakes({ rooms: new Error(LEAK) });
+    const r = await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(r.status).toBe(502);
+    expect(logs.calls.length).toBeGreaterThanOrEqual(1);
+    expect(dump([logs.calls, r.json, f.changes])).not.toContain(LEAK);
+  });
+});
+
 describe('the admin router', () => {
   it('sends /api/v1/admin/agent-flags here, so the prod server answers 404', async () => {
     process.env.DEPLOY_ENV = 'production';

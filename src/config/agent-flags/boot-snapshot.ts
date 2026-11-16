@@ -13,7 +13,7 @@ import { flagOn, type Env } from '../env-flag.js';
 import { isKnownDevDatabase } from '../firestore-database.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { FlagStore } from './ports/flag-store.js';
-import { buildFlagSnapshot } from './domain/snapshot.js';
+import { buildFlagSnapshot, SNAPSHOT_FLAG } from './domain/snapshot.js';
 
 const log = createLogger({ module: 'agent-flag-snapshot' });
 
@@ -22,7 +22,7 @@ export async function writeFlagSnapshotOnBoot(
   store?: FlagStore
 ): Promise<void> {
   try {
-    if (!isKnownDevDatabase(env) || !flagOn('FLAG_SNAPSHOT', env)) return;
+    if (!isKnownDevDatabase(env) || !flagOn(SNAPSHOT_FLAG, env)) return;
     const snapshot = buildFlagSnapshot(env, new Date(), env.BUILD_SHA?.trim() || null);
     // Firestore is loaded only when it will be written to, so prod's boot never pulls it in here.
     const target = store ?? (await import('./adapters/flag-store.js')).firestoreFlagStore();

@@ -2,10 +2,12 @@
  * What a POST /apply request to the dev switchboard may ask for
  * (docs/plans/2026-11-16-dev-flag-switchboard.md, "2. Server"): only switchable per-file
  * flags (agentFlags()), each set to one of its modes or reset to its default. Every other
- * agent secret is outside agentFlags() and so refused, with no denylist.
+ * agent secret is outside agentFlags() and so refused, with no denylist. FLAG_SNAPSHOT is
+ * refused too: the page reads the snapshot it turns on, so only lk changes it.
  *
  * @module config/agent-flags/domain/apply-request
  */
+import { SNAPSHOT_FLAG } from './snapshot.js';
 import { agentFlags, type SwitchableFlag } from './switchable.js';
 
 /** A word some flag reader acts on: one of a switchable flag's modes. */
@@ -27,6 +29,8 @@ const SWITCHABLE: ReadonlyMap<string, SwitchableFlag> = new Map(
     .map((f) => [f.name, f])
 );
 
+const NOT_FROM_PAGE = `${SNAPSHOT_FLAG} is managed with lk, not from the page`;
+
 function switchableFlag(name: string): SwitchableFlag | undefined {
   return SWITCHABLE.get(name);
 }
@@ -41,7 +45,9 @@ function checkSet(raw: unknown, errors: string[]): Record<string, FlagValue> {
   for (const [name, value] of Object.entries(raw)) {
     const flag = switchableFlag(name);
     const mode = flag?.modes.find((m) => m === value);
-    if (!flag) {
+    if (name === SNAPSHOT_FLAG) {
+      errors.push(NOT_FROM_PAGE);
+    } else if (!flag) {
       errors.push(`${name} is not a switchable agent flag`);
     } else if (!mode) {
       // Never echo the value: an admin may have pasted a secret into the wrong field.
@@ -63,6 +69,8 @@ function checkReset(raw: unknown, errors: string[]): string[] {
   for (const name of raw as unknown[]) {
     if (typeof name !== 'string') {
       errors.push('reset must be a list of flag names');
+    } else if (name === SNAPSHOT_FLAG) {
+      errors.push(NOT_FROM_PAGE);
     } else if (!switchableFlag(name)) {
       errors.push(`${name} is not a switchable agent flag`);
     } else if (reset.includes(name)) {

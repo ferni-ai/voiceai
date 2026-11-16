@@ -10,11 +10,12 @@
  * project cannot build this adapter, so its key and rooms are never used here. Rooms are
  * always listed on the dev host. It checks the URL, not the key.
  * Only switchable per-file flags (agentFlags()) are ever sent, checked here again with
- * validateApply even though the routes validated first, and every update merges (overwrite: false), because
- * overwrite: true replaces all ~300 of the agent's secrets. Reads keep only flag names.
- * Listing the rooms gives up after 10 s, so a hung room service cannot hold a request open.
- * Every error thrown is a DevAgentError (domain/dev-agent-error.ts): method, status, Twirp
- * code and error name only, never LiveKit's text.
+ * validateApply even though the routes validated first, and every update merges
+ * (overwrite: false), because overwrite: true replaces all ~300 of the agent's secrets.
+ * Reads keep only flag names. Listing the rooms gives up after 10 s, so a hung room service
+ * cannot hold a request open. Every LiveKit failure is thrown as a DevAgentError
+ * (domain/dev-agent-error.ts): method, status, Twirp code and error name only, never
+ * LiveKit's text.
  *
  * The Cloud Agent API is Twirp on agents.livekit.cloud (not the project host), with an
  * `agent: { admin: true }` grant and an X-LIVEKIT-CLI-VERSION header the server requires.
@@ -179,10 +180,9 @@ export function liveKitDevAgent(
         })),
         remove: [...req.reset],
       });
+      // A 2xx without success: true may still have applied, so it is not a refusal.
       if (!isRecord(response) || response.success !== true) {
-        const message =
-          isRecord(response) && typeof response.message === 'string' ? response.message : '';
-        throw new Error(`CloudAgent.UpdateAgentSecrets not confirmed: ${message || 'no message'}`);
+        throw new DevAgentError('not confirmed', { method: 'CloudAgent.UpdateAgentSecrets' });
       }
       log.info(
         { set: Object.keys(req.set), reset: req.reset },

@@ -13,6 +13,18 @@ describe('validateApply', () => {
     return result.ok ? [] : result.errors;
   };
 
+  it('refuses FLAG_SNAPSHOT in set and in reset: lk manages it, not the page', () => {
+    for (const body of [
+      { set: { FLAG_SNAPSHOT: 'off' }, reset: [] },
+      { set: { FLAG_SNAPSHOT: 'on' }, reset: [] },
+      { set: {}, reset: ['FLAG_SNAPSHOT'] },
+    ]) {
+      expect(refuses(body)).toEqual(['FLAG_SNAPSHOT is managed with lk, not from the page']);
+    }
+    // Still a switchable per-file flag; only the page may not change it.
+    expect(validateApply({ set: { SOUND_CONDUCTOR: 'on' }, reset: [] }).ok).toBe(true);
+  });
+
   it('refuses a real agent secret that is not a flag file', () => {
     expect(refuses({ set: { CARTESIA_MODEL: 'on' }, reset: [] })).toEqual([
       'CARTESIA_MODEL is not a switchable agent flag',
