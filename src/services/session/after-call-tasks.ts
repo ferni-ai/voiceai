@@ -17,7 +17,7 @@
  */
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { sexualReadsSettled } from '../../utils/sexual-topic-hold.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
@@ -125,8 +125,9 @@ export function runAfterCallTasks(ctx: AfterCallContext): void {
 function startAfterCallTasks(ctx: AfterCallContext, afterReadMs?: number): void {
   const late = afterReadMs !== undefined ? { afterReadMs } : {};
   // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept;
-  // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic.
-  if (memoryHeld(ctx.sessionId)) {
+  // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic. A caller held on another
+  // call (userHeld) is held here too.
+  if (memoryHeld(ctx.sessionId) || userHeld(ctx.userId)) {
     log.info({ sessionId: ctx.sessionId, skipped: tasks.size, ...late }, 'After-call tasks held');
     return;
   }
