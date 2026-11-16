@@ -20,6 +20,8 @@
  * Paths are checked where they really lead, before anything is written: a plant or test on a
  * held-out, sealed, blind, corpus or fixture path, outside the checkout, or reached through a
  * symbolic link anywhere in the path, is refused. A test path that names no file is refused.
+ * A plant is restored with `git checkout`, so its file must be one git tracks: a file under .git,
+ * or one git does not track (an ignored or generated file), is refused before it is written.
  * vitest reads a file argument as a filter (a substring of each included path, and an absolute
  * one also as a prefix), so one argument can run other files: every run must be exactly the
  * requested test file, judged by the realpath of each module the reporter saw, or it is
@@ -78,6 +80,8 @@ export type Verdict =
   | 'REFUSED (sealed path)'
   | 'REFUSED (outside repo)'
   | 'REFUSED (link)'
+  | 'REFUSED (git dir)'
+  | 'REFUSED (untracked)'
   | 'REFUSED (no test file)'
   | 'REFUSED (other test files)'
   | 'REFUSED (child processes left)'
@@ -157,6 +161,22 @@ export function pathVerdict(realRoot: string, rel: string): Verdict | null {
     if (isLink) return 'REFUSED (link)';
   }
   return null;
+}
+
+/**
+ * Refuses a planted file that `git checkout` could not restore. A path with a .git part (any
+ * case) is refused first: git never tracks one, and the check stays explicit. Otherwise the file
+ * must be in git's index under exactly this spelling; an ignored file, a generated one or a
+ * directory is not, and would be written and then left in place.
+ */
+export function trackedVerdict(realRoot: string, rel: string): Verdict | null {
+  const parts = normalize(rel).split(sep).filter(Boolean);
+  if (parts.some((part) => part.toLowerCase() === '.git')) return 'REFUSED (git dir)';
+  const listed = execFileSync('git', ['--literal-pathspecs', 'ls-files', '-z', '--', rel], {
+    cwd: realRoot,
+    encoding: 'utf8',
+  }).split('\0');
+  return listed.includes(parts.join('/')) ? null : 'REFUSED (untracked)';
 }
 
 /**
@@ -252,14 +272,14 @@ const clean = (root: string) => git(root, ['status', '--porcelain']).trim() === 
  * group is killed before the planted file is restored. Each registration returns its removal.
  */
 const aborts: Array<() => void> = [];
-function onAbort(fn: () => void): () => void {
+export function onAbort(fn: () => void): () => void {
   aborts.push(fn);
   return () => {
     const at = aborts.lastIndexOf(fn);
     if (at !== -1) aborts.splice(at, 1);
   };
 }
-function abortAll(): void {
+export function abortAll(): void {
   for (const fn of aborts.splice(0).reverse()) {
     try {
       fn();
@@ -292,6 +312,7 @@ export async function runPlants(
     }
     const refused =
       pathVerdict(realRoot, p.file) ??
+      trackedVerdict(realRoot, p.file) ??
       pathVerdict(realRoot, p.test) ??
       (existsSync(join(realRoot, p.test)) ? null : 'REFUSED (no test file)');
     if (refused) {

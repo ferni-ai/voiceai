@@ -20,9 +20,11 @@ import { tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  abortAll,
   formatResults,
   isSealedPath,
   judge,
+  onAbort,
   parseManifest,
   parsePlantReport,
   ranExactly,
@@ -31,6 +33,7 @@ import {
   runPlants,
   vitestRunner,
   type Plant,
+  type Result,
   type RunTest,
   type TestReport,
 } from '../run-plants.js';
@@ -358,6 +361,25 @@ describe('runPlants verdicts', () => {
     const { run } = fake(root, [{ when: "'$&'", fail: BLANK }]);
     expect((await runPlants([plant({ replace: "=== '$&'" })], root, run))[0].verdict).toBe('RED');
   });
+
+  it('a stop signal mid-plant kills the running group before it restores the planted file', async () => {
+    const root = repo();
+    let atKill = '';
+    // The planted run registers its group kill the way runInGroup does, then the runner is
+    // stopped: the kill must run while the plant is still in place, and the restore after it.
+    const { run } = fake(root, [breaksBlank], (text) => {
+      if (!text.includes("!== ''")) return;
+      const off = onAbort(() => {
+        atKill = readFileSync(join(root, 'src/calc.ts'), 'utf8');
+      });
+      abortAll();
+      off();
+    });
+    expect((await runPlants([plant()], root, run))[0].verdict).toBe('RED');
+    expect(atKill).toContain("!== ''");
+    expect(readFileSync(join(root, 'src/calc.ts'), 'utf8')).toBe(SOURCE);
+    expect(status(root)).toBe('');
+  });
 });
 
 describe('ranExactly: the run must be the requested test file and nothing else', () => {
@@ -527,6 +549,56 @@ describe('paths are judged by where they lead, not by their name', () => {
     const { run } = fake(root, [breaksBlank]);
     expect((await runPlants([plant()], viaLink, run))[0].verdict).toBe('RED');
     expect(readFileSync(join(root, 'src/calc.ts'), 'utf8')).toBe(SOURCE);
+  });
+});
+
+describe('a file git checkout could not restore is refused before it is written', () => {
+  // Each row plants the refused file first and an ordinary one after it: the run must carry on,
+  // with no throw (a restore of a file git does not track throws, and the runner exits 2).
+  it('a gitignored file is REFUSED (untracked), its bytes unchanged, and the run ends normally', async () => {
+    const root = repo({ 'src/calc.ts': SOURCE, [TEST]: '// fake\n', '.gitignore': 'gen/\n' });
+    mkdirSync(join(root, 'gen'));
+    writeFileSync(join(root, 'gen/flags.ts'), SOURCE);
+    const { run, calls } = fake(root, [breaksBlank]);
+    let thrown: unknown;
+    const results = await runPlants(
+      [plant({ id: 'ignored', file: 'gen/flags.ts' }), plant({ id: 'after' })],
+      root,
+      run
+    ).catch((e: unknown) => {
+      thrown = e;
+      return [] as Result[];
+    });
+    expect(thrown).toBeUndefined();
+    expect(results.map((r) => r.verdict)).toEqual(['REFUSED (untracked)', 'RED']);
+    expect(calls).toEqual([TEST, TEST]); // the second plant's baseline and run only
+    expect(readFileSync(join(root, 'gen/flags.ts'), 'utf8')).toBe(SOURCE);
+    expect(status(root)).toBe('');
+  });
+
+  it('a file under .git is REFUSED (git dir), its bytes unchanged, and the run ends normally', async () => {
+    const root = repo();
+    const config = join(root, '.git/config');
+    const before = readFileSync(config, 'utf8');
+    const { run, calls } = fake(root, [breaksBlank]);
+    const gitdir = plant({
+      id: 'gitdir',
+      file: '.git/config',
+      find: '[core]',
+      replace: '[core]\n\tbare = true',
+    });
+    let thrown: unknown;
+    const results = await runPlants([gitdir, plant({ id: 'after' })], root, run).catch(
+      (e: unknown) => {
+        thrown = e;
+        return [] as Result[];
+      }
+    );
+    expect(thrown).toBeUndefined();
+    expect(results.map((r) => r.verdict)).toEqual(['REFUSED (git dir)', 'RED']);
+    expect(calls).toEqual([TEST, TEST]);
+    expect(readFileSync(config, 'utf8')).toBe(before);
+    expect(status(root)).toBe('');
   });
 });
 
@@ -755,6 +827,19 @@ describe('each run leads its own process group, emptied before runInGroup return
   it('a command that exits and leaves a sleeping grandchild ends with the group empty', async () => {
     const { result, pgid, cleanup } = await inGroup(
       'echo $$ > pgid; sleep 300 & echo $! > kids; exit 0',
+      30_000
+    );
+    try {
+      expect(result).toEqual({ timedOut: false, strays: 1, leftover: 0 });
+      expect(gone(-pgid)).toBe(true);
+    } finally {
+      cleanup();
+    }
+  }, 30_000);
+
+  it('a grandchild that ignores TERM, left after its leader exits, gets KILL and nothing survives', async () => {
+    const { result, pgid, cleanup } = await inGroup(
+      "echo $$ > pgid; (trap '' TERM; exec sleep 300) & echo $! > kids; exit 0",
       30_000
     );
     try {
