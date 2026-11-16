@@ -39,7 +39,7 @@ describe('guestDisplayName', () => {
 
   it('keeps a one- or two-word name in a single script', () => {
     expect(guestDisplayName('María José', 'Seth')).toBe('María José');
-    expect(guestDisplayName('李小龍', 'Seth')).toBe('李小龍');
+    expect(guestDisplayName('王小明', 'Seth')).toBe('王小明');
     expect(guestDisplayName('Дмитрий', 'Seth')).toBe('Дмитрий');
     expect(guestDisplayName('देवी', 'Seth')).toBe('देवी');
   });
@@ -47,7 +47,7 @@ describe('guestDisplayName', () => {
   it('treats Japanese (kanji with kana) and Korean (hanja with hangul) as one script each', () => {
     expect(guestDisplayName('佐藤 さくら', 'Seth')).toBe('佐藤 さくら');
     expect(guestDisplayName('サクラ', 'Seth')).toBe('サクラ');
-    expect(guestDisplayName('李小龍', 'Seth')).toBe('李小龍');
+    expect(guestDisplayName('王小明', 'Seth')).toBe('王小明');
     expect(guestDisplayName('金민수', 'Seth')).toBe('金민수');
     expect(guestDisplayName('Sarah 佐藤', 'Seth')).toBe('the guest');
     expect(guestDisplayName('さくら 민수', 'Seth')).toBe('the guest');
