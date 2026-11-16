@@ -41,6 +41,7 @@ import { isOnBehalfCall } from '../shared/outbound-opener.js';
 import { roomOutputOptions } from './room-output-options.js';
 import { markCallStageSoon } from '../../services/analytics/call-start-stages.js';
 import { sessionRecording } from '../shared/session-recording.js';
+import { attachGroupHearing } from '../group-conversation/group-hearing.js';
 
 const log = getLogger();
 
@@ -247,6 +248,18 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         record: context.isHandoff ? false : sessionRecording(),
         ...roomOutputOptions(), // OUTPUT_QUEUE_MS: the room audio queue (room-output-options.ts)
       });
+      // GROUP_CALL: a guest joins the mix (group-hearing.ts). Handoffs keep this session.
+      const detachHearing = attachGroupHearing({
+        session: agentSetup.session,
+        agent: agentSetup.agent,
+        room: context.room,
+        ownerIdentity: context.userParticipant.identity,
+        sessionId,
+      });
+      personaAgent.cleanup = async () => {
+        detachHearing();
+        await agentSetup.cleanup();
+      };
       mark('session_started');
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
 
