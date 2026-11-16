@@ -322,7 +322,10 @@ async function handleGetInsights(
         buildRelationship({ firstContact: together.firstAt, totalConversations: together.count })
       )
       .catch((err) => {
-        log.warn({ userId, error: String(err) }, 'Failed to count sessions together - no relationship card');
+        log.warn(
+          { userId, error: String(err) },
+          'Failed to count sessions together - no relationship card'
+        );
         return undefined;
       });
 

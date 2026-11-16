@@ -112,7 +112,13 @@ describe('buildRelationship milestones', () => {
   });
 
   it('never counts showing up or exclaims (brand: no gamified counts, at most one "!")', () => {
-    for (const [days, n] of [[3, 120], [400, 900], [10, 60], [45, 12], [8, 2]] as const) {
+    for (const [days, n] of [
+      [3, 120],
+      [400, 900],
+      [10, 60],
+      [45, 12],
+      [8, 2],
+    ] as const) {
       const line = buildRelationship(profile(days, n), now)?.milestone ?? '';
       expect(line).not.toMatch(/!|\d+\+? conversations/);
     }
