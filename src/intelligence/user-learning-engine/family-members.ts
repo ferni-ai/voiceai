@@ -32,6 +32,8 @@ const FAMILY_WORDS = [
   'cousin',
   'niece',
   'nephew',
+  'kid',
+  'child',
 ];
 
 /**

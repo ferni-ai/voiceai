@@ -144,6 +144,11 @@ describe('Fast Capture', () => {
       expect(people).toEqual(expect.arrayContaining(['brother', 'Jason', 'Priya']));
     });
 
+    it('catches Priya in "I met with Priya"', () => {
+      const people = detectEntityMentions('I met with Priya today.').map((m) => m.name);
+      expect(people).toContain('Priya');
+    });
+
     it('quotes the words around "son" itself, not around ja-SON', () => {
       const said = 'Jason from the office keeps calling about the late report, and my son is sick.';
       const son = detectEntityMentions(said).find((m) => m.name === 'son');

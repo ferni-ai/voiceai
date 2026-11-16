@@ -60,6 +60,17 @@ describe('family members from what the caller said', () => {
     expect(familyFrom('my mom was upset with me')).toEqual([]);
   });
 
+  it('files "my kid Jason" as a kid, not a son by accident', () => {
+    expect(familyFrom('my kid Jason loves trains')).toEqual([
+      { relationship: 'kid', name: 'Jason' },
+    ]);
+  });
+
+  it('takes no sentence opener for a name in "Honestly, my wife was right"', () => {
+    expect(familyFrom('Honestly, my wife was right')).toEqual([]);
+    expect(familyFrom('Anyway, my son starts Monday')).toEqual([]);
+  });
+
   it('keeps no "how is X doing" detail for a non-name', () => {
     const names = extractSmallDetails('my dad is fine and my wife was there').map((d) => d.value);
     expect(names).not.toContain('is');

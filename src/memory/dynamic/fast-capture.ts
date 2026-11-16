@@ -421,7 +421,7 @@ function detectEntityMentions(transcript: string): EntityMention[] {
       3,
     ],
     [
-      /\b(?:talked?\s+to|called|texted|met|met\s+with|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi,
+      /\b(?:talked?\s+to|called|texted|met\s+with|met|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi,
       0.75,
       3,
     ],

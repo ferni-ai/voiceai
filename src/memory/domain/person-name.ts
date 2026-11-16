@@ -70,7 +70,7 @@ export function couldBePerson(name: string): boolean {
 
 /** Capitalized words that start a clause and are never someone's name. */
 const CLAUSE_WORDS = new Set(
-  'the a an this that it my we they he she you i with said told asked met saw called texted spoke today yesterday tomorrow monday tuesday wednesday thursday friday saturday sunday morning afternoon evening night week month year then when where what who how why but and or so just really very here there now later soon again next last first good great nice new old some many few'.split(
+  'the a an this that it my we they he she you i with said told asked met saw called texted spoke today yesterday tomorrow monday tuesday wednesday thursday friday saturday sunday morning afternoon evening night week month year then when where what who how why but and or so just really very here there now later soon again next last first good great nice new old some many few honestly anyway actually basically also though'.split(
     ' '
   )
 );
