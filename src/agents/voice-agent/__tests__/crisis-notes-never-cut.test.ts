@@ -340,8 +340,9 @@ describe('crisis guidance survives the pushed-context cut (#2618)', () => {
 describe('the crisis override has the final word', () => {
   const SHORT_SAFETY: Injection = { ...SAFETY, content: '[SAFETY] Stay with them.' };
   // Every note the turn can append after the override is written, on at once (turn-handler.ts).
+  const LATE_NIGHT = 'late_night_detected';
   const LATE_NOTES = [
-    'late_night_detected', // behavior events, 23:00-05:00 (behavior-event-dispatcher.ts)
+    LATE_NIGHT, // behavior events, 23:00-05:00 (behavior-event-dispatcher.ts)
     '[CONTEXT]', // injectTurnContext, the other injections
     '[INTERNAL CONTEXT - DO NOT SPEAK THIS]', // extensibility session prompt
     '[INTERNAL BRIEFING - DO NOT SPEAK THIS]', // pre-session briefing
@@ -351,47 +352,62 @@ describe('the crisis override has the final word', () => {
     'ask for their phone number', // phone-number ask
   ];
 
-  it('is the last block of the turn and of the pushed note at 00:30, every late note before it', async () => {
-    vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
-    vi.setSystemTime(new Date(2026, 10, 9, 0, 30, 0));
-    state.phoneAsk = true;
-    try {
-      const suggestedResponse = 'I am really glad you told me. Please call or text 988 right now.';
-      // Small notes, so the pushed note's cap cuts none of them and every one can be checked.
-      const s: Scenario = {
-        name: 'override-last',
-        kept: [SHORT_SAFETY, { ...CONTEXT, content: '[CONTEXT] They called from work.' }],
-        memories: [],
-        crisis: { isCrisis: true, shouldOverrideLLM: true, suggestedResponse },
-      };
-      const { scratchNotes, body } = await run(s, 'I have the pills right here', {
-        turnCount: 0,
-        extensibilitySessionPrompt: 'Session prompt.',
-        preSessionBriefing: 'Returning caller.',
-        greetingText: 'Hey, good to hear you.',
-        calendarAwareness: 'Dentist tomorrow at nine.',
-      });
-      const override = '[CRITICAL SAFETY OVERRIDE]';
-      // The turn's context, as the real handleUserTurn leaves it: every late note was appended
-      // after the override was written, so this turn is the case the pushed note must reorder.
-      const overrideAt = scratchNotes.findIndex((text) => text.startsWith(override));
-      expect(overrideAt).toBeGreaterThanOrEqual(0);
-      for (const note of LATE_NOTES) {
+  // The turn reads the hour from the process clock (turn-handler.ts hourOfDay); the late-night
+  // note is on from 23:00 to 05:00 (behavior-event-dispatcher.ts). Every hour of the day runs.
+  const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+  const lateNight = (hour: number): boolean => hour >= 23 || hour < 5;
+
+  it.each(HOURS)(
+    'is the last block of the turn and of the pushed note at %i:30, every late note before it',
+    async (hour) => {
+      vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 10, 9, hour, 30, 0));
+      state.phoneAsk = true;
+      try {
+        const suggestedResponse =
+          'I am really glad you told me. Please call or text 988 right now.';
+        // Small notes, so the pushed note's cap cuts none of them and every one can be checked.
+        const s: Scenario = {
+          name: 'override-last',
+          kept: [SHORT_SAFETY, { ...CONTEXT, content: '[CONTEXT] They called from work.' }],
+          memories: [],
+          crisis: { isCrisis: true, shouldOverrideLLM: true, suggestedResponse },
+        };
+        const { scratchNotes, body } = await run(s, 'I have the pills right here', {
+          turnCount: 0,
+          extensibilitySessionPrompt: 'Session prompt.',
+          preSessionBriefing: 'Returning caller.',
+          greetingText: 'Hey, good to hear you.',
+          calendarAwareness: 'Dentist tomorrow at nine.',
+        });
+        const override = '[CRITICAL SAFETY OVERRIDE]';
+        // The turn's context, as the real handleUserTurn leaves it: every late note was appended
+        // after the override was written, so this turn is the case the pushed note must reorder.
+        const overrideAt = scratchNotes.findIndex((text) => text.startsWith(override));
+        expect(overrideAt).toBeGreaterThanOrEqual(0);
+        // The late-night note is there exactly in its band, so the night hours test the reorder.
         expect(
-          scratchNotes.findIndex((text) => text.includes(note)),
-          note
-        ).toBeGreaterThan(overrideAt);
+          scratchNotes.some((text) => text.includes(LATE_NIGHT)),
+          `late-night note at ${hour}:30`
+        ).toBe(lateNight(hour));
+        const late = LATE_NOTES.filter((note) => note !== LATE_NIGHT || lateNight(hour));
+        for (const note of late) {
+          expect(
+            scratchNotes.findIndex((text) => text.includes(note)),
+            note
+          ).toBeGreaterThan(overrideAt);
+        }
+        // The pushed note the next reply reads: nothing follows "Do NOT deviate".
+        expect(body.endsWith(`REQUIRED RESPONSE:\n${suggestedResponse}`)).toBe(true);
+        expect(body.length).toBeLessThan(MAX_PUSHED_CONTEXT_CHARS);
+        for (const note of [...late, SHORT_SAFETY.content]) {
+          expect(body.indexOf(note), note).toBeGreaterThanOrEqual(0);
+          expect(body.indexOf(note), note).toBeLessThan(body.indexOf(override));
+        }
+      } finally {
+        state.phoneAsk = false;
+        vi.useRealTimers();
       }
-      // The pushed note the next reply reads: nothing follows "Do NOT deviate".
-      expect(body.endsWith(`REQUIRED RESPONSE:\n${suggestedResponse}`)).toBe(true);
-      expect(body.length).toBeLessThan(MAX_PUSHED_CONTEXT_CHARS);
-      for (const note of [...LATE_NOTES, SHORT_SAFETY.content]) {
-        expect(body.indexOf(note), note).toBeGreaterThanOrEqual(0);
-        expect(body.indexOf(note), note).toBeLessThan(body.indexOf(override));
-      }
-    } finally {
-      state.phoneAsk = false;
-      vi.useRealTimers();
     }
-  });
+  );
 });
