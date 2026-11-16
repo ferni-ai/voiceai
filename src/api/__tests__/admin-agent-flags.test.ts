@@ -21,6 +21,27 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   requireAdmin: auth.requireAdmin,
 }));
 
+/** Every line the switchboard logs, so a test can check what reached the logs. */
+const logs = vi.hoisted(() => ({ calls: [] as unknown[][] }));
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../utils/safe-logger.js')>();
+  const at =
+    (level: string) =>
+    (...args: unknown[]): void => {
+      logs.calls.push([level, ...args]);
+    };
+  function logger(): ReturnType<typeof real.createLogger> {
+    return {
+      debug: at('debug'),
+      info: at('info'),
+      warn: at('warn'),
+      error: at('error'),
+      child: logger,
+    };
+  }
+  return { ...real, createLogger: logger };
+});
+
 import { handleAdminAgentFlagsRoutes, type AgentFlagsDeps } from '../v1/admin/agent-flags.js';
 
 const BASE = '/api/v1/admin/agent-flags';
@@ -284,6 +305,22 @@ describe('GET /api/v1/admin/agent-flags', () => {
     });
   });
 
+  it.each([
+    ['LIVEKIT_URL is the prod project', { LIVEKIT_URL: 'wss://prod-x.livekit.cloud' }],
+    ['LIVEKIT_API_SECRET is missing', { LIVEKIT_API_SECRET: undefined }],
+  ])(
+    'still shows the flags, as stale with a warning, when %s and no adapter can be built',
+    async (_label, env) => {
+      const f = fakes();
+      const deps = { ...f.deps, agent: () => liveKitDevAgent({ ...LIVEKIT_DEV_ENV, ...env }) };
+      const r = await call('GET', BASE, deps);
+      expect(r.status).toBe(200);
+      expect(r.json).toMatchObject({ snapshot: SNAPSHOT, stale: true, pendingRestart: [] });
+      expect(String(r.json.warning)).toMatch(/LiveKit settings/);
+      expect((r.json.flags as unknown[]).length).toBe(agentFlags().length);
+    }
+  );
+
   it('still shows the flags, as stale with a warning, when LiveKit cannot be read', async () => {
     const f = fakes({ times: new Error('CloudAgent.ListAgentSecrets failed: HTTP 503') });
     const r = await call('GET', BASE, f.deps);
@@ -340,6 +377,65 @@ describe('GET /api/v1/admin/agent-flags/rooms', () => {
     expect((await call('POST', `${BASE}/apply`, f.deps, { set: {}, reset: [] })).status).toBe(404);
     expect((await call('GET', `${BASE}/nope`, f.deps)).status).toBe(404);
     expect(f.agent.occupiedRooms).not.toHaveBeenCalled();
+  });
+});
+
+/** Every field of every logged value, Errors' message, stack and cause included, as text. */
+function dump(value: unknown): string {
+  return JSON.stringify(value, (_key, v: unknown) =>
+    v instanceof Error
+      ? { ...v, name: v.name, message: v.message, stack: v.stack, cause: v.cause }
+      : v
+  );
+}
+
+describe('LiveKit error text stays out of the logs and the replies', () => {
+  const LEAK = 'fake-secret-do-not-leak-9002';
+
+  beforeEach(() => {
+    logs.calls.length = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('logs only the method, status, twirp code and error name from the real adapter', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () => new Response(JSON.stringify({ code: 'internal', msg: LEAK }), { status: 500 })
+      )
+    );
+    const failingRooms = {
+      listRooms: async (): Promise<never> => {
+        throw new Error(`twirp error: ${LEAK}`);
+      },
+    };
+    const f = fakes();
+    const deps = {
+      ...f.deps,
+      agent: () => liveKitDevAgent(LIVEKIT_DEV_ENV, undefined, failingRooms),
+    };
+    const flags = await call('GET', BASE, deps);
+    const rooms = await call('GET', `${BASE}/rooms`, deps);
+    expect([flags.status, rooms.status]).toEqual([200, 502]);
+    const logged = dump(logs.calls);
+    // The failures were logged, by method and code, so the check below can fail.
+    expect(logged).toContain('CloudAgent.ListAgentSecrets');
+    expect(logged).toContain('internal');
+    expect(logged).toContain('RoomService.ListRooms');
+    expect(logged).not.toContain(LEAK);
+    expect(dump([flags.json, rooms.json])).not.toContain(LEAK);
+  });
+
+  it('logs only the error name when any other dev agent fails with text', async () => {
+    const f = fakes({ times: new Error(LEAK), rooms: new Error(LEAK) });
+    const flags = await call('GET', BASE, f.deps);
+    const rooms = await call('GET', `${BASE}/rooms`, f.deps);
+    expect([flags.status, rooms.status]).toEqual([200, 502]);
+    expect(logs.calls.length).toBeGreaterThanOrEqual(2);
+    expect(dump(logs.calls)).not.toContain(LEAK);
   });
 });
 

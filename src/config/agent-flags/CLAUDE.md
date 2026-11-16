@@ -22,6 +22,9 @@ Files:
 - `domain/snapshot.ts`: `buildFlagSnapshot` (raw + resolved per flag),
   `isSnapshotStale` (no snapshot, or a flag secret changed after the worker started)
   and `flagsPendingRestart` (the switchable flags whose secret changed since then).
+- `domain/dev-agent-error.ts`: `DevAgentError`, the only error the LiveKit adapter
+  throws: method, HTTP status, Twirp `code`, error name, timed out. Never LiveKit's
+  `msg`, an SDK message or a body. Log any DevAgent error with `loggableError`.
 - `ports/flag-store.ts`: `FlagStore` and `FlagChange`, the snapshot and audit
   trail contract.
 - `ports/dev-agent.ts`: `DevAgent`, the dev voice agent as the switchboard sees
@@ -36,7 +39,8 @@ Files:
   Throws unless the env names `ferni-dev` exactly, before opening Firestore.
   `recentChanges` clamps its limit to 1..100.
 - Routes: `src/api/v1/admin/agent-flags.ts` (`GET /api/v1/admin/agent-flags`
-  with `stale` and `pendingRestart`, `GET …/rooms`, 502 when the rooms fail),
+  with `stale` and `pendingRestart`; still 200, stale with a `warning`, when the
+  LiveKit adapter cannot be built or read; `GET …/rooms`, 502 when the rooms fail),
   routed from `src/api/v1/admin/index.ts`.
   Every path is a 404 unless `DEPLOY_ENV` is exactly `dev`, before auth and
   before an adapter is built; adapters are built per request from this

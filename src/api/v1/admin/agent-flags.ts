@@ -17,9 +17,11 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { firestoreFlagStore } from '../../../config/agent-flags/adapters/flag-store.js';
 import { liveKitDevAgent } from '../../../config/agent-flags/adapters/livekit-dev-agent.js';
+import { loggableError } from '../../../config/agent-flags/domain/dev-agent-error.js';
 import {
   flagsPendingRestart,
   isSnapshotStale,
+  type FlagSnapshot,
 } from '../../../config/agent-flags/domain/snapshot.js';
 import { agentFlags } from '../../../config/agent-flags/domain/switchable.js';
 import type { DevAgent } from '../../../config/agent-flags/ports/dev-agent.js';
@@ -34,6 +36,8 @@ const BASE_PATH = '/api/v1/admin/agent-flags';
 const CHANGES_SHOWN = 20;
 const TIMES_UNKNOWN =
   "Could not read when the dev agent's flags last changed, so these values may be out of date.";
+const AGENT_UNREACHABLE =
+  "This server's LiveKit settings are missing or not the dev project's, so these values may be out of date.";
 const ROOMS_UNKNOWN = 'Could not list the dev rooms. Try again shortly.';
 
 /** How the routes reach the dev agent and the flag store; tests pass fakes. */
@@ -47,31 +51,44 @@ const LIVE_DEPS: AgentFlagsDeps = {
   store: () => firestoreFlagStore(),
 };
 
+type RestartState = { stale: boolean; pendingRestart: string[]; warning?: string };
+
+/** Whether the snapshot is stale, from LiveKit; stale with a warning when LiveKit fails. */
+async function restartState(
+  deps: AgentFlagsDeps,
+  snapshot: FlagSnapshot | null
+): Promise<RestartState> {
+  let agent: DevAgent;
+  try {
+    agent = deps.agent();
+  } catch (error) {
+    log.warn({ error: loggableError(error) }, 'Dev agent not built; showing the flags as stale');
+    return { stale: true, pendingRestart: [], warning: AGENT_UNREACHABLE };
+  }
+  try {
+    const times = await agent.flagSecretTimes();
+    return {
+      stale: isSnapshotStale(snapshot, times),
+      pendingRestart: flagsPendingRestart(snapshot, times),
+    };
+  } catch (error) {
+    const fields = { error: loggableError(error) };
+    log.warn(fields, 'Dev agent flag secret times not read; showing the flags as stale');
+    return { stale: true, pendingRestart: [], warning: TIMES_UNKNOWN };
+  }
+}
+
 async function sendFlags(res: ServerResponse, deps: AgentFlagsDeps): Promise<void> {
-  const agent = deps.agent();
   const store = deps.store();
   const [snapshot, changes] = await Promise.all([
     store.readSnapshot(),
     store.recentChanges(CHANGES_SHOWN),
   ]);
-  let stale = true;
-  let pendingRestart: string[] = [];
-  let warning: string | undefined;
-  try {
-    const times = await agent.flagSecretTimes();
-    stale = isSnapshotStale(snapshot, times);
-    pendingRestart = flagsPendingRestart(snapshot, times);
-  } catch (error) {
-    log.warn({ error }, 'Dev agent flag secret times not read; showing the flags as stale');
-    warning = TIMES_UNKNOWN;
-  }
   sendJSON(res, {
     flags: agentFlags(),
     snapshot,
-    stale,
-    pendingRestart,
+    ...(await restartState(deps, snapshot)),
     changes,
-    ...(warning && { warning }),
   });
 }
 
@@ -82,7 +99,7 @@ async function sendRooms(res: ServerResponse, deps: AgentFlagsDeps): Promise<voi
   try {
     rooms = await agent.occupiedRooms();
   } catch (error) {
-    log.error({ error }, 'Dev rooms not listed');
+    log.error({ error: loggableError(error) }, 'Dev rooms not listed');
     sendJSON(res, { error: ROOMS_UNKNOWN }, 502);
     return;
   }

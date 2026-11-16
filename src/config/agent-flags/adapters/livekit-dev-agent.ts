@@ -2,10 +2,16 @@
  * The dev voice agent on LiveKit Cloud (ports/dev-agent.ts): its flag secrets through the
  * Cloud Agent API, its rooms through the dev project's room service.
  *
- * Bound to dev by construction. The agent id is a constant, never input; LIVEKIT_URL must be
- * the dev project's host exactly, so the prod project's key cannot be used here by mistake.
- * Reads keep only flag names. Listing the rooms gives up after 10 s, so a hung room service
- * cannot hold a request open.
+ * Bound to dev by construction, by two guards with different jobs. The agent id is a
+ * constant, never input: agents.livekit.cloud serves every project and the key picks the
+ * project, so a prod key here addresses CA_siTDMHEba4Fg in the prod project, where no agent
+ * has that id. That constant is what keeps a prod agent from being changed; do not relax it.
+ * LIVEKIT_URL must be the dev project's host exactly: a server whose env names another
+ * project cannot build this adapter, so its key and rooms are never used here. Rooms are
+ * always listed on the dev host. It checks the URL, not the key. Reads keep only flag names.
+ * Listing the rooms gives up after 10 s, so a hung room service cannot hold a request open.
+ * Every error thrown is a DevAgentError (domain/dev-agent-error.ts): method, status, Twirp
+ * code and error name only, never LiveKit's text.
  *
  * The Cloud Agent API is Twirp on agents.livekit.cloud (not the project host), with an
  * `agent: { admin: true }` grant and an X-LIVEKIT-CLI-VERSION header the server requires.
@@ -18,6 +24,7 @@ import { SignJWT } from 'jose';
 import { RoomServiceClient } from 'livekit-server-sdk';
 import type { Env } from '../../env-flag.js';
 import { withTimeout } from '../../../utils/async.js';
+import { callFailed, DevAgentError, safeWord } from '../domain/dev-agent-error.js';
 import { agentFlags } from '../domain/switchable.js';
 import type { DevAgent } from '../ports/dev-agent.js';
 
@@ -49,26 +56,23 @@ function isDevProjectUrl(url: string | undefined): boolean {
 }
 
 function devCredentials(env: Env): { apiKey: string; apiSecret: string } {
-  if (!env.LIVEKIT_URL) throw new Error(`LIVEKIT_URL is unset; it must be ${DEV_LIVEKIT_HOST}`);
+  if (!env.LIVEKIT_URL)
+    throw new DevAgentError(`LIVEKIT_URL is unset; it must be ${DEV_LIVEKIT_HOST}`);
   if (!isDevProjectUrl(env.LIVEKIT_URL)) {
-    throw new Error(`LIVEKIT_URL is not the dev project (${DEV_LIVEKIT_HOST})`);
+    throw new DevAgentError(`LIVEKIT_URL is not the dev project (${DEV_LIVEKIT_HOST})`);
   }
   const apiKey = env.LIVEKIT_API_KEY;
   const apiSecret = env.LIVEKIT_API_SECRET;
-  if (!apiKey) throw new Error('LIVEKIT_API_KEY is unset');
-  if (!apiSecret) throw new Error('LIVEKIT_API_SECRET is unset');
+  if (!apiKey) throw new DevAgentError('LIVEKIT_API_KEY is unset');
+  if (!apiSecret) throw new DevAgentError('LIVEKIT_API_SECRET is unset');
   return { apiKey, apiSecret };
-}
-
-/** Removes every occurrence of each secret from text bound for an error message. */
-function scrub(text: string, secrets: readonly string[]): string {
-  return secrets.reduce((t, s) => (s ? t.split(s).join('[redacted]') : t), text);
 }
 
 /** The Cloud Agent API over fetch: a fresh short-lived token per call. */
 function cloudAgentRpc(apiKey: string, apiSecret: string): Rpc {
   const key = new TextEncoder().encode(apiSecret);
   return async (method, body) => {
+    const name = `CloudAgent.${method}`;
     const now = Math.floor(Date.now() / 1000);
     const token = await new SignJWT({ agent: { admin: true } })
       .setProtectedHeader({ alg: 'HS256' })
@@ -77,28 +81,36 @@ function cloudAgentRpc(apiKey: string, apiSecret: string): Rpc {
       .setNotBefore(now)
       .setExpirationTime(now + TOKEN_TTL_SECONDS)
       .sign(key);
-    const res = await fetch(`${CLOUD_AGENT_URL}${method}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-LIVEKIT-CLI-VERSION': CLI_VERSION,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    const text = await res.text();
+    let res: Response;
+    let text: string;
+    try {
+      res = await fetch(`${CLOUD_AGENT_URL}${method}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-LIVEKIT-CLI-VERSION': CLI_VERSION,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      text = await res.text();
+    } catch (error) {
+      throw callFailed(name, error);
+    }
     let json: unknown;
     try {
       json = JSON.parse(text);
     } catch {
-      throw new Error(`CloudAgent.${method} failed: HTTP ${res.status}, response is not JSON`);
+      throw new DevAgentError('failed, response is not JSON', { method: name, status: res.status });
     }
     if (!res.ok) {
-      const code = isRecord(json) && typeof json.code === 'string' ? json.code : 'unknown';
-      const msg = isRecord(json) && typeof json.msg === 'string' ? json.msg : '';
-      const detail = scrub(`${code}: ${msg}`, [apiSecret, token]);
-      throw new Error(`CloudAgent.${method} failed: HTTP ${res.status} ${detail}`);
+      const code = isRecord(json) ? safeWord(json.code) : undefined;
+      throw new DevAgentError('failed', {
+        method: name,
+        status: res.status,
+        ...(code && { code }),
+      });
     }
     return json;
   };
@@ -106,7 +118,7 @@ function cloudAgentRpc(apiKey: string, apiSecret: string): Rpc {
 
 function secretTimes(response: unknown): Record<string, string> {
   if (!isRecord(response) || !Array.isArray(response.secrets)) {
-    throw new Error('CloudAgent.ListAgentSecrets returned no secrets list');
+    throw new DevAgentError('returned no secrets list', { method: 'CloudAgent.ListAgentSecrets' });
   }
   const times: Record<string, string> = {};
   for (const secret of response.secrets as unknown[]) {
@@ -138,11 +150,16 @@ export function liveKitDevAgent(
     },
 
     async occupiedRooms() {
-      const list = await withTimeout(
-        roomService.listRooms(),
-        ROOMS_TIMEOUT_MS,
-        'Listing the dev LiveKit rooms'
-      );
+      let list: Awaited<ReturnType<RoomServiceClient['listRooms']>>;
+      try {
+        list = await withTimeout(
+          roomService.listRooms(),
+          ROOMS_TIMEOUT_MS,
+          'RoomService.ListRooms'
+        );
+      } catch (error) {
+        throw callFailed('RoomService.ListRooms', error);
+      }
       return list
         .filter((r) => r.numParticipants > 0)
         .map((r) => ({ name: r.name, participants: r.numParticipants }));

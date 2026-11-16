@@ -29,6 +29,17 @@ const ENV = {
   LIVEKIT_API_SECRET: API_SECRET,
 };
 
+/** Every field of a thrown error, message, stack and cause included, as text. */
+function dump(value: unknown): string {
+  return JSON.stringify(value, (_key, v: unknown) =>
+    v instanceof Error
+      ? { ...v, name: v.name, message: v.message, stack: v.stack, cause: v.cause }
+      : v
+  );
+}
+
+const LEAK = 'fake-secret-do-not-leak-9002';
+
 interface Call {
   method: string;
   body: unknown;
@@ -160,7 +171,7 @@ describe('occupiedRooms', () => {
       await vi.advanceTimersByTimeAsync(1);
       expect(failed).toHaveBeenCalledTimes(1);
       expect(String(failed.mock.calls[0]?.[0])).toMatch(
-        /dev LiveKit rooms timed out after 10000ms/
+        /RoomService\.ListRooms failed: TimeoutError \(timed out\)/
       );
     } finally {
       vi.useRealTimers();
@@ -232,5 +243,57 @@ describe('the default transport (fetch)', () => {
     await expect(liveKitDevAgent(ENV, undefined, noRooms).flagSecretTimes()).rejects.toThrow(
       /ListAgentSecrets.*502/
     );
+  });
+
+  it('names the method and says it timed out when fetch times out', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new globalThis.DOMException(`The operation timed out: ${LEAK}`, 'TimeoutError');
+      })
+    );
+    const err = await liveKitDevAgent(ENV, undefined, noRooms)
+      .flagSecretTimes()
+      .catch((e: unknown) => e);
+    expect(String(err)).toMatch(/CloudAgent\.ListAgentSecrets.*TimeoutError.*timed out/);
+    expect(dump(err)).not.toContain(LEAK);
+  });
+});
+
+describe('LiveKit error text never leaves the adapter', () => {
+  it('keeps the method, status and twirp code of a twirp error, not its msg', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ code: 'internal', msg: LEAK }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+    );
+    const err = await liveKitDevAgent(ENV, undefined, noRooms)
+      .flagSecretTimes()
+      .catch((e: unknown) => e);
+    expect(String(err)).toMatch(/CloudAgent\.ListAgentSecrets.*HTTP 500 internal/);
+    expect(dump(err)).not.toContain(LEAK);
+  });
+
+  it('keeps the status, code and name of a room service error, not its message', async () => {
+    const failing = {
+      listRooms: async (): Promise<Room[]> => {
+        throw Object.assign(new Error(`twirp error: ${LEAK}`), {
+          name: 'TwirpError',
+          status: 503,
+          code: 'unavailable',
+          metadata: { detail: LEAK },
+        });
+      },
+    };
+    const err = await liveKitDevAgent(ENV, fakeRpc().rpc, failing)
+      .occupiedRooms()
+      .catch((e: unknown) => e);
+    expect(String(err)).toMatch(/RoomService\.ListRooms.*HTTP 503 unavailable TwirpError/);
+    expect(dump(err)).not.toContain(LEAK);
   });
 });

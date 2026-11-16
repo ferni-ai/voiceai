@@ -1,7 +1,8 @@
 /**
  * The dev voice agent as the switchboard sees it: when each flag secret last changed, and
  * which rooms have someone in them (an update restarts the agent and drops live calls).
- * adapters/livekit-dev-agent.ts implements it on LiveKit Cloud.
+ * adapters/livekit-dev-agent.ts implements it on LiveKit Cloud. Its methods reject with a
+ * DevAgentError (domain/dev-agent-error.ts), whose text is safe to log.
  *
  * @module config/agent-flags/ports/dev-agent
  */
