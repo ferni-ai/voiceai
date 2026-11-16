@@ -550,6 +550,12 @@ body {
   --persona-bg-tint: rgba(154, 7, 24, 0.06);
 }
 
+/* Henry Caldwell (john-bogle): colours come from the legend rule in app.state.ts.
+   His text colour is set here so it is never inherited from whoever spoke before. */
+[data-persona='john-bogle'] {
+  --persona-on-primary: var(--color-bogle-on-primary);
+}
+
 /* Alex - Soft Indigo (clear communication, flow) */
 [data-persona='alex-chen'] {
   --persona-primary: #5a6b8a;
