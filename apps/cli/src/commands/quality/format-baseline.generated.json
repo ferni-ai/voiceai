@@ -401,7 +401,6 @@
   "src/services/communication/__tests__/insights-broadcast-reaches-websocket.test.ts",
   "src/services/contacts/__tests__/no-invented-interaction.test.ts",
   "src/services/contacts/personalized-outreach.ts",
-  "src/services/cross-persona/__tests__/insight-wire-format.test.ts",
   "src/services/custom-agent/__tests__/voice-sample-storage-private.test.ts",
   "src/services/custom-agent/custom-agent-runtime-service.ts",
   "src/services/data-layer/types.ts",

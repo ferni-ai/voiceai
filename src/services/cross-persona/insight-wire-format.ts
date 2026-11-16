@@ -11,6 +11,7 @@
  */
 
 import type { CrossPersonaInsight } from './cross-persona-insights.js';
+import { wasToasted } from './insight-visibility.js';
 
 export interface ClientInsight {
   id: string;
@@ -22,6 +23,8 @@ export interface ClientInsight {
   priority: string;
   createdAt: number;
   isNew: boolean;
+  /** Already shown as a toast: the app doesn't toast it again (issue 3945). */
+  toasted: boolean;
 }
 
 /** Long enough for a sentence, short enough for a toast. */
@@ -63,6 +66,7 @@ export function toClientInsight(insight: CrossPersonaInsight): ClientInsight {
     priority: insight.priority,
     createdAt: insight.createdAt,
     isNew: insight.oneTime,
+    toasted: wasToasted(insight),
   };
 }
 
