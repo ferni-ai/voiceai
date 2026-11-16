@@ -110,7 +110,13 @@ async function runOne(
  * turn still running (SEXUAL_TOPIC_BOUNDARY, crisis) is waited for first, as a pending task.
  */
 export function runAfterCallTasks(ctx: AfterCallContext): void {
-  noteSessionEnded(ctx.sessionId, ctx.userId); // a crisis call's owner stays held for its grace
+  // A crisis call's owner stays held for its grace (write-hold.ts). It must never stop the tasks.
+  try {
+    noteSessionEnded(ctx.sessionId, ctx.userId);
+  } catch (error) {
+    const kind = error instanceof Error ? error.name : typeof error;
+    log.warn({ errorKind: kind }, 'Write-hold call end not noted');
+  }
   const reading = heldReadsSettled(ctx.sessionId);
   if (!reading) return startAfterCallTasks(ctx);
   const askedAt = Date.now();

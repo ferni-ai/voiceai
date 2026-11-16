@@ -49,7 +49,7 @@ final class SignInUITests: XCTestCase {
             offer.tap()
             XCTAssertTrue(app.textFields["Phone number"].waitForExistence(timeout: 5), "\(screen)")
             XCTAssertTrue(app.buttons["Continue with Google"].exists, "\(screen)")
-            app.terminate()
+            app.quit()
         }
     }
 
@@ -64,7 +64,7 @@ final class SignInUITests: XCTestCase {
             let apple = app.descendants(matching: .any)["signIn.apple"].firstMatch
             XCTAssertTrue(apple.exists, "\(screen): Sign in with Apple is offered")
             XCTAssertTrue(apple.isHittable, "\(screen)")
-            app.terminate()
+            app.quit()
         }
     }
 }

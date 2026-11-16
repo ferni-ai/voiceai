@@ -23,7 +23,7 @@ describe('toClientInsight', () => {
       source: 'ferni',
       category: 'commitment-followup',
       summary: 'You mentioned something you wanted to do: "call mom".',
-      content: insight.content,
+      content: 'You mentioned something you wanted to do: "call mom". Just checking in, no pressure.',
       priority: 'high',
       createdAt: 1_700_000_000_000,
       isNew: true,

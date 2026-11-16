@@ -28,6 +28,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
+import { GENERIC, NOT_A_NAME, PLACEHOLDER, wordsOf } from './domain/person-name.js';
 
 export function entityHygieneOn(env: Env = process.env): boolean {
   return flagOn('ENTITY_HYGIENE', env);
@@ -53,21 +54,6 @@ const TEAMMATE_ALONE = new RegExp(
   `^(?:(?:hi|hey|hello|yo|thanks|bye)\\s+)?(?:${TEAMMATE}|maya santos|peter john|jordan taylor|alex chen|nayan patel)$`,
   'i'
 );
-
-const PLACEHOLDER = new Set(
-  'unknown unspecified unnamed unidentified someone somebody something anyone anybody anything everyone everybody nobody whoever whatever none null undefined n/a tbd'.split(
-    ' '
-  )
-);
-/** A name that is only a pronoun, possessive or greeting. */
-const NOT_A_NAME = new Set(
-  'i me my mine you your he him his she her hers we us our they them their it its hi hey hello'.split(
-    ' '
-  )
-);
-/** "the item", "a person", "some thing": a bare generic noun, not a name. */
-const GENERIC =
-  /^(?:the|a|an|some|this|that|any)\s+(?:item|items|thing|things|person|people|place|topic|concept|stuff|one|guy|someone)$/i;
 
 /** What the caller asks Ferni to do, at the start of the name. */
 const REQUEST = [
@@ -110,13 +96,6 @@ function onlyGreeted(name: string, said: string): boolean {
 }
 
 const isRoleLabel = (name: string): boolean => ROLE_LABEL.test(name) || BARE_ROLE.test(name);
-
-const wordsOf = (name: string): string[] =>
-  name
-    .toLowerCase()
-    .split(/[^a-z0-9/']+/)
-    .map((w) => w.replace(/'s$/, ''))
-    .filter(Boolean);
 
 /**
  * The reason this entity is junk, or null when it is a real person, place or topic.

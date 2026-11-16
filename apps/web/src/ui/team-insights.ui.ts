@@ -35,6 +35,7 @@ const { clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 import type { TeamInsight } from '../types/team-insight.js';
 import { parseTeamInsights } from '../services/cross-team-insight-mapper.js';
+import { onePerWording } from '../utils/one-per-wording.js';
 
 export type { TeamInsight };
 
@@ -49,6 +50,7 @@ export interface TeamStatus {
 interface TeamInsightsPanelState {
   isOpen: boolean;
   insights: TeamInsight[];
+  discoveries: TeamInsight[]; // the team's standing notes (GET /api/team-insights `discoveries`)
   teamStatus: TeamStatus | null;
   isLoading: boolean;
   error: string | null;
@@ -128,6 +130,7 @@ const PERSONA_STYLES: Record<string, typeof DEFAULT_STYLE> = {
 const state: TeamInsightsPanelState = {
   isOpen: false,
   insights: [],
+  discoveries: [],
   teamStatus: null,
   isLoading: false,
   error: null,
@@ -333,11 +336,10 @@ export function getUserIdFromPage(): string | null {
 // API
 // ============================================================================
 
-async function fetchTeamInsights(): Promise<{ insights: TeamInsight[]; teamStatus: TeamStatus }> {
+type TeamInsightsResponse = { insights: TeamInsight[]; discoveries: TeamInsight[]; teamStatus: TeamStatus };
+async function fetchTeamInsights(): Promise<TeamInsightsResponse> {
   try {
-    // Get authenticated headers (includes X-User-Id and Firebase token)
-    const headers = await getApiHeadersAsync();
-    
+    const headers = await getApiHeadersAsync(); // X-User-Id and the Firebase token
     const response = await fetch('/api/team-insights', {
       headers,
       credentials: 'include',
@@ -347,8 +349,9 @@ async function fetchTeamInsights(): Promise<{ insights: TeamInsight[]; teamStatu
       throw new Error(`Failed to fetch insights: ${response.status}`);
     }
 
-    const data = (await response.json()) as { insights?: unknown; teamStatus: TeamStatus };
-    return { ...data, insights: parseTeamInsights(data.insights, 'GET /api/team-insights') };
+    const data = (await response.json()) as { insights?: unknown; discoveries?: unknown; teamStatus: TeamStatus };
+    const discoveries = parseTeamInsights(data.discoveries ?? [], 'GET /api/team-insights discoveries');
+    return { ...data, insights: parseTeamInsights(data.insights, 'GET /api/team-insights'), discoveries };
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to fetch team insights');
     // The panel shows its error state: no empty list, no made-up "budget on track"
@@ -541,7 +544,6 @@ function renderInsightsList(): void {
   const errorEl = panelElement.querySelector('.team-insights-error') as HTMLElement;
   const emptyEl = panelElement.querySelector('.team-insights-empty') as HTMLElement;
 
-  // Hide all states first
   loadingEl.style.display = 'none';
   errorEl.style.display = 'none';
   emptyEl.style.display = 'none';
@@ -557,14 +559,14 @@ function renderInsightsList(): void {
     return;
   }
 
-  if (state.insights.length === 0) {
-    emptyEl.style.display = 'block';
+  // Insights, then the team's standing notes; a line the server sent twice shows once.
+  const shown = onePerWording([...state.insights, ...state.discoveries], (i) => i.content);
+  if (shown.length === 0) {
+    emptyEl.style.display = 'block'; // truly nothing: the first-run "getting to know you"
     return;
   }
-
-  // Render insights - as personal observations from team members
   listEl.style.display = 'flex';
-  listEl.innerHTML = state.insights
+  listEl.innerHTML = shown
     .map((insight, index) => {
       const style = PERSONA_STYLES[insight.source] ?? DEFAULT_STYLE;
       const priorityClass = insight.priority === 'high' || insight.priority === 'critical' 
@@ -594,8 +596,7 @@ function renderInsightsList(): void {
 }
 
 function updateTriggerBadge(): void {
-  // Trigger badge is now managed by engagement-trigger.ui.ts
-  // This function updates the badge via custom event
+  // engagement-trigger.ui.ts draws the badge; this tells it the count by custom event
   if (state.hasNewInsights) {
     document.dispatchEvent(new CustomEvent('ferni:team-insights-badge', {
       detail: { count: state.insights.filter(i => i.isNew).length || 1 }
@@ -663,6 +664,7 @@ async function loadInsights(): Promise<void> {
   try {
     const data = await fetchTeamInsights();
     state.insights = data.insights;
+    state.discoveries = data.discoveries;
     state.teamStatus = data.teamStatus;
     state.lastUpdated = Date.now();
     state.isLoading = false;
@@ -738,9 +740,7 @@ function injectStyles(): void {
   const styleEl = document.createElement('style');
   styleEl.id = 'team-insights-styles';
   styleEl.textContent = `
-    /* Trigger button styles removed - now in engagement-trigger.ui.ts */
-    
-    /* Panel */
+    /* Panel (its trigger button is styled in engagement-trigger.ui.ts) */
     .team-insights-panel {
       position: fixed;
       inset: 0;
