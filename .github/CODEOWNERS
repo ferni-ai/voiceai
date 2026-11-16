@@ -6,6 +6,9 @@
 /.github/workflows/   @sethdford
 /.github/actions/     @sethdford
 /scripts/ci/          @sethdford
+# The Planted Bugs check and its runner, by name (the lines above cover them today).
+/.github/workflows/plants.yml @sethdford
+/scripts/ci/plants/           @sethdford
 
 # Quality gates. They fail only on what a PR adds, measured against its merge base
 # (merge-base.ts below); these files decide what counts as a violation, so a change to

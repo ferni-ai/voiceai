@@ -23,14 +23,19 @@ import {
   abortAll,
   formatResults,
   isSealedPath,
+  isTestInfra,
   judge,
+  namesBoard,
   onAbort,
   parseManifest,
   parsePlantReport,
+  productionVerdict,
   ranExactly,
   reportFrom,
   runInGroup,
   runPlants,
+  setupFilesOf,
+  thrownFromTest,
   vitestRunner,
   type Plant,
   type Result,
@@ -81,7 +86,10 @@ function repo(
 
 type Rule = { when: string; fail: string; errorClass?: string; assertion?: boolean };
 
-/** A fake vitest: both rows pass, unless src/calc.ts contains a rule's `when` text. */
+/**
+ * A fake vitest: both rows pass, unless src/calc.ts contains a rule's `when` text. A failing row's
+ * top stack frame is the test file, as for a failed expect in it.
+ */
 function fake(
   root: string,
   rules: Rule[] = [],
@@ -99,7 +107,8 @@ function fake(
       if (!r) return { fullName, status: 'passed' };
       const errorClass = r.errorClass ?? 'AssertionError';
       const assertion = r.assertion ?? errorClass === 'AssertionError';
-      return { fullName, status: 'failed', errorClass, ...(assertion ? { assertion } : {}) };
+      const frame = join(root, TEST);
+      return { fullName, status: 'failed', errorClass, frame, ...(assertion ? { assertion } : {}) };
     });
     return { kind: 'report', loadFailed: false, tests, files: [join(root, test)] };
   };
@@ -382,6 +391,187 @@ describe('runPlants verdicts', () => {
   });
 });
 
+describe('a plant must break production code and may not fake its own catch', () => {
+  it('a plant on a test, helper, mock, vitest config, setup file or non-code file is REFUSED (not production code)', async () => {
+    const refused = [
+      TEST,
+      'src/__tests__/helpers.ts',
+      'src/__mocks__/db.ts',
+      'src/db.mock.ts',
+      'src/tests/setup.ts',
+      'tests/synthetic/x.ts',
+      'scripts/vitest.config.extra.ts',
+      'src/boot.ts', // the config's setupFiles entry
+      'README.md',
+    ];
+    const files = Object.fromEntries(refused.map((f) => [f, "=== ''\n"]));
+    const root = repo({
+      ...files,
+      'src/calc.ts': SOURCE,
+      'vitest.config.unit.ts': "export default { test: { setupFiles: ['./src/boot.ts'] } };\n",
+    });
+    expect(setupFilesOf(realpathSync(root), 'vitest.config.unit.ts')).toEqual(['src/boot.ts']);
+    const { run, calls } = fake(root, [breaksBlank]);
+    const results = await runPlants(
+      [...refused.map((file, i) => plant({ id: `r${i}`, file })), plant({ id: 'ok' })],
+      root,
+      run
+    );
+    expect(results.map((r) => r.verdict)).toEqual([
+      ...refused.map(() => 'REFUSED (not production code)'),
+      'RED',
+    ]);
+    expect(calls).toEqual([TEST, TEST]); // the ordinary plant only
+    expect(status(root)).toBe('');
+    for (const ok of [
+      'scripts/ci/x.ts',
+      'apps/web/src/y.tsx',
+      'packages/p/src/z.mjs',
+      'src/a.cjs',
+    ]) {
+      expect(productionVerdict(ok, TEST, []), ok).toBeNull();
+    }
+  });
+
+  it('a replace naming expect, assert, vi, vitest, chai, AssertionError, import or require is REFUSED (assertion in plant)', async () => {
+    const root = repo();
+    const { run, calls } = fake(root, [breaksBlank]);
+    const words = [
+      'expect',
+      'assert',
+      'vi',
+      'vitest',
+      'chai',
+      'AssertionError',
+      'import',
+      'require',
+    ];
+    const results = await runPlants(
+      [
+        ...words.map((w, i) => plant({ id: `w${i}`, replace: `!== '' || ${w}(0)` })),
+        // The same letters inside longer words are not the words.
+        plant({ id: 'ok', replace: "!== '' /* expected, asserted, visit, imported */" }),
+      ],
+      root,
+      run
+    );
+    expect(results.map((r) => r.verdict)).toEqual([
+      ...words.map(() => 'REFUSED (assertion in plant)'),
+      'RED',
+    ]);
+    expect(calls).toEqual([TEST, TEST]);
+    expect(status(root)).toBe('');
+  });
+});
+
+describe('thrownFromTest: a counted assertion comes from a test file', () => {
+  it('the named test or a test helper is a test file; the planted file, other code, outside paths and no frame are not', () => {
+    const root = repo({
+      'src/calc.ts': SOURCE,
+      [TEST]: '// fake\n',
+      'src/__tests__/helpers.ts': '// helper\n',
+      'src/other.ts': '// production\n',
+    });
+    const real = realpathSync(root);
+    const p = { file: 'src/calc.ts', test: TEST };
+    expect(thrownFromTest(real, p, join(root, TEST))).toBe(true);
+    expect(thrownFromTest(real, p, join(root, 'src/__tests__/helpers.ts'))).toBe(true);
+    expect(thrownFromTest(real, p, join(root, 'src/calc.ts'))).toBe(false);
+    expect(thrownFromTest(real, p, join(root, 'src/other.ts'))).toBe(false);
+    expect(thrownFromTest(real, p, join(root, 'src/missing.ts'))).toBe(false);
+    expect(thrownFromTest(real, p, '/etc/hosts')).toBe(false);
+    expect(thrownFromTest(real, p, undefined)).toBe(false);
+    const helper = { file: 'src/__tests__/helpers.ts', test: TEST };
+    expect(thrownFromTest(real, helper, join(root, 'src/__tests__/helpers.ts'))).toBe(false);
+    expect(isTestInfra('src/__tests__/helpers.ts')).toBe(true);
+    expect(isTestInfra('src/contest.ts')).toBe(false);
+  });
+});
+
+describe('the real vitest runner: a counted assertion is thrown from a test file, never the plant', () => {
+  const NODE_MODULES = resolve(__dirname, '../../../../node_modules');
+  const GATE =
+    'export const open = (n) => n > 0;\nexport const double = (n) => n * 2;\nexport function pass(n) {\n  return n;\n}\n';
+  const GATE_TEST = 'src/__tests__/gate.test.mjs';
+  const target = (id: string, find: string, replace: string, row: string): Plant => ({
+    id,
+    file: 'src/gate.mjs',
+    find,
+    replace,
+    test: GATE_TEST,
+    expectRed: `gate > ${row}`,
+  });
+  // Each plant breaks src/gate.mjs; they differ in where the failing assertion is thrown. The
+  // last throws an AssertionError-shaped object from the planted code itself, with none of the
+  // words a replace may not name.
+  const plants = [
+    target('test', 'n > 0', 'n > 1', 'a positive number is open'),
+    target('helper', 'n * 2', 'n * 3', 'double doubles'),
+    target(
+      'plant',
+      'return n;',
+      "throw Object.assign(new Error('x'), { name: 'Assertion' + 'Error', expected: 1, actual: 2 });",
+      'pass returns its input'
+    ),
+  ];
+  let once: Promise<{ results: Result[]; gate: string; status: string }> | undefined;
+  /** One project and one run for the three rows (the baseline runs once). */
+  const planted = () =>
+    (once ??= (async () => {
+      const dir = repo({
+        '.gitignore': 'node_modules\n.vite\n',
+        'vitest.config.mjs':
+          "export default { cacheDir: '.vite', test: { include: ['src/**/__tests__/**/*.test.mjs'] } };\n",
+        'src/gate.mjs': GATE,
+        'src/__tests__/helpers/same.mjs':
+          "import { expect } from 'vitest';\nexport const same = (a, b) => expect(a).toBe(b);\n",
+        [GATE_TEST]: `import { describe, expect, it } from 'vitest';
+import { double, open, pass } from '../gate.mjs';
+import { same } from './helpers/same.mjs';
+describe('gate', () => {
+  it('a positive number is open', () => expect(open(1)).toBe(true));
+  it('double doubles', () => same(double(2), 4));
+  it('pass returns its input', () => expect(pass(1)).toBe(1));
+});
+`,
+      });
+      symlinkSync(NODE_MODULES, join(dir, 'node_modules'));
+      const run = vitestRunner(dir, 'vitest.config.mjs', 60_000);
+      const results = await runPlants(plants, dir, run, 'vitest.config.mjs');
+      return {
+        results,
+        gate: readFileSync(join(dir, 'src/gate.mjs'), 'utf8'),
+        status: status(dir),
+      };
+    })());
+  const result = async (id: string) => (await planted()).results.find((r) => r.id === id);
+
+  it('an assertion thrown in the named test counts as RED', async () => {
+    expect(await result('test')).toMatchObject({
+      verdict: 'RED',
+      failing: ['gate > a positive number is open'],
+    });
+  }, 180_000);
+
+  it('an assertion thrown from a shared test-helper file counts as RED', async () => {
+    expect(await result('helper')).toMatchObject({
+      verdict: 'RED',
+      failing: ['gate > double doubles'],
+    });
+  }, 180_000);
+
+  it('an AssertionError-shaped throw from production code is not counted', async () => {
+    expect(await result('plant')).toMatchObject({
+      verdict: 'RED (thrown from the plant)',
+      errorClass: 'AssertionError',
+      failing: ['gate > pass returns its input'],
+    });
+    const { gate, status: after } = await planted();
+    expect(gate).toBe(GATE);
+    expect(after).toBe('');
+  }, 180_000);
+});
+
 describe('ranExactly: the run must be the requested test file and nothing else', () => {
   it('the requested file alone is exact, however its module path is spelt', () => {
     const root = repo();
@@ -639,7 +829,10 @@ describe('what reaches the public log', () => {
       files: ['/checkout/src/calc.test.ts'],
     });
     expect(JSON.stringify(parsed)).not.toContain(SENTINEL);
-    expect(judge(parsed, BLANK)).toEqual({ verdict: 'RED', errorClass: 'AssertionError' });
+    expect(judge(parsed, BLANK, () => true)).toEqual({
+      verdict: 'RED',
+      errorClass: 'AssertionError',
+    });
   });
 
   it('a module-level error, an unhandled error, or no module at all is a load failure', () => {
@@ -664,7 +857,14 @@ describe('what reaches the public log', () => {
     const run: RunTest = () =>
       parsePlantReport(
         readFileSync(join(root, 'src/calc.ts'), 'utf8').includes("!== ''")
-          ? { ...report, modules: report.modules.map((m) => ({ ...m, file })) }
+          ? {
+              ...report,
+              modules: report.modules.map((m) => ({
+                ...m,
+                file,
+                tests: m.tests.map((t) => ({ ...t, frame: file })),
+              })),
+            }
           : {
               modules: [
                 {
@@ -766,28 +966,32 @@ describe('tiny', () => {
     ).toBe(true);
     const rows = report.kind === 'report' ? report.tests : [];
     const row = (title: string) => rows.find((t) => t.fullName === `tiny > ${title}`);
+    // The reporter's frame is vitest's own parse: a failed expect's top frame is the test file.
+    const tiny = realpathSync(join(dir, 'tiny.test.mjs'));
+    const fromTiny = (frame: string | undefined) => !!frame && realpathSync(frame) === tiny;
     expect(row('passes')?.status).toBe('passed');
     expect(row('fails on an assertion')).toMatchObject({
       status: 'failed',
       errorClass: 'AssertionError',
       assertion: true,
     });
-    expect(judge(report, 'tiny > fails on an assertion').verdict).toBe('RED');
+    expect(fromTiny(row('fails on an assertion')?.frame)).toBe(true);
+    expect(judge(report, 'tiny > fails on an assertion', fromTiny).verdict).toBe('RED');
     const byHand = row('throws an Error named AssertionError by hand');
     expect(byHand).toMatchObject({ status: 'failed', errorClass: 'AssertionError' });
     expect(byHand?.assertion).not.toBe(true);
-    expect(judge(report, 'tiny > throws an Error named AssertionError by hand').verdict).toBe(
-      'RED (not an assertion)'
-    );
+    expect(
+      judge(report, 'tiny > throws an Error named AssertionError by hand', fromTiny).verdict
+    ).toBe('RED (not an assertion)');
     expect(row('throws a type error')).toMatchObject({ status: 'failed', errorClass: 'TypeError' });
     expect(row('throws a string that starts like an assertion')?.status).toBe('failed');
     expect(row('throws a string that starts like an assertion')?.errorClass).not.toBe(
       'AssertionError'
     );
     expect(row('sees no token and not the real HOME')?.status).toBe('passed');
-    expect(judge(report, 'tiny > throws a string that starts like an assertion').verdict).toBe(
-      'RED (not an assertion)'
-    );
+    expect(
+      judge(report, 'tiny > throws a string that starts like an assertion', fromTiny).verdict
+    ).toBe('RED (not an assertion)');
     expect(JSON.stringify(report)).not.toContain(SENTINEL);
   }, 90_000);
 
@@ -875,7 +1079,7 @@ describe('each run leads its own process group, emptied before runInGroup return
       kind: 'timeout',
     });
     expect(reportFrom({ timedOut: false, strays: 1, leftover: 0 }, out).kind).toBe('report');
-    expect(judge({ kind: 'children-left', leftover: 1 }, BLANK).verdict).toBe(
+    expect(judge({ kind: 'children-left', leftover: 1 }, BLANK, () => true).verdict).toBe(
       'REFUSED (child processes left)'
     );
   });
@@ -904,6 +1108,7 @@ describe('the real vitest runner: one test argument can match other files', () =
       'pre.test.mjs-sealed/x.test.mjs': row(SEALED_ROW, false),
       'one.test.mjs': row('one passes', true),
       'one.test.mjs.test.mjs': row('the longer name passes', true),
+      'src/value.mjs': 'export const value = 1;\n',
     });
     symlinkSync(NODE_MODULES, join(dir, 'node_modules'));
     return dir;
@@ -911,9 +1116,9 @@ describe('the real vitest runner: one test argument can match other files', () =
 
   const plantFor = (id: string, test: string): Plant => ({
     id,
-    file: 'pre.test.mjs',
-    find: 'pre passes',
-    replace: 'pre fails',
+    file: 'src/value.mjs',
+    find: 'value = 1',
+    replace: 'value = 2',
     test,
     expectRed: 'pre passes',
   });
@@ -972,6 +1177,62 @@ describe('parseManifest', () => {
   ])('rejects %j', (json, message) => {
     expect(() => parseManifest(json)).toThrow(message);
   });
+
+  it('refuses an unknown key, at the top or in a plant, without quoting it', () => {
+    const KEY = 'PROSE-KEY-MUST-NOT-PRINT';
+    expect(() => parseManifest({ plants: [plant()] })).not.toThrow();
+    for (const json of [
+      { plants: [plant()], [KEY]: 1 },
+      { plants: [{ ...plant(), [KEY]: 'x' }] },
+    ]) {
+      let message = '';
+      try {
+        parseManifest(json);
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      expect(message).toMatch(/only/);
+      expect(message).not.toContain(KEY);
+    }
+  });
+
+  it('an id is 1 to 24 of letters, digits, _ and -', () => {
+    for (const id of ['P1', 'a_b-9', 'x'.repeat(24)]) {
+      expect(parseManifest({ plants: [plant({ id })] })[0].id).toBe(id);
+    }
+    for (const id of ['a b', 'p.1', 'x'.repeat(25), 'a|b']) {
+      expect(() => parseManifest({ plants: [plant({ id })] }), id).toThrow(/"id" must match/);
+    }
+  });
+
+  it('an id naming a board lane, slot, holder or session is refused', () => {
+    const board = ['lane-2', 'lane_b', 'lane2', 'laneB', 'slot-12', 'slot2', 'holder'];
+    for (const id of [...board, 'c_holders', 'lockHolder', 'session-a1b2', 'session-9e0f1a']) {
+      expect(() => parseManifest({ plants: [plant({ id })] }), id).toThrow(/names a lane/);
+    }
+    expect(namesBoard('lane 2'), 'lane 2').toBe(true);
+  });
+
+  it('code names that only contain those words are allowed', () => {
+    const code = ['fast-lane', 'plane', 'lanes', 'lane-delay', 'timeslot', 'slot-machine'];
+    for (const id of [...code, 'placeholder', 'sessional', 'session-added', 'session-2', 'P1']) {
+      expect(namesBoard(id), id).toBe(false);
+      expect(parseManifest({ plants: [plant({ id })] })[0].id).toBe(id);
+    }
+  });
+
+  it('at most 15 plants, and find and replace at most 2000 characters each', () => {
+    const many = (n: number) => ({
+      plants: Array.from({ length: n }, (_, i) => plant({ id: `p${i}` })),
+    });
+    expect(parseManifest(many(15))).toHaveLength(15);
+    expect(() => parseManifest(many(16))).toThrow(/more than 15 plants/);
+    const long = 'x'.repeat(2000);
+    expect(parseManifest({ plants: [plant({ find: long, replace: long })] })).toHaveLength(1);
+    for (const over of [{ find: `${long}x` }, { replace: `${long}x` }]) {
+      expect(() => parseManifest({ plants: [plant(over)] })).toThrow(/at most 2000 characters/);
+    }
+  });
 });
 
 describe('the command line', () => {
@@ -991,6 +1252,19 @@ describe('the command line', () => {
     expect(existsSync(join(root, 'bad.json'))).toBe(true);
   });
 
+  it('exits 2 on a manifest file name that names a lane, or more than 15 plants across manifests', () => {
+    const root = repo();
+    const write = (name: string, n: number) => {
+      const plants = Array.from({ length: n }, (_, i) => plant({ id: `${name.charAt(0)}${i}` }));
+      writeFileSync(join(root, name), JSON.stringify({ plants }));
+      return join(root, name);
+    };
+    const named = cli(['--root', root, write('lane-2.json', 1)]);
+    expect([named.status, named.stderr]).toEqual([2, expect.stringContaining('names a lane')]);
+    const many = cli(['--root', root, write('first.json', 8), write('second.json', 8)]);
+    expect([many.status, many.stderr]).toEqual([2, expect.stringContaining('more than 15')]);
+  });
+
   it('TERM to the runner mid-run kills the vitest group and restores the planted file', async () => {
     const marks = tempDir('plants-marks-');
     const marker = join(marks, 'worker.pid');
@@ -999,7 +1273,8 @@ describe('the command line', () => {
       'vitest.config.mjs':
         "export default { cacheDir: '.vite', test: { include: ['*.test.mjs'] } };\n",
       // Unplanted it passes at once; planted it notes its worker and spins for 30 s at most.
-      'hang.test.mjs': `import { writeFileSync } from 'node:fs';\nimport { it } from 'vitest';\nconst hang = false;\nit('hangs when planted', () => {\n  if (!hang) return;\n  writeFileSync(${JSON.stringify(marker)}, String(process.pid));\n  const end = Date.now() + 30000;\n  while (Date.now() < end);\n}, 600000);\n`,
+      'src/hang.mjs': 'export const hang = false;\n',
+      'hang.test.mjs': `import { writeFileSync } from 'node:fs';\nimport { it } from 'vitest';\nimport { hang } from './src/hang.mjs';\nit('hangs when planted', () => {\n  if (!hang) return;\n  writeFileSync(${JSON.stringify(marker)}, String(process.pid));\n  const end = Date.now() + 30000;\n  while (Date.now() < end);\n}, 600000);\n`,
     });
     symlinkSync(resolve(__dirname, '../../../../node_modules'), join(root, 'node_modules'));
     const manifest = join(marks, 'plants.json');
@@ -1009,9 +1284,9 @@ describe('the command line', () => {
         plants: [
           {
             id: 'hang',
-            file: 'hang.test.mjs',
-            find: 'const hang = false',
-            replace: 'const hang = true',
+            file: 'src/hang.mjs',
+            find: 'hang = false',
+            replace: 'hang = true',
             test: 'hang.test.mjs',
             expectRed: 'hangs when planted',
           },

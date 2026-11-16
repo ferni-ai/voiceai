@@ -214,6 +214,38 @@ PR editing it is the main ruleset's required code-owner review on `.github/workf
 later edit to this workflow needs a fresh code-owner approval, and the check itself only
 counts approvals on the exact head.
 
+### plants.yml (reports; not a required check)
+
+**Purpose:** Prove each test a PR names catches the bug it claims to. A PR commits plant
+specs as `.plants/<topic>.json` (the runner's manifest:
+`{"plants": [{"id", "file", "find", "replace", "test", "expectRed"}]}`; the topic names the
+code, `^[a-z0-9][a-z0-9-]{2,59}$`). On each push of a PR whose diff touches `.plants/`, the
+`Planted Bugs` job checks out the head SHA with no token in `.git/config`, copies main's
+`scripts/ci/plants/run-plants.ts` to `$RUNNER_TEMP` (a PR can't weaken the runner that
+judges it; a runner change is judged by the old one until it merges) and runs only the specs
+the PR adds or changes: one plant at a time, 120 s per vitest process, at most 15 plants,
+one serial job of at most 30 min. A plant breaks production code only, and counts only when
+its named row fails on an assertion thrown from a test file (the named test or a helper),
+never from the planted code. The check fails on any plant that is not RED, a misnamed file
+under `.plants/`, or a tree dirty before planting. The public log holds the head SHA, each
+spec's sha256 and the runner's table (ids, verdicts, row titles, error classes, seconds):
+no spec or test text, no vitest output, no artifacts, no PR comments. A PR that also changes
+the test harness (vitest configs, `src/tests/`, `__mocks__/`, the global setup) gets a
+warning line. Specs stay on main after merge and don't count toward a PR's size.
+
+**How a verifier uses it.** The verifier proposes the plants (id, file, the line to weaken,
+the row that must fail; code only, never caller text); the implementer commits them in a spec
+and pushes. Before a PASS the verifier reads every find/replace pair and checks that `Planted
+Bugs` concluded `success` on that exact head, by SHA
+(`gh api repos/<owner>/<repo>/commits/<sha>/check-runs?check_name=Planted%20Bugs`), never
+"latest", and adds `plants: <run url> N/N RED` to its PASS comment. "Plants caught" means
+that green check on that SHA, nothing else.
+
+**Next, not yet in effect:** Lead Verified will require that check on the verified SHA for
+crisis-lane PRs, and will reject a run when `plants.yml` at the verified SHA differs from
+main's ("plants workflow changed in this PR"), since a `pull_request` run uses the PR's own
+copy of the workflow.
+
 ### design-system.yml
 
 **Purpose:** Check brand tokens, build the design-system packages and Storybook
