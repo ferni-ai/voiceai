@@ -21,9 +21,10 @@ const person = (name: string, mentionCount: number, extra: Record<string, unknow
   ...extra,
 });
 
+const opportunities: Array<{ personId: string; personName: string }> = [];
 vi.mock('../services/superhuman/relationship-network.js', () => ({
   loadNetwork: async () => people,
-  findConnectionOpportunities: async () => [],
+  findConnectionOpportunities: async () => opportunities,
 }));
 
 const upcoming = [
@@ -80,6 +81,45 @@ describe('Your World connections', () => {
     [{}, false],
   ])('isConnection(%o) = %s', (p, expected) => {
     expect(isConnection(p)).toBe(expected);
+  });
+});
+
+describe('Your World draws only people (prod 2026-11-16)', () => {
+  // Stored before the write guard, each mentioned often enough to count as a connection
+  const junk = ['uh', 'check', 'call', 'me', 'her', 'him'].map((n) => person(n, 5));
+  const real = [
+    person('Bria', 3),
+    person('Mel', 4),
+    person('my mom', 1, { type: 'family' }),
+    person('my dad', 3, { type: 'acquaintance' }),
+  ];
+
+  it('leaves stored non-people out of the nodes and every count', async () => {
+    people.length = 0;
+    people.push(...junk, ...real);
+    const world = await fetchYourWorld('u1');
+    expect(world?.people.map((p) => p.name).sort()).toEqual(['Bria', 'Mel', 'my dad', 'my mom']);
+    expect(world?.totalConnections).toBe(4);
+    expect(world?.activeConnections).toBe(4);
+  });
+
+  it('never offers "Reconnect with: him"', async () => {
+    people.length = 0;
+    people.push(...junk, ...real);
+    opportunities.length = 0;
+    opportunities.push(
+      { personId: 'him', personName: 'him' },
+      { personId: 'Mel', personName: 'Mel' }
+    );
+    expect((await fetchYourWorld('u1'))?.needsAttention).toEqual(['Mel']);
+    opportunities.length = 0;
+  });
+
+  it('files "my dad" stored as an acquaintance under family', async () => {
+    people.length = 0;
+    people.push(...real);
+    const dad = (await fetchYourWorld('u1'))?.people.find((p) => p.name === 'my dad');
+    expect(dad?.type).toBe('family');
   });
 });
 
