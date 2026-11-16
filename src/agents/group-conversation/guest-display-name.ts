@@ -19,14 +19,16 @@ const MAX_LENGTH = 24;
 const MAX_WORDS = 2;
 /** Letters (with their combining marks) in any script, spaces, hyphens and apostrophes. */
 const PLAIN_NAME = /^[\p{L}\p{M} '’-]+$/u;
-/** The scripts a name may be written in; every letter of a name is in one of them. */
+/**
+ * The scripts a name may be written in; every letter of a name is in one of them. Han
+ * counts with kana (Japanese) and with hangul (Korean), and alone for Chinese.
+ */
 const SCRIPTS = [
   /^\p{Script=Latin}$/u,
   /^\p{Script=Cyrillic}$/u,
   /^\p{Script=Greek}$/u,
-  /^\p{Script=Han}$/u,
-  /^[\p{Script=Hiragana}\p{Script=Katakana}]$/u,
-  /^\p{Script=Hangul}$/u,
+  /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u, // Japanese: kanji and kana
+  /^[\p{Script=Han}\p{Script=Hangul}]$/u, // Korean: hanja and hangul
   /^\p{Script=Arabic}$/u,
   /^\p{Script=Hebrew}$/u,
   /^\p{Script=Devanagari}$/u,

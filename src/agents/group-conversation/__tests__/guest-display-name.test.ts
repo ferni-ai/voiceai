@@ -40,6 +40,16 @@ describe('guestDisplayName', () => {
     expect(guestDisplayName('देवी', 'Seth')).toBe('देवी');
   });
 
+  it('treats Japanese (kanji with kana) and Korean (hanja with hangul) as one script each', () => {
+    expect(guestDisplayName('佐藤 さくら', 'Seth')).toBe('佐藤 さくら');
+    expect(guestDisplayName('サクラ', 'Seth')).toBe('サクラ');
+    expect(guestDisplayName('李小龍', 'Seth')).toBe('李小龍');
+    expect(guestDisplayName('金민수', 'Seth')).toBe('金민수');
+    expect(guestDisplayName('Sarah 佐藤', 'Seth')).toBe('the guest');
+    expect(guestDisplayName('さくら 민수', 'Seth')).toBe('the guest');
+    expect(guestDisplayName('佐藤 Дмитрий', 'Seth')).toBe('the guest');
+  });
+
   it('falls back to "the guest" for a name that mixes scripts', () => {
     expect(guestDisplayName('\u0405eth', 'Seth')).toBe('the guest'); // Cyrillic Ѕ, Latin eth
     expect(guestDisplayName('Sarah 李', 'Seth')).toBe('the guest');
