@@ -102,6 +102,23 @@ describe('no-hardcoded-hex-colors scope', () => {
       expect(ruleHits(file, HEX, 'no-hardcoded-hex-colors')).toBe(1);
     }
   );
+
+  it.each([
+    ["a flag's issue", "  issue: '#3958',"],
+    ['an issue cited after code', 'if (held) return; // goodbye taken back (#2291)'],
+    ['a five-digit issue', "const ref = 'see #12345';"],
+  ])('does not read %s as a colour', (_what, line) => {
+    const flagFile = '/repo/src/config/flags/TASK_EDITS.ts';
+    expect(ruleHits(flagFile, line, 'no-hardcoded-hex-colors')).toBe(0);
+  });
+
+  it.each([
+    ['a three-digit colour', 'const c = "#000";'],
+    ['a six-digit all-digit colour', 'const c = "#666666";'],
+    ['a colour beside an issue number', 'const c = "#3d5a45"; // #3958'],
+  ])('still flags %s', (_what, line) => {
+    expect(ruleHits('/repo/apps/web/src/ui/button.ts', line, 'no-hardcoded-hex-colors')).toBe(1);
+  });
 });
 
 describe('no-purple-colors scope', () => {
