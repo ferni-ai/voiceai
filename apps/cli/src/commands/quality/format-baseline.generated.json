@@ -176,7 +176,6 @@
   "src/api/sponsored-identity-routes.ts",
   "src/api/v1/developers/auth-routes.ts",
   "src/api/v1/developers/shared/developer-auth.ts",
-  "src/api/your-story-sections.ts",
   "src/audio/music-feedback-manager.ts",
   "src/audio/music-humanization.ts",
   "src/audio/music-player.ts",

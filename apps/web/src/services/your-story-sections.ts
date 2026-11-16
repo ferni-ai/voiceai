@@ -10,6 +10,7 @@
  * @module services/your-story-sections
  */
 
+import { onePerKey, wordingKey } from '../utils/one-per-wording.js';
 import type {
   EmotionalArcPhase,
   EmotionalArcsData,
@@ -251,9 +252,18 @@ const LOOP_CATEGORIES: Record<string, OpenLoop['category']> = {
   question: 'question',
 };
 
+/**
+ * One row per wording and person, even if the server sends a loop twice (it saved each
+ * turn twice): "I'll call her tomorrow" about Mom and about Dad are two rows. The same key
+ * as the server's (open-loop-text.ts loopKey).
+ */
 export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData | undefined {
   if (!api || api.items.length === 0) return undefined;
-  const loops: OpenLoop[] = api.items.map((l) => ({
+  const items = onePerKey(
+    api.items,
+    (l) => `${wordingKey(l.content)}|${l.relatedPerson ? wordingKey(l.relatedPerson) : ''}`
+  );
+  const loops: OpenLoop[] = items.map((l) => ({
     id: l.id,
     description: l.content,
     createdAt: l.createdAt,
@@ -263,5 +273,6 @@ export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData
     ...(l.relatedPerson ? { relatedPerson: l.relatedPerson } : {}),
   }));
   const oldestLoop = [...loops].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-  return { loops, totalOpen: api.total, ...(oldestLoop ? { oldestLoop } : {}) };
+  const totalOpen = api.total - (api.items.length - items.length);
+  return { loops, totalOpen, ...(oldestLoop ? { oldestLoop } : {}) };
 }
