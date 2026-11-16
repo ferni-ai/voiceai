@@ -113,9 +113,28 @@ export const LEAN_TEAM_TOOLS: readonly string[] = [
   'askForTeammate',
 ];
 
+/**
+ * TASK_TOOLS_ALWAYS_ON (off by default): the to-do tools join the always-on set.
+ * Under TOOLS_SAME_TURN productivity loads only on a topic word ("task", "todo",
+ * "plan"...), so "put the dry cleaning on my list" reached no task tool, though
+ * Ferni handles every assistant ask himself (docs/plans/2026-11-16-assistant-core.md,
+ * decision 1). Cost: three more declarations on every request while it is on.
+ */
+const ALWAYS_ON_TASK_TOOLS: Readonly<Record<string, string>> = {
+  addTask: 'productivity',
+  getTasks: 'productivity',
+  completeTask: 'productivity',
+};
+
+/** This call's always-on set: LEAN_ALWAYS_ON_TOOLS, plus the task tools with TASK_TOOLS_ALWAYS_ON. */
+export function leanAlwaysOnTools(env: Env = process.env): Readonly<Record<string, string>> {
+  if (!flagOn('TASK_TOOLS_ALWAYS_ON', env)) return LEAN_ALWAYS_ON_TOOLS;
+  return { ...LEAN_ALWAYS_ON_TOOLS, ...ALWAYS_ON_TASK_TOOLS };
+}
+
 /** Always-on under TOOLS_SAME_TURN, by name. */
 export function isLeanAlwaysOnTool(name: string): boolean {
-  return name in LEAN_ALWAYS_ON_TOOLS || LEAN_TEAM_TOOLS.includes(name);
+  return name in leanAlwaysOnTools() || LEAN_TEAM_TOOLS.includes(name);
 }
 
 /**
