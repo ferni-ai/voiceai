@@ -135,6 +135,20 @@ describe('marketplace registry check', () => {
     expect(registryProblems([])).toEqual(['registry: not a JSON object']);
   });
 
+  // Exact lists: a null entry must be reported once and then skipped, never read
+  // (reading its id throws instead of reporting).
+  it('reports a category that is not an object and checks the rest', () => {
+    const valid = validRegistry();
+    const registry = { ...valid, categories: [null, ...valid.categories] };
+    expect(registryProblems(registry)).toEqual(['categories[0]: not an object']);
+  });
+
+  it('reports an agent that is not an object and checks the rest', () => {
+    const valid = validRegistry();
+    const registry = { ...valid, agents: [null, ...valid.agents] };
+    expect(registryProblems(registry)).toEqual(['agents[0]: not an object']);
+  });
+
   it('exits 0 on a valid file and 1 with an annotation on a broken one', () => {
     const ok = runScript(validRegistry());
     expect(ok.status, ok.stderr).toBe(0);
