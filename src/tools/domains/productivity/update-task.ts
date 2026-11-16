@@ -94,13 +94,14 @@ async function editOne(
   if (edit.dueDate && !newDue) {
     return `"${edit.dueDate}" isn't a date the list understands, so "${task.title}" is unchanged. Ask for a day like "Friday" or "in 3 days".`;
   }
-  if (!edit.newTitle && !newDue && !edit.priority) {
+  const newTitle = edit.newTitle?.trim() || undefined; // a blank name is no rename, never an empty title
+  if (!newTitle && !newDue && !edit.priority) {
     return `Nothing to change on "${task.title}": ask whether they want to rename it, move it, change its priority, or remove it.`;
   }
 
   const before = task.title;
   const updated = store.update(task.id, {
-    ...(edit.newTitle ? { title: edit.newTitle } : {}),
+    ...(newTitle ? { title: newTitle } : {}),
     ...(newDue ? { dueDate: newDue } : {}),
     ...(edit.priority ? { priority: edit.priority } : {}),
   });

@@ -34,7 +34,7 @@ vi.mock('../../../../services/stores/productivity-store.js', () => ({
   }),
 }));
 
-import { createTask, createTaskTools, getUserTasks } from '../tasks.js';
+import { completeTask, createTask, createTaskTools, getUserTasks } from '../tasks.js';
 import { pickTaskToEdit } from '../task-match.js';
 import { getTaskToolDefinitions } from '../index.js';
 
@@ -102,6 +102,17 @@ describe('pickTaskToEdit: which open task the person named', () => {
   it('nothing that fits is none', () => {
     expect(pickTaskToEdit(list, 'taxes')).toEqual({ kind: 'none' });
     expect(pickTaskToEdit([], 'dry cleaning')).toEqual({ kind: 'none' });
+  });
+
+  it('titles in any script and accents name their task', () => {
+    const others = [task('Llamar a mamá'), task('Llamar a papá'), task('買い物')];
+    expect(pickTaskToEdit(others, 'mamá')).toEqual({ kind: 'one', task: others[0] });
+    expect(pickTaskToEdit(others, '買い物')).toEqual({ kind: 'one', task: others[2] });
+  });
+
+  it('a curly apostrophe is the same word as a straight one: “mom’s pills”', () => {
+    const pills = [task("Refill mom's pills"), task('Refill the car')];
+    expect(pickTaskToEdit(pills, 'mom’s pills')).toEqual({ kind: 'one', task: pills[0] });
   });
 });
 
@@ -213,6 +224,71 @@ describe('updateTask', () => {
     expect(titles('default')).toEqual(['Pick up the dry cleaning']);
     expect(said).toContain("isn't tied to anyone's account");
     expect(noId).toContain("isn't tied to anyone's account");
+  });
+
+  it('a blank new name is no rename: the title stays', async () => {
+    const userId = freshUser();
+    await createTask({ userId, title: 'Call the plumber' });
+
+    const said = await updateTask.execute(
+      { taskTitle: 'plumber', newTitle: '   ' },
+      ctxFor(userId)
+    );
+
+    expect(titles(userId)).toEqual(['Call the plumber']);
+    expect(said).toContain('Nothing to change on "Call the plumber"');
+  });
+
+  it('renaming a dated task replaces its calendar entry under the new name', async () => {
+    const userId = freshUser();
+    const dated = await createTask({
+      userId,
+      title: 'Pick up the dry cleaning',
+      dueDate: new Date('2026-11-06T04:59:00Z'),
+    });
+    calendar.sync.mockClear();
+
+    await updateTask.execute(
+      { taskTitle: 'dry cleaning', newTitle: 'Pick up the suits' },
+      ctxFor(userId)
+    );
+
+    expect(calendar.remove).toHaveBeenCalledWith(userId, dated.id);
+    expect(calendar.sync).toHaveBeenCalledTimes(1);
+    expect(calendar.sync).toHaveBeenCalledWith(
+      userId,
+      dated.id,
+      'Pick up the suits',
+      expect.any(Date),
+      30
+    );
+  });
+
+  it('a date it cannot read saves none of the other changes either', async () => {
+    const userId = freshUser();
+    await createTask({ userId, title: 'Book the vacation' });
+
+    await updateTask.execute(
+      { taskTitle: 'vacation', dueDate: 'whenever', priority: 'urgent', newTitle: 'Book Maui' },
+      ctxFor(userId)
+    );
+
+    expect(titles(userId)).toEqual(['Book the vacation']);
+    expect(getUserTasks(userId)[0].priority).toBe('medium');
+  });
+
+  it('a finished task is not one it can change', async () => {
+    const userId = freshUser();
+    const done = await createTask({ userId, title: 'Pick up the dry cleaning' });
+    await completeTask(done.id);
+
+    const said = await updateTask.execute(
+      { taskTitle: 'dry cleaning', remove: true },
+      ctxFor(userId)
+    );
+
+    expect(titles(userId)).toEqual(['Pick up the dry cleaning']);
+    expect(said).toContain('to-do list is empty');
   });
 
   it('says plainly when no open task fits, and names what is there', async () => {
