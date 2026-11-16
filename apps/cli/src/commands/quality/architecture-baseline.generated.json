@@ -2654,7 +2654,6 @@
   "src/services/di/setup.ts -> src/services/memory/cognitive-memory.ts",
   "src/services/di/setup.ts -> src/services/memory/learned-memories.ts",
   "src/services/di/setup.ts -> src/services/memory/memory-service.ts",
-  "src/services/di/setup.ts -> src/services/memory/proactive-memory-surfacing.ts",
   "src/services/di/setup.ts -> src/services/memory/voice-memory.ts",
   "src/services/di/setup.ts -> src/services/scheduling/background-tasks.ts",
   "src/services/di/setup.ts -> src/services/scheduling/proactive-scheduler.ts",
