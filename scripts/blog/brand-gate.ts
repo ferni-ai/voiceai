@@ -78,7 +78,7 @@ function numberIssues(text: string, sourceText: string, postYear: string): GateI
 
 /**
  * How many words in a row count as saying a line again. Measured 2026-11-16:
- * six flagged 7 of 25 drafted letters the judge marked down on craft and 5 of
+ * six flagged 7 of 25 drafted letters the judge marked down on craft and 4 of
  * 25 published posts; five flagged 10 published posts, seven missed most
  * letters. Word counts alone flagged every published post (topic words
  * repeat), so they aren't checked.
@@ -89,8 +89,8 @@ const words = (text: string): string[] =>
   [
     ...text
       .toLowerCase()
-      .replace(/[’']/g, "'")
-      .matchAll(/[a-z0-9][a-z0-9']*/g),
+      .replace(/[‘’']/g, "'")
+      .matchAll(/[\p{L}\p{N}][\p{L}\p{N}']*/gu),
   ].map((m) => m[0]);
 
 /**
@@ -118,7 +118,9 @@ export function repeatedRuns(text: string[], earlier?: string[]): string[] {
       text[i + len] === from[j + len]
     )
       len++;
-    runs.push(text.slice(i, i + len).join(' '));
+    const run = text.slice(i, i + len).join(' ');
+    // A third copy matches part of a stretch already reported: say it once.
+    if (!runs.some((r) => ` ${r} `.includes(` ${run} `))) runs.push(run);
     i += len - 1;
   }
   return runs;
@@ -134,8 +136,8 @@ function repeatIssues(excerpt: string, body: string): GateIssue[] {
     rule: 'repetition' as const,
     message: `the excerpt is repeated in the body: "${run}". Say it in new words or leave it out of the body.`,
   }));
-  const unique = new Map([...said, ...echoed].map((i) => [i.message, i]));
-  return [...unique.values()].slice(0, 6);
+  // The excerpt finding first, so a cap of body repeats can't hide it.
+  return [...echoed, ...said].slice(0, 6);
 }
 
 function frontMatterIssues(data: Record<string, unknown>): GateIssue[] {

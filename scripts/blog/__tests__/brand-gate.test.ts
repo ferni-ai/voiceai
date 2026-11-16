@@ -135,6 +135,31 @@ describe('the repetition rule (BLOG_REPEAT_GATE)', () => {
     ).toEqual(['said twice in the post: "we don\'t know what comes next". Say it once.']);
   });
 
+  it('fails a line said straight back, and a line said three times only once', () => {
+    expect(
+      said(post(`${CLEAN} We would rather tell you so. We would rather tell you so.`))
+    ).toEqual(['said twice in the post: "we would rather tell you so". Say it once.']);
+    expect(said(post(`${CLEAN} ${LINE} ${LINE}`))).toEqual([
+      'said twice in the post: "we would rather tell you we are not sure". Say it once.',
+    ]);
+    expect(said(post(`${CLEAN} ${LINE} Yes. ${LINE} Yes. ${LINE}`))).toEqual([
+      'said twice in the post: "we would rather tell you we are not sure yes". Say it once.',
+    ]);
+  });
+
+  it('reads accented words whole and a left quote as an apostrophe', () => {
+    expect(
+      said(
+        post(
+          `${CLEAN} Our café résumé was naïve and über short. So: our café résumé was naïve and über short.`
+        )
+      )
+    ).toEqual(['said twice in the post: "our café résumé was naïve and über short". Say it once.']);
+    expect(
+      said(post(`${CLEAN} We don‘t know what comes next. Still, we don't know what comes next.`))
+    ).toHaveLength(1);
+  });
+
   it('ignores repeats inside code and link targets', () => {
     const code = '```ts\nconst answer = await ferni.recall(user, topic);\n```';
     expect(repeats(post(`${CLEAN}\n\n${code}\n\n${code}`))).toEqual([]);
@@ -144,17 +169,27 @@ describe('the repetition rule (BLOG_REPEAT_GATE)', () => {
     const echo = 'Saying we do not know beats making something up, every time.';
     const md = post(`${CLEAN} ${echo} We mean it. ${echo}`);
     expect(said(md)).toEqual([
-      'said twice in the post: "saying we do not know beats making something up every time". Say it once.',
       'the excerpt is repeated in the body: "saying we do not know beats making something up". Say it in new words or leave it out of the body.',
+      'said twice in the post: "saying we do not know beats making something up every time". Say it once.',
     ]);
   });
 
-  it('reports at most six repeats', () => {
+  it('ignores a URL in the excerpt that the body spells out in words', () => {
+    const md = post(`${CLEAN} See ferni ai one two three four five six now.`, {
+      excerpt: '"See https://ferni.ai/one/two/three/four/five/six now."',
+    });
+    expect(repeats(md)).toEqual([]);
+  });
+
+  it('reports at most six repeats, the excerpt first', () => {
     const lines = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'].map(
       (w) => `The ${w} team kept the notes nearby.`
     );
-    const body = `${CLEAN} ${lines.join(' ')} Then again. ${lines.join(' Then. ')}`;
-    expect(said(post(body))).toHaveLength(6);
+    const echo = 'Saying we do not know beats making something up.';
+    const body = `${CLEAN} ${echo} ${lines.join(' ')} Then again. ${lines.join(' Then. ')}`;
+    const messages = said(post(body));
+    expect(messages).toHaveLength(6);
+    expect(messages[0]).toMatch(/^the excerpt is repeated in the body/);
   });
 });
 
