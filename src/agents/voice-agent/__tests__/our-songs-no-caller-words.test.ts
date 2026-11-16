@@ -90,6 +90,7 @@ function turn(userId: string, sessionId = `syn-session-${++n}`): LearningContext
     emotionalResult: { primary: 'joy', intensity: 0.9, distressLevel: 0 },
     injections: [],
     turnResult: { emotional: { primary: 'joy', intensity: 0.9 }, context: {} },
+    crisisTurn: false, // a pass turn
   };
 }
 

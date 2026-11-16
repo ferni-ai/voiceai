@@ -7,10 +7,9 @@
  * fails if a real identifier comes back.
  *
  * The whole bundle is scanned (identity, behaviors, stories, knowledge and the
- * rest), plus the two places outside it that speak as Peter: his spontaneous
+ * rest), plus the place outside it that speaks as Peter: his spontaneous
  * shares (spontaneous-vulnerability.ts, which had Carolyn, Dunkin' and a 1982
- * Taco Bell) and his personal moments (peter-moments.ts, which had a Boston
- * accent and a donut-chain ten-bagger). Persona audit, 2026-10-17.
+ * Taco Bell). Persona audit, 2026-10-17.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -21,7 +20,6 @@ import {
   HOT_TAKES,
   MICRO_STORIES,
 } from '../../intelligence/context-builders/personas/spontaneous-vulnerability.js';
-import { PETER_MOMENTS } from '../../personality/moments/peter-moments.js';
 
 const BUNDLE_DIR = fileURLToPath(new URL('../bundles/peter-john', import.meta.url));
 const AGENT_FILE = fileURLToPath(new URL('../../agents/personas/peter-agent.ts', import.meta.url));
@@ -89,10 +87,6 @@ const corpus = [
     path: `${BUNDLE_DIR}/<spontaneous-vulnerability #${i}>`,
     text: [share.content, share.transition, share.ssmlEnhanced].join('\n'),
   })),
-  ...PETER_MOMENTS.map((moment) => ({
-    path: `${BUNDLE_DIR}/<peter-moments ${moment.id}>`,
-    text: [moment.content, ...moment.transitions, ...(moment.followUpPrompts ?? [])].join('\n'),
-  })),
 ];
 
 describe("Peter John's persona is fictional", () => {
@@ -101,7 +95,6 @@ describe("Peter John's persona is fictional", () => {
     expect(corpus.some(({ path }) => path.endsWith('identity/character.md'))).toBe(true);
     expect(corpus.some(({ path }) => path.includes('content/behaviors/'))).toBe(true);
     expect(shares.length).toBeGreaterThan(0);
-    expect(PETER_MOMENTS.length).toBeGreaterThan(5);
     expect(corpus.some(({ path }) => path.endsWith('content/stories/diane-story.json'))).toBe(true);
     expect(corpus.some(({ path }) => path.endsWith('content/stories/register-days.json'))).toBe(
       true

@@ -1,7 +1,6 @@
 /** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
-import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
-import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import './first-imports.js'; // log redaction, dotenv and prod-data guard, error reporting
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';
@@ -24,7 +23,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
-import { limitApiRequest } from '../../api/global-rate-limit.js';
+import { limitServerRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { bindBodyLimitResponse } from '../../api/bounded-body.js';
@@ -312,10 +311,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     return;
   }
 
-  if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    // Global limit: per signed-in person (verified uid), else per IP, in its own bucket
-    if (limitApiRequest(req, res)) return;
-  }
+  // Global limits: per signed-in person (verified uid), else per IP; /api/ and the
+  // token/demo/Plaid routes outside it each have their own bucket
+  if (limitServerRequest(req, res, pathname)) return;
 
   // ============================================================================
   // LOCAL ROUTES (TypeScript modules)

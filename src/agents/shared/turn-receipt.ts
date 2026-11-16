@@ -35,7 +35,7 @@
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
+import { fastLaneEnabled, routeOf, type RoutedRequest } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { EouMetric, LlmMetric } from './turn-metrics.js';
 import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
@@ -254,7 +254,8 @@ export class TurnReceiptRecorder {
   }
 
   /** A request to the model (preemptive, final or after tools): the last one's prompt counts. */
-  onRequest(items: readonly ItemView[], toolsOffered: number, schemaChars?: number): void {
+  onRequest(request: RoutedRequest, toolsOffered: number, schemaChars?: number): void {
+    const items = request.items as readonly ItemView[];
     const turn = this.open();
     const note = this.reminder;
     this.reminder = null;
@@ -270,10 +271,8 @@ export class TurnReceiptRecorder {
           droppedIdx: note.droppedIdx,
         }
       : { offered: 0, kept: 0, droppedIdx: [] };
-    if (fastLaneEnabled(this.opts.env)) {
-      const reason = laneReason(callerTurn(items as never));
-      turn.lane = { lane: reason === 'chat' ? 'fast' : 'main', reason };
-    }
+    // Where FastLaneLLM sends this request, by the same decision (a crisis mark, then the words).
+    if (fastLaneEnabled(this.opts.env)) turn.lane = routeOf(request);
   }
 
   /**

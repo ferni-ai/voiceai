@@ -4,10 +4,12 @@
 //
 // usage: review-calls.mjs [--env prod|dev|both] [--since ISO] [--until ISO] [--out DIR]
 //                         [--database ID]
+// env: REVIEW_OWNER_UID (required, set outside the repo): the owner's uid. It must also be
+// listed in MEMORY_EVAL_ALLOWED_UIDS (../lib/allowed-uid.mjs), or the run is refused.
 // Opt-in flags are read from each env's Firestore database (eval-database.mjs:
 // prod '(default)', dev 'ferni-dev' or EVAL_DEV_DATABASE); --database forces one for every env.
 //
-// Only these callers are ever reviewed: Seth (REVIEW_OWNER_UID), eval accounts
+// Only these callers are ever reviewed: the owner (REVIEW_OWNER_UID), eval accounts
 // (uid starts with voice-eval-) and anyone whose bogle_users doc has
 // callReviewOptIn: true (absent means false). Other users' sessions are
 // dropped before anything is kept, and lines without a sessionId are kept only
@@ -28,9 +30,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { assertAllowedUid } from '../lib/allowed-uid.mjs';
 import { documentsUrl, evalDatabase } from './eval-database.mjs';
 
-export const SETH_UID = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
 export const WORKERS = { prod: 'ca-gefvepsnxlsf', dev: 'ca-sitdmheba4fg' };
 const PROJECT = process.env.GCP_PROJECT ?? 'johnb-2025';
 const LOG = `projects/${PROJECT}/logs/cloud-agents`;
@@ -85,7 +87,8 @@ export function indexSessions(lines) {
 /** Who a caller is for review purposes, or null when they must not be reviewed. */
 export function userKind(uid, optedIn = new Set()) {
   if (!uid) return null;
-  if (uid === (process.env.REVIEW_OWNER_UID ?? SETH_UID)) return 'owner';
+  const owner = process.env.REVIEW_OWNER_UID;
+  if (owner && uid === owner) return 'owner';
   if (uid.startsWith('voice-eval-')) return 'eval';
   if (optedIn.has(uid)) return 'opt-in';
   return null;
@@ -115,6 +118,13 @@ export function linesOf(session, lines, others) {
   return { lines: own, interleaved };
 }
 
+/**
+ * What the agent logs for a reply it may not log: its length, e.g. "[148 chars]", in the
+ * field that holds the text on dev with LOG_FULL_RESPONSES (replyForLog in safe-logger.ts).
+ * Prod logs only this, so a prod review has timings but no reply words.
+ */
+export const isRedacted = (t) => /^\[\d+ chars\]$/.test(String(t ?? '').trim());
+
 const ssml = (t) =>
   t
     .replace(/<[^>]+>/g, ' ')
@@ -126,9 +136,9 @@ export function timelineOf(session, lines) {
   const out = [];
   for (const l of lines) {
     const t = l.time - session.start;
-    if (l.msg === 'Processing user turn' && l.preview)
+    if (l.msg === 'Processing user turn' && l.preview && !isRedacted(l.preview))
       out.push({ t, who: 'user', text: l.preview });
-    else if (l.trace === 'E2E_TTS_OUTPUT' && l.ttsText && !l.isEmpty) {
+    else if (l.trace === 'E2E_TTS_OUTPUT' && l.ttsText && !l.isEmpty && !isRedacted(l.ttsText)) {
       const text = ssml(l.ttsText);
       if (text) out.push({ t, who: 'agent', text });
     }
@@ -322,6 +332,8 @@ function optedIn(uids, database) {
 }
 
 async function main() {
+  if (!process.env.REVIEW_OWNER_UID) throw new Error('REVIEW_OWNER_UID is required');
+  assertAllowedUid(process.env.REVIEW_OWNER_UID);
   const args = process.argv.slice(2);
   const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
   const until = opt('--until', new Date().toISOString());

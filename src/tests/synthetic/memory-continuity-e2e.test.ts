@@ -2,7 +2,7 @@
  * Memory Continuity E2E Tests
  *
  * Tests for the memory continuity system that provides "Better than Human" recall:
- * - Thread state creation and merge behavior
+ * - Session continuity writes (capsule only)
  * - Firestore capsule hydration
  * - Hybrid retrieval ranking
  * - Session continuity cache
@@ -36,17 +36,6 @@ vi.mock('../../utils/firestore-utils.js', () => ({
   })),
 }));
 
-// Mock Spanner client
-vi.mock('../../memory/spanner-graph/client.js', () => ({
-  isSpannerReady: vi.fn(() => true),
-  upsertMemoryThread: vi.fn(),
-  insertMemoryAnchor: vi.fn(),
-  getMemoryThreadsByUser: vi.fn(() => []),
-  getMemoryAnchorsByUser: vi.fn(() => []),
-  getMemoryThreadByTheme: vi.fn(() => null),
-  markAnchorRecalled: vi.fn(),
-}));
-
 // Import after mocks
 import {
   writeSessionContinuity,
@@ -65,14 +54,6 @@ import {
   formatContinuityForLLM,
   type ContinuityBundle,
 } from '../../memory/retrieval/hybrid-continuity-retrieval.js';
-
-import {
-  isSpannerReady,
-  upsertMemoryThread,
-  insertMemoryAnchor,
-  getMemoryThreadsByUser,
-  getMemoryAnchorsByUser,
-} from '../../memory/spanner-graph/client.js';
 
 // ============================================================================
 // TEST DATA FACTORIES
@@ -121,83 +102,32 @@ function createTestCapsule(overrides?: Partial<MemoryCapsule>): MemoryCapsule {
 // THREAD STATE TESTS
 // ============================================================================
 
-describe('Thread State Creation and Merge', () => {
+describe('Session continuity writes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should create new threads for new topics', async () => {
-    const sessionData = createTestSessionData({
-      mainTopics: ['career', 'health'],
-    });
-
-    await writeSessionContinuity(sessionData);
-
-    // Should have called upsertMemoryThread for each topic
-    expect(upsertMemoryThread).toHaveBeenCalled();
-  });
-
   it('should skip trivial sessions under 30 seconds', async () => {
-    const trivialSession = createTestSessionData({
-      durationSeconds: 20,
-    });
+    const result = await writeSessionContinuity(createTestSessionData({ durationSeconds: 20 }));
 
-    const result = await writeSessionContinuity(trivialSession);
-
-    expect(result.threadsUpdated).toBe(0);
-    expect(result.anchorsCreated).toBe(0);
-    expect(upsertMemoryThread).not.toHaveBeenCalled();
+    expect(result).toEqual({ threadsUpdated: 0, anchorsCreated: 0, capsuleUpdated: false });
   });
 
   it('should skip sessions without a summary', async () => {
-    const emptySession = createTestSessionData({
-      naturalSummary: '',
-    });
+    const result = await writeSessionContinuity(createTestSessionData({ naturalSummary: '' }));
 
-    const result = await writeSessionContinuity(emptySession);
+    expect(result.capsuleUpdated).toBe(false);
+  });
+
+  it('writes no graph thread or anchor for a full, significant session', async () => {
+    const data = createTestSessionData();
+    expect(data.mainTopics.length).toBeGreaterThan(0);
+    expect(data.insights.length).toBeGreaterThan(0);
+
+    const result = await writeSessionContinuity(data);
 
     expect(result.threadsUpdated).toBe(0);
-    expect(upsertMemoryThread).not.toHaveBeenCalled();
-  });
-
-  it('should detect and create anchors from insights', async () => {
-    const sessionData = createTestSessionData({
-      insights: [
-        { type: 'breakthrough', content: 'Major realization about self-worth', confidence: 0.9 },
-        { type: 'growth', content: 'Showing progress on boundaries', confidence: 0.75 },
-        { type: 'pattern', content: 'Recurring theme of perfectionism', confidence: 0.7 },
-      ],
-      commitmentsMade: ['Will set better boundaries at work'],
-      wasSignificant: true,
-      significanceScore: 0.9,
-    });
-
-    await writeSessionContinuity(sessionData);
-
-    // Should have created anchors for breakthroughs, growth, patterns, and commitments
-    expect(insertMemoryAnchor).toHaveBeenCalled();
-  });
-
-  it('should limit anchors to 5 per session', async () => {
-    const sessionData = createTestSessionData({
-      insights: [
-        { type: 'breakthrough', content: 'Insight 1', confidence: 0.9 },
-        { type: 'breakthrough', content: 'Insight 2', confidence: 0.85 },
-        { type: 'growth', content: 'Insight 3', confidence: 0.8 },
-        { type: 'growth', content: 'Insight 4', confidence: 0.75 },
-        { type: 'pattern', content: 'Insight 5', confidence: 0.7 },
-        { type: 'pattern', content: 'Insight 6', confidence: 0.65 },
-      ],
-      commitmentsMade: ['Commit 1', 'Commit 2'],
-      wasSignificant: true,
-      significanceScore: 0.95,
-    });
-
-    await writeSessionContinuity(sessionData);
-
-    // Should have limited to 5 anchors
-    const calls = (insertMemoryAnchor as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls.length).toBeLessThanOrEqual(5);
+    expect(result.anchorsCreated).toBe(0);
   });
 });
 
@@ -241,40 +171,17 @@ describe('Hybrid Retrieval Ranking', () => {
     vi.clearAllMocks();
   });
 
-  it('should retrieve continuity bundle with metadata', async () => {
-    vi.mocked(getMemoryThreadsByUser).mockResolvedValue([
-      {
-        threadId: 'thread-1',
-        userId: 'user-test',
-        theme: 'career',
-        rollingSummary: 'Career discussions',
-        confidence: 0.8,
-        sessionCount: 5,
-        lastUpdated: new Date(),
-        firstMentioned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-    ]);
-
-    vi.mocked(getMemoryAnchorsByUser).mockResolvedValue([
-      {
-        anchorId: 'anchor-1',
-        userId: 'user-test',
-        anchorType: 'breakthrough',
-        payload: { summary: 'Major insight' },
-        significanceScore: 0.9,
-        recallCount: 2,
-        createdAt: new Date(),
-      },
-    ]);
+  it('should retrieve continuity bundle from the capsule', async () => {
+    mockFirestoreDoc.get.mockResolvedValue({ exists: true, data: () => createTestCapsule() });
 
     const bundle = await retrieveContinuityBundle('user-test', {
       currentContext: 'Let me tell you about my career',
+      includeSemanticSearch: false,
     });
 
-    expect(bundle.metadata.spannerAvailable).toBe(true);
-    expect(bundle.activeThreads.length).toBeGreaterThanOrEqual(0);
-    expect(bundle.topAnchors.length).toBeGreaterThanOrEqual(0);
+    expect(bundle.metadata.capsuleFound).toBe(true);
+    expect(bundle.activeThreads.map((t) => t.theme)).toEqual(['career', 'relationships']);
+    expect(bundle.topAnchors.map((a) => a.summary)).toEqual(['Realized fear of failure']);
   });
 
   it('should format bundle for LLM context', () => {
@@ -303,7 +210,6 @@ describe('Hybrid Retrieval Ranking', () => {
       lastEmotionalState: 'hopeful',
       semanticMatches: [],
       metadata: {
-        spannerAvailable: true,
         capsuleFound: true,
         retrievalTimeMs: 50,
         threadCount: 1,
@@ -329,7 +235,6 @@ describe('Hybrid Retrieval Ranking', () => {
       pendingTopics: [],
       semanticMatches: [],
       metadata: {
-        spannerAvailable: false,
         capsuleFound: false,
         retrievalTimeMs: 10,
         threadCount: 0,
@@ -343,39 +248,6 @@ describe('Hybrid Retrieval Ranking', () => {
     expect(formatted).toBe('');
   });
 
-  it('should rank threads by recency and relevance', async () => {
-    vi.mocked(getMemoryThreadsByUser).mockResolvedValue([
-      {
-        threadId: 'old-thread',
-        userId: 'user-test',
-        theme: 'old topic',
-        confidence: 0.9,
-        sessionCount: 10,
-        lastUpdated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-        firstMentioned: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-      {
-        threadId: 'recent-thread',
-        userId: 'user-test',
-        theme: 'career growth',
-        confidence: 0.7,
-        sessionCount: 3,
-        lastUpdated: new Date(), // Today
-        firstMentioned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-    ]);
-
-    const bundle = await retrieveContinuityBundle('user-test', {
-      currentContext: 'career',
-    });
-
-    // Recent thread should rank higher due to freshness + relevance
-    if (bundle.activeThreads.length >= 2) {
-      expect(bundle.activeThreads[0].theme).toBe('career growth');
-    }
-  });
 });
 
 // ============================================================================
@@ -408,16 +280,5 @@ describe('Memory Continuity Integration', () => {
     expect(
       (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`]
     ).toBeUndefined();
-  });
-
-  it('should handle Spanner unavailability gracefully', async () => {
-    vi.mocked(isSpannerReady).mockReturnValue(false);
-
-    const sessionData = createTestSessionData();
-    const result = await writeSessionContinuity(sessionData);
-
-    // Should still update capsule in Firestore
-    expect(result.spannerAvailable).toBe(false);
-    // Capsule update may still succeed
   });
 });

@@ -85,7 +85,7 @@ export async function handleIdentityMergeRoutes(
     sendError(res, API_ERRORS.NOT_FOUND, 404);
     return true;
   }
-  // Like POST /api/auth/migrate: 5 an hour, in its own bucket
+  // 5 an hour, in its own bucket
   if (rateLimit(req, res, { maxRequests: 5, windowMs: 3600000, keyPrefix: 'merge-anon' })) {
     return true;
   }

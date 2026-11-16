@@ -9,103 +9,11 @@ import { HEARD_AS as HANDOFF_SPELLINGS } from '../../tools/handoff/teammate-name
 import {
   HEARD_AS,
   TEAM_FIRST_NAMES,
+  asksForTeammate,
   isTeammateTalk,
   lifeMoments,
-  withoutTeammateTalk,
   teammatesOnCall,
 } from '../teammate-talk.js';
-
-describe('withoutTeammateTalk', () => {
-  it('drops asking for a teammate, or planning to go to one, whatever it is about', () => {
-    for (const line of [
-      'Can I talk to Jordan?',
-      "I'm going to talk to Jordan.",
-      'Let me speak with Maya',
-      'Switch me over to Peter please',
-      'Can you get Nayan?',
-      'Bring in Alex.',
-      'Is Jordan around?',
-      'Jordan please',
-      'Can I talk to Naya?', // speech-to-text for Nayan
-      "I'm going to talk to Jordan about planning this weekend",
-      'I need to talk to Jordan about the trip',
-      "I'm going to talk to Jordan about my birthday party",
-      "I'm going to talk to Peter about my budget",
-      "I'm going to ask Jordan to help with my sister's wedding",
-      'can you switch me to jordan i need help with the party',
-      'put me through to Jordan',
-      'Patch me to Jordan',
-      'Send in Jordan',
-      'lemme chat w/ Jordan',
-      'talk 2 jordan',
-      'can I have Jordan',
-      'I need Jordan',
-      'go back to Ferni',
-      "I'm going to have Jordan help me plan",
-      "I'm going to go with Jordan",
-      'Jordan, you there?',
-      "I'll go ask Jordan",
-      'hand me to Nayan',
-    ]) {
-      expect(withoutTeammateTalk(line), line).toBe('');
-    }
-  });
-
-  it('cuts the name said to a teammate, or the request, and keeps their own news', () => {
-    expect(withoutTeammateTalk('Hey Jordan, can you help me do some planning')).toBe(
-      'can you help me do some planning'
-    );
-    // speech-to-text often drops the comma after a greeting
-    expect(withoutTeammateTalk('hey jordan can you help me do some planning')).toBe(
-      'can you help me do some planning'
-    );
-    expect(withoutTeammateTalk('Hey Jordan, my mom is in the hospital.')).toBe(
-      'my mom is in the hospital.'
-    );
-    expect(withoutTeammateTalk('That helps a lot, thanks Maya.')).toBe('That helps a lot');
-    expect(withoutTeammateTalk("I'm going to talk to Jordan, I'm overwhelmed with this move")).toBe(
-      "I'm overwhelmed with this move"
-    );
-  });
-
-  it('cuts only the teammate from an ask that carries life news', () => {
-    expect(withoutTeammateTalk('I got laid off today, can I talk to Peter about my budget?')).toBe(
-      'I got laid off today, can I talk about my budget?'
-    );
-    expect(withoutTeammateTalk("I want to talk to Jordan about my dad's funeral")).toBe(
-      "I want to talk about my dad's funeral"
-    );
-    expect(isTeammateTalk("Decided to talk to Jordan about my dad's funeral")).toBe(false);
-  });
-
-  it('keeps someone in their life who shares a teammate name', () => {
-    for (const line of [
-      'My friend Jordan is moving to Denver.',
-      "Jordan's wedding is next month.",
-      'Jordan said she might quit.',
-      'My sister Maya got the job!',
-      'I had a fight with my brother Peter.',
-      'I asked Alex to marry me!',
-      'I asked Alex out.',
-      'I want Peter back.',
-      'I talked to Maya, she is pregnant.',
-      'I spoke with Peter and he wants a divorce.',
-      "We're trying to get Jordan into rehab.",
-      'I need to ask Maya for forgiveness.',
-      'I finally talked to Peter about the loan.',
-      'Maya is pregnant!',
-    ]) {
-      expect(withoutTeammateTalk(line), line).toBe(line);
-    }
-  });
-
-  it('the cost: a friend named without any sign of who they are reads as the teammate', () => {
-    expect(withoutTeammateTalk("I'm going to talk to Alex tonight.")).toBe('');
-    expect(withoutTeammateTalk('I need to talk to Peter about money, he has been distant.')).toBe(
-      'he has been distant.'
-    );
-  });
-});
 
 describe('isTeammateTalk', () => {
   it("knows a stored moment or thread about going to a teammate, the model's wording too", () => {
@@ -209,5 +117,40 @@ describe('teammatesOnCall', () => {
     expect(on('assistant', "It's Maya's birthday soon, right?")).toEqual([]);
     expect(on('user', 'Jordan got a new job')).toEqual([]);
     expect(on('assistant', 'Jordan would know more about that.')).toEqual([]);
+  });
+});
+
+describe('asksForTeammate', () => {
+  it('hears a live ask for a teammate, or a teammate named to them', () => {
+    for (const line of [
+      'can I talk to Alex',
+      'put me through to Maya',
+      'is Peter around?',
+      'hey Jordan, can you help me plan my week',
+      'hey jordan can you help me plan my week',
+      'nayan please',
+      'Nayan?',
+      'can i talk to jorden real quick',
+      'go back to Ferni',
+      'that was great, thanks Maya',
+      'I got laid off, can I talk to Peter',
+      'Maya, I had a rough day',
+      "I'm fine. Jordan, can you help me plan",
+    ])
+      expect(asksForTeammate(line), line).toBe(true);
+  });
+
+  it('leaves Ferni named to himself, and someone in their life who shares a name', () => {
+    for (const line of [
+      'hey Ferni, long day',
+      'Ferni, I finally finished the painting',
+      'my friend Alex is visiting',
+      'I talked to Maya yesterday',
+      "Jordan's wedding was lovely",
+      'Peter told me he is moving',
+      "it's been a long day",
+      '',
+    ])
+      expect(asksForTeammate(line), line).toBe(false);
   });
 });

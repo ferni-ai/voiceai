@@ -20,7 +20,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { wordsNeverLogged } from '../identity/owner-write-gate.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
@@ -1565,7 +1565,7 @@ export async function createSessionServices(
         getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save at session start');
       }
 
-      if (validatedUserId && userProfile && !memoryHeld(sessionId)) {
+      if (validatedUserId && userProfile && !(memoryHeld(sessionId) || userHeld(validatedUserId))) {
         try {
           const turns = historyTracker.getSimpleTurns();
 
@@ -2201,15 +2201,15 @@ export async function createSessionServices(
         try {
           await realtimeMemory.endConversation(validatedUserId, realtimeConversationId);
 
-          // Fire-and-forget async summarization (won't block session end)
-          realtimeMemory
-            .summarizeConversationAsync(validatedUserId, realtimeConversationId)
-            .catch((err) => {
-              getLogger().warn(
-                { error: String(err), conversationId: realtimeConversationId },
-                'Async summarization failed (turns are still persisted)'
-              );
-            });
+          // Fire-and-forget async summary (writes the profile): never for a held call or caller
+          if (!(memoryHeld(sessionId) || userHeld(validatedUserId))) {
+            realtimeMemory
+              .summarizeConversationAsync(validatedUserId, realtimeConversationId)
+              .catch((err) => {
+                const fields = { error: String(err), conversationId: realtimeConversationId };
+                getLogger().warn(fields, 'Async summarization failed (turns are still persisted)');
+              });
+          }
 
           getLogger().info(
             { userId: validatedUserId, conversationId: realtimeConversationId },

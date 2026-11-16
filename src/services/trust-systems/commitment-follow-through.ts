@@ -99,17 +99,6 @@ async function commitmentDoc(
     .doc(commitmentId);
 }
 
-/** The builder put this commitment's follow-up in front of the LLM this turn. */
-export function noteFollowUpOffered(
-  userId: string,
-  commitment: { id: string; content: string },
-  now = Date.now()
-): void {
-  const mine = offered.get(userId) ?? new Map<string, { content: string; at: number }>();
-  mine.set(commitment.id, { content: commitment.content, at: now });
-  offered.set(userId, mine);
-}
-
 /**
  * Called with each reply Ferni speaks. A follow-up offered in the last few
  * minutes that this reply asks about is marked asked: it won't be offered
@@ -206,9 +195,4 @@ export async function settleAwaitingAnswers(
     log.info({ userId, commitmentId: c.id, outcome }, 'Recorded how a commitment went');
   }
   return settled;
-}
-
-/** Test seam: forget this process's offered follow-ups. */
-export function resetFollowThroughState(): void {
-  offered.clear();
 }

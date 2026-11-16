@@ -22,12 +22,6 @@ export type { CognitiveSsmlOptions } from './types.js';
 export { applyEmotionAdaptation } from './emotion-adaptation.js';
 
 // ============================================================================
-// SMART EMPHASIS
-// ============================================================================
-
-export { applySmartEmphasis, type EmphasisOptions } from './smart-emphasis.js';
-
-// ============================================================================
 // NONVERBAL SOUNDS
 // ============================================================================
 

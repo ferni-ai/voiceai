@@ -76,6 +76,7 @@ import {
 } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
+import { noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TurnCrisis' });
@@ -176,6 +177,7 @@ export function startTurnCrisis(
   const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
   const crisisOptions = {
     recentMessages: userData?.recentTranscripts,
+    env: options.env, // CRISIS_MEANS_IN_HAND from this turn's env, not process.env
     ...(userData?.voiceCallerCheck === false ? { voiceCallerCheck: false } : {}),
   };
   const found = detectCrisis(userText, voice, crisisOptions);
@@ -201,6 +203,7 @@ export function startTurnCrisis(
   const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none' && !abuseOnly);
   if (pattern !== 'none') notePatternRisk(options.sessionId, patterns);
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
+  noteCrisisTurnRead(options.sessionId, userText); // read and any hold set: capture may go on
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
   // other reads; a shadow adjudicator runs beside it and never delays it.

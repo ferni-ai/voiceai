@@ -18,6 +18,7 @@
 
 import { EASING } from '../../config/animation-constants.js';
 import { emotionState } from '../../emotion/emotion-state.js';
+import { avatarMotionAllowed } from '../../ui/avatar-motion/motion-allowed.js';
 import { playNameLift } from '../../ui/avatar-motion/name-lift.js';
 import { ferniExpressions, type EmotionalExpression } from '../../ui/ferni-expressions.ui.js';
 import { createLogger } from '../../utils/logger.js';
@@ -237,8 +238,7 @@ async function handleSuperhumanObservationSignal(signal: BetterThanHumanSignal):
 
   if (soul) {
     soul.setPupilDilation('CONTRACTED', 'slow');
-    // Brief glance away as if "recalling" the pattern
-    soul.glanceAway(300);
+    if (avatarMotionAllowed('thinkingLook')) soul.glanceAway(300); // "recalling" it; not in the hold
   }
 
   ferniExpressions.setExpression('noticing', 400);

@@ -39,33 +39,10 @@ const WHOLE_KEY =
 
 /** Reviewed calls per file. Each group says why its calls may stay. */
 const PENDING_2656: Record<string, number> = {
-  // Held as pending Seth's call in call-log-surface-guard.test.ts EXEMPT (#2656): the call
-  // reviewer reads what the caller said (E2E_USER_INPUT) and Ferni's words (E2E_TTS_OUTPUT).
+  // Held as pending Seth's call in call-log-surface-guard.test.ts EXEMPT (#2656): what the
+  // caller said. Ferni's own words are out: replyForLog logs their length, never the text.
   'src/agents/integrations/better-than-human-integration.ts': 1, // resonance transcript (#2663)
-  'src/agents/multi-agent/agent-setup.ts': 3, // AGENT SPEECH, TEXT DONE, say() textPreview
-  'src/agents/multi-agent/orchestrator.ts': 6, // greeting x4 and goodbye x2 previews
-  'src/agents/shared/tts-wrapper.ts': 5, // LLM chunk x2, first-chunk x2, E2E_TTS_OUTPUT ttsText
-  'src/agents/voice-agent/transcript-handler.ts': 3, // E2E_USER_INPUT, cached response x2
-};
-const FERNI_SPOKEN_TEXT: Record<string, number> = {
-  // Ferni's own spoken text, logged whole by the TTS and audio paths: the same pending call
-  // as E2E_TTS_OUTPUT (#2656). Not changed here; lower these when it is decided.
-  'src/agents/integrations/live-backchanneling-integration.ts': 1,
-  'src/agents/integrations/slow-turn-sound.ts': 1,
-  'src/agents/integrations/turn-opening-sound.ts': 2,
-  'src/agents/shared/greeting-audio-cache.ts': 2,
-  'src/agents/shared/performance/cache-aware-tts.ts': 2,
-  'src/agents/shared/sanitizer/index.ts': 1,
-  'src/agents/shared/voiced-take-render.ts': 2,
-  'src/audio/dj-speech-engine.ts': 1,
-  'src/audio/music-humanization.ts': 1,
-  'src/personas/bundles/ferni/llm-expression-generator.ts': 1,
-  'src/services/performance/speculative-tts.ts': 1,
-  'src/speech/coordination/coordinated-tool-executor.ts': 1,
-  'src/speech/coordination/speech-coordinator.ts': 1,
-  'src/speech/tts-gateway/gateway-tts-node.ts': 9,
-  'src/speech/tts-gateway/gateway.ts': 4,
-  'src/speech/tts-gateway/index.ts': 2,
+  'src/agents/voice-agent/transcript-handler.ts': 1, // E2E_USER_INPUT
 };
 const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/tools/domains/marketing/content-generator.ts': 1, // LLM marketing copy that failed to parse
@@ -81,7 +58,6 @@ const NOT_ANYONES_WORDS: Record<string, number> = {
 };
 const ALLOWED: Record<string, number> = {
   ...PENDING_2656,
-  ...FERNI_SPOKEN_TEXT,
   ...NOT_ANYONES_WORDS,
 };
 
@@ -185,7 +161,7 @@ describe('log calls in src/ carry no conversation text (#2689)', () => {
     expect(where).toEqual([]);
   });
 
-  it('holds exactly the 18 calls call-log-surface-guard keeps pending (#2656)', () => {
-    expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(18);
+  it('holds exactly the 2 caller-text calls call-log-surface-guard keeps pending (#2656)', () => {
+    expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(2);
   });
 });

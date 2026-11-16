@@ -3,8 +3,6 @@
  * is faked at its request, so the body BigQuery would get is asserted, not a transport stub):
  * - call_events: the entry starts a call before the caller is identified, so user_hash was
  *   empty on every row (prod and dev, 2026-10-24..31). BQ_CALL_USER_HASH fills it.
- * - followthrough_outcomes: no producer existed. FOLLOWTHROUGH_BQ adds one in the live commitment
- *   context builder, fed by the real settleAwaitingAnswers (only the commitment read is faked).
  * - a rejected batch: the warning says how many times and rows, and why (reason:column).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,34 +28,6 @@ vi.mock('google-auth-library', () => ({
     return { getClient: async () => ({ request }) };
   }),
 }));
-// The builder registry: capture the commitment builder's build().
-let build: ((input: unknown) => Promise<unknown>) | undefined;
-vi.mock('../../../intelligence/context-builders/index.js', () => ({
-  registerContextBuilder: (b: { build: typeof build }) => {
-    build = b.build;
-  },
-  createStandardInjection: (id: string, content: string) => ({ id, content }),
-  createHighInjection: (id: string, content: string) => ({ id, content }),
-}));
-vi.mock('../../coach-media/feedback.js', async (orig) => ({
-  ...(await orig<object>()),
-  recordFollowUpAnswer: vi.fn(async () => null),
-}));
-// processCommitments as it runs live, minus its Firestore read: the real settle on these.
-const active = vi.hoisted(() => ({ list: [] as unknown[], now: 0 }));
-vi.mock('../../trust-systems/commitment-tracking.js', async () => {
-  const { settleAwaitingAnswers } =
-    await import('../../trust-systems/commitment-follow-through.js');
-  return {
-    processCommitments: async (userId: string, userText: string) => ({
-      newCommitments: [],
-      progressUpdates: [],
-      followUpsDue: [],
-      answers: await settleAwaitingAnswers(userId, userText, active.list as never, active.now),
-    }),
-    generateFollowUpPhrase: () => '',
-  };
-});
 vi.mock('../../../utils/firebase-admin-app.js', () => ({
   getAdminFirestore: () => ({
     collection: () => ({ doc: () => ({ collection: () => ({ doc: () => ({ update }) }) }) }),
@@ -70,8 +40,6 @@ import {
   resetCallQualityStateForTests,
   startCall,
 } from '../call-quality-monitor.js';
-
-await import('../../../intelligence/context-builders/intelligence/commitment-follow-up.js');
 
 const SECRET = 'test-secret';
 type Body = { rows: Array<{ insertId: string; json: Record<string, unknown> }> };
@@ -139,66 +107,6 @@ describe('call_events.user_hash (BQ_CALL_USER_HASH)', () => {
     expect(posted().call_events?.[0]?.user_hash).toBe(
       bqHash('user', 'uid-1', { LOG_HASH_SECRET: SECRET })
     );
-  });
-});
-
-describe('followthrough_outcomes (FOLLOWTHROUGH_BQ)', () => {
-  const now = Date.parse('2026-10-31T12:00:00Z');
-  const asked = (id: string, hoursAgo: number) => ({
-    id,
-    content: 'call my mom',
-    awaitingAnswer: true,
-    followUpAskedAt: new Date(now - hoursAgo * 3_600_000).toISOString(),
-  });
-  /** One caller turn through the live builder, with these commitments awaiting an answer. */
-  const turn = async (userId: string, userText: string, commitments: unknown[]) => {
-    Object.assign(active, { list: commitments, now });
-    await build!({ userText, userData: { turnCount: 0 }, services: { userId } });
-  };
-
-  it('on: a settled answer sends one row with the outcome, hashes and delay', async () => {
-    vi.stubEnv('FOLLOWTHROUGH_BQ', 'on');
-    await turn('uid-9', 'Yeah I called her, it went great', [asked('c1', 0.1)]);
-    expect(update).toHaveBeenCalledTimes(1);
-    await flushBqEvents();
-    const rows = posted().followthrough_outcomes ?? [];
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      env: 'prod',
-      item_kind: 'commitment',
-      outcome: 'done',
-      user_hash: bqHash('user', 'uid-9', { LOG_HASH_SECRET: SECRET }),
-      item_hash: bqHash('item', 'c1', { LOG_HASH_SECRET: SECRET }),
-    });
-    expect(rows[0]?.delay_hours).toBeCloseTo(0.1, 5);
-    expect(JSON.stringify(rows)).not.toMatch(/mom|called her|uid-9/);
-  });
-
-  it('every outcome passes its allowlist (none written as other)', async () => {
-    vi.stubEnv('FOLLOWTHROUGH_BQ', 'on');
-    await turn('u', "No, I didn't get to it", [asked('n', 0.1)]);
-    await turn('u', "I'd rather not talk about it", [asked('d', 0.1)]);
-    await turn('u', 'anything', [asked('x', 1)]); // past the answer window
-    await flushBqEvents();
-    expect((posted().followthrough_outcomes ?? []).map((r) => r.outcome)).toEqual([
-      'not_done',
-      'deflected',
-      'unanswered',
-    ]);
-  });
-
-  it('a turn with nothing awaiting an answer sends no row', async () => {
-    vi.stubEnv('FOLLOWTHROUGH_BQ', 'on');
-    await turn('u', 'Yeah I called her', [{ id: 'z', content: 'x', awaitingAnswer: false }]);
-    await flushBqEvents();
-    expect(posted().followthrough_outcomes).toBeUndefined();
-  });
-
-  it('off: the answer is still recorded, and nothing is sent', async () => {
-    await turn('uid-9', 'Yeah I called her', [asked('c2', 0.1)]);
-    expect(update).toHaveBeenCalledTimes(1);
-    await flushBqEvents();
-    expect(request).not.toHaveBeenCalled();
   });
 });
 

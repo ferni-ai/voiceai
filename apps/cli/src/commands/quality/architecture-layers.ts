@@ -88,7 +88,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/services', 'L3:understanding', ['context-awareness', 'semantic', 'cognitive-intelligence', 'intelligence', 'conversation-thread']),
   ...under('src/services', 'L3:understanding', ['world-awareness', 'language']),
   ...under('src/conversation', 'L3:affect', ['emotional-arc', 'concern-detection']),
-  ...under('src/services', 'L3:affect', ['emotion-analysis', 'wellbeing-tracking', 'somatic-intelligence', 'vibe']),
+  ...under('src/services', 'L3:affect', ['emotion-analysis', 'wellbeing-tracking', 'vibe']),
   ...under('src/intelligence', 'L3:judgment', ['triggers', 'proactive', 'surfacing', 'pondering']),
   ...under('src', 'L3:judgment', ['conversation/response-mode', 'services/safety', 'services/principal-alignment']),
   ...under('src/services', 'L3:judgment', ['better-than-human-validation', 'message-validation']),
@@ -114,7 +114,7 @@ export const LAYER_MAP: Record<string, string> = {
   // L1: adapters for storage, models, speech engines and telemetry.
   ...under('src', 'L1', ['agents/model-provider', 'diagnostics']),
   ...under('src/speech', 'L1', ['tts-gateway', 'providers', 'sonata', 'tts']),
-  ...under('src/memory', 'L1', ['storage', 'vectors', 'firestore-vector-store', 'spanner-graph']),
+  ...under('src/memory', 'L1', ['storage', 'vectors', 'firestore-vector-store']),
   ...under('src/services', 'L1', ['redis', 'cache', 'persistence', 'stores', 'data', 'data-layer', 'llm', 'tts', 'pubsub']),
   ...under('src/services', 'L1', ['external-apis', 'apple', 'linkedin', 'observability', 'analytics', 'performance']),
   ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'email-transport']),

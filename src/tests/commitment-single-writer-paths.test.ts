@@ -1,16 +1,13 @@
 /**
  * COMMITMENT_SINGLE_WRITER makes the after-call judge the only writer of the
- * commitments Ferni overhears (#1985), with the real per-turn context builder,
- * the real commitment tools and the real readers. Firestore, the tool wrapper,
+ * commitments Ferni overhears (#1985), with the real commitment tools and the real readers. Firestore, the tool wrapper,
  * calendar and outreach are the fakes.
- * - Flag on: the builder stores nothing new on a turn.
  * - A commitment the caller asks a tool for ("remind me to send Jen the deck")
  *   is still stored and still shown, though the flag hides regex-era rows.
  * - Flag off: both write exactly as on main.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sharedNestedFirestore as fs } from './helpers/nested-firestore.js';
-import type { ContextBuilderInput } from '../intelligence/context-builders/core/types.js';
 import type { ToolContext } from '../tools/registry/types.js';
 
 vi.mock('firebase-admin/firestore', async () => {
@@ -52,14 +49,12 @@ vi.mock('../services/superhuman/commitment-calendar-integration.js', async (impo
   validateCommitmentFeasibility: async () => ({ feasible: true, score: 1, conflicts: [] }),
 }));
 
-const { buildCommitmentFollowUpContext } =
-  await import('../intelligence/context-builders/intelligence/commitment-follow-up.js');
 const { commitmentTools } = await import('../tools/domains/productivity/commitments.js');
 const { trackCommitmentDef } = await import('../tools/domains/proactive/index.js');
 const { loadActiveCommitmentsOrThrow, commitmentCache } =
   await import('../services/superhuman/commitment-store.js');
 const { loadCallCheckIns } = await import('../services/superhuman/commitment-follow-up.js');
-const { forgetFlagCache } = await import('../services/platform/cohort-flags.js');
+const { forgetFlagCache, READ_TIMEOUT_MS } = await import('../services/platform/cohort-flags.js');
 const { firestoreCohortStore } = await import('../services/platform/cohort-firestore.js');
 
 const UID = 'u-writer';
@@ -78,17 +73,6 @@ const LEGACY = {
   followUpAfter: START.getTime(),
   followUpCount: 0,
 };
-
-/** One user turn through the real builder. */
-async function userSays(text: string) {
-  const input = {
-    userText: text,
-    analysis: { emotion: { primary: 'neutral' } },
-    services: { userId: UID, sessionId: 'call-1' },
-    userData: { turnCount: 3 },
-  } as unknown as ContextBuilderInput;
-  return (await buildCommitmentFollowUpContext(input)).map((i) => i.content).join('\n');
-}
 
 type Exec = (p: Record<string, unknown>) => Promise<string>;
 function tool(tools: Array<{ id: string; create: (c: ToolContext) => unknown }>, id: string): Exec {
@@ -114,23 +98,6 @@ afterEach(() => {
   delete process.env.COMMITMENT_SINGLE_WRITER;
   delete process.env.COHORT_FLAGS;
   forgetFlagCache();
-});
-
-describe('the per-turn context builder', () => {
-  it('flag off: stores the commitment it hears, as on main', async () => {
-    const said = await userSays("I'm going to call my mom this weekend");
-    expect(said).toContain('[USER COMMITMENT]');
-    const added = rows().filter((r) => r.content === 'call my mom this weekend');
-    expect(added).toHaveLength(1);
-    expect(added[0]).not.toHaveProperty('source');
-  });
-
-  it('flag on: stores nothing new and claims no tracking (the after-call judge writes)', async () => {
-    process.env.COMMITMENT_SINGLE_WRITER = 'on';
-    const said = await userSays("I'm going to call my mom this weekend");
-    expect(said).not.toContain('[USER COMMITMENT]');
-    expect(rows()).toEqual([LEGACY]);
-  });
 });
 
 describe('a commitment the caller asks a tool for', () => {
@@ -211,24 +178,38 @@ describe('a tool row, when the call env and the person disagree', () => {
     expect(asked).toContain('send Jen the deck tomorrow');
   });
 
-  it('a slow cohort read holds the tool at most ~400 ms, and the env decides', async () => {
+  it('a slow cohort read holds the tool for READ_TIMEOUT_MS of timer time, and the env decides', async () => {
     personSays('on');
+    // The ceiling the tool promises, so raising the shared timeout fails here too.
+    expect(READ_TIMEOUT_MS).toBeLessThanOrEqual(400);
+    // Timer time, not wall time: the bound is exact and a loaded machine can't stretch it.
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(START);
     const slow = vi.spyOn(firestoreCohortStore, 'overridesFor').mockImplementation(
       () =>
         new Promise((r) => {
-          setTimeout(() => r({ COMMITMENT_SINGLE_WRITER: 'on' }), 3000);
+          setTimeout(() => r({ COMMITMENT_SINGLE_WRITER: 'on' }), 10 * READ_TIMEOUT_MS);
         })
     );
     try {
-      const t0 = performance.now();
-      expect(await record()(DECK)).toMatch(/^Got it/);
-      expect(performance.now() - t0).toBeLessThan(450);
+      let reply: string | undefined;
+      const done = record()(DECK).then((r) => {
+        reply = r;
+      });
+      // Just short of the timeout the tool is still waiting on the read...
+      await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS - 1);
+      expect(reply).toBeUndefined();
+      // ...and at the timeout it answers, without the read (still 9 x READ_TIMEOUT_MS away).
+      await vi.advanceTimersByTimeAsync(1);
+      expect(reply ?? 'still waiting on the read').toMatch(/^Got it/);
+      await done;
       expect(slow).toHaveBeenCalled();
       // Stored as on main: the env says off and the person's value came too late.
       const stored = rows().find((r) => r.summary === 'send Jen the deck');
       expect(stored).toBeDefined();
       expect(stored).not.toHaveProperty('source');
     } finally {
+      await vi.runOnlyPendingTimersAsync(); // settle the slow read before the timers go back
       slow.mockRestore();
     }
   });

@@ -71,6 +71,7 @@ const turn = (userId: string, sessionId: string): LearningContext => ({
   emotionalResult: { primary: 'sad', intensity: 0.9, distressLevel: 0.2 },
   injections: [],
   turnResult: { emotional: { primary: 'sad', intensity: 0.9 }, context: {} },
+  crisisTurn: false, // a pass turn
 });
 
 beforeEach(() => {

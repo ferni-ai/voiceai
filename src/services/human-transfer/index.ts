@@ -245,14 +245,15 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
 // ============================================================================
 
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
-import { crisisLevelSignalsSince, type CrisisEventRecord } from './crisis-signals.js';
+import {
+  crisisLevelSignalsSince,
+  noteWrittenThisCall,
+  type CrisisEventRecord,
+} from './crisis-signals.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { isAnonymousDemoUser, isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 
 export { followUpCrisis } from './crisis-signals.js';
-
-/** A non-member's signal is kept 90 days, like a crisis event (#2872): a TTL on expireAt. */
-const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
  * Log crisis signal detection (even without transfer)
@@ -260,18 +261,26 @@ const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
  * Accepts CrisisSignals type returned by detectCrisisSignals()
  *
  * PRIVACY: never under a shared placeholder id ('unknown', a disguised one, a bare
- * 'anon:'): that bucket would pool every id-less caller's crises. A non-member
- * (anon:<id>) has no account to erase or export it under, so like #2872's crisis
- * record it keeps no words, only the signal flags and ids, and expires in 90 days. So does a
- * try-first visitor (isAnonymousDemoUser), who was told nothing from the call is kept.
+ * 'anon:'): that bucket would pool every id-less caller's crises. Every record is a minimal
+ * safety note, never words (2026-11-12): the time, the crisis flags and severity, and the
+ * caller turn (timestamp, signals, turn). A member's also keeps the session id, so the
+ * same-call note can fade; a non-member (anon:<id>) or try-first visitor (isAnonymousDemoUser)
+ * has no account to erase or export it under, so theirs does not, and its note fades from
+ * this process's in-call memory instead (noteWrittenThisCall).
+ * Every crisis record is kept permanently, a member's or not (2026-11-11): none carries an
+ * expireAt, and crisis_signals has no TTL policy. Signing in copies it to the account as is.
  *
  * Resolves true once the signal is stored; false when nothing was stored (no signal, a
  * placeholder id, no Firestore, or a failed write, which is logged).
+ *
+ * @param _unusedTranscript ignored and never stored. Kept so a positional caller's line can't
+ *   shift into sessionId (both are strings, so the compiler would not catch it).
  */
 export async function logCrisisSignal(
   userId: string,
   signals: CrisisSignals,
-  transcript?: string,
+  /** @deprecated Ignored: never stored, anywhere. Pass undefined. */
+  _unusedTranscript?: string,
   sessionId?: string,
   turn?: number
 ): Promise<boolean> {
@@ -302,7 +311,9 @@ export async function logCrisisSignal(
     log.warn({ sessionId }, 'Crisis signal not stored: shared placeholder id');
     return false;
   }
-  const keepsWords = isMemberIdentity(userId) && !isAnonymousDemoUser(userId);
+  const keepsSession = isMemberIdentity(userId) && !isAnonymousDemoUser(userId);
+  const fades = turn !== undefined && flagOn('CRISIS_SAME_CALL_NOTE_FADES');
+  const timestamp = new Date().toISOString();
 
   try {
     const db = getFirestoreDb();
@@ -313,7 +324,7 @@ export async function logCrisisSignal(
       .doc(userId)
       .collection('crisis_signals')
       .add({
-        timestamp: new Date().toISOString(),
+        timestamp,
         signals: {
           suicidalIdeation: signals.suicidalIdeation,
           selfHarmIndicators: signals.selfHarmIndicators,
@@ -324,15 +335,14 @@ export async function logCrisisSignal(
           domesticViolence: signals.domesticViolence,
           severity: signals.severity,
         },
-        // A member's truncated transcript for context; a non-member's or visitor's never are
-        ...(keepsWords
-          ? { transcriptSnippet: transcript ? transcript.slice(0, 200) : null }
-          : { expireAt: new Date(Date.now() + NON_MEMBER_SIGNAL_RETENTION_MS) }),
-        // Firestore rejects an undefined field, which dropped every signal logged without one
-        ...(sessionId ? { sessionId } : {}),
+        // A member's session, for the same-call note; no words for anyone. Firestore rejects an
+        // undefined field.
+        ...(keepsSession && sessionId ? { sessionId } : {}),
         // CRISIS_SAME_CALL_NOTE_FADES: the caller turn, so the same-call note can fade
-        ...(turn !== undefined && flagOn('CRISIS_SAME_CALL_NOTE_FADES') ? { turn } : {}),
+        ...(fades ? { turn } : {}),
       });
+    // No session id kept: remember in memory which call wrote it, so its note can fade too
+    if (fades && sessionId && !keepsSession) noteWrittenThisCall(sessionId, userId, timestamp);
     forgetRecentCrisis(userId); // the next turn's check-in sees this signal
     return true;
   } catch (error) {

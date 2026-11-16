@@ -72,6 +72,7 @@ function breakthroughTurn(): LearningContext {
       { category: 'topics', content: 'cobaltpangolin and the move' },
     ],
     turnResult: { emotional: { primary: 'joy', intensity: 0.9 }, context: {} },
+    crisisTurn: false, // a pass turn
   };
 }
 

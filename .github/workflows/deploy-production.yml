@@ -410,6 +410,11 @@ jobs:
             --build-arg VITE_PROMISES_PANEL="${{ vars.VITE_PROMISES_PANEL }}" \
             --build-arg VITE_TOAST_REGION="${{ vars.VITE_TOAST_REGION }}" \
             --build-arg VITE_CALM_IDLE="${{ vars.VITE_CALM_IDLE }}" \
+            --build-arg VITE_AGENT_DROP_PROMPT="${{ vars.VITE_AGENT_DROP_PROMPT }}" \
+            --build-arg VITE_AFTER_CALL_CARD="${{ vars.VITE_AFTER_CALL_CARD }}" \
+            --build-arg VITE_NO_STREAKS="${{ vars.VITE_NO_STREAKS }}" \
+            --build-arg VITE_REPORT_REPLY="${{ vars.VITE_REPORT_REPLY }}" \
+            --build-arg VITE_STRIPE_PUBLISHABLE_KEY="${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}" \
             --build-arg VITE_NATURAL_BLINK="${{ vars.VITE_NATURAL_BLINK }}" \
             --build-arg VITE_LID_BLEND="${{ vars.VITE_LID_BLEND }}" \
             --build-arg VITE_GAZE="${{ vars.VITE_GAZE }}" \

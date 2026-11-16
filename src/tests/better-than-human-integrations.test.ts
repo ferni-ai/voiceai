@@ -519,13 +519,6 @@ describe('Financial Prediction Service', () => {
       expect(progress).toBeNull();
     });
   });
-
-  describe('generateSuperhumanMoment', () => {
-    it('should return null for user without financial data', () => {
-      const moment = prediction.generateSuperhumanMoment('new-user-no-data');
-      expect(moment).toBeNull();
-    });
-  });
 });
 
 // ============================================================================

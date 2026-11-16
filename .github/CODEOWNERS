@@ -65,6 +65,7 @@
 /src/agents/multi-agent/early-goodbye-call.ts @sethdford
 /src/agents/multi-agent/family-table.ts @sethdford
 /src/agents/multi-agent/handoff-failed-say-so.ts @sethdford
+/src/agents/multi-agent/recall-note.ts @sethdford
 /src/agents/multi-agent/turn-intelligence.ts @sethdford
 /src/agents/personas/action-claim-guard.ts @sethdford
 /src/agents/personas/action-claims.ts @sethdford
@@ -88,6 +89,8 @@
 /src/agents/shared/call-wrap-up.ts @sethdford
 /src/agents/shared/caller-activity.ts @sethdford
 /src/agents/shared/farewell-risk.ts @sethdford
+/src/agents/shared/gateway/reconnection.ts @sethdford
+/src/agents/shared/goodbye-phrases.ts @sethdford
 /src/agents/shared/goodbye-read.ts @sethdford
 /src/agents/shared/phone-goodbye.ts @sethdford
 /src/agents/shared/tts-wrapper.ts @sethdford
@@ -147,6 +150,7 @@
 /src/tools/domains/proactive/outreach/owner-message-content.ts @sethdford
 /src/agents/multi-agent/caller-card/index.ts @sethdford
 /src/agents/multi-agent/caller-card/wiring.ts @sethdford
+/src/agents/multi-agent/call-sheet/wiring.ts @sethdford
 /src/agents/multi-agent/greeting-date.ts @sethdford
 /src/memory/recall/proactive-budget.ts @sethdford
 /src/memory/recall/opener-claim.ts @sethdford
@@ -224,6 +228,7 @@
 /src/services/monetization/persistence.ts @sethdford
 /src/services/monetization/tip-jar.ts @sethdford
 /src/services/monetization/value-capture.ts @sethdford
+/src/services/outreach/morning-brief/freshness.ts @sethdford
 /src/services/outreach/outreach-intelligence.ts @sethdford
 /src/services/outreach/proactive-channels/pondered-triggers.ts @sethdford
 /src/services/outreach/proactive-channels/triggers.ts @sethdford
@@ -236,6 +241,7 @@
 /src/services/superhuman/emotional-first-aid.ts @sethdford
 /src/services/superhuman/inside-joke-memory.ts @sethdford
 /src/services/superhuman/relationship-network.ts @sethdford
+/src/services/superhuman/semantic-intelligence/advice-outcome-patterns.ts @sethdford
 /src/services/superhuman/semantic-intelligence/integration.ts @sethdford
 /src/services/superhuman/user-corrections.ts @sethdford
 /src/services/superhuman/wins.ts @sethdford

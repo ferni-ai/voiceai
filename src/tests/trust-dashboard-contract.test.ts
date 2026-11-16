@@ -113,6 +113,7 @@ async function agentSession(userId: string, userText: string): Promise<void> {
     userId,
     userText,
     result: { emotional: { primary: 'joy', intensity: 0.8 }, context: {} },
+    crisisTurn: false, // a pass turn
   });
   await saveTrustProfiles(userId);
 }

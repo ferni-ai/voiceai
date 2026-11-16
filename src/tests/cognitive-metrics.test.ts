@@ -23,7 +23,6 @@ import {
   cognitiveMetrics,
   timeCognitiveOperation,
   timeCognitiveOperationSync,
-  recordTurnMetrics,
   getCognitiveMetricsSummary,
   maybeLogMetrics,
 } from '../utils/cognitive-metrics.js';
@@ -276,34 +275,6 @@ describe('timeCognitiveOperationSync', () => {
     });
 
     expect(result).toEqual([1, 2, 3]);
-  });
-});
-
-describe('recordTurnMetrics', () => {
-  beforeEach(() => {
-    cognitiveMetrics.clear();
-  });
-
-  it('should record and return metrics', () => {
-    const metrics = recordTurnMetrics();
-
-    expect(metrics).toHaveProperty('totalOverhead');
-    expect(metrics).toHaveProperty('timestamp');
-  });
-});
-
-describe('getCognitiveMetricsSummary', () => {
-  beforeEach(() => {
-    cognitiveMetrics.clear();
-  });
-
-  it('should return summary from tracker', () => {
-    recordTurnMetrics();
-    recordTurnMetrics();
-
-    const summary = getCognitiveMetricsSummary();
-
-    expect(summary.sampleCount).toBe(2);
   });
 });
 

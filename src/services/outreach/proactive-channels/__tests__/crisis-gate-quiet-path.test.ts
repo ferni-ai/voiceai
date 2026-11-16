@@ -209,7 +209,7 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     expect(stored).toHaveLength(1);
     const doc = stored[0]![1];
     expect(crisisFromSignal(UID, doc)?.escalationType).toBe('crisis_immediate');
-    expect(doc.transcriptSnippet).toBeNull(); // no words
+    expect(doc).not.toHaveProperty('transcriptSnippet'); // no words, not even an empty field
     expect(JSON.stringify(doc).toLowerCase()).not.toMatch(/end my life|call|alive/);
     expect(docs.has(HOLD)).toBe(false);
 
@@ -282,6 +282,40 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     await speak(session, SAID_AGAIN);
     await settle();
     expect(signalDocs()).toHaveLength(1);
+  });
+
+  // The flag's MEMORY_ONLY rows (crisis-flag-homes.ts). A held turn: a live session with the
+  // unfinished-turn hold installed, as crisis-read-joined-turn.ts looks for one.
+  const heldCall = () => ({
+    ...call(),
+    on: () => undefined,
+    off: () => undefined,
+    unfinishedTurnHoldMs: () => 300,
+  });
+
+  it('on a crisis-guided turn and a held turn, Ferni says what it says with the flag off', async () => {
+    const turns = async () => [await speak(call()), await speak(heldCall())];
+    vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'off');
+    const off = await turns();
+    await settle();
+    expect(signalDocs()).toHaveLength(0); // off keeps nothing, so on starts from the same state
+    expect(off.every((said) => said.includes('988'))).toBe(true); // crisis turns, not the model
+    vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'on');
+    expect(await turns()).toEqual(off);
+    await settle(); // the records are written a tick later: let them land here, not in the next test
+    expect(signalDocs()).toHaveLength(2);
+  });
+
+  it("what it keeps holds none of the caller's words, on a guided turn and a held turn", async () => {
+    const seeded = new Set(docs.keys());
+    await speak(call());
+    await speak(heldCall());
+    await settle();
+    const kept = [...docs.entries()].filter(([path]) => !seeded.has(path));
+    expect(signalDocs()).toHaveLength(2); // one wordless crisis record per call
+    const text = JSON.stringify(kept).toLowerCase();
+    for (const words of ['honestly', 'end my life', 'after this call'])
+      expect(text, words).not.toContain(words);
   });
 
   it('a held caller (MINOR_CARE) gets a quietUntil time, never a crisis record', async () => {

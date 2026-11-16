@@ -47,7 +47,12 @@ const { LAUGH_CLIP } = await import('../backchannel-policy.js');
 const { VOICED_TAKES } = await import('../../shared/reaction-clips.js');
 const { createSoundSignal, soundLabel } = await import('../sound-signal.js');
 
-type Msg = { type: string; kind?: string; wireDelayMs?: number; label?: string };
+interface Msg {
+  type: string;
+  kind?: string;
+  wireDelayMs?: number;
+  label?: string;
+}
 let sent: Msg[] = [];
 const room = {
   localParticipant: {
@@ -145,6 +150,46 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     expect(sounds()).toEqual([
       { type: 'sound_played', kind: 'opener', wireDelayMs: 650, label: expect.any(String) },
     ]);
+  });
+
+  it('the early opening clip (startTurnSounds) skips a reply the pause hold is keeping', async () => {
+    vi.stubEnv('TURN_OPENING_SOUND', 'early');
+    vi.useFakeTimers();
+    const { attachPauseHold, pauseHoldHolding } =
+      await import('../../../speech/output-control/pause-hold.js');
+    const words = 'Oh, and Biscuit chewed up my phone charger this morning.';
+    /** One call: the hold and startTurnSounds on one session; a turn ink ends `leadMs` late. */
+    const opened = async (sessionId: string, leadMs: number) => {
+      const { session, agent, user } = fakeSession();
+      const detach = attachPauseHold(session as never, sessionId, { PAUSE_HOLD: 'on' });
+      await startTurnSounds({
+        room: room as never,
+        session: session as never,
+        sessionId,
+        personaId: () => 'ferni',
+        lastUserFinalTranscript: () => words,
+        cleanupFunctions: [],
+      });
+      sent = [];
+      user('speaking');
+      vi.advanceTimersByTime(3000);
+      // The words land as the caller stops, so ink's lead after them is `leadMs`.
+      session.emit('user_input_transcribed', { transcript: words, isFinal: false });
+      const stoppedAt = Date.now();
+      user('listening');
+      vi.advanceTimersByTime(leadMs);
+      session.emit('metrics_collected', {
+        metrics: { type: 'eou_metrics', lastSpeakingTimeMs: stoppedAt },
+      });
+      agent('thinking');
+      const holding = pauseHoldHolding(sessionId);
+      vi.advanceTimersByTime(700);
+      detach?.();
+      return { holding, kinds: sounds().map((m) => m.kind) };
+    };
+    // Control: a turn the hold lets through gets the early clip in this harness.
+    expect(await opened('sound-clear', 0)).toEqual({ holding: false, kinds: ['opener'] });
+    expect(await opened('sound-held', 650)).toEqual({ holding: true, kinds: [] });
   });
 
   it('presence sounds on the mixer: a whistle or hum is hum, the snore is breath', async () => {

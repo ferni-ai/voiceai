@@ -5,9 +5,11 @@
  * @module services/custom-agent/twin-reply
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { MAX_TOKENS_SHORT, TEMP_CONTENT } from '../../config/gemini-config.js';
 import { callLLM } from '../llm-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { withoutDashes } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'TwinReply' });
 
@@ -45,7 +47,19 @@ export interface TwinResponseRequest {
     date: string;
   }>;
   keyThemes: string[];
+  /** The conversation so far, oldest first, in the custom-agent chat's shape; read only under TWIN_CONVERSATION_V2. */
+  history?: Array<{ from: 'person' | 'agent'; text: string }>;
 }
+
+/** TWIN_CONVERSATION_V2: where the reply sits in the conversation. */
+interface ConversationPlace {
+  firstTurn: boolean;
+}
+
+/** TWIN_CONVERSATION_V2: the past self knows only what it was told, and says so. */
+const NO_INVENTED_FACTS = `- Never invent facts about your life: no people, pets, places, dates or events that aren't in your profile, the journal entries above or this conversation. If they ask about something that isn't there, say you don't remember, or ask them
+- No em dashes`;
+const MID_CONVERSATION = `- You are already mid-conversation: don't greet them again, and don't sign off unless they are leaving`;
 
 /** True when the request carries a profile the prompt can be built from. */
 export function hasTwinProfile(profile: unknown): profile is TwinResponseRequest['profile'] {
@@ -65,25 +79,41 @@ export async function generateTwinResponse(
   request: TwinResponseRequest,
   // The crisis read's guidance (readTypedMessageForCrisis), read last, after the style line.
   // An argument, never a request field, so no request body can set it.
-  guidanceNote = ''
+  guidanceNote = '',
+  env: Env = process.env
 ): Promise<string | null> {
   const { userMessage, profile, relevantJournals, keyThemes } = request;
-  const systemPrompt = buildTwinSystemPrompt(profile, relevantJournals, keyThemes);
-  const ask = `${systemPrompt}\n\n## They say to you now\n${userMessage}\n\nReply as yourself, in your own voice:`;
+  const v2 = flagOn('TWIN_CONVERSATION_V2', env);
+  const history = v2 ? (request.history ?? []) : [];
+  const place = v2 ? { firstTurn: history.length === 0 } : undefined;
+  const systemPrompt = buildTwinSystemPrompt(profile, relevantJournals, keyThemes, place);
+  const said = history.length
+    ? `\n\n## The conversation so far\n${history.map((t) => `${t.from === 'person' ? 'Them' : 'You'}: ${t.text}`).join('\n')}`
+    : '';
+  const ask = `${systemPrompt}${said}\n\n## They say to you now\n${userMessage}\n\nReply as yourself, in your own voice:`;
   const prompt = guidanceNote ? `${ask}\n\n${guidanceNote}` : ask;
   const reply = await callLLM(prompt, { maxTokens: MAX_TOKENS_SHORT, temperature: TEMP_CONTENT });
   if (!reply?.trim()) {
     log.warn('Twin response unavailable: no model answered');
     return null;
   }
-  return reply.trim();
+  return v2 ? withoutDashes(reply.trim()) : reply.trim();
 }
 
 function buildTwinSystemPrompt(
   profile: TwinResponseRequest['profile'],
   journals: TwinResponseRequest['relevantJournals'],
-  themes: string[]
+  themes: string[],
+  // Absent: the prompt as it was before TWIN_CONVERSATION_V2, byte for byte.
+  place?: ConversationPlace
 ): string {
+  const greeting =
+    profile.greetingStyle && (!place || place.firstTurn)
+      ? `\nHow you greet${place ? ', at the start of a conversation' : ''}: "${profile.greetingStyle}"`
+      : '';
+  const farewell = profile.farewellStyle
+    ? `\nHow you say goodbye${place ? ', only when they are leaving' : ''}: "${profile.farewellStyle}"`
+    : '';
   let prompt = `You are ${profile.name}'s past self, speaking directly to them. You embody their authentic voice based on their journal entries and personal profile.
 
 ## Who You Are
@@ -103,8 +133,8 @@ ${profile.passions.length > 0 ? profile.passions.join(', ') : 'Exploring'}
 
 ## Phrases You Use
 ${profile.mannerisms.length > 0 ? profile.mannerisms.map((m) => `"${m}"`).join(', ') : 'Your natural way of speaking'}
-${profile.greetingStyle ? `\nHow you greet: "${profile.greetingStyle}"` : ''}
-${profile.farewellStyle ? `\nHow you say goodbye: "${profile.farewellStyle}"` : ''}
+${greeting}
+${farewell}
 
 ## How You Express Emotions
 ${
@@ -149,6 +179,7 @@ ${themes.length > 0 ? themes.join(', ') : 'Various reflections'}
 - Keep responses conversational, not too long (2-4 sentences usually)
 - If asked for advice, reference your values and past experiences
 - Don't be preachy - you're talking to yourself, not lecturing`;
+  if (place) prompt += `\n${NO_INVENTED_FACTS}${place.firstTurn ? '' : `\n${MID_CONVERSATION}`}`;
 
   return prompt;
 }

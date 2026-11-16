@@ -70,9 +70,10 @@ npm run test:call:twoway -- 8012017497 --test-type=checkin
 
 ## Production Deployment
 
-For production, the WebSocket bridge should run on the GCE instance:
+The voice agent now runs on LiveKit Cloud, which exposes no agent ports, so production needs
+Option B. Option A is kept for reference: it only worked on the retired GCE VM.
 
-### Option A: Add to Voice Agent Container
+### Option A: Add to Voice Agent Container (historical, retired GCE VM)
 
 Add the stream bridge to the voice agent Docker container:
 
@@ -92,7 +93,7 @@ gcloud compute firewall-rules create allow-twilio-stream \
 
 Then set:
 ```bash
-TWILIO_STREAM_WEBHOOK_URL=wss://34.134.186.63:8765/stream
+TWILIO_STREAM_WEBHOOK_URL=wss://<agent host>:8765/stream
 ```
 
 ### Option B: Dedicated Stream Server

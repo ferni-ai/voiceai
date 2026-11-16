@@ -27,6 +27,13 @@ vi.mock('../../../utils/safe-logger.js', async (original) => {
   });
   return { ...real, createLogger: logger, getLogger: logger };
 });
+// identifyUser starts a world-awareness pre-warm that fetches news and Wikipedia.
+// The fetch step gets a user id and interests, never a name; a stand-in for it
+// keeps the test off the network while the rest of the pre-warm still runs.
+vi.mock('../../../services/world-awareness/index.js', async (original) => ({
+  ...(await original<typeof import('../../../services/world-awareness/index.js')>()),
+  warmWorldCache: vi.fn(async () => undefined),
+}));
 
 const { parseJobMetadata, setupCallTypeContexts } = await import('../metadata-parser.js');
 const startupLog = await import('../startup-log.js');

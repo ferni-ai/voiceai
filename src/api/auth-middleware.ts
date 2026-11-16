@@ -534,8 +534,9 @@ export function rateLimit(
     windowMs?: number;
     tier?: RateLimitTier;
     keyGenerator?: (req: IncomingMessage) => string;
-    keyPrefix?: string;
-  } = {}
+    /** The route's own bucket: without one, routes shared a counter and a window. */
+    keyPrefix: string;
+  }
 ): boolean {
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
@@ -547,11 +548,9 @@ export function rateLimit(
     maxRequests = options.tier?.maxRequests ?? defaultTier.maxRequests,
     windowMs = options.tier?.windowMs ?? defaultTier.windowMs,
     keyGenerator = () => (uid ? `user:${uid}` : getClientIp(req)),
-    keyPrefix = '',
   } = options;
 
-  const baseKey = keyGenerator(req);
-  const key = keyPrefix ? `${keyPrefix}:${baseKey}` : baseKey;
+  const key = `${options.keyPrefix}:${keyGenerator(req)}`;
   const result = checkRateLimit(key, maxRequests, windowMs);
 
   res.setHeader('X-RateLimit-Limit', maxRequests);

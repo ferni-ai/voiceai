@@ -68,7 +68,7 @@ export async function handleAccountRoutes(
   }
 
   // Rate limit account operations
-  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000, keyPrefix: 'account' })) {
     return true;
   }
 

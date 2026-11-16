@@ -367,3 +367,66 @@ describe('with the flag on', () => {
     expect(eyeBlinks()).toHaveLength(0);
   });
 });
+
+describe('while the crisis face is held (fe 2026-11-11: calm blink only)', () => {
+  beforeEach(() => localStorage.setItem(FLAG, 'true'));
+
+  /** Run `minutes` with a turn change every 3 s; blinks a minute, body dips, shortest gap. */
+  async function simulate(minutes: number, hold: boolean) {
+    const m = await import('../../../src/ui/avatar-motion/natural-blink.js');
+    const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+    vi.spyOn(Math, 'random').mockImplementation(seeded(11));
+    m.initNaturalBlink();
+    vi.advanceTimersByTime(1000);
+    if (hold) crisis.holdCrisisFace(); // mid-call, after blinking started
+    const start = eyeBlinks().length;
+    const dipsAtStart = bodyDips().length;
+    const onsets: number[] = [];
+    const speakers = ['listening', 'thinking', 'speaking'];
+    for (let t = 0; t < minutes * 60_000; t += 100) {
+      if (t % 3000 === 0) turn(speakers[(t / 3000) % speakers.length]!);
+      const before = eyeBlinks().length;
+      vi.advanceTimersByTime(100);
+      if (eyeBlinks().length > before) onsets.push(t);
+    }
+    const gaps = onsets.slice(1).map((at, i) => at - onsets[i]!);
+    return {
+      perMinute: (eyeBlinks().length - start) / 2 / minutes,
+      dips: bodyDips().length - dipsAtStart,
+      shortestGap: Math.min(...gaps),
+    };
+  }
+
+  it('control, no hold: lively blinks (over 12 a minute) with body dips', async () => {
+    const run = await simulate(5, false);
+    expect(run.perMinute).toBeGreaterThan(12);
+    expect(run.dips).toBeGreaterThan(0);
+  });
+
+  it('held: 4-12 blinks a minute, 0 body dips, no doubles or cued blinks (gaps 4 s or more)', async () => {
+    const run = await simulate(5, true);
+    expect(run.perMinute).toBeGreaterThanOrEqual(4);
+    expect(run.perMinute).toBeLessThanOrEqual(12);
+    expect(run.dips).toBe(0);
+    expect(run.shortestGap).toBeGreaterThanOrEqual(3900); // CALM_BLINK_PACE x 2 s, 100 ms sampling
+  });
+
+  it('held: drawBlink still blinks the eyes but leaves the body still', async () => {
+    const m = await import('../../../src/ui/avatar-motion/natural-blink.js');
+    const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+    crisis.holdCrisisFace();
+    m.drawBlink('light');
+    expect(eyeBlinks()).toHaveLength(2);
+    expect(bodyDips()).toHaveLength(0);
+  });
+
+  it('held and reduced motion: nothing blinks', async () => {
+    const m = await import('../../../src/ui/avatar-motion/natural-blink.js');
+    const crisis = await import('../../../src/ui/face/crisis-face-hold.js');
+    crisis.holdCrisisFace();
+    setReducedMotion(true);
+    m.initNaturalBlink();
+    vi.advanceTimersByTime(60_000);
+    expect(eyeBlinks()).toHaveLength(0);
+  });
+});

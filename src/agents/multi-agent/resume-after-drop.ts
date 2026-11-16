@@ -24,6 +24,7 @@ import {
 } from '../../services/memory/realtime-memory.js';
 import { directedText } from '../../speech/direction/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { withoutDashes } from '../../utils/text-utils.js';
 import { calmGreeting, directedGreeting } from './greeting-direction.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { openingNotice } from '../shared/ai-notice.js';
@@ -109,12 +110,7 @@ async function takeDroppedCall(sessionId: string): Promise<DroppedCall | undefin
 
 /** Text as it can be spoken: no markup, no em dashes, no ellipses. */
 function speakable(text: string): string {
-  return calmGreeting(
-    text
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s*[—–]\s*/g, ', ')
-      .replace(/…/g, '.')
-  )
+  return calmGreeting(withoutDashes(text.replace(/<[^>]+>/g, '')).replace(/…/g, '.'))
     .replace(/\s+/g, ' ')
     .trim();
 }

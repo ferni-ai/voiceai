@@ -8,7 +8,7 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUpStore, NewFollowUp } from '../../services/follow-through/index.js';
 import { createFollowUpStore } from '../../services/stores/follow-through-store.js';
 import { fakeFirestore } from '../../services/stores/__tests__/fake-firestore.js';
@@ -81,7 +81,13 @@ const follow = (userId: string, ref: string, over: Partial<NewFollowUp> = {}): N
   ...over,
 });
 
+// The route reads closed rows changed in [now - 7 days, now), so a row saved in the request's own
+// millisecond is not "recent" yet (CI run 43226713373). Setup runs on a pinned clock, and each
+// request is made 1 s later, so every row is strictly older than the request on any runner.
+const SETUP_AT = Date.parse('2026-11-12T12:00:00.000Z');
+afterEach(() => vi.useRealTimers());
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'], now: SETUP_AT });
   process.env.PROMISES_PANEL = 'on';
   forgotten = [];
   store = createFollowUpStore(fakeFirestore().db);
@@ -98,6 +104,7 @@ beforeEach(async () => {
   await store.save({ ...kept, status: 'done', closedAt: now.toISOString() }, kept.updatedAt);
   await store.open(follow('u-2', 'theirs', { text: 'u-2 secret' }), now);
   await store.open(follow('uid-A', 'a', { text: 'uid-A: walk the dog' }), now);
+  vi.setSystemTime(SETUP_AT + 1000);
 });
 
 const asUser = (uid: string) => ({ 'x-firebase-uid': uid });
@@ -120,6 +127,19 @@ describe('GET /api/promises', () => {
     expect(body.open.map((r) => r.status)).toEqual(['open', 'open']);
     expect(body.recent).toMatchObject([{ text: 'book the dentist', status: 'done' }]);
     expect(JSON.stringify(body)).not.toContain('u-2 secret');
+  });
+
+  it('a row closed in the same millisecond as the request shows from the next read on', async () => {
+    vi.setSystemTime(SETUP_AT);
+    const recent = async () =>
+      (
+        (await (await fetch(`${base}/api/promises`, { headers: asUser('u-1') })).json()) as {
+          recent: Array<{ text: string }>;
+        }
+      ).recent;
+    expect(await recent()).toEqual([]);
+    vi.setSystemTime(SETUP_AT + 1);
+    expect(texts(await recent())).toEqual(['book the dentist']);
   });
 
   it('behind the real identity binding, a forged uid header is replaced by the token', async () => {

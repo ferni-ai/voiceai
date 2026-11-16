@@ -248,7 +248,7 @@ export class DeepExtractionWorker {
 
   private async processJob(job: DeepExtractionJob): Promise<void> {
     const startTime = Date.now();
-
+    if (memoryHeld(job.sessionId) || userHeld(job.userId)) return; // held since: no model call
     this.log.debug({ jobId: job.jobId, userId: job.userId }, 'Starting deep extraction');
 
     // 1. LLM Entity Extraction

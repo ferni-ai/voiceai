@@ -22,7 +22,6 @@ import {
 } from '../../services/personal-journey/chapter-detector.js';
 import {
   clearAllJourneyCaches,
-  getJourneySnapshot,
   recordDelivery,
   selectMomentForTurn,
 } from '../../services/personal-journey/journey-orchestrator.js';
@@ -348,25 +347,6 @@ describe('Personal Journey E2E Tests', () => {
       // Verify data accumulated
       expect(persistedData.rhythm?.sessions?.totalCount).toBeGreaterThanOrEqual(10);
     });
-
-    it('should maintain consistent relationship stage across sessions', async () => {
-      // Build up conversations
-      await initPersonalJourney(testUserId, null);
-
-      // Record 60 sessions
-      for (let i = 0; i < 60; i++) {
-        recordSession(testUserId);
-      }
-
-      const snapshot = getJourneySnapshot(testUserId);
-      // Note: Relationship stage requires BOTH conversations AND time
-      // Since tests run instantly, daysKnown=0, so stage will be 'new'
-      // This is expected behavior - we're testing that the system
-      // correctly tracks conversations even if time hasn't passed
-      expect(snapshot.stats.totalConversations).toBeGreaterThanOrEqual(60);
-      // The stage will be 'new' because daysKnown is 0 (tests run instantly)
-      expect(snapshot.stats.relationshipStage).toBeDefined();
-    });
   });
 
   // ============================================================================
@@ -491,65 +471,10 @@ describe('Personal Journey E2E Tests', () => {
   });
 
   // ============================================================================
-  // JOURNEY SNAPSHOT CONSISTENCY
-  // ============================================================================
-
-  describe('Journey Snapshot Consistency', () => {
-    it('should produce consistent snapshots', () => {
-      // Build up history
-      for (let i = 0; i < 30; i++) {
-        recordSession(testUserId);
-      }
-
-      // Get multiple snapshots
-      const snapshot1 = getJourneySnapshot(testUserId);
-      const snapshot2 = getJourneySnapshot(testUserId);
-
-      // Should be consistent (same data, same moment count)
-      expect(snapshot1.stats.totalConversations).toBe(snapshot2.stats.totalConversations);
-      expect(snapshot1.stats.relationshipStage).toBe(snapshot2.stats.relationshipStage);
-      expect(snapshot1.stats.currentStreak).toBe(snapshot2.stats.currentStreak);
-    });
-
-    it('should track conversation counts correctly', () => {
-      // Test conversation counting works correctly
-      // Note: Relationship stage requires BOTH conversations AND days known
-      // Since tests run instantly, we can only verify conversation count accuracy
-      const testCases = [
-        { count: 5, minConversations: 5 },
-        { count: 15, minConversations: 15 },
-        { count: 35, minConversations: 35 },
-        { count: 75, minConversations: 75 },
-      ];
-
-      for (const { count, minConversations } of testCases) {
-        const uniqueUserId = `e2e-count-test-${count}`;
-        clearRhythmCache(uniqueUserId);
-        clearAllJourneyCaches(uniqueUserId);
-
-        for (let i = 0; i < count; i++) {
-          recordSession(uniqueUserId);
-        }
-
-        const snapshot = getJourneySnapshot(uniqueUserId);
-        expect(snapshot.stats.totalConversations).toBeGreaterThanOrEqual(minConversations);
-        // Stage will be 'new' because daysKnown=0 in tests
-        expect(snapshot.stats.relationshipStage).toBe('new');
-      }
-    });
-  });
-
-  // ============================================================================
   // ERROR HANDLING
   // ============================================================================
 
   describe('Error Handling & Graceful Degradation', () => {
-    it('should handle invalid userId gracefully', () => {
-      expect(() => recordSession('')).not.toThrow();
-      expect(() => getRhythmStats('')).not.toThrow();
-      expect(() => getJourneySnapshot('')).not.toThrow();
-    });
-
     it('should handle null profile gracefully', async () => {
       await expect(initPersonalJourney(testUserId, null)).resolves.not.toThrow();
     });

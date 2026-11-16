@@ -301,7 +301,6 @@ Don't force it - only bring it up if it flows naturally from what they say.`,
     }
   }
 
-
   // Person follow-up (if natural opening)
   if (!data.personFollowUpThisSession && turnCount >= 5) {
     const followUp = findPeopleToAskAbout(userId, {
@@ -637,5 +636,3 @@ registerContextBuilder({
   build: buildConversationalSuperpowers,
   category: BuilderCategory.PERSONA,
 });
-
-export { buildConversationalSuperpowers };

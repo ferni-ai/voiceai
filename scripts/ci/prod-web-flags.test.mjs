@@ -51,7 +51,7 @@ describe('prod web flags', () => {
       const env = Object.fromEntries(
         [...text.matchAll(/^\s+(PROD_VAR_[A-Z0-9_]+):/gm)].map((m) => [m[1], 'x'])
       );
-      env.PROD_VAR_VITE_VENMO_HANDLE_SET = 'true';
+      for (const name of Object.keys(PLACEHOLDERS)) env[`PROD_VAR_${name}_SET`] = 'true';
       expect(() => varsFromEnv(workflow, env), file).not.toThrow();
     }
   });
@@ -61,6 +61,7 @@ describe('prod web flags', () => {
       PROD_VAR_VITE_MEMORY_VIEW: 'true',
       PROD_VAR_VITE_VENMO_CHIP_IN: 'true',
       PROD_VAR_VITE_VENMO_HANDLE_SET: 'true',
+      PROD_VAR_VITE_STRIPE_PUBLISHABLE_KEY_SET: 'false',
     };
     expect(() => varsFromEnv(workflow, env)).toThrow(/missing: .*PROD_VAR_VITE_CAPTIONS_V2/);
     const all = Object.fromEntries(
@@ -70,6 +71,7 @@ describe('prod web flags', () => {
       ])
     );
     delete all.PROD_VAR_VITE_VENMO_HANDLE;
+    delete all.PROD_VAR_VITE_STRIPE_PUBLISHABLE_KEY;
     const full = { ...all, ...env, PATH: '/usr/bin' };
     expect(varsFromEnv(workflow, full)).toMatchObject({
       VITE_MEMORY_VIEW: 'true',
@@ -92,9 +94,12 @@ describe('prod web flags', () => {
     expect(() => stepEnv(workflow, 'No such step')).toThrow(/no "No such step" step/);
   });
 
-  it('passes every avatar motion switch and calm idle to each web build, off when unset', () => {
+  it('passes every avatar motion switch, calm idle and four more switches to each web build, default when unset', () => {
     // The switches these files read; a new one must reach deploy and the walks too.
-    // Calm idle was left out of #3023, so no repo variable could turn it on.
+    // Calm idle was left out of #3023, so no repo variable could turn it on; the
+    // agent-drop prompt, after-call card, no-streaks and report-reply switches were
+    // never passed at all. Each reader treats "" as its default, so an unset repo
+    // variable builds exactly what a build without the line did.
     const readNames = (file) => [
       ...new Set(
         [...readFileSync(file, 'utf8').matchAll(/import\.meta\.env\.(VITE_[A-Z0-9_]+)/g)].map(
@@ -104,8 +109,20 @@ describe('prod web flags', () => {
     ];
     const motion = readNames('apps/web/src/config/motion-flags.ts');
     const calmIdle = readNames('apps/web/src/config/calm-idle.ts');
+    const switches = [
+      'apps/web/src/config/agent-drop-prompt-flag.ts',
+      'apps/web/src/ui/after-call/after-call-flag.ts',
+      'apps/web/src/config/no-streaks.ts',
+      'apps/web/src/ui/report-reply/report-reply-entry.ts',
+    ].flatMap(readNames);
     expect(motion.length).toBeGreaterThanOrEqual(13);
     expect(calmIdle).toEqual(['VITE_CALM_IDLE']);
+    expect(switches).toEqual([
+      'VITE_AGENT_DROP_PROMPT',
+      'VITE_AFTER_CALL_CARD',
+      'VITE_NO_STREAKS',
+      'VITE_REPORT_REPLY',
+    ]);
 
     const build = stepEnv(workflow, 'Build frontend');
     const image = readFileSync('.github/workflows/deploy-production.yml', 'utf8');
@@ -113,7 +130,7 @@ describe('prod web flags', () => {
     const walks = ['.github/workflows/menu-e2e.yml', '.github/workflows/signed-in-e2e.yml'].map(
       (file) => [file, readFileSync(file, 'utf8')]
     );
-    for (const name of [...motion, ...calmIdle]) {
+    for (const name of [...motion, ...calmIdle, ...switches]) {
       expect(build[name], `${WEB_BUILD} Build frontend: ${name}`).toBe(`\${{ vars.${name} }}`);
       expect(resolve(name, build[name], {}), `${name} default`).toBe('');
       expect(image, `deploy-production.yml build-arg ${name}`).toContain(
@@ -125,6 +142,43 @@ describe('prod web flags', () => {
         expect(text, `${file}: PROD_VAR_${name}`).toContain(
           `PROD_VAR_${name}: \${{ vars.${name} }}`
         );
+      }
+    }
+  });
+
+  it('passes the Stripe browser key to each web build; the walks get only whether it is set', () => {
+    const name = 'VITE_STRIPE_PUBLISHABLE_KEY';
+    const build = stepEnv(workflow, 'Build frontend');
+    expect(build[name], `${WEB_BUILD} Build frontend: ${name}`).toBe(`\${{ vars.${name} }}`);
+    expect(readFileSync('.github/workflows/deploy-production.yml', 'utf8')).toContain(
+      `--build-arg ${name}="\${{ vars.${name} }}"`
+    );
+    const dockerfile = readFileSync('docker/Dockerfile.ui', 'utf8');
+    expect(dockerfile).toMatch(new RegExp(`^ARG ${name}=""$`, 'm'));
+    expect(dockerfile).toContain(`${name}=$${name}`);
+    for (const file of ['.github/workflows/menu-e2e.yml', '.github/workflows/signed-in-e2e.yml']) {
+      const text = readFileSync(file, 'utf8');
+      expect(text, file).toContain(`PROD_VAR_${name}_SET: \${{ vars.${name} != '' }}`);
+      expect(text, file).not.toMatch(new RegExp(`vars\\.${name}\\s*\\}\\}`));
+    }
+    // The real key never reaches the walk; an unset one stays unset (no card payments)
+    expect(webFlags(workflow, { [name]: 'pk_live_real' })[name]).toBe(PLACEHOLDERS[name]);
+    expect(webFlags(workflow, {})[name]).toBe('');
+  });
+
+  it('never builds the dev panel key or the Google One Tap client id into prod web', () => {
+    // VITE_DEV_PANEL_KEY opens the debug-only dev panel; a prod build must not have one.
+    // VITE_GOOGLE_CLIENT_ID turns on Google One Tap, which Seth declined on 2026-11-09:
+    // the popup sign-in stays. Neither may reach a prod web build.
+    const files = [
+      '.github/workflows/deploy-firebase.yml',
+      '.github/workflows/deploy-production.yml',
+      'docker/Dockerfile.ui',
+    ];
+    for (const file of files) {
+      const text = readFileSync(file, 'utf8');
+      for (const name of ['VITE_DEV_PANEL_KEY', 'VITE_GOOGLE_CLIENT_ID']) {
+        expect(text.includes(name), `${file} must not mention ${name}`).toBe(false);
       }
     }
   });
