@@ -133,10 +133,10 @@ jobs:
       # shard matrix reads as 'not sharded' (a full run is four shards anyway).
       unit-affected-count: ${{ steps.unit-affected.outputs.count }}
       unit-affected-sharded: ${{ steps.unit-affected.outputs.sharded }}
-      # 'true' when a PR touches crisis-safety or memory code, which then gets the
-      # whole unit suite on four shards, as the ci:full-tests label does. Only
-      # 'false' on a PR that touches none of those paths.
-      full-tests: ${{ steps.risky.outputs.matched }}
+      # 'true' when a PR touches crisis-safety or memory code, or any path in the
+      # crisis lane, which then gets the whole unit suite on four shards, as the
+      # ci:full-tests label does. Only 'false' on a PR that touches none of those.
+      full-tests: ${{ steps.risky.outputs.matched == 'true' || steps.crisis-lane.outputs.matched == 'true' }}
     steps:
       # Two commits on a pull request (the merge commit and its base) for the unit
       # trigger check below; the pr-changes steps list files through the API.
@@ -212,6 +212,30 @@ jobs:
           fi
           echo "✅ node_modules verified"
 
+      # Every path in autonomy-policy.json's crisis lane gets the whole unit suite too,
+      # read from the policy so the two can't drift: 258 crisis-lane files were outside
+      # the hand-kept list above, and #3956 went green on shard 1 alone with a red flag
+      # census (#3967). The script prints "." (every path, so the full suite) when it
+      # can't read the policy, and so does this step when the script fails or prints
+      # nothing. Pinned by src/tests/ci/merge-queue-scope.test.ts.
+      - name: Which paths are in the crisis lane?
+        id: crisis-lane-paths
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
+        run: |
+          if include=$(pnpm exec tsx scripts/ci/crisis-lane-include.ts) && [ -n "$include" ]; then
+            echo "include=$include" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::could not read the crisis lane's paths; this PR runs the whole unit suite"
+            echo "include=." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Did a crisis-lane path change?
+        id: crisis-lane
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
+        uses: ./.github/actions/pr-changes
+        with:
+          include: ${{ steps.crisis-lane-paths.outputs.include }}
+
       # `vitest --changed` runs the WHOLE unit suite when the diff touches one of
       # vitest.config.unit.ts's forceRerunTriggers (a persona bundle or other data
       # file under src/, package.json, the lockfile, tsconfig). One shard can't run
@@ -236,6 +260,7 @@ jobs:
           github.event_name == 'pull_request'
           && steps.unit-full.outputs.needed == 'false'
           && steps.risky.outputs.matched != 'true'
+          && steps.crisis-lane.outputs.matched != 'true'
           && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
         run: node scripts/ci/unit-affected-count.mjs HEAD^1 || echo "sharded=true" >> "$GITHUB_OUTPUT"
 
