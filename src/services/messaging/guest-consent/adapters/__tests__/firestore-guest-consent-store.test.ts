@@ -4,7 +4,7 @@
  * it holds (never the number), that a revoke keeps it and a new yes clears the
  * revoke, and that a malformed or missing database never reads as a yes.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getFirestoreDb } from '../../../../../utils/firestore-utils.js';
 import { pathFirestore } from '../../../../outreach/proactive-channels/__tests__/path-firestore.js';
 import { GUEST_CONSENT_WORDING_VERSION } from '../../domain/guest-consent.js';
@@ -40,6 +40,10 @@ beforeEach(() => {
     env: { LOG_HASH_SECRET: 'test-only-key' },
     now: () => new Date((clock += 60_000)),
   };
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 const stored = (): [string, Record<string, unknown>] => {
@@ -105,7 +109,6 @@ describe('the Firestore guest consent store', () => {
     expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(true);
     await entry.revokeGuestConsent(OWNER, GUEST);
     expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(false);
-    vi.unstubAllEnvs();
   });
 
   it('without a database: reads are no, writes throw', async () => {

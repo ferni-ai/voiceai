@@ -34,14 +34,19 @@ export async function hasGuestConsent(
   return useCases.hasGuestConsent(ownerUid, e164, deps);
 }
 
-/** Records the guest's yes to `wordingVersion`. Throws when it can't be keyed or saved. */
+/**
+ * Records the guest's yes to `wordingVersion`, said at `saidAt` (default now): a
+ * revoke made after that time stands. Throws for a wording version above the
+ * current one, or when it can't be keyed or saved.
+ */
 export async function recordGuestConsent(
   ownerUid: string,
   e164: string,
   wordingVersion: number,
+  saidAt?: Date,
   deps: GuestConsentDeps = defaultGuestConsentDeps()
 ): Promise<void> {
-  return useCases.recordGuestConsent(ownerUid, e164, wordingVersion, deps);
+  return useCases.recordGuestConsent(ownerUid, e164, wordingVersion, deps, saidAt);
 }
 
 /** Records the guest's revoke; the record stays. Throws when it can't be keyed or saved. */

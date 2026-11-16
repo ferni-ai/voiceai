@@ -47,13 +47,21 @@ export function consentStands(
 const withChange = (history: readonly string[], change: string): string[] =>
   [...history, change].slice(-HISTORY_MAX);
 
-/** A (new) yes: clears any revoke and takes the new wording version; the history is kept. */
+/**
+ * A yes made at `at` (when the guest said it): clears any revoke and takes the
+ * new wording version; the history is kept. Null (nothing to write) when a
+ * revoke on record is later than this yes, or its time can't be read: a slow or
+ * retried yes never undoes a stop that came after it.
+ */
 export function afterYes(
   prev: GuestConsent | null,
   wordingVersion: number,
   at: string,
   keyVersion: string | null
-): GuestConsent {
+): GuestConsent | null {
+  if (prev?.revokedAt !== undefined && !(Date.parse(prev.revokedAt) <= Date.parse(at))) {
+    return null;
+  }
   return {
     wordingVersion,
     consentedAt: at,

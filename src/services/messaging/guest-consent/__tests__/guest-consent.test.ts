@@ -2,9 +2,12 @@
  * A guest's yes to being called into an owner's calls: only a standing yes to
  * the current wording counts, a revoke ends it but keeps the record, and the
  * guest's number is kept only as a keyed hash. On an in-memory store.
+ *
+ * The wording version in force is 2 here (the real constant, raised for this
+ * file), so a yes to version 1 is a yes to an older wording.
  */
 import { createHash } from 'node:crypto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GUEST_CONSENT_WORDING_VERSION } from '../domain/guest-consent.js';
 import {
   hasGuestConsent,
@@ -13,6 +16,11 @@ import {
   type GuestConsentDeps,
 } from '../use-cases/guest-consent.js';
 import { memoryGuestConsentStore } from './memory-guest-consent-store.js';
+
+vi.mock('../domain/guest-consent.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../domain/guest-consent.js')>()),
+  GUEST_CONSENT_WORDING_VERSION: 2,
+}));
 
 const OWNER = 'u-fictional-owner';
 const OTHER_OWNER = 'u-fictional-other';
@@ -67,25 +75,48 @@ describe('hasGuestConsent', () => {
   });
 
   it('a revoke followed by a new yes means consent, with the new wording and no revokedAt', async () => {
-    const current = 3;
-    await recordGuestConsent(OWNER, GUEST, 2, depsWith({ wordingVersion: current }));
-    await revokeGuestConsent(OWNER, GUEST, depsWith({ wordingVersion: current }));
-    await recordGuestConsent(OWNER, GUEST, current, depsWith({ wordingVersion: current }));
-    expect(await hasGuestConsent(OWNER, GUEST, depsWith({ wordingVersion: current }))).toBe(true);
+    await recordGuestConsent(OWNER, GUEST, 1, depsWith());
+    await revokeGuestConsent(OWNER, GUEST, depsWith());
+    await recordGuestConsent(OWNER, GUEST, V, depsWith());
+    expect(await hasGuestConsent(OWNER, GUEST, depsWith())).toBe(true);
     const [, doc] = only();
-    expect(doc.wordingVersion).toBe(current);
+    expect(doc.wordingVersion).toBe(V);
     expect(doc.consentedAt).toBe('2026-11-16T15:03:00.000Z');
     expect('revokedAt' in doc).toBe(false);
     expect(doc.history).toHaveLength(3);
   });
 
-  it('a yes to an older wording means no consent; current or newer counts', async () => {
-    const at = (current: number) => depsWith({ wordingVersion: current });
-    await recordGuestConsent(OWNER, GUEST, 1, at(2));
-    expect(await hasGuestConsent(OWNER, GUEST, at(2))).toBe(false);
-    expect(await hasGuestConsent(OWNER, GUEST, at(1))).toBe(true);
-    await recordGuestConsent(OWNER, GUEST, 3, at(2));
-    expect(await hasGuestConsent(OWNER, GUEST, at(2))).toBe(true);
+  it('a revoke followed by a stale yes (said before the revoke) still means no consent', async () => {
+    const saidAt = new Date('2026-11-16T15:01:30Z'); // the guest tapped yes again
+    await recordGuestConsent(OWNER, GUEST, V, depsWith());
+    await revokeGuestConsent(OWNER, GUEST, depsWith()); // 15:02: then she said stop
+    await recordGuestConsent(OWNER, GUEST, V, depsWith(), saidAt); // a retried yes lands late
+    expect(await hasGuestConsent(OWNER, GUEST, depsWith())).toBe(false);
+    const [, doc] = only();
+    expect(doc.revokedAt).toBe('2026-11-16T15:02:00.000Z');
+    expect(doc.history).toHaveLength(2);
+  });
+
+  it('a yes said after the revoke, stamped with that time, clears it', async () => {
+    await recordGuestConsent(OWNER, GUEST, V, depsWith());
+    await revokeGuestConsent(OWNER, GUEST, depsWith()); // 15:02
+    await recordGuestConsent(OWNER, GUEST, V, depsWith(), new Date('2026-11-16T15:02:30Z'));
+    expect(await hasGuestConsent(OWNER, GUEST, depsWith())).toBe(true);
+    expect(only()[1].consentedAt).toBe('2026-11-16T15:02:30.000Z');
+  });
+
+  it('a yes to an older wording means no consent; the current one counts', async () => {
+    expect(V).toBe(2);
+    await recordGuestConsent(OWNER, GUEST, 1, depsWith());
+    expect(await hasGuestConsent(OWNER, GUEST, depsWith())).toBe(false);
+    await recordGuestConsent(OWNER, GUEST, V, depsWith());
+    expect(await hasGuestConsent(OWNER, GUEST, depsWith())).toBe(true);
+  });
+
+  it('no caller can lower the bar: an extra wordingVersion in deps is ignored', async () => {
+    await recordGuestConsent(OWNER, GUEST, 1, depsWith());
+    const lowered = { ...depsWith(), wordingVersion: 1 };
+    expect(await hasGuestConsent(OWNER, GUEST, lowered)).toBe(false);
   });
 
   it("is one owner's: a yes for one owner gives another nothing", async () => {
@@ -106,6 +137,23 @@ describe('hasGuestConsent', () => {
     expect(await hasGuestConsent('  ', GUEST, depsWith())).toBe(false);
     m.state.failReads = true;
     expect(await hasGuestConsent(OWNER, GUEST, depsWith())).toBe(false);
+  });
+
+  it('when keying the number throws, a check is no, and a yes or revoke throws', async () => {
+    await recordGuestConsent(OWNER, GUEST, V, depsWith());
+    const env = {
+      get LOG_HASH_SECRET(): string {
+        throw new Error('secret unavailable');
+      },
+    };
+    expect(await hasGuestConsent(OWNER, GUEST, depsWith({ env }))).toBe(false);
+    await expect(recordGuestConsent(OWNER, GUEST, V, depsWith({ env }))).rejects.toThrow(
+      /secret unavailable/
+    );
+    await expect(revokeGuestConsent(OWNER, GUEST, depsWith({ env }))).rejects.toThrow(
+      /secret unavailable/
+    );
+    expect(only()[1].revokedAt).toBeUndefined();
   });
 });
 
@@ -159,6 +207,23 @@ describe('the stored record', () => {
     );
     await expect(recordGuestConsent(OWNER, GUEST, 0, depsWith())).rejects.toThrow(/wording/);
     await expect(recordGuestConsent(OWNER, GUEST, 1.5, depsWith())).rejects.toThrow(/wording/);
+    expect(m.docs.size).toBe(0);
+  });
+
+  it('a yes to a wording that does not exist yet is refused and nothing is stored', async () => {
+    await expect(recordGuestConsent(OWNER, GUEST, V + 1, depsWith())).rejects.toThrow(/wording/);
+    await expect(recordGuestConsent(OWNER, GUEST, 999, depsWith())).rejects.toThrow(/wording/);
+    expect(m.docs.size).toBe(0);
+  });
+
+  it('a yes stamped later than now is refused: a retry could otherwise outrank a later revoke', async () => {
+    const later = new Date('2026-11-16T18:00:00Z');
+    await expect(recordGuestConsent(OWNER, GUEST, V, depsWith(), later)).rejects.toThrow(
+      /time the yes was said/
+    );
+    await expect(
+      recordGuestConsent(OWNER, GUEST, V, depsWith(), new Date('not a time'))
+    ).rejects.toThrow(/time the yes was said/);
     expect(m.docs.size).toBe(0);
   });
 });

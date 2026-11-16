@@ -9,7 +9,9 @@
  * logged or returned.
  *
  * Checks fail closed (no key, no number, an unreadable store: no consent);
- * writes that can't be keyed or saved throw, so the caller can say so.
+ * writes that can't be keyed or saved throw, so the caller can say so. The bar
+ * is always GUEST_CONSENT_WORDING_VERSION: no caller can lower it, and no yes
+ * can be recorded for a wording that doesn't exist yet.
  *
  * @module services/messaging/guest-consent/use-cases/guest-consent
  */
@@ -36,8 +38,6 @@ export interface GuestConsentDeps {
   /** Holds LOG_HASH_SECRET, the key behind the phone hash. */
   env: Env;
   now: () => Date;
-  /** The wording version a yes must be at or above; GUEST_CONSENT_WORDING_VERSION unless a test says otherwise. */
-  wordingVersion?: number;
 }
 
 /** The record's key for this owner and number, or null when it can't be keyed. */
@@ -59,38 +59,56 @@ export async function hasGuestConsent(
   e164: string,
   deps: GuestConsentDeps
 ): Promise<boolean> {
-  const hash = keyOf(ownerUid, e164, deps.env);
-  if (!hash) {
-    log.warn(
-      { ownerUid },
-      'Guest consent not checkable (no valid number or hash key); treated as no'
-    );
-    return false;
-  }
   try {
-    const current = deps.wordingVersion ?? GUEST_CONSENT_WORDING_VERSION;
-    return consentStands(await deps.store.read(ownerUid, hash), current);
+    const hash = keyOf(ownerUid, e164, deps.env);
+    if (!hash) {
+      log.warn({ ownerUid }, 'Guest consent not checkable (no valid number or hash key); no');
+      return false;
+    }
+    const consent = await deps.store.read(ownerUid, hash);
+    return consentStands(consent, GUEST_CONSENT_WORDING_VERSION);
   } catch (error) {
-    log.error({ error: String(error), ownerUid }, 'Guest consent not readable; treated as no');
+    log.error({ error: String(error), ownerUid }, 'Guest consent not checkable; treated as no');
     return false;
   }
 }
 
-/** The guest said yes to `wordingVersion`: any earlier revoke is cleared, the history kept. */
+/**
+ * The guest said yes to `wordingVersion` at `saidAt`: when she said it, stamped
+ * by our server and kept the same on a retry (now when not given). It clears an
+ * earlier revoke, the history kept; a revoke made after `saidAt` stands and
+ * nothing is written. Throws for a wording version above the current one, or a
+ * time later than now.
+ */
 export async function recordGuestConsent(
   ownerUid: string,
   e164: string,
   wordingVersion: number,
-  deps: GuestConsentDeps
+  deps: GuestConsentDeps,
+  saidAt?: Date
 ): Promise<void> {
-  if (!isWordingVersion(wordingVersion)) {
-    throw new Error('Guest consent needs a wording version that is a whole number from 1');
+  if (!isWordingVersion(wordingVersion) || wordingVersion > GUEST_CONSENT_WORDING_VERSION) {
+    throw new Error(
+      `Guest consent needs a wording version from 1 to ${GUEST_CONSENT_WORDING_VERSION}`
+    );
   }
   const hash = requireKey(ownerUid, e164, deps.env);
-  const at = deps.now().toISOString();
+  const now = deps.now();
+  const when = saidAt ?? now;
+  // A time ahead of ours could outrank, on a retry, a revoke made after the yes.
+  if (Number.isNaN(when.getTime()) || when.getTime() > now.getTime()) {
+    throw new Error('Guest consent needs the time the yes was said, not a later one');
+  }
+  const at = when.toISOString();
   const keyVersion = phoneHashKeyVersion(deps.env);
-  await deps.store.update(ownerUid, hash, (prev) => afterYes(prev, wordingVersion, at, keyVersion));
-  log.info({ ownerUid, wordingVersion }, 'Guest consent recorded');
+  let written = false;
+  await deps.store.update(ownerUid, hash, (prev) => {
+    const next = afterYes(prev, wordingVersion, at, keyVersion);
+    written = next !== null;
+    return next;
+  });
+  if (written) log.info({ ownerUid, wordingVersion }, 'Guest consent recorded');
+  else log.info({ ownerUid, wordingVersion }, 'Guest consent not recorded: a later revoke stands');
 }
 
 /** The guest withdrew: the record stays, with revokedAt. Nothing on record: nothing written. */
