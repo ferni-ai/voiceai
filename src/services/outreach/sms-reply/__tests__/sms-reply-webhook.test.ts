@@ -115,6 +115,20 @@ describe('a member text at the webhook', () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
+  // The crisis skip comes before SMS_REPLY's readiness: whichever of its flags is off, a screened
+  // crisis gets main's answer here, and the route's crisis reply (and SB 243 reminder) as on main.
+  it.each(['SMS_CRISIS_SCREEN', 'MINOR_CARE', 'MINOR_CARE_SHARED_HOLD'])(
+    'on, %s off: a screened crisis gets the same answer as with SMS_REPLY off; no model call',
+    async (off) => {
+      vi.stubEnv('SMS_REPLY', 'off');
+      const main = await text('walked Biscuit in the rain', true);
+      vi.stubEnv('SMS_REPLY', 'on');
+      vi.stubEnv(off, 'off');
+      expect(await text('walked Biscuit in the rain', true)).toEqual(main);
+      expect(generate).not.toHaveBeenCalled();
+    }
+  );
+
   it("on: the text's own crisis read: SMS_CRISIS_REPLY, flagged crisis for the route", async () => {
     gate.action = 'replace';
     const out = await text('walked Biscuit in the rain');
