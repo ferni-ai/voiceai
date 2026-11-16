@@ -49,7 +49,9 @@ export function joinNote(name: string, owner: string): CallNote {
     `Lines that start with ${guestLabel(name).trim()} are hers, and lines that start with [${owner}] are ${owner}'s. ` +
     'A line marked [unclear] could be either of them: if it matters who said it, ask. ' +
     'Talk with both of them, use their names, and let them talk to each other. ' +
-    `${sentence(guest)} can hear everything you say, so don't bring up ${owner}'s private things unless ${owner} does.`;
+    `${sentence(guest)} can hear everything you say, so don't bring up ${owner}'s private things unless ${owner} does. ` +
+    // Fail closed: an [unclear] line may be the guest's, so it can't count as the owner's.
+    `While lines are marked [unclear], don't bring up ${owner}'s private things at all.`;
   return { about: 'guest', standing: true, text };
 }
 
