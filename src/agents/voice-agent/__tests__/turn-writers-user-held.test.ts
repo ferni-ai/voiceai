@@ -6,7 +6,8 @@
  * reaches all seven. The real handler runs on a final turn; only the writers and the stores are
  * faked. The hold is MINOR_CARE's (a caller who said they're 16). Each turn notes its crisis read
  * as started, as the turn pipeline does in a call: fast capture waits for that read and captures
- * nothing without it (crisis-memory-hold.ts). Fixtures are fictional.
+ * nothing without it (crisis-memory-hold.ts). So a held row first waits for the capture to finish,
+ * then checks it captured nothing. Fixtures are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,7 +21,20 @@ const w = vi.hoisted(() => ({
   recordWeather: vi.fn(async () => undefined),
   recordCompletionAsync: vi.fn(async () => ({ streak: 1 })),
   identity: vi.fn(async () => ({})),
+  captureDone: vi.fn(),
 }));
+/** The memory capture's task runs unchanged and marks when it finished (read wait and gate). */
+vi.mock('../../../utils/safe-fire-and-forget.js', async (orig) => {
+  const real = await orig<typeof import('../../../utils/safe-fire-and-forget.js')>();
+  return {
+    ...real,
+    safeFireAndForget: (...[fn, options]: Parameters<typeof real.safeFireAndForget>) => {
+      const capture = options.context === 'transcript-memory-capture';
+      const marked = (): Promise<unknown> => fn().finally(() => w.captureDone());
+      real.safeFireAndForget(capture ? marked : fn, options);
+    },
+  };
+});
 vi.mock('../../processors/tool-routing-integration.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   runFTISRouting: w.ftis,
@@ -156,6 +170,7 @@ describe('per-turn writers (transcript-handler.ts) for a caller held on another 
     await vi.waitFor(() => expect(w.fastCapture).toHaveBeenCalledWith(withUser), {
       timeout: 2_000,
     });
+    await vi.waitFor(() => expect(w.captureDone).toHaveBeenCalledTimes(1), { timeout: 2_000 });
     expect(w.thread).toHaveBeenCalledWith(withUser);
     expect(w.bth).toHaveBeenCalledWith(expect.anything(), withUser);
     expect(w.prefs).toHaveBeenCalled();
@@ -168,6 +183,8 @@ describe('per-turn writers (transcript-handler.ts) for a caller held on another 
     expect(userHeld(userId)).toBe(true);
     expect(memoryHeld(now)).toBe(false);
     await turn(now, userId);
+    // The capture has decided: it waits for the turn's crisis read, so a bare wait proves nothing
+    await vi.waitFor(() => expect(w.captureDone).toHaveBeenCalledTimes(1), { timeout: 2_000 });
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 500);
     });
