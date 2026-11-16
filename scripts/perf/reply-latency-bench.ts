@@ -95,7 +95,7 @@ const { composeAgentInstructions } =
 const { timeContext } = await import('../../src/agents/shared/time-context.js');
 const { CartesiaCascadeProvider } =
   await import('../../src/agents/model-provider/cartesia-cascade.js');
-const { routeOf } = await import('../../src/agents/model-provider/fast-lane.js');
+const { callerTurn, laneReason } = await import('../../src/agents/model-provider/fast-lane.js');
 const { buildHandoffTools } = await import('../../src/tools/handoff/handoff-factory.js');
 const { loadEssentialDomains } = await import('../../src/tools/dynamic-loader/index.js');
 const { filterInitialSpawnTools, getInitialToolPolicyFromEnv } =
@@ -252,7 +252,7 @@ async function runTurn(b: Built, moment: number): Promise<Sample> {
   const t0 = performance.now();
   const chatCtx = withTurnReminder(chatContextFor(picked[moment]), session);
   const toolCtx = await toolsForTurn(session, chatCtx, agentTools, { loggedLockedHandoffs: true });
-  const lane = b.arm.name === 'main' ? 'main' : routeOf(chatCtx).reason;
+  const lane = b.arm.name === 'main' ? 'main' : laneReason(callerTurn(chatCtx.items as never));
   const buildMs = performance.now() - t0;
   const conn0 = connections;
   firstPushAt = null;

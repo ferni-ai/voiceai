@@ -3,7 +3,7 @@ import { llm } from '@livekit/agents';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
 import { withTurnStyleReminder } from '../../personas/turn-style.js';
 import { buildFastLane, buildCascadeLLMOptions } from '../cartesia-cascade.js';
-import { callerTurn, chitChat, fastLaneEnabled, FastLaneLLM, routeOf } from '../fast-lane.js';
+import { callerTurn, chitChat, fastLaneEnabled, FastLaneLLM, laneReason } from '../fast-lane.js';
 import { NO_NEW_WORDS_NOTE } from '../../multi-agent/turn-context-header.js';
 
 class FakeStream extends llm.LLMStream {
@@ -34,8 +34,6 @@ class FakeLLM extends llm.LLM {
 
 const said = (...lines: string[]) =>
   lines.map((textContent) => ({ type: 'message', role: 'user', textContent }));
-/** Why the router sends a reply to these caller words where it does. */
-const reasonOf = (...lines: string[]) => routeOf({ items: said(...lines) }).reason;
 
 describe('fast lane', () => {
   it('is off unless CASCADE_FAST_LANE=on', () => {
@@ -93,11 +91,11 @@ describe('fast lane', () => {
   });
 
   it('names why a turn stays on the main model', () => {
-    expect(routeOf({ items: [{ type: 'function_call_output' }] }).reason).toBe('after_tool');
-    expect(routeOf({ items: [] }).reason).toBe('no_words');
-    expect(reasonOf('set a timer for five minutes')).toBe('request');
-    expect(reasonOf('who won the game last night?')).toBe('question');
-    expect(reasonOf('what have you been up to today?')).toBe('chat');
+    expect(laneReason(null)).toBe('after_tool');
+    expect(laneReason('')).toBe('no_words');
+    expect(laneReason('set a timer for five minutes')).toBe('request');
+    expect(laneReason('who won the game last night?')).toBe('question');
+    expect(laneReason('what have you been up to today?')).toBe('chat');
   });
 
   it('keeps an ask for a teammate on the main model, which picks the handoff tool (BTH 11-15)', () => {
@@ -108,14 +106,14 @@ describe('fast lane', () => {
       'hey Jordan, can you help me plan my week',
       'nayan please',
     ]) {
-      expect(reasonOf(t), t).toBe('teammate');
+      expect(laneReason(t), t).toBe('teammate');
       expect(chitChat(t), t).toBe(false);
     }
     // read before the tool words: the handoff is what the turn needs first
-    expect(reasonOf('can I talk to Maya about my calendar')).toBe('teammate');
+    expect(laneReason('can I talk to Maya about my calendar')).toBe('teammate');
     // Ferni named to himself, and a friend who shares a name, stay chat
-    expect(reasonOf('hey Ferni, long day')).toBe('chat');
-    expect(reasonOf('my friend Alex is visiting')).toBe('chat');
+    expect(laneReason('hey Ferni, long day')).toBe('chat');
+    expect(laneReason('my friend Alex is visiting')).toBe('chat');
   });
 
   it('keeps a reply nobody prompted on the main model, though it carries the turn note (#2507)', () => {
@@ -127,7 +125,7 @@ describe('fast lane', () => {
       ...said(NO_NEW_WORDS_NOTE),
     ];
     expect(callerTurn(items)).toBe('');
-    expect(routeOf({ items }).reason).toBe('no_words');
+    expect(laneReason(callerTurn(items))).toBe('no_words');
     // The note after the caller's own unanswered words still leaves those words.
     expect(callerTurn([...said('so anyway'), ...said(NO_NEW_WORDS_NOTE)])).toBe('so anyway');
   });
