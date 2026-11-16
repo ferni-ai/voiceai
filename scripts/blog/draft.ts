@@ -94,8 +94,9 @@ export function usedSources(sources: Source[], body: string): Source[] {
     if (typeof n !== 'number') return true;
     return new RegExp(`(?:/pull/|#)${n}(?!\\d)`).test(body);
   });
-  // A post that cites nothing keeps the whole list: the gate rejects an empty
-  // `sources`, and the judge should see what the post failed to use.
+  // Documents always count as used, so this is empty only for a PR-only type
+  // (whats-new) that cites no PR. Keep the whole list then: the gate rejects
+  // an empty `sources`.
   return used.length ? used : sources;
 }
 

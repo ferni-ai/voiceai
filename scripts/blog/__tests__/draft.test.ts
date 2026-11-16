@@ -252,12 +252,16 @@ describe('grounding', () => {
       pr(116, 'fix(cli): the ratchet counts tests', '2026-10-16T08:00:00Z'),
       pr(117, 'feat(marketplace): list a persona with its price', '2026-10-16T07:00:00Z'),
       pr(118, 'fix(developers): fix a broken quickstart link', '2026-10-16T06:00:00Z'),
+      pr(120, 'docs(sdk): reword the readme', '2026-10-16T05:00:00Z'),
+      pr(121, 'chore(marketplace): bump a dependency', '2026-10-16T04:00:00Z'),
+      pr(122, 'feat(mcp): a tool to list facts', '2026-10-16T03:00:00Z'),
     ];
     const { d } = deps(() => answer('x'), fakeGh(prs));
     const dev = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
     expect(dev.sources.map((s) => s.label)).toEqual([
       'PR #117: feat(marketplace): list a persona with its price',
       'PR #118: fix(developers): fix a broken quickstart link',
+      'PR #122: feat(mcp): a tool to list facts',
       'PR #101: feat(sdk): let a caller see and forget facts',
     ]);
     // The consumer change still reaches a consumer post.
@@ -364,6 +368,16 @@ describe('grounding', () => {
     const prSource = { label: 'PR #7: x', text: 'x', number: 7 };
     expect(usedSources([prSource], 'No link here, and not #70 either.')).toEqual([prSource]);
     expect(usedSources([prSource], 'See #7.')).toEqual([prSource]);
+  });
+
+  it('matches a cited PR by #N or /pull/N, and #70 is not #7', () => {
+    const seven = { label: 'PR #7: x', text: 'x', number: 7 };
+    const seventy = { label: 'PR #70: y', text: 'y', number: 70 };
+    const doc = { label: 'doc.md', text: 'z' };
+    const all = [seven, seventy, doc];
+    expect(usedSources(all, 'See [#70](https://github.com/o/r/pull/70).')).toEqual([seventy, doc]);
+    expect(usedSources(all, 'In #7 we fixed it.')).toEqual([seven, doc]);
+    expect(usedSources(all, 'https://github.com/o/r/pull/7 says so.')).toEqual([seven, doc]);
   });
 
   it('tells the drafter how the judge scores it and the bar for its audience', async () => {
