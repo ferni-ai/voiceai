@@ -91,6 +91,7 @@
   - `owner reconnect keeps the mix`: the owner's `participantDisconnected` then `participantConnected` (same identity) leaves `session.input.audio === mix` and re-adds the owner's track.
   - `guest left`: the guest's `participantDisconnected` calls `removeTrack` and adds the note `Sarah has left the call.`
   - `owner left`: the owner's `participantDisconnected` takes the guest out of the mix too and adds the note `<Owner> has dropped off the call. Wait for <Owner> to come back, and don't talk about <Owner>'s private things with Sarah.` The owner's return puts both back.
+  - `guestDisplayName`: the guest's display name is cleaned where the hearing reads it, before it reaches any note or label. Only letters, spaces, hyphens and apostrophes are allowed, and the name is at most 24 characters; otherwise it becomes `the guest`. A name equal to the owner's first name, `unclear` or `the caller` becomes `<name> (guest)`. An injection string as the name gives a join note that says `the guest`.
   - `fails closed on lookup`: the labeller finds the hearing by the session object, and a live mix with no hearing labels every final `[unclear]`.
   - `stt-chain`: a final transcript in a confident guest window comes out as `[Sarah] see you at six`. With no `groupHearing` for the session (solo call, or flag off), or with no guest ever on, every event passes through untouched.
 - [ ] **Step 2: Run and see them fail.** `pnpm vitest run src/agents/group-conversation/__tests__/group-hearing.test.ts src/agents/personas/__tests__/stt-chain.test.ts`
@@ -144,7 +145,6 @@
 - Test: `src/agents/group-conversation/__tests__/dial-guest.test.ts`
 
 **Interfaces:**
-- Sanitises the guest's display name before it reaches a note or a label: letters, spaces, hyphens and apostrophes only, at most 24 characters, else `the guest`. A name equal to the owner's first name or to `unclear` becomes `<name> (guest)`.
 - Produces: `dialGuest(req: { roomName: string; e164: string; name: string; callId: string }, sip?: GuestSipPort): Promise<{ joined: string } | { failed: 'no_answer' | 'busy' | 'already_on' | 'no_trunk' | 'error'; detail?: string }>`, where `joined` is the participant identity `guest_<callId>`.
 - Produces: `hangUpGuest(roomName: string, identity: string, sip?: GuestSipPort): Promise<void>` and `type GuestSipPort = { dial(...): Promise<void>; remove(room: string, identity: string): Promise<void>; participants(room: string): Promise<{ identity: string; kind: string }[]> }`. The default port uses `SipClient.createSipParticipant(SIP_TRUNK_ID, e164, roomName, { participantIdentity, participantName: name, playDialtone: false, ringingTimeout: 30, waitUntilAnswered: true, timeout: 40 })` and `RoomServiceClient.removeParticipant`.
 
