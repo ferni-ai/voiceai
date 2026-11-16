@@ -16,6 +16,10 @@
  * A held caller (MINOR_CARE, the sexual-topic hold) gets nothing back: no turns are read, and
  * the call starts fresh. The caller card's gate: unreadable or late means held.
  *
+ * So does a call whose kept caller lines read as risk (crisis-guard, any signal). Its crisis
+ * state died with the call, so the new one would start as an everyday call and could quote
+ * the line back. A risk read that fails counts as risk.
+ *
  * @module agents/multi-agent/resume-after-drop
  */
 
@@ -33,6 +37,7 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { openingNotice } from '../shared/ai-notice.js';
+import { detectCrisis } from '../safety/crisis-guard.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
 
@@ -52,6 +57,25 @@ const HOLD_READ_MS = 400;
 /** A held caller's kept turns are never read back into a call; unreadable or late means held. */
 const callerHeld = async (userId: string): Promise<boolean> =>
   userHeld(userId) || sharedHeldStrict(userId, process.env, HOLD_READ_MS);
+
+/**
+ * Whether any of the caller's kept lines reads as risk: any crisis-guard signal, each line read
+ * with the lines before it, as the call itself read them. A read that fails counts as risk.
+ */
+function callerLinesReadAsRisk(
+  turns: ReadonlyArray<Pick<ConversationTurn, 'role' | 'content'>>
+): boolean {
+  const said = turns.filter((t) => t.role === 'user').map((t) => t.content);
+  try {
+    return said.some((line, i) => {
+      const read = detectCrisis(line, undefined, { recentMessages: said.slice(0, i) });
+      return read.isCrisis || read.severity > 0 || read.indicators.length > 0;
+    });
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Risk read of kept turns failed, resuming nothing');
+    return true;
+  }
+}
 
 export function resumeAfterDropMode(
   env: Record<string, string | undefined> = process.env
@@ -83,6 +107,7 @@ export async function findDroppedCall(
   if (!last) return undefined;
   const ageMs = now - new Date(last.timestamp).getTime();
   if (!(ageMs <= RESUME_WINDOW_MS) || ageMs < -CLOCK_SKEW_MS) return undefined;
+  if (callerLinesReadAsRisk(turns)) return undefined; // read as risk: nothing resumed
   return {
     conversationId: previous.id,
     turns: turns.slice(-RESTORED_TURNS),
@@ -210,6 +235,7 @@ export async function restoreMovedTurns(
   clearTimeout(timer);
   const last = all.at(-1);
   const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
+  if (fresh && callerLinesReadAsRisk(all)) return { moved: true, turns: 0 }; // read as risk
   const turns = fresh && !memoryHeld(sessionId) ? all.slice(-MOVED_TURNS) : []; // held while read
   if (agent && turns.length) await restoreTurns(agent, turns, MOVED_NOTE);
   log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE moved call');
