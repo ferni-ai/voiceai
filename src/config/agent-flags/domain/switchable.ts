@@ -1,14 +1,14 @@
 /**
  * Which agent flags the dev switchboard may flip, to which values, and what the
  * agent resolves each one to (docs/plans/2026-11-16-dev-flag-switchboard.md,
- * "Which flags"). Apply requests are checked in apply-request.ts.
+ * "Which flags").
  *
  * The list is the per-file flags (src/config/flags/<NAME>.ts), read from the
  * generated barrel, so a new flag file shows up without an edit here. Only a
  * flag whose default is on, off or shadow can be switched; the numeric config
  * flags are listed read-only. Every other agent secret (API keys, tokens, the
- * older manifest entries such as ALLOW_PRODUCTION_DATA) is outside the list and
- * is refused by validateApply (apply-request.ts), so no denylist is needed.
+ * older manifest entries such as ALLOW_PRODUCTION_DATA) is outside the list, so
+ * no denylist is needed.
  *
  * A flag's modes are the words its reader acts on, so the page never shows or
  * sends a value the agent would read as something else: flagModeOf flags take
