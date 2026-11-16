@@ -1,9 +1,10 @@
 /**
  * A caller held on another call (userHeld) is held at this call's end too: the real endSession
- * makes no summary model call, saves no summary and starts no after-call task, the same as for a
- * call held itself (memoryHeld). A direct runAfterCall for that caller starts no task either. An
- * unheld call still does all three. The store, the profile cache and the summary model are faked;
- * the hold is MINOR_CARE's (a caller who said they're 16). Fixtures are fictional.
+ * makes no summary model call, saves no summary, starts no after-call task and starts no async
+ * conversation summary (realtime memory), the same as for a call held itself (memoryHeld). A direct
+ * runAfterCall for that caller starts no task either. An unheld call still does all four. The
+ * store, the profile cache, realtime memory and the summary model are faked; the hold is
+ * MINOR_CARE's (a caller who said they're 16). Fixtures are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,6 +38,17 @@ const summarize = vi.hoisted(() =>
 vi.mock('../../../memory/index.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   summarizeWithLLM: summarize,
+}));
+/** Realtime memory: the async summary reads the call's turns and writes the caller's profile. */
+const realtime = vi.hoisted(() => ({
+  startConversation: vi.fn(async (userId: string) => `conv-${userId}`),
+  persistTurn: vi.fn(async () => undefined),
+  endConversation: vi.fn(async () => undefined),
+  summarizeConversationAsync: vi.fn(async () => undefined),
+}));
+vi.mock('../../memory/realtime-memory.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  ...realtime,
 }));
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: () => ({
@@ -90,6 +102,8 @@ async function endCall(sessionId: string, userId: string) {
     summaryCalls: summarize.mock.calls.filter(([id]) => id === sessionId).length,
     saved: store.saveSummary.mock.calls.length,
     tasks: probe.mock.calls.length,
+    asyncSummaries: realtime.summarizeConversationAsync.mock.calls.length,
+    ended: realtime.endConversation.mock.calls.length,
   };
 }
 
@@ -97,6 +111,8 @@ beforeEach(() => {
   vi.stubEnv('MINOR_CARE', 'on');
   summarize.mockClear();
   store.saveSummary.mockClear();
+  realtime.summarizeConversationAsync.mockClear();
+  realtime.endConversation.mockClear();
   clearAfterCallTasks(); // only the probe: no task a module registered on import
   probe = vi.fn(async () => undefined);
   registerAfterCallTask('probe', probe);
@@ -108,26 +124,36 @@ afterEach(async () => {
   vi.unstubAllEnvs();
 });
 
+/** Nothing written; `ended` says whether the realtime block ran at all (a call hold skips it). */
+const none = (ended: number) => ({ summaryCalls: 0, saved: 0, tasks: 0, asyncSummaries: 0, ended });
+
 describe('call end (session-manager.ts endSession)', () => {
-  it('a caller held on another call: no summary call, saved summary or task', async () => {
+  // `ended: 1`: the realtime block still runs (it ends the conversation), so the 0 is the gate's.
+  it('a caller held on another call: no summary, task or async summary', async () => {
     const { userId, now } = caller(true);
     expect(userHeld(userId)).toBe(true);
     expect(memoryHeld(now)).toBe(false);
-    expect(await endCall(now, userId)).toEqual({ summaryCalls: 0, saved: 0, tasks: 0 });
+    expect(await endCall(now, userId)).toEqual(none(1));
   });
 
   it('a call held itself: nothing either', async () => {
     const { userId, now } = caller(false);
     noteCallerWords(now, UNDER_18);
     expect(memoryHeld(now)).toBe(true);
-    expect(await endCall(now, userId)).toEqual({ summaryCalls: 0, saved: 0, tasks: 0 });
+    expect(await endCall(now, userId)).toEqual(none(0));
   });
 
-  it('control: an unheld caller gets the summary call, saved summary and task', async () => {
+  it('control: an unheld caller gets the summary, task and async summary', async () => {
     const { userId, now } = caller(false);
     expect(userHeld(userId)).toBe(false);
     expect(memoryHeld(now)).toBe(false);
-    expect(await endCall(now, userId)).toEqual({ summaryCalls: 1, saved: 1, tasks: 1 });
+    expect(await endCall(now, userId)).toEqual({
+      summaryCalls: 1,
+      saved: 1,
+      tasks: 1,
+      asyncSummaries: 1,
+      ended: 1,
+    });
   });
 });
 

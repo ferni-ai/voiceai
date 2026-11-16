@@ -2201,15 +2201,15 @@ export async function createSessionServices(
         try {
           await realtimeMemory.endConversation(validatedUserId, realtimeConversationId);
 
-          // Fire-and-forget async summarization (won't block session end)
-          realtimeMemory
-            .summarizeConversationAsync(validatedUserId, realtimeConversationId)
-            .catch((err) => {
-              getLogger().warn(
-                { error: String(err), conversationId: realtimeConversationId },
-                'Async summarization failed (turns are still persisted)'
-              );
-            });
+          // Fire-and-forget async summary (writes the profile): never for a held call or caller
+          if (!(memoryHeld(sessionId) || userHeld(validatedUserId))) {
+            realtimeMemory
+              .summarizeConversationAsync(validatedUserId, realtimeConversationId)
+              .catch((err) => {
+                const fields = { error: String(err), conversationId: realtimeConversationId };
+                getLogger().warn(fields, 'Async summarization failed (turns are still persisted)');
+              });
+          }
 
           getLogger().info(
             { userId: validatedUserId, conversationId: realtimeConversationId },
