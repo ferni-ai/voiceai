@@ -30,6 +30,7 @@ vi.mock('../../../services/cross-persona-insights.js', () => ({
       },
     ],
     proactiveDiscoveries: [],
+    proactiveNotes: [],
   })),
   generateTeamStatus: vi.fn(async () => ({})),
   acknowledgeInsight: vi.fn(),
@@ -58,5 +59,36 @@ describe('GET /api/team-insights', () => {
 
     const body = sent.body as { insights: Array<{ id: string }> };
     expect(body.insights.map((i) => i.id)).toEqual(['new']);
+  });
+
+  it('sends the proactive notes as panel cards, one per wording', async () => {
+    const { buildInsightBriefingForHandoff } =
+      await import('../../../services/cross-persona-insights.js');
+    const copy = (id: string, createdAt: number) => ({
+      id,
+      source: 'ferni',
+      target: 'all',
+      content: 'You mentioned something you wanted to do. Just checking in - no pressure.',
+      priority: 'high',
+      category: 'commitment-followup',
+      createdAt,
+      expiresAt: createdAt + 1,
+      proactive: true,
+      oneTime: true,
+    });
+    vi.mocked(buildInsightBriefingForHandoff).mockResolvedValueOnce({
+      incomingInsights: [],
+      proactiveDiscoveries: ['From ferni: x', 'From ferni: x'],
+      proactiveNotes: [copy('a', 1), copy('b', 2), copy('c', 3)],
+    } as never);
+
+    const req = { method: 'GET', headers: {} } as IncomingMessage;
+    await handleTeamInsightsRoutes(req, {} as ServerResponse, '/api/team-insights');
+
+    const body = sent.body as { discoveries: Array<{ id: string; content: string }> };
+    expect(body.discoveries.map((d) => d.id)).toEqual(['c']);
+    expect(body.discoveries[0].content).toBe(
+      'You mentioned something you wanted to do. Just checking in, no pressure.'
+    );
   });
 });

@@ -10,6 +10,7 @@
  * @module services/your-story-sections
  */
 
+import { onePerWording } from '../utils/one-per-wording.js';
 import type {
   EmotionalArcPhase,
   EmotionalArcsData,
@@ -246,9 +247,11 @@ const LOOP_CATEGORIES: Record<string, OpenLoop['category']> = {
   question: 'question',
 };
 
+/** One row per wording, even if the server sends a loop twice (it saved each turn twice). */
 export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData | undefined {
   if (!api || api.items.length === 0) return undefined;
-  const loops: OpenLoop[] = api.items.map((l) => ({
+  const items = onePerWording(api.items, (l) => l.content);
+  const loops: OpenLoop[] = items.map((l) => ({
     id: l.id,
     description: l.content,
     createdAt: l.createdAt,
@@ -258,5 +261,6 @@ export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData
     ...(l.relatedPerson ? { relatedPerson: l.relatedPerson } : {}),
   }));
   const oldestLoop = [...loops].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-  return { loops, totalOpen: api.total, ...(oldestLoop ? { oldestLoop } : {}) };
+  const totalOpen = api.total - (api.items.length - items.length);
+  return { loops, totalOpen, ...(oldestLoop ? { oldestLoop } : {}) };
 }

@@ -8,6 +8,10 @@
  * @module api/your-story-sections
  */
 
+import {
+  oneLoopPerWording,
+  wholeClause,
+} from '../services/superhuman/semantic-intelligence/open-loop-text.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'YourStorySections' });
@@ -248,27 +252,29 @@ export interface OpenLoopsData {
   }>;
 }
 
-/** Every open loop, newest first (up to 10 listed), or null when there are none. */
+/**
+ * Every open loop, newest first (up to 10 listed), or null when there are none. One per
+ * wording: rows saved twice before createOpenLoop deduped are still in the store. Each
+ * reads to the end of its clause, not the detector's five-word cut (open-loop-text.ts).
+ */
 export async function fetchOpenLoops(userId: string): Promise<OpenLoopsData | null> {
   try {
     const { getAllOpenLoops } =
       await import('../services/superhuman/semantic-intelligence/open-loops.js');
-    const loops = await getAllOpenLoops(userId);
+    const newestFirst = [...(await getAllOpenLoops(userId))].sort(
+      (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
+    );
+    const loops = oneLoopPerWording(newestFirst);
     if (loops.length === 0) return null;
-    const items = [...loops]
-      .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
-      .slice(0, 10)
-      .map((l) => ({
-        id: l.id,
-        type: l.type,
-        content: l.description || l.content,
-        createdAt: new Date(l.created).toISOString(),
-        priority: (l.priority >= 7 ? 'high' : l.priority >= 4 ? 'medium' : 'low') as
-          | 'high'
-          | 'medium'
-          | 'low',
-        ...(l.relatedPerson ? { relatedPerson: l.relatedPerson } : {}),
-      }));
+    const items = loops.slice(0, 10).map((l) => ({
+      id: l.id,
+      type: l.type,
+      content: l.description || wholeClause(l.content, l.context),
+      createdAt: new Date(l.created).toISOString(),
+      priority: (l.priority >= 7 ? 'high' : l.priority >= 4 ? 'medium' : 'low') as
+        'high' | 'medium' | 'low',
+      ...(l.relatedPerson ? { relatedPerson: l.relatedPerson } : {}),
+    }));
     return { total: loops.length, items };
   } catch (error) {
     log.warn({ error, userId }, 'Failed to fetch open loops');

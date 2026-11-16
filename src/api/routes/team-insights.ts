@@ -23,7 +23,10 @@ import {
   scanForCrossPersonaInsights,
   type PersonaId,
 } from '../../services/cross-persona-insights.js';
-import { toClientInsight } from '../../services/cross-persona/insight-wire-format.js';
+import {
+  toClientDiscoveries,
+  toClientInsight,
+} from '../../services/cross-persona/insight-wire-format.js';
 import { isHiddenFromUser } from '../../services/cross-persona/insight-visibility.js';
 import {
   getPerformanceStats,
@@ -69,6 +72,8 @@ async function getTeamInsights(
         goalHealth: teamStatus.goalStatus, // Note: actual field is goalStatus
       },
       proactiveDiscoveries: briefing.proactiveDiscoveries,
+      // The panel's list beside `insights`: the same notes, as cards (insight-wire-format.ts)
+      discoveries: toClientDiscoveries(briefing.proactiveNotes, formattedInsights),
       lastUpdated: Date.now(),
     });
 

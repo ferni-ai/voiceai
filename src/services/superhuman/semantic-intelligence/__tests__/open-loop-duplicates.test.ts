@@ -1,0 +1,168 @@
+/**
+ * One open loop per wording, read to the end of its clause.
+ *
+ * 2026-11-16 audit: Story So Far's Open Loops listed "I need to find places to stop",
+ * "I'm going to split it up" and "I'll follow up with you to see" twice each, cut
+ * mid-thought. Every user turn ran loop detection twice (turn handler and turn
+ * learning), and createOpenLoop saved each pass under a new random id. This runs the
+ * real createOpenLoop, processUserTextForLoops and the Story read (fetchOpenLoops) over
+ * a fake store holding the shapes the real one persists.
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type Doc = Record<string, unknown>;
+const stored: Doc[] = [];
+const sets: Doc[] = [];
+
+vi.mock('../../firestore-utils.js', () => ({
+  getFirestoreDb: () => ({
+    collection: () => ({
+      doc: () => ({
+        collection: () => {
+          const query = {
+            where: () => query,
+            orderBy: () => query,
+            limit: () => query,
+            get: async () => ({ docs: stored.map((d) => ({ data: () => d })) }),
+            doc: (id: string) => ({
+              set: async (d: Doc) => void sets.push({ id, ...d }),
+              update: async () => undefined,
+            }),
+          };
+          return query;
+        },
+      }),
+    }),
+  }),
+  cleanForFirestore: <T>(v: T) => v,
+}));
+vi.mock('../../../data-layer/hooks/coaching-hooks.js', () => ({
+  onCoachingInsightChange: vi.fn(),
+}));
+vi.mock('../insight-broker.js', () => ({ createInsight: vi.fn(async () => undefined) }));
+
+const loops = await import('../open-loops.js');
+const { fetchOpenLoops } = await import('../../../../api/your-story-sections.js');
+const { wholeClause, loopKey } = await import('../open-loop-text.js');
+
+const USER = 'user-loops-1';
+const SAID = 'I need to find places to stop for gas on the drive tomorrow. Anyway, how are you?';
+const DAY = 24 * 60 * 60 * 1000;
+const ts = (ms: number) => ({ toDate: () => new Date(ms) });
+
+const savedOpen = () => sets.filter((s) => s.status === 'open');
+const saved = (content: string) => savedOpen().filter((s) => s.content === content);
+
+beforeEach(() => {
+  stored.length = 0;
+  sets.length = 0;
+  loops.clearLoopCache();
+});
+
+describe('createOpenLoop: one loop per wording', () => {
+  it('a turn processed twice at once saves its loop once', async () => {
+    // What every turn did: turn-handler.ts and processTurnLearning both ran detection
+    await Promise.all([
+      loops.processUserTextForLoops(USER, SAID, {}),
+      loops.processUserTextForLoops(USER, SAID, {}),
+    ]);
+
+    expect(saved('I need to find places to stop for gas')).toHaveLength(1);
+    expect(await loops.getAllOpenLoops(USER)).toHaveLength(1);
+  });
+
+  it('the same words in a later turn are the same loop, not a second one', async () => {
+    const first = await loops.createOpenLoop(USER, {
+      type: 'commitment',
+      content: 'I need to find places to stop',
+      context: SAID,
+    });
+    const again = await loops.createOpenLoop(USER, {
+      type: 'commitment',
+      content: 'i need to find places to STOP.',
+      context: SAID,
+    });
+
+    expect(again.id).toBe(first.id);
+    expect(savedOpen()).toHaveLength(1);
+  });
+
+  it('a loop that was resolved opens again when it is said again', async () => {
+    const first = await loops.createOpenLoop(USER, {
+      type: 'intention',
+      content: "I'm going to split it up",
+      context: "I'm going to split it up",
+    });
+    await loops.resolveLoop(USER, first.id, 'done');
+    const again = await loops.createOpenLoop(USER, {
+      type: 'intention',
+      content: "I'm going to split it up",
+      context: "I'm going to split it up",
+    });
+
+    expect(again.id).not.toBe(first.id);
+    expect(again.status).toBe('open');
+  });
+});
+
+describe('fetchOpenLoops (Story So Far): rows already saved twice', () => {
+  const row = (id: string, content: string, context: string, ageDays: number) => ({
+    id,
+    userId: USER,
+    type: 'intention',
+    content,
+    context,
+    status: 'open',
+    priority: 6,
+    followUpCount: 0,
+    created: ts(Date.now() - ageDays * DAY),
+    followUpAfter: ts(Date.now() - ageDays * DAY),
+    followUpBefore: ts(Date.now() + 5 * DAY),
+  });
+
+  it('lists each wording once, the newest copy, in a whole clause', async () => {
+    const context = "I'll follow up with you to see how the move went. Thanks!";
+    stored.push(
+      row('loop_old', "I'll follow up with you to see", context, 3),
+      row('loop_new', "I'll follow up with you to see", context, 1),
+      row('loop_other', "I'm going to split it up", "I'm going to split it up into two trips", 2)
+    );
+
+    const data = await fetchOpenLoops(USER);
+
+    expect(data?.total).toBe(2);
+    expect(data?.items.map((i) => i.id)).toEqual(['loop_new', 'loop_other']);
+    expect(data?.items.map((i) => i.content)).toEqual([
+      "I'll follow up with you to see how the move went",
+      "I'm going to split it up into two trips",
+    ]);
+  });
+});
+
+describe('wholeClause', () => {
+  it('stops at the end of the sentence', () => {
+    expect(wholeClause('I need to find places to stop', SAID)).toBe(
+      'I need to find places to stop for gas on the drive tomorrow'
+    );
+  });
+
+  it('adds nothing past the kept 200 characters: a longer fragment is still a fragment', () => {
+    const cut = `I need to find places to stop ${'and then some more words '.repeat(10)}`.slice(
+      0,
+      200
+    );
+    expect(wholeClause('I need to find places to stop', cut)).toBe('I need to find places to stop');
+  });
+
+  it('keeps the words when they are not in the context', () => {
+    expect(wholeClause('Mentioned job interview', 'I have an interview')).toBe(
+      'Mentioned job interview'
+    );
+  });
+
+  it('compares wordings without case, spacing or end punctuation', () => {
+    expect(loopKey('  I need to  STOP. ')).toBe(loopKey('i need to stop'));
+    expect(loopKey('I need to stop')).not.toBe(loopKey('I need to start'));
+  });
+});

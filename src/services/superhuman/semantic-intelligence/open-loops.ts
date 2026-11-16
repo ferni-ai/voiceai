@@ -17,6 +17,7 @@ import { createInsight } from './insight-broker.js';
 import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.js';
 
 import { expireStoredLoop, isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
+import { sameLoop } from './open-loop-text.js';
 const log = createLogger({ module: 'open-loops' });
 
 // ============================================================================
@@ -107,9 +108,7 @@ const loopCache = new Map<string, OpenLoop[]>();
 // CORE FUNCTIONS
 // ============================================================================
 
-/**
- * Create a new open loop.
- */
+/** Create a new open loop, or return the open one with the same words. */
 export async function createOpenLoop(
   userId: string,
   loop: {
@@ -124,6 +123,10 @@ export async function createOpenLoop(
     emotionAtCreation?: string;
   }
 ): Promise<OpenLoop> {
+  const cached = await loadOpenLoops(userId); // one open loop per wording (open-loop-text.ts)
+  const open = cached.filter((l) => l.status === 'open' && isLoopLive(l));
+  const same = sameLoop(open, loop.content);
+  if (same) return same;
   const now = new Date();
   const id = `loop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -148,13 +151,10 @@ export async function createOpenLoop(
     emotionAtCreation: loop.emotionAtCreation,
   };
 
-  // Save
-  await saveOpenLoop(userId, openLoop);
-
-  // Update cache
-  const cached = loopCache.get(userId) ?? [];
+  // Cached before the save yields, so a concurrent call with the same words finds it
   cached.push(openLoop);
   loopCache.set(userId, cached);
+  await saveOpenLoop(userId, openLoop);
 
   // Create proactive insight for follow-up
   await createFollowUpInsight(userId, openLoop);
@@ -502,7 +502,6 @@ function generateFollowUpText(loop: OpenLoop): string | null {
 // ============================================================================
 
 async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
-  // Check cache
   const cached = loopCache.get(userId);
   if (cached) return cached;
 
@@ -537,7 +536,8 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
     // Close loops well past their window (followUpBefore + grace) instead of carrying them
     const expired = loops.filter((l) => shouldExpireLoop(l));
     for (const loop of expired) void expireStoredLoop(userId, loop, onCoachingInsightChange);
-    const kept = loops.filter((l) => !expired.includes(l));
+    // A concurrent load may have cached (and added to) the list first: keep that one
+    const kept = loopCache.get(userId) ?? loops.filter((l) => !expired.includes(l));
     loopCache.set(userId, kept);
     return kept;
   } catch (error) {
