@@ -185,6 +185,12 @@ describe('decision gate: the registry itself', () => {
       'tts-voice',
       'tool-registry',
       'outreach-scheduling',
+      'task-store',
+      'reminder-store',
+      'commitment-store',
+      'calendar-event',
+      'goal-store',
+      'routine-store',
     ]);
     expect(byId('crisis-risk').fingerprints[0]!.in).toBe('word-lists');
   });

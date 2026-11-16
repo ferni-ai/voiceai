@@ -1,7 +1,8 @@
 /**
  * The "relationship" card of GET /api/insights/:userId: how long we've known each other and
- * how many conversations we've had, from the user's profile (first contact date and
- * conversation counter), never estimated from other activity.
+ * how many conversations we've had, from the sessions-together record (the stored calls, the
+ * same count GET /api/relationship/progress serves), never estimated from other activity.
+ * The milestone line never counts showing up and never exclaims: a count is not a feeling.
  *
  * Time is counted in calendar units in the user's zone: 250 days is "8 months", never "a
  * month". A time milestone also needs the user to have come back at least once; elapsed
@@ -93,11 +94,11 @@ export function buildRelationship(
 
   let milestone: string | undefined;
   if (conversations >= 100) {
-    milestone = "100+ conversations! We've built something meaningful.";
+    milestone = "We've built something meaningful together.";
   } else if (together && months >= 1) {
     milestone = `It's been ${together} since we first talked. Thank you for trusting me.`;
   } else if (conversations >= 50) {
-    milestone = "50+ conversations. I see how far you've come.";
+    milestone = "I see how far you've come.";
   } else if (together) {
     milestone = `It's been ${together} since we first talked.`;
   }

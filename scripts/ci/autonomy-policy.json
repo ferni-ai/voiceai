@@ -229,6 +229,7 @@
         "src/tools/domains/telephony/owner-contact.ts",
         "src/tools/handoff/transfer-aliases.ts",
         "src/utils/phrase-match.ts",
+        "src/utils/write-hold.ts",
         "scripts/crisis-eval/**",
         "apps/**/*crisis*",
         "apps/**/*Crisis*",

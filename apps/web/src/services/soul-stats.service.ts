@@ -14,7 +14,6 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { getAdminHeadersAsync } from '../admin/admin-api.js';
 
 const log = createLogger('SoulStatsService');
 
@@ -179,6 +178,8 @@ class SoulStatsService {
    */
   async fetchFromServer(): Promise<SoulStats> {
     try {
+      // Admin-only, so loaded on demand: a static import put admin-api in every visitor's download
+      const { getAdminHeadersAsync } = await import('../admin/admin-api.js');
       const headers = await getAdminHeadersAsync();
       const response = await fetch('/api/v1/admin/soul/stats', { headers });
 

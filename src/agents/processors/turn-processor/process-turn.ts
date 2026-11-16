@@ -115,7 +115,7 @@ import { heldCallerCorrection } from './caller-correction-crisis-hold.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
-import { extractNames, recordMention } from '../../../services/superhuman/relationship-network.js';
+import { extractNames, recordNamesSaid } from '../../../services/superhuman/relationship-network.js';
 
 import { processDataCapture } from '../../../intelligence/data-capture/index.js';
 import { recordTemporalObservation } from '../../../intelligence/patterns/temporal-patterns.js';
@@ -497,15 +497,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
-        const extractedNames = extractNames(userText);
-        for (const { name, context } of extractedNames) {
-          await recordMention(services.userId!, {
-            name,
-            type: 'acquaintance',
-            context,
-          });
-          diag.state('📇 Recorded person mention', { name });
-        }
+        const names = await recordNamesSaid(services.userId!, extractNames(userText));
+        for (const name of names) diag.state('📇 Recorded person mention', { name });
       },
       { context: 'relationship-network-extraction' }
     );

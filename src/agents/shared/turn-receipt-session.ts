@@ -13,7 +13,7 @@ import {
   interruptionModeInUse,
   speechPausedForCaller,
 } from '../multi-agent/interruption-config.js';
-import type { ItemView, ReminderNote } from './prompt-sections.js';
+import type { ReminderNote } from './prompt-sections.js';
 import {
   logReceipt,
   TurnReceiptRecorder,
@@ -58,9 +58,7 @@ export function noteRequest(
   const functionTools = tools.functionTools ?? {};
   const schemaChars = measuringTokens.has(session) ? toolSchemaChars(functionTools) : undefined;
   noteOfferedTools(Object.keys(functionTools));
-  recorders
-    .get(session)
-    ?.onRequest(request.items as ItemView[], Object.keys(functionTools).length, schemaChars);
+  recorders.get(session)?.onRequest(request, Object.keys(functionTools).length, schemaChars);
 }
 
 interface EventSource {
