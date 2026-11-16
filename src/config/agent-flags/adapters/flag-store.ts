@@ -13,6 +13,7 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { safeSet } from '../../../utils/safe-firestore.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { FlagSnapshot } from '../domain/snapshot.js';
 
@@ -76,7 +77,7 @@ export function firestoreFlagStore(db: Firestore = getAdminFirestore()): FlagSto
   const snapshotRef = (): DocumentReference => db.collection(SNAPSHOT_COLLECTION).doc(SNAPSHOT_DOC);
   return {
     async writeSnapshot(s) {
-      await snapshotRef().set(s); // a full replace: a removed flag file leaves no stale entry
+      await safeSet(snapshotRef(), { ...s }); // no merge: a removed flag file leaves no stale entry
     },
     async readSnapshot() {
       const snap = await snapshotRef().get();
