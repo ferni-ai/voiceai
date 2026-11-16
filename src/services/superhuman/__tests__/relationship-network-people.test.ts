@@ -52,6 +52,10 @@ describe('extraction: non-people are never names', () => {
     expect(namesIn(said)).toContain(name);
   });
 
+  it('a lowercase word is not a name, even one on no list ("work", "dinner")', () => {
+    expect(namesIn('I met with work friends and dinner ran late')).toEqual([]);
+  });
+
   it('keeps "my mom" as a family relation, not an acquaintance', () => {
     const [mom] = extractNames('I talked to my mom last night');
     expect(mom).toMatchObject({ name: 'my mom', type: 'family' });
