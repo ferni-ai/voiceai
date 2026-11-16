@@ -84,6 +84,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
+import type { ReplyLane } from '../model-provider/lane-request.js';
 import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
@@ -339,7 +340,7 @@ function holdAfterCrisis(session: object): void {
 export async function gatedReply(
   request: llm.ChatContext,
   session: { userData: unknown },
-  model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
+  model: (ctx: llm.ChatContext, lane: ReplyLane) => Promise<ReadableStream<Chunk> | null>,
   openerGate: {
     wrap(
       stream: ReadableStream<Chunk>,
@@ -398,8 +399,12 @@ export async function gatedReply(
     mayBurst = burst,
     guided = gate?.decision.action === 'guide'
   ): Promise<ReadableStream<Chunk> | null> => {
+    // Crisis guidance or risk on the call: the main model, never the fast lane (lane-request.ts).
+    // Read now, not at the turn's start: a reply asked again after a read escalated sees its risk.
+    const mainLane = guided || (!!risk && crisisRiskNoted(risk));
     // LISTEN_OFFER_STRIP: no "I'm here if you want to vent" (listen-offer.ts); never with crisis guidance.
-    const stream = withoutListenOffer(tapToolCalls(await model(request), session), { guided, env });
+    const asked = await model(request, { mainLane });
+    const stream = withoutListenOffer(tapToolCalls(asked, session), { guided, env });
     if (!stream) return stream;
     // FERNI_PLAYFUL: a bright turn's reminder invited a reaction word (ferni-playful.ts).
     const bright = brightOpenerInvited(request);

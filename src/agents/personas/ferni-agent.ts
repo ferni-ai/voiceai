@@ -32,6 +32,7 @@ import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { dropLeadingSaidBy } from './said-by.js';
 import { withCutReplyCheck } from './cut-reply-guard.js';
 import { getModelProvider } from '../model-provider/index.js';
+import { withLane } from '../model-provider/lane-request.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 import { sttReusableAcrossHandoff } from './stt-handoff-reuse.js';
@@ -682,10 +683,9 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     fillEmptyToolOutputs(noteReplyCallerTurn(this, chatCtx), this.session); // for the TTS context
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
-    const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
-      ?.sessionId;
-    const model = withCutReplyCheck(this.session, async (request: llm.ChatContext) => {
-      const ctx = withCallerTurn(request);
+    const { sessionId } = (this.session.userData?.services ?? {}) as { sessionId?: string };
+    const model = withCutReplyCheck(this.session, async (request: llm.ChatContext, lane) => {
+      const ctx = withLane(withCallerTurn(request), lane);
       const turn = toolsForRequest(request, tools); // UNVERIFIED_TURN_TOOLS (#3305)
       noteRequest(this.session, ctx, turn.tools); // the request as sent, for its TURN_RECEIPT
       const said = turn.reply(super.llmNode(ctx, turn.tools, modelSettings));
