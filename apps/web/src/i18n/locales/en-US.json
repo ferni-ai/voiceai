@@ -10706,6 +10706,19 @@
       "other": "{celebrated}/{count} milestones"
     }
   },
+  "relationshipFacts": {
+    "loading": "Gathering our story...",
+    "unavailable": "I can't reach our story right now.",
+    "pendingValue": "...",
+    "days": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "conversations": {
+      "one": "{count} conversation",
+      "other": "{count} conversations"
+    }
+  },
   "progressIndicator": {
     "ariaLabel": "Relationship progress",
     "emptyInvite": "Our story starts with your first conversation.",

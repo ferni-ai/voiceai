@@ -1,14 +1,17 @@
 /**
  * GET /api/insights/:userId "relationship" card: days together and conversations come from
- * the profile's first-contact date and conversation counter. They used to be derived from
- * days since the last engagement (growing while the user was away) plus ritual days, and
- * from sky checks + predictions.
+ * the sessions-together record (the stored calls), the count every app surface shows. They
+ * used to be derived from days since the last engagement plus ritual days, then from the
+ * memory profile's counter, which had drifted to 777 while the app showed 59 elsewhere.
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const DAY = 24 * 60 * 60 * 1000;
-const state = vi.hoisted(() => ({ profile: null as Record<string, unknown> | null }));
+const state = vi.hoisted(() => ({
+  together: null as { count: number; firstAt?: Date } | null,
+  profileCount: 777,
+}));
 
 vi.mock('../../services/superhuman/index.js', () => ({
   loadUserCommitments: async () => [],
@@ -34,8 +37,20 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   requireAuth: async () => ({ userId: 'user-1', isAdmin: false }),
 }));
+// The drifted counter: never the card's source
 vi.mock('../../memory/store-factory.js', () => ({
-  getStore: async () => ({ getProfile: async () => state.profile }),
+  getStore: async () => ({
+    getProfile: async () => ({
+      firstContact: new Date(Date.now() - 317 * DAY),
+      totalConversations: state.profileCount,
+    }),
+  }),
+}));
+vi.mock('../../services/stores/sessions-together.js', () => ({
+  getSessionsTogether: async () => {
+    if (!state.together) throw new Error('Firestore unavailable');
+    return { days: [], inProgress: { count: 0, days: [] }, ...state.together };
+  },
 }));
 
 import { handleInsightsRoutes } from '../insights-routes.js';
@@ -55,27 +70,27 @@ async function getInsights() {
 }
 
 beforeEach(() => {
-  state.profile = null;
+  state.together = null;
 });
 
 describe('relationship card', () => {
-  it('uses the real first-contact date and conversation count', async () => {
-    state.profile = { firstContact: new Date(Date.now() - 10 * DAY), totalConversations: 3 };
+  it('uses the sessions-together count and first session, not the profile counter', async () => {
+    state.together = { count: 3, firstAt: new Date(Date.now() - 10 * DAY) };
     const { relationship } = await getInsights();
-    // Not 105 days / 6 conversations from last engagement + ritual days + sky checks
+    // Not 317 days / 777 conversations from the memory profile
     expect(relationship).toMatchObject({ daysTogether: 10, conversations: 3 });
     expect(relationship?.milestone).toEqual(expect.any(String));
   });
 
   it('shows no card for a brand new user, however long ago they were last active', async () => {
-    state.profile = { firstContact: new Date(Date.now() - 2 * DAY), totalConversations: 2 };
+    state.together = { count: 2, firstAt: new Date(Date.now() - 2 * DAY) };
     expect((await getInsights()).relationship).toBeUndefined();
   });
 
-  it('shows no card when the profile has no first-contact date or no profile exists', async () => {
-    state.profile = { totalConversations: 40 };
+  it('shows no card with no session together yet, or when the calls cannot be read', async () => {
+    state.together = { count: 0 };
     expect((await getInsights()).relationship).toBeUndefined();
-    state.profile = null;
+    state.together = null;
     expect((await getInsights()).relationship).toBeUndefined();
   });
 });
@@ -87,11 +102,20 @@ describe('buildRelationship milestones', () => {
     totalConversations,
   });
 
-  it('marks 100+ conversations, a month, 50+ conversations and a week, in that order', () => {
-    expect(buildRelationship(profile(3, 120), now)?.milestone).toMatch(/100\+ conversations/);
+  it('marks many talks, a month, a good few talks and a week, in that order', () => {
+    expect(buildRelationship(profile(3, 120), now)?.milestone).toBe(
+      "We've built something meaningful together."
+    );
     expect(buildRelationship(profile(45, 12), now)?.milestone).toMatch(/month/);
-    expect(buildRelationship(profile(10, 60), now)?.milestone).toMatch(/50\+ conversations/);
+    expect(buildRelationship(profile(10, 60), now)?.milestone).toBe("I see how far you've come.");
     expect(buildRelationship(profile(8, 2), now)?.milestone).toMatch(/week/);
+  });
+
+  it('never counts showing up or exclaims (brand: no gamified counts, at most one "!")', () => {
+    for (const [days, n] of [[3, 120], [400, 900], [10, 60], [45, 12], [8, 2]] as const) {
+      const line = buildRelationship(profile(days, n), now)?.milestone ?? '';
+      expect(line).not.toMatch(/!|\d+\+? conversations/);
+    }
   });
 
   it('has nothing to mark between the thresholds', () => {

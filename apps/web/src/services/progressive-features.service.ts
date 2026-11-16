@@ -21,7 +21,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { relationshipStageService } from './relationship-stage.service.js';
+import { relationshipStageService, startRelationshipFacts } from './relationship-stage.service.js';
 import { initTeamUnlockService } from './team-unlock.service.js';
 
 // UI Components
@@ -65,6 +65,8 @@ export function initProgressiveFeatures(): void {
     initPersonaIntro();
     initFeatureHints();
     initProgressIndicator();
+    // The stage and counts every surface shows come from the server, not this device
+    startRelationshipFacts();
     
     // Set up event listeners for backend trust signals
     setupTrustSignalBridge();

@@ -24,10 +24,8 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { isNoStreaksOn, shownStreak } from '../config/no-streaks.js';
-import { 
-  relationshipStageService, 
-  getTranslatedStageName,
-} from '../services/relationship-stage.service.js';
+import { relationshipStageService, getTranslatedStageName } from '../services/relationship-stage.service.js';
+import { relationshipKnown, relationshipNumber, relationshipPendingText } from './relationship-facts-view.js';
 import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { getVoiceAuthService } from '../services/voice-auth.service.js';
@@ -324,7 +322,7 @@ function createModal(): void {
   const stageProgress = relationshipStageService.getProgressToNextStage();
   const stageKeys = STAGE_KEYS[stage] || STAGE_KEYS['first-meeting'];
   const [tagKey, descKey] = stageKeys as [string, string];
-  const stageName = getTranslatedStageName(stage);
+  const stageName = relationshipKnown() ? getTranslatedStageName(stage) : relationshipPendingText();
   const progressPercent = Math.round(stageProgress.progress * 100);
 
   // Get current connection state from body classes
@@ -371,29 +369,29 @@ function createModal(): void {
 
       <div class="journey-body">
         <!-- Journey Map - Visual Path (Better than Apple Progress) -->
-        ${renderJourneyMap(stage, progressPercent)}
+        ${relationshipKnown() ? renderJourneyMap(stage, progressPercent) : ''}
 
         <!-- Progress Overview Section -->
         <section class="journey-progress-overview">
           <h2 class="journey-stage-name">${stageName}</h2>
-          <p class="journey-stage-tagline">${t(tagKey)}</p>
-          <p class="journey-stage-description">${t(descKey)}</p>
+          <p class="journey-stage-tagline">${relationshipKnown() ? t(tagKey) : ''}</p>
+          <p class="journey-stage-description">${relationshipKnown() ? t(descKey) : ''}</p>
           
           <div class="journey-stats-row">
             <div class="journey-stat">
               <span class="journey-stat__icon">${ICONS.messageCircle}</span>
-              <span class="journey-stat__value">${stageMetrics.totalConversations}</span>
-              <span class="journey-stat__label">conversations</span>
+              <span class="journey-stat__value">${relationshipNumber(stageMetrics.totalConversations)}</span>
+              <span class="journey-stat__label">${t('yourStory.stats.conversations')}</span>
             </div>
             <div class="journey-stat">
               <span class="journey-stat__icon">${ICONS.calendar}</span>
-              <span class="journey-stat__value">${stageMetrics.daysSinceFirstMeeting}</span>
-              <span class="journey-stat__label">days together</span>
+              <span class="journey-stat__value">${relationshipNumber(stageMetrics.daysSinceFirstMeeting)}</span>
+              <span class="journey-stat__label">${t('yourStory.stats.daysTogether')}</span>
             </div>
             ${isNoStreaksOn() ? '' : `<div class="journey-stat">
               <span class="journey-stat__icon">${ICONS.flame}</span>
-              <span class="journey-stat__value">${stageMetrics.currentStreak}</span>
-              <span class="journey-stat__label">day streak</span>
+              <span class="journey-stat__value">${relationshipNumber(stageMetrics.currentStreak)}</span>
+              <span class="journey-stat__label">${t('yourStory.stats.dayStreak')}</span>
             </div>`}
             <div class="journey-stat journey-stat--voice-id" id="journey-voice-id-stat">
               <span class="journey-stat__icon">${ICONS.shield}</span>
@@ -402,7 +400,7 @@ function createModal(): void {
             </div>
           </div>
           
-          ${stageProgress.nextStage ? `
+          ${!relationshipKnown() ? '' : stageProgress.nextStage ? `
             <div class="journey-next-stage">
               <span class="journey-next-stage__label">Next: ${getTranslatedStageName(stageProgress.nextStage)}</span>
               <span class="journey-next-stage__req">${stageProgress.requirement}</span>

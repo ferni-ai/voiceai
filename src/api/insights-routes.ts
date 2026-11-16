@@ -313,13 +313,16 @@ async function handleGetInsights(
       }
     }
 
-    // Relationship milestone: the profile's real first-contact date and conversation count
-    const relationship = await import('../memory/store-factory.js')
-      .then(({ getStore }) => getStore())
-      .then((memory) => memory.getProfile(userId))
-      .then((profile) => buildRelationship(profile))
+    // Relationship milestone: the sessions-together count and first session, in UTC days like
+    // GET /api/relationship/progress, the record every app surface shows. The memory profile's
+    // counter it used before had drifted (777 there while the app showed 59 elsewhere).
+    const relationship = await import('../services/stores/sessions-together.js')
+      .then(({ getSessionsTogether }) => getSessionsTogether(userId))
+      .then((together) =>
+        buildRelationship({ firstContact: together.firstAt, totalConversations: together.count })
+      )
       .catch((err) => {
-        log.warn({ userId, error: String(err) }, 'Failed to load profile - no relationship card');
+        log.warn({ userId, error: String(err) }, 'Failed to count sessions together - no relationship card');
         return undefined;
       });
 

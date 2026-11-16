@@ -12,10 +12,11 @@
 // TYPES
 // ============================================================================
 
-import { apiGet, apiPost } from '../utils/api-helpers.js';
+import { apiPost } from '../utils/api-helpers.js';
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
+import { fetchRelationshipFacts, type RelationshipFactsStatus } from './relationship-facts.js';
 
 const log = createLogger('Relationship');
 
@@ -318,6 +319,8 @@ class RelationshipStageService {
   private data: RelationshipData;
   private listeners: Set<(subtitle: string) => void> = new Set();
   private stageChangeListeners: Set<(event: StageChangeEvent) => void> = new Set();
+  private factsListeners = new Set<() => void>();
+  private facts: RelationshipFactsStatus = 'loading';
 
   constructor() {
     const loaded = loadRelationshipData();
@@ -840,58 +843,41 @@ class RelationshipStageService {
     }
   }
 
+  /** Where the server's numbers are. Until 'known', no surface shows a count or a stage. */
+  factsStatus(): RelationshipFactsStatus {
+    return this.facts;
+  }
+
+  /** Called whenever the server's numbers arrive or change (not a stage-up celebration). */
+  onFactsChange(listener: () => void): () => void {
+    this.factsListeners.add(listener);
+    return () => this.factsListeners.delete(listener);
+  }
+
   /**
-   * Load relationship data from backend (for cross-device sync)
+   * Take the server's record (sessions together): the stage and counts every surface shows.
+   * It replaces whatever this device counted; a failed refresh keeps numbers already known.
    */
   async loadFromBackend(): Promise<boolean> {
-    const userId = localStorage.getItem('ferni_user_id');
-    if (!userId) return false;
-
-    try {
-      const response = await apiGet(`/api/relationship/progress?userId=${userId}`);
-      if (!response.ok) return false;
-
-      const backendData = await response.json();
-
-      // Only use backend data if it's newer than local
-      const backendDate = new Date(backendData.lastUpdated || 0).getTime();
-      const localDate = new Date(this.data.lastUpdated).getTime();
-
-      if (backendDate > localDate) {
-        // Validate stage is a valid RelationshipStage before using
-        const validStages: RelationshipStage[] = [
-          'first-meeting',
-          'getting-started',
-          'building-trust',
-          'established',
-          'deep-partnership',
-        ];
-
-        if (backendData.stage && validStages.includes(backendData.stage)) {
-          this.data.stage = backendData.stage;
-        }
-
-        // Merge metrics if provided
-        if (backendData.metrics) {
-          this.data.metrics = { ...this.data.metrics, ...backendData.metrics };
-        }
-
-        if (backendData.firstMeetingDate) {
-          this.data.firstMeetingDate = backendData.firstMeetingDate;
-        }
-
-        this.data.lastUpdated = backendData.lastUpdated;
-        saveRelationshipData(this.data);
-        log.info('Loaded newer relationship data from backend', {
-          stage: this.data.stage,
-          conversations: this.data.metrics.totalConversations,
-        });
-        return true;
-      }
-    } catch {
-      log.debug('Backend load failed (non-critical)');
+    const facts = await fetchRelationshipFacts().catch(() => null);
+    if (!facts) {
+      if (this.facts === 'loading') this.facts = 'unavailable';
+    } else {
+      const { conversations, daysTogether, currentStreak, longestStreak } = facts;
+      this.data.stage = facts.stage;
+      this.data.metrics = {
+        ...this.data.metrics,
+        totalConversations: conversations,
+        daysSinceFirstMeeting: daysTogether,
+        currentStreak,
+        longestStreak,
+      };
+      if (facts.firstMeetingDate) this.data.firstMeetingDate = facts.firstMeetingDate;
+      this.facts = 'known';
+      this.notifyListeners();
     }
-    return false;
+    this.factsListeners.forEach((listener) => listener());
+    return facts !== null;
   }
 }
 
@@ -946,6 +932,16 @@ function setupEventListeners(): void {
   });
 
   log.debug('Relationship service event listeners initialized');
+}
+
+let factsSyncStarted = false;
+
+/** Load the server's numbers now, and again after each call (the count changes when one ends). */
+export function startRelationshipFacts(): void {
+  if (factsSyncStarted) return;
+  factsSyncStarted = true;
+  void relationshipStageService.loadFromBackend();
+  window.addEventListener('ferni:conversation-end', () => void relationshipStageService.loadFromBackend());
 }
 
 /**

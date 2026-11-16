@@ -369,10 +369,8 @@ describe('Relationship Progress Integration', () => {
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
       expect(res._status).toBe(500);
-      expect(res._data).toMatchObject({
-        error: 'Failed to get progress',
-        stage: 'first-meeting',
-      });
+      // A failed read claims no stage and no counts: unknown is not a new relationship at 0
+      expect(res._data).toEqual({ error: 'Failed to get progress' });
     });
 
     it('should return error response when engagement store fails', async () => {

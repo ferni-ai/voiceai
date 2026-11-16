@@ -1,9 +1,24 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   destroyProgressIndicator,
   initProgressIndicator,
   toggleExpanded,
 } from '../../src/ui/progress-indicator.ui';
+import { relationshipStageService } from '../../src/services/relationship-stage.service';
+
+// The pill draws its ring once the server's relationship record is in (here: no talks yet,
+// so the expanded view shows the heart in the ring rather than a percentage)
+vi.mock('../../src/utils/api.js', () => ({
+  apiGet: async () => ({
+    ok: true,
+    status: 200,
+    data: {
+      stage: 'first-meeting',
+      metrics: { totalConversations: 0, daysSinceFirstMeeting: 0, currentStreak: 0, longestStreak: 0 },
+    },
+  }),
+}));
+beforeAll(() => relationshipStageService.loadFromBackend());
 
 /**
  * The ring SVG turns -90deg so progress starts at 12 o'clock. The rule used to
