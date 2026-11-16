@@ -1,0 +1,18 @@
+// Type-checks the marketing scripts in CI (app-checks.yml), with only TypeScript and
+// Node's types installed. generate-social-posts.ts is left out: it needs
+// @anthropic-ai/sdk, which no workspace package depends on, so CI cannot resolve it.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  },
+  "include": ["scripts/**/*.ts"],
+  "exclude": ["scripts/generate-social-posts.ts"]
+}

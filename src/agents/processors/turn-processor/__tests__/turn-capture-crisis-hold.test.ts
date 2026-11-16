@@ -15,7 +15,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const w = vi.hoisted(() => ({
   fastCapture: vi.fn(async () => ({ mentionedEntities: [], topicHints: [] })),
   recordTurn: vi.fn(),
-  recordMention: vi.fn(async () => ({})),
+  /** Every name the turn would keep, in one call (relationship-network.ts recordNamesSaid). */
+  recordNamesSaid: vi.fn(async (_userId: string, names: Array<{ name: string }>) =>
+    names.map((n) => n.name)
+  ),
   /** The turn's own read note (turn-crisis.ts) is dropped: no read of the turn starts. */
   noRead: false,
   /** Knowledge graph: off unless a row turns it on; queued lines and the batch they go to. */
@@ -38,7 +41,7 @@ vi.mock('../../../../memory/dynamic/index.js', async (orig) => ({
 }));
 vi.mock('../../../../services/superhuman/relationship-network.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
-  recordMention: w.recordMention,
+  recordNamesSaid: w.recordNamesSaid,
 }));
 vi.mock('../../../../utils/crisis-memory-hold.js', async (orig) => {
   const real = await orig<typeof import('../../../../utils/crisis-memory-hold.js')>();
@@ -126,7 +129,7 @@ async function turn(
 }
 
 beforeEach(() => {
-  for (const fn of [w.fastCapture, w.recordTurn, w.recordMention]) fn.mockClear();
+  for (const fn of [w.fastCapture, w.recordTurn, w.recordNamesSaid]) fn.mockClear();
   Object.assign(w, { noRead: false, kgReady: false, queued: [], batch: undefined });
   resetFireAndForgetMetrics();
   Object.assign(CRISIS_READ_WAIT, { startMs: 300, settleMs: 2000 });
@@ -141,8 +144,8 @@ describe('processTurn: person mentions and capture wait for the turn crisis read
   it('a clean read of the turn: the people and the capture are kept, as before', async () => {
     const { userId } = await turn();
     expect(NAMES).toBeGreaterThan(0);
-    expect(w.recordMention).toHaveBeenCalledTimes(NAMES);
-    expect(w.recordMention).toHaveBeenCalledWith(userId, expect.anything());
+    expect(w.recordNamesSaid).toHaveBeenCalledTimes(1);
+    expect(w.recordNamesSaid).toHaveBeenCalledWith(userId, extractNames(SAID));
     expect(w.fastCapture).toHaveBeenCalledTimes(1);
     expect(w.fastCapture).toHaveBeenCalledWith(expect.objectContaining({ transcript: SAID }));
     expect(w.recordTurn).toHaveBeenCalledTimes(1);
@@ -157,7 +160,7 @@ describe('processTurn: person mentions and capture wait for the turn crisis read
       void trackCrisisRead(id, SAID, late);
     });
     expect(memoryHeld(sessionId)).toBe(true);
-    expect(w.recordMention).not.toHaveBeenCalled();
+    expect(w.recordNamesSaid).not.toHaveBeenCalled();
     expect(w.fastCapture).not.toHaveBeenCalled();
     expect(w.recordTurn).not.toHaveBeenCalled();
   });
@@ -167,14 +170,14 @@ describe('processTurn: person mentions and capture wait for the turn crisis read
     const crisis = Promise.resolve({ risk: 'crisis' });
     const { sessionId } = await turn((id) => void trackCrisisRead(id, NAMED, crisis), NAMED);
     expect(memoryHeld(sessionId)).toBe(true);
-    expect(w.recordMention).not.toHaveBeenCalled();
+    expect(w.recordNamesSaid).not.toHaveBeenCalled();
     expect(w.fastCapture).not.toHaveBeenCalled();
   });
 
   it('no crisis read of the turn starts: nothing kept (fail closed), call not held', async () => {
     w.noRead = true;
     const { sessionId } = await turn();
-    expect(w.recordMention).not.toHaveBeenCalled();
+    expect(w.recordNamesSaid).not.toHaveBeenCalled();
     expect(w.fastCapture).not.toHaveBeenCalled();
     expect(w.recordTurn).not.toHaveBeenCalled();
     expect(memoryHeld(sessionId)).toBe(false);
@@ -224,9 +227,9 @@ describe('processTurn: the wait is never on the turn path', () => {
     expect(first).toBe('turn done');
     expect(crisisReadsSettled(t.sessionId)).not.toBeNull(); // the read is still open
     expect(w.fastCapture).not.toHaveBeenCalled();
-    expect(w.recordMention).not.toHaveBeenCalled();
+    expect(w.recordNamesSaid).not.toHaveBeenCalled();
     release({ risk: 'none' });
     await vi.waitFor(() => expect(w.fastCapture).toHaveBeenCalledTimes(1), { timeout: 5_000 });
-    await vi.waitFor(() => expect(w.recordMention).toHaveBeenCalledTimes(NAMES));
+    await vi.waitFor(() => expect(w.recordNamesSaid).toHaveBeenCalledTimes(1));
   }, 30_000);
 });

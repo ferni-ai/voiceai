@@ -309,6 +309,13 @@ Frontend Quality job (required, PRs, merge queue and nightly).
 | Runner | ubuntu-latest |
 | Duration | ~1 min |
 
+### site-health.yml
+
+**Purpose:** Fails when a public site has a broken internal link or is more than 2 days
+behind main's source, or a scheduled workflow failed its last 2 scheduled runs; one open
+issue per kind (`scripts/ci/site-freshness.ts`, `site-health-issue.ts`). Weekly, manual,
+and after Deploy Developers Portal / Deploy Firebase Hosting.
+
 ## Optimization Status
 
 | Workflow | Path Filters | Concurrency | Composite Action | pnpm v10 |

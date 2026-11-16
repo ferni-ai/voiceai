@@ -8,6 +8,7 @@
  */
 
 import { configDefaults, defineConfig } from 'vitest/config';
+import { SlowFilesFirstSequencer } from './scripts/ci/vitest-slow-files-first.js';
 
 export default defineConfig({
   test: {
@@ -59,6 +60,9 @@ export default defineConfig({
       'src/tests/*.test.ts',
       'src/tests/!(voice-eval)/**',
     ],
+    // Known-slow small files start first instead of running as a tail; shards are unchanged
+    // (scripts/ci/vitest-slow-files-first.ts says why).
+    sequence: { sequencer: SlowFilesFirstSequencer },
     testTimeout: 20000, // Reasonable timeout for unit tests with mocking
     hookTimeout: 20000,
     // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).

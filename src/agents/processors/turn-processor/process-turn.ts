@@ -116,7 +116,7 @@ import { heldCallerCorrection } from './caller-correction-crisis-hold.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
-import { extractNames, recordMention } from '../../../services/superhuman/relationship-network.js';
+import { extractNames, recordNamesSaid } from '../../../services/superhuman/relationship-network.js';
 
 import { processDataCapture } from '../../../intelligence/data-capture/index.js';
 import { recordTemporalObservation } from '../../../intelligence/patterns/temporal-patterns.js';
@@ -500,11 +500,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     safeFireAndForget(
       async () => {
         if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
-        const extractedNames = extractNames(userText);
-        for (const { name, context } of extractedNames) {
-          await recordMention(services.userId!, { name, type: 'acquaintance', context });
-          diag.state('📇 Recorded person mention', { name });
-        }
+        const names = await recordNamesSaid(services.userId!, extractNames(userText));
+        for (const name of names) diag.state('📇 Recorded person mention', { name });
       },
       { context: 'relationship-network-extraction' }
     );
@@ -520,10 +517,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           voiceEmotion: analysisResult.analysis.emotion.primary,
           personaId: ctx.persona?.id,
         });
-
         const { recordTurn } = await import('../../../memory/dynamic/index.js');
         recordTurn(services.sessionId, services.userId!, captureResult, userText, turnCount);
-
         if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
           diag.state('🧠 Dynamic memory capture', {
             entityCount: captureResult.mentionedEntities.length,
@@ -543,14 +538,12 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
           if (!isKnowledgeCaptureReady()) return;
-
           const valenceToNumber = (v?: string): number | undefined => {
             if (!v) return undefined;
             if (v === 'positive') return 1;
             if (v === 'negative') return -1;
             return 0;
           };
-
           // Runs with the next few turns of the session (knowledge-capture-batch.ts)
           queueTurnCapture({
             userId: services.userId!,

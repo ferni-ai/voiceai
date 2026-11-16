@@ -24,7 +24,7 @@ import { isErasedOrErasing } from '../../utils/erasing-mark.js';
 import { userHeld } from '../../utils/minor-care.js';
 import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { hideFromUser } from './insight-visibility.js';
+import { hideFromUser, markToasted } from './insight-visibility.js';
 import type { CrossPersonaInsight } from './cross-persona-insights.js';
 
 const log = createLogger({ module: 'cross-persona-insight-store' });
@@ -44,17 +44,22 @@ function listOf(data: unknown): CrossPersonaInsight[] {
 
 const HOUR_MS = 60 * 60 * 1000;
 
-/** The same note from the same persona to the same audience within the last hour. */
+/**
+ * The same note from the same persona to the same audience: one in the last hour, or the
+ * same words while the first is still live. Only the hour used to count, so a scan on each
+ * GET /api/team-insights added the same note again every hour of its 24 (six copies in
+ * the 2026-11-16 audit), and each copy was toasted again.
+ */
 export function isRecentDuplicate(
   existing: CrossPersonaInsight,
-  next: Pick<CrossPersonaInsight, 'source' | 'target' | 'category'>,
+  next: Pick<CrossPersonaInsight, 'source' | 'target' | 'category' | 'content'>,
   now = Date.now()
 ): boolean {
+  if (existing.source !== next.source || existing.target !== next.target) return false;
+  if (existing.category !== next.category) return false;
   return (
-    existing.source === next.source &&
-    existing.target === next.target &&
-    existing.category === next.category &&
-    existing.createdAt > now - HOUR_MS
+    existing.createdAt > now - HOUR_MS ||
+    (existing.content === next.content && existing.expiresAt > now)
   );
 }
 
@@ -75,6 +80,12 @@ export const insightChanges = {
     (insightId: string, now: number): InsightChange =>
     (stored) => {
       hideFromUser(stored, insightId, now);
+      return stored;
+    },
+  toast:
+    (insightId: string, now: number): InsightChange =>
+    (stored) => {
+      markToasted(stored, insightId, now);
       return stored;
     },
   dropExpired:

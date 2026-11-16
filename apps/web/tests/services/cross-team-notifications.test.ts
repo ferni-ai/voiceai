@@ -65,12 +65,32 @@ describe('cross-team notifications polling', () => {
     expect(shown.message).toContain('nine day streak');
   });
 
-  it('acknowledges the insight it showed', async () => {
+  it('marks the insight it showed as toasted, not acknowledged (issue 3945)', async () => {
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { insights: [serverInsight({ id: 'ins/2' })] } });
 
     await service.startInsightsPolling('user-2');
 
-    expect(apiPost).toHaveBeenCalledWith('/api/team-insights/acknowledge/ins%2F2');
+    expect(apiPost).toHaveBeenCalledWith('/api/team-insights/toasted/ins%2F2');
+    expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/acknowledge/'));
+  });
+
+  it('does not toast a note again once the server says it was toasted', async () => {
+    const insights = [serverInsight({ id: 'old', toasted: true }), serverInsight({ id: 'fresh' })];
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { insights } });
+
+    await service.startInsightsPolling('user-4');
+
+    expect(showOutreach).toHaveBeenCalledTimes(1);
+    expect((showOutreach.mock.calls[0]?.[0] as { id: string }).id).toBe('fresh');
+  });
+
+  it('shows nothing when every note was already toasted', async () => {
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { insights: [serverInsight({ toasted: true })] } });
+
+    await service.startInsightsPolling('user-5');
+
+    expect(showOutreach).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
   });
 
   it('leaves low priority insights quiet and unacknowledged', async () => {
