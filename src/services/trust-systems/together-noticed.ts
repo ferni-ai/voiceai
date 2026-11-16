@@ -17,6 +17,7 @@ import {
   conversationDays,
   daysBetween,
   mean,
+  tallyPromises,
   within,
   type LocalClock,
   type TogetherSignals,
@@ -196,7 +197,7 @@ function promisesKept(signals: TogetherSignals, w: Window): NoticedInsight | nul
     (p) => p.resolvedAt && within(p.resolvedAt, w.from, w.to)
   );
   if (resolved.length === 0) return null;
-  const kept = resolved.filter((p) => p.fulfilled && !p.violated).length;
+  const { kept } = tallyPromises(resolved);
   return {
     kind: 'promisesKept',
     variant: kept === resolved.length ? 'all' : 'some',
