@@ -10,7 +10,10 @@ import { describe, expect, it } from 'vitest';
 import { LEGENDS } from '../../src/config/personas.js';
 
 const inlineCss = readFileSync(resolve(__dirname, '../../src/styles/inline-styles.css'), 'utf8');
-const tokensCss = readFileSync(resolve(__dirname, '../../../../design-system/dist/tokens.css'), 'utf8');
+const tokensCss = readFileSync(
+  resolve(__dirname, '../../../../design-system/dist/tokens.css'),
+  'utf8'
+);
 
 function luminance(hex: string): number {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -36,9 +39,12 @@ describe('every Legend has its own readable text colour', () => {
     expect(legends.length).toBeGreaterThanOrEqual(2);
   });
 
-  it.each(legends)('%s sets --persona-on-primary at 4.5:1 or better on its colour', (id, config) => {
-    const onPrimary = onPrimaryFor(id);
-    expect(onPrimary, `no [data-persona='${id}'] rule sets --persona-on-primary`).toBeDefined();
-    expect(contrast(onPrimary!, config.colors.primary)).toBeGreaterThanOrEqual(4.5);
-  });
+  it.each(legends)(
+    '%s sets --persona-on-primary at 4.5:1 or better on its colour',
+    (id, config) => {
+      const onPrimary = onPrimaryFor(id);
+      expect(onPrimary, `no [data-persona='${id}'] rule sets --persona-on-primary`).toBeDefined();
+      expect(contrast(onPrimary!, config.colors.primary)).toBeGreaterThanOrEqual(4.5);
+    }
+  );
 });
