@@ -87,6 +87,8 @@ export interface InsightBriefing {
   teamStatus: TeamStatusSummary;
   /** Proactive discoveries to potentially surface */
   proactiveDiscoveries: string[];
+  /** The high-priority proactive notes behind the "From <persona>:" discoveries */
+  proactiveNotes: CrossPersonaInsight[];
 }
 
 export interface TeamStatusSummary {
@@ -711,25 +713,20 @@ export async function buildInsightBriefingForHandoff(
 ): Promise<InsightBriefing> {
   await loadInsightsFromPersistence(userId, options.fresh);
 
-  // Clear expired insights
   clearExpiredInsights(userId);
-
-  // Scan for new insights
   await scanForCrossPersonaInsights(userId);
 
   const incomingInsights = getInsightsForPersonaRaw(userId, targetPersonaId);
   const teamStatus = await generateTeamStatus(userId);
 
-  // Generate proactive discoveries
   const proactiveDiscoveries: string[] = [];
 
-  // Add high-priority proactive insights
-  const proactiveInsights = getProactiveInsights(userId);
-  for (const insight of proactiveInsights.filter(
+  // High-priority proactive notes (the app's team panel lists them: insight-wire-format.ts)
+  const proactiveNotes = getProactiveInsights(userId).filter(
     (i) => i.priority === 'high' || i.priority === 'critical'
-  )) {
+  );
+  for (const insight of proactiveNotes)
     proactiveDiscoveries.push(`From ${insight.source}: ${insight.content}`);
-  }
 
   // Add status-based discoveries
   if (teamStatus.habitHealth.keystoneActive) {
@@ -744,10 +741,12 @@ export async function buildInsightBriefingForHandoff(
     proactiveDiscoveries.push('Savings may need attention - some goals falling behind timeline');
   }
 
+  // Stored copies of one note (saved hourly before isRecentDuplicate compared words) count once
   return {
     incomingInsights,
     teamStatus,
-    proactiveDiscoveries,
+    proactiveDiscoveries: [...new Set(proactiveDiscoveries)],
+    proactiveNotes,
   };
 }
 
