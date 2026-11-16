@@ -935,13 +935,15 @@ function setupEventListeners(): void {
 }
 
 let factsSyncStarted = false;
+const FACTS_RETRY_MS = 30_000; // one retry after a failed first load (signed in late, a blip)
 
 /** Load the server's numbers now, and again after each call (the count changes when one ends). */
 export function startRelationshipFacts(): void {
   if (factsSyncStarted) return;
   factsSyncStarted = true;
-  void relationshipStageService.loadFromBackend();
-  window.addEventListener('ferni:conversation-end', () => void relationshipStageService.loadFromBackend());
+  const load = () => relationshipStageService.loadFromBackend();
+  void load().then((ok) => ok || setTimeout(() => void load(), FACTS_RETRY_MS));
+  window.addEventListener('ferni:conversation-end', () => void load());
 }
 
 /**

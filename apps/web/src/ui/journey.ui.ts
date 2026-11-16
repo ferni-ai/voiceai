@@ -23,9 +23,8 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
-import { isNoStreaksOn, shownStreak } from '../config/no-streaks.js';
-import { relationshipStageService, getTranslatedStageName } from '../services/relationship-stage.service.js';
-import { relationshipKnown, relationshipNumber, relationshipPendingText } from './relationship-facts-view.js';
+import { shownStreak } from '../config/no-streaks.js';
+import { followRelationshipOverview, relationshipOverviewHtml } from './journey/relationship-overview.js';
 import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { getVoiceAuthService } from '../services/voice-auth.service.js';
@@ -121,22 +120,11 @@ let focusTrapCleanup: (() => void) | null = null;
 let previousActiveElement: HTMLElement | null = null;
 let trustInsightsData: TrustInsights | null = null;
 let isLoadingTrustData = false;
+let stopFollowingFacts: (() => void) | null = null;
 
 // ============================================================================
 // ICONS (Lucide-style)
 // ============================================================================
-
-// ============================================================================
-// STAGE DESCRIPTIONS - Brand Voice (Warm, Human, Not Saccharine)
-// ============================================================================
-
-const STAGE_KEYS: Record<string, [string, string]> = {
-  'first-meeting': ['relationshipStages.taglines.firstMeeting', 'relationshipStages.descriptions.firstMeeting'],
-  'getting-started': ['relationshipStages.taglines.gettingStarted', 'relationshipStages.descriptions.gettingStarted'],
-  'building-trust': ['relationshipStages.taglines.buildingTrust', 'relationshipStages.descriptions.buildingTrust'],
-  'established': ['relationshipStages.taglines.established', 'relationshipStages.descriptions.established'],
-  'deep-partnership': ['relationshipStages.taglines.deepPartnership', 'relationshipStages.descriptions.deepPartnership'],
-};
 
 // Icons imported from centralized module
 const ICONS = JOURNEY_ICONS;
@@ -198,9 +186,10 @@ export function openJourney(): void {
   createModal();
   isOpen = true;
 
-  // Set up focus trap after modal is created
+  // Set up focus trap after modal is created; the stage and counts fill in when the record arrives
   if (journeyModal) {
     focusTrapCleanup = trapFocus(journeyModal);
+    stopFollowingFacts = followRelationshipOverview(journeyModal, renderJourneyMap, updateVoiceIdDisplay);
   }
 
   log.info('Journey opened');
@@ -216,6 +205,8 @@ export function closeJourney(): void {
   }
 
   // Clean up event listeners
+  stopFollowingFacts?.();
+  stopFollowingFacts = null;
   window.removeEventListener(
     'ferni:connection-heart-state',
     handleConnectionStateChange as EventListener
@@ -316,15 +307,6 @@ function createModal(): void {
   const celebrated = getCelebratedCount();
   const total = getTotalMilestonesCount();
 
-  // Get relationship stage data
-  const stage = relationshipStageService.getStage();
-  const stageMetrics = relationshipStageService.getMetrics();
-  const stageProgress = relationshipStageService.getProgressToNextStage();
-  const stageKeys = STAGE_KEYS[stage] || STAGE_KEYS['first-meeting'];
-  const [tagKey, descKey] = stageKeys as [string, string];
-  const stageName = relationshipKnown() ? getTranslatedStageName(stage) : relationshipPendingText();
-  const progressPercent = Math.round(stageProgress.progress * 100);
-
   // Get current connection state from body classes
   let connectionState: ConnectionState = 'disconnected';
   if (document.body.classList.contains('connected')) {
@@ -368,49 +350,7 @@ function createModal(): void {
       </header>
 
       <div class="journey-body">
-        <!-- Journey Map - Visual Path (Better than Apple Progress) -->
-        ${relationshipKnown() ? renderJourneyMap(stage, progressPercent) : ''}
-
-        <!-- Progress Overview Section -->
-        <section class="journey-progress-overview">
-          <h2 class="journey-stage-name">${stageName}</h2>
-          <p class="journey-stage-tagline">${relationshipKnown() ? t(tagKey) : ''}</p>
-          <p class="journey-stage-description">${relationshipKnown() ? t(descKey) : ''}</p>
-          
-          <div class="journey-stats-row">
-            <div class="journey-stat">
-              <span class="journey-stat__icon">${ICONS.messageCircle}</span>
-              <span class="journey-stat__value">${relationshipNumber(stageMetrics.totalConversations)}</span>
-              <span class="journey-stat__label">${t('yourStory.stats.conversations')}</span>
-            </div>
-            <div class="journey-stat">
-              <span class="journey-stat__icon">${ICONS.calendar}</span>
-              <span class="journey-stat__value">${relationshipNumber(stageMetrics.daysSinceFirstMeeting)}</span>
-              <span class="journey-stat__label">${t('yourStory.stats.daysTogether')}</span>
-            </div>
-            ${isNoStreaksOn() ? '' : `<div class="journey-stat">
-              <span class="journey-stat__icon">${ICONS.flame}</span>
-              <span class="journey-stat__value">${relationshipNumber(stageMetrics.currentStreak)}</span>
-              <span class="journey-stat__label">${t('yourStory.stats.dayStreak')}</span>
-            </div>`}
-            <div class="journey-stat journey-stat--voice-id" id="journey-voice-id-stat">
-              <span class="journey-stat__icon">${ICONS.shield}</span>
-              <span class="journey-stat__value journey-stat__value--loading">...</span>
-              <span class="journey-stat__label">voice ID</span>
-            </div>
-          </div>
-          
-          ${!relationshipKnown() ? '' : stageProgress.nextStage ? `
-            <div class="journey-next-stage">
-              <span class="journey-next-stage__label">Next: ${getTranslatedStageName(stageProgress.nextStage)}</span>
-              <span class="journey-next-stage__req">${stageProgress.requirement}</span>
-            </div>
-          ` : `
-            <div class="journey-next-stage journey-next-stage--max">
-              <span class="journey-next-stage__label">${t('journey.maxLevelReached')} <span class="journey-next-stage__icon">${ICONS.star}</span></span>
-            </div>
-          `}
-        </section>
+        ${relationshipOverviewHtml(renderJourneyMap)}
         
         ${renderConnectionBanner(connectionState)}
         

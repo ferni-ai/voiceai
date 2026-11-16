@@ -22,9 +22,9 @@ export function relationshipPendingText(): string {
     : t('relationshipFacts.loading');
 }
 
-/** A count to show, or the pending mark while the server's numbers are not in. */
+/** A count to show, or nothing while the server's numbers are not in (the line above says why). */
 export function relationshipNumber(value: number): string {
-  return relationshipKnown() ? String(value) : t('relationshipFacts.pendingValue');
+  return relationshipKnown() ? String(value) : '';
 }
 
 /** The home journey card before the numbers are in: one quiet line, no ring, no stage. */

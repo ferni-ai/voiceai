@@ -140,7 +140,7 @@ describe('an unknown record shows an honest state, never 0 or "New Friends"', ()
     expect(card.textContent).toContain(m.t('relationshipFacts.unavailable'));
     expect(card.textContent).not.toContain(m.getTranslatedStageName('first-meeting'));
     expect(card.textContent).not.toMatch(/\d/);
-    expect(m.relationshipNumber(0)).toBe(m.t('relationshipFacts.pendingValue'));
+    expect(m.relationshipNumber(0)).toBe('');
     expect(m.relationshipStatsHtml('stats')).toBe('');
   });
 
