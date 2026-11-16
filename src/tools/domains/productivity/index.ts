@@ -6,7 +6,7 @@
  *
  * DOMAIN: productivity
  * TOOLS:
- *   Tasks: addTask, completeTask, getTasks, rescheduleTask, getTaskSummary
+ *   Tasks: addTask, completeTask, getTasks
  *   Notes: saveNote, getRecentNotes, searchNotes, startJournal
  *   Shopping: addToShoppingList, getShoppingList, checkOffItem
  */

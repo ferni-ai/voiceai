@@ -165,15 +165,7 @@ export function getToolCategories() {
     ],
 
     // Daily Productivity
-    tasks: [
-      'addTask',
-      'completeTask',
-      'getTasks',
-      'updateTaskPriority',
-      'rescheduleTask',
-      'deleteTask',
-      'getTaskSummary',
-    ],
+    tasks: ['addTask', 'completeTask', 'getTasks'],
     bills: [
       'addBill',
       'payBill',
