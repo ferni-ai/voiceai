@@ -63,7 +63,8 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   ATTUNE_LEDGER: ON_OFF, // turn-attunement.ts, === 'on'
   BARGE_IN_SOFT_PAUSE: ON_OFF, // barge-in-soft-pause.ts, !== 'on'
   CALL_TELEMETRY: Object.freeze<FlagValue[]>(['off', 'on', 'reports']), // call-telemetry-store.ts
-  CRISIS_CLASSIFIER_ONLY_CHECKIN: SHADOW_LIVE, // crisis-classifier-only(-live).ts
+  // crisis-classifier-only(-live).ts; live is held (logs, changes nothing) outside tests
+  CRISIS_CLASSIFIER_ONLY_CHECKIN: OFF_SHADOW,
   CRISIS_CLASSIFIER_SECOND_READ: WITH_SHADOW, // crisis-classifier-v3.ts
   CRISIS_CONFIRMED_CALL_RISK: WITH_SHADOW, // crisis-confirmed-risk.ts
   CRISIS_GRADED_RESPONSE: OFF_SHADOW, // crisis-graded-shadow.ts; live runs as shadow
@@ -72,6 +73,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   CRISIS_READ_JOINED_TURN: ON_OFF, // crisis-read-joined-turn.ts, === 'on'
   EARLY_WARNING_STT_FORMS: WITH_SHADOW, // phrase-match.ts, resolveShadowMode
   EARLY_WARNING_WORD_BOUNDARY: ON_OFF, // phrase-match.ts
+  GMAIL_SEND_AS_USER: ON_OFF, // gmail-send-flag.ts, process.env[CONST] === 'on'
   PATTERN_MIRROR_ONCE: ON_OFF, // commitment-follow-up-gate.ts, === 'on'
   PREEMPT_STABLE_CONTEXT: Object.freeze<FlagValue[]>(['off', 'on', 'defer']), // preempt-stable-context.ts
   SAFETY_WHOLE_WORD_SITES: WITH_SHADOW, // safety-whole-word.ts, resolveShadowMode
@@ -89,12 +91,14 @@ const STRICT_READERS: ReadonlySet<string> = new Set([
   'ATTUNE_LEDGER',
   'BARGE_IN_SOFT_PAUSE',
   'CRISIS_READ_JOINED_TURN',
+  'GMAIL_SEND_AS_USER',
   'PATTERN_MIRROR_ONCE',
   'SESSION_OWN_VOICE',
 ]);
 
 /** Words a direct reader maps to another of its words instead of the default. */
 const READER_ALIASES: ReadonlyMap<string, ReadonlyMap<string, FlagValue>> = new Map([
+  ['CRISIS_CLASSIFIER_ONLY_CHECKIN', new Map<string, FlagValue>([['live', 'shadow']])],
   ['CRISIS_GRADED_RESPONSE', new Map<string, FlagValue>([['live', 'shadow']])],
 ]);
 
@@ -151,11 +155,11 @@ function readerWord(flag: SwitchableFlag, raw: string | undefined): string {
  * its reader resolves it: a directly read flag gets its reader's word (or the
  * default for any word it ignores), a flagModeOf flag what flagModeOf returns,
  * any other switchable flag what flagOn returns, and a numeric config flag the
- * raw value or its default. A name that is not a per-file flag gets raw as is.
+ * raw value or its default. A name that is not a per-file flag gets '', never raw.
  */
 export function resolvedValue(name: string, raw: string | undefined): string {
   const flag = BY_NAME.get(name);
-  if (!flag || !isFlagName(name)) return raw?.trim() ?? '';
+  if (!flag || !isFlagName(name)) return '';
   const env = { [name]: raw };
   if (!flag.switchable) return raw?.trim() || flag.default;
   if (Object.hasOwn(VALUE_OVERRIDES, name)) return readerWord(flag, raw);

@@ -11,7 +11,12 @@ const NOW = new Date('2026-11-16T12:00:00.000Z');
 
 describe('buildFlagSnapshot', () => {
   it('has exactly one entry per agent flag, and no other env key', () => {
-    const env = { ABUSE_DISCLOSURE_PATTERNS: 'ON', LIVEKIT_API_SECRET: 'x', GEMINI_API_KEY: 'y' };
+    // Fictional values, distinctive enough that finding one anywhere in the JSON means a leak.
+    const env = {
+      ABUSE_DISCLOSURE_PATTERNS: 'ON',
+      LIVEKIT_API_SECRET: 'fake-secret-do-not-leak-0001',
+      GEMINI_API_KEY: 'fake-secret-do-not-leak-0002',
+    };
     const snap = buildFlagSnapshot(env, NOW, 'abc1234');
     expect(Object.keys(snap.flags)).toEqual(agentFlags().map((f) => f.name));
     expect(Object.keys(snap.flags)).not.toContain('LIVEKIT_API_SECRET');
@@ -19,6 +24,8 @@ describe('buildFlagSnapshot', () => {
     const json = JSON.stringify(snap);
     expect(json).not.toContain('LIVEKIT_API_SECRET');
     expect(json).not.toContain('GEMINI_API_KEY');
+    expect(json).not.toContain('fake-secret-do-not-leak-0001');
+    expect(json).not.toContain('fake-secret-do-not-leak-0002');
   });
 
   it('records the raw env string and the value the reader resolves it to', () => {

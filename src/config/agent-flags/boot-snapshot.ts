@@ -21,8 +21,8 @@ export async function writeFlagSnapshotOnBoot(
   env: Env = process.env,
   store?: FlagStore
 ): Promise<void> {
-  if (!isKnownDevDatabase(env) || !flagOn('FLAG_SNAPSHOT', env)) return;
   try {
+    if (!isKnownDevDatabase(env) || !flagOn('FLAG_SNAPSHOT', env)) return;
     const snapshot = buildFlagSnapshot(env, new Date(), env.BUILD_SHA?.trim() || null);
     // Firestore is loaded only when it will be written to, so prod's boot never pulls it in here.
     const target = store ?? (await import('./adapters/flag-store.js')).firestoreFlagStore();
