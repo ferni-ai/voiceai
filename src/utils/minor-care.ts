@@ -38,8 +38,14 @@ import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
 import { isAnonymousDemoUser, PLACEHOLDER_IDS } from './synthetic-user.js';
-import { sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
-export { sexualReadsSettled } from './sexual-topic-hold.js';
+import { sexualReadsSettled, sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
+import {
+  CRISIS_READ_WAIT,
+  crisisMemoryHeld,
+  crisisReadsDone,
+  crisisReadsSettled,
+} from './crisis-memory-hold.js';
+export { crisisTurnSettled } from './crisis-memory-hold.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -181,6 +187,8 @@ interface HeardOptions {
   env?: Env;
   /** The caller's userId: binds this session to it, so userHeld(userId) follows memoryHeld. */
   userId?: string;
+  /** Not the crisis hold: a tool filter (support and handoff tools stay; each writer refuses). */
+  careOnly?: boolean;
 }
 
 /** Read the caller's words for this session; true once they have sounded under 18. Flag off: nothing. */
@@ -246,12 +254,13 @@ export function likelyMinor(sessionId: string | undefined): boolean {
 const demoCallHeld = (sessionId: string | undefined): boolean =>
   !!sessionId && isAnonymousDemoUser(sessionUsers.get(sessionId));
 
-/**
- * Nothing personal is stored for this session: it is an anonymous try-first call (demoCallHeld),
- * MINOR_CARE holds it (minorHeld), or SEXUAL_TOPIC_BOUNDARY does (sexual-topic-hold.ts).
- */
+/** An anonymous try-first call (demoCallHeld), MINOR_CARE (minorHeld) or SEXUAL_TOPIC_BOUNDARY. */
+const careHolds = (sessionId: string | undefined, env: Env = process.env): boolean =>
+  demoCallHeld(sessionId) || minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
+
+/** Nothing personal is stored for this session: careHolds, or a crisis read on the call. */
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
-  return demoCallHeld(sessionId) || minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
+  return careHolds(sessionId, env) || crisisMemoryHeld(sessionId);
 }
 
 /** MINOR_CARE's own hold: flag on, sounds under 18, not a verified owner. Its purge keys on this. */
@@ -275,12 +284,26 @@ export function heldAfter(
   said: string,
   options: HeardOptions = {}
 ): boolean {
+  const held = options.careOnly ? careHolds : memoryHeld;
   if (!minorCareOn(options.env))
-    return memoryHeld(sessionId, options.env) || isAnonymousDemoUser(options.userId);
+    return held(sessionId, options.env) || isAnonymousDemoUser(options.userId);
   noteCallerWords(sessionId, said, options);
   bindSessionUser(sessionId, options.userId);
-  return memoryHeld(sessionId, options.env);
+  return held(sessionId, options.env);
 }
+
+/** Settles when the call's sexual-topic and crisis reads have, so memoryHeld is final; or null. */
+export function heldReadsSettled(sessionId: string | undefined): Promise<void> | null {
+  const reads = [sexualReadsSettled(sessionId), crisisReadsSettled(sessionId)];
+  const running = reads.filter((read): read is Promise<void> => read !== null);
+  return running.length ? Promise.all(running).then(() => undefined) : null;
+}
+
+/** A capture may queue deep extraction: the call's crisis reads settled, and nothing holds it. */
+export const mayCapture = async (sessionId: string, userId: string) =>
+  (await crisisReadsDone(sessionId, CRISIS_READ_WAIT.settleMs)) &&
+  !memoryHeld(sessionId) &&
+  !userHeld(userId);
 
 /** A try-first call that may still be writing: its binding is its hold, so it is never evicted. */
 const liveDemoCall = (sessionId: string): boolean =>
@@ -303,6 +326,10 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
   announceHold(sessionId);
 }
 
+/** A session's hold, or the user's, or (MINOR_CARE on) an id no session can be bound to. */
+const heldWith = (session: boolean, userId: string | undefined, env: Env): boolean =>
+  session || userHeld(userId, env) || (minorCareOn(env) && sharedId(userId));
+
 /**
  * Every writer's one check (MINOR_CARE on): this session is held, any of this user's sessions
  * is, or the id is a placeholder that can't be bound to a session (userHeld can't see it).
@@ -312,21 +339,21 @@ export function writeHeld(
   sessionId?: string,
   env: Env = process.env
 ): boolean {
-  if (!minorCareOn(env)) return memoryHeld(sessionId, env) || userHeld(userId, env);
-  return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
+  return heldWith(memoryHeld(sessionId, env), userId, env);
 }
 
 /**
  * writeHeld without the try-first rule: MINOR_CARE or SEXUAL_TOPIC_BOUNDARY holds this caller.
  * A safety record that keeps no words (crisis_events) still writes for a try-first visitor, so it
- * asks this. A demo id lives for one call, so its session's holds are all its holds.
+ * asks this. A demo id lives for one call, so its session's holds are all its holds. Never the
+ * crisis hold: the crisis read it records is what set it.
  */
 export function careHeld(
   userId: string | undefined,
   sessionId?: string,
   env: Env = process.env
 ): boolean {
-  if (!isAnonymousDemoUser(userId)) return writeHeld(userId, sessionId, env);
+  if (!isAnonymousDemoUser(userId)) return heldWith(careHolds(sessionId, env), userId, env);
   return (
     minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env) || sexualTopicUserHeld(userId, env)
   );

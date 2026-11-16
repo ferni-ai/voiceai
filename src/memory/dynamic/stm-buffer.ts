@@ -23,6 +23,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { EntityMention, EmotionSignal, FastCaptureResult } from './fast-capture.js';
 import { recordSTMTurn } from './metrics.js';
 import { isThirdPartyCallUser } from '../third-party-call.js';
+import { crisisMemoryHeld } from '../../utils/crisis-memory-hold.js';
 
 const log = createLogger({ module: 'STMBuffer' });
 
@@ -148,9 +149,8 @@ export function getSTMBuffer(sessionId: string, userId: string): SessionSTM {
 }
 
 /**
- * Record a turn in STM (never for an on-behalf call's pseudo-user: third-party-call.ts)
- * @param voiceEmotion - Optional voice-derived emotion from prosody analysis.
- *                       Distinct from keyword-based emotionSignals in captureResult.
+ * Record a turn in STM: never for an on-behalf call's pseudo-user (third-party-call.ts) or a call
+ * a crisis read holds. @param voiceEmotion - from prosody, not captureResult's keyword emotions.
  */
 export function recordTurn(
   sessionId: string,
@@ -161,7 +161,7 @@ export function recordTurn(
   personaId?: string,
   voiceEmotion?: VoiceEmotionSnapshot
 ): void {
-  if (isThirdPartyCallUser(userId)) return; // the person on an on-behalf call is not our user
+  if (isThirdPartyCallUser(userId) || crisisMemoryHeld(sessionId)) return;
   log.info(
     {
       sessionId,
