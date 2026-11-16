@@ -44,7 +44,8 @@ vi.mock('../insight-broker.js', () => ({ createInsight: vi.fn(async () => undefi
 
 const loops = await import('../open-loops.js');
 const { fetchOpenLoops } = await import('../../../../api/your-story-sections.js');
-const { wholeClause, loopKey } = await import('../open-loop-text.js');
+const { wholeClause, loopKey, oneLoopPerWording } = await import('../open-loop-text.js');
+const CALL_TEXT = "I'll call her tomorrow about the lease";
 
 const USER = 'user-loops-1';
 const SAID = 'I need to find places to stop for gas on the drive tomorrow. Anyway, how are you?';
@@ -104,6 +105,26 @@ describe('createOpenLoop: one loop per wording', () => {
     expect(again.id).not.toBe(first.id);
     expect(again.status).toBe('open');
   });
+
+  const CALL = "I'll call her tomorrow about the lease";
+  const about = (relatedPerson: string) =>
+    loops.createOpenLoop(USER, { type: 'commitment', content: CALL, context: CALL, relatedPerson });
+
+  it('the same words about two different people are two loops', async () => {
+    const sister = await about('Sister');
+    const mom = await about('Mom');
+
+    expect(mom.id).not.toBe(sister.id);
+    expect(savedOpen()).toHaveLength(2);
+  });
+
+  it('the same words about the same person are one loop', async () => {
+    const first = await about('Mom');
+    const again = await about(' mom ');
+
+    expect(again.id).toBe(first.id);
+    expect(savedOpen()).toHaveLength(1);
+  });
 });
 
 describe('fetchOpenLoops (Story So Far): rows already saved twice', () => {
@@ -161,8 +182,50 @@ describe('wholeClause', () => {
     );
   });
 
+  it('stops at a comma: a loop never carries the rest of a private sentence', () => {
+    const said = 'I need to call the clinic, my HIV test came back and I do not know what to do';
+    expect(wholeClause('I need to call the clinic', said)).toBe('I need to call the clinic');
+  });
+
+  it('stops at a dash, spaced or not', () => {
+    expect(
+      wholeClause('I need to call the clinic', 'I need to call the clinic - the results')
+    ).toBe('I need to call the clinic');
+    expect(
+      wholeClause('I need to call the clinic', 'I need to call the clinic\u2014the results')
+    ).toBe('I need to call the clinic');
+  });
+
+  it('keeps the fragment when the clause runs on past eight more words', () => {
+    const said =
+      'I need to call the clinic about the results that came back from the lab on Tuesday';
+    expect(wholeClause('I need to call the clinic', said)).toBe('I need to call the clinic');
+  });
+
+  it('reads a short clause whole', () => {
+    expect(wholeClause("I'm going to split it up", "I'm going to split it up into two trips")).toBe(
+      "I'm going to split it up into two trips"
+    );
+  });
+
   it('compares wordings without case, spacing or end punctuation', () => {
-    expect(loopKey('  I need to  STOP. ')).toBe(loopKey('i need to stop'));
-    expect(loopKey('I need to stop')).not.toBe(loopKey('I need to start'));
+    expect(loopKey({ content: '  I need to  STOP. ' })).toBe(
+      loopKey({ content: 'i need to stop' })
+    );
+    expect(loopKey({ content: 'I need to stop' })).not.toBe(
+      loopKey({ content: 'I need to start' })
+    );
+  });
+
+  it('keeps one loop per wording and person, newest first', () => {
+    const l = (id: string, relatedPerson?: string) => ({ id, content: CALL_TEXT, relatedPerson });
+    const kept = oneLoopPerWording([
+      l('a', 'Sister'),
+      l('b', 'Mom'),
+      l('c', 'mom'),
+      l('d'),
+      l('e'),
+    ]);
+    expect(kept.map((x) => x.id)).toEqual(['a', 'b', 'd']);
   });
 });

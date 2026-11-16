@@ -256,7 +256,7 @@ export interface OpenLoopsData {
 export async function fetchOpenLoops(userId: string): Promise<OpenLoopsData | null> {
   try {
     const { getAllOpenLoops, oneLoopPerWording, wholeClause } =
-      await import('../services/superhuman/semantic-intelligence/index.js');
+      await import('../services/superhuman/semantic-intelligence/open-loop-read/index.js');
     const newestFirst = [...(await getAllOpenLoops(userId))].sort(
       (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
     );

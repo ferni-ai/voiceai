@@ -72,8 +72,11 @@ async function getTeamInsights(
         goalHealth: teamStatus.goalStatus, // Note: actual field is goalStatus
       },
       proactiveDiscoveries: briefing.proactiveDiscoveries,
-      // The panel's list beside `insights`: the same notes, as cards (insight-wire-format.ts)
-      discoveries: toClientDiscoveries(briefing.proactiveNotes, formattedInsights),
+      // The panel's list beside `insights`: the same notes as cards, none the user hid
+      discoveries: toClientDiscoveries(
+        briefing.proactiveNotes.filter((note) => !isHiddenFromUser(note)),
+        formattedInsights
+      ),
       lastUpdated: Date.now(),
     });
 

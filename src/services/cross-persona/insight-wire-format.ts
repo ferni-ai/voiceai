@@ -41,12 +41,12 @@ export function summarizeInsight(content: string, max = SUMMARY_MAX_CHARS): stri
 }
 
 /**
- * A spaced hyphen or dash used as a pause reads as a comma: no dashes in Ferni's
- * lines (docs/decisions/register.md D4). "Just checking in - no pressure." becomes
- * "Just checking in, no pressure." A range between numbers ("3 - 5") is left alone.
+ * A spaced hyphen or dash, or any em dash, used as a pause reads as a comma: no dashes in
+ * Ferni's lines (docs/decisions/register.md D4), spaced or not: "Just checking in - no
+ * pressure." becomes "Just checking in, no pressure." A range between numbers is left alone.
  */
 export function withoutDashPauses(text: string): string {
-  return text.replace(/(?<!\d)\s+[-\u2013\u2014]+\s+(?!\d)/g, ', ');
+  return text.replace(/(?<!\d)(?:\s+[-\u2013\u2014]+\s+|\s*\u2014+\s*)(?!\d)/g, ', ');
 }
 
 /** Strips internal fields (target, metadata, expiry) and adds the summary. */
@@ -69,8 +69,7 @@ export function toClientInsight(insight: CrossPersonaInsight): ClientInsight {
  * insights it already shows): one per persona and wording, newest first, none listed twice.
  * GET /api/team-insights sent these only as "From ferni: ..." strings, which the panel never
  * read, so a long-time user with seven notes saw the first-run empty state (2026-11-16).
- * A note the user already saw as a toast stays here until it expires: hiding it stops the
- * toast repeating, not the panel showing what the team is thinking.
+ * Callers pass only notes the user has not hidden (insight-visibility.ts).
  */
 export function toClientDiscoveries(
   notes: readonly CrossPersonaInsight[],

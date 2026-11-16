@@ -125,7 +125,7 @@ export async function createOpenLoop(
 ): Promise<OpenLoop> {
   const cached = await loadOpenLoops(userId); // one open loop per wording (open-loop-text.ts)
   const open = cached.filter((l) => l.status === 'open' && isLoopLive(l));
-  const same = sameLoop(open, loop.content);
+  const same = sameLoop(open, loop);
   if (same) return same;
   const now = new Date();
   const id = `loop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

@@ -91,4 +91,35 @@ describe('GET /api/team-insights', () => {
       'You mentioned something you wanted to do. Just checking in, no pressure.'
     );
   });
+
+  it('never sends a note the user hid as a discovery', async () => {
+    const { buildInsightBriefingForHandoff } =
+      await import('../../../services/cross-persona-insights.js');
+    const note = (id: string, content: string, createdAt: number) => ({
+      id,
+      source: 'ferni',
+      target: 'all',
+      content,
+      priority: 'high',
+      category: 'commitment-followup',
+      createdAt,
+      expiresAt: createdAt + 1,
+      proactive: true,
+      oneTime: true,
+    });
+    vi.mocked(buildInsightBriefingForHandoff).mockResolvedValueOnce({
+      incomingInsights: [],
+      proactiveDiscoveries: [],
+      proactiveNotes: [
+        { ...note('hidden', 'A note the user put away.', 2), metadata: { hiddenFromUserAt: 5 } },
+        note('toasted', 'A note the user only saw as a toast.', 1),
+      ],
+    } as never);
+
+    const req = { method: 'GET', headers: {} } as IncomingMessage;
+    await handleTeamInsightsRoutes(req, {} as ServerResponse, '/api/team-insights');
+
+    const body = sent.body as { discoveries: Array<{ id: string }> };
+    expect(body.discoveries.map((d) => d.id)).toEqual(['toasted']);
+  });
 });

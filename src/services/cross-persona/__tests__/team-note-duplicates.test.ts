@@ -87,4 +87,11 @@ describe('withoutDashPauses', () => {
       '3 - 5 days, a well-earned rest'
     );
   });
+
+  it('turns an unspaced em dash into a comma too, and leaves a number range alone', () => {
+    expect(withoutDashPauses('Just checking in\u2014no pressure.')).toBe(
+      'Just checking in, no pressure.'
+    );
+    expect(withoutDashPauses('pages 3\u20145')).toBe('pages 3\u20145');
+  });
 });

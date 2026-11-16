@@ -1,7 +1,8 @@
 /**
  * Semantic Intelligence System - Better Than Human v3
  *
- * Six capabilities that use semantic understanding for insights a friend couldn't offer:
+ * Six new superhuman capabilities that leverage semantic understanding
+ * to provide insights no human friend could offer:
  *
  * 1. **Correlation Mining** - Connect dots across domains
  * 2. **Emotional Trajectories** - See journeys, not moments
@@ -253,7 +254,6 @@ export {
   type OpenLoopType,
   type OpenLoopStatus,
 } from './open-loops.js';
-export { oneLoopPerWording, wholeClause } from './open-loop-text.js';
 
 // Ferni Commitments - track Ferni's promises
 export {
