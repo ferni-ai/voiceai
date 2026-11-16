@@ -183,3 +183,31 @@ one hears about it in the queue rather than at PR time.
 - **Enforcement:** the heavy-turn part is in #2413 ("no idle hum, whistle or
   yawn after a heavy turn or goodbye"). The rest: manual.
 - **Scope:** web, iOS, server.
+
+## D10. Legends speak as the real people, only with estate consent
+
+- **Decision:** a legend may speak as the real person it is named for, in
+  that person's cloned voice, only when the person's estate has given written
+  consent covering the name, the voice and new words spoken as them. The
+  consent is held by the owner off the repo; the repo keeps a record that it
+  exists, what it covers and when it was attested, never the document or who
+  signed it. Each legend's voice id comes from its own setting. A legend never
+  claims to be alive; asked sincerely, it says it is an AI recreation of the
+  person, made with their family's blessing (D3 is otherwise unchanged).
+  Living people's clones stay withheld until their own consent is on file.
+- **Decided:** the owner, 2026-11-08 (legends as real people) and 2026-11-14
+  (consent attested for John C. "Jack" Bogle, John F. Kennedy and Franklin
+  D. Roosevelt). Replaces the 2026-10-11 call that legends are fictional
+  characters on stock voices. Plan: `docs/plans/2026-11-12-one-roster.md`
+  (3.3, R9).
+- **Why:** consent is what separates honouring someone from impersonating
+  them.
+- **Enforcement:** existing tests
+  `src/personas/roster/__tests__/voice-records.test.ts` (the records name a
+  voice setting and never hold a voice id) and
+  `src/services/custom-agent/__tests__/custom-agent-legend-voice.test.ts` (a
+  custom agent never gets a configured legend voice). The admission check
+  (no legend speaks as the person until its record, its voice setting and an
+  off-by-default flag all allow it) comes with the change that routes calls
+  to it. Prompt content: manual.
+- **Scope:** server, spoken text.

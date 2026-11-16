@@ -30,6 +30,7 @@ import { announceRemembered } from './remember-moment.js';
 import { announceMemorySaved } from './memory-saved.js';
 import { importantReply, REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import * as honest from './honest-memory.js'; // MEMORY_TOOLS_HONEST
+import { keyMomentMatching } from './surface-key-moment.js';
 
 const log = getLogger();
 
@@ -381,29 +382,19 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
           minScore: 0.5,
         });
 
-        // Record feedback
+        const surfaced = result || keyMomentMatching(userData.keyMoments, memoryToSurface);
+        if (!surfaced) {
+          return NOTHING_TO_SURFACE;
+        }
+
+        // Engagement feedback only for a memory actually surfaced
         memoryService.recordFeedback({
           memoryId: `surface_${Date.now()}`,
           userId,
           action: 'surfaced',
           context: { personaId: ctx.agentId, emotionalState: connectionReason },
         });
-
-        if (result) {
-          return result;
-        }
-
-        // Check session memory
-        if (userData.keyMoments && userData.keyMoments.length > 0) {
-          const relevant = userData.keyMoments.find((m) =>
-            m.toLowerCase().includes(memoryToSurface.toLowerCase().split(' ')[0])
-          );
-          if (relevant) {
-            return relevant;
-          }
-        }
-
-        return NOTHING_TO_SURFACE;
+        return surfaced;
       },
     });
   },

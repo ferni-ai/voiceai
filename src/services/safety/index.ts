@@ -43,6 +43,8 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
+// A crisis pattern holds the call's memory before capture (transcript-handler.ts).
+export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
