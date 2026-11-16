@@ -627,7 +627,9 @@ class YourStoryUI {
     // MA (間) spacing philosophy: breath=8px, pause=13px, rest=21px, silence=34px, meditation=55px
     // Golden ratio typography: sectionTitle=1.5rem, cardTitle=1.0625rem, body=0.9375rem
     // Pixar-inspired easings: spring, playful, organic
-    this.styleElement.textContent = `
+    // Row rules first: nothing above targets .your-story__viz-row and the
+    // narrow-screen rules below still override them.
+    this.styleElement.textContent = `${STORY_ROW_STYLES}
       /* ========================================================================
          YOUR STORY DASHBOARD - Design System Aligned
          Inspired by: MA (間), Golden Ratio, Pixar animation principles
@@ -1231,8 +1233,6 @@ class YourStoryUI {
         background: var(--color-bg-tertiary, #f9f8f6);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
       }
-
-${STORY_ROW_STYLES}
 
       /* Hero spans full width on desktop grid */
       .your-story__viz-row > .your-story__hero-viz {

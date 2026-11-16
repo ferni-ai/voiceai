@@ -102,7 +102,7 @@ export const TRUST_TAB_STYLES = `
       border-radius: var(--radius-md);
       cursor: pointer;
       color: var(--color-text-muted);
-      font-size: 0.85rem;
+      font-size: var(--text-sm);
       white-space: nowrap; flex: 0 0 auto; scroll-snap-align: start;
       transition: background-color var(--duration-fast), color var(--duration-fast);
     }
