@@ -1,22 +1,12 @@
 name: Site Health
 
-# Can a public site, or a scheduled job behind one, go quietly stale while every check is
-# green? On 2026-11-16 three had: design.ferni.ai served a January build for ten months
-# (its nightly build passed; nothing deployed it), the weekly blog draft failed three
-# Mondays running, and marketplace.ferni.ai linked to pages that 404. This workflow fails
-# loudly on all three shapes:
-# - Links: lychee reads each site's home page and checks every link on it (one level; it
-#   doesn't crawl further). Internal links (any *.ferni.ai) fail the job on 4xx/5xx;
-#   external links are only reported in the job summary.
-# - Freshness: scripts/ci/site-freshness.ts fails when main changed a site's source more
-#   than 2 days after the live page's last-modified, or when a scheduled workflow
-#   (blog-drafts, design-system) failed its last 2 scheduled runs. Thresholds and the site
-#   map are constants at the top of that script.
-# Each failure kind keeps one open issue (labels site-health-links, site-health-stale,
-# site-health-schedule) via scripts/ci/site-health-issue.ts: opened on red, commented on
-# by the weekly run while red, closed by the first green run.
-# Weekly, by hand, and after each site deploy. Add a new site deploy workflow's name to
-# workflow_run below when it lands (marketplace and design.ferni.ai have none yet).
+# Fails loudly when a public site goes quietly stale (2026-11-16: design.ferni.ai served a
+# January build for ten months, blog-drafts failed three Mondays, marketplace linked 404s).
+# - Links: lychee checks every link on each home page (one level). Internal *.ferni.ai
+#   links fail on 4xx/5xx; external ones are only reported.
+# - Freshness: scripts/ci/site-freshness.ts (site map and thresholds at its top).
+# One open issue per failure kind via scripts/ci/site-health-issue.ts. When the marketplace
+# and design.ferni.ai deploy workflows land, add their names to workflow_run below.
 
 on:
   schedule:

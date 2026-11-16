@@ -22,25 +22,18 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-/** Each public site and the folder on main it is built from. */
-export const SITES = [
-  { name: 'ferni.ai', url: 'https://ferni.ai/', source: 'apps/website/ferni-website' },
-  {
-    name: 'developers.ferni.ai',
-    url: 'https://developers.ferni.ai/',
-    source: 'apps/website/developers-portal',
-  },
-  {
-    name: 'marketplace.ferni.ai',
-    url: 'https://marketplace.ferni.ai/',
-    source: 'apps/website/marketplace-portal',
-  },
-  {
-    name: 'design.ferni.ai',
-    url: 'https://design.ferni.ai/',
-    source: 'apps/website/design-system-portal',
-  },
-];
+/** Each public site's host and the folder on main it is built from. */
+const SOURCES: Record<string, string> = {
+  'ferni.ai': 'apps/website/ferni-website',
+  'developers.ferni.ai': 'apps/website/developers-portal',
+  'marketplace.ferni.ai': 'apps/website/marketplace-portal',
+  'design.ferni.ai': 'apps/website/design-system-portal',
+};
+export const SITES = Object.entries(SOURCES).map(([name, source]) => ({
+  name,
+  url: `https://${name}/`,
+  source,
+}));
 /** How much newer than the live page main's source may be before the site counts as stale. */
 export const MAX_LAG_DAYS = 2;
 /** Scheduled workflows that must keep succeeding. */
