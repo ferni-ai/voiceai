@@ -44,11 +44,12 @@ Two shapes repeat everywhere:
 One rule for the user: **anything Ferni agrees to hold is in one list, comes back at the
 right moment, and can be seen and closed in the app.**
 
-- **One owner per kind**, named in `decisions.ts`: tasks (`productivity/tasks`), reminders
-  (`scheduling/reminder-scheduler`), commitments (`superhuman/commitment-keeper`),
-  calendar events (`calendar/calendar-service`), goals (`life-planning/goal-management`),
-  routines (`workflows/workflow-store`). Duplicates become thin callers of the owner, then
-  get deleted.
+- **One owner per kind**, named in `decisions.ts` (provisional until #3958): tasks
+  (`productivity/tasks#createTask`), reminders (`scheduling/reminder-scheduler#createReminder`),
+  commitments (`superhuman/commitment-keeper#saveCommitment`), calendar events
+  (`calendar/unified-calendar-store#createEvent`), goals (`life-planning/goal-management#createGoal`),
+  routines (`stores/workflow-store#createWorkflow`). Duplicates become thin callers of the
+  owner, then get deleted.
 - **One scheduler.** Everything time-based becomes a row the Cloud Scheduler jobs already
   deliver (`reminders`, `scheduled_actions`), never an in-process timer.
 - **One "Today" surface** in the Hub: due tasks, today's reminders, open commitments and
@@ -66,7 +67,10 @@ right moment, and can be seen and closed in the app.**
   off). Baseline it on dev before any change. `scripts/voice-eval/` is sealed from
   builders, so its holder builds the set from the spec below; builders only run it.
 - Owner rows in `decisions.ts` for the six kinds above, so `pnpm quality:decisions`
-  fails a new duplicate. (Landed with this plan.)
+  fails a new duplicate. (Landed with this plan.) The fingerprints are broad on purpose
+  and will catch some look-alikes: a job-queue `createTask`, a finance `saveGoal`, a
+  `createXEvent` in a file that mentions calendar. Narrow a row when one of those blocks
+  real work, rather than renaming the code to dodge it.
 
 The eval spec. One call per line; "then" is what must be true after the call.
 
