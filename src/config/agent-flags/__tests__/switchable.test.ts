@@ -259,6 +259,35 @@ describe('VALUE_OVERRIDES', () => {
   });
 });
 
+describe('strict readers', () => {
+  /** Per-file flags compared as read (env.NAME === 'word', no trim), with the word compared. */
+  function readStrictly(): Map<string, string> {
+    const read = new Map<string, string>();
+    const pattern =
+      /\benv(?:\.([A-Z][A-Z0-9_]*)\b|\[\s*['"`]([A-Z][A-Z0-9_]*)['"`]\s*\])\s*[!=]==?\s*['"`]([^'"`]*)['"`]/g;
+    for (const file of sourceFiles(SRC)) {
+      for (const m of readFileSync(file, 'utf8').matchAll(pattern)) {
+        const name = m[1] ?? m[2];
+        if (name && m[3] && FILE_NAMES.has(name)) read.set(name, m[3]);
+      }
+    }
+    return read;
+  }
+
+  it('reports every flag compared without trim as off for its word padded and upper-cased', () => {
+    const read = readStrictly();
+    // the scan must find the known strict readers, or it proves nothing
+    expect([...read.keys()]).toEqual(
+      expect.arrayContaining(['ATTUNE_LEDGER', 'SESSION_OWN_VOICE'])
+    );
+    const normalised = [...read]
+      .filter(([name]) => byName(name).switchable)
+      .filter(([name, word]) => resolvedValue(name, ` ${word.toUpperCase()} `) === word)
+      .map(([name]) => name);
+    expect(normalised).toEqual([]);
+  });
+});
+
 describe('resolvedValue', () => {
   it('reports CRISIS_MEANS_IN_HAND as its reader resolves it', () => {
     expect(resolvedValue('CRISIS_MEANS_IN_HAND', 'on')).toBe('shadow');
@@ -272,6 +301,15 @@ describe('resolvedValue', () => {
     expect(resolvedValue('ATTUNE_LEDGER', 'true')).toBe('off');
     expect(resolvedValue('ATTUNE_LEDGER', 'on')).toBe('on');
     expect(resolvedValue('ATTUNE_LEDGER', undefined)).toBe('off');
+  });
+
+  it('reports a strict reader as off for a word it does not match exactly', () => {
+    expect(resolvedValue('ATTUNE_LEDGER', 'ON')).toBe('off');
+    expect(resolvedValue('SESSION_OWN_VOICE', ' on')).toBe('off');
+  });
+
+  it('trims and lower-cases for a reader that does', () => {
+    expect(resolvedValue('EARLY_WARNING_WORD_BOUNDARY', ' ON')).toBe('on');
   });
 
   it("reports CRISIS_GRADED_RESPONSE's live as the shadow it runs as", () => {

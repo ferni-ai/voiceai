@@ -79,6 +79,19 @@ export const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = O
   THIRD_PARTY_SELF_HARM: SHADOW_LIVE, // crisis-who.ts
 });
 
+/**
+ * Direct readers that compare the env value as is (=== 'on', no trim or
+ * lower-case), so ' on' or 'ON' leaves them at the default. The test fails when
+ * a flag compared that way resolves as if normalised.
+ */
+const STRICT_READERS: ReadonlySet<string> = new Set([
+  'ATTUNE_LEDGER',
+  'BARGE_IN_SOFT_PAUSE',
+  'CRISIS_READ_JOINED_TURN',
+  'PATTERN_MIRROR_ONCE',
+  'SESSION_OWN_VOICE',
+]);
+
 /** Words a direct reader maps to another of its words instead of the default. */
 const READER_ALIASES: ReadonlyMap<string, ReadonlyMap<string, FlagValue>> = new Map([
   ['CRISIS_GRADED_RESPONSE', new Map<string, FlagValue>([['live', 'shadow']])],
@@ -200,9 +213,12 @@ export function validateApply(body: unknown): ApplyValidation {
 
 const isFlagName = (name: string): name is FlagName => Object.hasOwn(FLAG_MANIFEST, name);
 
-/** A directly read flag's value: one of its reader's words, an alias of one, or the default. */
+/**
+ * A directly read flag's value: one of its reader's words, an alias of one, or
+ * the default. Normalised the way the reader does it (strict readers not at all).
+ */
 function readerWord(flag: SwitchableFlag, raw: string | undefined): string {
-  const word = raw?.trim().toLowerCase() ?? '';
+  const word = (STRICT_READERS.has(flag.name) ? raw : raw?.trim().toLowerCase()) ?? '';
   return (
     flag.modes.find((m) => m === word) ?? READER_ALIASES.get(flag.name)?.get(word) ?? flag.default
   );
