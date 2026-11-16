@@ -1,0 +1,131 @@
+name: Site Health
+
+# Can a public site, or a scheduled job behind one, go quietly stale while every check is
+# green? On 2026-11-16 three had: design.ferni.ai served a January build for ten months
+# (its nightly build passed; nothing deployed it), the weekly blog draft failed three
+# Mondays running, and marketplace.ferni.ai linked to pages that 404. This workflow fails
+# loudly on all three shapes:
+# - Links: lychee reads each site's home page and checks every link on it (one level; it
+#   doesn't crawl further). Internal links (any *.ferni.ai) fail the job on 4xx/5xx;
+#   external links are only reported in the job summary.
+# - Freshness: scripts/ci/site-freshness.ts fails when main changed a site's source more
+#   than 2 days after the live page's last-modified, or when a scheduled workflow
+#   (blog-drafts, design-system) failed its last 2 scheduled runs. Thresholds and the site
+#   map are constants at the top of that script.
+# Each failure kind keeps one open issue (labels site-health-links, site-health-stale,
+# site-health-schedule) via scripts/ci/site-health-issue.ts: opened on red, commented on
+# by the weekly run while red, closed by the first green run.
+# Weekly, by hand, and after each site deploy. Add a new site deploy workflow's name to
+# workflow_run below when it lands (marketplace and design.ferni.ai have none yet).
+
+on:
+  schedule:
+    - cron: '17 13 * * 1' # Mondays 13:17 UTC
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Deploy Developers Portal', 'Deploy Firebase Hosting']
+    types: [completed]
+
+# One run at a time; a burst of deploys leaves only the newest pending run.
+concurrency:
+  group: site-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    name: Links
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Internal links (fail on 4xx/5xx)
+        id: internal
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          fail: true
+          output: lychee/internal.md
+          args: >-
+            --no-progress --max-concurrency 8
+            --include '^https?://([a-z0-9-]+\.)*ferni\.ai([/?#]|$)'
+            https://ferni.ai/ https://developers.ferni.ai/
+            https://marketplace.ferni.ai/ https://design.ferni.ai/
+      # Report-only by design: a third-party page going down is not ours to fix today.
+      - name: External links (reported in the summary, never fails)
+        if: always()
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          fail: false
+          failIfEmpty: false
+          output: lychee/external.md
+          args: >-
+            --no-progress --max-concurrency 8
+            --exclude '^https?://([a-z0-9-]+\.)*ferni\.ai([/?#]|$)'
+            https://ferni.ai/ https://developers.ferni.ai/
+            https://marketplace.ferni.ai/ https://design.ferni.ai/
+      # Green when the internal step passed; red when it failed with broken links listed in
+      # its report. Anything else (lychee crashed, never ran) writes no report, so the
+      # issue is left alone and this step fails.
+      - name: Open, update or close the site-health-links issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OUTCOME: ${{ steps.internal.outcome }}
+        run: |
+          report="$RUNNER_TEMP/links.md"
+          if [ "$OUTCOME" = success ]; then : > "$report"; fi
+          if [ "$OUTCOME" = failure ] && grep -q '^## Errors per input' lychee/internal.md 2>/dev/null; then
+            cp lychee/internal.md "$report"
+          fi
+          node --experimental-strip-types scripts/ci/site-health-issue.ts links "$report"
+
+  freshness:
+    name: Freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read # gh run list for the scheduled workflows
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Live sites against main, and scheduled runs
+        run: node --experimental-strip-types scripts/ci/site-freshness.ts --report-dir "$RUNNER_TEMP/health"
+      - name: Open, update or close the site-health-stale and site-health-schedule issues
+        if: always()
+        env:
+          EVENT: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          rc=0
+          for kind in stale-site scheduled-run; do
+            node --experimental-strip-types scripts/ci/site-health-issue.ts "$kind" "$RUNNER_TEMP/health/$kind.md" || rc=1
+          done
+          exit "$rc"

@@ -309,6 +309,20 @@ Frontend Quality job (required, PRs, merge queue and nightly).
 | Runner | ubuntu-latest |
 | Duration | ~1 min |
 
+### site-health.yml
+
+**Purpose:** Fails when a public site (ferni.ai, developers, marketplace, design) has a
+broken internal link, is more than 2 days behind main's source for it, or when a
+scheduled workflow (blog-drafts, design-system) failed its last 2 scheduled runs. One
+open issue per kind (labels `site-health-links`, `-stale`, `-schedule`), closed on green.
+Rules: `scripts/ci/site-freshness.ts`, `scripts/ci/site-health-issue.ts`.
+
+| Property | Value |
+|----------|-------|
+| Trigger | Weekly, manual, after Deploy Developers Portal / Deploy Firebase Hosting |
+| Runner | ubuntu-latest |
+| Duration | ~2 min |
+
 ## Optimization Status
 
 | Workflow | Path Filters | Concurrency | Composite Action | pnpm v10 |
