@@ -1,6 +1,6 @@
 /**
- * GROUP_CALL: a guest's finished turns reach the model labelled with her name;
- * the owner's, and every turn on a solo call, are untouched.
+ * GROUP_CALL: while a guest is on, every finished turn reaches the model labelled
+ * [Seth], [Sarah] or [unclear] (fail closed); a solo call, or the flag off, is untouched.
  */
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 import { setImmediate as nextTick } from 'node:timers/promises';
@@ -14,6 +14,7 @@ interface Hearing {
   guestNames: () => string[];
   ledger: TalkerLedger;
   guestOn: () => boolean;
+  ownerLabel: () => string;
 }
 
 const hearings = vi.hoisted(() => new Map<string, Hearing>());
@@ -47,13 +48,14 @@ function voiced(ledger: TalkerLedger, who: string, nowMs: number): void {
   for (let at = nowMs - 300; at < nowMs; at += 50) ledger.note(other, at, VOICED_RMS * 2);
 }
 
-function hearingOnCall(): TalkerLedger {
+function hearingOnCall(guestOn = true): TalkerLedger {
   const ledger = new TalkerLedger(OWNER);
   hearings.set(SESSION, {
     guestName: (identity) => (identity === GUEST ? 'Sarah' : undefined),
     guestNames: () => ['Sarah'],
     ledger,
-    guestOn: () => true,
+    guestOn: () => guestOn,
+    ownerLabel: () => '[Seth] ',
   });
   return ledger;
 }
@@ -105,6 +107,7 @@ describe('sttChain guest labels', () => {
   beforeEach(() => {
     vi.stubEnv('FIRST_TURN_FAST', 'off');
     vi.stubEnv('NAME_MISHEAR_NORMALIZE', 'off');
+    vi.stubEnv('GROUP_CALL', 'on');
   });
   afterEach(() => {
     hearings.clear();
@@ -122,12 +125,37 @@ describe('sttChain guest labels', () => {
     expect(feed.base).toHaveBeenCalledWith(audio);
   });
 
-  it('leaves a final in an owner-dominant window as it was', async () => {
-    voiced(hearingOnCall(), OWNER, 50_000);
+  it("fails closed: a confident owner window is the owner's, a mixed one is unclear", async () => {
+    const ledger = hearingOnCall();
+    voiced(ledger, OWNER, 50_000); // owner 300 ms, guest 60 ms
+    for (let at = 50_000; at < 50_500; at += 10) {
+      ledger.note(at < 50_250 ? OWNER : GUEST, at, VOICED_RMS * 2); // 250 ms each: overlap
+    }
+    const feed = sttFeed();
+    const reader = await chainAt49s(feed);
+    const owners = await heardAt(feed, reader, 50_000, final('see you at six'));
+    const mixed = await heardAt(feed, reader, 50_500, final('who said that'));
+    const silent = await heardAt(feed, reader, 51_000, final('ok'));
+    expect([owners, mixed, silent].map(textOf)).toEqual([
+      '[Seth] see you at six',
+      '[unclear] who said that',
+      '[unclear] ok',
+    ]);
+  });
+
+  it('with a hearing but no guest on, a final passes through untouched', async () => {
+    voiced(hearingOnCall(false), OWNER, 50_000);
     const feed = sttFeed();
     const reader = await chainAt49s(feed);
     const said = final('see you at six');
     expect(await heardAt(feed, reader, 50_000, said)).toBe(said);
+  });
+
+  it('a guest who just left still has her last words labelled', async () => {
+    voiced(hearingOnCall(false), GUEST, 50_000);
+    const feed = sttFeed();
+    const reader = await chainAt49s(feed);
+    expect(textOf(await heardAt(feed, reader, 50_000, final('bye now')))).toBe('[Sarah] bye now');
   });
 
   it('leaves interim transcripts alone, even mid guest turn', async () => {
@@ -147,7 +175,7 @@ describe('sttChain guest labels', () => {
     const reader = await chainAt49s(feed);
     const first = await heardAt(feed, reader, 50_000, final('see you at six'));
     const second = await heardAt(feed, reader, 50_500, final('sounds good'));
-    expect([first, second].map(textOf)).toEqual(['[Sarah] see you at six', 'sounds good']);
+    expect([first, second].map(textOf)).toEqual(['[Sarah] see you at six', '[Seth] sounds good']);
   });
 
   it('puts the name right before the label goes on', async () => {
@@ -169,6 +197,17 @@ describe('sttChain guest labels', () => {
     expect(await heardAt(feed, reader, 50_100, partial)).toBe(partial);
     feed.end();
     expect((await reader.read()).done).toBe(true);
+  });
+
+  it('with GROUP_CALL off, the chain returns the name fix stream itself', async () => {
+    vi.stubEnv('GROUP_CALL', 'off');
+    voiced(hearingOnCall(), GUEST, 50_000);
+    const feed = sttFeed();
+    const stream = await feed.base();
+    feed.base.mockClear();
+    clock(49_000);
+    // First-turn-fast and the name fix are off, so name-fix hands back the base stream.
+    expect(await sttChain(session, audio, feed.base)).toBe(stream);
   });
 
   it('no STT stream stays null', async () => {

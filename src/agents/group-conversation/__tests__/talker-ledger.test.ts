@@ -66,3 +66,35 @@ describe('TalkerLedger.dominant', () => {
     expect(ledger.dominant(0, 100)).toBeNull();
   });
 });
+
+describe('TalkerLedger.attribute', () => {
+  it('is confident when one person has at least twice everyone else', () => {
+    const ledger = new TalkerLedger(OWNER);
+    speak(ledger, OWNER, 1000, 30); // 300 ms
+    speak(ledger, GUEST, 1000, 10); // 100 ms
+    expect(ledger.attribute(1000, 2000)).toEqual({ identity: OWNER, confident: true });
+    expect(ledger.attribute(1000, 2000).identity).toBe(ledger.dominant(1000, 2000));
+  });
+
+  it('is not confident when the two are close', () => {
+    const ledger = new TalkerLedger(OWNER);
+    speak(ledger, OWNER, 1000, 15); // 150 ms
+    speak(ledger, GUEST, 1000, 10); // 100 ms
+    expect(ledger.attribute(1000, 2000)).toEqual({ identity: OWNER, confident: false });
+  });
+
+  it('is not confident on a tie, and exactly twice is enough', () => {
+    const ledger = new TalkerLedger(OWNER);
+    speak(ledger, OWNER, 1000, 10);
+    speak(ledger, GUEST, 1000, 10);
+    expect(ledger.attribute(1000, 2000)).toEqual({ identity: OWNER, confident: false });
+    speak(ledger, GUEST, 1100, 10);
+    expect(ledger.attribute(1000, 2000)).toEqual({ identity: GUEST, confident: true });
+  });
+
+  it('gives nobody, not confident, when nobody was voiced', () => {
+    const ledger = new TalkerLedger(OWNER);
+    speak(ledger, OWNER, 1000, 10, 0);
+    expect(ledger.attribute(1000, 2000)).toEqual({ identity: null, confident: false });
+  });
+});

@@ -4,11 +4,14 @@
  * When a guest (a remote participant who is not the owner and not an agent) joins,
  * the session's audio input becomes a RoomMixInput: the owner's and the guest's
  * tracks mixed into the one STT stream, with every 10 ms of each person's level
- * noted in a TalkerLedger. stt-chain.ts reads that ledger to label the guest's
- * finished turns `[Sarah] ...`, and a system note tells Ferni what the label means.
+ * noted in a TalkerLedger. While a guest is on, stt-chain.ts labels every finished
+ * turn from that ledger: `[Seth] `, `[Sarah] ` or, when it can't be sure, `[unclear] `
+ * (fail closed: an unsure turn never reads as the owner's). A system note tells
+ * Ferni what the labels mean.
  *
  * Once the mix is the session input the SDK no longer cleans the owner's audio, so
- * each person's track is read with their own noise cancellation (room-input-options.ts).
+ * each person's track is read with their own noise cancellation (room-input-options.ts),
+ * built for the mix's 16 kHz (a phone processor made for 24 kHz passes audio through).
  * RoomIO sets `session.input.audio` only in its start(); a reconnecting owner only
  * re-links its own ParticipantAudioInputStream (room_io.js setParticipant), so the mix
  * stays. The owner's handlers put it back anyway if anything else replaced it.
@@ -52,6 +55,8 @@ export interface GroupHearing {
   ledger: TalkerLedger;
   /** Whether a guest is on the call now. */
   guestOn: () => boolean;
+  /** `[<owner first name>] `, the label on the owner's turns. */
+  ownerLabel: () => string;
 }
 
 interface GroupHearingArgs {
@@ -88,8 +93,10 @@ function ownerFirstName(userData: unknown): string {
 function joinNote(guest: string, owner: string): string {
   return (
     `${sentence(guest)} is on this call by phone with ${owner}. ` +
-    `Lines that start with [${guest}] are hers. Every other user line is ${owner}'s. ` +
-    'Talk with both of them, use their names, and let them talk to each other.'
+    `Lines that start with [${guest}] are hers, and lines that start with [${owner}] are ${owner}'s. ` +
+    'A line marked [unclear] could be either of them: if it matters who said it, ask. ' +
+    'Talk with both of them, use their names, and let them talk to each other. ' +
+    `${sentence(guest)} can hear everything you say, so don't bring up ${owner}'s private things unless ${owner} does.`
   );
 }
 
@@ -135,7 +142,12 @@ export function attachGroupHearing(args: GroupHearingArgs): () => void {
   };
 
   const readInto = async (person: RemoteParticipant, track: RemoteTrack): Promise<void> => {
-    const { inputOptions } = await roomInputOptions(person, sessionId);
+    const { inputOptions } = await roomInputOptions(
+      person,
+      sessionId,
+      process.env,
+      MIX_SAMPLE_RATE
+    );
     const wanted = person.identity === owner || person.identity === guest;
     if (detached || !mix || !wanted || mixed.get(person.identity) !== track) return;
     const frames = new AudioStream(track, {
@@ -221,6 +233,7 @@ export function attachGroupHearing(args: GroupHearingArgs): () => void {
     guestNames: () => [...new Set(names.values())],
     ledger,
     guestOn: () => guest !== undefined,
+    ownerLabel: () => `[${ownerFirstName(session.userData)}] `,
   };
   const detach = (): void => {
     if (detached) return;

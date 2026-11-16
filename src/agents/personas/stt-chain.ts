@@ -2,16 +2,19 @@
  * The persona's STT events, in order: the turn-1 gate (first-turn-fast.ts), Ferni's
  * name put right (name-mishear.ts), then a guest's turns labelled with her name.
  *
- * GROUP_CALL (group-hearing.ts): on a call with a guest, a finished turn whose audio
- * was mostly hers comes out as `[Sarah] see you at six`, so the model knows who said
- * it. The window is from the end of the previous final transcript to now, on the room
- * mix's clock. The owner's turns, and every turn on a solo call, are unchanged.
+ * GROUP_CALL (group-hearing.ts): while a guest is on the call, every finished turn is
+ * labelled from who was voiced in its window (TalkerLedger.attribute): `[Seth] `,
+ * `[Sarah] see you at six`, or `[unclear] ` when no one clearly held it. Fail closed:
+ * an unsure turn never passes as the owner's. A guest who just left still gets her
+ * last words labelled. The window is from the end of the previous final transcript to
+ * now, on the room mix's clock. With no guest, or the flag off, events are untouched.
  *
  * @module agents/personas/stt-chain
  */
 import { stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream } from 'node:stream/web';
+import { flagOn } from '../../config/env-flag.js';
 import { groupHearing } from '../group-conversation/group-hearing.js';
 import { mixClock } from '../group-conversation/room-mix-input.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
@@ -20,7 +23,7 @@ import { sttWithNameFix } from './name-mishear.js';
 type Event = stt.SpeechEvent | string;
 type Session = Parameters<typeof sttWithFirstTurnFast>[0];
 
-/** A final transcript with `[name] ` in front of its first alternative when a guest said it. */
+/** A final transcript with its speaker's label in front of its first alternative (above). */
 function labelled(
   event: stt.SpeechEvent,
   fromMs: number,
@@ -29,14 +32,17 @@ function labelled(
 ): stt.SpeechEvent {
   const hearing = groupHearing(sessionId);
   if (!hearing) return event;
-  const who = hearing.ledger.dominant(fromMs, toMs);
-  const name = who && who !== hearing.ledger.owner ? hearing.guestName(who) : undefined;
+  const { identity, confident } = hearing.ledger.attribute(fromMs, toMs);
+  const guest = identity ? hearing.guestName(identity) : undefined;
   const [first, ...rest] = event.alternatives ?? [];
-  if (!name || !first) return event;
-  return { ...event, alternatives: [{ ...first, text: `[${name}] ${first.text}` }, ...rest] };
+  if (!first || (!hearing.guestOn() && !guest)) return event;
+  let label = '[unclear] ';
+  if (confident && identity === hearing.ledger.owner) label = hearing.ownerLabel();
+  else if (confident && guest) label = `[${guest}] `;
+  return { ...event, alternatives: [{ ...first, text: label + first.text }, ...rest] };
 }
 
-/** `events` with each guest turn labelled with the guest's name (above). */
+/** `events` with each final transcript labelled while a guest is on the call (above). */
 function labelGuestTurns<E extends Event>(
   events: ReadableStream<E>,
   sessionId: string
@@ -69,5 +75,6 @@ export async function sttChain(
   const services = (session?.userData as { services?: { sessionId?: string } } | undefined)
     ?.services;
   const events = await sttWithNameFix(session, sttWithFirstTurnFast(session, audio, base));
-  return events && labelGuestTurns(events, services?.sessionId ?? '');
+  if (!events || !flagOn('GROUP_CALL')) return events;
+  return labelGuestTurns(events, services?.sessionId ?? '');
 }

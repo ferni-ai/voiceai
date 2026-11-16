@@ -39,6 +39,15 @@ export class TalkerLedger {
    * was voiced. A tie goes to the owner.
    */
   dominant(fromMs: number, toMs: number): string | null {
+    return this.attribute(fromMs, toMs).identity;
+  }
+
+  /**
+   * Who `[fromMs, toMs)` belongs to (as `dominant`), and whether that is safe to say:
+   * confident only when their voiced time is over zero and at least twice everyone
+   * else's. Overlap, a near tie or silence is never confident.
+   */
+  attribute(fromMs: number, toMs: number): { identity: string | null; confident: boolean } {
     const voicedMs = new Map<string, number>();
     for (const frame of this.frames) {
       if (frame.atMs < fromMs || frame.atMs >= toMs) continue;
@@ -53,7 +62,9 @@ export class TalkerLedger {
         bestMs = ms;
       }
     }
-    return best;
+    const others = [...voicedMs].filter(([identity]) => identity !== best);
+    const confident = bestMs > 0 && others.every(([, ms]) => bestMs >= 2 * ms);
+    return { identity: best, confident };
   }
 
   private forgetBefore(cutoffMs: number): void {

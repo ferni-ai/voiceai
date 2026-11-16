@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { ReadableStream } from 'node:stream/web';
 import { setImmediate as nextTick } from 'node:timers/promises';
 import type { voice } from '@livekit/agents';
-import { ParticipantKind, RoomEvent, TrackKind, type Room } from '@livekit/rtc-node';
+import { AudioFrame, ParticipantKind, RoomEvent, TrackKind, type Room } from '@livekit/rtc-node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Every AudioStream the hearing opens: which track, with which options. */
@@ -20,12 +20,40 @@ vi.mock('@livekit/rtc-node', async (importOriginal) => {
   return { ...real, AudioStream: FakeAudioStream };
 });
 
-/** Each person's noise cancellation, so the test can see it reach their AudioStream. */
-vi.mock('../../multi-agent/room-input-options.js', () => ({
-  roomInputOptions: async (participant: { identity: string }) => ({
-    inputOptions: { noiseCancellation: { moduleId: `nc-${participant.identity}`, options: {} } },
-  }),
-}));
+/**
+ * A web caller's noise cancellation is a marker, so the test can see it reach their
+ * AudioStream. A phone caller goes through the real roomInputOptions and the real
+ * PreSTTFrameProcessor; only the native AGC + high-pass under it is faked.
+ */
+vi.mock('../../multi-agent/room-input-options.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../multi-agent/room-input-options.js')>();
+  type Args = Parameters<typeof real.roomInputOptions>;
+  return {
+    roomInputOptions: async (...[participant, sessionId, env, rate]: Args) =>
+      participant?.identity?.startsWith('sip_')
+        ? real.roomInputOptions(participant, sessionId, env, rate)
+        : {
+            inputOptions: {
+              noiseCancellation: { moduleId: `nc-${participant?.identity}`, options: {} },
+            },
+          },
+  };
+});
+vi.mock('../../shared/performance/pre-stt-transform.js', async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import('../../shared/performance/pre-stt-transform.js')>();
+  class NativeAgcStandIn {
+    async initialize(): Promise<void> {}
+    isUsingRust(): boolean {
+      return true;
+    }
+    processFrameI16(data: Int16Array): Float32Array {
+      return new Float32Array(data.length).fill(0.25);
+    }
+    reset(): void {}
+  }
+  return { ...real, PreSTTProcessor: NativeAgcStandIn };
+});
 
 const { attachGroupHearing, groupHearing } = await import('../group-hearing.js');
 const { RoomMixInput } = await import('../room-mix-input.js');
@@ -34,8 +62,10 @@ const SESSION = 'session-group-1';
 const OWNER = 'owner_web';
 const GUEST = 'sip_guest1';
 const JOIN_NOTE =
-  'Sarah is on this call by phone with Seth. Lines that start with [Sarah] are hers. ' +
-  "Every other user line is Seth's. Talk with both of them, use their names, and let them talk to each other.";
+  "Sarah is on this call by phone with Seth. Lines that start with [Sarah] are hers, and lines that start with [Seth] are Seth's. " +
+  'A line marked [unclear] could be either of them: if it matters who said it, ask. ' +
+  'Talk with both of them, use their names, and let them talk to each other. ' +
+  "Sarah can hear everything you say, so don't bring up Seth's private things unless Seth does.";
 
 interface FakeTrack {
   kind: TrackKind;
@@ -143,19 +173,24 @@ describe('attachGroupHearing', () => {
     expect(hearing?.guestName(OWNER)).toBeUndefined();
     expect(hearing?.guestNames()).toEqual(['Sarah']);
     expect(hearing?.ledger.owner).toBe(OWNER);
+    expect(hearing?.ownerLabel()).toBe('[Seth] ');
     // Both people are read at the mix format, each with their own noise cancellation:
     // the owner's too, since the SDK no longer cleans the session input.
     const format = { sampleRate: 16000, numChannels: 1, frameSizeMs: 10 };
-    expect(opened).toEqual([
-      {
-        track: call.owner.trackPublications.get(`TR_${OWNER}`)?.track,
-        options: { ...format, noiseCancellation: { moduleId: `nc-${OWNER}`, options: {} } },
-      },
-      {
-        track: guestTrack,
-        options: { ...format, noiseCancellation: { moduleId: `nc-${GUEST}`, options: {} } },
-      },
-    ]);
+    expect(opened[0]).toEqual({
+      track: call.owner.trackPublications.get(`TR_${OWNER}`)?.track,
+      options: { ...format, noiseCancellation: { moduleId: `nc-${OWNER}`, options: {} } },
+    });
+    expect(opened[1]?.track).toBe(guestTrack);
+    expect(opened).toHaveLength(2);
+    // The phone guest's AGC + high-pass is built for the rate her stream is read at, so it
+    // processes her frames (a 24 kHz processor passes 16 kHz audio through untouched).
+    const guestOptions = opened[1]?.options as typeof format & {
+      noiseCancellation: { process: (frame: AudioFrame) => AudioFrame };
+    };
+    expect(guestOptions).toMatchObject(format);
+    const heard = new AudioFrame(new Int16Array(160).fill(100), guestOptions.sampleRate, 1, 160);
+    expect(guestOptions.noiseCancellation.process(heard)).not.toBe(heard);
     expect(addTrack.mock.calls.map(([identity]) => identity)).toEqual([OWNER, GUEST]);
   });
 
@@ -269,7 +304,8 @@ describe('attachGroupHearing', () => {
     call.join(person(GUEST, ParticipantKind.SIP, 'Sarah', audioTrack()));
     await settle();
     expect(call.notes[0]).toContain('by phone with the caller.');
-    expect(call.notes[0]).toContain("Every other user line is the caller's.");
+    expect(call.notes[0]).toContain("lines that start with [the caller] are the caller's.");
+    expect(groupHearing(SESSION)?.ownerLabel()).toBe('[the caller] ');
   });
 
   it('detach stops listening and forgets the call', async () => {
