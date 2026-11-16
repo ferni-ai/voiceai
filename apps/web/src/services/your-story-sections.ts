@@ -10,6 +10,7 @@
  * @module services/your-story-sections
  */
 
+import { onePerKey, wordingKey } from '../utils/one-per-wording.js';
 import type {
   EmotionalArcPhase,
   EmotionalArcsData,
@@ -224,9 +225,12 @@ const CATEGORIES: Record<string, Relationship['category']> = {
 export function toRelationshipNetwork(
   api: ApiYourWorld | null | undefined
 ): RelationshipNetworkData | undefined {
+  // The server drops non-people ("uh", "her") before this (api/your-story-sections.ts)
   if (!api || api.people.length === 0) return undefined;
+  const people = api.people;
+  const drawn = new Set(people.map((p) => p.name));
   return {
-    relationships: api.people.map((p) => ({
+    relationships: people.map((p) => ({
       name: p.name,
       strength: p.strength,
       lastContact: p.lastMentioned,
@@ -234,9 +238,11 @@ export function toRelationshipNetwork(
       // Only "fading" has a source: not mentioned for 30+ days.
       ...(p.daysSinceMention >= 30 ? { trend: 'fading' as const } : {}),
     })),
-    totalConnections: api.totalConnections,
-    activeConnections: api.activeConnections,
-    needsAttention: api.needsAttention,
+    // Every number on the graph counts the people it draws (the server's top 8), the same
+    // set as the legend: prod 2026-11-16 said "36 connections · 34 active" over 8 nodes.
+    totalConnections: people.length,
+    activeConnections: people.filter((p) => p.daysSinceMention < 30).length,
+    needsAttention: api.needsAttention.filter((name) => drawn.has(name)),
   };
 }
 
@@ -246,9 +252,18 @@ const LOOP_CATEGORIES: Record<string, OpenLoop['category']> = {
   question: 'question',
 };
 
+/**
+ * One row per wording and person, even if the server sends a loop twice (it saved each
+ * turn twice): "I'll call her tomorrow" about Mom and about Dad are two rows. The same key
+ * as the server's (open-loop-text.ts loopKey).
+ */
 export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData | undefined {
   if (!api || api.items.length === 0) return undefined;
-  const loops: OpenLoop[] = api.items.map((l) => ({
+  const items = onePerKey(
+    api.items,
+    (l) => `${wordingKey(l.content)}|${l.relatedPerson ? wordingKey(l.relatedPerson) : ''}`
+  );
+  const loops: OpenLoop[] = items.map((l) => ({
     id: l.id,
     description: l.content,
     createdAt: l.createdAt,
@@ -258,5 +273,6 @@ export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData
     ...(l.relatedPerson ? { relatedPerson: l.relatedPerson } : {}),
   }));
   const oldestLoop = [...loops].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-  return { loops, totalOpen: api.total, ...(oldestLoop ? { oldestLoop } : {}) };
+  const totalOpen = api.total - (api.items.length - items.length);
+  return { loops, totalOpen, ...(oldestLoop ? { oldestLoop } : {}) };
 }

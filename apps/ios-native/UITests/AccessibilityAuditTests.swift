@@ -12,7 +12,7 @@ final class AccessibilityAuditTests: XCTestCase {
         try XCTContext.runActivity(named: "\(screen) at \(size)") { _ in
             try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: "\(screen) \(size)") }
         }
-        app.terminate()
+        app.quit()
     }
 
     /// Audit findings checked by hand and found not to be problems, each for one
@@ -66,7 +66,7 @@ final class AccessibilityAuditTests: XCTestCase {
         let plain = XCUIApplication.ferni(.call)
         XCTAssertTrue(Screen.call.ready(in: plain).waitForExistence(timeout: 20))
         XCTAssertEqual(plain.receivedSettings, "reduceMotion=false reduceTransparency=false")
-        plain.terminate()
+        plain.quit()
 
         for (motion, transparency) in [(true, false), (false, true)] {
             for screen in [Screen.call, .home] {
@@ -75,7 +75,7 @@ final class AccessibilityAuditTests: XCTestCase {
                 XCTAssertEqual(app.receivedSettings, "reduceMotion=\(motion) reduceTransparency=\(transparency)")
                 attachScreenshot("\(screen)-\(motion ? "reduce-motion" : "reduce-transparency")")
                 try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: "\(screen) motion=\(motion) transparency=\(transparency)") }
-                app.terminate()
+                app.quit()
             }
         }
     }

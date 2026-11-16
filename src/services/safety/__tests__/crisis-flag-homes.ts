@@ -239,4 +239,11 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       "what it keeps holds none of the caller's words, on a guided turn and a held turn",
     ],
   },
+  TURN_PATH_SINGLE_CAPTURE: {
+    file: 'src/agents/voice-agent/__tests__/turn-path-single-capture.test.ts',
+    rows: [
+      'crisis-guided turn, turn path attached: flag on captures nothing, the handler acts the same on and off',
+      'crisis read pending (reply held), turn path attached: flag on captures nothing, the handler acts the same on and off',
+    ],
+  },
 };

@@ -50,6 +50,20 @@ vi.mock('../../../../src/intelligence/context-builders/relationship/arc/storage.
         }
       : null,
 }));
+// The stored calls (sessions together): the one relationship record every surface shows.
+// The header's count and days come from here, through GET /api/relationship/progress.
+vi.mock('../../../../src/services/stores/sessions-together.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getSessionsTogether: async () => ({
+    count: store.conversations,
+    days: [],
+    firstAt: store.conversations > 0 ? new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) : undefined,
+    inProgress: { count: 0, days: [] },
+  }),
+}));
+vi.mock('../../../../src/services/engagement/engagement-store.js', () => ({
+  getEngagementStore: async () => ({ getProfile: async () => ({}) }),
+}));
 vi.mock('../../../../src/services/superhuman/capacity-guardian.js', () => ({
   loadEnergyHistory: async () => store.energy,
   assessBurnoutRisk: async () => ({ risk: 'low', recommendations: [] }),
@@ -101,6 +115,33 @@ const apiGet = vi.fn();
 vi.mock('../../src/utils/api.js', () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
 
 const { handleYourStoryRoutes } = await import('../../../../src/api/your-story-routes.js');
+const { handleGetRelationshipProgress } = await import('../../../../src/api/routes/relationship.js');
+
+/** GET /api/relationship/progress from the real handler, as the web client receives it. */
+async function relationshipRecord(): Promise<{ ok: boolean; status: number; data: unknown }> {
+  let payload = '';
+  let status = 0;
+  const path = '/api/relationship/progress';
+  await handleGetRelationshipProgress(
+    { method: 'GET', url: path, headers: { 'x-firebase-uid': 'u1' } } as unknown as IncomingMessage,
+    {
+      writeHead: (code: number) => (status = code),
+      setHeader: vi.fn(),
+      end: (chunk?: string) => (payload = chunk ?? ''),
+    } as unknown as ServerResponse,
+    new URL(path, 'http://x')
+  );
+  return { ok: status === 200, status, data: JSON.parse(payload) };
+}
+
+/** The web client's GETs, each answered by its real handler's output. */
+function serve(storyBody: unknown): void {
+  apiGet.mockImplementation(async (path: string) =>
+    path === '/api/relationship/progress'
+      ? relationshipRecord()
+      : { ok: true, status: 200, data: storyBody }
+  );
+}
 const { fetchYourStory } = await import('../../src/services/your-story.service.js');
 const { getYourStoryUI } = await import('../../src/ui/your-story-dashboard.ui.js');
 const viz = await import('../../src/ui/visualizations/index.js');
@@ -142,7 +183,7 @@ async function renderStory(): Promise<{
     new URL(path, 'http://x')
   );
   const body = JSON.parse(payload) as { data: Record<string, unknown> };
-  apiGet.mockResolvedValue({ ok: true, status: 200, data: body });
+  serve(body);
 
   const errors = vi.spyOn(console, 'error');
   const result = await fetchYourStory();
@@ -176,12 +217,14 @@ describe('Your Story header, real persisted conversation count', () => {
   it('a user with 7 saved conversations gets a 7-conversation header and a non-empty story', async () => {
     const { story } = await renderStory();
 
-    expect(story.header).toMatchObject({ totalConversations: 7, daysTogether: 21 });
+    expect(story.header).toMatchObject({ totalConversations: 7 });
     // No per-day record is persisted, so no streak is claimed.
     expect(story.header).toMatchObject({ currentStreak: null, longestStreak: null });
+    // The shown days and count are the relationship record's (sessions together), the same
+    // numbers the journey card and What I'm Noticing show: 20 calendar days since the first
     const stats = document.querySelector('.your-story__stats')!.textContent!;
     expect(stats).toContain('7');
-    expect(stats).toContain('21');
+    expect(stats).toContain('20');
     expect(stats).not.toMatch(/streak/i);
   });
 
@@ -209,7 +252,7 @@ describe('Your Story header, real persisted conversation count', () => {
       path,
       new URL(path, 'http://x')
     );
-    apiGet.mockResolvedValue({ ok: true, status: 200, data: JSON.parse(payload) });
+    serve(JSON.parse(payload));
     expect((JSON.parse(payload) as { data: { header: unknown } }).data.header).toMatchObject({
       totalConversations: 0,
     });

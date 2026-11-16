@@ -7,6 +7,7 @@
  * Routes:
  * - GET /api/team-insights - Get current insights and team status
  * - POST /api/team-insights/acknowledge/:id - Mark insight as acknowledged
+ * - POST /api/team-insights/toasted/:id - Mark insight as shown in a toast
  * - POST /api/team-insights/scan - Trigger a new insight scan
  * - GET /api/team-insights/performance - Debug-panel stats (admin only)
  * - POST /api/team-insights/performance/clear - Clear process-wide caches (admin only)
@@ -20,11 +21,16 @@ import {
   buildInsightBriefingForHandoff,
   generateTeamStatus,
   acknowledgeInsight as acknowledgeInsightService,
+  markInsightToasted,
   scanForCrossPersonaInsights,
   type PersonaId,
 } from '../../services/cross-persona-insights.js';
-import { toClientInsight } from '../../services/cross-persona/insight-wire-format.js';
+import {
+  toClientDiscoveries,
+  toClientInsight,
+} from '../../services/cross-persona/insight-wire-format.js';
 import { isHiddenFromUser } from '../../services/cross-persona/insight-visibility.js';
+import { flagOn } from '../../config/env-flag.js';
 import {
   getPerformanceStats,
   clearPerformanceLog,
@@ -69,6 +75,11 @@ async function getTeamInsights(
         goalHealth: teamStatus.goalStatus, // Note: actual field is goalStatus
       },
       proactiveDiscoveries: briefing.proactiveDiscoveries,
+      // The panel's list beside `insights`: the same notes as cards, none the user hid
+      discoveries: toClientDiscoveries(
+        briefing.proactiveNotes.filter((note) => !isHiddenFromUser(note)),
+        formattedInsights
+      ),
       lastUpdated: Date.now(),
     });
 
@@ -80,17 +91,24 @@ async function getTeamInsights(
 }
 
 /**
- * POST /api/team-insights/acknowledge/:id
- * Mark an insight as acknowledged by the user
+ * POST /api/team-insights/acknowledge/:id: the user put the insight away; the app hides it.
+ * POST /api/team-insights/toasted/:id: the app showed it as a toast. With
+ * TEAM_NOTES_STAY_AFTER_TOAST on it is marked so it isn't toasted again and stays in the
+ * team panel (issue 3945); off, a toast hides it as acknowledging does.
  */
 async function acknowledgeInsight(
   req: IncomingMessage,
   res: ServerResponse,
   userId: string,
-  insightId: string
+  insightId: string,
+  how: 'acknowledge' | 'toasted' = 'acknowledge'
 ): Promise<void> {
   try {
-    await acknowledgeInsightService(userId, insightId, 'ferni' as PersonaId);
+    if (how === 'toasted' && flagOn('TEAM_NOTES_STAY_AFTER_TOAST')) {
+      await markInsightToasted(userId, insightId);
+    } else {
+      await acknowledgeInsightService(userId, insightId, 'ferni' as PersonaId);
+    }
 
     sendJSON(res, {
       success: true,
@@ -213,10 +231,13 @@ export async function handleTeamInsightsRoutes(
       return true;
     }
 
-    // POST /api/team-insights/acknowledge/:id
-    const acknowledgeMatch = pathname.match(/^\/api\/team-insights\/acknowledge\/([^/]+)$/);
+    // POST /api/team-insights/acknowledge/:id and /api/team-insights/toasted/:id
+    const acknowledgeMatch = pathname.match(
+      /^\/api\/team-insights\/(acknowledge|toasted)\/([^/]+)$/
+    );
     if (acknowledgeMatch && method === 'POST') {
-      await acknowledgeInsight(req, res, userId, acknowledgeMatch[1]);
+      const how = acknowledgeMatch[1] === 'toasted' ? 'toasted' : 'acknowledge';
+      await acknowledgeInsight(req, res, userId, acknowledgeMatch[2]!, how);
       return true;
     }
 

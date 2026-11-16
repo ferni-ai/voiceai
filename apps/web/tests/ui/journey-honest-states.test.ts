@@ -42,6 +42,20 @@ describe('Journey widget with no conversations', () => {
 
   it('shows an invitation instead of a progress percentage', async () => {
     await (await import('../../src/i18n/index.js')).initI18n();
+    // The server's record says no sessions together yet
+    vi.doMock('../../src/utils/api.js', () => ({
+      apiGet: async () => ({
+        ok: true,
+        status: 200,
+        data: {
+          stage: 'first-meeting',
+          metrics: { totalConversations: 0, daysSinceFirstMeeting: 0, currentStreak: 0, longestStreak: 0 },
+          firstMeetingDate: null,
+        },
+      }),
+    }));
+    const { relationshipStageService } = await import('../../src/services/relationship-stage.service.js');
+    await relationshipStageService.loadFromBackend();
     const { initProgressIndicator, toggleExpanded } = await import('../../src/ui/progress-indicator.ui.js');
 
     initProgressIndicator();
