@@ -18,9 +18,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getActionTracker } from '../services/action-tracker/tracker.js';
 import type { ActionType, FerniAction } from '../services/action-tracker/types.js';
-import { loadActiveCommitmentsOrThrow } from '../services/superhuman/commitment-store.js';
-import { loadFerniPromises } from '../services/trust-systems/together-store.js';
-import { tallyPromises } from '../services/trust-systems/together-signals.js';
+import { loadActiveCommitmentsOrThrow } from '../services/superhuman/index.js';
+import { loadFerniPromises, tallyPromises } from '../services/trust-systems/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from './helpers.js';

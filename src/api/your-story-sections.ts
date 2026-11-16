@@ -8,10 +8,6 @@
  * @module api/your-story-sections
  */
 
-import {
-  oneLoopPerWording,
-  wholeClause,
-} from '../services/superhuman/semantic-intelligence/open-loop-text.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'YourStorySections' });
@@ -259,8 +255,8 @@ export interface OpenLoopsData {
  */
 export async function fetchOpenLoops(userId: string): Promise<OpenLoopsData | null> {
   try {
-    const { getAllOpenLoops } =
-      await import('../services/superhuman/semantic-intelligence/open-loops.js');
+    const { getAllOpenLoops, oneLoopPerWording, wholeClause } =
+      await import('../services/superhuman/semantic-intelligence/index.js');
     const newestFirst = [...(await getAllOpenLoops(userId))].sort(
       (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
     );
