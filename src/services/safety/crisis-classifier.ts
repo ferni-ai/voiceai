@@ -31,12 +31,15 @@ import {
 } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
-import { blockedReply, watchBlocked, type BlockedResponse } from './crisis-classifier-blocked.js';
+import { watchBlocked } from './crisis-classifier-blocked.js';
+import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
+
+export * from './crisis-classifier-gemini.js'; // createGeminiCrisisGenerate, its default model
 
 export type CrisisClassifierMode = 'off' | 'shadow' | 'live';
 
@@ -67,11 +70,6 @@ export type CrisisGenerateFn = (
   signal: AbortSignal
 ) => Promise<string>;
 
-/**
- * Served from the global endpoint only (us-central1 returns 404). On the blind
- * set: 100% recall, 0/60 false positives, 40/40 imminent, p50 535ms, p95 ~0.7s.
- */
-export const DEFAULT_CRISIS_CLASSIFIER_MODEL = 'gemini-3.5-flash-lite';
 /** Above the measured p95; on voice the call overlaps the LLM's own first-token wait. */
 export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1000;
 const MAX_EARLIER_MESSAGES = 5;
@@ -226,34 +224,6 @@ export async function classifyCrisis(
   }
 }
 
-/** Gemini-backed generate function. Resolves to '' when Gemini is not configured. */
-export function createGeminiCrisisGenerate(
-  model: string = process.env.CRISIS_CLASSIFIER_MODEL || DEFAULT_CRISIS_CLASSIFIER_MODEL
-): CrisisGenerateFn {
-  return async (systemPrompt, userContent, signal) => {
-    const { getGeminiClient } = await import('../../config/gemini-config.js');
-    const client = (await getGeminiClient()) as {
-      models: {
-        generateContent: (req: unknown) => Promise<{ text?: string } & BlockedResponse>;
-      };
-    } | null;
-    if (!client) return '';
-    const response = await client.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts: [{ text: userContent }] }],
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0,
-        maxOutputTokens: 60,
-        responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 0 },
-        abortSignal: signal,
-      },
-    });
-    return blockedReply(response) ?? response.text ?? ''; // CRISIS_CLASSIFIER_BLOCKED_SIGNAL
-  };
-}
-
 /** What the pattern guard decided for the same turn. */
 export type PatternOutcome = 'block' | 'crisis' | 'none';
 
@@ -275,14 +245,15 @@ export interface StartCrisisClassifierOptions {
   call?: string;
   /** Which path reads, the call's turn count, and whether its patterns read someone else. */
   secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
+  readBlocked?: boolean; // CRISIS_SCRIPT_IMMINENT_READ: a scripted turn (crisis-script-imminent.ts)
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
 
 /**
  * One turn can reach the classifier more than once: a preemptive LLM request
- * and the final one, and the background turn handler. Identical input within
- * RECENT_RUN_TTL_MS shares one call. In memory only.
+ * and the final one, and the background turn handler. Identical input and
+ * deadline within RECENT_RUN_TTL_MS share one call. In memory only.
  */
 const RECENT_RUN_TTL_MS = 30_000;
 const RECENT_RUN_MAX = 32;
@@ -413,10 +384,8 @@ export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
 }
 
 /**
- * Start the classifier for one turn, or return null when the mode is off or
- * (in live mode) the patterns already block — the classifier cannot escalate
- * past a block. Every completed run logs one CRISIS_CLASSIFIER record with the
- * verdict and the pattern outcome so agreement can be measured from logs.
+ * One turn's classifier run; null when off, or live on a turn the patterns block unless asked to
+ * read it (readBlocked). Every completed run logs one CRISIS_CLASSIFIER record (verdict, pattern).
  */
 export function startCrisisClassifier(
   input: CrisisClassifierInput,
@@ -425,7 +394,8 @@ export function startCrisisClassifier(
   const env = options.env ?? process.env;
   const mode = resolveCrisisClassifierMode(env);
   if (mode === 'off') return null;
-  if (mode === 'live' && options.pattern === 'block') return notePatternBlock(options.call, env);
+  if (mode === 'live' && options.pattern === 'block' && !options.readBlocked)
+    return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
   // Key on what the model sees: the turn pipeline's history ends with the
@@ -442,6 +412,7 @@ export function startCrisisClassifier(
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    waitMs,
     second.key,
     ...agreementCacheScope(env, options.call),
   ]);

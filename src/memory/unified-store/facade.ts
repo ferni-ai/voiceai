@@ -39,7 +39,6 @@ import {
   VectorAdapter,
   RedisAdapter,
   MemoryAdapter,
-  SpannerAdapter,
 } from './adapters/index.js';
 
 // Link Manager for persisted graph operations
@@ -69,7 +68,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
   private vectorAdapter: VectorAdapter;
   private redisAdapter: RedisAdapter;
   private memoryAdapter: MemoryAdapter;
-  private spannerAdapter: SpannerAdapter;
   private linkManager: LinkManager;
   private consolidationManager: ConsolidationManager;
   private decayManager: DecayManager;
@@ -97,12 +95,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     });
 
     this.memoryAdapter = new MemoryAdapter();
-
-    // Initialize Spanner adapter for L3 graph storage
-    this.spannerAdapter = new SpannerAdapter({
-      enableWrites: this.config.features?.useSpannerGraph ?? true,
-      enableGraphQueries: this.config.features?.useGraphExpansion ?? true,
-    });
 
     // Initialize Link Manager for persisted graph operations
     this.linkManager = getLinkManager();
@@ -133,9 +125,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
         this.redisAdapter.initialize().catch((e) => {
           log.warn({ error: String(e) }, 'Redis adapter init failed');
         }),
-        this.spannerAdapter.initialize().catch((e) => {
-          log.warn({ error: String(e) }, 'Spanner adapter init failed (using fallback)');
-        }),
         this.memoryAdapter.initialize(),
       ]);
 
@@ -152,7 +141,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
       this.firestoreAdapter.shutdown(),
       this.vectorAdapter.shutdown(),
       this.redisAdapter.shutdown(),
-      this.spannerAdapter.shutdown(),
       this.memoryAdapter.shutdown(),
     ]);
     this.initialized = false;
@@ -241,28 +229,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     storePromises.push(this.memoryAdapter.store(memory));
 
     await Promise.all(storePromises);
-
-    // Real-time Spanner sync for high-importance memories
-    // This enables graph queries without waiting for the 6-hour batch sync
-    if (this.config.features?.useSpannerGraph) {
-      try {
-        const { shouldSyncImmediately, syncMemoryImmediately, queueForPrioritySync } = 
-          await import('../dynamic/firestore-spanner-sync.js');
-        
-        if (shouldSyncImmediately(memory)) {
-          // Sync immediately (non-blocking)
-          syncMemoryImmediately(memory).catch((e) => {
-            log.debug({ error: String(e) }, 'Immediate Spanner sync failed (non-critical)');
-          });
-        } else if ((memory.emotionalWeight || 0) > 0.3 || (memory.peopleMentioned?.length || 0) > 0) {
-          // Queue for priority sync (faster than 6h batch)
-          queueForPrioritySync(memory.id);
-        }
-        // Low-importance memories rely on the 6-hour batch sync
-      } catch (error) {
-        log.debug({ error: String(error) }, 'Spanner sync check failed (non-critical)');
-      }
-    }
 
     // Add to write-through cache for immediate retrieval (fixes race condition)
     // This ensures memories are retrievable even before async indexing completes
@@ -359,7 +325,7 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     }
 
     const kept = await keepRemembered(query.userId, allResults); // FORGET_EVERY_READER
-    let boostedResults = this.applyContextualBoosting(kept, query);
+    const boostedResults = this.applyContextualBoosting(kept, query);
 
     boostedResults.sort((a, b) => b.score - a.score);
 
@@ -690,19 +656,18 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async health(): Promise<UnifiedStoreHealth> {
-    const [firestoreHealth, vectorHealth, redisHealth, spannerHealth, memoryHealth] = await Promise.all([
+    const [firestoreHealth, vectorHealth, redisHealth, memoryHealth] = await Promise.all([
       this.firestoreAdapter.health(),
       this.vectorAdapter.health(),
       this.redisAdapter.health(),
-      this.spannerAdapter.health(),
       this.memoryAdapter.health(),
     ]);
 
     const allHealthy =
       firestoreHealth.healthy && vectorHealth.healthy && memoryHealth.healthy;
 
-    // Redis and Spanner are optional, so we don't require them for overall health
-    const degraded = !allHealthy || !redisHealth.healthy || !spannerHealth.healthy;
+    // Redis is optional, so we don't require it for overall health
+    const degraded = !allHealthy || !redisHealth.healthy;
 
     let degradationReason: string | undefined;
     const recommendations: string[] = [];
@@ -720,9 +685,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     if (!redisHealth.healthy) {
       recommendations.push('Redis cache unavailable (degraded performance)');
     }
-    if (!spannerHealth.healthy) {
-      recommendations.push('Spanner graph unavailable (no relationship traversal)');
-    }
 
     return {
       healthy: firestoreHealth.healthy && vectorHealth.healthy,
@@ -731,7 +693,6 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
         firestore: firestoreHealth,
         vector: vectorHealth,
         redis: redisHealth,
-        spanner: spannerHealth,
         memory: memoryHealth,
       },
       degraded,

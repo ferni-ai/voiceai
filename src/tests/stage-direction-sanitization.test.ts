@@ -438,7 +438,7 @@ describe('TTS Monitoring - Integration Tests', () => {
       const result = checkTTSText(textWithLaughter);
 
       // [laughter] should not be flagged as an issue
-      const laughterIssue = result.issues.find((i) => i.includes('laughter'));
+      const laughterIssue = result.issues.find((i) => i.match.includes('laughter'));
       expect(laughterIssue).toBeUndefined();
     });
 
@@ -493,7 +493,7 @@ describe('Full Pipeline Validation', () => {
         if (monitorResult.hasIssues) {
           // Log what slipped through for debugging
           console.warn(`Pattern slipped through: ${input} → ${rawText}`);
-          console.warn(`Issues: ${monitorResult.issues.join(', ')}`);
+          console.warn(`Issues: ${monitorResult.issues.map((i) => i.match).join(', ')}`);
         }
       }
     });

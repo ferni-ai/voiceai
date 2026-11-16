@@ -521,7 +521,7 @@ export async function handleObservabilityRoutes(
   }
 
   // Rate limiting
-  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'observability' })) {
     return true;
   }
 
@@ -593,7 +593,6 @@ export async function handleObservabilityRoutes(
           getHumanSignalMetrics,
           getAttributionMetrics,
         } = await import('../memory/dynamic/index.js');
-        const { getSyncStats } = await import('../memory/dynamic/firestore-spanner-sync.js');
         const { getDeepExtractionWorker } =
           await import('../memory/dynamic/deep-extraction-worker.js');
         const { isKnowledgeCaptureReady, isEntityStorePersistenceReady } =
@@ -601,7 +600,6 @@ export async function handleObservabilityRoutes(
 
         const dynamicMetrics = getDynamicMemoryMetrics();
         const stmStats = getSTMStats();
-        const syncStats = getSyncStats();
         const worker = getDeepExtractionWorker();
         const workerStats = worker?.getStats() ?? null;
         const workerHealth = worker?.getHealthStatus() ?? null;
@@ -617,7 +615,6 @@ export async function handleObservabilityRoutes(
           // Core dynamic memory metrics
           dynamicMemory: dynamicMetrics,
           stmBuffer: stmStats,
-          syncService: syncStats,
 
           // Deep extraction worker
           deepExtractionWorker: {

@@ -108,6 +108,8 @@ beforeEach(() => {
   stripePayments.isStripeConfigured.mockReturnValue(true);
   stripeJs.instance = { elements: vi.fn(), confirmPayment: vi.fn(async () => ({})) };
   vi.stubEnv('DEV', false);
+  // A build with payments set up; the no-key build has its own test below.
+  vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_seed');
   vi.stubGlobal('navigator', { onLine: true });
   vi.stubGlobal('window', {
     location: { href: 'https://app.ferni.ai/', origin: 'https://app.ferni.ai' },
@@ -159,12 +161,15 @@ describe('plant a seed: payForSeed ↔ POST /api/garden/plant', () => {
     expect(outcome).toEqual({ status: 'not-configured' });
   });
 
-  it('a web build with no Stripe publishable key reports not-configured, not a retryable failure', async () => {
+  it('a web build with no Stripe publishable key reports not-configured without asking the server', async () => {
+    vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', '');
     stripeJs.instance = null;
 
     const outcome = await payForSeed(5, collect);
 
-    expect(exchanges[0].status).toBe(200);
+    // No PaymentIntent is created for a card form that could not be shown.
+    expect(exchanges).toHaveLength(0);
+    expect(stripePayments.createPaymentIntent).not.toHaveBeenCalled();
     expect(collect).not.toHaveBeenCalled();
     expect(outcome).toEqual({ status: 'not-configured' });
   });

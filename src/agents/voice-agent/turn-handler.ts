@@ -131,6 +131,7 @@ import {
 import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
 import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
 import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
+import { crisisReadTurn, momentRecorder } from './crisis-turn-memory.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
 // NEW: Unified Intelligence System (Levels 2-5)
@@ -850,6 +851,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Record turn latency for future adaptive calculations
       completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
+    const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
 
     // Get unified intelligence result (should be ready by now)
     const intelligence = await intelligencePromise;
@@ -1004,13 +1006,13 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
       // ================================================================
       // 💞 BTH: EMOTIONAL BOND DEEPEN - Gratitude or vulnerability shared
-      // Detect when relationship is deepening through vulnerability/gratitude
+      // Relationship deepening through vulnerability/gratitude; never on a crisis turn
       // ================================================================
       const isGratitude = /thank(s| you)|grateful|appreciate/i.test(userText);
       const isVulnerable =
         result.emotional.distressLevel > 0.4 ||
         /i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText);
-      if (isGratitude || isVulnerable) {
+      if (!crisisTurn && (isGratitude || isVulnerable)) {
         fireAndForget(async () => {
           await dispatchEmotionalBondDeepen(sendDataMessage, {
             trigger: isGratitude ? 'gratitude_expressed' : 'vulnerability_shared',
@@ -2207,6 +2209,7 @@ IMPORTANT:
       emotionalResult: result.emotional,
       humanizingResult: result.context.humanizingResult as LearningContext['humanizingResult'],
       injections: result.context.injections,
+      crisisTurn,
       turnResult: {
         emotional: result.emotional,
         context: {
@@ -2254,6 +2257,8 @@ IMPORTANT:
       try {
         const { recordUnifiedMoment } =
           await import('../../personality/bridge/personality-bridge.js');
+        // Holds every moment on a crisis turn (crisis-turn-memory.ts).
+        const record = momentRecorder(recordUnifiedMoment, crisisTurn);
 
         // Detect shared moments based on emotional intensity and content
         const emotionalAnalysis = result.analysis.analysis.emotion;
@@ -2281,7 +2286,7 @@ IMPORTANT:
           emotionalIntensity > 0.7 &&
           /realize|understand|get it|makes sense|aha|finally|never thought|see now/i.test(userText);
         if (isBreakthrough) {
-          await recordUnifiedMoment({
+          await record({
             userId: services.userId || '',
             personaId: persona.id,
             type: 'breakthrough',
@@ -2294,7 +2299,6 @@ IMPORTANT:
               significance: Math.min(0.9, emotionalIntensity),
             },
           });
-          diag.debug('💕 Unified: Recorded breakthrough moment');
         }
 
         // Detect first vulnerability (opening up about personal struggles)
@@ -2304,7 +2308,7 @@ IMPORTANT:
             userText
           );
         if (isVulnerable) {
-          await recordUnifiedMoment({
+          await record({
             userId: services.userId || '',
             personaId: persona.id,
             type: 'vulnerability',
@@ -2317,7 +2321,6 @@ IMPORTANT:
               significance: Math.min(0.85, emotionalIntensity),
             },
           });
-          diag.debug('💕 Unified: Recorded vulnerability moment');
         }
 
         // Detect celebration moments (achievements, wins)
@@ -2326,7 +2329,7 @@ IMPORTANT:
             userText
           );
         if (isCelebration) {
-          await recordUnifiedMoment({
+          await record({
             userId: services.userId || '',
             personaId: persona.id,
             type: 'celebration',
@@ -2339,7 +2342,6 @@ IMPORTANT:
               significance: 0.8,
             },
           });
-          diag.debug('💕 Unified: Recorded celebration moment');
         }
 
         // Detect crisis support (user in difficult time)
@@ -2347,7 +2349,7 @@ IMPORTANT:
           emotionalIntensity > 0.8 &&
           ['sad', 'anxious', 'afraid', 'angry', 'frustrated', 'hopeless'].includes(primaryEmotion);
         if (isCrisis) {
-          await recordUnifiedMoment({
+          await record({
             userId: services.userId || '',
             personaId: persona.id,
             type: 'crisis_support',
@@ -2359,14 +2361,13 @@ IMPORTANT:
               significance: 0.9,
             },
           });
-          diag.debug('💕 Unified: Recorded crisis support moment');
         }
 
         // Detect laughter / shared humor
         const isLaughter =
           /haha|lol|that's funny|you're funny|made me laugh|hilarious|cracking up/i.test(userText);
         if (isLaughter) {
-          await recordUnifiedMoment({
+          await record({
             userId: services.userId || '',
             personaId: persona.id,
             type: 'laughter',
@@ -2379,7 +2380,6 @@ IMPORTANT:
               significance: 0.6,
             },
           });
-          diag.debug('💕 Unified: Recorded laughter moment');
         }
 
         // Detect deep conversation (long, thoughtful engagement)
@@ -2391,7 +2391,7 @@ IMPORTANT:
             userText
           );
         if (isDeepConversation) {
-          await recordUnifiedMoment({
+          await record({
             userId: services.userId || '',
             personaId: persona.id,
             type: 'deep_conversation',
@@ -2404,7 +2404,6 @@ IMPORTANT:
               significance: 0.75,
             },
           });
-          diag.debug('💕 Unified: Recorded deep conversation moment');
         }
       } catch {
         // Non-critical - personality moment detection is enhancement
@@ -2541,9 +2540,8 @@ IMPORTANT:
     // ================================================================
     fireAndForget(async () => {
       try {
+        if (crisisTurn) return; // no trust milestone of any kind on a crisis turn
         const relMem = getRelationalMemory();
-
-        // Detect and record trust milestones
         if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
           await relMem.addMilestone(services.userId || 'anonymous', {
             type: 'expressed-gratitude',
@@ -2602,23 +2600,23 @@ IMPORTANT:
         sessionCount: services.userProfile?.totalConversations,
         relationshipStage: services.userProfile?.relationshipStage,
         mentionedPerson, // V3.1: Enhanced person extraction
+        crisisTurn,
       };
 
       // Fire-and-forget to not block turn completion
       fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
 
       // NEW: Unified intelligence turn learning (cross-domain correlation & pattern detection)
-      if (services.userId) {
-        processTurnLearning({
-          userId: services.userId,
-          sessionId: services.sessionId,
-          turnNumber,
-          transcript: userText,
-          emotion: result.emotional.primary,
-          topics: result.analysis.analysis.topics?.detected || [],
-          reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
-        });
-      }
+      processTurnLearning({
+        userId: services.userId,
+        sessionId: services.sessionId,
+        turnNumber,
+        transcript: userText,
+        emotion: result.emotional.primary,
+        topics: result.analysis.analysis.topics?.detected || [],
+        reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
+        crisisTurn,
+      });
 
       // ================================================================
       // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling

@@ -5,6 +5,9 @@
  * as a NEW dictionary.
  *
  *   npx tsx scripts/voice-eval/pronunciation-dict.ts            # diff only (read-only)
+ *   npx tsx scripts/voice-eval/pronunciation-dict.ts --list     # every dictionary: id, name, item count
+ *   npx tsx scripts/voice-eval/pronunciation-dict.ts --check Nayan,Sam
+ *                                     # whether each word has an entry in the live one (exact)
  *   npx tsx scripts/voice-eval/pronunciation-dict.ts --create   # new dictionary, prints its id
  *
  * --create never edits the live dictionary: every agent (dev and prod) reads
@@ -44,10 +47,22 @@ async function live(id: string): Promise<PronunciationDictItem[]> {
   return ((await res.json()) as { items: PronunciationDictItem[] }).items;
 }
 
+if (process.argv.includes('--list')) {
+  const res = await fetch(`${API}/`, { headers });
+  if (!res.ok) throw new Error(`list: ${res.status} ${await res.text()}`);
+  const body = (await res.json()) as {
+    data?: Array<{ id: string; name?: string; item_count?: number }>;
+  };
+  for (const d of body.data ?? [])
+    console.log(`${d.id}  ${d.name ?? '(no name)'}  ${d.item_count ?? '?'} items`);
+}
+
 const wanted = pronunciationDictItems();
 const liveId = arg('live') ?? process.env.CARTESIA_PRONUNCIATION_DICT_ID;
 if (liveId) {
   const current = new Map((await live(liveId)).map((i) => [i.text, i.pronunciation]));
+  for (const word of arg('check')?.split(',') ?? [])
+    console.log(`${word}: ${current.has(word) ? 'has an entry' : 'NO entry'}`);
   const added = wanted.filter((i) => !current.has(i.text));
   const changed = wanted.filter(
     (i) => current.has(i.text) && current.get(i.text) !== i.pronunciation

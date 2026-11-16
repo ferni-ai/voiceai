@@ -18,7 +18,12 @@
  * Neither given: exit 1 with what to pass.
  */
 
-import { evaluateMemoryFromRecall, metricsSource, readEvalJson } from './voice-eval-metrics.mjs';
+import {
+  agentObsHeaders,
+  evaluateMemoryFromRecall,
+  metricsSource,
+  readEvalJson,
+} from './voice-eval-metrics.mjs';
 
 const MIN_RECALL_RATE = Number(process.env.MIN_RECALL_RATE || 0.1);
 
@@ -59,7 +64,7 @@ export function evaluateMemorySpeakSlo(payload, minRecallRate = MIN_RECALL_RATE)
 }
 
 async function fetchObservability(url) {
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: agentObsHeaders(process.env) });
   if (!res.ok) {
     throw new Error(`Observability HTTP ${res.status}`);
   }

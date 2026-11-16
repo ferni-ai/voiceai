@@ -31,10 +31,9 @@
 #   - a base or head that doesn't resolve fails (gitleaks would report "no
 #     leaks" for a range it couldn't read).
 #
-# Before scanning, it proves it can still go red: it commits a fake key made up
-# at run time into a throwaway repo and requires gitleaks to report it under the
-# same rules. A broken binary or rules that allow everything fail here instead of
-# passing every PR. Nothing key-shaped is committed to this repo.
+# Before scanning, it proves it can still go red (gitleaks-canary.sh): gitleaks
+# must report a fake key made up at run time under the same rules. A broken
+# binary or rules that allow everything fail here instead of passing every PR.
 #
 # Usage: gitleaks-range.sh <base> <head>
 # =============================================================================
@@ -128,28 +127,8 @@ fi
 flags=(--no-banner --redact --exit-code 1 --ignore-gitleaks-allow
   --config "$config" --gitleaks-ignore-path "$ignore")
 
-# Built in a loop: `tr </dev/urandom | head` dies of SIGPIPE under pipefail.
-alphabet=ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
-key_id=AKIA
-for _ in {1..16}; do key_id+=${alphabet:RANDOM%32:1}; done
-canary="$work/canary"
-git init --quiet "$canary"
-printf 'aws_access_key_id = %s\n' "$key_id" >"$canary/settings.ini"
-git -C "$canary" add settings.ini
-git -C "$canary" -c user.name=canary -c user.email=canary@example.com \
-  commit --quiet -m canary
-
-set +e
-# Its own exit code for a finding, so a config gitleaks can't load (exit 1) isn't
-# mistaken for the planted key being found. The last --exit-code given wins.
-gitleaks git "${flags[@]}" --exit-code 9 "$canary" >/dev/null 2>&1
-canary_rc=$?
-set -e
-if [ "$canary_rc" -ne 9 ]; then
-  echo "::error::gitleaks did not report a planted fake key (exit $canary_rc), so it can't catch a real one"
-  exit 1
-fi
-echo "Canary: gitleaks reported the planted fake key"
+# Prove gitleaks still reports a planted fake key under the same rules first.
+bash "$(dirname "${BASH_SOURCE[0]}")/gitleaks-canary.sh" "${flags[@]}"
 
 # Scan through the .git directory, not the working tree: gitleaks also reads a
 # .gitleaksignore from the directory it scans, and the change could add one there.

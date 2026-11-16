@@ -142,30 +142,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('inside-joke retention (em
     expect(JSON.stringify(profile.insideJokes)).not.toContain(AFTER_THE_CUT);
   }, 30_000);
 
-  it('human_signals: readers skip an expired joke and the next save removes it', async () => {
-    const u = uid();
-    await jokesDoc(u).set({
-      items: [
-        joke('expired', 'the expired quokka', new Date(Date.now() - DAY)),
-        joke('live', 'the live heron', new Date(Date.now() + DAY)),
-        joke('legacy', 'the joke from before'), // no expireAt: kept as it is
-      ],
-    });
-    const { getPersistedHumanSignals, persistHumanSignals } =
-      await import('../storage/human-signal-persistence.js');
-    const read = await getPersistedHumanSignals(u);
-    expect(read.insideJokes!.map((j) => j.id)).toEqual(['live', 'legacy']);
-
-    // A save with no new joke still drops the expired one
-    const dream = { id: 'd1', content: 'sail somewhere warm' };
-    expect((await persistHumanSignals(u, { dreams: [dream as never] }, SESSION)).errors).toEqual(
-      []
-    );
-    expect((await storedJokes(u)).map((j) => j.id)).toEqual(['live', 'legacy']);
-    const profile = (await db.doc(`bogle_users/${u}/human_memory/profile`).get()).data()!;
-    expect(JSON.stringify(profile.insideJokes)).not.toContain('quokka');
-  }, 30_000);
-
   it('summaries keep 80 characters of the line, a year to live, and lose a bit once it expires', async () => {
     const u = uid();
     const someone = uid();

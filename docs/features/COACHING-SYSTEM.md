@@ -396,35 +396,6 @@ recordDifficultTime(userId, 'December', 'anniversary of loss');
 
 ---
 
-### 14. Re-engagement (`reengagement.ts`)
-
-Thoughtfully reaches out to users who haven't been active.
-
-**Nudge Types**:
-| Type | When | Tone |
-|------|------|------|
-| `gentle_checkin` | After a few days | "Just thinking of you" |
-| `celebrating_independence` | User doing well | "So glad you're thriving!" |
-| `supportive_reach` | After difficult conversation | "How are you doing?" |
-| `casual_hello` | General absence | Light, no pressure |
-| `milestone_based` | Near goal deadline | Relevant reminder |
-
-```typescript
-import { shouldSendNudge, generateNudge } from './services/coaching';
-
-const result = shouldSendNudge(userId);
-// => { shouldNudge: true, nudgeType: "gentle_checkin", reason: "3 days since last session" }
-
-const nudge = generateNudge(userId);
-// => {
-//   type: "gentle_checkin",
-//   message: "Hey, just thinking of you. How have things been going with the morning routine?",
-//   ssml: "<speak>..."
-// }
-```
-
----
-
 ## Safety Integration
 
 The coaching system integrates deeply with the safety module for crisis detection.
@@ -473,33 +444,6 @@ Question: "What's one thing you could do in just 5 minutes?"
 User used vague emotional language.
 Consider gently asking: "When you say 'bad', what does that feel like specifically?"
 ```
-
----
-
-## Persistence
-
-All coaching profiles are persisted to Firestore:
-
-```typescript
-import { initializeCoachingForSession, persistCoachingForSession } from './services/coaching';
-
-// On session start
-await initializeCoachingForSession(userId);
-
-// On session end
-await persistCoachingForSession(userId);
-```
-
-**Persisted Data**:
-
-- Goal profiles (goals, check-ins, completions)
-- Action profiles (actions, follow-ups)
-- Obstacle profiles (patterns, successful strategies)
-- Style profiles (detected preferences, explicit settings)
-- Journey profiles (milestones, sessions, reflections)
-- Values profiles (identified values, importance ratings)
-- Progress profiles (metrics, highlights)
-- Team context (cross-persona insights, interactions)
 
 ---
 

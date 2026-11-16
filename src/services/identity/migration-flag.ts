@@ -1,8 +1,7 @@
 /**
  * Where a device, anon: or phone profile's data went, kept on the source record
  * itself (bogle_users/{source}._migratedTo), so it survives a restart and both
- * movers read the same answer: user-migration.ts (POST /api/auth/migrate and
- * sign-in auto-migration) and identity-linking.ts (autoLinkOnAuth).
+ * movers read the same answer: user-migration.ts and identity-linking.ts.
  *
  * The movers used to mark it three ways: an in-memory Map (gone on restart),
  * customData.migratedTo, and _migrated / migratedTo. Only _migratedTo is written

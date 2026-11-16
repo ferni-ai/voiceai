@@ -24,7 +24,6 @@ import type {
   CognitiveContext,
   CognitiveConstraints,
   CognitiveContextInput,
-  CognitiveEngineResult,
 } from './types.js';
 
 const log = createLogger({ module: 'CognitiveEngine' });
@@ -45,7 +44,7 @@ const cacheTimestamps = new Map<string, number>();
  * Get cognitive profile for a persona
  * Converts CognitiveDifferentiation to our CognitiveProfile type
  */
-export function getCognitiveProfile(personaId: PersonaId): CognitiveProfile | null {
+function getCognitiveProfile(personaId: PersonaId): CognitiveProfile | null {
   // Check cache
   const cached = profileCache.get(personaId);
   const cacheTime = cacheTimestamps.get(personaId) || 0;
@@ -370,33 +369,6 @@ export function buildCognitivePromptInjection(
   }
 
   return lines.join('\n');
-}
-
-// ============================================================================
-// MAIN ENGINE FUNCTION
-// ============================================================================
-
-/**
- * Get complete cognitive engine result for a persona
- */
-export function getCognitiveEngineResult(
-  personaId: PersonaId,
-  input?: CognitiveContextInput
-): CognitiveEngineResult | null {
-  const profile = getCognitiveProfile(personaId);
-
-  if (!profile) {
-    return null;
-  }
-
-  const context = buildCognitiveContext(profile, input);
-  const promptInjection = buildCognitivePromptInjection(profile, input);
-
-  return {
-    profile,
-    context,
-    promptInjection,
-  };
 }
 
 // ============================================================================

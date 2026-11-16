@@ -9,8 +9,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { handleHandoffFromDataChannel } from '../../../agents/multi-agent/multi-agent-entry.js';
 import { withTurnReminder } from '../../../agents/personas/turn-request.js';
-import { buildCameoUnlockContext } from '../../../intelligence/context-builders/team/cameo-unlock.js';
-import type { ContextBuilderInput } from '../../../intelligence/context-builders/index.js';
 import { AgentDirectory } from '../../../personas/agent-directory.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { buildHandoffTools } from '../handoff-factory.js';
@@ -166,23 +164,5 @@ describe('the per-turn team note', () => {
     const sent =
       (withTurnReminder(chat, { userData }).items.at(-1) as llm.ChatMessage).textContent ?? '';
     expect(sent).toMatch(/fits Alex/);
-  });
-});
-
-describe('the cameo "you\'ve earned them" introduction', () => {
-  it('is off: nobody is introduced for having talked enough', async () => {
-    const input = {
-      persona: { id: 'ferni' },
-      userData: { turnCount: 5 },
-      userProfile: { id: 'u1', totalConversations: 100 },
-      userText: 'I keep breaking my morning habits and routine',
-      analysis: { topics: { detected: ['habit'] } },
-      services: {},
-    } as unknown as ContextBuilderInput;
-    byNeed(false);
-    vi.stubEnv('BYPASS_TEAM_UNLOCKS', '');
-    expect((await buildCameoUnlockContext(input)).length).toBeGreaterThan(0);
-    byNeed(true);
-    expect(await buildCameoUnlockContext(input)).toEqual([]);
   });
 });

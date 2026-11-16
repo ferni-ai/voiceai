@@ -200,13 +200,15 @@ export async function startHolderVerification(
 /**
  * Inbound hook: a 6-digit reply from a sponsored identity's number checks its
  * pending code. A match sets phoneVerifiedAt; a miss counts a try. Returns
- * true only when it verified the number. Never throws.
+ * true only when it verified the number; 'wrong-code' when the text was checked
+ * against this number's own pending code and missed or came too late (the text was
+ * a code: nothing else answers it, outreach-webhook-routes.ts). Never throws.
  */
 export async function recordHolderCode(
   from: unknown,
   body: unknown,
   deps: HolderVerificationDeps = defaultHolderDeps()
-): Promise<boolean> {
+): Promise<boolean | 'wrong-code'> {
   if (!messagingPipelineOn(deps.env) || typeof from !== 'string' || typeof body !== 'string') {
     return false;
   }
@@ -222,11 +224,14 @@ export async function recordHolderCode(
     const got = hashCode(code, deps.env);
     const numberHash = phoneHash(e164, deps.env);
     const now = deps.now();
+    let checked = false; // this number's pending code was checked (the last attempt's answer)
     const verified = await deps.transact(found.id, (identity) => {
+      checked = false;
       // The doc must still hold the number that replied, and the code must have gone to it.
       if (!stillAt(identity, e164)) return { ok: false };
       const pending = identity.holderVerification;
       if (!pending || !numberHash || pending.phoneHash !== numberHash) return { ok: false };
+      checked = true;
       if (now.getTime() > Date.parse(pending.expiresAt)) return { ok: false };
       const match =
         got !== null &&
@@ -247,7 +252,7 @@ export async function recordHolderCode(
     if (verified) {
       log.info({ identityId: found.id, phoneLast4: last4(e164) }, 'Holder verified their phone');
     }
-    return verified;
+    return verified || (checked && 'wrong-code');
   } catch (error) {
     log.error({ error: String(error), phoneLast4: last4(e164) }, 'Holder code not checked');
     return false;

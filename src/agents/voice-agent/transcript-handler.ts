@@ -70,8 +70,9 @@ import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forg
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
-import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { crisisTurnSettled, heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
+import { holdOnCrisisPattern } from '../../services/safety/index.js';
 import { ownerWriteId, wordsNeverLogged } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
@@ -121,7 +122,7 @@ import {
   recordEchoDetected,
 } from '../../speech/coordination/index.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
 import { updateToolsAfterReplyStarts } from './deferred-tool-update.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
@@ -1074,7 +1075,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       if (cached) {
         diag.state('⚡ CACHE BYPASS - Speaking cached response immediately', {
           intent: cached.intent,
-          response: cached.response.slice(0, 50),
+          response: replyForLog(cached.response),
         });
 
         // Say the cached response immediately (with SSML if available) via coordinated speech
@@ -1197,7 +1198,7 @@ function processResponseAnticipation(sessionId: string, event: TranscriptEvent):
           anticipator.markCacheHit(anticipation.intent);
           diag.state('⚡ CACHE HIT - Cached response ready', {
             intent: anticipation.intent,
-            response: cached.response.slice(0, 50),
+            response: replyForLog(cached.response),
             confidence: anticipation.confidence,
           });
         }
@@ -1264,9 +1265,9 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
-  // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
+  // Held: nothing below stores words (MINOR_CARE, a crisis pattern, SEXUAL_TOPIC_BOUNDARY's read)
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
-  // SEXUAL_TOPIC_BOUNDARY=on: this turn's read first (bounded; this isn't the reply path).
+  holdOnCrisisPattern(sessionId, event.transcript);
   await readCallerTurn({ sessionId, userId, text: event.transcript, asked });
   const held = heldAfter(sessionId, event.transcript, { userId, asked });
   const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
@@ -1410,40 +1411,39 @@ async function processFinalTranscript(
 
   // ===============================================
   // 🧠 DYNAMIC MEMORY CAPTURE: LLM-powered extraction
-  // Uses temporal decoupling: fast capture (< 50ms) + async deep extraction
-  // Extracts entities, relationships, emotions, dates, topics
-  // Deep LLM extraction runs in background worker
+  // Fast capture (< 50ms) + async deep extraction of entities, relationships, emotions, dates,
+  // topics; it waits for its turn's crisis read (crisis-memory-hold.ts)
   // ===============================================
-  try {
-    if (!memoryUserId) {
-      diag.debug('Skipping memory capture - no userId');
-    } else {
-      const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
-      const captureResult = await fastCapture({
-        userId: memoryUserId,
-        sessionId,
-        turnNumber: 0, // Transcript handler doesn't track turn numbers
-        transcript: event.transcript,
-        personaId: userData.personaId,
-      });
-
-      // 🧠 CRITICAL: Record to STM buffer for session context
-      recordTurn(sessionId, memoryUserId, captureResult, event.transcript, 0);
-
-      // Log capture results for debugging
-      if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
-        diag.state('🧠 Dynamic memory: Fast capture complete', {
-          entityCount: captureResult.mentionedEntities.length,
-          topicHints: captureResult.topicHints,
-          asyncJobId: captureResult.asyncJobId,
-          captureTimeMs: captureResult.captureTimeMs,
+  safeFireAndForget(
+    async () => {
+      if (!memoryUserId || !(await crisisTurnSettled(sessionId, event.transcript))) {
+        diag.debug('Skipping memory capture - no userId, or no settled crisis read');
+      } else {
+        const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
+        const captureResult = await fastCapture({
+          userId: memoryUserId,
+          sessionId,
+          turnNumber: 0, // Transcript handler doesn't track turn numbers
+          transcript: event.transcript,
+          personaId: userData.personaId,
         });
+
+        // 🧠 CRITICAL: Record to STM buffer for session context
+        recordTurn(sessionId, memoryUserId, captureResult, event.transcript, 0);
+
+        // Log capture results for debugging
+        if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+          diag.state('🧠 Dynamic memory: Fast capture complete', {
+            entityCount: captureResult.mentionedEntities.length,
+            topicHints: captureResult.topicHints,
+            asyncJobId: captureResult.asyncJobId,
+            captureTimeMs: captureResult.captureTimeMs,
+          });
+        }
       }
-    }
-  } catch (captureError) {
-    // Non-fatal - memory capture is enhancement, not critical
-    diag.warn('Memory capture error', { error: String(captureError) });
-  }
+    },
+    { context: 'transcript-memory-capture' } // the read wait delays nothing after it
+  );
 
   // ===============================================
   // 👂 PHASE 17: ACTIVE LISTENING - FINAL CAPTURE

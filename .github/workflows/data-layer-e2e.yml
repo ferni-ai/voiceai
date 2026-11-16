@@ -1,19 +1,23 @@
 name: Data Layer E2E Tests
 
-# Firestore emulator tests for the data layer: the semantic layer's
-# hooks → indexing → search → retrieval flow, and the race contracts that only a
-# real Firestore can show (single-use records, a placed call's once-claims).
+# Firestore emulator tests. "Emulator Tests" runs every *.emulator.test.ts on
+# every pull request and merge-queue entry (menu-e2e.yml runs the menu contract
+# ones): the race contracts only a real Firestore can show (single-use records, a
+# placed call's once-claims), held windows, crisis signals, the rules lockdown.
+# The other jobs cover the data layer's hooks → indexing → search → retrieval
+# flow.
 #
 # Triggers on every pull request and merge-queue entry, with no `paths:` filter:
 # a workflow-level filter never starts in the merge queue, so a required check
 # behind one waits forever. The `changes` job decides instead. The check to
-# require is the last job, "Data Layer E2E": success when nothing the tests
-# cover changed, else the Firestore Emulator E2E result.
+# require is the last job, "Data Layer E2E": Emulator Tests must pass, and so
+# must Firestore Emulator E2E unless nothing it covers changed.
 #
-# Firestore Emulator E2E is not OPTIONAL_CI-gated, so a change it covers is
-# tested before it merges (its race tests used to run only nightly). The other
-# two jobs stay optional: they follow OPTIONAL_CI on pull requests and stay out
-# of the merge queue. All three run nightly and on manual dispatch.
+# Emulator Tests and Firestore Emulator E2E are not OPTIONAL_CI-gated, so a
+# change they cover is tested before it merges (the race tests used to run only
+# nightly). The other two jobs stay optional: they follow OPTIONAL_CI on pull
+# requests and stay out of the merge queue. All four run nightly and on manual
+# dispatch.
 
 on:
   pull_request:
@@ -63,9 +67,6 @@ jobs:
             ^src/api/outreach[^/]*\.ts$
             ^src/services/outreach/outreach-history[^/]*\.ts$
             ^src/services/outreach/(live-report-record|call-progress)\.ts$
-            ^src/services/outreach/__tests__/call-claim-race\.emulator\.test\.ts$
-            ^src/api/__tests__/menu-[^/]*\.emulator\.test\.ts$
-            ^src/api/__tests__/(seeds-(routes-ledger|purchase|import)|roadmap-seeds|account-delete-every-store)\.emulator\.test\.ts$
             ^src/services/waitlist/
             ^src/services/wellbeing-tracking/
             ^src/api/wellbeing[^/]*\.ts$
@@ -76,14 +77,11 @@ jobs:
             ^scripts/devdb/
             ^src/api/account-routes\.ts$
             ^src/services/stores/single-use-records\.ts$
-            ^src/services/stores/__tests__/single-use-records\.emulator\.test\.ts$
             ^src/servers/token/oauth-link-state\.ts$
             ^src/services/connect-moments/
             ^src/memory/
             ^src/tasks/scheduled/transcript-cleanup-job\.ts$
-            ^src/tasks/scheduled/__tests__/transcript-cleanup\.emulator\.test\.ts$
             ^src/api/routes/intelligence-routes\.ts$
-            ^src/api/__tests__/record-emotion[^/]*\.ts$
             ^src/tools/semantic-router/advanced/(better-than-human|emotional-history-shape)\.ts$
             ^src/intelligence/
             ^src/tests/data-layer/
@@ -151,96 +149,10 @@ jobs:
           GOOGLE_API_KEY: ''
           SKIP_EMBEDDING: 'true'
 
-      - name: Run Seed Ledger Tests
-        run: |
-          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/seeds-routes-ledger.emulator.test.ts src/api/__tests__/seeds-purchase.emulator.test.ts src/api/__tests__/seeds-import.emulator.test.ts src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          NODE_ENV: test
-
-      # Menu green program: each panel's write->read contract (the voice writer, then
-      # the route the panel calls). New lanes add a menu-*.emulator.test.ts; no edit here.
-      - name: Run Menu Contract Tests
-        run: |
-          pnpm vitest run src/api/__tests__/menu- --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          GCLOUD_PROJECT: demo-project
-          NODE_ENV: test
-          GOOGLE_API_KEY: ''
-          SKIP_EMBEDDING: 'true'
-
-      # Waitlist waves: overlapping admissions, members, erased docs (services/waitlist). Runs
-      # even when an earlier suite failed, so a red seed ledger never hides it.
-      - name: Run Waitlist Wave Tests
-        if: ${{ !cancelled() }}
-        run: |
-          pnpm vitest run src/services/waitlist/__tests__/wave --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          NODE_ENV: test
-
-      - name: Run Account Deletion Tests
-        run: |
-          pnpm vitest run src/api/__tests__/account-delete-every-store.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          GCLOUD_PROJECT: demo-project
-          NODE_ENV: test
-
-      # OAuth states and connect invites: used once even when taps race (a transaction), TTL field a Timestamp
-      - name: Run Single-Use Record Tests
-        run: |
-          pnpm vitest run src/services/stores/__tests__/single-use-records.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          GCLOUD_PROJECT: demo-project
-          NODE_ENV: test
-
-      # copy-user.ts copies one person from (default) to ferni-dev: only theirs, dry run writes nothing
-      - name: Run Dev Database Copy Tests
-        run: |
-          pnpm vitest run -c vitest.config.unit.ts scripts/devdb/__tests__/copy-user.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          NODE_ENV: test
-
-      # record-emotion keeps only typed fields and merges on save, never losing a point
-      - name: Run Emotion Point Tests
-        run: |
-          pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          NODE_ENV: test
-
-      # A placed call's once-claims (progress line, end-of-call report): racing workers, one winner
-      - name: Run Call Claim Race Tests
-        run: |
-          pnpm vitest run -c vitest.config.unit.ts src/services/outreach/__tests__/call-claim-race.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          NODE_ENV: test
-
-      - name: Run Transcript Cleanup Tests
-        run: |
-          pnpm vitest run src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          GCLOUD_PROJECT: demo-project
-          NODE_ENV: test
-
       - name: Run Service Wiring Integration Tests
         run: |
           pnpm vitest run src/services/data-layer/__tests__/service-wiring-integration.test.ts --reporter=verbose
         env:
-          NODE_ENV: test
-
-      # emotional_data/{uid}/points: strip on load, and the cleanup job (dry run, apply, re-run)
-      - name: Run Emotional Data Points Tests
-        run: |
-          pnpm vitest run -c vitest.config.unit.ts scripts/migrations/__tests__/strip-emotional-data-snippets.emulator.test.ts --reporter=verbose
-        env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
 
       - name: Run Intelligence Layer Tests
@@ -263,6 +175,68 @@ jobs:
           echo "- ✅ Cross-domain correlation" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ TTL cleanup validation" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Queue metrics and monitoring" >> $GITHUB_STEP_SUMMARY
+
+  # Every *.emulator.test.ts but the menu contract ones, which menu-e2e.yml runs
+  # (vitest.config.emulator.ts). They skip without an emulator, so the unit suite
+  # counted them green while none ran; here a skip fails the job. A new emulator
+  # test needs only the name. Not behind `changes`:
+  # they read stores across the tree (erasure, crisis signals, held windows,
+  # telephony), so no path list could name what they cover.
+  emulator-tests:
+    name: Emulator Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FIREBASE_TOOLS_VERSION: '15.10.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Setup Java (required for the emulators)
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Auth as well: the orphaned-erasure scripts (scripts/data) list accounts.
+      - name: Start Firestore and Auth emulators
+        run: |
+          nohup npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" emulators:start \
+            --only auth,firestore:ferni-dev --project demo-project > emulator.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -s -o /dev/null http://localhost:8080/ && curl -s -o /dev/null http://localhost:9099/ \
+              && echo "Emulators up after ${i}s" && exit 0
+            sleep 1
+          done
+          cat emulator.log
+          echo "::error::Emulators did not start"; exit 1
+
+      - name: Run every emulator test
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          FIREBASE_AUTH_EMULATOR_HOST: localhost:9099
+          # Code that opens a client at import time, before a test sets its own
+          # project, otherwise finds none and falls back to its offline path.
+          GCLOUD_PROJECT: demo-project
+          NODE_ENV: test
+          GOOGLE_API_KEY: ''
+        run: |
+          pnpm exec vitest run --config vitest.config.emulator.ts \
+            --reporter=default --reporter=json --outputFile.json=emulator-tests.json
+
+      - name: Every emulator test ran (none skipped)
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/menu-e2e-no-skips.mjs vitest emulator-tests.json
+
+      - name: Emulator log
+        if: failure()
+        run: tail -100 emulator.log
 
   # Entity resolver writes through storage.ts (entity_store/{userId}/…).
   # Kept as its own job so it can keep local hash embeddings on — the
@@ -361,7 +335,7 @@ jobs:
   # `changes` failed, so this checks both.
   gate:
     name: Data Layer E2E
-    needs: [changes, firestore-e2e]
+    needs: [changes, firestore-e2e, emulator-tests]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -371,8 +345,12 @@ jobs:
           CHANGES: ${{ needs.changes.result }}
           DATA_LAYER: ${{ needs.changes.outputs.data_layer }}
           FIRESTORE_E2E: ${{ needs.firestore-e2e.result }}
+          EMULATOR_TESTS: ${{ needs.emulator-tests.result }}
         run: |
-          echo "changes=$CHANGES data_layer=$DATA_LAYER firestore-e2e=$FIRESTORE_E2E"
+          echo "changes=$CHANGES data_layer=$DATA_LAYER firestore-e2e=$FIRESTORE_E2E emulator-tests=$EMULATOR_TESTS"
+          if [ "$EMULATOR_TESTS" != "success" ]; then
+            echo "::error::Emulator Tests: $EMULATOR_TESTS"; exit 1
+          fi
           if [ "$CHANGES" != "success" ]; then
             echo "::error::Could not tell whether the data layer changed ($CHANGES)"; exit 1
           fi

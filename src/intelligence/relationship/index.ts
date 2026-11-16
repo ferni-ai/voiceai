@@ -54,7 +54,6 @@ export type {
   SessionMood,
   // Milestones
   Milestone,
-  MilestoneType,
   // Session
   SessionStartResult,
   // Config
@@ -73,3 +72,6 @@ export {
   deleteRelationshipMemory,
   createDefaultMemory,
 } from './persistence.js';
+
+// Crisis and vulnerability moments that keep and surface no words (CRISIS_WORDS_NEVER_RESURFACE)
+export { isWordlessMoment } from './wordless-moments.js';

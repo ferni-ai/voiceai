@@ -34,7 +34,7 @@ export interface BuilderRelevanceScore {
   isCore: boolean; // Core builders always run
 }
 
-export interface PrioritizationResult {
+interface PrioritizationResult {
   selectedBuilders: ContextBuilder[];
   skippedBuilders: string[];
   totalScored: number;
@@ -392,7 +392,7 @@ function calculateBuilderRelevance(
  * @param input - Current context input
  * @returns Prioritization result with selected builders
  */
-export function prioritizeBuilders(
+function prioritizeBuilders(
   builders: ContextBuilder[],
   input: ContextBuilderInput
 ): PrioritizationResult {
@@ -482,7 +482,7 @@ const recentResults: { selected: number; skipped: number; avgScore: number }[] =
 /**
  * Record a prioritization result for metrics tracking.
  */
-export function recordPrioritizationResult(result: PrioritizationResult): void {
+function recordPrioritizationResult(result: PrioritizationResult): void {
   metrics.totalRuns++;
   metrics.totalBuildersScored += result.totalScored;
   metrics.totalBuildersSkipped += result.skippedBuilders.length;

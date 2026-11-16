@@ -68,6 +68,13 @@ export function applyChatFraming(dialog: HTMLElement, agent: CustomAgent): void 
   dialog.querySelector<HTMLTextAreaElement>('#twin-input')?.setAttribute('placeholder', framing.placeholder);
 }
 
+/** The chat's messages so far (the person's are 'user') as the conversation an agent is sent */
+export function toChatHistory(
+  earlier: Array<{ role: 'user' | 'twin'; content: string }>
+): ChatTurn[] {
+  return earlier.map((m) => ({ from: m.role === 'user' ? 'person' : 'agent', text: m.content }));
+}
+
 /**
  * The agent's reply after the chat's messages so far (the person's are 'user'); throws
  * when it couldn't answer, so the chat shows its error line.
@@ -78,8 +85,7 @@ export async function replyFromAgent(
   message: string,
   scene: string
 ): Promise<string> {
-  const history = earlier.map((m) => ({ from: m.role === 'user' ? 'person' : 'agent', text: m.content }) as ChatTurn);
-  const reply = await askAgent(agentId, message, history, scene);
+  const reply = await askAgent(agentId, message, toChatHistory(earlier), scene);
   if (!reply) throw new Error('The agent did not answer');
   return reply;
 }

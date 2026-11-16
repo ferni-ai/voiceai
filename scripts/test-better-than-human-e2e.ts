@@ -10,12 +10,20 @@
  * 5. Context Injection
  * 6. Real-time Notifications
  *
- * Usage: npx tsx scripts/test-better-than-human-e2e.ts [--prod]
+ * Usage: VOICE_AGENT_HEALTH_URL=<the voice agent's /health URL> npx tsx scripts/test-better-than-human-e2e.ts [--prod]
  */
 
 const isProd = process.argv.includes('--prod');
 const BASE_URL = isProd ? 'https://app.ferni.ai' : 'http://localhost:3002';
 const TEST_USER_ID = `bth-e2e-${Date.now()}`;
+// No default: the old one pointed at a VM that no longer exists, so refuse to run rather than guess a host.
+const VOICE_AGENT_HEALTH_URL = process.env.VOICE_AGENT_HEALTH_URL ?? '';
+if (!VOICE_AGENT_HEALTH_URL) {
+  console.error(
+    "Set VOICE_AGENT_HEALTH_URL to the voice agent's /health URL; there is no default host."
+  );
+  process.exit(1);
+}
 
 console.log('\n');
 console.log('═══════════════════════════════════════════════════════════════════════');
@@ -194,7 +202,7 @@ async function testHubDataAggregation(): Promise<{ passed: boolean; details?: st
 
 async function testVoiceAgentHealth(): Promise<{ passed: boolean; details?: string }> {
   try {
-    const response = await fetch('http://34.134.186.63:8080/health', {
+    const response = await fetch(VOICE_AGENT_HEALTH_URL, {
       signal: AbortSignal.timeout(5000),
     });
 
@@ -276,9 +284,8 @@ async function testTaskExecutors(): Promise<{ passed: boolean; details?: string 
     // No research executor: background research says it is unavailable (#1814, #1821).
 
     // Habit Reminder
-    const { queueHabitReminder } = await import(
-      '../src/services/background-agents/executors/habit-reminder-executor.js'
-    );
+    const { queueHabitReminder } =
+      await import('../src/services/background-agents/executors/habit-reminder-executor.js');
     const habitId = await queueHabitReminder({
       userId: TEST_USER_ID,
       habitId: 'e2e-test',
@@ -289,9 +296,8 @@ async function testTaskExecutors(): Promise<{ passed: boolean; details?: string 
     executorResults.push(`habit:${habitId.slice(0, 8)}`);
 
     // Follow-up
-    const { queueFollowup } = await import(
-      '../src/services/background-agents/executors/followup-executor.js'
-    );
+    const { queueFollowup } =
+      await import('../src/services/background-agents/executors/followup-executor.js');
     const followupId = await queueFollowup({
       userId: TEST_USER_ID,
       recipientName: 'E2E Test',

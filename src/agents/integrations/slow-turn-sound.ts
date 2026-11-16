@@ -12,7 +12,7 @@
  * @module agents/integrations/slow-turn-sound
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 
 const log = createLogger({ module: 'SlowTurnSound' });
@@ -100,7 +100,10 @@ export function attachSlowTurnSound(
     if (!deps.playClip(text)) return;
     deps.noteOpened();
     deps.holdReply(text);
-    log.info({ text, reason, afterCommitMs: Date.now() - t.committedAt }, 'SLOW_TURN_SOUND');
+    log.info(
+      { text: replyForLog(text), reason, afterCommitMs: Date.now() - t.committedAt },
+      'SLOW_TURN_SOUND'
+    );
   };
 
   const onItem = (ev: unknown): void => {

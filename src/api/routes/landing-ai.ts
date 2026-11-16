@@ -2,7 +2,6 @@
  * Landing Page AI Routes
  *
  * API endpoints for AI-powered landing page features:
- * - POST /api/landing/ai/chat - Live chat widget
  * - POST /api/landing/ai/personalized-hero - Dynamic hero content
  * - POST /api/landing/ai/persona-preview - Team member previews
  * - POST /api/landing/ai/faq - Smart FAQ answers
@@ -21,11 +20,6 @@ import { getClientIp } from '../../utils/client-ip.js';
 import { parseBody, sendError, sendJSON } from '../helpers.js';
 
 // Request body types
-interface ChatBody {
-  message?: string;
-  conversationHistory?: unknown[];
-}
-
 interface HeroBody {
   timeOfDay?: number;
   isReturning?: boolean;
@@ -163,11 +157,6 @@ export async function handleLandingAIRoutes(
     return true;
   }
 
-  // Route: POST /api/landing/ai/chat
-  if (pathname === '/api/landing/ai/chat' && method === 'POST') {
-    return handleChat(req, res);
-  }
-
   // Route: POST /api/landing/ai/personalized-hero
   if (pathname === '/api/landing/ai/personalized-hero' && method === 'POST') {
     return handlePersonalizedHero(req, res);
@@ -201,58 +190,6 @@ export async function handleLandingAIRoutes(
   // Route not found
   sendError(res, 'Endpoint not found', 404);
   return true;
-}
-
-/**
- * Handle live chat messages
- */
-async function handleChat(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  const body = (await parseBody(req)) as ChatBody;
-
-  if (!body?.message) {
-    sendError(res, 'Message is required', 400);
-    return true;
-  }
-
-  const { message, conversationHistory = [] } = body;
-
-  // Try AI-powered response first
-  let response: string;
-  try {
-    const aiResponse = await generateText(
-      `You are Ferni, a warm and insightful life coach. A visitor on the landing page just said: "${message}". 
-      
-      Respond warmly and briefly (1-2 sentences). Be conversational, curious, and helpful. 
-      Don't be salesy - just be genuinely interested in them.
-      If they're asking about features or pricing, answer helpfully but keep it warm.
-      Never mention that you're an AI - just be Ferni.`,
-      { maxTokens: 150, temperature: 0.8 }
-    );
-    response = aiResponse || getFallbackChatResponse();
-  } catch {
-    response = getFallbackChatResponse();
-  }
-
-  sendJSON(res, {
-    response,
-    persona: 'ferni',
-    timestamp: new Date().toISOString(),
-    conversationId: `conv_${Date.now()}`,
-    remainingMessages: Math.max(0, 3 - conversationHistory.length),
-  });
-
-  return true;
-}
-
-function getFallbackChatResponse(): string {
-  const responses = [
-    "That's a really thoughtful question. Tell me more about what's on your mind.",
-    'I hear you. It sounds like this is important to you.',
-    'Interesting. What would feel like progress on this?',
-    "Let's explore that together. What does your gut tell you?",
-    'I appreciate you sharing that. What would be most helpful right now?',
-  ];
-  return responses[Math.floor(Math.random() * responses.length)];
 }
 
 /**

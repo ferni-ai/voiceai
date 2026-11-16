@@ -6,7 +6,9 @@
  * mounts Stripe's Payment Element for it and confirms with `elements`. The
  * server answers 503 when Stripe isn't configured, and the web build has no
  * publishable key when payments were never set up here; both come back as
- * `not-configured` so the button can say so instead of inviting a retry.
+ * `not-configured` so the button can say so instead of inviting a retry. With no
+ * publishable key the server is never asked, so no PaymentIntent is created for
+ * a card form that could not be shown.
  * POST /api/garden/subscribe answers a Stripe Checkout url (503 likewise).
  *
  * @module services/seed-payment
@@ -22,6 +24,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
 import { billingErrorMessage } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
+import { stripePublishableKey } from '../config/stripe-key.js';
 import { loadStripe } from './monetization.service.js';
 
 const log = createLogger('SeedPayment');
@@ -47,6 +50,11 @@ export async function payForSeed(
   amountDollars: number,
   collect: CardCollector
 ): Promise<SeedPaymentOutcome> {
+  if (!stripePublishableKey()) {
+    log.warn('No Stripe publishable key in this build; seed payment not attempted');
+    return { status: 'not-configured' };
+  }
+
   const response = await apiFetch('/api/garden/plant', {
     method: 'POST',
     body: JSON.stringify({ amount: amountDollars }),

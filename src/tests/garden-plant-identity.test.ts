@@ -65,6 +65,8 @@ beforeEach(() => {
   // A production web build: no `X-Admin-Key: dev-mode` header (that is only
   // added when Vite's DEV flag is set, which vitest sets by default).
   vi.stubEnv('DEV', false);
+  // A build with payments set up: without a publishable key payForSeed never asks the server.
+  vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_seed');
   vi.stubGlobal('navigator', { onLine: true });
   vi.stubGlobal('window', { location: { href: 'https://app.ferni.ai/', origin: '' } });
   vi.stubGlobal(

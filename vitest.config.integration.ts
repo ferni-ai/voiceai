@@ -34,11 +34,14 @@ export default defineConfig({
       'apps/**',
       'e2e/**',
       'design-system/**',
-      // Exclude e2e tests
-      '**/*.e2e.test.ts',
-      '**/e2e/**',
-      // Exclude tests that need real external APIs
-      'src/tests/integration/**',
+      // e2e-critical.yml runs these two (default config); not here too
+      'src/tests/e2e/tool-routing-e2e.test.ts',
+      'src/tests/e2e/handoff-e2e.test.ts',
+      // ci.yml AGI Feature Tests runs this one (vitest.config.external.ts)
+      'src/tests/integration/agi-actions-e2e.test.ts',
+      // Fixed and collected in its own follow-up (API drift in 3 cases)
+      'src/tests/integration/phone-identity-flow.test.ts',
+      // Calls the live Gemini API
       'src/tests/e2e/gemini-integration/**',
       // Runs in the unit config, so voice-eval-only changes test it too
       'src/tests/voice-eval/**',

@@ -98,6 +98,24 @@ describe('fast lane', () => {
     expect(laneReason('what have you been up to today?')).toBe('chat');
   });
 
+  it('keeps an ask for a teammate on the main model, which picks the handoff tool (BTH 11-15)', () => {
+    for (const t of [
+      'can I talk to Alex',
+      'put me through to Maya',
+      'is Peter around?',
+      'hey Jordan, can you help me plan my week',
+      'nayan please',
+    ]) {
+      expect(laneReason(t), t).toBe('teammate');
+      expect(chitChat(t), t).toBe(false);
+    }
+    // read before the tool words: the handoff is what the turn needs first
+    expect(laneReason('can I talk to Maya about my calendar')).toBe('teammate');
+    // Ferni named to himself, and a friend who shares a name, stay chat
+    expect(laneReason('hey Ferni, long day')).toBe('chat');
+    expect(laneReason('my friend Alex is visiting')).toBe('chat');
+  });
+
   it('keeps a reply nobody prompted on the main model, though it carries the turn note (#2507)', () => {
     // A timer alert, greeting or silence remark: Ferni spoke last, so llmNode adds the note
     // as the caller turn (caller-turn.ts). Its instructions are what the reply is for.

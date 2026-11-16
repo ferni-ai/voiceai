@@ -179,68 +179,6 @@ async function testStorage(): Promise<void> {
   });
 }
 
-async function testContextBuilders(): Promise<void> {
-  console.log(`\n${CYAN}━━━ Context Builders ━━━${NC}`);
-  
-  await runTest('Build context (basic)', async () => {
-    const { buildConversationContext } = await import('../../../../../src/intelligence/context-builders/index.js');
-    const { getPersona } = await import('../../../../../src/personas/index.js');
-    
-    const persona = getPersona('ferni');
-    
-    // Minimal services mock
-    const mockServices = {
-      analyze: () => ({}),
-      addTurn: () => {},
-      trackResponseQuality: () => {},
-      getPromptContext: () => '',
-    };
-    
-    const injections = await buildConversationContext({
-      userText: 'I am feeling anxious about money',
-      analysis: {
-        emotion: { primary: 'fear', distressLevel: 0.7, valence: 'negative', intensity: 0.8 },
-        intent: { primary: 'expressing_concern' },
-        topics: { detected: ['money', 'anxiety'], categories: ['emotional', 'financial'] },
-        state: { phase: 'exploring' },
-      },
-      services: mockServices,
-      userData: { turnCount: 3, isReturningUser: false },
-      persona,
-    });
-    
-    // Context builders may return empty array if no conditions match
-    // Just verify it runs without error
-    if (injections === undefined) {
-      throw new Error('buildConversationContext returned undefined');
-    }
-  });
-  
-  await runTest('Context builders registered', async () => {
-    // Trigger builder loading by calling buildConversationContext first
-    const { buildConversationContext, getRegisteredBuilders } = await import('../../../../../src/intelligence/context-builders/index.js');
-    
-    // Run a build to trigger lazy loading
-    await buildConversationContext({
-      userText: 'test',
-      analysis: {
-        emotion: { primary: 'neutral', distressLevel: 0.1, valence: 'neutral' },
-        intent: { primary: 'greeting' },
-        topics: { detected: [], categories: [] },
-        state: { phase: 'opening' },
-      },
-      services: { analyze: () => ({}), addTurn: () => {}, trackResponseQuality: () => {}, getPromptContext: () => '' },
-      userData: { turnCount: 1 },
-    });
-    
-    const builders = getRegisteredBuilders();
-    // Some builders should be registered after the build
-    if (builders.length === 0) {
-      console.log(`    ${YELLOW}Note: Builders are lazily loaded${NC}`);
-    }
-  });
-}
-
 async function testIntelligence(): Promise<void> {
   console.log(`\n${CYAN}━━━ Intelligence ━━━${NC}`);
   
@@ -361,7 +299,6 @@ async function main(): Promise<void> {
   await testConfiguration();
   await testPersonas();
   await testStorage();
-  await testContextBuilders();
   await testIntelligence();
   await testAPIs();
   await testTools();

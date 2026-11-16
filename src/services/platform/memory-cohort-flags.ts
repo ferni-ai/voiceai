@@ -20,7 +20,7 @@ export const MEMORY_COHORT_FLAGS = [
   'REMEMBER_TO_RECALL',
   'MEMORY_TOOLS_HONEST',
   // After the call, per person: dualWriteFacts reads both through personFlagOn or envForCaller
-  // (facts-dual-write.ts). Not ACTIVITY_LEDGER: nothing reads or writes the ledger yet.
+  // (facts-dual-write.ts).
   'FACTS_DUAL_WRITE',
   'MEMORY_FACTS',
 ] as const;

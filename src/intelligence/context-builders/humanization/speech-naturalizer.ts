@@ -402,22 +402,6 @@ async function buildSpeechNaturalizerContext(
 }
 
 // ============================================================================
-// CLEANUP
-// ============================================================================
-
-export function cleanupSpeechNaturalizerState(sessionId: string): void {
-  stateCache.delete(sessionId);
-}
-
-export function getSpeechStats(sessionId: string): { used: number; types: string[] } {
-  const state = getSpeechState(sessionId);
-  return {
-    used: state.imperfectionsUsed,
-    types: Array.from(state.typesUsed),
-  };
-}
-
-// ============================================================================
 // REGISTER
 // ============================================================================
 

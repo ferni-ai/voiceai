@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * The menu merge gate's no-skip guard (.github/workflows/menu-e2e.yml).
+ * The menu merge gate's no-skip guard (.github/workflows/menu-e2e.yml), also run on
+ * the Emulator Tests report (data-layer-e2e.yml).
  *
  * Every menu contract test is `describe.skipIf(!emulator)`, and the signed-in
  * walk skips a test when a button isn't visible. Both runners exit 0 on a skip,
@@ -94,12 +95,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     }
   }
   if (problems.length > 0) {
-    console.error(
-      `::error::The menu gate needs every test to run and pass (${problems.length} problem(s))`
-    );
+    console.error(`::error::Every test must run and pass (${problems.length} problem(s))`);
     for (const p of problems) console.error(`  ${p}`);
     console.error(
-      'A test that should not run here is left out by name in playwright.menu-e2e.config.ts.'
+      "A test that should not run here is left out of the run by name (its config's include or exclude), never skipped."
     );
     process.exit(1);
   }

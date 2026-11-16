@@ -357,15 +357,17 @@ The following services are registered with SessionDataManager:
 
 ### API Endpoints
 
+Admin only: send an admin's Firebase ID token.
+
 ```bash
 # Cache statistics
-curl http://localhost:8080/api/cache
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/cache
 
 # Memory metrics
-curl http://localhost:8080/api/memory
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/api/memory
 
 # Prometheus metrics
-curl http://localhost:8080/metrics
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" http://localhost:8080/metrics
 ```
 
 ### Sample `/api/cache` Response

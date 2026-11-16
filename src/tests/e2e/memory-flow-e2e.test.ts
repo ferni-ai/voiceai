@@ -238,7 +238,7 @@ describe('Memory Flow E2E', () => {
   describe('Learning Engine Data Flow', () => {
     it('should extract small details from user speech', async () => {
       const { extractSmallDetails } =
-        await import('../../intelligence/conversation-quality/small-details.js');
+        await import('../../intelligence/tracking/conversation-quality.js');
 
       const userSpeech = "My name is Sarah and I live in Austin. I've been at my job for 3 years.";
 
@@ -256,7 +256,7 @@ describe('Memory Flow E2E', () => {
 
     it('should detect emotional content', async () => {
       const { extractSmallDetails } =
-        await import('../../intelligence/conversation-quality/small-details.js');
+        await import('../../intelligence/tracking/conversation-quality.js');
 
       const emotionalSpeech = "I'm feeling really anxious about my presentation next week.";
 
@@ -364,7 +364,7 @@ describe('User Corrections Detection', () => {
 describe('Name Capture Scenarios', () => {
   it('should extract names from various formats', async () => {
     const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+      await import('../../intelligence/tracking/conversation-quality.js');
 
     // "My name is X"
     const details1 = extractSmallDetails('My name is Michael');
@@ -385,7 +385,7 @@ describe('Name Capture Scenarios', () => {
 
   it('should extract family member names', async () => {
     const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+      await import('../../intelligence/tracking/conversation-quality.js');
 
     const details = extractSmallDetails('My wife Sarah and my son Tommy');
     const names = details.filter((d) => d.type === 'person_name' || d.type === 'family_member');
@@ -396,7 +396,7 @@ describe('Name Capture Scenarios', () => {
 
   it('should not confuse persona names with user names', async () => {
     const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+      await import('../../intelligence/tracking/conversation-quality.js');
 
     // "Hi Maya" should NOT capture Maya as the user's name
     const details = extractSmallDetails('Hi Maya, how are you?');
@@ -418,7 +418,7 @@ describe('Comprehensive Synthetic Conversations', () => {
     const { stripSSML } = await import('../../utils/text-utils.js');
     const { getHistoryTracker } = await import('../../memory/index.js');
     const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+      await import('../../intelligence/tracking/conversation-quality.js');
 
     const tracker = getHistoryTracker(`career-session-${Date.now()}`, 'e2e-user');
 

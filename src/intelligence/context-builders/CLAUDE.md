@@ -35,7 +35,7 @@ return { tone: 'gentle', style: 'supportive', questionStyle: 'reflective' };
 
 ```
 context-builders/
-├── core/           # Foundation (types, registry, loader)
+├── core/           # Foundation (types, categories)
 ├── behavioral/     # NEW SYSTEM - expand this ⭐
 ├── safety/         # P0 - Crisis, wellbeing (always runs first)
 ├── intelligence/   # "Better Than Human" capabilities ⭐
@@ -51,11 +51,7 @@ context-builders/
 ├── superhuman/     # Superhuman services
 ├── humanization/   # Speech naturalness
 ├── external/       # External integrations
-├── learning/       # Collective intelligence
-├── cognitive/      # Cognitive pattern recognition builders
-├── conversational/ # Conversation-specific context (backchannel, goodbye, silence)
-├── family/         # Family-related context
-└── proactive/      # Proactive intelligence surfacing
+└── family/         # Family-related context
 ```
 
 ---
@@ -78,70 +74,9 @@ The ten `behavioral/builders/*.behavioral.ts` files were never imported on the l
 
 ---
 
-## Quick Start: Creating a LEGACY Builder (Deprecated)
+## Nothing Runs the Registry
 
-Only use this pattern for modifying existing legacy builders.
-
-### 1. Create the Builder
-```typescript
-// my-builder.ts
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
-import { registerContextBuilder, createStandardInjection } from './index.js';
-import { BuilderCategory } from './categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
-
-const log = createLogger({ module: 'context:my-builder' });
-
-export const myBuilder: ContextBuilder = {
-  name: 'my-builder',
-  description: 'What guidance this provides',
-  priority: 50,  // 0-100, see priority guide below
-  category: BuilderCategory.HUMANIZING, // Required - see categories.ts
-
-  build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { persona, analysis, userData } = input;
-
-    // Analyze context
-    if (!shouldActivate(analysis)) {
-      return [];  // Return empty if nothing to inject
-    }
-
-    // Return guidance using createStandardInjection
-    return [
-      createStandardInjection('my_injection', 'Specific instruction for the agent...', {
-        category: 'my-category',
-      }),
-    ];
-  },
-};
-
-// Register on module load
-registerContextBuilder(myBuilder);
-```
-
-### 2. Add to Builder Registry
-```typescript
-// builder-imports.ts - add your import
-'my-builder': () => import('./my-builder.js'),
-
-// loader.ts - add to BUILDER_MANIFEST in appropriate category
-[BuilderCategory.HUMANIZING]: [
-  'humanizing',
-  'my-builder', // Add here
-],
-```
-
-## Priority Guidelines
-
-| Range | Category | Examples |
-|-------|----------|----------|
-| 0-20 | Critical safety | `crisis.ts` - panic/emergency detection |
-| 20-40 | Core context | `memory.ts`, `emotional.ts` |
-| 40-60 | Enhancement | `engagement.ts`, `topics.ts` |
-| 60-80 | Personalization | `persona-memory.ts`, `cognitive.ts` |
-| 80-100 | Polish | `humanizing.ts`, `celebration.ts` |
-
-Lower priority = runs first. Higher priority = runs later (can override earlier).
+`registerContextBuilder` still records builders, but nothing runs the registry on a call: its runner (`core/loader.ts`, `core/builder-imports.ts`, `buildConversationContext`) was removed in 2026-11. A live turn gets its context from `agents/processors/turn-processor/context-injections.ts`, which imports each builder it uses. A new builder runs only once it is called from there.
 
 ## Injection Types
 ```typescript
@@ -172,30 +107,8 @@ type InjectionPriority =
 
 ### Don't
 - Return too many injections (causes prompt bloat)
-- Skip priority (causes ordering issues)
-- Forget to register (builder won't run)
 - Make injections vague ("be nice")
 - Duplicate logic from other builders
-
-## Builder Categories
-
-Builders are organized by category and loaded in priority order. See `loader.ts` for the full manifest.
-
-| Category | Examples | Purpose |
-|----------|----------|---------|
-| SAFETY | `crisis.ts`, `wellbeing-context.ts` | Must run first, can override everything |
-| EMOTIONAL | `emotional.ts`, `celebration.ts` | Core emotion handling |
-| VOICE | `voice-emotion.ts`, `human-listening.ts` | Voice emotion analysis |
-| MEMORY | `memory.ts`, `proactive-memory.ts` | Cross-session persistence |
-| PERSONA | `persona-identity.ts`, `human-personality.ts` | Character and identity |
-| COACHING | `coaching-context.ts`, `therapeutic-frameworks.ts` | Life coaching |
-| COGNITIVE | `awareness.ts`, `cognitive-distortions.ts` | Pattern recognition |
-| ENGAGEMENT | `engagement.ts`, `game-context.ts` | User engagement |
-| TEAM | `team-availability.ts`, `handoff.ts` | Multi-persona |
-| CONTEXT | `topics.ts`, `session-flow.ts` | Situational awareness |
-| EXTERNAL | `biometrics.ts`, `world-awareness.ts` | External data |
-| HUMANIZING | `humanizing.ts`, `tool-humanization.ts` | Natural speech |
-| LEARNING | `community-learning.ts`, `wisdom-synthesis.ts` | Collective intelligence |
 
 ## Cross-Persona Intelligence Builders
 
@@ -212,8 +125,6 @@ These specialized builders provide deep insights when entering a persona. Most a
 | `personas/ferni-coordinator-insights.ts` | Ferni | Standalone | Smart handoff suggestions |
 
 On a call these run from `getPersonaBuilder` (`agents/processors/injection-builders/intelligence-builders.ts`), keyed by canonical persona id (`personas/persona-ids.ts`). Maya's, Jordan's, Alex's and Nayan's never ran before #2836 and each waits behind a `PERSONA_BRIEFING_*` flag (off) until it is fixed; the flag file says what is wrong.
-
-The `personas/` directory also contains 20+ standalone builder files for persona-specific context (backstory, catchphrases, humor, vulnerability, voice DNA, etc.).
 
 ### Key Files
 
@@ -265,8 +176,6 @@ memory/                        - Cross-session memory builders
 emotional/                     - Emotion detection, contagion, laughter, voice emotion
 
 # PERSONA (personas/)
-persona-identity.ts            - Core persona identity
-human-personality.ts           - Semantic matching, callbacks
 peter-research-insights/       - Peter's deep research briefings (8 files)
 maya-coaching-insights/        - Maya's habit coaching context (8 files)
 jordan-milestone-insights/     - Jordan's milestone planning (8 files)
@@ -277,7 +186,6 @@ ferni-coordinator-insights.ts  - Ferni's handoff suggestions
 # HUMANIZING
 humanization/                  - Speech naturalness builders
 
-# See loader.ts for complete list of 90+ builders across 19 categories
 ```
 
 ## Testing

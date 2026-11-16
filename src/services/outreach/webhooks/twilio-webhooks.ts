@@ -274,13 +274,20 @@ export function isSignedInboundSms(
 /**
  * Handle an inbound text. `called`: a "call me" text placed a call now, or for later.
  * `crisis`: the screen read a crisis (a "call me" then rings now); returned: SMS_REPLY's read did.
+ * `unverified`: from no member's verified phone and not a maybe-"stop" (SMS_REPLY_UNVERIFIED).
  */
 export async function handleInboundSMSWebhook(
   payload: TwilioInboundSMSPayload,
   signature?: string,
   url?: string,
   { crisis = false }: { crisis?: boolean } = {}
-): Promise<{ success: boolean; twiml?: string; called?: 'now' | 'later'; crisis?: true }> {
+): Promise<{
+  success: boolean;
+  twiml?: string;
+  called?: 'now' | 'later';
+  crisis?: true;
+  unverified?: true;
+}> {
   if (!isSignedInboundSms(payload, signature, url)) return { success: false };
 
   const { MessageSid, Body, From, NumMedia } = payload;
@@ -425,7 +432,9 @@ export async function handleInboundSMSWebhook(
     }
   }
 
-  return { success: true }; // no reply (SMS_REPLY off or held back)
+  // No reply here (SMS_REPLY off or held back); a stranger's text may get the route's fixed one.
+  const unverified = !isMemberIdentity(userId) && said?.kind !== 'maybe-opt-out';
+  return { success: true, ...(unverified && { unverified }) };
 }
 
 /**
