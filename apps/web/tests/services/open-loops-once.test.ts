@@ -33,6 +33,31 @@ describe('toOpenLoops', () => {
   });
 });
 
+describe('toOpenLoops: who a loop is about', () => {
+  const about = (id: string, relatedPerson?: string) => ({
+    ...item(id, "I'll call her tomorrow"),
+    ...(relatedPerson ? { relatedPerson } : {}),
+  });
+
+  it('keeps the same words about two people as two rows', () => {
+    const loops = toOpenLoops({ total: 2, items: [about('m', 'Mom'), about('d', 'Dad')] });
+    expect(loops?.loops.map((l) => [l.id, l.relatedPerson])).toEqual([
+      ['m', 'Mom'],
+      ['d', 'Dad'],
+    ]);
+    expect(loops?.totalOpen).toBe(2);
+  });
+
+  it('draws the same words about the same person once', () => {
+    const loops = toOpenLoops({
+      total: 3,
+      items: [about('m1', 'Mom'), about('m2', ' mom'), about('x')],
+    });
+    expect(loops?.loops.map((l) => l.id)).toEqual(['m1', 'x']);
+    expect(loops?.totalOpen).toBe(2);
+  });
+});
+
 describe('onePerWording', () => {
   it('treats case, spacing, end punctuation and a dash pause as the same line', () => {
     expect(wordingKey('Just checking in - no pressure.')).toBe(

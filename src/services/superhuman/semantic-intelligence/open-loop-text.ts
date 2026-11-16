@@ -61,6 +61,19 @@ export function oneLoopPerWording<T extends LoopWords>(loops: readonly T[]): T[]
 /** How many words a clause may add to the detector's fragment. */
 const MAX_ADDED_WORDS = 8;
 
+/** Where a clause ends: punctuation, a line break, a spaced hyphen or any en or em dash. */
+const CLAUSE_END = /[.!?;:,\n]|\s+-+\s+|\s*[\u2013\u2014]+\s*/g;
+
+/** The first clause end in `rest`, skipping one between digits ("10\u201312", "1,000"). */
+function clauseEnd(rest: string): number {
+  for (const m of rest.matchAll(CLAUSE_END)) {
+    const range =
+      /\d$/.test(rest.slice(0, m.index)) && /^\d/.test(rest.slice(m.index + m[0].length));
+    if (!range) return m.index;
+  }
+  return -1;
+}
+
 /**
  * `content` carried on to the end of its clause in `context`: the next comma, semicolon,
  * colon, dash, sentence end or line break. Only a short clause is completed: when it runs
@@ -75,7 +88,7 @@ export function wholeClause(content: string, context: string | undefined): strin
   const at = words.toLowerCase().indexOf(text.toLowerCase());
   if (at < 0) return text;
   const rest = words.slice(at + text.length);
-  const end = rest.search(/[.!?;:,\n\u2013\u2014]|\s-+\s/);
+  const end = clauseEnd(rest);
   if (end < 0 && context.length >= LOOP_CONTEXT_CHARS) return text;
   const tail = end >= 0 ? rest.slice(0, end) : rest;
   if (tail.trim().split(' ').filter(Boolean).length > MAX_ADDED_WORDS) return text;

@@ -196,6 +196,24 @@ describe('wholeClause', () => {
     ).toBe('I need to call the clinic');
   });
 
+  it('stops at a comma even when what follows is short', () => {
+    expect(
+      wholeClause('I need to call the clinic', 'I need to call the clinic, about my results')
+    ).toBe('I need to call the clinic');
+  });
+
+  it('keeps the fragment when the kept words end mid-clause, however few are left', () => {
+    const cut = `${'filler '.repeat(28)}I need to stop for gas on`;
+    expect(cut.length).toBeGreaterThanOrEqual(200);
+    expect(wholeClause('I need to stop', cut)).toBe('I need to stop');
+  });
+
+  it('reads a number range as part of the clause, not its end', () => {
+    expect(
+      wholeClause('I need to be there', 'I need to be there between 10\u201312 tomorrow')
+    ).toBe('I need to be there between 10\u201312 tomorrow');
+  });
+
   it('keeps the fragment when the clause runs on past eight more words', () => {
     const said =
       'I need to call the clinic about the results that came back from the lab on Tuesday';

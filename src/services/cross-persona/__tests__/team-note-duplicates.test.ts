@@ -93,5 +93,6 @@ describe('withoutDashPauses', () => {
       'Just checking in, no pressure.'
     );
     expect(withoutDashPauses('pages 3\u20145')).toBe('pages 3\u20145');
+    expect(withoutDashPauses('a few words\u2014 5 things')).toBe('a few words, 5 things');
   });
 });

@@ -18,13 +18,18 @@ export function wordingKey(text: string): string {
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
 
-/** The first item of each wording, in order. `textOf` names the line an item shows. */
-export function onePerWording<T>(items: readonly T[], textOf: (item: T) => string): T[] {
+/** The first item of each key, in order. */
+export function onePerKey<T>(items: readonly T[], keyOf: (item: T) => string): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
-    const key = wordingKey(textOf(item));
+    const key = keyOf(item);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+/** The first item of each wording, in order. `textOf` names the line an item shows. */
+export function onePerWording<T>(items: readonly T[], textOf: (item: T) => string): T[] {
+  return onePerKey(items, (item) => wordingKey(textOf(item)));
 }

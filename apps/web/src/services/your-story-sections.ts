@@ -10,7 +10,7 @@
  * @module services/your-story-sections
  */
 
-import { onePerWording } from '../utils/one-per-wording.js';
+import { onePerKey, wordingKey } from '../utils/one-per-wording.js';
 import type {
   EmotionalArcPhase,
   EmotionalArcsData,
@@ -247,10 +247,17 @@ const LOOP_CATEGORIES: Record<string, OpenLoop['category']> = {
   question: 'question',
 };
 
-/** One row per wording, even if the server sends a loop twice (it saved each turn twice). */
+/**
+ * One row per wording and person, even if the server sends a loop twice (it saved each
+ * turn twice): "I'll call her tomorrow" about Mom and about Dad are two rows. The same key
+ * as the server's (open-loop-text.ts loopKey).
+ */
 export function toOpenLoops(api: ApiOpenLoops | null | undefined): OpenLoopsData | undefined {
   if (!api || api.items.length === 0) return undefined;
-  const items = onePerWording(api.items, (l) => l.content);
+  const items = onePerKey(
+    api.items,
+    (l) => `${wordingKey(l.content)}|${l.relatedPerson ? wordingKey(l.relatedPerson) : ''}`
+  );
   const loops: OpenLoop[] = items.map((l) => ({
     id: l.id,
     description: l.content,
