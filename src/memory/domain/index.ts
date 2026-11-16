@@ -6,7 +6,7 @@
  * @module memory/domain
  */
 
-export { couldBePerson } from './person-name.js';
+export { couldBePerson, nameAsSaid } from './person-name.js';
 export {
   groupOf,
   keepLetters,
@@ -15,4 +15,4 @@ export {
   personKey,
   relationOf,
 } from './person-key.js';
-export { relationWords } from './person-key.js';
+export { relationWordNearest, relationWords } from './person-key.js';
