@@ -62,7 +62,7 @@ describe('extraction: non-people are never names', () => {
   });
 });
 
-describe('a lowercase name counts only after a strong cue', () => {
+describe('a name counts only when it is said capitalised, on every cue', () => {
   it.each([
     ['my sister grace called last night', 'Grace'],
     ['i talked to sarah yesterday', 'Sarah'],
@@ -72,16 +72,32 @@ describe('a lowercase name counts only after a strong cue', () => {
     ['she has a dog named biscuit', 'Biscuit'],
     ['i should tell priya', 'Priya'],
     ['i want to ask omar', 'Omar'],
-  ])('%s: keeps "%s", title-cased', (said, name) => {
-    expect(namesIn(said)).toContain(name);
+  ])('%s: no "%s" (lowercase, even after a strong cue)', (said, name) => {
+    expect(namesIn(said)).not.toContain(name);
   });
 
-  it('extractPerson title-cases a name after a relation or "talked to"', () => {
+  it('extractPerson keeps "my sister" as family and never title-cases a lowercase word', () => {
     expect(extractPerson('my sister grace called')).toMatchObject({
-      name: 'Grace',
+      name: 'my sister',
       type: 'family',
     });
-    expect(extractPerson('i talked to sarah yesterday')?.name).toBe('Sarah');
+    expect(extractPerson('i talked to sarah yesterday')).toBeNull();
+  });
+
+  // Held out: words the verifier saw stored as people when a strong cue title-cased them
+  it.each([
+    ['i talked to two of them', 'Two'],
+    ['i texted twice and heard nothing', 'Twice'],
+    ['a dog named after my grandpa', 'After'],
+    ['i should ask maybe tomorrow', 'Maybe'],
+    ['i spoke with customer service again', 'Customer'],
+    ['i talked to doctor patel', 'Doctor'],
+    ['my boss dude is rough', 'Dude'],
+    ['i should ask google', 'Google'],
+  ])('%s: stores no name, never "%s"', (said, word) => {
+    const named = namesIn(said).filter((name) => !name.startsWith('my '));
+    expect(named).not.toContain(word);
+    expect(named).toEqual([]);
   });
 
   it.each([
@@ -95,7 +111,7 @@ describe('a lowercase name counts only after a strong cue', () => {
     'i texted back right away',
     'tell me more',
     'i should ask for help',
-  ])('%s: no name (weak cue, or not a name after a strong one)', (said) => {
+  ])('%s: no name', (said) => {
     expect(namesIn(said)).toEqual([]);
   });
 });
@@ -107,9 +123,20 @@ describe('honorifics are never a name on their own', () => {
     expect(names).not.toContain('Dr');
   });
 
-  it.each(['Dr', 'Mr', 'Mrs', 'Ms', 'Prof'])('recordMention refuses "%s"', async (name) => {
-    expect(await recordMention('u-title', { name, type: 'acquaintance', context: '' })).toBeNull();
+  it('"spoke with Doctor Patel" stores Patel, never "Doctor"', () => {
+    const names = namesIn('I spoke with Doctor Patel today');
+    expect(names).toContain('Patel');
+    expect(names).not.toContain('Doctor');
   });
+
+  it.each(['Dr', 'Mr', 'Mrs', 'Ms', 'Prof', 'Doctor'])(
+    'recordMention refuses "%s"',
+    async (name) => {
+      expect(
+        await recordMention('u-title', { name, type: 'acquaintance', context: '' })
+      ).toBeNull();
+    }
+  );
 });
 
 describe('recordMention: the write guard every writer funnels through', () => {

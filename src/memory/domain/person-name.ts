@@ -37,14 +37,17 @@ export const wordsOf = (name: string): string[] =>
 /**
  * Words the people regexes catch after "call", "tell", "ask", "with" or "and" that are never
  * a name: fillers and verbs ("talked to uh", "and check"), prepositions and plain nouns after
- * a cue ("ask about", "talked to people"), and an honorific alone ("Dr" of "Dr. Patel").
+ * a cue ("ask about", "talked to people").
  * Names that are also words (Will, May, Mark, Bill, Grace) are deliberately left out.
  */
 const NOT_A_PERSON = new Set(
-  'uh uhh um umm er erm ah ahh hm hmm mm mhm oh ooh ok okay yeah yep yup yes no nope nah huh like well so check call text tell ask see go get got do make talk say said meet visit email let help find try take give send thank thanks about for if whether to at in on of from over out up down back off into all people folks guys friends family team work home school dinner lunch dr mr mrs ms prof'.split(
+  'uh uhh um umm er erm ah ahh hm hmm mm mhm oh ooh ok okay yeah yep yup yes no nope nah huh like well so check call text tell ask see go get got do make talk say said meet visit email let help find try take give send thank thanks about for if whether to at in on of from over out up down back off into all people folks guys friends family team work home school dinner lunch'.split(
     ' '
   )
 );
+
+/** A title alone is never a name ("Dr" of "Dr. Patel"), "Doctor" included though it is a relation. */
+const HONORIFIC = new Set(['dr', 'doctor', 'mr', 'mrs', 'ms', 'prof']);
 
 /**
  * Whether a name stored for someone in the caller's life can be a person: a name ("Bria",
@@ -55,10 +58,12 @@ const NOT_A_PERSON = new Set(
 export function couldBePerson(name: string): boolean {
   const trimmed = name.trim();
   if (!trimmed || /^[\d\s.,:/#%$-]+$/.test(trimmed)) return false;
-  if (relationOf(trimmed)) return true;
   const words = wordsOf(trimmed);
+  if (words.length === 1 && HONORIFIC.has(words[0] ?? '')) return false;
+  if (relationOf(trimmed)) return true;
   if (words.length === 0 || GENERIC.test(trimmed)) return false;
-  if (words.length > 1) return !words.every((w) => NOT_A_NAME.has(w) || NOT_A_PERSON.has(w));
+  if (words.length > 1)
+    return !words.every((w) => NOT_A_NAME.has(w) || NOT_A_PERSON.has(w) || HONORIFIC.has(w));
   const [word] = words as [string];
   return !NOT_A_NAME.has(word) && !NOT_A_PERSON.has(word) && !PLACEHOLDER.has(word);
 }
