@@ -156,6 +156,13 @@ describe('the repetition rule (BLOG_REPEAT_GATE)', () => {
     ]);
   });
 
+  it('matches a third copy against the earlier copy it repeats longest', () => {
+    const body = `${CLEAN} We keep your notes safe and private always. Then: we keep your notes safe and loud. Finally, we keep your notes safe and private always.`;
+    expect(said(post(body))).toContain(
+      'said twice in the post: "we keep your notes safe and private always". Say it once.'
+    );
+  });
+
   it('counts numbers as words, so lines that differ only in a number are not repeats', () => {
     const md = post(
       `${CLEAN} It costs 5 dollars a month for everyone. Later it costs 9 dollars a month for everyone.`
