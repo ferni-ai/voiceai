@@ -46,7 +46,7 @@ jobs:
       pull-requests: write
       checks: write
     env:
-      SITE_DIR: apps/website/marketplace-portal
+      PORTAL_DIR: apps/website/marketplace-portal
       LIVE: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
       PREVIEW: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
     steps:
@@ -60,17 +60,17 @@ jobs:
 
       # Not a pnpm workspace package: it has its own package-lock.json.
       - name: Install dependencies
-        working-directory: ${{ env.SITE_DIR }}
+        working-directory: ${{ env.PORTAL_DIR }}
         run: npm ci --no-audit --no-fund
 
       - name: Build
-        working-directory: ${{ env.SITE_DIR }}
+        working-directory: ${{ env.PORTAL_DIR }}
         run: npm run build
 
       # Checks the build in _site: internal links resolve, no prices, no past
       # launch dates. `ls` fails first if the glob would match no test file.
       - name: Test the build
-        working-directory: ${{ env.SITE_DIR }}
+        working-directory: ${{ env.PORTAL_DIR }}
         run: |
           ls __tests__/*.test.js
           node --test '__tests__/*.test.js'
@@ -89,7 +89,7 @@ jobs:
 
       - name: Smoke check the preview
         if: env.PREVIEW == 'true'
-        working-directory: ${{ env.SITE_DIR }}
+        working-directory: ${{ env.PORTAL_DIR }}
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.details_url }}
         run: |
@@ -115,7 +115,7 @@ jobs:
       # here is rare; roll back from the console's release history.
       - name: Smoke check marketplace.ferni.ai
         if: env.LIVE == 'true'
-        working-directory: ${{ env.SITE_DIR }}
+        working-directory: ${{ env.PORTAL_DIR }}
         run: |
           if node scripts/smoke-check.mjs https://marketplace.ferni.ai; then
             echo "marketplace.ferni.ai deployed and every home-page link answers" >> "$GITHUB_STEP_SUMMARY"
