@@ -20,7 +20,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { wordsNeverLogged } from '../identity/owner-write-gate.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
@@ -661,7 +661,7 @@ export async function createSessionServices(
       const startTime = Date.now();
       try {
         const current = savable(services.userProfile); // a stand-in (failed read) never saves
-        if (current && !memoryHeld(sessionId)) {
+        if (current && !(memoryHeld(sessionId) || userHeld(uid))) {
           const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
           await saveSessionProfile(updatedProfile, uid);
@@ -924,11 +924,11 @@ export async function createSessionServices(
         );
       }
 
-      // Persist the turn to Firestore now, in the background.
-      if (validatedUserId && realtimeConversationId && !memoryHeld(sessionId)) {
+      // Persist the turn to Firestore now, in the background: never for a held call or caller.
+      const held = memoryHeld(sessionId) || userHeld(validatedUserId); // read on every turn
+      if (validatedUserId && realtimeConversationId && !held) {
         const now = turn.timestamp || new Date();
-        // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting
-        // Raw SSML tags like <break time="200ms"/> should not appear in memory
+        // ISSUE-005: strip SSML (like <break time="200ms"/>) from assistant turns before saving
         const cleanContent = role === 'assistant' ? stripSSML(content) : content;
         realtimeMemory
           .persistTurn(validatedUserId, realtimeConversationId, {
@@ -1482,9 +1482,9 @@ export async function createSessionServices(
      * not the stale closure variable, which missed endSession's updates (BUG #memory-audit-2).
      */
     saveProfile: async () => {
-      // CRITICAL FIX: services.userProfile, not the stale closure (it misses endSession updates)
       const profileToSave = savable(services.userProfile); // never a stand-in (failed read)
-      if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
+      const held = memoryHeld(sessionId) || userHeld(validatedUserId); // this call or this caller
+      if (profileToSave && validatedUserId && !held) {
         try {
           const history = historyTracker.getSessionHistory();
           const state = stateMachine.getState();
