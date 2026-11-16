@@ -2,8 +2,8 @@
  * GROUP_CALL: what Ferni is told about who is on the call, and that a persona taking
  * over the call is told it all again.
  */
-import { voice } from '@livekit/agents';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { RecallAgent } from '../../multi-agent/recall-note.js';
 import {
   callNotes,
   guestLeftNote,
@@ -51,33 +51,33 @@ describe('group call note copy', () => {
     const profile = (preferredName?: string, name?: string) => ({
       services: { userProfile: { preferredName, name } },
     });
-    expect(ownerFirstName(profile('Seth', 'Seth Ford'))).toBe('Seth');
-    expect(ownerFirstName(profile(undefined, 'Seth Ford'))).toBe('Seth');
-    expect(ownerFirstName({ userName: 'Seth Ford' })).toBe('Seth');
+    expect(ownerFirstName(profile('Sam', 'Sam Rivera'))).toBe('Sam');
+    expect(ownerFirstName(profile(undefined, 'Sam Rivera'))).toBe('Sam');
+    expect(ownerFirstName({ userName: 'Sam Rivera' })).toBe('Sam');
     expect(ownerFirstName({})).toBe('the caller');
     expect(ownerFirstName(undefined)).toBe('the caller');
   });
 });
 
 /** A persona whose system notes the test can read. */
-function persona() {
+function persona(): { agent: RecallAgent; notes: Array<{ content: string; id?: string }> } {
   const notes: Array<{ content: string; id?: string }> = [];
-  const agent = {
+  const agent: RecallAgent = {
     chatCtx: {
       copy: () => ({
         items: [],
         addMessage: (msg: { content: string; id?: string }) => notes.push(msg),
       }),
     },
-    updateChatCtx: vi.fn(async () => undefined),
+    updateChatCtx: async () => undefined,
   };
-  return { agent: agent as unknown as voice.Agent, notes };
+  return { agent, notes };
 }
 
 describe('callNotes', () => {
   it('tells the persona on the call now, with a stable id per note', () => {
     const first = persona();
-    const session = { currentAgent: first.agent } as unknown as voice.AgentSession;
+    const session = { currentAgent: first.agent };
     const { note } = callNotes(session, first.agent, 'session-notes-1');
     note('Sarah is on this call.');
     note('Sarah has left the call.');
@@ -94,12 +94,8 @@ describe('callNotes', () => {
   it('a persona that takes over is told every note so far, once', () => {
     const first = persona();
     const next = persona();
-    const session = { currentAgent: first.agent } as { currentAgent: voice.Agent };
-    const { note, renote } = callNotes(
-      session as unknown as voice.AgentSession,
-      first.agent,
-      'session-notes-2'
-    );
+    const session = { currentAgent: first.agent };
+    const { note, renote } = callNotes(session, first.agent, 'session-notes-2');
     renote(); // nothing to say yet
     note('Sarah is on this call.');
     renote(); // the same persona: nothing new
@@ -113,10 +109,10 @@ describe('callNotes', () => {
   it('falls back to the persona it was made with when the session is not running', () => {
     const first = persona();
     const session = {
-      get currentAgent(): voice.Agent {
+      get currentAgent(): RecallAgent {
         throw new Error('AgentSession is not running');
       },
-    } as unknown as voice.AgentSession;
+    };
     callNotes(session, first.agent, 'session-notes-3').note('Sarah is on this call.');
     expect(first.notes.map((n) => n.content)).toEqual(['Sarah is on this call.']);
   });

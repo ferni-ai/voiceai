@@ -9,10 +9,9 @@
  *
  * @module agents/group-conversation/group-call-notes
  */
-import type { voice } from '@livekit/agents';
 import { firstNameOf } from '../../utils/caller-name.js';
 import { dispatchedUserName } from '../../utils/ferni-intro.js';
-import { addRecallNote } from '../multi-agent/recall-note.js';
+import { addRecallNote, type RecallAgent } from '../multi-agent/recall-note.js';
 import { guestLabel, guestRole } from './guest-display-name.js';
 
 /** First letter up, for a note that starts with a name like "the guest". */
@@ -54,8 +53,13 @@ export function ownerGoneNote(owner: string, name: string): string {
 
 export const ownerBackNote = (owner: string): string => `${sentence(owner)} is back on the call.`;
 
+/** The slice of the SDK AgentSession this needs: the persona on the call now. */
+interface CallSession {
+  readonly currentAgent: RecallAgent;
+}
+
 /** The persona on the call now: a handoff swaps the session's agent (persona-swap.ts). */
-function agentNow(session: voice.AgentSession, fallback: voice.Agent): voice.Agent {
+function agentNow(session: CallSession, fallback: RecallAgent): RecallAgent {
   try {
     return session.currentAgent ?? fallback;
   } catch {
@@ -68,12 +72,12 @@ function agentNow(session: voice.AgentSession, fallback: voice.Agent): voice.Age
  * a persona that took over every note so far. Note ids are stable, one per note.
  */
 export function callNotes(
-  session: voice.AgentSession,
-  agent: voice.Agent,
+  session: CallSession,
+  agent: RecallAgent,
   sessionId: string
 ): { note: (text: string) => void; renote: () => void } {
   const notes: Array<{ note: string; id: string }> = [];
-  let notedAgent: voice.Agent | undefined;
+  let notedAgent: RecallAgent | undefined;
   return {
     note: (text) => {
       const entry = { note: text, id: `group_call_${sessionId}_${notes.length + 1}` };
