@@ -110,6 +110,15 @@ describe('pickTaskToEdit: which open task the person named', () => {
     expect(pickTaskToEdit(others, '買い物')).toEqual({ kind: 'one', task: others[2] });
   });
 
+  it('a word with combining marks stays whole: "माँ" is not in "मेरा काम"', () => {
+    const work = task('मेरा काम');
+    const call = task('माँ को फ़ोन');
+    expect(pickTaskToEdit([work], 'माँ')).toEqual({ kind: 'none' });
+    expect(pickTaskToEdit([work, call], 'माँ')).toEqual({ kind: 'one', task: call });
+    const buy = task('ซื้อนม');
+    expect(pickTaskToEdit([task('ซอย'), buy], 'ซื้อนม')).toEqual({ kind: 'one', task: buy });
+  });
+
   it('a curly apostrophe is the same word as a straight one: “mom’s pills”', () => {
     const pills = [task("Refill mom's pills"), task('Refill the car')];
     expect(pickTaskToEdit(pills, 'mom’s pills')).toEqual({ kind: 'one', task: pills[0] });

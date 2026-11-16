@@ -16,12 +16,17 @@ export type TaskMatch<T extends NamedTask> =
 /** Words that say how a task is named, not which task: "the dry cleaning one". */
 const FILLER = new Set(['the', 'a', 'an', 'my', 'one', 'task', 'that', 'this']);
 
-/** Letters and digits in any script ("mamá", "買い物"); a curly apostrophe is a straight one. */
+/**
+ * Letters, their combining marks and digits in any script ("mamá", "माँ", "ซื้อ",
+ * "買い物"); a curly apostrophe is a straight one. Without the marks (\p{M}) a
+ * Devanagari or Thai word fell apart into letters and named the wrong task.
+ */
 const words = (text: string): string[] =>
   text
+    .normalize('NFC')
     .toLowerCase()
     .replace(/[‘’]/g, "'")
-    .match(/[\p{L}\p{N}']+/gu) ?? [];
+    .match(/[\p{L}\p{M}\p{N}']+/gu) ?? [];
 
 /**
  * The open task `said` names ("dry cleaning", "the call with mom"). An exact title
