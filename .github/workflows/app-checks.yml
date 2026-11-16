@@ -99,11 +99,22 @@ jobs:
         with:
           node-version: '22'
 
-      # tsconfig.json is JSONC (comments), so tsc reads it, not this step.
+      # tsconfig.json is JSONC (comments), so tsc reads it, not this step. Finding
+      # no files fails: a check that passes on nothing cannot go red.
       - name: Every JSON file parses
         run: |
-          git ls-files -z 'apps/marketing/*.json' ':!apps/marketing/tsconfig.json' |
-            xargs -0 -n1 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))'
+          mapfile -t files < <(git ls-files 'apps/marketing/*.json' ':!apps/marketing/tsconfig.json')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::found no JSON files under apps/marketing"; exit 1
+          fi
+          node -e '
+            const { readFileSync } = require("fs");
+            for (const file of process.argv.slice(1)) {
+              try { JSON.parse(readFileSync(file, "utf8")); }
+              catch (error) { console.log("::error file=" + file + "::" + error.message); process.exitCode = 1; }
+            }
+            console.log(process.argv.length - 1 + " JSON files checked");
+          ' "${files[@]}"
 
       # Only TypeScript and Node's types: the scripts need nothing else (see the
       # tsconfig for the one that does), and the whole workspace install is minutes.
