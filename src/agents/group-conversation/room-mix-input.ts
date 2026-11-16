@@ -26,9 +26,9 @@ const log = createLogger({ module: 'RoomMixInput' });
 
 export const MIX_SAMPLE_RATE = 16_000;
 /** 10 ms at 16 kHz mono. */
-export const MIX_SAMPLES_PER_FRAME = 160;
+const MIX_SAMPLES_PER_FRAME = 160;
 /** A guest's frames waiting for the next owner frame: 50 ms. When full, the oldest is dropped. */
-export const GUEST_QUEUE_FRAMES = 5;
+const GUEST_QUEUE_FRAMES = 5;
 
 /**
  * The clock the mix stamps ledger notes with: monotonic milliseconds. Anything

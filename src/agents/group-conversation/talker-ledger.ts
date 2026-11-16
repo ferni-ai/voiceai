@@ -8,13 +8,13 @@
  */
 
 /** A frame at or above this RMS (int16 units) counts as someone talking. */
-export const VOICED_RMS = 500;
+const VOICED_RMS = 500;
 
 /** Each note stands for one 10 ms frame of the mix. */
-export const FRAME_MS = 10;
+const FRAME_MS = 10;
 
 /** Voiced frames older than this, measured from the newest note, are forgotten. */
-export const LEDGER_RETENTION_MS = 60_000;
+const LEDGER_RETENTION_MS = 60_000;
 
 interface VoicedFrame {
   identity: string;

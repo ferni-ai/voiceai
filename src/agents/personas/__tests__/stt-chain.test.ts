@@ -7,7 +7,7 @@ import { setImmediate as nextTick } from 'node:timers/promises';
 import { stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TalkerLedger, VOICED_RMS } from '../../group-conversation/talker-ledger.js';
+import { TalkerLedger } from '../../group-conversation/talker-ledger.js';
 
 interface Hearing {
   guestName: (identity: string) => string | undefined;
@@ -24,6 +24,8 @@ vi.mock('../../group-conversation/group-hearing.js', () => ({
 
 const { sttChain } = await import('../stt-chain.js');
 
+/** Twice the ledger's voiced level (500, from the plan): clearly someone talking. */
+const LOUD = 1000;
 const SESSION = 'session-label-1';
 const OWNER = 'owner_web';
 const GUEST = 'sip_guest1';
@@ -44,8 +46,8 @@ function interim(text: string): stt.SpeechEvent {
 /** Puts `who` voiced for the 300 ms before `nowMs` (and the other person for a fifth of it). */
 function voiced(ledger: TalkerLedger, who: string, nowMs: number): void {
   const other = who === OWNER ? GUEST : OWNER;
-  for (let at = nowMs - 300; at < nowMs; at += 10) ledger.note(who, at, VOICED_RMS * 2);
-  for (let at = nowMs - 300; at < nowMs; at += 50) ledger.note(other, at, VOICED_RMS * 2);
+  for (let at = nowMs - 300; at < nowMs; at += 10) ledger.note(who, at, LOUD);
+  for (let at = nowMs - 300; at < nowMs; at += 50) ledger.note(other, at, LOUD);
 }
 
 function hearingOnCall(guestOn = true): TalkerLedger {
@@ -129,7 +131,7 @@ describe('sttChain guest labels', () => {
     const ledger = hearingOnCall();
     voiced(ledger, OWNER, 50_000); // owner 300 ms, guest 60 ms
     for (let at = 50_000; at < 50_500; at += 10) {
-      ledger.note(at < 50_250 ? OWNER : GUEST, at, VOICED_RMS * 2); // 250 ms each: overlap
+      ledger.note(at < 50_250 ? OWNER : GUEST, at, LOUD); // 250 ms each: overlap
     }
     const feed = sttFeed();
     const reader = await chainAt49s(feed);
