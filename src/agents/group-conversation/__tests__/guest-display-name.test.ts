@@ -50,6 +50,19 @@ describe('guestDisplayName', () => {
     expect(guestDisplayName('佐藤 Дмитрий', 'Seth')).toBe('the guest');
   });
 
+  it('reads a letter shared by scripts (Script_Extensions) as in each of them', () => {
+    expect(guestDisplayName('ユーリ', 'Seth')).toBe('ユーリ'); // ー is in kana's extensions
+    expect(guestDisplayName('ジョージ', 'Seth')).toBe('ジョージ');
+    const tatweel = '\u0644\u064a\u0640\u0644\u0649'; // ليـلى, ـ is Arabic by extension
+    expect(guestDisplayName(tatweel, 'Seth')).toBe(tatweel);
+  });
+
+  it('keeps a name in Tamil, Thai or Georgian', () => {
+    expect(guestDisplayName('மீனா', 'Seth')).toBe('மீனா');
+    expect(guestDisplayName('มาลี', 'Seth')).toBe('มาลี');
+    expect(guestDisplayName('ნინო', 'Seth')).toBe('ნინო');
+  });
+
   it('falls back to "the guest" for a name that mixes scripts', () => {
     expect(guestDisplayName('\u0405eth', 'Seth')).toBe('the guest'); // Cyrillic Ѕ, Latin eth
     expect(guestDisplayName('Sarah 李', 'Seth')).toBe('the guest');
