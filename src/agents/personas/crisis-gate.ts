@@ -89,6 +89,7 @@ import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
+import { loggedEscalation } from './crisis-gate-failure.js';
 import { holdUntilCleared } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
@@ -295,7 +296,8 @@ export function startCrisisGate(
     return stronger;
   };
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
-  return { decision, escalation: checkin.escalation(verdictRead, checkinTurn, escalate), reask };
+  const logged = loggedEscalation(verdictRead, (v) => checkin.escalation(v, checkinTurn, escalate));
+  return { decision, escalation: logged, reask };
 }
 
 /** A reply stream that speaks one fixed text. */
