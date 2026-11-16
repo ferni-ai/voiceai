@@ -28,7 +28,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
-import { relationOf } from './domain/person-key.js';
+import { GENERIC, NOT_A_NAME, PLACEHOLDER, wordsOf } from './domain/person-name.js';
 
 export function entityHygieneOn(env: Env = process.env): boolean {
   return flagOn('ENTITY_HYGIENE', env);
@@ -54,21 +54,6 @@ const TEAMMATE_ALONE = new RegExp(
   `^(?:(?:hi|hey|hello|yo|thanks|bye)\\s+)?(?:${TEAMMATE}|maya santos|peter john|jordan taylor|alex chen|nayan patel)$`,
   'i'
 );
-
-const PLACEHOLDER = new Set(
-  'unknown unspecified unnamed unidentified someone somebody something anyone anybody anything everyone everybody nobody whoever whatever none null undefined n/a tbd'.split(
-    ' '
-  )
-);
-/** A name that is only a pronoun, possessive or greeting. */
-const NOT_A_NAME = new Set(
-  'i me my mine you your he him his she her hers we us our they them their it its hi hey hello'.split(
-    ' '
-  )
-);
-/** "the item", "a person", "some thing": a bare generic noun, not a name. */
-const GENERIC =
-  /^(?:the|a|an|some|this|that|any)\s+(?:item|items|thing|things|person|people|place|topic|concept|stuff|one|guy|someone)$/i;
 
 /** What the caller asks Ferni to do, at the start of the name. */
 const REQUEST = [
@@ -112,13 +97,6 @@ function onlyGreeted(name: string, said: string): boolean {
 
 const isRoleLabel = (name: string): boolean => ROLE_LABEL.test(name) || BARE_ROLE.test(name);
 
-const wordsOf = (name: string): string[] =>
-  name
-    .toLowerCase()
-    .split(/[^a-z0-9/']+/)
-    .map((w) => w.replace(/'s$/, ''))
-    .filter(Boolean);
-
 /**
  * The reason this entity is junk, or null when it is a real person, place or topic.
  * `said` is what the caller said this turn, when known.
@@ -156,34 +134,6 @@ function isPersona(entity: NamedEntity, name: string, words: string[], env: Env)
   if (!TEAMMATE_ALONE.test(words.join(' '))) return false;
   const relation = entity.relationship?.trim() ?? '';
   return !(entity.type === 'person' && relation !== '' && !NOT_A_RELATION.test(relation));
-}
-
-/**
- * Spoken fillers and everyday verbs the people regexes catch after "call", "tell", "with" or
- * "and" ("I talked to uh", "and check", "call me"). None is a given name; names that are
- * also words (Will, May, Mark, Bill, Grace) are deliberately left out.
- */
-const NOT_A_PERSON = new Set(
-  'uh uhh um umm er erm ah ahh hm hmm mm mhm oh ooh ok okay yeah yep yup yes no nope nah huh like well so check call text tell ask see go get got do make talk say said meet visit email let help find try take give send thank thanks'.split(
-    ' '
-  )
-);
-
-/**
- * Whether a name stored for someone in the caller's life can be a person: a name ("Bria",
- * "Mel", "Checkers") or a relation ("my mom", "Mom"). Never a lone pronoun, filler, verb,
- * placeholder or number. Whole words only: "me" never drops "Mel". Not flag-gated: prod
- * 2026-11-16 drew "uh", "check", "call", "me" and "her" in the Your World graph.
- */
-export function couldBePerson(name: string): boolean {
-  const trimmed = name.trim();
-  if (!trimmed || /^[\d\s.,:/#%$-]+$/.test(trimmed)) return false;
-  if (relationOf(trimmed)) return true;
-  const words = wordsOf(trimmed);
-  if (words.length === 0 || GENERIC.test(trimmed)) return false;
-  if (words.length > 1) return !words.every((w) => NOT_A_NAME.has(w) || NOT_A_PERSON.has(w));
-  const [word] = words as [string];
-  return !NOT_A_NAME.has(word) && !NOT_A_PERSON.has(word) && !PLACEHOLDER.has(word);
 }
 
 /** The entities worth storing; with the flag off, all of them. */

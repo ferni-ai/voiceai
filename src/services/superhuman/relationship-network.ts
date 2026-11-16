@@ -132,10 +132,11 @@ export function extractPerson(
         const namePattern = new RegExp(`my\\s+${word}[,\\s]+([A-Za-z]+)`, 'i');
         const nameMatch = transcript.match(namePattern);
 
-        // Only a name as said: capitalized, and not a pronoun or verb ("my friend Call")
-        if (nameMatch?.[1] && isNameAsSaid(nameMatch[1])) {
+        // A name as said, not a pronoun or verb ("my friend Call"); "my sister grace" is Grace
+        const named = nameAsSaid(nameMatch?.[1], nameMatch?.[0]);
+        if (named) {
           return {
-            name: nameMatch[1],
+            name: named,
             type,
             context: transcript.slice(0, 150),
           };
@@ -156,8 +157,8 @@ export function extractPerson(
   const talkToPattern = /\bi (?:talked to|spoke with|saw|met with|called|texted) ([A-Z][a-z]+)/i;
   const talkMatch = transcript.match(talkToPattern);
   if (talkMatch) {
-    const name = talkMatch[1];
-    if (name && isNameAsSaid(name)) {
+    const name = nameAsSaid(talkMatch[1], talkMatch[0]);
+    if (name) {
       return {
         name,
         type: 'acquaintance',
@@ -170,8 +171,8 @@ export function extractPerson(
   const saidPattern = /\b([A-Z][a-z]+) (?:said|told me|called me|texted me|asked me)/i;
   const saidMatch = transcript.match(saidPattern);
   if (saidMatch) {
-    const name = saidMatch[1];
-    if (name && isNameAsSaid(name)) {
+    const name = nameAsSaid(saidMatch[1]);
+    if (name) {
       return {
         name,
         type: 'acquaintance',
@@ -190,13 +191,22 @@ const SKIP_WORDS = new Set(
   )
 );
 
+/** Cues that only ever introduce a person: "my sister", "talked to", "texted", "named", "ask". */
+const STRONG_CUE =
+  /^(?:i\s+)?(?:my\s|talked to\b|spoke with\b|met with\b|texted\b|named\b|tell\b|ask\b)/i;
+
 /**
- * A word the patterns caught that can be someone's name: capitalized as said (the patterns
- * are case-insensitive for their trigger words, so "[A-Z]" alone also matched "uh" and
- * "check"), and not a pronoun, filler or verb (couldBePerson, whole words).
+ * The name a caught word gives, or null. Not a pronoun, filler or verb (couldBePerson, whole
+ * words), and capitalized as said: the patterns are case-insensitive for their trigger words,
+ * so "[A-Z]" alone also matched "uh" and "check". A lowercase word counts only after a strong
+ * cue (`cue`, the whole match), title-cased: "i talked to sarah" gives Sarah; "with sarah",
+ * "and sarah" and "sarah said" don't.
  */
-function isNameAsSaid(word: string): boolean {
-  return /^\p{Lu}/u.test(word) && !SKIP_WORDS.has(word.toLowerCase()) && couldBePerson(word);
+function nameAsSaid(word: string | undefined, cue = ''): string | null {
+  if (!word || SKIP_WORDS.has(word.toLowerCase()) || !couldBePerson(word)) return null;
+  if (/^\p{Lu}/u.test(word)) return word;
+  if (word.length < 2 || !STRONG_CUE.test(cue.trim())) return null;
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 /**
@@ -212,8 +222,9 @@ export function extractNames(
   const results: Array<{ name: string; context: string; type?: RelationshipType }> = [];
   const seen = new Set<string>();
   const contextSnippet = transcript.slice(0, 150);
-  const add = (name: string | undefined): void => {
-    if (!name || !isNameAsSaid(name) || seen.has(name.toLowerCase())) return;
+  const add = (word: string | undefined, cue = ''): void => {
+    const name = nameAsSaid(word, cue);
+    if (!name || seen.has(name.toLowerCase())) return;
     results.push({ name, context: contextSnippet });
     seen.add(name.toLowerCase());
   };
@@ -229,54 +240,54 @@ export function extractNames(
   const relationshipNameRegex =
     /\bmy\s+(mom|mother|dad|father|sister|brother|wife|husband|partner|boyfriend|girlfriend|friend|boss|coworker|colleague|mentor|cousin|aunt|uncle)\s+([A-Z][a-z]+)/gi;
   let match;
-  while ((match = relationshipNameRegex.exec(transcript)) !== null) add(match[2]);
+  while ((match = relationshipNameRegex.exec(transcript)) !== null) add(match[2], match[0]);
 
   // 3. Extract names in "talked to X" patterns (with or without "I" prefix)
   const talkPattern =
     /\b(?:i\s+)?(?:talked to|spoke with|saw|met with|called|texted)\s+([A-Z][a-z]+)/gi;
-  while ((match = talkPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = talkPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 3b. Extract names from "X's name is Y" patterns: "My mom's name is Betty" (NOT "my name is X" - user intro)
   // Only match when there's a possessive before "name" to avoid extracting user's own name
   const nameIsPattern =
     /\b(?:mom|mother|dad|father|sister|brother|wife|husband|partner|friend|boss|colleague)'?s?\s+name\s+is\s+([A-Z][a-z]+)/gi;
-  while ((match = nameIsPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = nameIsPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 3c. Extract names from "named X" patterns: "I have a sister named Jane"
   const namedPattern = /\b(?:named|called)\s+([A-Z][a-z]+)/gi;
-  while ((match = namedPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = namedPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 3d. Extract names from "X, my Y" patterns: "Alex, my mentor, recommended"
   const xMyYPattern =
     /\b([A-Z][a-z]+),?\s+my\s+(?:friend|mentor|boss|colleague|sister|brother|mom|dad)/gi;
-  while ((match = xMyYPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = xMyYPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 4. Extract names in "X said/told me" patterns
   const saidPattern =
     /\b([A-Z][a-z]+)\s+(?:said|told me|called me|texted me|asked me|thinks|thought|suggested|mentioned|wants|wanted)/gi;
-  while ((match = saidPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = saidPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 5. Extract names in "X is my Y" patterns: "Sarah is my best friend"
   const isMyPattern =
     /\b([A-Z][a-z]+)\s+is\s+my\s+(?:best\s+)?(?:friend|mom|dad|sister|brother|boss|colleague|mentor|wife|husband|partner)/gi;
-  while ((match = isMyPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = isMyPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 6. Extract names in "with X" context: "I went with John", "meeting with Sarah"
   const withPattern =
     /\b(?:with|and)\s+([A-Z][a-z]+)(?:\s+(?:today|yesterday|tomorrow|at|to|for)|\b)/gi;
-  while ((match = withPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = withPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 7. Extract names after "Tell X" or "Ask X"
   const tellPattern = /\b(?:tell|ask|call|text|email|visit|meet)\s+([A-Z][a-z]+)/gi;
-  while ((match = tellPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = tellPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 8. Extract names with titles: "Dr. Johnson", "Mr. Smith"
   const titlePattern = /\b(?:Dr\.|Mr\.|Mrs\.|Ms\.|Prof\.)\s*([A-Z][a-z]+)/gi;
-  while ((match = titlePattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = titlePattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   // 9. Extract names introduced with "introduced me to X"
   const introPattern = /\bintroduced\s+(?:me\s+)?to\s+([A-Z][a-z]+)/gi;
-  while ((match = introPattern.exec(transcript)) !== null) add(match[1]);
+  while ((match = introPattern.exec(transcript)) !== null) add(match[1], match[0]);
 
   return results;
 }
@@ -498,6 +509,25 @@ export async function recordMention(
     '👤 New person in network'
   );
   return newPerson;
+}
+
+/**
+ * Record everyone extractNames found in what the caller said. A relation keeps its own type
+ * ("my mom" is family); a bare name is an acquaintance until a relation is stated. Returns
+ * the names stored (non-people are refused by recordMention).
+ */
+export async function recordNamesSaid(
+  userId: string,
+  names: ReturnType<typeof extractNames>
+): Promise<string[]> {
+  const stored: string[] = [];
+  for (const { name, context, type } of names) {
+    // One at a time: two mentions of one person in a turn must find the same record
+    // eslint-disable-next-line no-await-in-loop
+    const person = await recordMention(userId, { name, type: type ?? 'acquaintance', context });
+    if (person) stored.push(person.name);
+  }
+  return stored;
 }
 
 // ============================================================================

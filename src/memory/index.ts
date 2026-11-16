@@ -1277,7 +1277,7 @@ export default {
 };
 export { forgetGeneration, forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js'; // prettier-ignore
 export { aboutForgotten, forgottenWithin, keepRemembered, profileForCaller } from './recall/forget-every-reader.js'; // prettier-ignore
-export { couldBePerson, isPersonaSubject } from './entity-hygiene.js';
+export { isPersonaSubject } from './entity-hygiene.js';
 export { dualWriteFacts, mapWorldFact, type DualWriteDeps } from './writer/facts-dual-write.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
@@ -1285,4 +1285,4 @@ export { containsContactData, contactNumberRuns, foldContactText } from './domai
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
 export * from './recall/opener-claim.js'; // and the call's proactive budget (PROACTIVE_BUDGET)
-export { groupOf, keepLetters, nameTokens, OWNER_LEAD, personKey, relationOf, relationWords } from './domain/person-key.js'; // prettier-ignore
+export { couldBePerson, keepLetters, nameTokens, OWNER_LEAD, personKey, relationWords } from './domain/index.js'; // prettier-ignore

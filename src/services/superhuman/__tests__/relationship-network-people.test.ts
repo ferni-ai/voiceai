@@ -25,7 +25,7 @@ vi.mock('../../data-layer/hooks/superhuman-hooks.js', () => ({
   },
 }));
 
-const { extractNames, extractPerson, recordMention, loadNetwork } =
+const { extractNames, extractPerson, recordMention, recordNamesSaid, loadNetwork } =
   await import('../relationship-network.js');
 
 const namesIn = (said: string): string[] => extractNames(said).map((r) => r.name);
@@ -62,6 +62,56 @@ describe('extraction: non-people are never names', () => {
   });
 });
 
+describe('a lowercase name counts only after a strong cue', () => {
+  it.each([
+    ['my sister grace called last night', 'Grace'],
+    ['i talked to sarah yesterday', 'Sarah'],
+    ['i spoke with kai about it', 'Kai'],
+    ['we met with lena for coffee', 'Lena'],
+    ['i texted jordan this morning', 'Jordan'],
+    ['she has a dog named biscuit', 'Biscuit'],
+    ['i should tell priya', 'Priya'],
+    ['i want to ask omar', 'Omar'],
+  ])('%s: keeps "%s", title-cased', (said, name) => {
+    expect(namesIn(said)).toContain(name);
+  });
+
+  it('extractPerson title-cases a name after a relation or "talked to"', () => {
+    expect(extractPerson('my sister grace called')).toMatchObject({
+      name: 'Grace',
+      type: 'family',
+    });
+    expect(extractPerson('i talked to sarah yesterday')?.name).toBe('Sarah');
+  });
+
+  it.each([
+    'i went with her to the store',
+    'finish this and check the oven',
+    'i talked to uh about it',
+    'lunch with sarah was nice',
+    'sarah said hi',
+    'i need to ask about the lease',
+    'i talked to people at work',
+    'i texted back right away',
+    'tell me more',
+    'i should ask for help',
+  ])('%s: no name (weak cue, or not a name after a strong one)', (said) => {
+    expect(namesIn(said)).toEqual([]);
+  });
+});
+
+describe('honorifics are never a name on their own', () => {
+  it('"spoke with Dr. Patel" stores Patel, never "Dr"', () => {
+    const names = namesIn('I spoke with Dr. Patel today');
+    expect(names).toContain('Patel');
+    expect(names).not.toContain('Dr');
+  });
+
+  it.each(['Dr', 'Mr', 'Mrs', 'Ms', 'Prof'])('recordMention refuses "%s"', async (name) => {
+    expect(await recordMention('u-title', { name, type: 'acquaintance', context: '' })).toBeNull();
+  });
+});
+
 describe('recordMention: the write guard every writer funnels through', () => {
   beforeEach(() => {
     saved.length = 0;
@@ -81,5 +131,24 @@ describe('recordMention: the write guard every writer funnels through', () => {
     const network = await loadNetwork('u-keep');
     expect(network.map((p) => p.name)).toEqual(['Bria', 'Mel', 'my mom']);
     expect(mom).toMatchObject({ name: 'my mom', mentionCount: 2, type: 'family' });
+  });
+});
+
+describe('recordNamesSaid: what the turn processor stores from a turn', () => {
+  it('files "my mom" as family and a bare name as an acquaintance', async () => {
+    const stored = await recordNamesSaid(
+      'u-turn',
+      extractNames('I talked to my mom and then with Rowan today')
+    );
+    expect(stored).toEqual(['my mom', 'Rowan']);
+    const byName = new Map((await loadNetwork('u-turn')).map((p) => [p.name, p.type]));
+    expect(byName.get('my mom')).toBe('family');
+    expect(byName.get('Rowan')).toBe('acquaintance');
+  });
+
+  it('stores no one for a turn of fillers and pronouns', async () => {
+    expect(await recordNamesSaid('u-none', extractNames('uh I saw her and then call me'))).toEqual(
+      []
+    );
   });
 });

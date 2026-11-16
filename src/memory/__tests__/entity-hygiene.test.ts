@@ -13,13 +13,13 @@ vi.mock('../../config/generative-model.js', () => ({
 
 import { extractEntities } from '../knowledge-graph/extractors/llm-entity-extractor.js';
 import {
-  couldBePerson,
   isPersonaSubject,
   junkReason,
   UNSTATED_RELATIONS,
   keepRealEntities,
   type NamedEntity,
 } from '../entity-hygiene.js';
+import { couldBePerson } from '../domain/index.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();

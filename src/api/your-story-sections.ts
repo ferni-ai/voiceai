@@ -9,7 +9,8 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { couldBePerson, groupOf, relationOf } from '../memory/index.js';
+// memory/domain, not the memory barrel: the barrel pulls the redis adapter into the web build
+import { couldBePerson, groupOf, relationOf } from '../memory/domain/index.js';
 
 const log = createLogger({ module: 'YourStorySections' });
 const DAY_MS = 24 * 60 * 60 * 1000;
