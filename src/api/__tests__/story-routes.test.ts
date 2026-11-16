@@ -274,6 +274,50 @@ describe('Story Routes API', () => {
       });
     });
 
+    it('says the same "kept" and total as Trust & Growth for one list of promises', async () => {
+      // A promise marked both fulfilled and broken counts as broken on every screen.
+      const both = { ...promise('p-both', true), violated: true };
+      const broken = { ...promise('p-broken', false), violated: true };
+      const promises = [
+        promise('p1', true),
+        promise('p2', true),
+        both,
+        broken,
+        promise('p-open-1', false),
+        promise('p-open-2', false),
+      ];
+      loadFerniPromises.mockResolvedValue(promises);
+      const { handleStoryRoutes } = await import('../story-routes.js');
+      const { sendJSON } = await import('../helpers.js');
+      const { computeTogetherHealth } =
+        await import('../../services/trust-systems/together-health.js');
+      const { localClock } = await import('../../services/trust-systems/together-signals.js');
+
+      await handleStoryRoutes(createMockRequest({}), createMockResponse(), '/api/story/actions');
+      const story = (vi.mocked(sendJSON).mock.calls[0][1] as any).commitmentProgress;
+
+      // Three evenings together, so Trust & Growth gives a read with its promises factor.
+      const snapshots = ['2026-11-01', '2026-11-02', '2026-11-03'].map((d, i) => ({
+        id: `s${i}`,
+        timestamp: new Date(`${d}T20:00:00Z`),
+        primaryEmotion: 'joy' as const,
+        secondaryEmotions: [],
+        intensity: 0.3,
+        valence: 0.3,
+        arousal: 0.5,
+        source: 'detected' as const,
+      }));
+      const health = computeTogetherHealth(
+        { snapshots, promises, lifeEvents: [] },
+        new Date('2026-11-04T12:00:00Z'),
+        localClock('UTC')
+      );
+      const trust = health.factors.find((f) => f.id === 'promises');
+
+      expect(trust?.detail).toEqual({ kept: 2, total: 4 });
+      expect(story).toEqual({ kept: trust?.detail.kept, pending: 2, total: trust?.detail.total });
+    });
+
     it('says it could not read the promises instead of showing 0', async () => {
       loadFerniPromises.mockRejectedValue(new Error('Firestore unavailable'));
       const { handleStoryRoutes } = await import('../story-routes.js');

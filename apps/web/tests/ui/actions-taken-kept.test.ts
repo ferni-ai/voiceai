@@ -6,10 +6,17 @@
  * read "Kept 4 of 4". The server counted the user's own commitments (loaded active
  * only, so never one "kept"), and the dashboard filled anything missing with 0.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildActionsTaken } from '../../src/ui/visualizations/builders/actions-taken.js';
 import { toActionsTakenData } from '../../src/ui/visualizations/builders/actions-taken-data.js';
 import { t } from '../../src/i18n/index.js';
+
+vi.mock('../../src/services/firebase-auth.service.js', () => ({
+  initAuth: vi.fn(async () => ({})),
+  getAuthToken: vi.fn(async () => 'id-token'),
+  getFirebaseUid: vi.fn(() => 'uid-1'),
+  signOut: vi.fn(async () => undefined),
+}));
 
 const tablet = {
   type: 'tablet',
@@ -69,5 +76,36 @@ describe("What I've Done for You: kept promises", () => {
     const data = toActionsTakenData({ recentCare: [], totalActions: 0 });
     expect(data.commitmentProgress).toBeNull();
     expect(data.summary.commitmentsFulfilled).toBeNull();
+  });
+});
+
+describe("Our Story So Far: the dashboard's own fetch of /api/story/actions", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('a reply with no counts shows Unknown on the card, not 0', async () => {
+    // The server sent the care list but no summary and no commitment progress.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ recentCare: [], totalActions: 0 }), { status: 200 })
+      )
+    );
+    const { getYourStoryUI } = await import('../../src/ui/your-story-dashboard.ui.js');
+    const { createDemoStoryData } = await import('../../src/ui/visualizations/index.js');
+
+    getYourStoryUI().show(createDemoStoryData('demo-user'));
+    const care = (): HTMLElement => document.querySelector('#viz-actions-taken') as HTMLElement;
+    await vi.waitFor(() => expect(care()?.querySelector('.viz-stat-card')).not.toBeNull());
+
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toContain('/api/story/actions');
+    const kept =
+      stat(care(), commitmentsLabel()) ?? stat(care(), t('visualizations.actionsTaken.kept'));
+    expect(kept).toBe(t('common.unknown'));
+    expect(care().querySelector('.viz-badge')).toBeNull(); // no "0/0 kept"
+    getYourStoryUI().hide();
   });
 });
