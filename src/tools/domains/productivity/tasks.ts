@@ -20,16 +20,14 @@ import {
   type TaskData,
 } from '../../../services/stores/productivity-store.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
-import { formatStoredLocalTime, WallClock } from '../../../utils/time-zone.js';
+import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { runContextTimeZone } from '../../../utils/caller-time-zone.js';
 import { localDayKey } from '../../../utils/calendar-days.js';
 import { flagOn } from '../../../config/env-flag.js';
-import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { parseNaturalDueDate } from './task-due-date.js';
-import {
-  syncTaskToCalendar,
-  removeCalendarSyncedItem,
-} from '../../../services/calendar/calendar-bridge.js';
+import { parseNaturalDueDate, putDueTaskOnCalendar } from './task-due-date.js';
+import { taskEditsOn, taskToolDescription, UPDATE_TASK_DESCRIPTION } from './task-tool-text.js';
+import { runTaskUpdate, UPDATE_TASK_PARAMETERS, type TaskEditStore } from './update-task.js';
+import { removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
 // Bridge function to convert TaskData to Task
 function taskDataToTask(data: TaskData & { userId?: string }, userId: string): Task {
   return {
@@ -339,32 +337,15 @@ export async function createTask(params: {
   tasksCache.set(task.id, task);
   persistTask(params.userId, task);
 
-  // Sync task with due date to calendar
   if (dueDate) {
-    try {
-      // If there's a specific time, use it; otherwise use end of day
-      const scheduledFor = new WallClock(dueDate, params.timeZone);
-      if (params.dueTime) {
-        const [hours, minutes] = params.dueTime.split(':').map(Number);
-        scheduledFor.setHours(hours, minutes, 0, 0);
-      } else {
-        // Default to 9 AM if no specific time
-        scheduledFor.setHours(9, 0, 0, 0);
-      }
-
-      await syncTaskToCalendar(
-        params.userId,
-        task.id,
-        sanitizedTitle,
-        scheduledFor.toDate(),
-        30 // Default 30 min duration
-      );
-    } catch (calendarError) {
-      getLogger().warn(
-        { error: calendarError, taskId: task.id },
-        'Failed to sync task to calendar'
-      );
-    }
+    await putDueTaskOnCalendar({
+      userId: params.userId,
+      id: task.id,
+      title: sanitizedTitle,
+      dueDate,
+      dueTime: params.dueTime,
+      timeZone: params.timeZone,
+    });
   }
 
   getLogger().info(
@@ -529,19 +510,6 @@ function nothingDueToday(undated: Task[]): string {
     : `✨ No tasks for today! You're all caught up. Want to add something?`;
 }
 
-/** Completed on today's date: the user's in `timeZone` with the flag on, else since server midnight. */
-function completedToday(tasks: Task[], timeZone?: string, now = new Date()): Task[] {
-  const zoned = flagOn('TASKS_TODAY_USER_ZONE');
-  const day = localDayKey(now, timeZone);
-  return tasks.filter((t) => {
-    if (t.status !== 'completed' || !t.completedAt) return false;
-    if (zoned) return localDayKey(t.completedAt, timeZone) === day;
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    return t.completedAt >= todayStart;
-  });
-}
-
 export function getUpcomingTasks(userId: string, days = 7): Task[] {
   const now = new Date();
   const future = new Date(now);
@@ -559,7 +527,7 @@ export function getUpcomingTasks(userId: string, days = 7): Task[] {
 export function createTaskTools() {
   return {
     addTask: llm.tool({
-      description: getToolDescription('addTask'),
+      description: taskToolDescription('addTask'),
       parameters: z.object({
         title: z.string().describe('What needs to be done'),
         dueDate: z
@@ -622,7 +590,7 @@ export function createTaskTools() {
     }),
 
     completeTask: llm.tool({
-      description: getToolDescription('completeTask'),
+      description: taskToolDescription('completeTask'),
       parameters: z.object({
         taskTitle: z.string().describe('Which task to complete (partial match OK)'),
         notes: z.string().optional().describe('Any completion notes'),
@@ -667,7 +635,7 @@ export function createTaskTools() {
     }),
 
     getTasks: llm.tool({
-      description: getToolDescription('getTasks'),
+      description: taskToolDescription('getTasks'),
       parameters: z.object({
         filter: z
           .enum(['all', 'today', 'overdue', 'upcoming', 'completed'])
@@ -747,141 +715,25 @@ export function createTaskTools() {
         return response;
       },
     }),
-
-    updateTaskPriority: llm.tool({
-      description: getToolDescription('updateTaskPriority'),
-      parameters: z.object({
-        taskTitle: z.string().describe('Which task'),
-        priority: z.enum(['low', 'medium', 'high', 'urgent']).describe('New priority'),
-      }),
-      execute: async ({ taskTitle, priority }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
-
-        await ensureUserTasksLoaded(userId);
-        const userTasks = getUserTasks(userId);
-        const task = userTasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
-
-        if (!task) {
-          return `Couldn't find "${taskTitle}". Want me to show your tasks?`;
+    // TASK_EDITS on: rename, move, reprioritise or remove one task (update-task.ts).
+    ...(taskEditsOn()
+      ? {
+          updateTask: llm.tool({
+            description: UPDATE_TASK_DESCRIPTION,
+            parameters: UPDATE_TASK_PARAMETERS,
+            execute: (args, { ctx }) => runTaskUpdate(TASK_EDIT_STORE, args, ctx),
+          }),
         }
-
-        const updated = updateTask(task.id, { priority });
-        if (!updated) return `Couldn't update that task. Want to try again?`;
-
-        const emoji = { low: '🟢', medium: '🟡', high: '🟠', urgent: '🔴' }[priority];
-        return `${emoji} Updated "${updated.title}" to ${priority} priority.`;
-      },
-    }),
-
-    rescheduleTask: llm.tool({
-      description: getToolDescription('rescheduleTask'),
-      parameters: z.object({
-        taskTitle: z.string().describe('Which task'),
-        newDueDate: z.string().describe('New due date (e.g., "tomorrow", "next Monday")'),
-      }),
-      execute: async ({ taskTitle, newDueDate }, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
-
-        await ensureUserTasksLoaded(userId);
-        const userTasks = getUserTasks(userId);
-        const task = userTasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
-
-        if (!task) {
-          return `Couldn't find "${taskTitle}".`;
-        }
-
-        const timeZone = taskDayZone(ctx);
-        const parsedDate = parseNaturalDueDate(newDueDate, timeZone);
-        if (!parsedDate) {
-          return `I couldn't understand "${newDueDate}". Try "tomorrow", "Friday", or "in 3 days".`;
-        }
-
-        const updated = updateTask(task.id, { dueDate: parsedDate });
-        if (!updated) return `Couldn't reschedule that task. Try again?`;
-
-        const dateStr = parsedDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'short',
-          day: 'numeric',
-          timeZone,
-        });
-
-        return `📅 Moved "${updated.title}" to ${dateStr}.`;
-      },
-    }),
-
-    deleteTask: llm.tool({
-      description: getToolDescription('deleteTask'),
-      parameters: z.object({
-        taskTitle: z.string().describe('Which task to delete'),
-        confirm: z.boolean().describe('User has confirmed deletion'),
-      }),
-      execute: async ({ taskTitle, confirm }, { ctx }) => {
-        if (!confirm) {
-          return `Are you sure you want to delete "${taskTitle}"? This can't be undone. Say "yes, delete it" to confirm.`;
-        }
-
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
-
-        await ensureUserTasksLoaded(userId);
-        const userTasks = getUserTasks(userId);
-        const task = userTasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
-
-        if (!task) {
-          return `Couldn't find "${taskTitle}".`;
-        }
-
-        deleteTask(task.id);
-        return `🗑️ Deleted "${task.title}" from your list.`;
-      },
-    }),
-
-    getTaskSummary: llm.tool({
-      description: getToolDescription('getTaskSummary'),
-      parameters: z.object({}),
-      execute: async (_, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'default';
-
-        await ensureUserTasksLoaded(userId);
-        const allTasks = getUserTasks(userId);
-        const pending = allTasks.filter((t) => t.status === 'pending');
-        const overdue = getOverdueTasks(userId);
-        const timeZone = taskDayZone(ctx);
-        const today = getTodaysTasks(userId, timeZone);
-        const doneToday = completedToday(allTasks, timeZone);
-
-        let response = `📊 **Task Summary**\n\n`;
-        response += `**Today:** ${today.length} task${today.length !== 1 ? 's' : ''}\n`;
-        const undated = getUndatedTasks(userId).length;
-        if (undated > 0) response += `**No Date:** ${undated}\n`;
-        response += `**Completed Today:** ${doneToday.length}\n`;
-        response += `**Total Pending:** ${pending.length}\n`;
-
-        if (overdue.length > 0) {
-          response += `**⚠️ Overdue:** ${overdue.length}\n`;
-        }
-
-        // Top priorities
-        const urgent = pending.filter((t) => t.priority === 'urgent' || t.priority === 'high');
-        if (urgent.length > 0) {
-          response += `\n🔴 **High Priority:**\n`;
-          urgent.slice(0, 3).forEach((t) => {
-            response += `• ${t.title}\n`;
-          });
-        }
-
-        if (pending.length === 0) {
-          response += `\n✨ You're all caught up! Nice work.`;
-        }
-
-        return response;
-      },
-    }),
+      : {}),
   };
 }
+
+/** The task list as updateTask sees it. */
+const TASK_EDIT_STORE: TaskEditStore = {
+  load: ensureUserTasksLoaded,
+  list: getUserTasks,
+  update: updateTask,
+  remove: deleteTask,
+};
 
 export default createTaskTools;
