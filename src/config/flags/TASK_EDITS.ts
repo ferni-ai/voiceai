@@ -5,5 +5,5 @@ export const TASK_EDITS = {
   owner: 'tools',
   kind: 'experiment',
   expires: '2027-02-14',
-  issue: '#3958',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3958',
 } as const satisfies FlagSpec;

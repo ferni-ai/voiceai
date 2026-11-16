@@ -715,16 +715,19 @@ export function createTaskTools() {
         return response;
       },
     }),
-    // TASK_EDITS on: rename, move, reprioritise or remove one task (update-task.ts).
-    ...(taskEditsOn()
-      ? {
-          updateTask: llm.tool({
-            description: UPDATE_TASK_DESCRIPTION,
-            parameters: UPDATE_TASK_PARAMETERS,
-            execute: (args, { ctx }) => runTaskUpdate(TASK_EDIT_STORE, args, ctx),
-          }),
-        }
-      : {}),
+    ...updateTaskTools(),
+  };
+}
+
+/** updateTask while TASK_EDITS is on: rename, move, reprioritise or remove one task (update-task.ts). */
+function updateTaskTools() {
+  if (!taskEditsOn()) return {};
+  return {
+    updateTask: llm.tool({
+      description: UPDATE_TASK_DESCRIPTION,
+      parameters: UPDATE_TASK_PARAMETERS,
+      execute: (args, { ctx }) => runTaskUpdate(TASK_EDIT_STORE, args, ctx),
+    }),
   };
 }
 
@@ -735,5 +738,3 @@ const TASK_EDIT_STORE: TaskEditStore = {
   update: updateTask,
   remove: deleteTask,
 };
-
-export default createTaskTools;
