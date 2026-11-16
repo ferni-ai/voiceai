@@ -73,6 +73,10 @@ describe('pickTaskToEdit: which open task the person named', () => {
     expect(pickTaskToEdit(list, 'call mom')).toEqual({ kind: 'one', task: list[0] });
   });
 
+  it('punctuation does not stop an exact title: "Call Mom!" is "Call mom"', () => {
+    expect(pickTaskToEdit(list, 'Call Mom!')).toEqual({ kind: 'one', task: list[0] });
+  });
+
   it('a few of its words name one task, in any case', () => {
     expect(pickTaskToEdit(list, 'Dry Cleaning')).toEqual({ kind: 'one', task: list[2] });
   });
@@ -195,6 +199,20 @@ describe('updateTask', () => {
     expect(getUserTasks(userId)[0].dueDate).toBeUndefined();
     expect(badDate).toContain('is unchanged');
     expect(nothing).toContain('Nothing to change on "Book the vacation"');
+  });
+
+  it('refuses a call with no account rather than editing a shared list', async () => {
+    await createTask({ userId: 'default', title: 'Pick up the dry cleaning' });
+
+    const said = await updateTask.execute(
+      { taskTitle: 'dry cleaning', remove: true },
+      { ctx: { userData: { userId: 'default' } } }
+    );
+    const noId = await updateTask.execute({ taskTitle: 'dry cleaning', remove: true }, {});
+
+    expect(titles('default')).toEqual(['Pick up the dry cleaning']);
+    expect(said).toContain("isn't tied to anyone's account");
+    expect(noId).toContain("isn't tied to anyone's account");
   });
 
   it('says plainly when no open task fits, and names what is there', async () => {

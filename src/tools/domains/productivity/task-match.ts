@@ -20,15 +20,15 @@ const words = (text: string): string[] => text.toLowerCase().match(/[a-z0-9']+/g
 
 /**
  * The open task `said` names ("dry cleaning", "the call with mom"). An exact title
- * wins; otherwise every meaningful word said must be a whole word of the title
+ * wins (case and punctuation aside); otherwise every meaningful word said must be a whole word of the title
  * ("cat" is not in "vacation"). More than one fit is several, never a guess.
  */
 export function pickTaskToEdit<T extends NamedTask>(
   open: readonly T[],
   said: string
 ): TaskMatch<T> {
-  const spoken = said.trim().toLowerCase();
-  const exact = open.filter((t) => t.title.trim().toLowerCase() === spoken);
+  const spoken = words(said).join(' ');
+  const exact = spoken ? open.filter((t) => words(t.title).join(' ') === spoken) : [];
   if (exact.length === 1) return { kind: 'one', task: exact[0] };
 
   const wanted = words(said).filter((w) => !FILLER.has(w));

@@ -13,6 +13,7 @@
 import { z } from 'zod';
 import { removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
 import { runContextTimeZone } from '../../../utils/caller-time-zone.js';
+import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
 import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { getLogger } from '../../utils/tool-helpers.js';
 import { parseNaturalDueDate, putDueTaskOnCalendar } from './task-due-date.js';
@@ -123,7 +124,11 @@ export async function runTaskUpdate(
   { taskTitle, remove, ...edit }: UpdateTaskArgs,
   ctx: unknown
 ): Promise<string> {
-  const userId = (ctx as { userData?: { userId?: string } })?.userData?.userId || 'default';
+  // The id addTask stored the list under; never a shared bucket (#2651).
+  const userId = (ctx as { userData?: { userId?: string } } | undefined)?.userData?.userId;
+  if (!userId || isSharedPlaceholderId(userId)) {
+    return "This call isn't tied to anyone's account, so there is no to-do list to change.";
+  }
   await store.load(userId);
   const open = store.list(userId).filter(isOpen);
   const match = pickTaskToEdit(open, taskTitle);
