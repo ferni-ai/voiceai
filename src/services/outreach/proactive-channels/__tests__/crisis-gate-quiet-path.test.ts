@@ -165,10 +165,15 @@ const JOINED_READ = {
   CRISIS_READ_JOINED_TURN: 'on',
 };
 
+/** What the model stand-in says when its request's last message names 988 (the crisis guidance). */
+const FOLLOWS_GUIDANCE =
+  "I'm right here with you. You can call or text 988 any time, day or night.";
+
 /**
  * A live call as LiveKit hands it to the gate: the unfinished-turn hold installed, and the turn
  * committed as a conversation_item_added. The classifier stand-in reads risk in the whole line
- * only, and keeps every line it was asked about.
+ * only, and keeps every line it was asked about. The model stand-in follows its guidance: it says
+ * 988 only when the last message of its request names 988, and "ok" otherwise.
  */
 class HeldCall extends EventEmitter {
   readonly userData = { userId: UID, services: { sessionId: `session-held-${++n}` } };
@@ -183,6 +188,17 @@ class HeldCall extends EventEmitter {
       : '{"risk":"none","subject":"self"}';
   };
 
+  readonly model = async (ctx: llm.ChatContext): Promise<ReadableStream<unknown>> => {
+    const last = ctx.items.at(-1) as llm.ChatMessage | undefined;
+    const said = /\b988\b/.test(last?.textContent ?? '') ? FOLLOWS_GUIDANCE : 'ok';
+    return new ReadableStream<unknown>({
+      start(c) {
+        c.enqueue(said);
+        c.close();
+      },
+    });
+  };
+
   commit(text: string): void {
     const item = this.history.addMessage({ role: 'user', content: text });
     this.emit('conversation_item_added', { item });
@@ -193,11 +209,18 @@ class HeldCall extends EventEmitter {
     return gatedReply(
       request(latest),
       this as never,
-      model as never,
+      this.model as never,
       { wrap: (s: ReadableStream<unknown>) => s } as never,
       { env: JOINED_READ, generate: this.generate as never }
     ) as Promise<ReadableStream<unknown> | null>;
   }
+}
+
+async function saidBy(reply: Promise<ReadableStream<unknown> | null>): Promise<string> {
+  const out = await reply;
+  let said = '';
+  for await (const chunk of out as unknown as AsyncIterable<unknown>) said += String(chunk);
+  return said;
 }
 
 /** A held turn: the fragment asked, then the whole line committed with no request of its own. */
@@ -207,9 +230,24 @@ async function heldTurn(): Promise<{ said: string; reads: string[] }> {
   const reply = session.ask(HELD_FRAGMENT);
   await settle();
   session.commit(HELD_LINE);
-  const out = await reply;
-  let said = '';
-  for await (const chunk of out as unknown as AsyncIterable<unknown>) said += String(chunk);
+  const said = await saidBy(reply);
+  await settle();
+  return { said, reads: session.reads };
+}
+
+/**
+ * A held turn where the caller goes on, as LiveKit drives it: the fragment asked, then the whole
+ * line asked and committed. `said` is the whole line's reply, the one the caller hears.
+ */
+async function heldTurnGoingOn(): Promise<{ said: string; reads: string[] }> {
+  resetCrisisClassifierCache();
+  const session = new HeldCall();
+  const fragment = session.ask(HELD_FRAGMENT);
+  await settle();
+  const joined = session.ask(HELD_LINE);
+  session.commit(HELD_LINE);
+  const said = await saidBy(joined);
+  await saidBy(fragment); // LiveKit drops the fragment's preemptive reply
   await settle();
   return { said, reads: session.reads };
 }
@@ -374,6 +412,21 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     });
     await settle(); // the records are written a tick later: let them land here, not in the next test
     expect(signalDocs()).toHaveLength(2); // one per call: the script's, and the held read's guidance
+  });
+
+  it('a held turn where the caller goes on: the caller hears the crisis-guided reply, flag off and on', async () => {
+    // Only the classifier reads this line, so the gate guides the model (no 988 script); what the
+    // caller hears is the model's reply to the guided request. The stand-in says 988 only when
+    // the request's last message names it, so 988 here means the crisis guidance reached it last.
+    vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'off');
+    const off = await heldTurnGoingOn();
+    vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'on');
+    const on = await heldTurnGoingOn();
+    await settle();
+    expect(off.reads).toEqual([HELD_LINE]);
+    expect(on.reads).toEqual([HELD_LINE]);
+    expect(off.said).toBe(FOLLOWS_GUIDANCE);
+    expect(on.said).toBe(off.said);
   });
 
   it("what it keeps holds none of the caller's words, on a guided turn and a held turn", async () => {
