@@ -26,6 +26,7 @@ import {
   injectActionsTakenStyles,
   type ActionsTakenData,
 } from './visualizations/builders/actions-taken.js';
+import { toActionsTakenData } from './visualizations/builders/actions-taken-data.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { buildYourStoryStatus, type YourStoryStatus } from './your-story-status.js';
 
@@ -557,20 +558,8 @@ class YourStoryUI {
         return;
       }
 
-      const data = await response.json();
-
-      // Transform API response to ActionsTakenData format
-      this.actionsData = {
-        recentCare: data.recentCare || [],
-        summary: data.summary || {
-          callsMade: 0,
-          messagesSent: 0,
-          remindersKept: 0,
-          commitmentsFulfilled: 0,
-        },
-        commitmentProgress: data.commitmentProgress || { kept: 0, pending: 0, total: 0 },
-        totalActions: data.totalActions || 0,
-      };
+      // A count the server didn't send stays unknown, never a made-up 0
+      this.actionsData = toActionsTakenData(await response.json());
 
       // Render actions if container exists
       this.renderActionsSection();

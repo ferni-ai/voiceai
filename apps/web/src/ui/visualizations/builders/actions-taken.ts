@@ -65,20 +65,19 @@ export interface CareMoment {
 export interface ActionsTakenData {
   /** Recent care moments */
   recentCare: CareMoment[];
-  /** Summary stats */
   summary: {
     callsMade: number;
     messagesSent: number;
     remindersKept: number;
-    commitmentsFulfilled: number;
+    /** Ferni's promises kept; null when unknown (shown as unknown, never 0) */
+    commitmentsFulfilled: number | null;
   };
-  /** Commitment progress */
+  /** Ferni's promises: kept of those with a known outcome, and the open ones; null when unknown */
   commitmentProgress: {
     kept: number;
     pending: number;
     total: number;
-  };
-  /** Total actions */
+  } | null;
   totalActions: number;
 }
 
@@ -255,7 +254,7 @@ function buildMobile(
       fontWeight: '600',
       color: 'var(--viz-text-primary)',
     });
-    valueEl.textContent = String(stat.value);
+    valueEl.textContent = stat.value === null ? t('common.unknown') : String(stat.value);
 
     const labelEl = createElement('div', 'viz-stat__label');
     setStyles(labelEl, {
@@ -355,7 +354,7 @@ function buildMobile(
     total: data.totalActions,
     calls: data.summary.callsMade,
     messages: data.summary.messagesSent,
-    commitments: data.summary.commitmentsFulfilled,
+    commitments: data.summary.commitmentsFulfilled ?? t('common.unknown'),
   });
   container.appendChild(createScreenReaderLabel(ariaLabel));
 
@@ -411,7 +410,7 @@ function buildTablet(
   headerTop.appendChild(titleArea);
 
   // Commitment progress badge
-  if (data.commitmentProgress.total > 0) {
+  if (data.commitmentProgress?.total) {
     const badge = createElement('div', 'viz-badge');
     setStyles(badge, {
       display: 'flex',
@@ -468,7 +467,7 @@ function buildTablet(
       fontWeight: '600',
       color: 'var(--viz-text-primary)',
     });
-    valueEl.textContent = String(stat.value);
+    valueEl.textContent = stat.value === null ? t('common.unknown') : String(stat.value);
 
     const labelEl = createElement('div', 'viz-stat-card__label');
     setStyles(labelEl, {
@@ -621,7 +620,7 @@ function buildTablet(
     calls: data.summary.callsMade,
     messages: data.summary.messagesSent,
     reminders: data.summary.remindersKept,
-    commitments: data.summary.commitmentsFulfilled,
+    commitments: data.summary.commitmentsFulfilled ?? t('common.unknown'),
   });
   container.appendChild(createScreenReaderLabel(ariaLabel));
 
