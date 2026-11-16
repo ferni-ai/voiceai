@@ -124,6 +124,8 @@ const ALWAYS_ON_TASK_TOOLS: Readonly<Record<string, string>> = {
   addTask: 'productivity',
   getTasks: 'productivity',
   completeTask: 'productivity',
+  // Only exists with TASK_EDITS=on ("move the dry cleaning to Friday"); the build skips it otherwise.
+  updateTask: 'productivity',
 };
 
 /** This call's always-on set: LEAN_ALWAYS_ON_TOOLS, plus the task tools with TASK_TOOLS_ALWAYS_ON. */

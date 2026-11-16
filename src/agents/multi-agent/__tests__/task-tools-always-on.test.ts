@@ -40,6 +40,9 @@ describe('TASK_TOOLS_ALWAYS_ON on', () => {
     const asked = await turn(call, NO_TOPIC_WORD);
     for (const tool of TASK_TOOLS) expect(asked.request).toContain(tool);
     expect(asked.request.length).toBeLessThan(LIMIT);
+    // TASK_EDITS is off here: updateTask isn't built, and its slot breaks nothing.
+    expect(call.initialNames).not.toContain('updateTask');
+    expect(asked.request).not.toContain('updateTask');
   }, 120_000);
 
   it('builds them for a persona handed the call without them', async () => {
