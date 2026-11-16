@@ -27,3 +27,24 @@ export function hideFromUser(
 export function isHiddenFromUser(insight: Pick<CrossPersonaInsight, 'metadata'>): boolean {
   return typeof insight.metadata?.[HIDDEN_AT] === 'number';
 }
+
+const TOASTED_AT = 'toastedAt';
+
+/**
+ * Marks the insight shown as a toast: the app won't toast it again, and it stays in the
+ * team panel until the user hides it (issue 3945). Returns true when it found one to mark.
+ */
+export function markToasted(
+  insights: CrossPersonaInsight[],
+  insightId: string,
+  now: number = Date.now()
+): boolean {
+  const insight = insights.find((i) => i.id === insightId);
+  if (!insight) return false;
+  if (!wasToasted(insight)) insight.metadata = { ...insight.metadata, [TOASTED_AT]: now };
+  return true;
+}
+
+export function wasToasted(insight: Pick<CrossPersonaInsight, 'metadata'>): boolean {
+  return typeof insight.metadata?.[TOASTED_AT] === 'number';
+}
