@@ -207,6 +207,8 @@ interface Turn {
   ferni: string;
   probe?: string;
   notes: string[];
+  /** The self note was held: no call id here, so it fails closed as on a live call. */
+  selfHeld: boolean;
 }
 
 async function oneCall(c: Caller, k: number, userId: string): Promise<Turn[]> {
@@ -235,10 +237,15 @@ async function oneCall(c: Caller, k: number, userId: string): Promise<Turn[]> {
   for (const [line, probe] of CALLS(c)[k]) {
     // Interim then final transcript, as live: the second sees the turn's embedding.
     const notes: string[] = [];
+    let selfHeld = false;
     for (const wait of [0, 900]) {
       await new Promise((r) => setTimeout(r, wait));
-      const note = recall.noteFor(line);
-      if (note) {
+      // The self note comes apart from the general note, as turn-packet.ts sends it.
+      const general = recall.noteFor(line);
+      const self = recall.takeSelfNote();
+      selfHeld ||= self.crisis;
+      for (const note of [general, self.note]) {
+        if (!note) continue;
         notes.push(note);
         ctx.addMessage({ role: 'system', content: note });
       }
@@ -251,7 +258,7 @@ async function oneCall(c: Caller, k: number, userId: string): Promise<Turn[]> {
     const reply = await generate(extra.systemMessages ?? [system], contents);
     ctx.addMessage({ role: 'assistant', content: reply || 'Mm.' });
     ledger.add('ferni', reply);
-    turns.push({ caller: line, ferni: reply, probe, notes });
+    turns.push({ caller: line, ferni: reply, probe, notes, selfHeld });
     await director.observe(linesFromChat(ctx.items));
     recall.newTurn();
   }
@@ -284,6 +291,11 @@ for (const [k, day] of DAYS.entries()) {
     runs[i].calls.push({ day, at, turns, ledgerAfter });
   });
   console.log(`call ${k + 1}/${DAYS.length} (day ${day}) done`);
+}
+const heldTurns = runs.flatMap((r) => r.calls.flatMap((c) => c.turns)).filter((t) => t.selfHeld);
+if (heldTurns.length > 0) {
+  // No call id here, so the self note is held on every turn: "no note" is not "nothing to recall".
+  console.log(`self-recall arm: held (no call id) on ${heldTurns.length} turn(s)`);
 }
 for (const run of runs) {
   writeFileSync(`${outDir}/${values.arm}-${run.caller}.json`, JSON.stringify(run, null, 2));

@@ -52,13 +52,18 @@
  * its own fd destination is not (none does today). Native code writing to fd 1/2 is
  * not covered.
  *
- * LOG_PHONE_REDACTION=off turns it off. It is read on every write and log call, so it
- * can also be set in .env, which loads after the redaction is installed.
+ * LOG_PHONE_REDACTION=off turns it off on a dev process only (isKnownDevDatabase: dev's
+ * Firestore database by its exact name), with one loud line saying numbers are not masked.
+ * Anywhere else `off` is refused: masking stays on and one line says so (labels only, no
+ * values). Both are read on every write and log call, so they can also be set in .env,
+ * which loads after the redaction is installed.
  *
  * @module utils/log-redaction
  */
 
 import { StringDecoder } from 'node:string_decoder';
+
+import { isKnownDevDatabase } from '../config/firestore-database.js';
 
 import {
   maskDigits,
@@ -290,8 +295,28 @@ export function redactPhoneNumbers(text: string): string {
   });
 }
 
+const OFF_REFUSED_LINE =
+  '[log-redaction] LOG_PHONE_REDACTION=off refused: not a dev process, phone numbers stay masked\n';
+const OFF_IN_DEV_LINE =
+  '[log-redaction] LOG_PHONE_REDACTION=off on a dev process: phone numbers in this log are NOT masked\n';
+const told = new Set<string>();
+
+/** Once per process per line. Deferred a tick, so it never lands inside the write that asked. */
+function tellOnce(line: string): void {
+  if (told.has(line)) return;
+  told.add(line);
+  process.nextTick(() => process.stderr.write(line));
+}
+
+/** True only for LOG_PHONE_REDACTION=off on a dev process; `off` anywhere else is refused. */
 function redactionOff(): boolean {
-  return process.env['LOG_PHONE_REDACTION'] === 'off';
+  if (process.env['LOG_PHONE_REDACTION'] !== 'off') return false;
+  if (isKnownDevDatabase()) {
+    tellOnce(OFF_IN_DEV_LINE);
+    return true;
+  }
+  tellOnce(OFF_REFUSED_LINE);
+  return false;
 }
 
 /** A line longer than this with no newline yet is written out, keeping only its end. */

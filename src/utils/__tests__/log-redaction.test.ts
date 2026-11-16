@@ -5,7 +5,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { redactPhoneNumbers, redactWrites } from '../log-redaction.js';
 
@@ -338,8 +338,71 @@ describe('every way the agent logs (child process, real SDK logger)', () => {
     expect(out.match(/sip_\*\*\*0123/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
   });
 
-  it('LOG_PHONE_REDACTION=off leaves the log as it was', () => {
-    const r = run({ LOG_PHONE_REDACTION: 'off' });
-    expect(`${r.stdout}\n${r.stderr}`).toContain('sip_+15555550123');
+  // LOG_PHONE_REDACTION=off unmasks numbers on a dev process only (the owner's rule: full text
+  // in dev only). FIRESTORE_DATABASE is always set here, so a .env cannot fill it in.
+  const DEV = { FIRESTORE_DATABASE: 'ferni-dev' };
+  const REFUSED = 'LOG_PHONE_REDACTION=off refused: not a dev process, phone numbers stay masked';
+  const UNMASKED = 'LOG_PHONE_REDACTION=off on a dev process: phone numbers in this log are NOT';
+  const times = (text: string, line: string): number => text.split(line).length - 1;
+
+  it.each<[string, Record<string, string>]>([
+    ['dev agent', DEV],
+    ['PR preview (NODE_ENV=staging on ferni-dev)', { ...DEV, NODE_ENV: 'staging' }],
+  ])('LOG_PHONE_REDACTION=off on a %s leaves the log as it was, and says so once', (_, env) => {
+    const r = run({ ...env, LOG_PHONE_REDACTION: 'off' });
+    const out = `${r.stdout}\n${r.stderr}`;
+    expect(r.status).toBe(0);
+    expect(out).toContain('sip_+15555550123');
+    expect(times(r.stderr, UNMASKED)).toBe(1);
+    expect(out).not.toContain(REFUSED);
+  });
+
+  // Dev is the dev database (isKnownDevDatabase, as replyForLog), not NODE_ENV: a PR preview
+  // on ferni-dev is dev; NODE_ENV=staging or development on any other database is not.
+  it.each<[string, Record<string, string>]>([
+    ['no database set (prod)', { FIRESTORE_DATABASE: '' }],
+    ["prod's database", { FIRESTORE_DATABASE: '(default)' }],
+    ['NODE_ENV=staging on prod database', { FIRESTORE_DATABASE: '(default)', NODE_ENV: 'staging' }],
+    [
+      'NODE_ENV=development on prod database',
+      { FIRESTORE_DATABASE: '(default)', NODE_ENV: 'development' },
+    ],
+    ['an unknown database name', { FIRESTORE_DATABASE: 'ferni-staging' }],
+    ["dev's name with a space after it", { FIRESTORE_DATABASE: 'ferni-dev ' }],
+    ["dev's name in another case", { FIRESTORE_DATABASE: 'Ferni-Dev' }],
+  ])('LOG_PHONE_REDACTION=off with %s is refused: masked, and one line says so', (_, env) => {
+    const r = run({ ...env, LOG_PHONE_REDACTION: 'off' });
+    const out = `${r.stdout}\n${r.stderr}`;
+    expect(r.status).toBe(0);
+    expect(out).not.toContain('5555550123');
+    expect(out.match(/sip_\*\*\*0123/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    expect(times(r.stderr, REFUSED)).toBe(1);
+    expect(out).not.toContain(UNMASKED);
+  });
+
+  it('with LOG_PHONE_REDACTION unset on dev, the log is masked and neither line is written', () => {
+    const r = run({ ...DEV, LOG_PHONE_REDACTION: '' });
+    const out = `${r.stdout}\n${r.stderr}`;
+    expect(out).not.toContain('5555550123');
+    expect(out).not.toContain(REFUSED);
+    expect(out).not.toContain(UNMASKED);
+  });
+});
+
+describe('LOG_PHONE_REDACTION=off read in this process', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('masks a write off dev, and reads the database again on the next write', () => {
+    vi.stubEnv('LOG_PHONE_REDACTION', 'off');
+    vi.stubEnv('FIRESTORE_DATABASE', '');
+    const s = sink();
+    s.target.write('to 555-555-0123\n');
+    expect(s.text()).toBe('to ***0123\n');
+
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
+    s.target.write('to 555-555-0123\n');
+    expect(s.text()).toBe('to ***0123\nto 555-555-0123\n');
   });
 });

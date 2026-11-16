@@ -4749,6 +4749,8 @@ body {
   color: var(--color-text-secondary);
   letter-spacing: var(--tracking-wide);
   margin: 0;
+  /* Keeps its line when empty (a teammate whose subtitle only restated the role) */
+  min-height: 1lh;
 }
 
 /* ========================================================================

@@ -47,9 +47,9 @@ function recorder(env: Record<string, string> = {}) {
 describe('TURN_RECEIPT llm metric', () => {
   it('reports the real request after a cancelled preemptive one, with its tools', () => {
     const { rec, end } = recorder();
-    rec.onRequest([], 90); // preemptive, dropped once the caller's words changed
+    rec.onRequest({ items: [] }, 90); // preemptive, dropped once the caller's words changed
     rec.onMetric({ ...DROPPED });
-    rec.onRequest([], 113); // the reply, after a topic load
+    rec.onRequest({ items: [] }, 113); // the reply, after a topic load
     rec.onMetric({ ...metric({ ttftMs: 640, totalTokens: 14_100 }) });
     const r = end();
     expect(r.tokens).toMatchObject({
@@ -65,9 +65,9 @@ describe('TURN_RECEIPT llm metric', () => {
 
   it('on a tool turn keeps the first completed request and the tools it carried', () => {
     const { rec, end } = recorder();
-    rec.onRequest([], 90);
+    rec.onRequest({ items: [] }, 90);
     rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) }); // the tool call
-    rec.onRequest([], 113); // the reply after the tool's output, with more tools
+    rec.onRequest({ items: [] }, 113); // the reply after the tool's output, with more tools
     rec.onMetric({ ...metric({ ttftMs: 500, promptTokens: 13_500 }) });
     const r = end();
     expect(r.tokens?.prompt).toBe(13_000);
@@ -84,15 +84,15 @@ describe('TURN_RECEIPT llm metric', () => {
     // Baseline: the tool call's request alone.
     const alone = recorder();
     alone.rec.onReminder({ reminder: 'r', directorNotes: 'd', offered: 2, droppedIdx: [1] });
-    alone.rec.onRequest([message(400)], 90);
+    alone.rec.onRequest({ items: [message(400)] }, 90);
     alone.rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
     const expected = alone.end();
 
     const { rec, end } = recorder();
     rec.onReminder({ reminder: 'r', directorNotes: 'd', offered: 2, droppedIdx: [1] });
-    rec.onRequest([message(400)], 90); // the tool call's request, with a director note
+    rec.onRequest({ items: [message(400)] }, 90); // the tool call's request, with a director note
     rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
-    rec.onRequest([message(4_000)], 113); // the reply after the tool: bigger prompt, no note
+    rec.onRequest({ items: [message(4_000)] }, 113); // the reply after the tool: bigger prompt, no note
     rec.onMetric({ ...metric({ ttftMs: 500, promptTokens: 13_500 }) });
     const r = end();
     expect(r.tokens?.prompt).toBe(13_000);
@@ -107,9 +107,9 @@ describe('TURN_RECEIPT llm metric', () => {
   it('on a tool turn, lane and tool schema come from the reported request too', () => {
     const { rec, end } = recorder({ CASCADE_FAST_LANE: 'on' });
     const said = [{ type: 'message', role: 'user', textContent: 'hello there' }];
-    rec.onRequest(said as never, 90, 111);
+    rec.onRequest({ items: said }, 90, 111);
     rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
-    rec.onRequest([{ type: 'function_call', name: 'getWeather' }], 113, 999); // after the tool
+    rec.onRequest({ items: [{ type: 'function_call', name: 'getWeather' }] }, 113, 999); // after the tool
     rec.onMetric({ ...metric({ ttftMs: 500, promptTokens: 13_500 }) });
     const r = end();
     expect(r.prompt.lane).toEqual({ lane: 'fast', reason: 'chat' });
@@ -119,7 +119,7 @@ describe('TURN_RECEIPT llm metric', () => {
   it('records an ask for a teammate as its own reason, on the main lane (counted nightly)', () => {
     const { rec, end } = recorder({ CASCADE_FAST_LANE: 'on' });
     const said = [{ type: 'message', role: 'user', textContent: 'can I talk to Maya' }];
-    rec.onRequest(said as never, 90, 111);
+    rec.onRequest({ items: said }, 90, 111);
     rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
     expect(end().prompt.lane).toEqual({ lane: 'main', reason: 'teammate' });
   });
@@ -127,7 +127,7 @@ describe('TURN_RECEIPT llm metric', () => {
   it("a metric from before the first request of its turn still reports that turn's own request", () => {
     const { rec, end } = recorder();
     rec.onMetric({ ...metric({ ttftMs: 300, promptTokens: 12_000 }) }); // an earlier turn's reply
-    rec.onRequest([], 113);
+    rec.onRequest({ items: [] }, 113);
     const r = end();
     expect(r.tokens?.prompt).toBe(12_000);
     expect(r.tools.offered).toBe(113);
@@ -135,7 +135,7 @@ describe('TURN_RECEIPT llm metric', () => {
 
   it('a reply the caller cut beats an earlier dropped one', () => {
     const { rec, end } = recorder();
-    rec.onRequest([], 90);
+    rec.onRequest({ items: [] }, 90);
     rec.onMetric({ ...DROPPED });
     rec.onMetric({ ...metric({ cancelled: true, ttftMs: 820 }) });
     const r = end();
@@ -145,7 +145,7 @@ describe('TURN_RECEIPT llm metric', () => {
 
   it('with only a dropped request still reports it, as before', () => {
     const { rec, end } = recorder();
-    rec.onRequest([], 90);
+    rec.onRequest({ items: [] }, 90);
     rec.onMetric({ ...DROPPED });
     expect(end().tokens).toMatchObject({ prompt: 0, cancelled: true, thought: null });
   });
