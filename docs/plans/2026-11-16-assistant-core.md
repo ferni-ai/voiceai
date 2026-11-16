@@ -60,11 +60,35 @@ right moment, and can be seen and closed in the app.**
 
 **P0. Measure and fence (first, small).**
 
-- An `assistant-core` voice-eval scenario set: scripted callers who add, move, finish and
-  ask about tasks, reminders, events and goals, scored on whether the store changed as
-  asked and what Ferni said is true. Baseline it on dev before any change.
+- An `assistant-core` voice-eval scenario set, scored on two things per ask: the store
+  changed as asked (read the eval user's records on `ferni-dev` after the call), and what
+  Ferni said about it is true (no "done" without the write, no Google claim with the flag
+  off). Baseline it on dev before any change. `scripts/voice-eval/` is sealed from
+  builders, so its holder builds the set from the spec below; builders only run it.
 - Owner rows in `decisions.ts` for the six kinds above, so `pnpm quality:decisions`
-  fails a new duplicate.
+  fails a new duplicate. (Landed with this plan.)
+
+The eval spec. One call per line; "then" is what must be true after the call.
+
+| #   | The caller says                                           | Then                                                                                            |
+| --- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | "Add pick up the dry cleaning to my list."                | one open task with that title                                                                   |
+| 2   | "What's on my list?" (after 1)                            | Ferni names the dry cleaning; no invented tasks                                                 |
+| 3   | "I picked up the dry cleaning, cross it off."             | that task is completed                                                                          |
+| 4   | "Move the dry cleaning to Friday."                        | task due Friday, or Ferni says plainly he can't move it yet                                     |
+| 5   | "Delete the dry cleaning one."                            | task gone, or an honest "I can't delete yet"                                                    |
+| 6   | "Remind me at 5 to call my sister."                       | one reminder at 17:00 caller time, nothing at a time never said                                 |
+| 7   | "What reminders do I have?"                               | Ferni lists the 5pm one and only real ones                                                      |
+| 8   | "Cancel that reminder."                                   | reminder cancelled                                                                              |
+| 9   | "Put a dentist appointment on Thursday at 2."             | one event Thursday 14:00; Ferni says where it was saved (Ferni's calendar unless writes are on) |
+| 10  | "What's on my calendar tomorrow?" (no calendar connected) | "not connected", never "nothing"                                                                |
+| 11  | "I want to run a 10k by March."                           | one goal with a March target                                                                    |
+| 12  | "I ran 5k today, that's progress on my 10k."              | goal progress recorded, or an honest "I noted it" with no false progress claim                  |
+| 13  | "Every weekday at 7, remind me to stretch."               | a recurring reminder or routine that the scheduler will deliver                                 |
+| 14  | "I'll send that email to my landlord tomorrow."           | one commitment captured, due tomorrow                                                           |
+
+Baseline expectation from the audits: 4, 5, 12 and 13 fail today, and 9 lands only in
+Ferni's own calendar.
 
 **P1. Tasks that work.**
 
