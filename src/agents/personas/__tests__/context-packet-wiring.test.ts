@@ -495,6 +495,7 @@ describe('CONTEXT_PACKET on: recall rides the packet, labelled', () => {
       updateChatCtx: async () => undefined,
     };
     const recall = {
+      takeSelfNote: () => ({ note: null, crisis: false }),
       lastPick: (): RecallPick => ({
         facts: [{ entity: 'Sam', key: 'dog', value: 'Biscuit', confidence: 0.9 }],
         rest: 'OPENER LINE',

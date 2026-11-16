@@ -44,7 +44,7 @@ import {
   noteCrisisRisk,
   notePatternRisk,
 } from '../../services/safety/crisis-call-risk.js';
-import { withoutGrowthNote } from '../multi-agent/recall-note.js';
+import { withoutCrisisHeldNotes } from '../multi-agent/recall-note.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -349,9 +349,10 @@ export async function gatedReply(
   options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
-  // PERSONA_GROWTH's note (recall-note.ts) never reaches a reply on a call with crisis risk noted.
+  // The notes about Ferni himself (recall-note.ts: PERSONA_GROWTH's, FERNI_SELF_RECALL's)
+  // never reach a reply on a call with crisis risk noted.
   const risk = sessionScope(session.userData);
-  const chatCtx = withoutGrowthNote(
+  const chatCtx = withoutCrisisHeldNotes(
     withoutPastLeadIns(request, env),
     !!risk && crisisRiskNoted(risk)
   );
@@ -371,11 +372,11 @@ export async function gatedReply(
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
   // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
-  // A guided reply never carries PERSONA_GROWTH's note, whenever this turn found the risk.
+  // A guided reply never carries the notes about Ferni himself, whenever this turn found the risk.
   // A soft check-in asks for no crisis talk, so it gets no youth crisis note (MINOR_CRISIS_CARE);
   // a friend at risk gets the friend note.
   const plain = ({ guidance, about }: GuideDecision): llm.ChatContext =>
-    withTurnReminder(withoutGrowthNote(chatCtx), session, {
+    withTurnReminder(withoutCrisisHeldNotes(chatCtx), session, {
       shape: false,
       closeLoop: false,
       youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),

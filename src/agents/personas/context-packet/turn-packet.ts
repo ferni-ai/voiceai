@@ -13,12 +13,15 @@ import { createHash } from 'node:crypto';
 
 import { contextPacketEnabled } from '../../../config/context-packet-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { type MemoryRecall, type RecallAgent } from '../../multi-agent/memory-recall-hook.js';
 import {
-  addRecallNote,
-  type MemoryRecall,
-  type RecallAgent,
-} from '../../multi-agent/memory-recall-hook.js';
-import { dropForgottenNotes } from '../../multi-agent/recall-note.js';
+  addRecallNotes,
+  dropForgottenNotes,
+  dropSelfNotes,
+  recallNoteId,
+  SELF_NOTE_ID_PREFIX,
+  type RecallNote,
+} from '../../multi-agent/recall-note.js';
 import { sendGrowth } from '../persona-growth-note.js';
 import { forgottenCheckNow } from '../../../memory/recall/forget-every-reader.js';
 
@@ -47,8 +50,9 @@ export interface RecallPick {
   /**
    * The rest of the note, word for word as recall writes it and on the same
    * turns (check-ins, threads, inside jokes, opener, summaries, people, his own
-   * life and its footer, life updates, episodes, self-recall); null when only
-   * facts. Still sent as recall's chat note, so no recall flag changes.
+   * life and its footer, life updates, episodes); null when only facts. Still
+   * sent as recall's chat note, so no recall flag changes. Self-recall's note is
+   * sent after it on its own (sendRecall).
    */
   rest: string | null;
 }
@@ -111,6 +115,10 @@ export function rememberForPacket(
  * checked again (a topic forgotten mid-call takes them out), and a new note
  * about a forgotten topic is not sent. PERSONA_GROWTH's note goes in or out
  * on its own (persona-growth-note.ts), before the reply to `said`.
+ * FERNI_SELF_RECALL's note goes in on its own right after recall's, so the
+ * model reads the same words in the same order; a crisis signal on `said` or
+ * the call takes every self note back out instead (recall-note.ts), as it does
+ * the growth note, and crisis-gate.ts keeps them from a crisis-guided reply.
  */
 export function sendRecall(
   agent: RecallAgent,
@@ -123,11 +131,19 @@ export function sendRecall(
   const forgotten = forgottenCheckNow(userId);
   dropForgottenNotes(agent, forgotten, said);
   sendGrowth(agent, recall, said);
-  if (!note || forgotten?.(note)) return;
-  const pick = contextPacketEnabled() ? recall.lastPick() : null;
-  if (!pick) return addRecallNote(agent, note, said);
-  rememberForPacket(session, pick);
-  if (pick.rest) addRecallNote(agent, pick.rest, said);
+  const self = recall.takeSelfNote();
+  if (self.crisis) dropSelfNotes(agent, said);
+  const notes: RecallNote[] = [];
+  if (note && !forgotten?.(note)) {
+    const pick = contextPacketEnabled() ? recall.lastPick() : null;
+    if (pick) rememberForPacket(session, pick);
+    const general = pick ? pick.rest : note;
+    if (general) notes.push({ note: general, id: recallNoteId() });
+  }
+  if (self.note && !forgotten?.(self.note)) {
+    notes.push({ note: self.note, id: recallNoteId(SELF_NOTE_ID_PREFIX) });
+  }
+  addRecallNotes(agent, notes, said);
 }
 
 /** "How do you know", "who told you", "where did you hear that". */
