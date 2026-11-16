@@ -13,16 +13,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const warn = vi.fn();
 let uid: string | null = null;
-let answerAuth: () => void = () => undefined;
+/** Auth's first answer: the persisted session by default, or signed out with `null`. */
+let answerAuth: (user?: string | null) => void = () => undefined;
 const initAuth = vi.fn(
   () =>
     new Promise<void>((resolve) => {
-      answerAuth = () => {
-        uid = 'uid-signed-in'; // the persisted session, restored by the SDK
+      answerAuth = (user = 'uid-signed-in') => {
+        uid = user; // the persisted session, restored by the SDK
         resolve();
       };
     })
 );
+type AuthListener = (state: { uid: string | null }) => void;
+const authListeners = new Set<AuthListener>();
+/** A later sign-in or sign-out, as firebase-auth.service notifies it. */
+const authChanges = (next: string | null) => {
+  uid = next;
+  [...authListeners].forEach((listener) => listener({ uid: next }));
+};
 const initCrossTeamNotifications = vi.fn();
 const initVoiceEvents = vi.fn();
 
@@ -33,6 +41,11 @@ vi.mock('../../src/services/firebase-auth.service.js', () => ({
   initAuth: () => initAuth(),
   getFirebaseUid: () => uid,
   getAuthToken: async () => (uid ? `token-for-${uid}` : null),
+  onAuthStateChange: (listener: AuthListener) => {
+    authListeners.add(listener);
+    listener({ uid }); // like the real one: called at once with the current state
+    return () => authListeners.delete(listener);
+  },
 }));
 vi.mock('../../src/services/cross-team-notifications.service.js', () => ({
   initCrossTeamNotifications: (id: string) => initCrossTeamNotifications(id),
@@ -51,6 +64,7 @@ beforeEach(() => {
   initCrossTeamNotifications.mockReset();
   initVoiceEvents.mockReset();
   uid = null;
+  authListeners.clear();
   localStorage.clear();
   localStorage.setItem('voiceai_deviceId', 'device_1794062223025_test');
 });
@@ -107,5 +121,26 @@ describe('per-person streams at load', () => {
     await expect(started).resolves.toBeNull();
     expect(initCrossTeamNotifications).not.toHaveBeenCalled();
     expect(initVoiceEvents).not.toHaveBeenCalled();
+  });
+
+  it('start once for someone who signs in after load, and not on a sign-out', async () => {
+    const { startPerPersonStreams } = await import('../../src/app/per-person-streams.js');
+    const started = startPerPersonStreams();
+    answerAuth(null); // signed out at load
+    await expect(started).resolves.toBeNull();
+
+    authChanges(null); // a sign-out notification starts nothing
+    await vi.advanceTimersByTimeAsync(50);
+    expect(initCrossTeamNotifications).not.toHaveBeenCalled();
+    expect(initVoiceEvents).not.toHaveBeenCalled();
+
+    authChanges('uid-signed-in-later'); // sign-in does not reload the page
+    await vi.waitFor(() => expect(initVoiceEvents).toHaveBeenCalled());
+    authChanges('uid-signed-in-later'); // token refresh or a second notification
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(initCrossTeamNotifications.mock.calls).toEqual([['uid-signed-in-later']]);
+    expect(initVoiceEvents.mock.calls).toEqual([['uid-signed-in-later']]);
+    expect(authListeners.size).toBe(0); // unsubscribed once started
   });
 });
