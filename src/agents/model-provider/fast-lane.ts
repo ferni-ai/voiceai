@@ -7,7 +7,8 @@
  * need no tool ("it's been a long day"), so those go to the fast model and
  * anything that may need one (a request, an ask for a teammate, a question about
  * the world, the reply after a tool result) stays on the main model. A missed request still has the
- * tools, and the fast lane is itself hedged by the main model.
+ * tools, and the fast lane is itself hedged by the main model. A crisis turn always stays on the
+ * main model, whatever its words (lane-request.ts).
  *
  * CASCADE_FAST_LANE=on turns it on (off by default); CASCADE_FAST_LANE_MODEL
  * picks the fast model.
@@ -20,6 +21,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { asksForTeammate } from '../../utils/teammate-talk.js';
 import { NO_NEW_WORDS_NOTE, TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { forwardPrewarm } from './forward-prewarm.js';
+import { mainLaneRequired } from './lane-request.js';
 
 const log = createLogger({ module: 'FastLane' });
 
@@ -84,7 +86,9 @@ export function asksAQuestion(text: string): boolean {
   return text.includes('?') && !ABOUT_FERNI.test(text);
 }
 
-export type LaneReason = 'after_tool' | 'no_words' | 'teammate' | 'request' | 'question' | 'chat';
+type WordsReason = 'after_tool' | 'no_words' | 'teammate' | 'request' | 'question' | 'chat';
+/** 'crisis': the crisis gate kept the request on the main model (routeOf). */
+type LaneReason = 'crisis' | WordsReason;
 
 /**
  * Why a reply to these words goes where it goes (logged, so a misroute shows).
@@ -93,7 +97,7 @@ export type LaneReason = 'after_tool' | 'no_words' | 'teammate' | 'request' | 'q
  * Those words are not in MAY_NEED_TOOL on purpose: its other readers (tool acks, lead-ins,
  * the slow-turn sound) would then treat every "can I talk to Maya" as a tool request.
  */
-export function laneReason(text: string | null): LaneReason {
+function laneReason(text: string | null): WordsReason {
   if (text === null) return 'after_tool';
   if (!text) return 'no_words';
   if (asksForTeammate(text)) return 'teammate';
@@ -105,6 +109,25 @@ export function laneReason(text: string | null): LaneReason {
 /** Whether a reply to these words can go to the fast model. */
 export function chitChat(text: string | null): boolean {
   return laneReason(text) === 'chat';
+}
+
+export interface LaneRoute {
+  lane: 'fast' | 'main';
+  reason: LaneReason;
+}
+
+/** What routeOf reads: a chat context, or any request with its items. */
+export type RoutedRequest = { items: readonly unknown[] };
+
+/**
+ * Where a request goes, for FastLaneLLM and the turn receipt alike: the main model when the
+ * crisis gate marked it (lane-request.ts), else by the caller's words.
+ */
+export function routeOf(request: RoutedRequest): LaneRoute {
+  const reason = mainLaneRequired(request)
+    ? 'crisis'
+    : laneReason(callerTurn(request.items as readonly ItemView[]));
+  return { lane: reason === 'chat' ? 'fast' : 'main', reason };
 }
 
 export class FastLaneLLM extends llm.LLM {
@@ -140,8 +163,7 @@ export class FastLaneLLM extends llm.LLM {
 
   chat(opts: ChatOptions): llm.LLMStream {
     const items = opts.chatCtx.items as readonly ItemView[];
-    const reason = laneReason(callerTurn(items));
-    const lane = reason === 'chat' ? 'fast' : 'main';
+    const { lane, reason } = routeOf(opts.chatCtx);
     // The last few item types show what kept a turn on the main model.
     const tail = items.slice(-4).map((i) => (i.type === 'message' ? i.role : i.type));
     log.info({ lane, reason, tail }, 'FAST_LANE');
