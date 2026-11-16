@@ -104,5 +104,3 @@ public struct AudioLevelSample: Identifiable {
         self.timestamp = Date()
     }
 }
-
-let brokenOnPurpose: Int = "red check"
