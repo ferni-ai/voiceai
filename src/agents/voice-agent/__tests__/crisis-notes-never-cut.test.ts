@@ -352,7 +352,7 @@ describe('the crisis override has the final word', () => {
     'ask for their phone number', // phone-number ask
   ];
 
-  // The turn reads the hour from the process clock (turn-handler.ts hourOfDay); the late-night
+  // The turn reads the hour from the process clock (turn-events.ts hourOfDay); the late-night
   // note is on from 23:00 to 05:00 (behavior-event-dispatcher.ts). Every hour of the day runs.
   const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
   const lateNight = (hour: number): boolean => hour >= 23 || hour < 5;
