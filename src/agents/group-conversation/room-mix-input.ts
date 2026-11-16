@@ -30,24 +30,62 @@ export const MIX_SAMPLES_PER_FRAME = 160;
 /** A guest's frames waiting for the next owner frame: 50 ms. When full, the oldest is dropped. */
 export const GUEST_QUEUE_FRAMES = 5;
 
+/**
+ * The clock the mix stamps ledger notes with: monotonic milliseconds. Anything
+ * that asks the ledger about a window (STT turn labelling) must read this clock.
+ */
+export function mixClock(): number {
+  return performance.now();
+}
+
+function isMixFormat(frame: AudioFrame): boolean {
+  return (
+    frame.sampleRate === MIX_SAMPLE_RATE &&
+    frame.channels === 1 &&
+    frame.samplesPerChannel === MIX_SAMPLES_PER_FRAME
+  );
+}
+
+function sameFormat(a: AudioFrame, b: AudioFrame): boolean {
+  return (
+    a.sampleRate === b.sampleRate &&
+    a.channels === b.channels &&
+    a.samplesPerChannel === b.samplesPerChannel &&
+    a.data.length === b.data.length
+  );
+}
+
+function formatOf(frame: AudioFrame): {
+  sampleRate: number;
+  channels: number;
+  samplesPerChannel: number;
+} {
+  return {
+    sampleRate: frame.sampleRate,
+    channels: frame.channels,
+    samplesPerChannel: frame.samplesPerChannel,
+  };
+}
+
 interface Track {
   reader: ReadableStreamDefaultReader<AudioFrame>;
   /** Guest frames not yet mixed, oldest first. Unused for the owner. */
   queue: AudioFrame[];
-  warnedFrameSize: boolean;
+  warnedFormat: boolean;
 }
 
 export class RoomMixInput extends voice.AudioInput {
+  /** The caller whose call this is; their track is the mix clock. Always `ledger.owner`. */
+  private readonly owner: string;
   private readonly tracks = new Map<string, Track>();
   private readonly mixed: ReadableStreamDefaultController<AudioFrame>;
   private attached = true;
   private closed = false;
+  private warnedOwnerFormat = false;
 
-  constructor(
-    private readonly owner: string,
-    private readonly ledger: TalkerLedger
-  ) {
+  constructor(private readonly ledger: TalkerLedger) {
     super();
+    this.owner = ledger.owner;
     let controller: ReadableStreamDefaultController<AudioFrame> | undefined;
     const mixedStream = new ReadableStream<AudioFrame>({
       start: (c) => {
@@ -75,7 +113,7 @@ export class RoomMixInput extends voice.AudioInput {
       return;
     }
     this.removeTrack(identity);
-    const track: Track = { reader: frames.getReader(), queue: [], warnedFrameSize: false };
+    const track: Track = { reader: frames.getReader(), queue: [], warnedFormat: false };
     this.tracks.set(identity, track);
     void this.readTrack(identity, track);
   }
@@ -128,18 +166,32 @@ export class RoomMixInput extends voice.AudioInput {
   }
 
   private mixOn(ownerFrame: AudioFrame): void {
-    const atMs = Date.now();
+    if (!this.warnedOwnerFormat && !isMixFormat(ownerFrame)) {
+      this.warnedOwnerFormat = true;
+      log.warn(
+        {
+          owner: formatOf(ownerFrame),
+          expected: {
+            sampleRate: MIX_SAMPLE_RATE,
+            channels: 1,
+            samplesPerChannel: MIX_SAMPLES_PER_FRAME,
+          },
+        },
+        'Room mix owner frame is not 16 kHz mono 10 ms; mixing it anyway'
+      );
+    }
+    const atMs = mixClock();
     const parts: Int16Array[] = [ownerFrame.data];
     this.ledger.note(this.owner, atMs, frameRms(ownerFrame.data));
     for (const [identity, track] of this.tracks) {
       if (identity === this.owner) continue;
       const frame = track.queue.shift();
-      const fits = frame !== undefined && frame.data.length === ownerFrame.data.length;
-      if (frame && !fits && !track.warnedFrameSize) {
-        track.warnedFrameSize = true;
+      const fits = frame !== undefined && sameFormat(frame, ownerFrame);
+      if (frame && !fits && !track.warnedFormat) {
+        track.warnedFormat = true;
         log.warn(
-          { identity, guestSamples: frame.data.length, ownerSamples: ownerFrame.data.length },
-          'Room mix guest frame size differs from the owner, mixing it as silence'
+          { identity, guest: formatOf(frame), owner: formatOf(ownerFrame) },
+          'Room mix guest frame format differs from the owner, mixing it as silence'
         );
       }
       this.ledger.note(identity, atMs, fits ? frameRms(frame.data) : 0);

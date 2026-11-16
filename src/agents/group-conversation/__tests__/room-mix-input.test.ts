@@ -11,6 +11,7 @@ import {
   MIX_SAMPLE_RATE,
   MIX_SAMPLES_PER_FRAME,
   RoomMixInput,
+  mixClock,
 } from '../room-mix-input.js';
 import { TalkerLedger } from '../talker-ledger.js';
 
@@ -38,6 +39,7 @@ function fakeTrack() {
     frames,
     state,
     push: (value: number) => controller?.enqueue(frameOf(value)),
+    pushFrame: (frame: AudioFrame) => controller?.enqueue(frame),
     end: () => controller?.close(),
   };
 }
@@ -50,14 +52,19 @@ async function settle(): Promise<void> {
   }
 }
 
-/** Reads the next mixed frame, failing instead of hanging if none comes. */
-async function nextFrame(reader: ReadableStreamDefaultReader<AudioFrame>): Promise<AudioFrame> {
+/** Waits for a mixed frame, failing instead of hanging if none comes. */
+async function within(read: Promise<{ done: boolean; value?: AudioFrame }>): Promise<AudioFrame> {
   const timeout = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('no mixed frame within 200 ms')), 200);
   });
-  const { value, done } = await Promise.race([reader.read(), timeout]);
+  const { value, done } = await Promise.race([read, timeout]);
   if (done || !value) throw new Error('mixed stream ended');
   return value;
+}
+
+/** Reads the next mixed frame, failing instead of hanging if none comes. */
+function nextFrame(reader: ReadableStreamDefaultReader<AudioFrame>): Promise<AudioFrame> {
+  return within(reader.read());
 }
 
 function samplesOf(frame: AudioFrame): number[] {
@@ -67,6 +74,7 @@ function samplesOf(frame: AudioFrame): number[] {
 describe('RoomMixInput', () => {
   let input: RoomMixInput | undefined;
   afterEach(async () => {
+    vi.restoreAllMocks();
     const open = input;
     input = undefined;
     await open?.close();
@@ -75,7 +83,7 @@ describe('RoomMixInput', () => {
   it('mixes the owner frame with the queued guest frame and notes both levels', async () => {
     const ledger = new TalkerLedger(OWNER);
     const note = vi.spyOn(ledger, 'note');
-    input = new RoomMixInput(OWNER, ledger);
+    input = new RoomMixInput(ledger);
     const owner = fakeTrack();
     const guest = fakeTrack();
     input.addTrack(OWNER, owner.frames);
@@ -84,20 +92,87 @@ describe('RoomMixInput', () => {
 
     guest.push(700);
     await settle();
+    vi.spyOn(performance, 'now').mockReturnValue(4242);
+    expect(mixClock()).toBe(4242);
     owner.push(500);
     const mixed = await nextFrame(reader);
 
     expect(samplesOf(mixed)).toEqual([1200]);
     expect(mixed.samplesPerChannel).toBe(MIX_SAMPLES_PER_FRAME);
     expect(mixed.sampleRate).toBe(MIX_SAMPLE_RATE);
-    expect(note).toHaveBeenCalledWith(OWNER, expect.any(Number), 500);
-    expect(note).toHaveBeenCalledWith(GUEST, expect.any(Number), 700);
+    // Notes are stamped with the monotonic mix clock, which Task 2 reads too.
+    expect(note).toHaveBeenCalledWith(OWNER, 4242, 500);
+    expect(note).toHaveBeenCalledWith(GUEST, 4242, 700);
     expect(input.guests).toEqual([GUEST]);
     reader.releaseLock();
   });
 
+  it('takes the owner from the ledger: only their track clocks the mix', async () => {
+    input = new RoomMixInput(new TalkerLedger(OWNER));
+    const guest = fakeTrack();
+    input.addTrack(GUEST, guest.frames);
+    const reader = input.stream.getReader();
+    let emitted = false;
+    const pending = reader.read().then((result) => {
+      emitted = true;
+      return result;
+    });
+    guest.push(700);
+    await settle();
+    expect(emitted).toBe(false); // a guest frame alone never clocks the mix
+    expect(input.guests).toEqual([GUEST]);
+
+    const owner = fakeTrack();
+    input.addTrack(OWNER, owner.frames);
+    owner.push(500);
+    expect(samplesOf(await within(pending))).toEqual([1200]);
+    expect(input.guests).toEqual([GUEST]);
+    reader.releaseLock();
+  });
+
+  it.each([
+    ['80 samples', new AudioFrame(new Int16Array(80).fill(700), MIX_SAMPLE_RATE, 1, 80)],
+    [
+      'the wrong sample rate',
+      new AudioFrame(
+        new Int16Array(MIX_SAMPLES_PER_FRAME).fill(700),
+        8000,
+        1,
+        MIX_SAMPLES_PER_FRAME
+      ),
+    ],
+    [
+      'two channels',
+      new AudioFrame(
+        new Int16Array(MIX_SAMPLES_PER_FRAME).fill(700),
+        MIX_SAMPLE_RATE,
+        2,
+        MIX_SAMPLES_PER_FRAME / 2
+      ),
+    ],
+  ])('a guest frame of %s is mixed as silence', async (_label, badFrame) => {
+    const ledger = new TalkerLedger(OWNER);
+    const note = vi.spyOn(ledger, 'note');
+    input = new RoomMixInput(ledger);
+    const owner = fakeTrack();
+    const guest = fakeTrack();
+    input.addTrack(OWNER, owner.frames);
+    input.addTrack(GUEST, guest.frames);
+    const reader = input.stream.getReader();
+
+    guest.pushFrame(badFrame);
+    await settle();
+    owner.push(500);
+    const mixed = await nextFrame(reader);
+
+    expect(samplesOf(mixed)).toEqual([500]);
+    expect(mixed.samplesPerChannel).toBe(MIX_SAMPLES_PER_FRAME);
+    expect(note).toHaveBeenCalledWith(GUEST, expect.any(Number), 0);
+    reader.releaseLock();
+  });
+
   it('a stream that ends becomes silence', async () => {
-    input = new RoomMixInput(OWNER, new TalkerLedger(OWNER));
+    input = new RoomMixInput(new TalkerLedger(OWNER));
     const owner = fakeTrack();
     const guest = fakeTrack();
     input.addTrack(OWNER, owner.frames);
@@ -117,7 +192,7 @@ describe('RoomMixInput', () => {
   });
 
   it('a slow guest never delays the owner', async () => {
-    input = new RoomMixInput(OWNER, new TalkerLedger(OWNER));
+    input = new RoomMixInput(new TalkerLedger(OWNER));
     const owner = fakeTrack();
     input.addTrack(OWNER, owner.frames);
     input.addTrack(GUEST, fakeTrack().frames);
@@ -130,7 +205,7 @@ describe('RoomMixInput', () => {
   });
 
   it('keeps at most GUEST_QUEUE_FRAMES guest frames, dropping the oldest', async () => {
-    input = new RoomMixInput(OWNER, new TalkerLedger(OWNER));
+    input = new RoomMixInput(new TalkerLedger(OWNER));
     const owner = fakeTrack();
     const guest = fakeTrack();
     input.addTrack(OWNER, owner.frames);
@@ -152,7 +227,7 @@ describe('RoomMixInput', () => {
   });
 
   it('removeTrack takes the guest out of the mix', async () => {
-    input = new RoomMixInput(OWNER, new TalkerLedger(OWNER));
+    input = new RoomMixInput(new TalkerLedger(OWNER));
     const owner = fakeTrack();
     const guest = fakeTrack();
     input.addTrack(OWNER, owner.frames);
@@ -170,7 +245,7 @@ describe('RoomMixInput', () => {
   });
 
   it('a re-added owner track keeps driving the mix', async () => {
-    input = new RoomMixInput(OWNER, new TalkerLedger(OWNER));
+    input = new RoomMixInput(new TalkerLedger(OWNER));
     const first = fakeTrack();
     input.addTrack(OWNER, first.frames);
     const reader = input.stream.getReader();
@@ -187,7 +262,7 @@ describe('RoomMixInput', () => {
   });
 
   it('emits nothing while detached and resumes when attached again', async () => {
-    input = new RoomMixInput(OWNER, new TalkerLedger(OWNER));
+    input = new RoomMixInput(new TalkerLedger(OWNER));
     const owner = fakeTrack();
     input.addTrack(OWNER, owner.frames);
     const reader = input.stream.getReader();

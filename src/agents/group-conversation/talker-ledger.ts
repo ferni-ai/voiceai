@@ -3,7 +3,8 @@
  *
  * The room mix notes every person's level for each 10 ms frame. Later, when STT
  * finishes a turn, `dominant(from, to)` says whose voice filled that window, so
- * the turn can be labelled with the right speaker. Pure: no clocks, no I/O.
+ * the turn can be labelled with the right speaker. Pure: no clocks, no I/O;
+ * callers stamp notes with `mixClock()` from room-mix-input.
  */
 
 /** A frame at or above this RMS (int16 units) counts as someone talking. */
@@ -25,7 +26,7 @@ export class TalkerLedger {
   private frames: VoicedFrame[] = [];
 
   /** `owner` is the caller whose call this is; ties go to them. */
-  constructor(private readonly owner: string) {}
+  constructor(readonly owner: string) {}
 
   /** Records one 10 ms frame of `identity` at `atMs` with level `rms`. */
   note(identity: string, atMs: number, rms: number): void {
