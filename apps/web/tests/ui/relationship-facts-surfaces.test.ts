@@ -87,6 +87,23 @@ describe('app startup loads the record', () => {
     await vi.advanceTimersByTimeAsync(120_000);
     expect(calls).toBe(2); // once more, not a polling loop
   });
+
+  it('the retry is skipped when the record arrived after a call in the meantime', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    progressReply = async () => (++calls === 1 ? { ok: false, status: 503, error: 'busy' } : { ok: true, status: 200, data: RECORD });
+    const m = await load();
+
+    m.startRelationshipFacts();
+    await vi.advanceTimersByTimeAsync(0);
+    window.dispatchEvent(new Event('ferni:conversation-end'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(m.relationshipStageService.factsStatus()).toBe('known');
+    const before = calls; // earlier tests' modules also listen for call ends, so count from here
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(calls).toBe(before); // no request from the stale retry
+  });
 });
 
 describe("What I'm Noticing", () => {
@@ -128,6 +145,7 @@ describe('the journey dialog', () => {
     expect(text(modal.querySelector('.journey-stage-name'))).toBe(m.t('relationshipFacts.loading'));
     expect(stats()).toEqual(['', '']); // no 0 from this device
     expect(modal.querySelector('.journey-stats-row')?.getAttribute('aria-busy')).toBe('true');
+    expect(modal.querySelectorAll('.journey-stat[aria-hidden="true"]').length).toBeGreaterThanOrEqual(2); // no label-only stats read out
     expect(modal.querySelector('.journey-map-section')).toBeNull();
 
     arrive({ ok: true, status: 200, data: RECORD });
@@ -137,6 +155,7 @@ describe('the journey dialog', () => {
     expect(stats()).toEqual(['59', '327']);
     expect(text(modal.querySelector('.journey-stage-name'))).toBe(m.getTranslatedStageName('established'));
     expect(modal.querySelector('.journey-stats-row')?.getAttribute('aria-busy')).toBe('false');
+    expect(modal.querySelector('.journey-stat[aria-hidden]')).toBeNull();
     expect(modal.querySelectorAll('.journey-map-section')).toHaveLength(1);
     expect(modal.querySelector('.journey-next-stage')).not.toBeNull();
 
@@ -146,5 +165,18 @@ describe('the journey dialog', () => {
     progressReply = async () => ({ ok: true, status: 200, data: later });
     await m.relationshipStageService.loadFromBackend();
     expect(stats()).toEqual(['59', '327']);
+  });
+
+  it('when the record could not load, it says so and is not left busy', async () => {
+    progressReply = async () => ({ ok: false, status: 500, error: 'boom' });
+    const m = await load();
+    const { openJourney } = await import('../../src/ui/journey.ui.js');
+    await m.relationshipStageService.loadFromBackend();
+
+    openJourney();
+    const modal = document.querySelector('.journey-modal')!;
+    expect(text(modal.querySelector('.journey-stage-name'))).toBe(m.t('relationshipFacts.unavailable'));
+    expect(modal.querySelector('.journey-stats-row')?.getAttribute('aria-busy')).toBe('false');
+    expect(modal.querySelectorAll('.journey-stat[aria-hidden="true"]').length).toBeGreaterThanOrEqual(2);
   });
 });

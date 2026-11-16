@@ -35,6 +35,9 @@ export function relationshipOverviewHtml(renderMap: JourneyMap): string {
   const [tagKey, descKey] = (STAGE_KEYS[stage] ?? STAGE_KEYS['first-meeting']) as [string, string];
   const stageName = known ? getTranslatedStageName(stage) : relationshipPendingText();
   const progressPercent = Math.round(stageProgress.progress * 100);
+  // Busy only while loading (an unavailable record is said, not pending); no label-only stats read out
+  const busy = relationshipStageService.factsStatus() === 'loading';
+  const stat = known ? 'class="journey-stat"' : 'class="journey-stat" aria-hidden="true"';
 
   return `
         <!-- Journey Map - Visual Path (Better than Apple Progress) -->
@@ -46,18 +49,18 @@ export function relationshipOverviewHtml(renderMap: JourneyMap): string {
           <p class="journey-stage-tagline">${known ? t(tagKey) : ''}</p>
           <p class="journey-stage-description">${known ? t(descKey) : ''}</p>
 
-          <div class="journey-stats-row" aria-busy="${!known}">
-            <div class="journey-stat">
+          <div class="journey-stats-row" aria-busy="${busy}">
+            <div ${stat}>
               <span class="journey-stat__icon">${ICONS.messageCircle}</span>
               <span class="journey-stat__value">${relationshipNumber(stageMetrics.totalConversations)}</span>
               <span class="journey-stat__label">${t('yourStory.stats.conversations')}</span>
             </div>
-            <div class="journey-stat">
+            <div ${stat}>
               <span class="journey-stat__icon">${ICONS.calendar}</span>
               <span class="journey-stat__value">${relationshipNumber(stageMetrics.daysSinceFirstMeeting)}</span>
               <span class="journey-stat__label">${t('yourStory.stats.daysTogether')}</span>
             </div>
-            ${isNoStreaksOn() ? '' : `<div class="journey-stat">
+            ${isNoStreaksOn() ? '' : `<div ${stat}>
               <span class="journey-stat__icon">${ICONS.flame}</span>
               <span class="journey-stat__value">${relationshipNumber(stageMetrics.currentStreak)}</span>
               <span class="journey-stat__label">${t('yourStory.stats.dayStreak')}</span>
