@@ -45,7 +45,7 @@ export function summarizeInsight(content: string, max = SUMMARY_MAX_CHARS): stri
  * Ferni's lines (docs/decisions/register.md D4), spaced or not: "Just checking in - no
  * pressure." becomes "Just checking in, no pressure." A range between numbers is left alone.
  */
-export function withoutDashPauses(text: string): string {
+function withoutDashPauses(text: string): string {
   return text.replace(/\s+[-\u2013\u2014]+\s+|\s*\u2014+\s*/g, (dash, at: number) =>
     /\d/.test(text[at - 1] ?? '') && /\d/.test(text[at + dash.length] ?? '') ? dash : ', '
   );

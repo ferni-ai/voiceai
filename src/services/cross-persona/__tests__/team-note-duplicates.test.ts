@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CrossPersonaInsight } from '../cross-persona-insights.js';
 import { insightChanges, isRecentDuplicate } from '../insight-store.js';
-import { toClientDiscoveries, toClientInsight, withoutDashPauses } from '../insight-wire-format.js';
+import { toClientDiscoveries, toClientInsight } from '../insight-wire-format.js';
 
 const HOUR = 60 * 60 * 1000;
 const NOW = 1_800_000_000_000;
@@ -77,7 +77,9 @@ describe('toClientDiscoveries: the panel list', () => {
   });
 });
 
-describe('withoutDashPauses', () => {
+describe('dash pauses in what the panel shows', () => {
+  const withoutDashPauses = (text: string): string => toClientInsight(note('d', 1, text)).content;
+
   it('turns spaced hyphens and dashes into commas, and leaves ranges and words alone', () => {
     expect(withoutDashPauses('a pattern here - a habit could help')).toBe(
       'a pattern here, a habit could help'

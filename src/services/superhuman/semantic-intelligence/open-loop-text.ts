@@ -16,7 +16,7 @@
  */
 
 /** How much of the user's words a loop keeps as `context` (open-loops.ts). */
-export const LOOP_CONTEXT_CHARS = 200;
+const LOOP_CONTEXT_CHARS = 200;
 
 /** What two loops are compared by. */
 export interface LoopWords {
@@ -37,7 +37,7 @@ function plain(text: string): string {
  * The wording and who it is about: "I'll call her tomorrow" about a sister and about mom
  * are two loops; the same words with the same person (or none) are one.
  */
-export function loopKey(loop: LoopWords): string {
+function loopKey(loop: LoopWords): string {
   return `${plain(loop.content)}|${loop.relatedPerson ? plain(loop.relatedPerson) : ''}`;
 }
 

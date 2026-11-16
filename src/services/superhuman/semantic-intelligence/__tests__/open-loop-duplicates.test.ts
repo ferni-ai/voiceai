@@ -44,7 +44,7 @@ vi.mock('../insight-broker.js', () => ({ createInsight: vi.fn(async () => undefi
 
 const loops = await import('../open-loops.js');
 const { fetchOpenLoops } = await import('../../../../api/your-story-sections.js');
-const { wholeClause, loopKey, oneLoopPerWording } = await import('../open-loop-text.js');
+const { wholeClause, oneLoopPerWording } = await import('../open-loop-text.js');
 const CALL_TEXT = "I'll call her tomorrow about the lease";
 
 const USER = 'user-loops-1';
@@ -227,12 +227,10 @@ describe('wholeClause', () => {
   });
 
   it('compares wordings without case, spacing or end punctuation', () => {
-    expect(loopKey({ content: '  I need to  STOP. ' })).toBe(
-      loopKey({ content: 'i need to stop' })
-    );
-    expect(loopKey({ content: 'I need to stop' })).not.toBe(
-      loopKey({ content: 'I need to start' })
-    );
+    const kept = (...wordings: string[]) =>
+      oneLoopPerWording(wordings.map((content) => ({ content }))).length;
+    expect(kept('  I need to  STOP. ', 'i need to stop')).toBe(1);
+    expect(kept('I need to stop', 'I need to start')).toBe(2);
   });
 
   it('keeps one loop per wording and person, newest first', () => {
