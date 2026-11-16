@@ -100,7 +100,7 @@ const BASELINE: Record<string, number> = {
   'src/tools/domains/proactive/outreach/service.ts': 5,
   'src/tools/domains/productivity/notes.ts': 8,
   'src/tools/domains/productivity/routines.ts': 6,
-  'src/tools/domains/productivity/tasks.ts': 7,
+  'src/tools/domains/productivity/tasks.ts': 3,
   'src/tools/domains/referral/index.ts': 2,
   'src/tools/domains/scheduling/index.ts': 9,
   'src/tools/domains/settings/language-tools.ts': 2,
