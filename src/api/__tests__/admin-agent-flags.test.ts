@@ -133,6 +133,7 @@ function fakes(
       if (opts.rooms instanceof Error) throw opts.rooms;
       return opts.rooms ?? [];
     }),
+    updateFlags: vi.fn(async () => undefined),
   };
   const store: FlagStore = {
     writeSnapshot: vi.fn(async () => undefined),
@@ -239,6 +240,7 @@ describe('auth', () => {
     for (const r of results) expect(r).toMatchObject({ handled: true, status: code });
     expect(f.deps.agent).not.toHaveBeenCalled();
     expect(f.deps.store).not.toHaveBeenCalled();
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
   });
 
   it('rate limits at 30 requests a minute per caller', async () => {
@@ -371,13 +373,90 @@ describe('GET /api/v1/admin/agent-flags/rooms', () => {
       vi.useRealTimers();
     }
   });
+});
 
-  it('answers 404 to a path or method it does not serve, apply included', async () => {
+describe('POST /api/v1/admin/agent-flags/apply', () => {
+  const BODY = { set: { SOUND_CONDUCTOR: 'on' }, reset: [] };
+
+  it("records the admin's email from requireAdmin as the actor", async () => {
     const f = fakes();
-    expect((await call('POST', `${BASE}/rooms`, f.deps)).status).toBe(404);
-    expect((await call('POST', `${BASE}/apply`, f.deps, { set: {}, reset: [] })).status).toBe(404);
-    expect((await call('GET', `${BASE}/nope`, f.deps)).status).toBe(404);
+    const r = await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(r.status).toBe(200);
+    expect(r.json.appliedAt).toEqual(expect.any(String));
+    expect(r.json).not.toHaveProperty('status');
+    expect(f.agent.updateFlags).toHaveBeenCalledWith(BODY);
+    expect(f.changes[0]).toMatchObject({ actor: 'admin@example.test', result: 'applied' });
+  });
+
+  it("records the admin's uid when requireAdmin has no email", async () => {
+    auth.requireAdmin.mockResolvedValue({ ...ADMIN, email: undefined });
+    const f = fakes();
+    await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(f.changes[0]?.actor).toBe('uid-fictional-admin');
+  });
+
+  it('answers with the use case status: 400 for an invalid body, 409 for an occupied room', async () => {
+    const bad = await call('POST', `${BASE}/apply`, fakes().deps, {
+      set: {},
+      reset: [],
+      actor: 'x',
+    });
+    expect(bad).toMatchObject({ status: 400, json: { errors: expect.any(Array) } });
+    const rooms = [{ name: 'room-fictional-2', participants: 3 }];
+    const busy = fakes({ rooms });
+    const r = await call('POST', `${BASE}/apply`, busy.deps, BODY);
+    expect(r).toMatchObject({ status: 409, json: { rooms } });
+    expect(busy.agent.updateFlags).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 after 10 s, not never, when the room service hangs, and changes nothing', async () => {
+    vi.useFakeTimers();
+    try {
+      const f = fakes();
+      const hung = {
+        listRooms: () =>
+          new Promise<never>(() => {
+            // never settles, like a hung room service
+          }),
+      };
+      const rpc = vi.fn();
+      const deps = { ...f.deps, agent: () => liveKitDevAgent(LIVEKIT_DEV_ENV, rpc, hung) };
+      const answered = vi.fn();
+      void call('POST', `${BASE}/apply`, deps, BODY).then(answered);
+      await vi.advanceTimersByTimeAsync(9_999);
+      expect(answered).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(answered).toHaveBeenCalledWith(expect.objectContaining({ status: 502 }));
+      expect(rpc).not.toHaveBeenCalled();
+      expect(f.changes[0]).toMatchObject({ result: 'failed' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('answers 400 for a body that is not JSON', async () => {
+    const f = fakes();
+    const r = await call('POST', `${BASE}/apply`, f.deps, 'not json!');
+    expect(r.status).toBe(400);
     expect(f.agent.occupiedRooms).not.toHaveBeenCalled();
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
+  });
+
+  it('refuses a body over 16 KB with 413 and changes nothing', async () => {
+    const f = fakes();
+    const big = { set: { SOUND_CONDUCTOR: 'on' }, reset: [], pad: 'x'.repeat(17 * 1024) };
+    const r = await call('POST', `${BASE}/apply`, f.deps, big);
+    expect(r.status).toBe(413);
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
+    expect(f.agent.occupiedRooms).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 to a path or method it does not serve', async () => {
+    const f = fakes();
+    expect((await call('GET', `${BASE}/apply`, f.deps)).status).toBe(404);
+    expect((await call('POST', BASE, f.deps, BODY)).status).toBe(404);
+    expect((await call('GET', `${BASE}/nope`, f.deps)).status).toBe(404);
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
   });
 });
 

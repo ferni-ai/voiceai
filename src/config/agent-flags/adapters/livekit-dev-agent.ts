@@ -8,7 +8,10 @@
  * has that id. That constant is what keeps a prod agent from being changed; do not relax it.
  * LIVEKIT_URL must be the dev project's host exactly: a server whose env names another
  * project cannot build this adapter, so its key and rooms are never used here. Rooms are
- * always listed on the dev host. It checks the URL, not the key. Reads keep only flag names.
+ * always listed on the dev host. It checks the URL, not the key.
+ * Only switchable per-file flags (agentFlags()) are ever sent, checked here again with
+ * validateApply even though the routes validated first, and every update merges (overwrite: false), because
+ * overwrite: true replaces all ~300 of the agent's secrets. Reads keep only flag names.
  * Listing the rooms gives up after 10 s, so a hung room service cannot hold a request open.
  * Every error thrown is a DevAgentError (domain/dev-agent-error.ts): method, status, Twirp
  * code and error name only, never LiveKit's text.
@@ -24,6 +27,8 @@ import { SignJWT } from 'jose';
 import { RoomServiceClient } from 'livekit-server-sdk';
 import type { Env } from '../../env-flag.js';
 import { withTimeout } from '../../../utils/async.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { validateApply, type ApplyRequest } from '../domain/apply-request.js';
 import { callFailed, DevAgentError, safeWord } from '../domain/dev-agent-error.js';
 import { agentFlags } from '../domain/switchable.js';
 import type { DevAgent } from '../ports/dev-agent.js';
@@ -37,9 +42,12 @@ const CLI_VERSION = '2.19.0';
 const TIMEOUT_MS = 20_000;
 const TOKEN_TTL_SECONDS = 5 * 60;
 const ROOMS_TIMEOUT_MS = 10_000;
+const SECRET_KIND = 'AGENT_SECRET_KIND_ENVIRONMENT';
 
-type CloudAgentMethod = 'ListAgentSecrets';
+type CloudAgentMethod = 'ListAgentSecrets' | 'UpdateAgentSecrets';
 export type Rpc = (method: CloudAgentMethod, body: object) => Promise<unknown>;
+
+const log = createLogger({ module: 'livekit-dev-agent' });
 
 const FLAG_NAMES: ReadonlySet<string> = new Set(agentFlags().map((f) => f.name));
 
@@ -116,6 +124,16 @@ function cloudAgentRpc(apiKey: string, apiSecret: string): Rpc {
   };
 }
 
+/**
+ * The request as validateApply accepts it, or a throw before a byte is sent: the routes
+ * validate first, and this keeps the same single rule set as defence in depth.
+ */
+function checkedRequest(req: ApplyRequest): ApplyRequest {
+  const valid = validateApply(req);
+  if (!valid.ok) throw new Error(`Refusing the update: ${valid.errors.join('; ')}`);
+  return valid.request;
+}
+
 function secretTimes(response: unknown): Record<string, string> {
   if (!isRecord(response) || !Array.isArray(response.secrets)) {
     throw new DevAgentError('returned no secrets list', { method: 'CloudAgent.ListAgentSecrets' });
@@ -147,6 +165,29 @@ export function liveKitDevAgent(
   return {
     async flagSecretTimes() {
       return secretTimes(await call('ListAgentSecrets', { agentId: DEV_AGENT_ID }));
+    },
+
+    async updateFlags(input) {
+      const req = checkedRequest(input);
+      const response = await call('UpdateAgentSecrets', {
+        agentId: DEV_AGENT_ID,
+        overwrite: false,
+        secrets: Object.entries(req.set).map(([name, value]) => ({
+          name,
+          value: Buffer.from(value, 'utf8').toString('base64'),
+          kind: SECRET_KIND,
+        })),
+        remove: [...req.reset],
+      });
+      if (!isRecord(response) || response.success !== true) {
+        const message =
+          isRecord(response) && typeof response.message === 'string' ? response.message : '';
+        throw new Error(`CloudAgent.UpdateAgentSecrets not confirmed: ${message || 'no message'}`);
+      }
+      log.info(
+        { set: Object.keys(req.set), reset: req.reset },
+        'Dev agent flag secrets updated; the agent restarts'
+      );
     },
 
     async occupiedRooms() {

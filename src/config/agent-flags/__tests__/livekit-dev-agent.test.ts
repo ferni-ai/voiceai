@@ -1,7 +1,8 @@
 /**
- * The LiveKit adapter for the dev agent's flag secrets: bound to the dev project only, reads
- * back only flag names, gives up on the rooms after 10 s, and never puts the API secret in an
- * error. Fakes only: no call reaches LiveKit.
+ * The LiveKit adapter for the dev agent's flag secrets: bound to the dev project only, sends
+ * only switchable flag names (merge, never overwrite), reads back only flag names, gives up on
+ * the rooms after 10 s, and never puts the API secret in an error. Fakes only: no call
+ * reaches LiveKit.
  */
 import { Room } from '@livekit/protocol';
 import { jwtVerify } from 'jose';
@@ -46,9 +47,9 @@ interface Call {
   body: unknown;
 }
 
-function fakeRpc(response: unknown = { secrets: [] }) {
+function fakeRpc(response: unknown = { success: true, message: '' }) {
   const calls: Call[] = [];
-  const rpc = vi.fn(async (method: 'ListAgentSecrets', body: object) => {
+  const rpc = vi.fn(async (method: 'ListAgentSecrets' | 'UpdateAgentSecrets', body: object) => {
     calls.push({ method, body });
     return response;
   });
@@ -56,6 +57,8 @@ function fakeRpc(response: unknown = { secrets: [] }) {
 }
 
 const noRooms = { listRooms: async (): Promise<Room[]> => [] };
+
+const decode = (b64: string) => Buffer.from(b64, 'base64').toString('utf8');
 
 beforeEach(() => {
   sdk.constructed.length = 0;
@@ -109,6 +112,88 @@ describe('liveKitDevAgent: bound to the dev project', () => {
       }
     }
   );
+});
+
+describe('updateFlags', () => {
+  it('sends one merge to the dev agent: set as base64 values, reset as removals', async () => {
+    const { rpc, calls } = fakeRpc();
+    const agent = liveKitDevAgent(ENV, rpc, noRooms);
+    await agent.updateFlags({
+      set: { SOUND_CONDUCTOR: 'shadow', ABUSE_DISCLOSURE_PATTERNS: 'on' },
+      reset: ['CRISIS_MEANS_IN_HAND'],
+    });
+    expect(calls).toEqual([
+      {
+        method: 'UpdateAgentSecrets',
+        body: {
+          agentId: 'CA_siTDMHEba4Fg',
+          overwrite: false,
+          secrets: [
+            { name: 'SOUND_CONDUCTOR', value: 'c2hhZG93', kind: 'AGENT_SECRET_KIND_ENVIRONMENT' },
+            {
+              name: 'ABUSE_DISCLOSURE_PATTERNS',
+              value: 'b24=',
+              kind: 'AGENT_SECRET_KIND_ENVIRONMENT',
+            },
+          ],
+          remove: ['CRISIS_MEANS_IN_HAND'],
+        },
+      },
+    ]);
+    const body = calls[0]?.body as { secrets: Array<{ value: string }> };
+    expect(body.secrets.map((s) => decode(s.value))).toEqual(['shadow', 'on']);
+  });
+
+  it('sends an empty removal list when only setting', async () => {
+    const { rpc, calls } = fakeRpc();
+    await liveKitDevAgent(ENV, rpc, noRooms).updateFlags({
+      set: { SOUND_CONDUCTOR: 'off' },
+      reset: [],
+    });
+    expect(calls[0]?.body).toMatchObject({ overwrite: false, remove: [] });
+  });
+
+  it.each([
+    ['a real secret that is not a flag, in set', { set: { CARTESIA_MODEL: 'on' }, reset: [] }],
+    ['ALLOW_PRODUCTION_DATA in reset', { set: {}, reset: ['ALLOW_PRODUCTION_DATA'] }],
+    ['a numeric config flag', { set: { LATENCY_ARM_PERCENT: 'off' }, reset: [] }],
+    ['a numeric config flag in reset', { set: {}, reset: ['WORKER_RECYCLE_RSS_MB'] }],
+    ['a prototype name', { set: {}, reset: ['__proto__'] }],
+  ])('refuses %s without calling LiveKit', async (_label, req) => {
+    const { rpc } = fakeRpc();
+    const agent = liveKitDevAgent(ENV, rpc, noRooms);
+    await expect(agent.updateFlags(req as never)).rejects.toThrow(/not a switchable agent flag/);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('refuses a value outside the flag modes without echoing it', async () => {
+    const { rpc } = fakeRpc();
+    const agent = liveKitDevAgent(ENV, rpc, noRooms);
+    const req = { set: { ABUSE_DISCLOSURE_PATTERNS: 'sk-fictional-looking-value' }, reset: [] };
+    const err = await agent.updateFlags(req as never).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain('ABUSE_DISCLOSURE_PATTERNS');
+    expect((err as Error).message).not.toContain('sk-fictional-looking-value');
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('refuses a name in both set and reset, and an empty request', async () => {
+    const { rpc } = fakeRpc();
+    const agent = liveKitDevAgent(ENV, rpc, noRooms);
+    await expect(
+      agent.updateFlags({ set: { SOUND_CONDUCTOR: 'on' }, reset: ['SOUND_CONDUCTOR'] })
+    ).rejects.toThrow(/SOUND_CONDUCTOR/);
+    await expect(agent.updateFlags({ set: {}, reset: [] })).rejects.toThrow(/nothing to change/);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('throws when LiveKit does not confirm the update', async () => {
+    const { rpc } = fakeRpc({ success: false, message: 'agent not found' });
+    const agent = liveKitDevAgent(ENV, rpc, noRooms);
+    await expect(agent.updateFlags({ set: { SOUND_CONDUCTOR: 'on' }, reset: [] })).rejects.toThrow(
+      /agent not found/
+    );
+  });
 });
 
 describe('flagSecretTimes', () => {
@@ -221,6 +306,22 @@ describe('the default transport (fetch)', () => {
     expect(protectedHeader.alg).toBe('HS256');
     expect(payload.agent).toEqual({ admin: true });
     expect((payload.exp ?? 0) - (payload.nbf ?? 0)).toBe(300);
+  });
+
+  it('sends the update body as JSON with base64 values', async () => {
+    const calls = stubFetch(200, JSON.stringify({ success: true, message: '' }));
+    await liveKitDevAgent(ENV, undefined, noRooms).updateFlags({
+      set: { SOUND_CONDUCTOR: 'on' },
+      reset: [],
+    });
+    const [url, init] = calls[0] as FetchArgs;
+    expect(url).toBe('https://agents.livekit.cloud/twirp/livekit.CloudAgent/UpdateAgentSecrets');
+    expect(JSON.parse(String(init.body))).toEqual({
+      agentId: 'CA_siTDMHEba4Fg',
+      overwrite: false,
+      secrets: [{ name: 'SOUND_CONDUCTOR', value: 'b24=', kind: 'AGENT_SECRET_KIND_ENVIRONMENT' }],
+      remove: [],
+    });
   });
 
   it('reports a twirp error by method, status and code, without the API secret', async () => {
