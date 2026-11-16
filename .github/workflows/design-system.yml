@@ -211,8 +211,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [package-check]
     if: >-
-      ${{ (github.event_name == 'workflow_dispatch' && inputs.publish) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+      ${{ github.ref == 'refs/heads/main' && (
+      (github.event_name == 'workflow_dispatch' && inputs.publish) ||
+      github.event_name == 'push') }}
     # One publish at a time, never cancelled: two pushes racing on one version
     # would make the second fail on "cannot publish over".
     concurrency:

@@ -39,6 +39,7 @@ describe('packageProblems', () => {
         '.': './dist/tokens.css',
         './i18n': './tokens/i18n.json',
         './content-utils': './dist/content-utils.ts',
+        './i18n-again': './tokens/i18n.json',
       },
       repository,
     };

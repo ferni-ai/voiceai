@@ -14,8 +14,9 @@
  * this runs on every pull request that touches the packages, before anything publishes.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const REPOSITORY = 'github.com/ferni-ai/voiceai';
 
@@ -89,6 +90,9 @@ function main(dirs: string[]): number {
   return failed ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare real paths: run through a symlink (macOS /tmp is one), a plain URL
+// comparison is false and the gate would exit 0 without checking anything.
+const entry = process.argv[1];
+if (entry !== undefined && realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))) {
   process.exit(main(process.argv.slice(2)));
 }
