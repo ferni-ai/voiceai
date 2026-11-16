@@ -27,7 +27,17 @@ vi.mock('../../../../src/services/superhuman/capacity-guardian.js', () => ({
 }));
 
 const apiGet = vi.fn();
-vi.mock('../../src/utils/api.js', () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
+// The header's count and days come from the relationship record: a user with some talks
+const RECORD = {
+  stage: 'getting-started',
+  metrics: { totalConversations: 12, daysSinceFirstMeeting: 20, currentStreak: 0, longestStreak: 0 },
+};
+vi.mock('../../src/utils/api.js', () => ({
+  apiGet: (...a: unknown[]) =>
+    a[0] === '/api/relationship/progress'
+      ? Promise.resolve({ ok: true, status: 200, data: RECORD })
+      : apiGet(...a),
+}));
 
 const { handleYourStoryRoutes } = await import('../../../../src/api/your-story-routes.js');
 const { fetchYourStory } = await import('../../src/services/your-story.service.js');
