@@ -13,7 +13,10 @@
 // (global fetch), no dependencies.
 
 const OK_FIRST_HOP = new Set([200, 301, 308]);
-const HOME_ATTEMPTS = 6;
+// A brand-new preview channel answers 404 for a while after the deploy action
+// returns: on PR #3932 it was still 404 57 s after the channel was created.
+// Three minutes covers that; a site that is really down costs the run 3 min.
+const HOME_ATTEMPTS = 18;
 const HOME_RETRY_MS = 10_000;
 
 const base = process.argv[2];
