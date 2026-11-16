@@ -97,7 +97,7 @@ type LaneReason = 'crisis' | WordsReason;
  * Those words are not in MAY_NEED_TOOL on purpose: its other readers (tool acks, lead-ins,
  * the slow-turn sound) would then treat every "can I talk to Maya" as a tool request.
  */
-export function laneReason(text: string | null): WordsReason {
+function laneReason(text: string | null): WordsReason {
   if (text === null) return 'after_tool';
   if (!text) return 'no_words';
   if (asksForTeammate(text)) return 'teammate';
