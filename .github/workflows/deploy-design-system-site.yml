@@ -99,7 +99,9 @@ jobs:
           entryPoint: ./apps/website/design-system-portal
 
       # A 200 alone passed for ten months on a stale site, so this also checks
-      # that the page served now was written by this deploy.
+      # that the page served now was written by this deploy. There is no
+      # automatic rollback: firebase-tools has no `hosting:rollback` command
+      # (checked on 15.10.0), so a red here says how to roll back by hand.
       - name: Health check
         id: health
         if: github.event_name != 'pull_request'
@@ -123,13 +125,8 @@ jobs:
           done
           echo "healthy=false" >> "$GITHUB_OUTPUT"
           echo "::error::design.ferni.ai did not serve this deploy (HTTP 200 with a fresh last-modified) after the deploy"
+          {
+            echo "### design.ferni.ai health check failed"
+            echo "Roll back: Firebase console, Hosting, site ferni-design-system, release history, Rollback on the previous release."
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
-
-      - name: Rollback on health check failure
-        if: failure() && steps.health.outputs.healthy == 'false'
-        working-directory: apps/website/design-system-portal
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: |
-          npm install -g firebase-tools
-          firebase hosting:rollback --site ferni-design-system --confirm
