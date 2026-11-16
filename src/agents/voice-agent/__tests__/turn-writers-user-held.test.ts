@@ -4,7 +4,9 @@
  * capture, the thread recorder, Better Than Human, the preference save, the tool-feedback
  * collector), and the daily check-in records no emotional weather. An unheld caller's turn still
  * reaches all seven. The real handler runs on a final turn; only the writers and the stores are
- * faked. The hold is MINOR_CARE's (a caller who said they're 16). Fixtures are fictional.
+ * faked. The hold is MINOR_CARE's (a caller who said they're 16). Each turn notes its crisis read
+ * as started, as the turn pipeline does in a call: fast capture waits for that read and captures
+ * nothing without it (crisis-memory-hold.ts). Fixtures are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -71,9 +73,12 @@ import {
   resetMinorCare,
   userHeld,
 } from '../../../utils/minor-care.js';
+import { CRISIS_READ_WAIT, noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
 const UNDER_18 = "I'm 16 years old and kind of bored";
 const CHECK_IN = "sky check: I'm feeling happy and great today";
+const WAIT = { ...CRISIS_READ_WAIT };
 let n = 0;
 
 /** Anything the handler touches that isn't under test: every property is a no-op. */
@@ -121,6 +126,7 @@ async function turn(sessionId: string, userId: string): Promise<void> {
     agent: stub(),
     autoOptimizer: { processUserMessage: w.feedback },
   });
+  noteCrisisTurnRead(sessionId, CHECK_IN); // the turn's crisis read started (and finds nothing)
   handler({ transcript: CHECK_IN, isFinal: true } as never);
   await vi.waitFor(() => expect(w.identity).toHaveBeenCalled(), { timeout: 5_000 });
 }
@@ -128,8 +134,11 @@ async function turn(sessionId: string, userId: string): Promise<void> {
 beforeEach(() => {
   vi.stubEnv('MINOR_CARE', 'on');
   for (const fn of Object.values(w)) fn.mockClear();
+  Object.assign(CRISIS_READ_WAIT, { startMs: 300, settleMs: 300 });
 });
 afterEach(() => {
+  Object.assign(CRISIS_READ_WAIT, WAIT);
+  resetCrisisCallRisk(); // also the memory hold
   resetMinorCare();
   vi.unstubAllEnvs();
 });
@@ -144,7 +153,9 @@ describe('per-turn writers (transcript-handler.ts) for a caller held on another 
     await vi.waitFor(() => expect(w.recordWeather).toHaveBeenCalledTimes(1), { timeout: 5_000 });
     const withUser = expect.objectContaining({ userId });
     expect(w.ftis).toHaveBeenCalledWith(expect.any(String), withUser);
-    expect(w.fastCapture).toHaveBeenCalledWith(withUser);
+    await vi.waitFor(() => expect(w.fastCapture).toHaveBeenCalledWith(withUser), {
+      timeout: 2_000,
+    });
     expect(w.thread).toHaveBeenCalledWith(withUser);
     expect(w.bth).toHaveBeenCalledWith(expect.anything(), withUser);
     expect(w.prefs).toHaveBeenCalled();
