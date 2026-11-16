@@ -50,7 +50,7 @@
 
 **Interfaces:**
 - Produces: `mixFrames(frames: readonly Int16Array[]): Int16Array` (sum, clipped to int16), `frameRms(samples: Int16Array): number`.
-- Produces: `class TalkerLedger { constructor(owner: string); readonly owner: string; note(identity: string, atMs: number, rms: number): void; dominant(fromMs: number, toMs: number): string | null }`, plus `VOICED_RMS = 500`.
+- Produces: `class TalkerLedger { constructor(owner: string); readonly owner: string; note(identity: string, atMs: number, rms: number): void; dominant(fromMs: number, toMs: number): string | null }`. A frame counts as voiced at RMS ≥ 500 (`VOICED_RMS`, module-private).
 - Produces: `class RoomMixInput extends voice.AudioInput { constructor(ledger: TalkerLedger); addTrack(identity: string, frames: ReadableStream<AudioFrame>): void; removeTrack(identity: string): void; get guests(): string[] }`. The owner is `ledger.owner`.
 - Produces: `mixClock(): number` (`performance.now()`), the one clock for ledger notes and for every window a later task asks the ledger about.
 
@@ -77,12 +77,12 @@
 
 **Interfaces:**
 - Consumes: `new RoomMixInput(new TalkerLedger(ownerIdentity))` and `mixClock()` (Task 1); `roomInputOptions(participant, sessionId)` from `room-input-options.ts` for each person's noise cancellation; `dispatchedUserName` (`src/utils/ferni-intro.ts`) for the owner's first name, falling back to `the caller`.
-- Produces: `attachGroupHearing(args: { session: voice.AgentSession; agent: voice.Agent; room: Room; ownerIdentity: string; sessionId: string }): () => void`. It returns a detach function, and it does nothing unless `flagOn('GROUP_CALL')`.
-- Produces: `groupHearing(sessionId: string): { guestName(identity: string): string | undefined; guestNames(): string[]; ledger: TalkerLedger; guestOn(): boolean } | undefined`. `guestNames()` is every guest seen this call, including ones who left (Task 3 needs them).
+- Produces: `hearGroupCall(persona, setup, call: { room; userParticipant }, sessionId): void`, called once from `persona-agent-factory.ts` right after `session.start`. It attaches the hearing (module-private `attachGroupHearing`, a no-op unless `flagOn('GROUP_CALL')`) and wraps the persona's cleanup so the hearing detaches first.
+- Produces: `groupHearing(sessionId: string): { guestName(identity: string): string | undefined; guestNames(): string[]; ledger: TalkerLedger; guestOn(): boolean; ownerLabel(): string } | undefined`. `guestNames()` is every guest seen this call, including ones who left (Task 3 needs them).
 - Produces: `sttChain(session, audio, base): Promise<ReadableStream<stt.SpeechEvent | string> | null>`, composing first-turn-fast, name-fix and `labelGuestTurns` in that order.
-- Produces: `labelGuestTurns(events, sessionId)` (may stay module-private). **Fails closed** (security ruling 2026-11-16): while a guest is on the call, every `FINAL_TRANSCRIPT` is labelled from `ledger.attribute(window)`. A confident owner window gets `[<owner first name>] <text>`, a confident guest window gets `[<guestName>] <text>`, and anything else gets `[unclear] <text>`. The window runs from the end of the previous final to now, on `mixClock()`. With no guest on, turns are unchanged.
+- Produces: `labelGuestTurns(events, sessionId)` (may stay module-private). **Fails closed** (security ruling 2026-11-16): while a guest is on the call, every `FINAL_TRANSCRIPT` is labelled from `ledger.attribute(window)`. A confident owner window gets `[<owner first name>] <text>`, a confident guest window gets `[<guestName>] <text>`, and anything else gets `[unclear] <text>`. The window runs from the end of the previous final to now, on `mixClock()`. With no guest ever on, turns are unchanged. A guest who just left still gets her last words labelled when the window is hers.
 - Produces: `TalkerLedger.attribute(fromMs: number, toMs: number): { identity: string | null; confident: boolean }` in `talker-ledger.ts`. It is confident only when one person's voiced ms are > 0 and ≥ 2× every other person's in the window. `dominant()` keeps its Task 1 behaviour.
-- Produces: `ownerLabel(sessionId: string): string | undefined` on the hearing (`[<owner first name>] `), so Task 3 can recognise and strip it.
+- Produces: `ownerLabel(): string` on the hearing (`'[<owner first name>] '`), read as `groupHearing(id)?.ownerLabel()`, so Task 3 can recognise and strip it.
 
 - [ ] **Step 1: Write the failing tests**
   - `group-hearing`: with the flag off, a second participant connecting leaves `session.input.audio` as it was. With it on, the first non-agent participant other than the owner sets `session.input.audio` to a `RoomMixInput` and adds a system note to the chat context, in the same way as `recall-note.ts`. The note says: `Sarah is on this call by phone with <owner first name>. Lines that start with [Sarah] are hers, and lines that start with [<owner first name>] are <owner first name>'s. A line marked [unclear] could be either of them: if it matters who said it, ask. Talk with both of them, use their names, and let them talk to each other. Sarah can hear everything you say, so don't bring up <owner first name>'s private things unless <owner first name> does.`
@@ -90,7 +90,7 @@
   - `fails closed`: with a guest on, a final in a mixed window (no one ≥ 2×) comes out `[unclear] …`, never unlabelled. A confident owner window comes out `[Seth] …`.
   - `owner reconnect keeps the mix`: the owner's `participantDisconnected` then `participantConnected` (same identity) leaves `session.input.audio === mix` and re-adds the owner's track.
   - `guest left`: the guest's `participantDisconnected` calls `removeTrack` and adds the note `Sarah has left the call.`
-  - `stt-chain`: a final transcript in a confident guest window comes out as `[Sarah] see you at six`. With no `groupHearing` for the session (solo call, or flag off), or with no guest on, every event passes through untouched.
+  - `stt-chain`: a final transcript in a confident guest window comes out as `[Sarah] see you at six`. With no `groupHearing` for the session (solo call, or flag off), or with no guest ever on, every event passes through untouched.
 - [ ] **Step 2: Run and see them fail.** `pnpm vitest run src/agents/group-conversation/__tests__/group-hearing.test.ts src/agents/personas/__tests__/stt-chain.test.ts`
 - [ ] **Step 3: Implement.** Each track is read with `new AudioStream(track, { sampleRate: 16000, numChannels: 1, frameSizeMs: 10, noiseCancellation })`. The guest's name is the SIP participant's `name` (set when dialled in Task 4), falling back to `the guest`.
 - [ ] **Step 4: Run the tests, then the existing STT tests unchanged.** `pnpm vitest run src/agents/personas/__tests__/` and `pnpm typecheck`.
@@ -107,13 +107,13 @@
 - Test: `src/agents/group-conversation/__tests__/guest-turn.test.ts`, plus one test per memory writer changed
 
 **Interfaces:**
-- Consumes: `groupHearing(id)?.ownerLabel()` (a method on the hearing, returns `'[<owner first name>] '` or undefined), `guestNames()`, `guestOn()` (Task 2).
+- Consumes: `groupHearing(id)?.ownerLabel()` (a method on the hearing that returns `'[<owner first name>] '`; undefined only when there is no hearing), `guestNames()`, `guestOn()` (Task 2).
 - Produces: `ownerTurnText(text: string, sessionId: string): string | null`. **Fails closed.** With no `groupHearing(sessionId)`, or no guest ever on the call, it returns `text` unchanged (solo calls are not affected). Once a guest has been on, it returns the text without its label only when the text starts with the owner label (`ownerLabel`), and `null` for `[<guest>]`, `[unclear]` or unlabelled text. Owner-memory writers store only a non-null result. An owner who says "[Sarah]" on a solo call is still the owner.
 
 - [ ] **Step 1: Map the writers.** Run `git grep -n -l -E "UserInputTranscribed|user_input_transcribed|ConversationItemAdded|conversation_item_added" -- src ':!*fixtures*' ':!*heldout*' ':!*held-out*' ':!*blind*' ':!*sealed*' ':!*corpus*' ':!scripts/crisis-eval/**' ':!scripts/voice-eval/**' ':!*__tests__*'` (36 files on 2026-11-16). Put each file in one of two lists: "writes something about the owner" (facts, people, emotions, commitments, open loops) or "doesn't". The PR body lists both.
 - [ ] **Step 2: Write the failing tests.** For each owner writer: a turn `[Sarah] I'm allergic to nuts` in a group call stores nothing about the owner. The same text from the owner on a solo call is stored as before. Crisis detection is **not** gated: a guest turn that trips it still runs the crisis path. Also test `speaker check paused` (no `feedAudio` while a guest is on) and `voice emotion paused`.
 - [ ] **Step 3: Run and see them fail.**
-- [ ] **Step 4: Implement** `isGuestTurn` and an early return in each writer.
+- [ ] **Step 4: Implement** `ownerTurnText`. Each owner writer stores the label-stripped text it returns, and returns early on `null`.
 - [ ] **Step 5: Run the tests, then `pnpm typecheck` and `pnpm quality:arch`.**
 - [ ] **Step 6: Prove each guard can fail** by removing the early return. Commit and open the PR: `fix(memory): keep a guest's words out of the owner's memories`.
 
@@ -199,19 +199,20 @@ Unit tests on fakes prove the logic, not the call. Each rung below runs on more 
 
 | Rung | When | What is real | Pass line |
 |---|---|---|---|
-| 1. Hearing bench | after Task 2 merges; no deploy | Two fictional voices (two Cartesia voices reading scripted lines) mixed with known timing (alternating turns, overlaps, one quiet speaker), going through the real `RoomMixInput`, `TalkerLedger`, the real Ink STT and `sttChain` | No guest line is ever labelled as the owner's (the security number: must be 0). Report the share of `[unclear]` lines, and the share of correct labels per scenario. |
-| 2. Two-bot room on dev | after Tasks 2, 3 and 3b are on dev with the flag on for dev | The dev agent in a real LiveKit room. One bot is the owner (a test uid) and one bot joins as the guest; each publishes scripted audio | The agent logs labelled turns; Ferni's replies use both names; Ferni answers the guest; the test uid's memories in `ferni-dev` hold nothing the guest said; a `[Guest]` request to call someone is refused with the ask. |
-| 3. SIP dial on dev | after Tasks 4 and 5 | `addToCall` dials a real phone through the LiveKit trunk into the room | Read-back before ringing; `joined` reaches the agent; the hang-up removes the SIP participant; a declined call gives the honest `no_answer` line. |
-| 4. Seth's call | after Task 6 | Everything | The checks under Rollout step 3. |
+| 1. Hearing bench | after Task 2 merges; no deploy, flag on only in the bench process | Two fictional voices (two Cartesia voices reading scripted lines) mixed with known timing (alternating turns, overlaps, one quiet speaker), going through the real `RoomMixInput`, `TalkerLedger`, the real Ink STT and `sttChain` | No guest line is ever labelled as the owner's (the security number: must be 0). Report the share of `[unclear]` lines, and the share of correct labels per scenario. |
+| 2. Two-bot room on dev | after Tasks 2, 3 and 3b are on dev with the flag on for dev | The dev agent in a real LiveKit room. One bot is the owner (a test uid) and one bot joins as the guest; each publishes scripted audio | The agent logs labelled turns; Ferni's replies use both names; Ferni answers the guest; the test uid's memories in `ferni-dev` hold nothing the guest said; a request to call someone from a turn labelled with the guest bot's display name is refused with the ask. |
+| 3. SIP dial on dev | after Tasks 4 and 5 | `addToCall` dials a real phone through the LiveKit trunk into the room | Read-back before ringing; `joined` reaches the agent; the hang-up removes the SIP participant; a call left to ring out gives the honest `no_answer` line, and a declined call gives the honest line for whatever `failed` reason the trunk reports (record which). |
+| 4. Seth's call | after Task 6 | Everything | The checks under Rollout step 4. |
 | 5. Solo regression | before prod | The voice-eval skill's solo scenarios, flag on vs off | No change: the mixer must be invisible on solo calls. |
 
 Rung 1 is its own small PR (`scripts/group-call/hearing-bench.ts`, a dev tool that is never shipped to the agent). Its numbers go in the issue. Rungs 2 and 3 are scripted where they can be (`scripts/group-call/two-bot-room.ts`) and logged in the issue with transcripts. The harnesses never read the sealed eval sets.
 
 ## Rollout
 
-1. Merge Tasks 1–6 with `GROUP_CALL` off, in order. Tasks 3 and 3b must be merged before the flag is turned on anywhere (rung 2 runs on dev before Task 4).
-2. Deploy to dev from `main` (skill `deploy-agent`), with `lk room list --project ferni-dev` empty. Then `lk agent update-secrets --secrets "GROUP_CALL=on"` on dev.
-3. Seth places a real three-way call on dev (web plus a phone he owns) and checks:
+1. Merge Tasks 1, 2, 3 and 3b with `GROUP_CALL` off. The flag stays off in every deployed agent until Tasks 3 and 3b are merged. Rung 1 runs before that: it turns the flag on only inside the bench process, which is never deployed.
+2. Deploy to dev from `main` (skill `deploy-agent`), with `lk room list --project ferni-dev` empty. Then turn the flag on for dev only: `lk agent update-secrets --project ferni-dev --config livekit.toml --secrets "GROUP_CALL=on"` (the `deploy-agent` skill holds the exact command). Run rung 2.
+3. Merge Tasks 4, 5 and 6, deploy each to dev, and run rung 3.
+4. Seth places a real three-way call on dev (web plus a phone he owns) and checks:
    - the read-back;
    - that Ferni greets the guest by name;
    - that Ferni answers a question the guest asks;
@@ -219,5 +220,5 @@ Rung 1 is its own small PR (`scripts/group-call/hearing-bench.ts`, a dev tool th
    - that hanging up from the web removes the guest.
 
    Paste the call transcript, with labels, into the issue.
-4. Prod only after that dev call, and after a voice-eval run of the solo scenarios shows no change with the flag on. The mixer must be invisible on solo calls.
-5. Remove the flag once it's on in prod.
+5. Prod only after that dev call, and after a voice-eval run of the solo scenarios shows no change with the flag on. The mixer must be invisible on solo calls.
+6. Remove the flag once it's on in prod.
