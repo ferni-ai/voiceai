@@ -7,7 +7,7 @@
  * jsdom has no layout: an element is laid out unless it (or an ancestor) has
  * `hidden`, and `data-rect="left,top,width,height"` sets its box.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installDialogFocus } from '../src/utils/dialog-focus';
 
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -122,5 +122,31 @@ describe('closed dialogs are inert', () => {
     uninstall();
     uninstall = () => undefined;
     expect(panel.hasAttribute('inert')).toBe(false);
+  });
+
+  it('lifts inert when the dialog shows with no attribute or motion event (a Web Animation)', async () => {
+    // element.animate() on an ancestor changes its computed opacity only: no
+    // attribute changes and no transitionend/animationend fires. A stylesheet
+    // in <head> (not observed) stands in for it here.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    const sheet = document.createElement('style');
+    try {
+      sheet.textContent = '.fade-host { opacity: 0; }';
+      document.head.appendChild(sheet);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'fade-host';
+      document.body.appendChild(wrapper);
+      const panel = mountPanel({});
+      wrapper.appendChild(panel);
+      await vi.advanceTimersByTimeAsync(1_000); // marked, and every settle window has ended
+      expect(panel.hasAttribute('inert')).toBe(true);
+
+      sheet.textContent = '.fade-host { opacity: 0.57; }'; // mid fade-in, as the verifier saw it
+      await vi.advanceTimersByTimeAsync(300);
+      expect(panel.hasAttribute('inert')).toBe(false);
+    } finally {
+      sheet.remove();
+      vi.useRealTimers();
+    }
   });
 });

@@ -14,7 +14,11 @@
  * - a closed dialog gets `inert`, tagged so this only ever lifts its own
  * - it is re-checked each frame for a moment after it (or, once inert, an
  *   ancestor) changes class or style, and when a transition or animation in
- *   it ends, so a panel never stays inert once it is on screen
+ *   it ends
+ * - while any dialog is inert, those dialogs are also re-checked every
+ *   250 ms: a Web Animation (element.animate()) or a long fade on an ancestor
+ *   changes opacity with no attribute change or end event, and must not leave
+ *   a panel on screen but unclickable
  *
  * Installed by installDialogFocus (dialog-focus.ts), which lifts the mark
  * before it moves focus into a dialog that has just opened.
@@ -58,10 +62,19 @@ function isClosedDialog(el: HTMLElement): boolean {
 
 /** Dialogs this module made inert; few, so checking them on every change is cheap. */
 const marked = new Set<HTMLElement>();
+/** How often inert dialogs are re-checked for showing without any event (see the header). */
+const SWEEP_MS = 250;
+let sweepTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopSweep(): void {
+  if (sweepTimer !== null) clearInterval(sweepTimer);
+  sweepTimer = null;
+}
 
 /** Lift the `inert` this module set, if any (dialog-focus calls it before focusing in). */
 export function releaseClosedInert(el: HTMLElement): void {
   marked.delete(el);
+  if (marked.size === 0) stopSweep();
   if (!el.hasAttribute(CLOSED_MARK)) return;
   el.removeAttribute('inert');
   el.removeAttribute(CLOSED_MARK);
@@ -73,14 +86,15 @@ function sync(el: HTMLElement): void {
     el.setAttribute(CLOSED_MARK, '');
     el.setAttribute('inert', '');
     marked.add(el);
+    sweepTimer ??= setInterval(() => [...marked].forEach(sync), SWEEP_MS);
   }
 }
 
 const settling = new Map<HTMLElement, number>();
-let frameQueued = false;
+let frameQueued: number | null = null;
 
 function tick(): void {
-  frameQueued = false;
+  frameQueued = null;
   for (const [el, framesLeft] of settling) {
     sync(el);
     if (framesLeft <= 0 || !el.isConnected) settling.delete(el);
@@ -90,9 +104,8 @@ function tick(): void {
 }
 
 function queueFrame(): void {
-  if (frameQueued) return;
-  frameQueued = true;
-  requestAnimationFrame(tick);
+  if (frameQueued !== null) return;
+  frameQueued = requestAnimationFrame(tick);
 }
 
 function settle(el: HTMLElement, frames = SETTLE_FRAMES): void {
@@ -137,6 +150,9 @@ export function installClosedDialogInert(root: HTMLElement = document.body): () 
     document.removeEventListener('transitionend', onMotionEnd, true);
     document.removeEventListener('animationend', onMotionEnd, true);
     settling.clear();
+    if (frameQueued !== null) cancelAnimationFrame(frameQueued);
+    frameQueued = null;
     [...marked].forEach(releaseClosedInert);
+    stopSweep();
   };
 }
