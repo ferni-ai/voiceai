@@ -34,6 +34,27 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
+      # Fail closed, before anything of the PR runs: a PR that changes what judges it (this
+      # workflow, the runner or its self-test spec, a dependency file, a vitest or ts config) is not
+      # judged by it. git only. The job fails with a "not trusted" annotation, never success.
+      - name: Trusted inputs
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          for d in 50 500 5000; do
+            git fetch -q --no-tags --depth="$d" origin +refs/heads/main:refs/plants/main "$HEAD_SHA"
+            if mb=$(git merge-base refs/plants/main "$HEAD_SHA"); then break; fi
+          done
+          [ -n "${mb:-}" ] || { echo "::error title=not trusted::no merge base with main"; exit 1; }
+          git diff --no-renames --name-only "$mb" "$HEAD_SHA" >"$RUNNER_TEMP/changed.txt"
+          trust='^((.*/)?(package\.json|\.npmrc|\.pnpmrc|vitest[^/]*\.config\.[^/]*|tsconfig[^/]*\.json)|pnpm-lock\.yaml|pnpm-workspace\.yaml|patches/.*|scripts/ci/plants/run-plants\.ts|\.github/workflows/plants\.yml|\.plants/plants-runner-self\.json)$'
+          n=$(grep -cE "$trust" "$RUNNER_TEMP/changed.txt" || true)
+          if [ "$n" != 0 ]; then
+            echo "::error title=not trusted::not trusted: harness or dependency change, needs a human ($n file(s))"
+            exit 1
+          fi
+
       # A PR can't weaken the runner that judges it. The runner imports only Node builtins,
       # so it runs from outside the checkout and never dirties the tree.
       - name: Main's runner, outside the checkout

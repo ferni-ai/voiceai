@@ -226,8 +226,14 @@ judges it; a runner change is judged by the old one until it merges) and runs on
 the PR adds or changes: one plant at a time, 120 s per vitest process, at most 15 plants,
 one serial job of at most 30 min. A plant breaks production code only, and counts only when
 its named row fails on an assertion thrown from a test file (the named test or a helper),
-never from the planted code. The check fails on any plant that is not RED, a misnamed file
-under `.plants/`, or a tree dirty before planting. The public log holds the head SHA, each
+never from the planted code. A spec carries those six string fields and nothing else: a
+command, env, runner or vitest option, timeout or shell is refused. The check fails on any
+plant that is not RED, a misnamed file under `.plants/`, or a tree dirty before planting.
+**Fails closed:** before anything of the PR runs, a git-only step diffs the head against its
+merge base with main; if that touches a `package.json`, `pnpm-lock.yaml`,
+`pnpm-workspace.yaml`, `patches/`, an `.npmrc` or `.pnpmrc`, a `vitest*.config.*` or `tsconfig*.json`, the runner,
+`plants.yml` or `.plants/plants-runner-self.json`, the job fails with a `not trusted`
+annotation ("harness or dependency change, needs a human"), never success. The public log holds the head SHA, each
 spec's sha256 and the runner's table (ids, verdicts, row titles, error classes, seconds):
 no spec or test text, no vitest output, no artifacts, no PR comments. A PR that also changes
 the test harness (vitest configs, `src/tests/`, `__mocks__/`, the global setup) gets a
@@ -244,7 +250,8 @@ that green check on that SHA, nothing else.
 **Next, not yet in effect:** Lead Verified will require that check on the verified SHA for
 crisis-lane PRs, and will reject a run when `plants.yml` at the verified SHA differs from
 main's ("plants workflow changed in this PR"), since a `pull_request` run uses the PR's own
-copy of the workflow.
+copy of the workflow: a PR could delete the fail-closed step, so that step is defense in
+depth and this check is the guarantee.
 
 ### design-system.yml
 

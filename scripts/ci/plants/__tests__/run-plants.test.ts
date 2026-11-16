@@ -1196,6 +1196,39 @@ describe('parseManifest', () => {
     }
   });
 
+  it('a spec carries no command, env, runner option, timeout or shell, in a plant or at the top', () => {
+    const classes: Record<string, Record<string, unknown>> = {
+      command: { command: 'true', cmd: ['sh', '-c', 'true'], run: 'true', exec: 'true' },
+      env: { env: { NODE_OPTIONS: '--require ./x.cjs' } },
+      'runner option': {
+        config: 'vitest.config.ts',
+        vitestArgs: ['--x'],
+        reporter: 'x',
+        root: '/',
+      },
+      timeout: { timeout: 1, timeoutMs: 1 },
+      shell: { shell: '/bin/sh' },
+    };
+    for (const [kind, fields] of Object.entries(classes)) {
+      for (const [key, value] of Object.entries(fields)) {
+        expect(
+          () => parseManifest({ plants: [{ ...plant(), [key]: value }] }),
+          `${kind}: ${key}`
+        ).toThrow(/plant 0: must be an object with only/);
+        expect(() => parseManifest({ plants: [plant()], [key]: value }), `${kind}: ${key}`).toThrow(
+          /only a "plants" key/
+        );
+      }
+    }
+    // An allowed field can't carry one either: every field is one string, never a list or object.
+    for (const f of ['file', 'find', 'replace', 'test', 'expectRed'] as const) {
+      for (const value of [{ command: 'true' }, ['a.test.ts', '--shell']]) {
+        const json = { plants: [{ ...plant(), [f]: value }] };
+        expect(() => parseManifest(json), f).toThrow(/must be a (non-empty )?string/);
+      }
+    }
+  });
+
   it('an id is 1 to 24 of letters, digits, _ and -', () => {
     for (const id of ['P1', 'a_b-9', 'x'.repeat(24)]) {
       expect(parseManifest({ plants: [plant({ id })] })[0].id).toBe(id);
