@@ -28,4 +28,3 @@ export type {
   IntelligenceEvent,
 } from './intelligence.js';
 
-export const brokenOnPurpose: number = 'not a number';

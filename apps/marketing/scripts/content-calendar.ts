@@ -400,6 +400,3 @@ async function main() {
 
 main().catch(console.error);
 
-
-const brokenOnPurpose: number = "x";
-export { brokenOnPurpose };

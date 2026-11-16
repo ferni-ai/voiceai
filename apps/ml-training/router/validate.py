@@ -481,7 +481,3 @@ if __name__ == "__main__":
             sys.exit(1)
 
     run_validation(model_dir, verbose=args.verbose, category_filter=args.category, use_int8=args.int8)
-
-
-def broken_on_purpose():
-    return undefined_name_on_purpose

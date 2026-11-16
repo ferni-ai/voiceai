@@ -85,5 +85,3 @@ struct AudioLevelSample: Identifiable {
     }
 }
 
-
-let brokenOnPurpose: Int = "red check"
