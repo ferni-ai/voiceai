@@ -147,6 +147,22 @@ describe('the repetition rule (BLOG_REPEAT_GATE)', () => {
     ]);
   });
 
+  it('reports two different lines said twice, even when they share words', () => {
+    const one = 'Ferni listens when the house goes quiet at night.';
+    const two = 'When the house goes quiet at night we sleep.';
+    expect(said(post(`${CLEAN} ${one} ${one} ${two} ${two}`))).toEqual([
+      'said twice in the post: "ferni listens when the house goes quiet at night". Say it once.',
+      'said twice in the post: "when the house goes quiet at night we sleep". Say it once.',
+    ]);
+  });
+
+  it('counts numbers as words, so lines that differ only in a number are not repeats', () => {
+    const md = post(
+      `${CLEAN} It costs 5 dollars a month for everyone. Later it costs 9 dollars a month for everyone.`
+    );
+    expect(repeats(md)).toEqual([]);
+  });
+
   it('reads accented words whole and a left quote as an apostrophe', () => {
     expect(
       said(

@@ -99,17 +99,13 @@ const words = (text: string): string[] =>
  * omitted, a stretch counts when it appeared before in `text` itself.
  */
 export function repeatedRuns(text: string[], earlier?: string[]): string[] {
-  const seen = new Map<string, number>();
+  const seen = new Map<string, number[]>();
   const from = earlier ?? text;
   for (let j = 0; j + REPEAT_RUN <= from.length; j++) {
     const key = from.slice(j, j + REPEAT_RUN).join(' ');
-    if (!seen.has(key)) seen.set(key, j);
+    seen.set(key, [...(seen.get(key) ?? []), j]);
   }
-  const runs: string[] = [];
-  for (let i = 0; i + REPEAT_RUN <= text.length; i++) {
-    const j = seen.get(text.slice(i, i + REPEAT_RUN).join(' '));
-    // Within one text, only a match that ends before this one starts.
-    if (j === undefined || (!earlier && j + REPEAT_RUN > i)) continue;
+  const matchLength = (i: number, j: number): number => {
     let len = REPEAT_RUN;
     while (
       i + len < text.length &&
@@ -118,6 +114,18 @@ export function repeatedRuns(text: string[], earlier?: string[]): string[] {
       text[i + len] === from[j + len]
     )
       len++;
+    return len;
+  };
+  const runs: string[] = [];
+  for (let i = 0; i + REPEAT_RUN <= text.length; i++) {
+    // Within one text, only a copy that ends before this one starts.
+    const copies = (seen.get(text.slice(i, i + REPEAT_RUN).join(' ')) ?? []).filter(
+      (j) => earlier || j + REPEAT_RUN <= i
+    );
+    if (!copies.length) continue;
+    // The longest match against any earlier copy, so a second line that
+    // shares words with the first is matched against its own copy.
+    const len = Math.max(...copies.map((j) => matchLength(i, j)));
     const run = text.slice(i, i + len).join(' ');
     // A third copy matches part of a stretch already reported: say it once.
     if (!runs.some((r) => ` ${r} `.includes(` ${run} `))) runs.push(run);
