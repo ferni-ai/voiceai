@@ -12,6 +12,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { timeOfDayGreeting } from '../i18n/time-of-day.js';
 import { prefersReducedMotion } from '../utils/accessibility.js';
 import { t } from '../i18n/index.js';
 import {
@@ -293,7 +294,7 @@ class YourStoryUI {
     const top = el('div', 'your-story__header-top');
     const titleGroup = el('div');
     const title = el('h2', 'your-story__title');
-    title.textContent = this.getTimeGreeting();
+    title.textContent = timeOfDayGreeting(); // the menu header's words (i18n/time-of-day.ts)
     const subtitle = el('p', 'your-story__subtitle');
     subtitle.textContent = t('yourStory.subtitle');
     titleGroup.appendChild(title);
@@ -607,13 +608,6 @@ class YourStoryUI {
     // Build the visualization
     const context = createDeviceContext();
     buildActionsTaken(container as HTMLElement, this.actionsData, context);
-  }
-
-  private getTimeGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour < 12) return t('yourStory.greeting.morning');
-    if (hour < 17) return t('yourStory.greeting.afternoon');
-    return t('yourStory.greeting.evening');
   }
 
   private injectStyles(): void {
