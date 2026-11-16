@@ -1,0 +1,135 @@
+name: Deploy Design System Site
+
+# Deploys apps/website/design-system-portal (Eleventy) to the ferni-design-system
+# Firebase Hosting site, which serves design.ferni.ai. Before this workflow the
+# site was deployed by hand only, and on 2026-11-16 it was ten months stale:
+# last deployed 2026-01-06, 41 content commits behind main. A pull request
+# that changes the portal gets a preview channel with its URL in a comment.
+# Same auth and action as deploy-developers.yml.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/website/design-system-portal/**'
+      - '.github/workflows/deploy-design-system-site.yml'
+  pull_request:
+    paths:
+      - 'apps/website/design-system-portal/**'
+      - '.github/workflows/deploy-design-system-site.yml'
+  workflow_dispatch:
+
+# One live deploy at a time, never cut off midway. A pull request's newer push
+# replaces its older preview run.
+concurrency:
+  group: deploy-design-system-site-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'live' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy design.ferni.ai
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A fork's pull request gets no secrets, so it can't deploy a preview.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      checks: write # the preview action reports its channel
+      pull-requests: write # and comments the preview URL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Not a pnpm workspace package: it has its own package-lock.json.
+      - name: Install dependencies
+        working-directory: apps/website/design-system-portal
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        working-directory: apps/website/design-system-portal
+        run: npm run build
+
+      # Eleventy 2 could not read the ESM .eleventy.js, fell back to its
+      # defaults and wrote 0 pages. Fail on an empty or partial build instead
+      # of deploying it.
+      - name: Check the build
+        working-directory: apps/website/design-system-portal
+        run: |
+          test -s _site/index.html || { echo "::error::_site/index.html is missing"; exit 1; }
+          test -s _site/404.html || { echo "::error::_site/404.html is missing"; exit 1; }
+          pages=$(find _site -name '*.html' | wc -l)
+          echo "Built $pages pages"
+          if [ "$pages" -lt 30 ]; then
+            echo "::error::Only $pages pages built (expected 30 or more)"
+            exit 1
+          fi
+
+      - name: Record the deploy start
+        id: start
+        run: echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy a preview channel
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          expires: 7d
+          target: ferni-design-system
+          entryPoint: ./apps/website/design-system-portal
+
+      - name: Deploy to Firebase (ferni-design-system)
+        if: github.event_name != 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          channelId: live
+          target: ferni-design-system
+          entryPoint: ./apps/website/design-system-portal
+
+      # A 200 alone passed for ten months on a stale site, so this also checks
+      # that the page served now was written by this deploy.
+      - name: Health check
+        id: health
+        if: github.event_name != 'pull_request'
+        env:
+          STARTED: ${{ steps.start.outputs.epoch }}
+        run: |
+          : "${STARTED:?the deploy start time is missing}"
+          for i in 1 2 3 4 5 6; do
+            headers=$(curl -sI -m 15 https://design.ferni.ai/ || true)
+            code=$(printf '%s' "$headers" | awk 'NR==1 {print $2}')
+            modified=$(printf '%s' "$headers" | grep -i '^last-modified:' | cut -d' ' -f2- | tr -d '\r')
+            # An unreadable or missing header counts as stale (0).
+            modified_epoch=$(python3 -c 'import sys, email.utils; print(int(email.utils.parsedate_to_datetime(sys.argv[1]).timestamp()))' "$modified" 2>/dev/null || echo 0)
+            if [ "$code" = 200 ] && [ "$modified_epoch" -ge $((STARTED - 60)) ]; then
+              echo "healthy=true" >> "$GITHUB_OUTPUT"
+              echo "design.ferni.ai is healthy, last-modified $modified" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code, last-modified '$modified', retrying"
+            sleep 10
+          done
+          echo "healthy=false" >> "$GITHUB_OUTPUT"
+          echo "::error::design.ferni.ai did not serve this deploy (HTTP 200 with a fresh last-modified) after the deploy"
+          exit 1
+
+      - name: Rollback on health check failure
+        if: failure() && steps.health.outputs.healthy == 'false'
+        working-directory: apps/website/design-system-portal
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          npm install -g firebase-tools
+          firebase hosting:rollback --site ferni-design-system --confirm
