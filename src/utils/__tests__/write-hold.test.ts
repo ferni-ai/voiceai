@@ -61,6 +61,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
+  vi.doUnmock('../minor-care.js'); // row 13b's
 });
 
 describe('writeHold', () => {
@@ -253,6 +254,30 @@ describe('writeHold', () => {
     // The idle one went with its end time: a late crisis hold then projects as not ended (held).
     m.crisis.holdForCrisis(idle.sessionId);
     expect(m.wh.writeHold({ ownerId: idle.userId, kind: 'content' })).toBe('held');
+  });
+
+  it("row 13b: over the cap, an idle crisis-held call that never ended stays; its owner's no-session write stays held", async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-16T10:00:00Z'));
+    // sessionUser names this call's owner at first sight only, and minor-care itself never learns
+    // it, so afterwards only write-hold's own entry for the call can name the owner.
+    const owners = new Map<string, string>();
+    vi.doMock('../minor-care.js', async (orig) => {
+      const real = await orig<MinorCare>();
+      return { ...real, sessionUser: (id: string) => owners.get(id) ?? real.sessionUser(id) };
+    });
+    const m = await load();
+    const call = ids();
+    owners.set(call.sessionId, call.userId);
+    m.wh.writeHold({ ownerId: call.userId, sessionId: call.sessionId, kind: 'control' });
+    owners.delete(call.sessionId);
+    expect(m.mc.sessionUser(call.sessionId)).toBeUndefined();
+    vi.setSystemTime(Date.now() + 6 * HOUR + MIN); // idle past IDLE_MS since first sight, never ended
+    m.crisis.holdForCrisis(call.sessionId);
+    for (let i = 0; i < 500; i++) {
+      m.wh.writeHold({ ownerId: undefined, sessionId: ids().sessionId, kind: 'control' });
+    } // over the cap: eviction runs, with this call the oldest entry
+    expect(m.wh.writeHold({ ownerId: call.userId, kind: 'content' })).toBe('held');
   });
 
   it("row 14a: crisis on call A; a write naming call B of the same owner is open (B's own state)", async () => {
