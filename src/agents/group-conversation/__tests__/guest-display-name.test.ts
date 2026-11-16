@@ -3,7 +3,7 @@
  * a plain name gets through; anything else is "the guest".
  */
 import { describe, expect, it } from 'vitest';
-import { guestDisplayName, guestLabel } from '../guest-display-name.js';
+import { guestDisplayName, guestLabel, guestRole } from '../guest-display-name.js';
 
 describe('guestDisplayName', () => {
   it('keeps a plain name', () => {
@@ -57,10 +57,45 @@ describe('guestDisplayName', () => {
     expect(guestDisplayName('Sarah', 'the caller')).toBe('Sarah');
   });
 
+  it("marks an all-Cyrillic or all-Greek look-alike of the owner's name", () => {
+    // Ѕетһ: Cyrillic Ѕ, е, т, һ. One script, so it is kept, but it reads as Seth.
+    expect(guestDisplayName('\u0405\u0435\u0442\u04bb', 'Seth')).toBe(
+      '\u0405\u0435\u0442\u04bb (guest)'
+    );
+    expect(guestDisplayName('\u039a\u03b1\u03c4\u03b5', 'Kate')).toBe(
+      '\u039a\u03b1\u03c4\u03b5 (guest)'
+    ); // Greek Κατε
+    expect(guestDisplayName('Дмитрий', 'Seth')).toBe('Дмитрий');
+  });
+
+  it('falls back to "the guest" for a name with an invisible character', () => {
+    expect(guestDisplayName('Sarah\ufe0f', 'Seth')).toBe('the guest'); // variation selector
+    expect(guestDisplayName('Sa\u200drah', 'Seth')).toBe('the guest'); // zero-width joiner
+    expect(guestDisplayName('Sa\u200crah', 'Seth')).toBe('the guest'); // zero-width non-joiner
+    expect(guestDisplayName('Sarah\u{e0100}', 'Seth')).toBe('the guest'); // variation selector 17
+    expect(guestDisplayName('Sa\u034frah', 'Seth')).toBe('the guest'); // combining grapheme joiner
+    expect(guestDisplayName('\u202eharaS', 'Seth')).toBe('the guest'); // right-to-left override
+  });
+
+  it('allows a combining mark only straight after a letter, at most two per letter', () => {
+    expect(guestDisplayName('Jose\u0301', 'Seth')).toBe('José'); // decomposed é
+    expect(guestDisplayName('Nguye\u0302\u0303n', 'Seth')).toBe('Nguyễn');
+    expect(guestDisplayName('e\u0301\u0302\u0303', 'Seth')).toBe('the guest');
+    expect(guestDisplayName('Sarah \u0301Lee', 'Seth')).toBe('the guest');
+  });
+
   it('gives "the guest" for no name', () => {
     expect(guestDisplayName('', 'Seth')).toBe('the guest');
     expect(guestDisplayName('   ', 'Seth')).toBe('the guest');
     expect(guestDisplayName(undefined, 'Seth')).toBe('the guest');
+  });
+});
+
+describe('guestRole', () => {
+  it('names the guest with her role, once', () => {
+    expect(guestRole('Sarah')).toBe('Sarah (guest)');
+    expect(guestRole('Seth (guest)')).toBe('Seth (guest)');
+    expect(guestRole('the guest')).toBe('the guest');
   });
 });
 

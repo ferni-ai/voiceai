@@ -4,7 +4,8 @@
  * The copy for each note (guest joined, guest left, owner dropped off, owner back) and
  * the bookkeeping that keeps them in the persona's context: a persona handoff drops
  * system notes (persona-swap.ts), so every note so far goes to the next persona again.
- * Names reach here already cleaned, and the guest's label is guestLabel's (guest-display-name.ts).
+ * Names reach here already cleaned; every note names the guest with her role
+ * (guestRole, guest-display-name.ts), so the model never sees a bare guest name.
  *
  * @module agents/group-conversation/group-call-notes
  */
@@ -12,7 +13,7 @@ import type { voice } from '@livekit/agents';
 import { firstNameOf } from '../../utils/caller-name.js';
 import { dispatchedUserName } from '../../utils/ferni-intro.js';
 import { addRecallNote } from '../multi-agent/recall-note.js';
-import { guestLabel } from './guest-display-name.js';
+import { guestLabel, guestRole } from './guest-display-name.js';
 
 /** First letter up, for a note that starts with a name like "the guest". */
 const sentence = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
@@ -30,22 +31,24 @@ export function ownerFirstName(userData: unknown): string {
   return (name !== 'the user' && firstNameOf(name)) || 'the caller';
 }
 
-export function joinNote(guest: string, owner: string): string {
+export function joinNote(name: string, owner: string): string {
+  const guest = guestRole(name);
   return (
     `${sentence(guest)} is on this call by phone with ${owner}. ` +
-    `Lines that start with ${guestLabel(guest).trim()} are hers, and lines that start with [${owner}] are ${owner}'s. ` +
+    `Lines that start with ${guestLabel(name).trim()} are hers, and lines that start with [${owner}] are ${owner}'s. ` +
     'A line marked [unclear] could be either of them: if it matters who said it, ask. ' +
     'Talk with both of them, use their names, and let them talk to each other. ' +
     `${sentence(guest)} can hear everything you say, so don't bring up ${owner}'s private things unless ${owner} does.`
   );
 }
 
-export const guestLeftNote = (guest: string): string => `${sentence(guest)} has left the call.`;
+export const guestLeftNote = (name: string): string =>
+  `${sentence(guestRole(name))} has left the call.`;
 
-export function ownerGoneNote(owner: string, guest: string): string {
+export function ownerGoneNote(owner: string, name: string): string {
   return (
     `${sentence(owner)} has dropped off the call. Wait for ${owner} to come back, ` +
-    `and don't talk about ${owner}'s private things with ${guest}.`
+    `and don't talk about ${owner}'s private things with ${guestRole(name)}.`
   );
 }
 
