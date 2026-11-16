@@ -20,16 +20,26 @@ vi.mock('../../services/action-tracker/tracker.js', () => ({
   getActionTracker: vi.fn(() => mockActionTracker),
 }));
 
-// Mock commitment keeper
-const mockCommitments = [
-  { id: 'c1', status: 'completed' },
-  { id: 'c2', status: 'completed' },
-  { id: 'c3', status: 'active' },
-];
-
+// The user's own commitments as the store returns them: active only (13, like the
+// 2026-11-16 audit's "13 active commitments"). They are not Ferni's promises.
+const activeCommitments = Array.from({ length: 13 }, (_, i) => ({ id: `c${i}`, status: 'active' }));
 vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
-  loadUserCommitments: vi.fn(() => Promise.resolve(mockCommitments)),
+  loadUserCommitments: vi.fn(() => Promise.resolve(activeCommitments)),
 }));
+vi.mock('../../services/superhuman/commitment-store.js', () => ({
+  loadActiveCommitmentsOrThrow: vi.fn(() => Promise.resolve(activeCommitments)),
+}));
+
+// Ferni's promises (ferni_commitments): 4 kept, 1 still open. Trust & Growth says "Kept 4 of 4".
+const promise = (id: string, fulfilled: boolean) => ({
+  id,
+  text: id,
+  madeAt: new Date('2026-11-01T12:00:00Z'),
+  fulfilled,
+  violated: false,
+});
+const loadFerniPromises = vi.hoisted(() => vi.fn());
+vi.mock('../../services/trust-systems/together-store.js', () => ({ loadFerniPromises }));
 
 // Mock auth middleware
 vi.mock('../auth-middleware.js', () => ({
@@ -152,6 +162,13 @@ const mockStats = {
 describe('Story Routes API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    loadFerniPromises.mockResolvedValue([
+      promise('p1', true),
+      promise('p2', true),
+      promise('p3', true),
+      promise('p4', true),
+      promise('p5', false),
+    ]);
     mockActionTracker.getUserActions.mockResolvedValue(mockActions);
     mockActionTracker.getStats.mockResolvedValue(mockStats);
   });
@@ -178,8 +195,7 @@ describe('Story Routes API', () => {
 
       expect(responseData.recentCare).toHaveLength(2);
       expect(responseData.recentCare[0].narrative).toContain('Mom');
-      expect(responseData.commitmentProgress.kept).toBe(2);
-      expect(responseData.commitmentProgress.pending).toBe(1);
+      expect(responseData.commitmentProgress).toEqual({ kept: 4, pending: 1, total: 4 });
       expect(responseData.totalActions).toBe(2);
       expect(responseData.summary).toBeDefined();
       expect(responseData.summary.callsMade).toBe(5);
@@ -236,8 +252,39 @@ describe('Story Routes API', () => {
         callsMade: 5,
         messagesSent: 4, // text + email
         remindersKept: 0,
-        commitmentsFulfilled: 2,
+        commitmentsFulfilled: 4,
       });
+    });
+
+    it('counts "kept" as Trust & Growth does: Ferni\'s promises, not the user\'s open commitments', async () => {
+      const { handleStoryRoutes } = await import('../story-routes.js');
+      const { sendJSON } = await import('../helpers.js');
+      const { tallyPromises } = await import('../../services/trust-systems/together-signals.js');
+
+      await handleStoryRoutes(createMockRequest({}), createMockResponse(), '/api/story/actions');
+      const body = vi.mocked(sendJSON).mock.calls[0][1] as any;
+
+      // Before: "0/13 kept", the user's 13 active commitments with none ever "completed"
+      expect(body.commitmentProgress).not.toEqual({ kept: 0, pending: 13, total: 13 });
+      const trust = tallyPromises(await loadFerniPromises());
+      expect(body.commitmentProgress).toEqual({
+        kept: trust.kept,
+        pending: trust.open,
+        total: trust.resolved,
+      });
+    });
+
+    it('says it could not read the promises instead of showing 0', async () => {
+      loadFerniPromises.mockRejectedValue(new Error('Firestore unavailable'));
+      const { handleStoryRoutes } = await import('../story-routes.js');
+      const { sendJSON } = await import('../helpers.js');
+
+      await handleStoryRoutes(createMockRequest({}), createMockResponse(), '/api/story/actions');
+      const body = vi.mocked(sendJSON).mock.calls[0][1] as any;
+
+      expect(body.commitmentProgress).toBeNull();
+      expect(body.summary.commitmentsFulfilled).toBeNull();
+      expect(body.summary.callsMade).toBe(5); // the rest of the read still stands
     });
 
     it('should handle users with no actions gracefully', async () => {
@@ -291,8 +338,8 @@ describe('Story Routes API', () => {
 
       expect(responseData.callsMade).toBe(5);
       expect(responseData.messagesSent).toBe(4);
-      expect(responseData.commitmentsFulfilled).toBe(2);
-      expect(responseData.commitmentsTracking).toBe(1);
+      expect(responseData.commitmentsFulfilled).toBe(4);
+      expect(responseData.commitmentsTracking).toBe(13);
       expect(responseData.since).toBeDefined();
     });
   });

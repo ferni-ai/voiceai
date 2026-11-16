@@ -29,6 +29,25 @@ export interface PromiseRecord {
   resolvedAt?: Date;
 }
 
+/** Ferni's promises by outcome. Every screen that says "kept" counts with this. */
+export interface PromiseTally {
+  /** Known kept (fulfilled, not broken). */
+  kept: number;
+  /** Known kept or broken: the only ones that count either way. */
+  resolved: number;
+  /** Still open: not broken, just not known yet. */
+  open: number;
+}
+
+export function tallyPromises(promises: readonly PromiseRecord[]): PromiseTally {
+  const resolved = promises.filter((p) => p.fulfilled || p.violated);
+  return {
+    kept: resolved.filter((p) => p.fulfilled && !p.violated).length,
+    resolved: resolved.length,
+    open: promises.length - resolved.length,
+  };
+}
+
 export interface TogetherSignals {
   snapshots: readonly EmotionalSnapshot[];
   promises: readonly PromiseRecord[];
