@@ -70,7 +70,7 @@ import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forg
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
-import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { heldAfter, memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
 import { ownerWriteId, wordsNeverLogged } from '../../services/identity/owner-write-gate.js';
 import {
@@ -1268,7 +1268,7 @@ async function processFinalTranscript(
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
   // SEXUAL_TOPIC_BOUNDARY=on: this turn's read first (bounded; this isn't the reply path).
   await readCallerTurn({ sessionId, userId, text: event.transcript, asked });
-  const held = heldAfter(sessionId, event.transcript, { userId, asked });
+  const held = heldAfter(sessionId, event.transcript, { userId, asked }) || userHeld(userId);
   const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
 
   // ===============================================
@@ -2004,8 +2004,8 @@ function processDailyCheckInTranscript(
   sessionId: string,
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>
 ): void {
-  // A user ID, and MINOR_CARE=on: not a held caller under 18 (it records their emotional weather)
-  if (!userData.userId || memoryHeld(sessionId)) {
+  // A user ID, not held on this call or another (it records their emotional weather)
+  if (!userData.userId || memoryHeld(sessionId) || userHeld(userData.userId)) {
     return;
   }
 
