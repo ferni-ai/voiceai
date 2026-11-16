@@ -18,6 +18,7 @@
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { heldReadsSettled, memoryHeld, userHeld } from '../../utils/minor-care.js';
+import { noteSessionEnded } from '../../utils/write-hold.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
 
@@ -109,6 +110,7 @@ async function runOne(
  * turn still running (SEXUAL_TOPIC_BOUNDARY, crisis) is waited for first, as a pending task.
  */
 export function runAfterCallTasks(ctx: AfterCallContext): void {
+  noteSessionEnded(ctx.sessionId, ctx.userId); // a crisis call's owner stays held for its grace
   const reading = heldReadsSettled(ctx.sessionId);
   if (!reading) return startAfterCallTasks(ctx);
   const askedAt = Date.now();
