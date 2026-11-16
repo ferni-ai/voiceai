@@ -27,6 +27,7 @@ import { soundUI } from './sound.ui.js';
 import { renderMenuSwitch, setMenuSwitch } from './components/menu-switch.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { timeOfDayGreeting } from '../i18n/time-of-day.js';
 import { ANALYTICS_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('SettingsMenu');
@@ -470,19 +471,6 @@ class SettingsMenuUI {
   }
 
   /**
-   * Get time-aware greeting for the header
-   * Makes the menu feel personal and present
-   */
-  private getTimeGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour < 5) return t('menu.greeting.lateNight');
-    if (hour < 12) return t('menu.greeting.morning');
-    if (hour < 17) return t('menu.greeting.afternoon');
-    if (hour < 21) return t('menu.greeting.evening');
-    return t('menu.greeting.night');
-  }
-
-  /**
    * Toggle pinned state for an item
    */
   private togglePinned(action: string): void {
@@ -558,7 +546,7 @@ class SettingsMenuUI {
       <div class="settings-menu__card">
         <header class="settings-menu__header">
           <div class="settings-menu__header-content">
-            <span class="settings-menu__header-eyebrow">${this.getTimeGreeting()}</span>
+            <span class="settings-menu__header-eyebrow">${timeOfDayGreeting()}</span>
             <h2>${t('menu.title')}</h2>
           </div>
           <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
