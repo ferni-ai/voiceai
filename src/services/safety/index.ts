@@ -59,6 +59,13 @@ export {
   type CrisisClassifierInput,
   type StartCrisisClassifierOptions,
 } from './crisis-classifier.js';
+// CRISIS_GATE_TURN_READS: the turn's other reads and the line cap (agents/personas/crisis-gate-turn-reads.ts).
+export {
+  MAX_EARLIER_MESSAGES,
+  turnVerdicts,
+  verdictOutcome,
+  type CrisisVerdict,
+} from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
 export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
