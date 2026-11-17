@@ -12,6 +12,7 @@ import {
   initializeAnalytics,
 } from '../services/analytics/user-analytics.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { requireAdmin } from './auth-middleware.js';
 
 const log = getLogger().child({ module: 'user-analytics-routes' });
 
@@ -47,6 +48,13 @@ export async function handleAnalyticsRoutes(
 ): Promise<boolean> {
   if (!isAnalyticsRoute(pathname)) {
     return false;
+  }
+
+  // Usage numbers (users, subscribers, persona use, concurrency) are business
+  // data: admins only. The health check carries none and stays public.
+  // requireAdmin has already answered 401/403 when it returns null.
+  if (pathname !== '/api/analytics/health' && !(await requireAdmin(req, res))) {
+    return true;
   }
 
   // Ensure analytics is initialized
