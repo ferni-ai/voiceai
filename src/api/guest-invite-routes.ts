@@ -21,14 +21,10 @@ import {
   type GuestInviteAnswer,
   type GuestInviteView,
 } from '../services/messaging/guest-consent/index.js';
+import { parseBodySafe } from '../utils/ddos-protection.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit } from './auth-middleware.js';
-import {
-  handleCorsPreflightIfNeeded,
-  parseBodyWithSchema,
-  sendError,
-  sendJSON,
-} from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'GuestInviteRoutes' });
 
@@ -43,6 +39,16 @@ const ANSWERS: ReadonlyMap<string, GuestInviteAnswer> = new Map([
 ]);
 
 const bodySchema = z.object({ token: z.string().max(100) });
+
+/** The body's token, or undefined (which gets the one 404) when there is none. */
+function tokenFrom(raw: string): string | undefined {
+  try {
+    const parsed = bodySchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data.token : undefined;
+  } catch {
+    return undefined; // not JSON: no token
+  }
+}
 
 export interface GuestInviteRouteDeps {
   view: (token: unknown) => Promise<GuestInviteView | null>;
@@ -67,14 +73,19 @@ export async function handleGuestInviteRoutes(
     sendError(res, 'Method not allowed', 405);
     return true;
   }
-  const parsed = await parseBodyWithSchema(req, bodySchema);
-  const token = parsed.success ? parsed.data.token : undefined;
+  // A 1 KB cap, as connect invites' (oauth-start.ts): over it, one 413 and one log line.
+  const body = await parseBodySafe(req, res, { maxSize: 1024 });
+  if (!body) return true; // 408/413 already sent
+  const token = tokenFrom(body.body);
   try {
-    const reply = answer
-      ? (await deps.answer(token, answer)) && { ok: true }
-      : await deps.view(token);
-    if (reply !== false && reply !== null) sendJSON(res, reply);
-    else sendError(res, INVITE_NOT_VALID, 404);
+    if (answer) {
+      if (await deps.answer(token, answer)) sendJSON(res, { ok: true });
+      else sendError(res, INVITE_NOT_VALID, 404);
+    } else {
+      const view = await deps.view(token);
+      if (view) sendJSON(res, view);
+      else sendError(res, INVITE_NOT_VALID, 404);
+    }
   } catch (error) {
     log.error({ error: String(error), answer: answer ?? 'view' }, 'Guest invite not handled');
     sendError(res, "That didn't save. Please try again.", 503);

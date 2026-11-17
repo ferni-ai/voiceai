@@ -2,11 +2,12 @@
  * The guest's invite routes over real HTTP, on the real use cases with
  * in-memory stores: her page's wording, her yes once, one refusal for every
  * token that can't be used, nothing about her or the owner in a reply, and a
- * time or wording version from the page ignored.
+ * time or wording version from the page ignored, and a body over 1 KB refused
+ * once.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '../../services/stores/single-use-records.js';
 import { GUEST_CONSENT_WORDING_VERSION } from '../../services/messaging/guest-consent/domain/guest-consent.js';
 import { hasGuestConsent } from '../../services/messaging/guest-consent/use-cases/check-guest-consent.js';
@@ -22,6 +23,28 @@ import {
   memoryGuestInvites,
 } from '../../services/messaging/guest-consent/__tests__/memory-guest-invite.js';
 import { handleGuestInviteRoutes } from '../guest-invite-routes.js';
+
+/** Every log line, by level: an oversized body must cost exactly one. */
+const logged = vi.hoisted((): Array<[string, unknown[]]> => []);
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const logger = (): Record<string, unknown> => {
+    const at =
+      (level: string) =>
+      (...args: unknown[]): void =>
+        void logged.push([level, args]);
+    return {
+      debug: at('debug'),
+      info: at('info'),
+      warn: at('warn'),
+      error: at('error'),
+      child: logger,
+    };
+  };
+  return {
+    ...(await importOriginal<typeof import('../../utils/safe-logger.js')>()),
+    createLogger: logger,
+  };
+});
 
 let m: ReturnType<typeof memoryGuestInvites>;
 /** Each test calls from its own address (IPv6 documentation range), so the rate limit is per test. */
@@ -161,6 +184,22 @@ describe('/no and /forget', () => {
     expect((await post('/forget', { token: mint() })).status).toBe(200);
     expect(await consents()).toBe(false);
     expect(m.consent.docs.size).toBe(0);
+  });
+});
+
+describe('a body over 1 KB', () => {
+  it('is refused once (413), spends nothing and costs one log line', async () => {
+    const token = mint();
+    logged.length = 0;
+    const big = await post('/yes', { token, pad: 'x'.repeat(2048) });
+    await new Promise((r) => {
+      setTimeout(r, 50); // let any late write or log land
+    });
+    expect(big.status).toBe(413);
+    expect(m.invites.size).toBe(1);
+    expect(await consents()).toBe(false);
+    expect(logged.filter(([level]) => level === 'warn' || level === 'error')).toHaveLength(1);
+    expect(await post('/yes', { token })).toEqual({ status: 200, text: '{"ok":true}' });
   });
 });
 
