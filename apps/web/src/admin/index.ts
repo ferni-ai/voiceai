@@ -6,11 +6,17 @@
  * @module Admin
  */
 
-export { initAdminPortal, destroyAdminPortal, adminPortalState, ADMIN_SECTIONS } from './AdminPortal.js';
-export type { AdminSection } from './AdminPortal.js';
+export { initAdminPortal, destroyAdminPortal, adminPortalState } from './AdminPortal.js';
+export { ADMIN_SECTIONS, type AdminSection } from './section-registry.js';
 
 // Admin API utilities
-export { getAdminApiKey, getAdminHeaders, getAdminHeadersAsync, adminGet, adminPost } from './admin-api.js';
+export {
+  getAdminApiKey,
+  getAdminHeaders,
+  getAdminHeadersAsync,
+  adminGet,
+  adminPost,
+} from './admin-api.js';
 
 // Event handlers for programmatic access
 export {
@@ -23,4 +29,3 @@ export {
   runQuickAction,
   sendApiRequest,
 } from './admin-events.js';
-
