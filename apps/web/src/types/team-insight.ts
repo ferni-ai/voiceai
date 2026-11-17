@@ -19,6 +19,8 @@ export const TeamInsightSchema = z.object({
   priority: z.enum(['low', 'normal', 'high', 'critical']),
   createdAt: z.number(),
   isNew: z.boolean().optional(),
+  /** Already shown as a toast; it is not toasted again (issue 3945). */
+  toasted: z.boolean().optional(),
 });
 
 export type TeamInsight = z.infer<typeof TeamInsightSchema>;
