@@ -62,6 +62,7 @@ function serve(routes: Record<string, () => Response>): void {
   });
 }
 
+/** Renders the section (again, when called twice: a reload of the section) and binds it. */
 async function mount(): Promise<HTMLElement> {
   const section = await import('../../src/admin/sections/AgentFlagsSection.js');
   document.body.innerHTML = await section.render();
@@ -102,9 +103,35 @@ const selectOf = (root: HTMLElement, flag: string): HTMLSelectElement | null =>
 const rowOf = (root: HTMLElement, flag: string): Element | null | undefined =>
   root.querySelector(`select[data-flag="${flag}"]`)?.closest('.af-row');
 
+/**
+ * Stages SOUND_CONDUCTOR back to default and ATTUNE_LEDGER on against OLD_WORKER, applies at
+ * 10:00 and lets the 4 minutes run out, so both names are left unconfirmed in this test's module.
+ */
+async function applyAndTimeOut(): Promise<HTMLElement> {
+  serve({
+    '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
+    '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+    '/api/v1/admin/agent-flags/apply': () => json({ appliedAt: '2026-11-17T10:00:00.000Z' }),
+  });
+  const root = await mount();
+  choose(root, 'SOUND_CONDUCTOR', 'default');
+  choose(root, 'ATTUNE_LEDGER', 'on');
+  applyButton(root)?.click();
+  await vi.advanceTimersByTimeAsync(5 * 60_000);
+  expect(root.textContent).toContain('Applied, not confirmed yet');
+  return root;
+}
+
 describe('AgentFlagsSection', () => {
+  // A fresh module per test, so no test sees another's staged, unconfirmed or polling state.
+  // Fake timers drop any poll a test leaves armed when it ends.
   beforeEach(() => {
+    vi.resetModules();
     fetchMock.mockReset();
+    vi.useFakeTimers({
+      now: new Date('2026-11-17T10:00:00.000Z'),
+      toFake: ['setTimeout', 'clearTimeout', 'Date'],
+    });
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -177,19 +204,7 @@ describe('AgentFlagsSection', () => {
   });
 
   it('keeps a timed-out change marked and lets it be reverted', async () => {
-    vi.useFakeTimers({ now: new Date('2026-11-17T10:00:00.000Z'), toFake: ['setTimeout', 'Date'] });
-    serve({
-      '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
-      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
-      '/api/v1/admin/agent-flags/apply': () => json({ appliedAt: '2026-11-17T10:00:00.000Z' }),
-    });
-    const root = await mount();
-    choose(root, 'SOUND_CONDUCTOR', 'default');
-    choose(root, 'ATTUNE_LEDGER', 'on');
-    applyButton(root)?.click();
-    await vi.advanceTimersByTimeAsync(5 * 60_000);
-    expect(root.textContent).toContain('Applied, not confirmed yet');
-
+    const root = await applyAndTimeOut();
     expect(rowOf(root, 'SOUND_CONDUCTOR')?.classList.contains('af-row--unconfirmed')).toBe(true);
     expect(rowOf(root, 'ATTUNE_LEDGER')?.classList.contains('af-row--unconfirmed')).toBe(true);
 
@@ -203,16 +218,15 @@ describe('AgentFlagsSection', () => {
   });
 
   it('keeps the mark across a reload while the agent still runs the old values', async () => {
-    serve({
-      '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
-      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
-    });
+    await applyAndTimeOut();
     const root = await mount();
     expect(rowOf(root, 'SOUND_CONDUCTOR')?.classList.contains('af-row--unconfirmed')).toBe(true);
     expect(rowOf(root, 'ATTUNE_LEDGER')?.classList.contains('af-row--unconfirmed')).toBe(true);
   });
 
   it('clears the mark once a newer snapshot shows the applied values', async () => {
+    const before = await applyAndTimeOut();
+    expect(before.querySelectorAll('.af-row--unconfirmed')).toHaveLength(2);
     const confirmed = {
       ...OLD_WORKER,
       snapshot: {
@@ -247,9 +261,8 @@ describe('AgentFlagsSection', () => {
     expect(applyButton(root)?.disabled).toBe(true);
   });
 
-  // Last: it ends in a timeout, which leaves its names unconfirmed in the module.
   it('times the 4 minutes by the browser clock, even when it runs 10 minutes ahead', async () => {
-    vi.useFakeTimers({ now: new Date('2026-11-17T10:10:00.000Z'), toFake: ['setTimeout', 'Date'] });
+    vi.setSystemTime(new Date('2026-11-17T10:10:00.000Z'));
     serve({
       '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
       '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),

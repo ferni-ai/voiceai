@@ -55,7 +55,6 @@ interface ApplyReply {
 
 let view = freshView();
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
-let bound = false;
 
 // ============================================================================
 // API
@@ -259,23 +258,24 @@ async function onAction(action: string | undefined): Promise<void> {
   }
 }
 
-/** Binds the section's events once; they act only inside the section's root. */
+/**
+ * Binds the section's events on its root, once per render: each render makes a new root, so
+ * the listeners go with it and never outlive the section (or a test's module).
+ */
 export function setupEvents(): void {
-  if (bound) return;
-  bound = true;
-  document.addEventListener('change', (e) => {
-    const target = e.target;
-    if (target instanceof HTMLSelectElement && target.closest('#agentFlagsRoot')) onSelect(target);
+  const root = document.getElementById('agentFlagsRoot');
+  if (!root || root.dataset.bound) return;
+  root.dataset.bound = 'true';
+  root.addEventListener('change', (e) => {
+    if (e.target instanceof HTMLSelectElement) onSelect(e.target);
   });
-  document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (!(target instanceof HTMLInputElement) || target.id !== 'afSearch') return;
-    view.query = target.value;
+  root.addEventListener('input', (e) => {
+    if (!(e.target instanceof HTMLInputElement) || e.target.id !== 'afSearch') return;
+    view.query = e.target.value;
     paint('afList', renderList(view));
   });
-  document.addEventListener('click', (e) => {
-    const target = e.target instanceof Element ? e.target : null;
-    const button = target?.closest<HTMLElement>('#agentFlagsRoot [data-af]');
+  root.addEventListener('click', (e) => {
+    const button = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-af]') : null;
     if (button) void onAction(button.dataset.af);
   });
 }
