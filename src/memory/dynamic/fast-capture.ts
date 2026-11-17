@@ -447,7 +447,7 @@ function detectEntityMentions(transcript: string): EntityMention[] {
   // pattern: under it "[A-Z]" matched "the" in "work at the hospital".
   const placeOrOrg: Array<[RegExp, 'place' | 'organization', number]> = [
     [
-      /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g,
+      /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z](?:[a-z]+|[A-Z]+)(?:\s+[A-Z](?:[a-z]+|[A-Z]+))?)\b/g,
       'place',
       0.6,
     ],

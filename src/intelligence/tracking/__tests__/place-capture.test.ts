@@ -28,6 +28,14 @@ describe('places from what the caller said', () => {
     expect(valuesOf('I moved to Denver last year', 'place')).toEqual(['Denver']);
   });
 
+  it.each([
+    ['I moved to NYC in June', 'NYC'],
+    ['I live in LA now', 'LA'],
+    ['we moved to Washington DC', 'Washington DC'],
+  ])('keeps the short form in "%s"', (said, place) => {
+    expect(valuesOf(said, 'place')).toEqual([place]);
+  });
+
   it('keeps a two-word place that starts with a common word: "New York"', () => {
     expect(valuesOf('I live in New York', 'place')).toEqual(['New York']);
   });

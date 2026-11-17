@@ -158,6 +158,13 @@ describe('Fast Capture', () => {
       expect(places).toEqual([]);
     });
 
+    it('saves the short forms "NYC" and "Washington DC" as places', () => {
+      const places = detectEntityMentions('I moved to NYC, then visiting Washington DC.')
+        .filter((m) => m.type === 'place')
+        .map((m) => m.name);
+      expect(places).toEqual(expect.arrayContaining(['NYC', 'Washington DC']));
+    });
+
     it('still saves "Denver" and "New York" as places', () => {
       const places = detectEntityMentions('I moved to Denver, then visiting New York.')
         .filter((m) => m.type === 'place')
