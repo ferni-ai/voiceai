@@ -577,6 +577,17 @@ describe('hearGroupCall', () => {
     expect(listeners(call)).toBe(0);
   });
 
+  it('a fresh session for the same call detaches the old one, and only the fresh one hears', async () => {
+    vi.stubEnv('GROUP_CALL', 'on');
+    const old = fakeCall();
+    const fresh = fakeCall();
+    ({ detach } = fresh);
+    expect(listeners(old)).toBe(0);
+    expect(listeners(fresh)).toBe(4);
+    old.detach();
+    expect(listeners(fresh)).toBe(4);
+  });
+
   it('detach stops listening and forgets the call', async () => {
     vi.stubEnv('GROUP_CALL', 'on');
     const call = fakeCall();

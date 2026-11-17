@@ -6,7 +6,7 @@ import {
 } from 'node:stream/web';
 import { setImmediate as nextTick } from 'node:timers/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MIX_SAMPLE_RATE, RoomMixInput, mixClock } from '../room-mix-input.js';
+import { MIX_SAMPLE_RATE, RoomMixInput } from '../room-mix-input.js';
 import { TalkerLedger } from '../talker-ledger.js';
 
 /** The mix's frame (10 ms at 16 kHz) and guest queue (50 ms), from the plan. */
@@ -91,7 +91,6 @@ describe('RoomMixInput', () => {
     guest.push(700);
     await settle();
     vi.spyOn(performance, 'now').mockReturnValue(4242);
-    expect(mixClock()).toBe(4242);
     owner.push(500);
     const mixed = await nextFrame(reader);
 

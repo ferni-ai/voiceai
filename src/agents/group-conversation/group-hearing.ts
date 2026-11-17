@@ -3,9 +3,9 @@
  *
  * When a guest (identity `guest_…`, on the phone or the web) joins, the session's audio
  * input becomes a RoomMixInput of both tracks. Who spoke is not known on the mix, so
- * every finished turn must be labelled `[unclear] ` while a guest is on (fail closed, from
- * groupHearingFor and guestLastOnAt). That labelling lands separately (stt-chain.ts), and
- * GROUP_CALL stays off until it has.
+ * every finished turn must be labelled `[unclear] ` while a guest is on (fail closed).
+ * That labelling, and the lookup it reads the hearing through, land separately
+ * (stt-chain.ts), and GROUP_CALL stays off until they have.
  * System notes (group-call-notes.ts) say who joined or left and what the labels mean.
  * While the owner is away the guest is out of the mix.
  * Each track gets that person's own noise cancellation, built for the mix's 16 kHz:
@@ -33,27 +33,11 @@ import {
 } from './group-call-notes.js';
 import { isAdmittedGuest } from './guest-admission.js';
 import { guestDisplayName } from './guest-display-name.js';
-import { MIX_SAMPLE_RATE, mixClock, RoomMixInput } from './room-mix-input.js';
+import { MIX_SAMPLE_RATE, RoomMixInput } from './room-mix-input.js';
 import { TalkerLedger } from './talker-ledger.js';
 import type { CallParticipant, CallRoom, CallSession, CallTrack } from './call-sdk-slices.js';
 
 const log = createLogger({ module: 'GroupHearing' });
-
-/** What the rest of the call can ask about who is on it. */
-interface GroupHearing {
-  /** A guest's spoken name (any guest seen this call); undefined for anyone else. */
-  guestName: (identity: string) => string | undefined;
-  /** Every guest seen this call, including ones who left, in the order they joined. */
-  guestNames: () => string[];
-  /** Whether a guest is on the call now. */
-  guestOn: () => boolean;
-  /** The identity of the guest on the call now, if any. */
-  guestIdentity: () => string | undefined;
-  /** When a guest was last on the call (mixClock ms): now while one is on; undefined if none has been. */
-  guestLastOnAt: () => number | undefined;
-  /** `[<owner first name>] `, the label on the owner's turns. */
-  ownerLabel: () => string;
-}
 
 interface Setup {
   session: CallSession;
@@ -61,14 +45,8 @@ interface Setup {
 }
 type GroupHearingArgs = Setup & { room: CallRoom; ownerIdentity: string; sessionId: string };
 
-const hearings = new Map<string, { hearing: GroupHearing; detach: () => void }>();
-/** The same hearings by the session that hears them: the key every lookup uses. */
-const sessionHearings = new WeakMap<object, GroupHearing>();
-
-/** The hearing `session` hears the call with, or undefined on a solo call or with GROUP_CALL off. */
-function groupHearingFor(session: object): GroupHearing | undefined {
-  return sessionHearings.get(session);
-}
+/** Each call's detach, by session id, so a fresh session for the same call replaces the old one. */
+const hearings = new Map<string, () => void>();
 
 /**
  * Whether a participant may be heard as the guest (guest-admission.ts, which never admits
@@ -113,15 +91,13 @@ function mixStream(
  */
 function attachGroupHearing(args: GroupHearingArgs): () => void {
   const { session, agent, room, ownerIdentity: owner, sessionId } = args;
-  hearings.get(sessionId)?.detach(); // a fresh session for the same call replaces the old one
+  hearings.get(sessionId)?.(); // a fresh session for the same call replaces the old one
   const ledger = new TalkerLedger(owner);
   const names = new Map<string, string>();
   let mix: RoomMixInput | undefined;
   /** The track each person is mixed from, so a track seen twice is read once. */
   const mixed = new Map<string, CallTrack>();
   let guest: string | undefined;
-  /** When the last guest left (mixClock ms); STT labelling covers her late words. */
-  let guestLeftAt: number | undefined;
   /** The owner left while a guest was on: the guest is out of the mix until the owner is back. */
   let ownerAway = false;
   let detached = false;
@@ -220,7 +196,6 @@ function attachGroupHearing(args: GroupHearingArgs): () => void {
     if (person.identity !== guest) return;
     unhear(person.identity);
     guest = undefined;
-    guestLeftAt = mixClock();
     note(guestLeftNote(names.get(person.identity) ?? 'the guest'));
   };
 
@@ -229,14 +204,6 @@ function attachGroupHearing(args: GroupHearingArgs): () => void {
   room.on(RoomEvent.ParticipantDisconnected, onDisconnected);
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, renote);
 
-  const hearing: GroupHearing = {
-    guestName: (identity) => names.get(identity),
-    guestNames: () => [...new Set(names.values())],
-    guestOn: () => guest !== undefined,
-    guestIdentity: () => guest,
-    guestLastOnAt: () => (guest !== undefined ? mixClock() : guestLeftAt),
-    ownerLabel: () => `[${ownerFirstName(session.userData)}] `,
-  };
   const detach = (): void => {
     if (detached) return;
     detached = true;
@@ -244,14 +211,12 @@ function attachGroupHearing(args: GroupHearingArgs): () => void {
     room.off(RoomEvent.TrackSubscribed, onTrack);
     room.off(RoomEvent.ParticipantDisconnected, onDisconnected);
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, renote);
-    if (hearings.get(sessionId)?.hearing === hearing) hearings.delete(sessionId);
-    if (sessionHearings.get(session) === hearing) sessionHearings.delete(session);
+    hearings.delete(sessionId); // still ours: a replaced detach already ran when it was replaced
     void mix?.close().catch((error: unknown) => {
       log.warn({ sessionId, error: String(error) }, 'Room mix did not close');
     });
   };
-  hearings.set(sessionId, { hearing, detach });
-  sessionHearings.set(session, hearing);
+  hearings.set(sessionId, detach);
 
   for (const person of room.remoteParticipants.values()) {
     if (isGuest(person)) onGuest(person);
