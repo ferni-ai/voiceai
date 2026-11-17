@@ -76,7 +76,8 @@ jobs:
   # Build Packages
   # ============================================================================
   # brand, build and storybook don't need each other: on the nightly run one
-  # failure must not skip the others and hide what else broke. publish needs all three.
+  # failure must not skip the others and hide what else broke. publish needs
+  # only package-check.
   build:
     if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Build All Packages
