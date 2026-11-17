@@ -22,14 +22,23 @@ import { TURN_CONTEXT_SAFETY } from '../multi-agent/pushed-notes.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { PROTECTED_TOOL_NAMES } from '../../tools/orchestrator/persona-tool-policy.js';
 
-/** How deep a decoded tool output is walked for its text. */
+/** How deep a decoded tool output is walked for its text; deeper holds the report. */
 const MAX_DEPTH = 8;
+/**
+ * reachesHelp reads one sentence at a time and is slower than linear on long text full of
+ * short numbers (128 KB of timetable took 620 ms), so tool output is read in windows that
+ * overlap by more than any line's name. Text longer than MAX_WINDOWS windows holds the report.
+ */
+const WINDOW = 2048;
+const OVERLAP = 128;
+const MAX_WINDOWS = 64;
 
 /**
- * Every text part of a tool's output. LiveKit keeps the output JSON-encoded, so "\n988" reads
- * as "n988" until it is decoded; numbers count as text ("911" decodes to 911).
+ * Every text part of a tool's output, or null when it nests deeper than MAX_DEPTH. LiveKit keeps
+ * the output JSON-encoded, so "\n988" reads as "n988" until it is decoded; numbers count as
+ * text ("911" decodes to 911).
  */
-function textParts(output: unknown): string[] {
+function textParts(output: unknown): string[] | null {
   let value = output;
   if (typeof output === 'string') {
     try {
@@ -39,23 +48,38 @@ function textParts(output: unknown): string[] {
     }
   }
   const parts: string[] = [];
+  let tooDeep = false;
   const walk = (v: unknown, depth: number): void => {
     if (typeof v === 'string' || typeof v === 'number') parts.push(String(v));
-    else if (v && typeof v === 'object' && depth < MAX_DEPTH)
-      for (const inner of Object.values(v)) walk(inner, depth + 1);
+    else if (v && typeof v === 'object') {
+      if (depth >= MAX_DEPTH) tooDeep = true;
+      else for (const inner of Object.values(v)) walk(inner, depth + 1);
+    }
   };
   walk(value, 0);
-  return parts;
+  return tooDeep ? null : parts;
+}
+
+/** reachesHelp over bounded windows; text too long to read in MAX_WINDOWS holds (fails safe). */
+function readsHelp(text: string): boolean {
+  if (text.length <= WINDOW) return reachesHelp(text);
+  const step = WINDOW - OVERLAP;
+  if (Math.ceil((text.length - OVERLAP) / step) > MAX_WINDOWS) return true;
+  for (let at = 0; at < text.length - OVERLAP; at += step) {
+    if (reachesHelp(text.slice(at, at + WINDOW))) return true;
+  }
+  return false;
 }
 
 /**
  * Help named anywhere in a tool's output (#3157): job-loss and new-parent tools name 988 too
  * (#3080 r8), and reachesHelp is the one reader of help lines in any form. The parts are read
- * joined by a space and by nothing ("Crisis Life" + "line"), and the raw output is read as well.
+ * joined by a space and by nothing, for a name split across parts ("Crisis Life" + "line").
  */
 function namesHelp(output: unknown): boolean {
   const parts = textParts(output);
-  return [String(output ?? ''), parts.join(' '), parts.join('')].some(reachesHelp);
+  if (parts === null) return true;
+  return [...new Set([parts.join(' '), parts.join('')])].some(readsHelp);
 }
 
 /** What each tool output named, read once: an item's output never changes, and history keeps it. */

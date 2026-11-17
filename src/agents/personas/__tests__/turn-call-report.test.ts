@@ -147,6 +147,36 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     expect(waits).toBe(false);
     expect(text(ctx)).toContain('ZEBRA-SECRET');
   });
+
+  const filler = (n: number): string => 'The trail loops past the lake and back. '.repeat(n);
+
+  it('a line across a window edge, deep in a long output, still holds', () => {
+    // 2040 characters of filler put "988" at 2047-2049, across the first window's end (2048).
+    const output = `${filler(51)}x call 988 tonight. ${filler(100)}`;
+    expect(output.indexOf('988')).toBe(2047);
+    expect(turnRequestFor(withOutput(output), 's-edge', false)[1]).toBe(true);
+  });
+
+  it('an ordinary long output rides', () => {
+    expect(turnRequestFor(withOutput(filler(800)), 's-long', false)[1]).toBe(false);
+  });
+
+  it('an output too long to read holds the report (fails safe)', () => {
+    expect(turnRequestFor(withOutput(filler(5000)), 's-huge', false)[1]).toBe(true);
+  });
+
+  it('an output nested deeper than it reads holds the report', () => {
+    let deep: unknown = 'quiet';
+    for (let i = 0; i < 12; i++) deep = { inner: deep };
+    expect(turnRequestFor(withOutput(JSON.stringify(deep)), 's-deep', false)[1]).toBe(true);
+  });
+
+  it('a long timetable full of short numbers is read in bounded time', () => {
+    const table = 'bus 214 leaves gate 307 for dock 412, '.repeat(3000); // ~114 KB
+    const started = performance.now();
+    turnRequestFor(withOutput(table), 's-table', false);
+    expect(performance.now() - started).toBeLessThan(250);
+  });
 });
 
 describe('noteCallReportReached', () => {
