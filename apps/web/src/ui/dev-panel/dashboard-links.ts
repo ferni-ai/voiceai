@@ -8,6 +8,7 @@
  * @module dev-panel/dashboard-links
  */
 
+import { escapeHtml } from '../../utils/escape-html.js';
 import { ICONS, type IconName } from './icons.js';
 
 export interface DashboardLink {
@@ -90,11 +91,13 @@ export const FEATURE_TOOL_LINKS: readonly DashboardLink[] = [
     title: 'Experiments',
   },
   { href: '/feature-flags.html', icon: 'flag', label: 'Feature Flags', title: 'Feature Flags' },
+  // The admin portal runs only at the path /admin (app.ts routes on it); /admin.html is the
+  // static Admin Hub, which ignores ?section=.
   {
-    href: '/admin.html?section=agent-flags',
+    href: '/admin?section=agent-flags',
     icon: 'flag',
     label: 'Agent flags (dev)',
-    title: 'Dev agent flags',
+    title: "Switch the dev voice agent's flags (admin portal)",
   },
 ];
 
@@ -114,14 +117,17 @@ export const ADMIN_UTILITY_LINKS: readonly DashboardLink[] = [
   },
 ];
 
-/** The anchors for one group, in the markup the panel has always used. */
+/**
+ * The anchors for one group, in the markup the panel has always used. The href, title and
+ * label are escaped; the icon is trusted SVG from ICONS.
+ */
 export function renderDashboardLinks(links: readonly DashboardLink[]): string {
   return links
     .map(
       (
         link
-      ) => `<a class="dev-dashboard-link" href="${link.href}" target="_blank" title="${link.title ?? link.label}">
-              ${ICONS[link.icon]} ${link.label}
+      ) => `<a class="dev-dashboard-link" href="${escapeHtml(link.href)}" target="_blank" title="${escapeHtml(link.title ?? link.label)}">
+              ${ICONS[link.icon]} ${escapeHtml(link.label)}
             </a>`
     )
     .join('\n            ');
