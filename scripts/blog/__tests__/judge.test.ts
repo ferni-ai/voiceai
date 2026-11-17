@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   DIMENSIONS,
   belowBar,
+  claudeJudge,
   judgePost,
   judgePrompt,
   parseVerdict,
@@ -102,6 +103,24 @@ describe('judgePost', () => {
     expect(r.status).toBe('error');
     expect(r.verdict).toBeUndefined();
     expect(scorecard(r, 'developer')).toMatch(/ERROR[\s\S]*can't publish without a verdict/);
+  });
+
+  // 2026-10-26 to 2026-11-09: the repo had no ANTHROPIC_API_KEY, the judge never
+  // called Claude, and every post was held as "no readable verdict".
+  it('names the missing key, and calls no model, when the judge has no ANTHROPIC_API_KEY', async () => {
+    const judge = claudeJudge({});
+    const generate = vi.spyOn(judge, 'generate');
+    const r = await judgePost(POST, 'consumer', deps(judge));
+    expect(r.status).toBe('error');
+    expect(r.failures).toEqual([
+      'ANTHROPIC_API_KEY is not set, so the judge never ran (add it as a repo secret)',
+    ]);
+    expect(generate).not.toHaveBeenCalled();
+    expect(scorecard(r, 'consumer')).toMatch(/ANTHROPIC_API_KEY is not set/);
+  });
+
+  it('has no missing-key reason when the key is set', () => {
+    expect(claudeJudge({ ANTHROPIC_API_KEY: 'test-key' }).unavailable).toBeUndefined();
   });
 });
 
