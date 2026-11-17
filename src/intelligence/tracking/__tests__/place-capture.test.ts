@@ -54,6 +54,13 @@ describe('companies from what the caller said', () => {
     expect(valuesOf('I work at Acme', 'company')).toEqual(['Acme']);
   });
 
+  it.each([
+    ['I work at IBM', 'IBM'],
+    ['I work for NASA', 'NASA'],
+  ])('keeps a company said in capitals in "%s"', (said, company) => {
+    expect(valuesOf(said, 'company')).toEqual([company]);
+  });
+
   it.each(['I work at the hospital', 'I work for myself these days', 'I worked at Monday'])(
     'saves no company from "%s"',
     (said) => {

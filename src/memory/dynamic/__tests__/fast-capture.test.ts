@@ -195,6 +195,13 @@ describe('Fast Capture', () => {
       expect(orgs).toEqual(['Acme Labs']);
     });
 
+    it('still saves "IBM" from "I work at IBM."', () => {
+      const orgs = detectEntityMentions('I work at IBM.')
+        .filter((m) => m.type === 'organization')
+        .map((m) => m.name);
+      expect(orgs).toEqual(['IBM']);
+    });
+
     it('quotes the words around "son" itself, not around ja-SON', () => {
       const said = 'Jason from the office keeps calling about the late report, and my son is sick.';
       const son = detectEntityMentions(said).find((m) => m.name === 'son');

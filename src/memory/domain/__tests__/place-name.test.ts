@@ -25,8 +25,8 @@ describe('properNameAsSaid (#4028)', () => {
     expect(properNameAsSaid(p)).toBe(p);
   });
 
-  it.each(['AA', 'ICU', 'HR', 'OK'])('is no place for an unlisted acronym: "%s"', (p) => {
-    expect(properNameAsSaid(p)).toBeNull();
+  it.each(['IBM', 'NASA'])('keeps a company said in capitals: "%s"', (p) => {
+    expect(properNameAsSaid(p)).toBe(p);
   });
 
   it('trims what it keeps', () => {
