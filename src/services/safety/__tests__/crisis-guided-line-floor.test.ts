@@ -163,6 +163,22 @@ describe('CRISIS_GUIDED_LINE_FLOOR: what a crisis guide reply always names', () 
     expect(await said(withGuidedLine(streamOf(reply), { line }, ON))).toBe(reply);
   });
 
+  // Every member of the reader's dash and space classes (asWritten, crisis-line-speech.ts), not
+  // only the common ones above: each, between 988's digits, reads as the line said once.
+  const DASH_CLASS = [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212];
+  const SPACE_CLASS = [
+    0x00a0, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a,
+    0x202f, 0x205f, 0x3000,
+  ];
+  const codePoint = (cp: number) => `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`;
+  it.each([...DASH_CLASS, ...SPACE_CLASS].map((cp) => [codePoint(cp), String.fromCodePoint(cp)]))(
+    '988 with %s between its digits is said once, flag on',
+    async (_cp, between) => {
+      const reply = `You can call or text ${parts('988', between)} any time.`;
+      expect(await said(withGuidedLine(streamOf(reply), { line: SELF }, ON))).toBe(reply);
+    }
+  );
+
   // The floor's job is that the number is said: another line, or a line by name, is not 988.
   it.each<[string, GuideLine, string]>([
     ['You can text HOME to 741741 any time.', SELF, TALK_TO_988],
