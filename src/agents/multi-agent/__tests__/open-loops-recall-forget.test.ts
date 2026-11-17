@@ -65,11 +65,16 @@ describe('open-loops note leaves forgotten topics out (#3995)', () => {
     expect(note).not.toMatch(/landlord/i);
   });
 
-  it('a loop whose context names the topic is left out too', async () => {
+  it('a loop whose context names the topic is left out too; the others are not', async () => {
     const src = sources({
-      loops: async () => [loop('c', 'that call on Friday', 'about the landlord')],
+      loops: async () => [
+        loop('c', 'that call on Friday', 'about the landlord'),
+        loop('e', 'whether to take the Denver offer'),
+      ],
     });
-    expect(await noteFor(src, 'c-context')).toBeNull();
+    const note = await noteFor(src, 'c-context');
+    expect(note).toContain('Denver offer');
+    expect(note).not.toMatch(/landlord|Friday/i);
   });
 
   it('a promise about a forgotten topic is left out and never marked offered', async () => {

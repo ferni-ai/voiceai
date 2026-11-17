@@ -59,7 +59,7 @@ const realSources: CallLoopsSources = {
     return getLoopsReadyForFollowUp(userId);
   },
   async forgotten(userId) {
-    const { forgottenPassageFilter } = await import('./forgotten-filter.js');
+    const { forgottenPassageFilter } = await import('../../memory/index.js');
     return forgottenPassageFilter(userId);
   },
   async promises(userId) {
@@ -81,6 +81,10 @@ const loopKey = (loop: OpenLoop): string =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()}`;
 
+/** What a loop says in the caller's words, for the forget check. */
+const loopWords = (loop: OpenLoop): string =>
+  [loop.content, loop.context, loop.description].filter(Boolean).join(' ');
+
 /**
  * The due loops the caller may hear about (#3995): none about a topic they asked Ferni to
  * forget (its words, context or description), and each stored wording once, first kept.
@@ -91,8 +95,7 @@ function loopsToRaise(
 ): OpenLoop[] {
   const seen = new Set<string>();
   return loops.filter((loop) => {
-    if (forgotten([loop.content, loop.context, loop.description].filter(Boolean).join(' ')))
-      return false;
+    if (forgotten(loopWords(loop))) return false;
     const key = loopKey(loop);
     if (seen.has(key)) return false;
     seen.add(key);
@@ -177,6 +180,7 @@ export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
   let loopsDue = 0;
   let misses: FerniCommitment[] = [];
   let hasPromises = false;
+  let promiseText = '';
   let forgottenNow: (text: string) => boolean = () => true;
 
   const ready = (async () => {
@@ -203,7 +207,7 @@ export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
     loopsDue = due.length;
     shown = loopsShown(due);
     // The promise block is one text; any forgotten topic in it leaves the whole block out.
-    const promiseText =
+    promiseText =
       promises.status === 'fulfilled' && !forgotten(promises.value.text) ? promises.value.text : '';
     if (promiseText && promises.status === 'fulfilled') {
       misses = promises.value.misses;
@@ -213,12 +217,20 @@ export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
     text = [loopsText, promiseText].filter(Boolean).join('\n\n');
   })().catch((error: unknown) => log.warn({ error: String(error) }, 'Call loops not loaded'));
 
+  // Each shown loop's own words, and the promise block, are checked again when the note is
+  // given: a topic forgotten since it loaded leaves the note out. The note's fixed header is
+  // never checked, so a topic like "these" or "check" doesn't silence it.
+  const givable = (): boolean =>
+    Boolean(text) &&
+    !raisedCalls.has(deps.callId) &&
+    !shown.some((loop) => forgottenNow(loopWords(loop))) &&
+    !(promiseText && forgottenNow(promiseText));
+
   return {
     ready,
-    // A topic forgotten after the note loaded, before it is given, leaves it all out.
-    note: () => (text && !raisedCalls.has(deps.callId) && !forgottenNow(text) ? text : null),
+    note: () => (givable() ? text : null),
     raised() {
-      if (!text || raisedCalls.has(deps.callId)) return;
+      if (!givable()) return;
       raisedCalls.add(deps.callId);
       if (raisedCalls.size > MAX_CALLS) {
         const oldest = raisedCalls.values().next().value;

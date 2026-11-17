@@ -1275,7 +1275,7 @@ export default {
   initializeRedisCache,
   rehydrateConversationEmbeddings,
 };
-export { forgetGeneration, forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js'; // prettier-ignore
+export { forgetGeneration, forgottenInProcess, forgottenPassageFilter, forgottenTopicsOrNull, worldFactText } from './recall/forget.js'; // prettier-ignore
 export { aboutForgotten, forgottenWithin, keepRemembered, profileForCaller } from './recall/forget-every-reader.js'; // prettier-ignore
 export { isPersonaSubject } from './entity-hygiene.js';
 export { dualWriteFacts, mapWorldFact, type DualWriteDeps } from './writer/facts-dual-write.js';

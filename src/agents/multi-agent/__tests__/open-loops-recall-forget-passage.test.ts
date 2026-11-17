@@ -1,20 +1,18 @@
 /**
- * The open-loops note through the real forget filter (#3995): a loop's context is the caller's
- * raw words, so a topic of several words leaves it out on any distinctive word, and a topic
- * forgotten during the call leaves the note out from then on. Only the stored list is faked.
+ * The open-loops note through the real forget filter (#3995). A loop's context is the caller's
+ * raw words, so a topic of several words leaves it out on any distinctive word; a topic
+ * forgotten during the call (the real forgetTopic) leaves the note out from then on; and a topic
+ * that only matches the note's own fixed words ("check in on these") doesn't silence it. Only
+ * the stored list is faked.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { OpenLoop } from '../../../services/superhuman/semantic-intelligence/open-loops.js';
-
-const stored = vi.hoisted(() => ({ topics: [] as string[] | null, now: [] as string[] }));
-
-vi.mock('../../../memory/recall/forget.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../memory/recall/forget.js')>()),
-  forgottenTopicsOrNull: vi.fn(async () => stored.topics),
-  forgottenInProcess: vi.fn(() => [...stored.now]),
-}));
-
+import {
+  firestoreForgetStore,
+  forgetTopic,
+  type ForgetStore,
+} from '../../../memory/recall/forget.js';
 import { createCallLoopsRecall } from '../open-loops-recall.js';
 
 const NOW = new Date('2026-11-17T12:00:00Z');
@@ -35,10 +33,14 @@ function loop(id: string, content: string, context: string): OpenLoop {
   };
 }
 
-function recall(loops: OpenLoop[], callId: string) {
-  return createCallLoopsRecall({
-    userId: 'u-fiction',
-    callId,
+function stored(topics: string[] | null): void {
+  vi.spyOn(firestoreForgetStore, 'topics').mockImplementation(async () => topics);
+}
+
+async function loaded(userId: string, loops: OpenLoop[]) {
+  const r = createCallLoopsRecall({
+    userId,
+    callId: `c-${userId}`,
     now: () => NOW,
     sources: {
       loops: async () => loops,
@@ -46,6 +48,8 @@ function recall(loops: OpenLoop[], callId: string) {
       markOffered: async () => undefined,
     },
   });
+  await r.ready;
+  return r;
 }
 
 const DENVER = loop('a', 'whether to take the offer', 'I got the offer from the Denver office');
@@ -53,33 +57,62 @@ const BROTHER = loop('b', 'text my brother tonight', 'his number is 435 555 0199
 const GARDEN = loop('c', 'plant the tomatoes this weekend', 'the garden is finally dry');
 
 describe('open-loops note, real forget filter (#3995)', () => {
-  beforeEach(() => {
-    stored.topics = [];
-    stored.now = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('a topic of several words leaves out a loop whose context has one of them', async () => {
-    stored.topics = ['brother phone number', 'Denver job offer'];
-    const r = recall([DENVER, BROTHER, GARDEN], 'c-passage');
-    await r.ready;
-    const note = r.note() ?? '';
+    stored(['brother phone number', 'Denver job offer']);
+    const note = (await loaded('u-passage', [DENVER, BROTHER, GARDEN])).note() ?? '';
     expect(note).toContain('tomatoes');
     expect(note).not.toContain('435 555 0199');
     expect(note).not.toContain('Denver');
   });
 
-  it('a topic forgotten after the note loaded leaves the note out', async () => {
-    const r = recall([GARDEN], 'c-later');
+  it('a topic forgotten during the call leaves the note out, and nothing is marked', async () => {
+    stored([]);
+    const marked = vi.fn(async () => undefined);
+    const r = createCallLoopsRecall({
+      userId: 'u-later',
+      callId: 'c-later',
+      now: () => NOW,
+      sources: {
+        loops: async () => [GARDEN],
+        promises: async () => ({ text: '', misses: [] }),
+        markOffered: marked,
+      },
+    });
     await r.ready;
     expect(r.note()).toContain('tomatoes');
-    stored.now = ['tomatoes'];
+    const store: ForgetStore = {
+      facts: async () => [],
+      markForgotten: async () => undefined,
+      addTopic: async () => 1,
+      topics: async () => [],
+    };
+    await forgetTopic('u-later', 'the tomatoes', store, NOW, {});
     expect(r.note()).toBeNull();
+    r.raised();
+    expect(marked).not.toHaveBeenCalled();
+  });
+
+  it("a topic matching only the note's own words doesn't silence it", async () => {
+    stored(['the background check', 'all of these', 'following']);
+    const note = (await loaded('u-header', [GARDEN])).note() ?? '';
+    expect(note).toContain('Gently check in on these');
+    expect(note).toContain('tomatoes');
+  });
+
+  it('two loops that together name a topic each still show', async () => {
+    stored(['Bob DUI']);
+    const bob = loop('d', 'call Bob back', 'about the weekend');
+    const hearing = loop('e', 'the DUI hearing', 'next month');
+    const note = (await loaded('u-pair', [bob, hearing, GARDEN])).note() ?? '';
+    expect(note).toContain('tomatoes');
   });
 
   it('an unreadable stored list gives no note', async () => {
-    stored.topics = null;
-    const r = recall([GARDEN], 'c-unread');
-    await r.ready;
-    expect(r.note()).toBeNull();
+    stored(null);
+    expect((await loaded('u-unread', [GARDEN])).note()).toBeNull();
   });
 });
