@@ -34,7 +34,7 @@ const GUEST_QUEUE_FRAMES = 5;
  * The clock the mix stamps ledger notes with: monotonic milliseconds. Anything
  * that asks the ledger about a window (STT turn labelling) must read this clock.
  */
-function mixClock(): number {
+export function mixClock(): number {
   return performance.now();
 }
 
