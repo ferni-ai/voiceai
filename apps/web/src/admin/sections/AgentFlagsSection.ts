@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/logger.js';
 import { adminFetch } from '../admin-fetch.js';
 import {
   confirmState,
+  nowOnServerClock,
   runningForStage,
   settle,
   stage,
@@ -165,11 +166,12 @@ async function poll(): Promise<void> {
     log.warn('Agent flags poll failed', error);
   }
   if (view.phase !== p) return; // the section was reloaded meanwhile
+  const now = nowOnServerClock(p.appliedAt, p.receivedMs, Date.now());
   const state = confirmState(
     view.body?.snapshot ?? null,
     p.applied,
     p.appliedAt,
-    new Date(),
+    now,
     CONFIRM_TIMEOUT_MS
   );
   if (state === 'waiting') {
@@ -199,6 +201,7 @@ async function apply(): Promise<void> {
     repaint();
     return;
   }
+  const receivedMs = Date.now();
   const reply = await readReply(res);
   if (res.ok) {
     // A 200 always carries appliedAt; if the reply was unreadable, time the wait from now.
@@ -208,11 +211,15 @@ async function apply(): Promise<void> {
     view.unconfirmed = Object.fromEntries(
       Object.entries(view.unconfirmed).filter(([n]) => !isStagedIn(applied, n))
     );
-    view.phase = { kind: 'confirming', applied, appliedAt };
+    view.phase = { kind: 'confirming', applied, appliedAt, receivedMs };
     pollTimer = setTimeout(() => void poll(), POLL_MS);
   } else if (res.status === 409) {
+    // Held even when the body did not parse; the rooms check below fills in the names.
+    view.roomBusy = true;
     view.rooms = reply.rooms ?? [];
     view.phase = { kind: 'idle' };
+    repaint();
+    await refreshRooms();
   } else {
     const why = reply.errors?.join('; ') ?? reply.error ?? `HTTP ${res.status}`;
     log.warn('Agent flags not applied', { status: res.status });
@@ -246,6 +253,7 @@ async function onAction(action: string | undefined): Promise<void> {
     view.phase = { kind: 'idle' };
     repaint();
   } else if (action === 'rooms') {
+    view.roomBusy = false;
     await refreshRooms();
     paint('afBar', renderBar(view));
   }

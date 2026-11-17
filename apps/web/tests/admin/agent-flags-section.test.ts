@@ -233,4 +233,36 @@ describe('AgentFlagsSection', () => {
     expect(root.querySelector('.af-row--unconfirmed')).toBeNull();
     expect(rowOf(root, 'ATTUNE_LEDGER')).not.toBeNull();
   });
+
+  it('holds Apply with the room message after a 409 whose body does not parse', async () => {
+    serve({
+      '/api/v1/admin/agent-flags': () => json(FLAGS_BODY),
+      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+      '/api/v1/admin/agent-flags/apply': () => new Response('<html>busy</html>', { status: 409 }),
+    });
+    const root = await mount();
+    choose(root, 'SOUND_CONDUCTOR', 'on');
+    applyButton(root)?.click();
+    await vi.waitFor(() => expect(root.textContent).toContain('Dev room in use'));
+    expect(applyButton(root)?.disabled).toBe(true);
+  });
+
+  // Last: it ends in a timeout, which leaves its names unconfirmed in the module.
+  it('times the 4 minutes by the browser clock, even when it runs 10 minutes ahead', async () => {
+    vi.useFakeTimers({ now: new Date('2026-11-17T10:10:00.000Z'), toFake: ['setTimeout', 'Date'] });
+    serve({
+      '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
+      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+      '/api/v1/admin/agent-flags/apply': () => json({ appliedAt: '2026-11-17T10:00:00.000Z' }),
+    });
+    const root = await mount();
+    choose(root, 'ATTUNE_LEDGER', 'on');
+    applyButton(root)?.click();
+    await vi.advanceTimersByTimeAsync(5_000); // first poll
+    expect(root.textContent).toContain('Restarting dev agent…');
+    await vi.advanceTimersByTimeAsync(3 * 60_000);
+    expect(root.textContent).toContain('Restarting dev agent…');
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(root.textContent).toContain('Applied, not confirmed yet');
+  });
 });

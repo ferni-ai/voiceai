@@ -101,6 +101,15 @@ function showsApplied(snapshot: FlagSnapshot | null, applied: Staged, appliedAt:
 }
 
 /**
+ * The `now` to give confirmState: `appliedAt` plus the browser time since the 200 arrived
+ * (`receivedMs`, Date.now() then). The timeout is then measured by one clock, the browser's,
+ * so a browser clock that runs ahead or behind the server's cannot cut the wait short.
+ */
+export function nowOnServerClock(appliedAt: string, receivedMs: number, nowMs: number): Date {
+  return new Date(Date.parse(appliedAt) + (nowMs - receivedMs));
+}
+
+/**
  * After an apply at `appliedAt`: 'live' once a snapshot from a worker started after it shows
  * every applied value, 'timeout' when `timeoutMs` has passed without one (or `appliedAt` does
  * not parse), otherwise 'waiting'.

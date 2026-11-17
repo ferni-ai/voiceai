@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   confirmState,
+  nowOnServerClock,
   runningForStage,
   settle,
   stage,
@@ -228,5 +229,24 @@ describe('unconfirmed changes', () => {
       SOUND_CONDUCTOR: { raw: null, resolved: 'off' },
     });
     expect(settle(timedOut, all)).toEqual({});
+  });
+});
+
+describe('nowOnServerClock', () => {
+  const applied: Staged = { set: { SOUND_CONDUCTOR: 'on' }, reset: [] };
+  // The 200 arrived when the browser clock read 10:10, ten minutes ahead of appliedAt.
+  const received = Date.parse('2026-11-17T10:10:00.000Z');
+
+  it('keeps waiting on the first poll although the browser clock is 10 minutes ahead', () => {
+    const now = nowOnServerClock(APPLIED_AT, received, received + 5_000);
+    expect(now.toISOString()).toBe('2026-11-17T10:00:05.000Z');
+    expect(confirmState(null, applied, APPLIED_AT, now, FOUR_MINUTES)).toBe('waiting');
+  });
+
+  it('times out only after 4 minutes of browser time', () => {
+    const before = nowOnServerClock(APPLIED_AT, received, received + FOUR_MINUTES - 1);
+    expect(confirmState(null, applied, APPLIED_AT, before, FOUR_MINUTES)).toBe('waiting');
+    const after = nowOnServerClock(APPLIED_AT, received, received + FOUR_MINUTES);
+    expect(confirmState(null, applied, APPLIED_AT, after, FOUR_MINUTES)).toBe('timeout');
   });
 });

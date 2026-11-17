@@ -27,7 +27,7 @@ const OLD_WORKER = 'The old worker may keep finishing calls for a while.';
 
 export type Phase =
   | { kind: 'idle' | 'applying' | 'live' | 'timeout' }
-  | { kind: 'confirming'; applied: Staged; appliedAt: string }
+  | { kind: 'confirming'; applied: Staged; appliedAt: string; receivedMs: number }
   | { kind: 'error'; message: string };
 
 export interface View {
@@ -36,6 +36,8 @@ export interface View {
   query: string;
   rooms: OccupiedRoom[];
   roomsUnknown: boolean;
+  /** The server refused an apply with 409; held until the admin checks the rooms again. */
+  roomBusy: boolean;
   phase: Phase;
   auditWarning: string;
   /** Applies that timed out, kept marked until a snapshot confirms them or they are re-applied. */
@@ -48,6 +50,7 @@ export const freshView = (): View => ({
   query: '',
   rooms: [],
   roomsUnknown: false,
+  roomBusy: false,
   phase: { kind: 'idle' },
   auditWarning: '',
   unconfirmed: {},
@@ -159,9 +162,10 @@ function phaseText(v: View): string {
 
 export function renderBar(v: View): string {
   const n = stagedCount(v);
-  const busy = v.rooms.length > 0;
+  const busy = v.rooms.length > 0 || v.roomBusy;
+  const names = v.rooms.map((r) => r.name).join(', ');
   const rooms = busy
-    ? `<span class="af-warn">Dev room in use: ${escapeHtml(v.rooms.map((r) => r.name).join(', '))}</span>
+    ? `<span class="af-warn">Dev room in use${names ? `: ${escapeHtml(names)}` : ''}</span>
        <button class="admin-btn admin-btn--secondary" data-af="rooms">Check again</button>`
     : v.roomsUnknown
       ? '<span class="af-meta">Could not list the dev rooms; the server checks again on Apply.</span>'
