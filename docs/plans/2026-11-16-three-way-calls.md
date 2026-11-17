@@ -422,7 +422,7 @@ These are owner voice prints and the "owner or someone else" check for two peopl
 | 1. Stream bench | after Task 3 merges; no deploy, flag on only in the bench process | Two fictional voices (two Cartesia TTS voices), each played into its own track, through `personStream`, the real ink-2 and `floorArbiter`. The scripts cover alternating turns, interruptions and a quiet speaker. | No final is ever attributed to the wrong person (must be 0). End of turn never fires while the other voice is still talking (must be 0). Report the latency each person's stream adds. |
 | 2. Two-bot room on dev | after Tasks 2–6 are on dev with the flag on for dev | The dev agent in a real room. The owner bot uses a test uid; the guest bot gets a server-minted `guest_` identity. A third bot without the prefix is never heard. | Labels are right. Ferni replies before he's addressed on fewer than 10% of the scripted human-to-human turns. The test uid's memories hold nothing the guest said. A guest's request to call someone gets the ask. |
 | 3. Phone on dev | after Tasks 9–11 | A real opted-in phone through the trunk, including one call on speakerphone | Read-back before ringing. The opener and her yes work; a no removes her and her words never reach the conversation. Echo drops are logged and none reach the conversation. Hang-up works. |
-| 4. Seth's call | after Task 12 | Everything | The checks under Rollout step 4. |
+| 4. Seth's call | after Task 17 | Everything | The checks under Rollout step 5. |
 | 5. Solo regression | before prod | The voice-eval skill's solo scenarios, flag on vs off | No change: solo calls must be identical. |
 
 Rung 2 is scored by Task 13 from its first run onward.
