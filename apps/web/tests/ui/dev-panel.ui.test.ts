@@ -746,6 +746,75 @@ describe('Dev Panel - Dashboard Links', () => {
   });
 });
 
+describe('Dev Panel - Rendered Dashboard Links', () => {
+  const previousLinks = [
+    '/analytics-dashboard.html',
+    '/metrics-dashboard.html',
+    '/ux-dashboard.html',
+    '/error-dashboard.html',
+    '/llm-dashboard.html',
+    '/voice-presence-dashboard.html',
+    '/persona-dashboard.html',
+    '/cognitive-dashboard.html',
+    '/connection-dashboard.html',
+    '/memory-dashboard.html',
+    '/cost-dashboard.html',
+    '/dora-dashboard.html',
+    '/handoff-dashboard.html',
+    '/outreach-dashboard.html',
+    '/tools-dashboard.html',
+    '/experiments-dashboard.html',
+    '/feature-flags.html',
+    '/admin.html',
+    '/observability-hub.html',
+    '/animation-playground.html',
+  ];
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    document.querySelectorAll('.dev-panel').forEach((el) => el.remove());
+  });
+
+  async function renderedLinks(): Promise<HTMLAnchorElement[]> {
+    const { showPanel } = await import('../../src/ui/dev-panel.ui.js');
+    showPanel();
+    return Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('.dev-panel a.dev-dashboard-link')
+    );
+  }
+
+  it('links to the dev agent flags page, right after Feature Flags', async () => {
+    const links = await renderedLinks();
+    const hrefs = links.map((a) => a.getAttribute('href'));
+
+    const flagsAt = hrefs.indexOf('/feature-flags.html');
+    expect(flagsAt).toBeGreaterThanOrEqual(0);
+    expect(hrefs[flagsAt + 1]).toBe('/admin.html?section=agent-flags');
+
+    const agentFlags = links[flagsAt + 1];
+    expect(agentFlags.textContent).toContain('Agent flags (dev)');
+    expect(agentFlags.getAttribute('target')).toBe('_blank');
+    expect(agentFlags.querySelector('svg')).not.toBeNull();
+  });
+
+  it('still renders every link it had before, in the same order', async () => {
+    const links = await renderedLinks();
+    const hrefs = links.map((a) => a.getAttribute('href'));
+
+    const withoutNew = hrefs.filter((h) => h !== '/admin.html?section=agent-flags');
+    expect(withoutNew).toEqual(previousLinks);
+  });
+
+  it('still renders the EvalOps and BTH Analytics buttons', async () => {
+    await renderedLinks();
+    expect(document.querySelector('button[data-action="open-evalops"]')).not.toBeNull();
+    expect(document.querySelector('button[data-action="open-bth-analytics"]')).not.toBeNull();
+  });
+});
+
 describe('Dev Panel - Keyboard Shortcuts', () => {
   beforeEach(() => {
     vi.clearAllMocks();

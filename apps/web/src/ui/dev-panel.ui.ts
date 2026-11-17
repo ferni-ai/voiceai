@@ -109,6 +109,14 @@ import {
 // Dev Panel Modules (extracted for maintainability)
 import { cancelAllAvatarAnimations } from './dev-panel/handlers/index.js';
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
+import {
+  ADMIN_UTILITY_LINKS,
+  AI_VOICE_DASHBOARD_LINKS,
+  CORE_DASHBOARD_LINKS,
+  FEATURE_TOOL_LINKS,
+  INFRASTRUCTURE_DASHBOARD_LINKS,
+  renderDashboardLinks,
+} from './dev-panel/dashboard-links.js';
 import { ICONS } from './dev-panel/icons.js';
 import { devPanelMayEnable } from './dev-panel-gate.js';
 import { toast } from './whisper.ui.js';
@@ -2216,75 +2224,28 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Core Dashboards</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/analytics-dashboard.html" target="_blank" title="Analytics Dashboard">
-              ${ICONS.trendingUp} Analytics
-            </a>
-            <a class="dev-dashboard-link" href="/metrics-dashboard.html" target="_blank" title="Metrics Dashboard">
-              ${ICONS.barChart} Metrics
-            </a>
-            <a class="dev-dashboard-link" href="/ux-dashboard.html" target="_blank" title="UX Dashboard">
-              ${ICONS.colorPalette} UX
-            </a>
-            <a class="dev-dashboard-link" href="/error-dashboard.html" target="_blank" title="Error Dashboard">
-              ${ICONS.alertTriangle} Errors
-            </a>
+            ${renderDashboardLinks(CORE_DASHBOARD_LINKS)}
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">AI & Voice</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/llm-dashboard.html" target="_blank" title="LLM Dashboard">
-              ${ICONS.robot} LLM
-            </a>
-            <a class="dev-dashboard-link" href="/voice-presence-dashboard.html" target="_blank" title="Voice Presence Dashboard">
-              ${ICONS.micFilled} Voice
-            </a>
-            <a class="dev-dashboard-link" href="/persona-dashboard.html" target="_blank" title="Persona Dashboard">
-              ${ICONS.drama} Personas
-            </a>
-            <a class="dev-dashboard-link" href="/cognitive-dashboard.html" target="_blank" title="Cognitive Dashboard">
-              ${ICONS.brain} Cognitive
-            </a>
+            ${renderDashboardLinks(AI_VOICE_DASHBOARD_LINKS)}
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Infrastructure</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/connection-dashboard.html" target="_blank" title="Connection Dashboard">
-              ${ICONS.signalStrength} Connection
-            </a>
-            <a class="dev-dashboard-link" href="/memory-dashboard.html" target="_blank" title="Memory Dashboard">
-              ${ICONS.save} Memory
-            </a>
-            <a class="dev-dashboard-link" href="/cost-dashboard.html" target="_blank" title="Cost Dashboard">
-              ${ICONS.coins} Costs
-            </a>
-            <a class="dev-dashboard-link" href="/dora-dashboard.html" target="_blank" title="DORA Metrics">
-              ${ICONS.rocket} DORA
-            </a>
+            ${renderDashboardLinks(INFRASTRUCTURE_DASHBOARD_LINKS)}
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Features & Tools</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/handoff-dashboard.html" target="_blank" title="Handoff Dashboard">
-              ${ICONS.handshake} Handoffs
-            </a>
-            <a class="dev-dashboard-link" href="/outreach-dashboard.html" target="_blank" title="Outreach Dashboard">
-              ${ICONS.upload} Outreach
-            </a>
-            <a class="dev-dashboard-link" href="/tools-dashboard.html" target="_blank" title="Tools Dashboard">
-              ${ICONS.wrench} Tools
-            </a>
-            <a class="dev-dashboard-link" href="/experiments-dashboard.html" target="_blank" title="Experiments">
-              ${ICONS.flask} Experiments
-            </a>
-            <a class="dev-dashboard-link" href="/feature-flags.html" target="_blank" title="Feature Flags">
-              ${ICONS.flag} Feature Flags
-            </a>
+            ${renderDashboardLinks(FEATURE_TOOL_LINKS)}
             <button aria-label="EvalOps" class="dev-dashboard-link" data-action="open-evalops" title="EvalOps Dashboard (Cmd+Shift+E)">
               ${ICONS.target} EvalOps
             </button>
@@ -2294,15 +2255,7 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Admin & Utilities</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/admin.html" target="_blank" title="Admin Panel">
-              ${ICONS.cog} Admin
-            </a>
-            <a class="dev-dashboard-link" href="/observability-hub.html" target="_blank" title="Observability Hub">
-              ${ICONS.eye} Observability
-            </a>
-            <a class="dev-dashboard-link" href="/animation-playground.html" target="_blank" title="Animation Playground">
-              ${ICONS.movie} Animations
-            </a>
+            ${renderDashboardLinks(ADMIN_UTILITY_LINKS)}
             <button aria-label="BTH Analytics" class="dev-dashboard-link" data-action="open-bth-analytics" title="Better Than Human Analytics">
               ${ICONS.heart} BTH Analytics
             </button>
