@@ -49,11 +49,14 @@ async function turn(
   said: string,
   env: Record<string, string>,
   generate: CrisisGenerateFn,
-  modelSays: () => string = () => CHAT
+  modelSays: () => string | ReadableStream<unknown> = () => CHAT
 ): Promise<{ spoken: string; asks: number }> {
   resetCrisisClassifierCache();
   const random = vi.spyOn(Math, 'random').mockReturnValue(0.42); // same style picks every turn
-  const model = vi.fn(async () => streamOf(modelSays()));
+  const model = vi.fn(async () => {
+    const says = modelSays();
+    return typeof says === 'string' ? streamOf(says) : says;
+  });
   const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
   const ctx = llm.ChatContext.empty();
   ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
@@ -63,8 +66,11 @@ async function turn(
     generate,
   });
   let spoken = '';
-  if (reply) for await (const chunk of reply as unknown as AsyncIterable<string>) spoken += chunk;
-  random.mockRestore();
+  try {
+    if (reply) for await (const chunk of reply as unknown as AsyncIterable<string>) spoken += chunk;
+  } finally {
+    random.mockRestore();
+  }
   return { spoken, asks: model.mock.calls.length };
 }
 
@@ -100,6 +106,34 @@ describe('CRISIS_GUIDED_LINE_FLOOR: a crisis guide reply names its line', () => 
       const off = await turn(line, OFF, generate, says988);
       expect((await turn(line, ON, generate, says988)).spoken, line).toBe(off.spoken);
     }
+  });
+
+  it('a model stream that fails part-way: the caller hears the partial, then the line', async () => {
+    const PARTIAL = 'I hear you,';
+    // One chunk per read, then the failure (error() in start() would empty the queue unread).
+    // readBeforeError: chunks the reader had taken when it failed (pull runs on an empty queue).
+    let readBeforeError: number | null = null;
+    const failing = () => {
+      let sent = false;
+      readBeforeError = null;
+      return new ReadableStream<unknown>({
+        pull(controller) {
+          if (!sent) {
+            sent = true;
+            controller.enqueue(PARTIAL);
+            return;
+          }
+          if (controller.desiredSize === 1) readBeforeError = 1;
+          controller.error(new Error('model stream broke'));
+        },
+      });
+    };
+    const on = await turn(FRIEND, ON, ANSWER.none, failing);
+    expect(readBeforeError).toBe(1); // the partial was read, then the failure
+    expect(on.spoken).toBe(`${PARTIAL} ${FOR_THEM_988}`);
+    // Off, as on main: the failure reaches LiveKit, which speaks the partial and then nothing
+    await expect(turn(FRIEND, OFF, ANSWER.none, failing)).rejects.toThrow('model stream broke');
+    expect(readBeforeError).toBe(1);
   });
 
   it('an empty reply gets the line alone', async () => {

@@ -7,5 +7,5 @@ export const CRISIS_GUIDED_LINE_FLOOR = {
   kind: 'experiment',
   expires: '2027-02-15',
   issue: 'https://github.com/ferni-ai/voiceai/issues/4009',
-  context: 'dev on, CRISIS_LIFELINE_SPOKEN before and after; prod on the owner yes',
+  context: 'dev on, spoken-line log counts before and after; prod on the owner yes',
 } as const satisfies FlagSpec;

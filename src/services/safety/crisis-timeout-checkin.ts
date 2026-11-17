@@ -23,7 +23,7 @@
  * @module CrisisTimeoutCheckin
  */
 
-import { ReadableStream } from 'node:stream/web';
+import type { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict } from './crisis-classifier.js';

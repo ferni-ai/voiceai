@@ -9,7 +9,11 @@ import { join } from 'node:path';
 import { SOFT_CRISIS_CHECK } from '../crisis-agreement.js';
 import { AFTER_CHECK_GUIDANCE } from '../crisis-confirmed-risk.js';
 import { GROUNDED_LIGHT_TOUCH } from '../crisis-grounded-release.js';
-import { SCREEN_GENTLE_OFFER, withMissingEnding } from '../crisis-grounded-screen.js';
+import {
+  SCREEN_GENTLE_OFFER,
+  withMissingEnding,
+  withScreenQuestion,
+} from '../crisis-grounded-screen.js';
 import {
   CALL_911_ES,
   CALL_911_FOR_THEM,
@@ -30,6 +34,32 @@ const streamOf = (...chunks: string[]): ReadableStream<string> =>
       controller.close();
     },
   });
+
+/** A model stream that sends `chunks`, then fails with `error`. */
+/**
+ * A model stream that hands over its chunks, one per read, then fails. Not error() in start():
+ * that empties the queue, so no chunk would ever be read. `readBeforeError()` is how many chunks
+ * the reader had taken when it failed (pull runs only on an empty queue), or null if it never
+ * failed on an empty queue: each row asserts it as its precondition.
+ */
+const failingAfter = (error: Error, ...chunks: string[]) => {
+  const left = [...chunks];
+  let read = 0;
+  let readBeforeError: number | null = null;
+  const stream = new ReadableStream<string>({
+    pull(controller) {
+      const chunk = left.shift();
+      if (chunk !== undefined) {
+        read += 1;
+        controller.enqueue(chunk);
+        return;
+      }
+      if (controller.desiredSize === 1) readBeforeError = read; // the queue is empty: all read
+      controller.error(error);
+    },
+  });
+  return Object.assign(stream, { readBeforeError: () => readBeforeError });
+};
 
 async function said(stream: ReadableStream<unknown> | null): Promise<string | null> {
   if (!stream) return null;
@@ -150,6 +180,55 @@ describe('CRISIS_GUIDED_LINE_FLOOR: fails closed', () => {
       `${REPLY} ${TALK_TO_988}`
     );
     expect(await said(withMissingEnding(null, [throws]))).toBe(TALK_TO_988);
+  });
+});
+
+describe('CRISIS_GUIDED_LINE_FLOOR: a model stream that fails part-way still names the line', () => {
+  const broke = new Error('model stream broke');
+
+  it('a partial reply, then a failure: the partial, then the missing line, and a clean end', async () => {
+    const partial = "That sounds so heavy, I'm";
+    for (const [, line, ending] of KINDS) {
+      const model = failingAfter(broke, partial);
+      const out = await said(withGuidedLine(model, { line }, ON));
+      expect(model.readBeforeError()).toBe(1); // the partial was read, then the failure
+      expect(out).toBe(`${partial} ${ending}`);
+    }
+  });
+
+  it('a failure before any words: the line alone', async () => {
+    const model = failingAfter(broke);
+    const out = await said(withGuidedLine(model, { line: SELF }, ON));
+    expect(model.readBeforeError()).toBe(0);
+    expect(out).toBe(TALK_TO_988);
+  });
+
+  it('a partial that already named 988 gets nothing more', async () => {
+    const partial = 'You can call or text 988 any';
+    const model = failingAfter(broke, partial);
+    const out = await said(withGuidedLine(model, { line: SELF }, ON));
+    expect(model.readBeforeError()).toBe(1);
+    expect(out).toBe(partial);
+  });
+
+  it('an abort (the caller talking over it) still fails, with nothing said into it', async () => {
+    const abort = Object.assign(new Error('aborted'), { name: 'AbortError' });
+    const model = failingAfter(abort, 'So');
+    await expect(said(withGuidedLine(model, { line: SELF }, ON))).rejects.toBe(abort);
+    expect(model.readBeforeError()).toBe(1);
+  });
+
+  it("the grounded screen's question keeps main's failure: a failed stream still rejects there", async () => {
+    // withScreenQuestion takes withReplyEnding's pipeThrough path (no endOnError): unchanged
+    const model = failingAfter(broke, 'So');
+    await expect(said(withScreenQuestion(model))).rejects.toBe(broke);
+    expect(model.readBeforeError()).toBe(1);
+  });
+
+  it('flag off: the failure reaches the caller of the stream, as on main', async () => {
+    const model = failingAfter(broke, 'So');
+    await expect(said(withGuidedLine(model, { line: SELF }, OFF))).rejects.toBe(broke);
+    expect(model.readBeforeError()).toBe(1);
   });
 });
 
