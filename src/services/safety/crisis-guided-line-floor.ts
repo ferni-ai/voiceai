@@ -17,6 +17,10 @@
  * care (the abuse line, Childhelp) is not 988's to replace. Spanish for someone else has none:
  * main has no Spanish for-them wording yet.
  *
+ * Spanish is a Spanish pattern read, or Spanish crisis words in the caller's last line (the
+ * timeout check-in's reader), so a classifier-only read of a Spanish line is answered in Spanish.
+ * Presence is read by names988 / names911 (crisis-line-speech.ts), every written form of each.
+ *
  * Only adds, and fails closed: no reply gets the line alone, and a test that throws counts as
  * the line missing (withMissingEnding).
  *
@@ -31,13 +35,13 @@ import {
   CALL_911_FOR_THEM,
   FOR_THEM_988,
   LATE_911_LINE,
-  names911,
-  names988,
   TALK_TO_988,
   TALK_TO_988_ES,
 } from './crisis-guard-replies.js';
 import { withMissingEnding, type ReplyPart } from './crisis-grounded-screen.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
+import { names911, names988 } from './crisis-line-speech.js';
+import { crisisWordsLanguage } from './crisis-timeout-checkin.js';
 
 /** Whose line a crisis guide's reply must name, and how urgently. */
 export interface GuideLine {
@@ -52,13 +56,17 @@ const SELF_RISK = [`${ABUSE_INDICATOR}_self_harm`, `${MINOR_ABUSE_INDICATOR}_sel
 
 /**
  * The line a crisis read's guide must name, or undefined for none. `disclosure`: the guide is a
- * disclosure's (disclosureGuidance), not the crisis guidance.
+ * disclosure's (disclosureGuidance), not the crisis guidance. `latest`: the caller's last line.
+ * Only a Spanish pattern read sets `language`; a classifier-only read of a Spanish line has none,
+ * so the caller's own words choose Spanish too, as the timeout check-in reads them.
  */
 export function guideLineOf(
   crisis: Pick<CrisisDetectionResult, 'indicators' | 'subject' | 'language'>,
-  disclosure = false
+  disclosure = false,
+  latest?: string
 ): GuideLine | undefined {
-  const lang = crisis.language === 'es' ? 'es' : 'en';
+  const spanish = crisis.language === 'es' || (!!latest && crisisWordsLanguage(latest) === 'es');
+  const lang = spanish ? 'es' : 'en';
   if (disclosure && !SELF_RISK.some((i) => crisis.indicators.includes(i))) return undefined;
   if (crisis.subject === 'third_party' && !disclosure) {
     if (lang === 'es') return undefined;

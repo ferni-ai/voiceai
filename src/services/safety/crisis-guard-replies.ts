@@ -23,13 +23,6 @@ export const LATE_911_LINE = "And if you're in danger right now, call 911.";
 /** Whether a reply's sentence names a line to call. */
 export const namesCrisisLine = (text: string): boolean => /\b(?:911|988)\b/.test(text);
 
-/** Whether a reply's text already tells the caller to call 911. */
-export const names911 = (text: string): boolean => /\b911\b/.test(text);
-
-/** Whether a reply's text names 988, in digits or spoken (the timeout check-in, the 988 floor). */
-export const names988 = (text: string): boolean =>
-  /(?<!\d)988(?!\d)|\bnine[\s,-]+eight[\s,-]+eight\b/i.test(text);
-
 /** The 988 line in Spanish, in the Spanish crisis reply's words (the timeout check-in reuses it). */
 export const TALK_TO_988_ES =
   'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';

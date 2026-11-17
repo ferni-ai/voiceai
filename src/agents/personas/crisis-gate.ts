@@ -151,19 +151,27 @@ const turnWords = ({ latest, earlier, companion }: ReturnType<typeof callerWords
 const crisisGuide = (guidance: string, line: GuideLine | undefined): GuideDecision =>
   line ? { action: 'guide', guidance, line } : { action: 'guide', guidance };
 
-export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
+/** The stepped-down read of an imminent turn is still a crisis read; an after-check ease is not. */
+const easedGuide = (
+  eased: { guidance: string; crisis?: CrisisDetectionResult },
+  latest: string | undefined
+): GuideDecision =>
+  crisisGuide(eased.guidance, eased.crisis && guideLineOf(eased.crisis, false, latest));
+
+/** `latest`: the caller's last line, which also picks the guide line's language (guideLineOf). */
+export function decisionFor(crisis: CrisisDetectionResult, latest?: string): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
   if (crisis.isCrisis && crisis.subject === 'third_party') {
-    const guided = crisisGuide(buildCrisisGuidance(crisis), guideLineOf(crisis));
+    const guided = crisisGuide(buildCrisisGuidance(crisis), guideLineOf(crisis, false, latest));
     return { ...guided, about: 'third_party' };
   }
   if (crisis.isCrisis) {
     const disclosure = disclosureGuidance(crisis);
     return crisisGuide(
       disclosure ?? buildCrisisGuidance(crisis),
-      guideLineOf(crisis, disclosure !== null)
+      guideLineOf(crisis, disclosure !== null, latest)
     );
   }
   return { action: 'pass' };
@@ -208,7 +216,7 @@ export function startCrisisGate(
   const gentle = screen === 'positive' && !screenIdeation(found, latest);
   const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
-  const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
+  const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection, latest);
   if (decision.action !== 'pass') {
     notePatternRisk(sessionScope(userData), detection); // risk on this call (crisis-call-risk.ts)
     noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
@@ -268,7 +276,7 @@ export function startCrisisGate(
     const base = applyClassifierVerdict(detection, verdict);
     const merged = who?.live ? await who.resolve(base, verdict) : base;
     if (merged === detection) return null;
-    const stronger = decisionFor(merged);
+    const stronger = decisionFor(merged, latest);
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
     if (RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
@@ -320,8 +328,7 @@ export function startCrisisGate(
     }
     const lone = { call, input: said, verdict, detection, pattern, env, generate } as const;
     const eased = await afterCheckLoneRead({ ...lone, source: 'gate' }); // CRISIS_CONFIRMED_CALL_RISK
-    // The stepped-down read of an imminent turn is still a crisis read; an after-check ease is not.
-    if (eased) return crisisGuide(eased.guidance, eased.crisis && guideLineOf(eased.crisis));
+    if (eased) return easedGuide(eased, latest);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'

@@ -27,8 +27,9 @@ import type { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
-import { names988, TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
+import { TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
 import { withMissingEnding } from './crisis-grounded-screen.js';
+import { names988 } from './crisis-line-speech.js';
 
 const log = createLogger({ module: 'CrisisTimeoutCheckin' });
 
@@ -119,8 +120,12 @@ function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
   return riskBefore || !found.every((mention) => plainDenial(words, mention));
 }
 
-/** The check-in's language: Spanish when the line holds a Spanish check-in word, denied or not. */
-const languageOf = (line: string): 'en' | 'es' =>
+/**
+ * The language of a caller's crisis words: Spanish when the line holds a Spanish check-in word,
+ * denied or not. The check-in's ending and the 988 floor's guide (crisis-guided-line-floor.ts)
+ * both answer in it. A Spanish line with none of these words reads 'en'.
+ */
+export const crisisWordsLanguage = (line: string): 'en' | 'es' =>
   [...wordsOf(line).matchAll(ES)].length ? 'es' : 'en';
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
@@ -171,7 +176,7 @@ function withCheckinEnding<T>(
   reply: ReadableStream<T> | null,
   caller: { latest: string }
 ): ReadableStream<T | string> {
-  const lang = languageOf(caller.latest);
+  const lang = crisisWordsLanguage(caller.latest);
   return withMissingEnding(reply, [
     { present: (said) => ASKED_SAFE.test(said), words: SAFETY_QUESTION[lang] },
     { present: names988, words: LINE_988[lang] },

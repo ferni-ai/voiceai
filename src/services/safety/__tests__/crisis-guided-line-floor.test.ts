@@ -23,6 +23,7 @@ import {
   TALK_TO_988_ES,
 } from '../crisis-guard-replies.js';
 import { guideLineOf, withGuidedLine, type GuideLine } from '../crisis-guided-line-floor.js';
+import { offersCrisisLine } from '../crisis-line-speech.js';
 
 const ON = { CRISIS_GUIDED_LINE_FLOOR: 'on' };
 const OFF = { CRISIS_GUIDED_LINE_FLOOR: 'off' };
@@ -113,6 +114,23 @@ describe('CRISIS_GUIDED_LINE_FLOOR: what a crisis guide reply always names', () 
     for (const [line, reply] of named) {
       expect(await said(withGuidedLine(streamOf(reply), { line }, ON)), reply).toBe(reply);
     }
+  });
+
+  // Model replies write the line every way crisis-line-speech.ts later turns into speech at TTS,
+  // after the floor; the floor reads them with the same reader (names988 / names911).
+  it.each<[string, GuideLine]>([
+    ['You can call or text 9-8-8 any time.', SELF],
+    ['You can call or text 9 8 8 any time.', SELF],
+    ['Please call ninety-eight-eight tonight.', SELF],
+    ['You can call nine-eighty-eight tonight.', SELF],
+    ['You can chat at 988lifeline.org any time.', SELF],
+    ['Puedes llamar al nueve ocho ocho.', SELF_ES],
+    ['We could call 9-8-8 together for them.', THEM],
+    ['Please call nine one one now, or 988.', IMMINENT],
+    ['Call nine one one right now.', EMERGENCY],
+    ['Llama al nueve uno uno ahora, o al 988.', IMMINENT_ES],
+  ])('a reply already naming its line in written form is unchanged: %s', async (reply, line) => {
+    expect(await said(withGuidedLine(streamOf(reply), { line }, ON))).toBe(reply);
   });
 
   it('imminent: only the missing one of 911 and 988 is said, 911 first', async () => {
@@ -254,6 +272,16 @@ describe('guideLineOf: the line a crisis read guide carries', () => {
     );
   });
 
+  it("a read with no language: the caller's own Spanish crisis words pick Spanish", () => {
+    const classifierOnly = read(['suicidal_ideation']); // only Spanish pattern reads set language
+    expect(guideLineOf(classifierOnly, false, 'no estoy a salvo esta noche')).toEqual(SELF_ES);
+    expect(guideLineOf(read(['imminent_danger']), false, 'no estoy a salvo')).toEqual(IMMINENT_ES);
+    expect(guideLineOf(classifierOnly, false, 'i am not safe tonight')).toEqual(SELF);
+    // Someone else, in Spanish: none, as for a Spanish read (no Spanish for-them words yet).
+    const them = read(['third_party'], { subject: 'third_party' });
+    expect(guideLineOf(them, false, 'no estoy a salvo')).toBeUndefined();
+  });
+
   it("a disclosure: the caller's 988 only when they may be at risk themselves", () => {
     expect(guideLineOf(read(['abuse_disclosure']), true)).toBeUndefined();
     expect(guideLineOf(read(['minor_abuse_disclosure']), true)).toBeUndefined();
@@ -273,9 +301,22 @@ describe('CRISIS_GUIDED_LINE_FLOOR: one reader, one appender', () => {
       .map((file) => [join(root, file), readFileSync(join(root, file), 'utf8')] as const)
   );
 
-  it('the 988 reader is defined once (names988), and the safety appender once', () => {
-    const readers = sources.filter(([, text]) => text.includes('(?<!\\d)988(?!\\d)'));
-    expect(readers.map(([file]) => file)).toEqual(['src/services/safety/crisis-guard-replies.ts']);
+  it('the 988 and 911 readers are defined once (crisis-line-speech.ts), the appender once', () => {
+    const definedIn = (name: string) =>
+      sources
+        .filter(([, text]) => new RegExp(`export (?:const|function) ${name}\\b`).test(text))
+        .map(([file]) => file);
+    expect(definedIn('names988')).toEqual(['src/services/safety/crisis-line-speech.ts']);
+    expect(definedIn('names911')).toEqual(['src/services/safety/crisis-line-speech.ts']);
+    // offersCrisisLine is built on names988, not on a pattern of its own.
+    expect(readFileSync('src/services/safety/crisis-line-speech.ts', 'utf8')).toContain(
+      'return names988(text) ||'
+    );
+    // No second copy of a 988 pattern: the earlier digit reader and the check-in's are gone.
+    const copies = sources.filter(
+      ([, text]) => text.includes('(?<!\\d)988(?!\\d)') || text.includes('nine[\\s,-]+eight')
+    );
+    expect(copies.map(([file]) => file)).toEqual([]);
     const appenders = sources.filter(([, text]) =>
       /export function withMissingEnding\b/.test(text)
     );
@@ -298,7 +339,82 @@ describe('CRISIS_GUIDED_LINE_FLOOR: one reader, one appender', () => {
     expect(gate.match(/guideLineOf\(/g)).toHaveLength(3);
     // The eased path: only a stepped-down crisis read has a line; an after-check ease has none.
     expect(gate).toContain(
-      'crisisGuide(eased.guidance, eased.crisis && guideLineOf(eased.crisis))'
+      'crisisGuide(eased.guidance, eased.crisis && guideLineOf(eased.crisis, false, latest))'
     );
+  });
+});
+
+/**
+ * FROZEN BASELINE, for the equivalence rows below only: main's offersCrisisLine before it was built
+ * on names988, copied unchanged from origin/main's crisis-line-speech.ts (OFFERED + NAMED). Never
+ * update it and never read with it anywhere else; it is what the shared reader is compared with.
+ */
+const mainOffersCrisisLine = (() => {
+  const SEP = String.raw`[\s-]+`;
+  const SPELLED = String.raw`\b(?:ninety${SEP}eighty?|nine${SEP}eighty)${SEP}eight\b`;
+  const DIGITS = String.raw`(?<![\w$€£#]|\d[.,])(?:988|9-8-8|9 8 8)(?![\w%]|[.,]\d)`;
+  const LIST_SEP = String.raw`[\s,-]+`;
+  const SPOKEN = String.raw`\bnine${LIST_SEP}eight${LIST_SEP}eight\b`;
+  const TEXT_LINE_NUMBER = String.raw`(?<![\w$])7[\s-]?4[\s-]?1[\s-]?7[\s-]?4[\s-]?1(?!\w)|\bseven${SEP}four${SEP}one${SEP}seven${SEP}four${SEP}one\b`;
+  const OFFERED = new RegExp(`${SPELLED}|${DIGITS}|${SPOKEN}|${TEXT_LINE_NUMBER}`, 'i');
+  const NAMED = /\blifeline\b|\b(?:crisis|suicide)\s+(?:text\s+)?(?:hot)?line\b/i;
+  return (text: string): boolean => OFFERED.test(text) || NAMED.test(text);
+})();
+
+describe('offersCrisisLine on the shared 988 reader: main, plus exactly two intended forms', () => {
+  /** The only differences from main allowed: forms main missed, which the new reader adds. */
+  const INTENDED = [/\bnueve[\s,-]+ocho[\s,-]+ocho\b/i, /\b988lifeline\b/i];
+  const intended = (text: string) => INTENDED.some((form) => form.test(text));
+
+  /** Every written form the floor rows use, then lines around them; `main`: main's reading. */
+  const LINES: ReadonlyArray<[string, boolean]> = [
+    ['You can call or text 9-8-8 any time.', true],
+    ['You can call or text 9 8 8 any time.', true],
+    ['Please call ninety-eight-eight tonight.', true],
+    ['You can call nine-eighty-eight tonight.', true],
+    ['You can call or text 988 any time.', true],
+    ['You can call nine eight eight.', true],
+    ['You can call nine, eight, eight.', true],
+    ['We could call 9-8-8 together for them.', true],
+    ['Please call nine one one now, or 988.', true],
+    ['Llama al nueve uno uno ahora, o al 988.', true],
+    ['text HOME to 741741', true],
+    ['the Suicide and Crisis Lifeline', true],
+    // Main reads these too (its digit forms need no cue word); unchanged here.
+    ['That cost 988 dollars.', true],
+    ['Dial 1-988-555-0100 for billing.', true],
+    ['The code is 9 8 8 0.', true],
+    // Neither reads these.
+    ['Call nine one one right now.', false],
+    ['That trip cost $988.', false],
+    ['She is in room 9880.', false],
+    ['Write 198 8 on the form.', false],
+    ['nine eight eighty', false],
+    ['nueve ocho', false],
+    // The two intended differences: main missed them.
+    ['You can chat at 988lifeline.org any time.', false],
+    ['Their site is 988lifeline.org.', false],
+    ['Puedes llamar al nueve ocho ocho.', false],
+    ['Nueve, ocho, ocho.', false],
+  ];
+
+  it.each(LINES)('%s (main: %s)', (text, main) => {
+    expect(mainOffersCrisisLine(text)).toBe(main); // the frozen copy reads as main does
+    expect(offersCrisisLine(text)).toBe(main || intended(text));
+  });
+
+  it('differs from main only on the intended forms, and there only by reading the line', () => {
+    const differs = LINES.filter(
+      ([text]) => offersCrisisLine(text) !== mainOffersCrisisLine(text)
+    ).map(([text]) => text);
+    expect(differs).toEqual([
+      'You can chat at 988lifeline.org any time.',
+      'Their site is 988lifeline.org.',
+      'Puedes llamar al nueve ocho ocho.',
+      'Nueve, ocho, ocho.',
+    ]);
+    for (const text of differs) {
+      expect([mainOffersCrisisLine(text), offersCrisisLine(text)], text).toEqual([false, true]);
+    }
   });
 });

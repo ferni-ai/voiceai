@@ -11,7 +11,11 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { FOR_THEM_988, TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
+import {
+  FOR_THEM_988,
+  TALK_TO_988,
+  TALK_TO_988_ES,
+} from '../../../services/safety/crisis-guard-replies.js';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
@@ -136,6 +140,20 @@ describe('CRISIS_GUIDED_LINE_FLOOR: a crisis guide reply names its line', () => 
     // Off, as on main: the failure reaches LiveKit, which speaks the partial and then nothing
     await expect(turn(FRIEND, OFF, ANSWER.none, failing)).rejects.toThrow('model stream broke');
     expect(readBeforeError).toBe(1);
+  });
+
+  it('a classifier-only crisis read of a Spanish line: the line in Spanish, from the caller words', async () => {
+    const SPANISH = 'no estoy a salvo esta noche';
+    // Preconditions: no pattern reads it, so the read sets no language; only the classifier acts.
+    expect(decisionFor(detectCrisis(SPANISH))).toEqual({ action: 'pass' });
+    expect(detectCrisis(SPANISH).language).toBeUndefined();
+
+    expect((await turn(SPANISH, OFF, ANSWER.crisis)).spoken).toBe(CHAT);
+    const on = await turn(SPANISH, ON, ANSWER.crisis);
+    expect(on.spoken).toBe(`${CHAT} ${TALK_TO_988_ES}`);
+    expect(on.spoken).not.toContain(TALK_TO_988);
+    // Control: the same classifier read of an English line is answered in English.
+    expect((await turn(ORDINARY, ON, ANSWER.crisis)).spoken).toBe(`${CHAT} ${TALK_TO_988}`);
   });
 
   it('an empty reply gets the line alone', async () => {
