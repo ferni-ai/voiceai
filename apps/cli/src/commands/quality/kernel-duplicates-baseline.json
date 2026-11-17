@@ -18,7 +18,6 @@
   "src/services/superhuman/orchestration-intelligence.ts",
   "src/services/trust-systems/persona-specific-learning.ts",
   "src/speech/persona-phrases/types.ts",
-  "src/tools/expression.ts",
   "src/types/branded.ts"
  ],
  "RelationshipStage": [
