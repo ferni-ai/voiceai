@@ -220,13 +220,30 @@ export interface MemoryOnlyRow {
  * Crisis-lane flags that by design never change a reply: they act on what is captured or kept.
  * A crisis-lane module reads them, so the census counts them, yet the six readers and SHOWN_ON
  * cannot see them. This home is open only to flags whose named row proves, on a crisis-guided
- * turn and a held turn, that the reply is unchanged AND nothing more is captured with the flag
- * on. Both halves matter: the home exists for memory, not replies.
+ * turn and a held turn, that the reply is unchanged AND nothing the caller said is kept with the
+ * flag on. What may be added holds no words: a safety record (flags, severity, times, ids), kept
+ * by the owner's rule (2026-11-11), or only a time with its expiry where no record is kept (a
+ * held caller, a crisis about someone else). Both halves matter: the home exists for memory, not
+ * replies. The reply grid (crisis-reply-never-lower.test.ts) also runs each of these the gate
+ * reads on every call it places, and fails if any reply moves.
  *
  * The census (crisis-all-flags-never-lower.test.ts) checks only that each named file exists and
  * holds each title as an it() or test() call. What a row asserts is a reviewer's check.
  */
 export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
+  // A gate crisis starts the proactive quiet window. The caller's own crisis: a wordless crisis
+  // record. A held caller, or a crisis about someone else: only a quietUntil time (and its
+  // expireAt) on minor_care_holds. The crisis turn's reply, and the crisis note on later turns and
+  // calls, are unchanged. What reads the record only holds back, for CRISIS_QUIET_DAYS: proactive
+  // sends and, on later calls, the pondered opener, the greeting's date line, the call sheet's
+  // recentCrisis and the remembered-call card (hadCrisisWithin). Nothing adds crisis words.
+  CRISIS_QUIET_FROM_GATE: {
+    file: 'src/services/outreach/proactive-channels/__tests__/crisis-gate-quiet-path.test.ts',
+    rows: [
+      'on a crisis-guided turn and a held turn, Ferni says what it says with the flag off',
+      "what it keeps holds none of the caller's words, on a guided turn and a held turn",
+    ],
+  },
   TURN_PATH_SINGLE_CAPTURE: {
     file: 'src/agents/voice-agent/__tests__/turn-path-single-capture.test.ts',
     rows: [
@@ -258,4 +275,33 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'a phone call held while the turns were read: none go back',
     ],
   },
+};
+
+/**
+ * Crisis-lane flags that act on a text channel (SMS or typed chat), where the six readers and
+ * SHOWN_ON (voice calls) cannot see them. Voice flags use SHOWN_ON. This home is open only to a
+ * flag whose named rows drive its real text path with a fictional crisis text, flag off then on,
+ * and assert the on answer is never lower: 988 or 911 still in it, nothing softened, no model
+ * reply in its place.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  SMS_REPLY: [
+    {
+      file: 'src/api/__tests__/outreach-sms-crisis-survives.test.ts',
+      rows: [
+        'SMS_REPLY off then on: a crisis text gets the same answer, 988 and 911 in it, no model reply',
+      ],
+    },
+    {
+      // The reply's own crisis read, when the route's screen missed: its crisis reply, 988 in it.
+      file: 'src/services/outreach/sms-reply/__tests__/sms-reply-webhook.test.ts',
+      rows: [
+        "on: the text's own crisis read: SMS_CRISIS_REPLY, flagged crisis for the route",
+        "main vs head: the crisis read runs first and sends today's crisis reply, word for word",
+      ],
+    },
+  ],
 };

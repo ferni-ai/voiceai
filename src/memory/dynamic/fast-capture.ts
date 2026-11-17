@@ -15,7 +15,7 @@ import { safeEmitEvent } from './async-events-config.js';
 import { recordFastCapture } from './metrics.js';
 import { isThirdPartyCallUser, noCapture } from '../third-party-call.js';
 import { mayCapture } from '../../utils/minor-care.js';
-import { nameAsSaid } from '../domain/index.js';
+import { nameAsSaid, properNameAsSaid } from '../domain/index.js';
 
 const log = createLogger({ module: 'FastCapture' });
 
@@ -442,33 +442,27 @@ function detectEntityMentions(transcript: string): EntityMention[] {
     }
   }
 
-  // Detect place mentions
-  const placePattern =
-    /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
-  while ((match = placePattern.exec(transcript)) !== null) {
-    const placeName = match[1];
-    // Exclude common false positives
-    const falsePositives = ['The', 'This', 'That', 'It', 'They', 'I', 'We', 'He', 'She', 'My'];
-    if (!falsePositives.includes(placeName)) {
-      mentions.push({
-        name: placeName,
-        type: 'place',
-        context: extractContext(transcript, placeName),
-        confidence: 0.6,
-      });
+  // Places and organisations, capitalised as said and not a weekday, month, relation or
+  // clause word: "up to Friday" and "from Mom" are no place (#4028). No i flag on the org
+  // pattern: under it "[A-Z]" matched "the" in "work at the hospital".
+  const placeOrOrg: Array<[RegExp, 'place' | 'organization', number]> = [
+    [
+      /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g,
+      'place',
+      0.6,
+    ],
+    [
+      /\b(?:[Ww]ork\s+(?:at|for)|[Cc]ompany|[Ee]mployer|[Jj]ob\s+at)\s+([A-Z][a-zA-Z\s]+?)(?:\s+(?:and|but|where|which)|\.|,|$)/g,
+      'organization',
+      0.65,
+    ],
+  ];
+  for (const [pattern, type, confidence] of placeOrOrg) {
+    while ((match = pattern.exec(transcript)) !== null) {
+      const name = properNameAsSaid(match[1]);
+      if (name)
+        mentions.push({ name, type, context: extractContext(transcript, name), confidence });
     }
-  }
-
-  // Detect organization/company mentions
-  const orgPattern =
-    /\b(?:work\s+(?:at|for)|company|employer|job\s+at)\s+([A-Z][a-zA-Z\s]+?)(?:\s+(?:and|but|where|which)|\.|,|$)/gi;
-  while ((match = orgPattern.exec(transcript)) !== null) {
-    mentions.push({
-      name: match[1].trim(),
-      type: 'organization',
-      context: extractContext(transcript, match[1]),
-      confidence: 0.65,
-    });
   }
 
   return deduplicateMentions(mentions);

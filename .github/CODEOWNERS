@@ -118,6 +118,9 @@
 /src/services/outreach/decision-engine.ts @sethdford
 /src/services/outreach/session-integration.ts @sethdford
 /src/services/outreach/trigger-publisher.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply-reads.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply-text.ts @sethdford
 /src/services/principal-alignment/human-referral.ts @sethdford
 /src/services/principal-alignment/index.ts @sethdford
 /src/services/principal-alignment/referral-resources.ts @sethdford

@@ -18,7 +18,7 @@
  * reads, crisis-lane-flags.ts) acts outside these readers. The guard at the bottom makes each of
  * those either be shown at the reply itself (SHOWN_ON, checked by the seventh reader,
  * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
- * changes a reply nor captures more (MEMORY_ONLY), or sit on a list that may only shrink
+ * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
  * (NOT_YET_COVERED). Both lists are in crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
@@ -55,6 +55,7 @@ import {
   type MemoryOnlyRow,
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
+  TEXT_SHOWN_ON,
 } from './crisis-flag-homes.js';
 import {
   CRISIS_FLAGS,
@@ -392,6 +393,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         name in LOWERS_A_REPLY && 'LOWERS_A_REPLY',
         NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
         name in MEMORY_ONLY && 'MEMORY_ONLY',
+        name in TEXT_SHOWN_ON && 'TEXT_SHOWN_ON',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
       if (homes.length !== 1) unaccounted.push(`${name}: ${homes.join(', ') || 'nowhere'}`);
@@ -410,6 +412,15 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
   it('finds each MEMORY_ONLY row in the test file it names', () => {
     const missing = Object.entries(MEMORY_ONLY).flatMap(([name, row]) =>
       missingRows(row).map((gap) => `${name}: ${gap}`)
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('finds each TEXT_SHOWN_ON row in the test file it names', () => {
+    const missing = Object.entries(TEXT_SHOWN_ON).flatMap(([name, rows]) =>
+      rows.length
+        ? rows.flatMap((row) => missingRows(row).map((gap) => `${name}: ${gap}`))
+        : [`${name}: names no test`]
     );
     expect(missing).toEqual([]);
   });

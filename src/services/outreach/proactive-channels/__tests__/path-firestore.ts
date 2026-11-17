@@ -1,6 +1,6 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set (with merge)/update/create/delete, collection add, runTransaction (serialized; create), collection where (==, >=,
+ * doc get/set (with merge)/update/create/delete, collection add, runTransaction (serialized; get, create, set with merge), collection where (==, >=,
  * <=, array-contains; dotted field paths), select, orderBy (asc/desc, or '__name__' for the document id),
  * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
@@ -47,16 +47,15 @@ export function pathFirestore(docs: Map<string, Json>) {
       data: () => (data ? structuredClone(data) : undefined),
     };
   };
+  /** set, on a doc ref or in a transaction: { merge: true } merges, anything else replaces. */
+  const write = (path: string, d: Json, opts?: { merge?: boolean }) =>
+    void docs.set(path, opts?.merge ? deepMerge(docs.get(path) ?? {}, d) : structuredClone(d));
   function docRef(path: string): Json {
     return {
       id: path.split('/').pop(),
       path,
       get: async () => snap(path),
-      set: async (data: Json, opts?: { merge?: boolean }) =>
-        void docs.set(
-          path,
-          opts?.merge ? deepMerge(docs.get(path) ?? {}, data) : structuredClone(data)
-        ),
+      set: async (data: Json, opts?: { merge?: boolean }) => write(path, data, opts),
       update: async (patch: Json) => void docs.set(path, { ...docs.get(path), ...patch }),
       // The guarded sender's send locks (guarded-text.ts lock/unlock).
       create: async (data: Json) => {
@@ -136,7 +135,7 @@ export function pathFirestore(docs: Map<string, Json>) {
       if (docs.has(r.path)) throw new Error('6 ALREADY_EXISTS: Document already exists');
       docs.set(r.path, structuredClone(d));
     },
-    set: (r: Ref, d: Json) => void docs.set(r.path, structuredClone(d)),
+    set: (r: Ref, d: Json, opts?: { merge?: boolean }) => write(r.path, d, opts),
   };
   const runTransaction = async <T>(fn: (t: typeof tx) => Promise<T>): Promise<T> => {
     const run = (queues.get(docs) ?? Promise.resolve()).then(async () => fn(tx));

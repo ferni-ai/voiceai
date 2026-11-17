@@ -41,6 +41,7 @@ export interface SwitchableFlag {
  */
 const SHADOW_CAPABLE: ReadonlySet<string> = new Set([
   'CRISIS_EVENT_RECORD',
+  'CRISIS_QUIET_FROM_GATE',
   'CRISIS_SCRIPT_IMMINENT_READ',
   'SMS_CRISIS_SCREEN',
   'SOUND_CONDUCTOR',
