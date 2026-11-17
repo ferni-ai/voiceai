@@ -45,7 +45,7 @@ const rankOf = (read: CrisisVerdict): number => RANK[verdictOutcome(read)];
  * null when any read failed (the timeout check-in decides); else its own. Its own read first, so
  * a tie keeps it.
  */
-export function strongestRead(own: Read, others: readonly Read[]): Read {
+function strongestRead(own: Read, others: readonly Read[]): Read {
   const reads = [own, ...others];
   let strongest: CrisisVerdict | null = null;
   for (const read of reads) {

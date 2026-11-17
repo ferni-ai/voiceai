@@ -25,7 +25,23 @@ import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imm
 import { resetMinorCare } from '../../../utils/minor-care.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { gatedReply, startCrisisGate } from '../crisis-gate.js';
-import { strongestRead } from '../crisis-gate-turn-reads.js';
+import { withTurnReads } from '../crisis-gate-turn-reads.js';
+
+/**
+ * The turn's other reads as the last describe sets them; unset, the real turnVerdicts. Only
+ * that describe sets them, so every other row reads the turn's real kept reads.
+ */
+const others = vi.hoisted(() => ({
+  reads: undefined as Array<import('../../../services/safety/index.js').CrisisVerdict | null> | undefined,
+}));
+vi.mock('../../../services/safety/index.js', async (orig) => {
+  const real = await orig<typeof import('../../../services/safety/index.js')>();
+  return {
+    ...real,
+    turnVerdicts: (...args: Parameters<typeof real.turnVerdicts>) =>
+      others.reads ? Promise.resolve(others.reads) : real.turnVerdicts(...args),
+  };
+});
 
 const R = (risk: string, subject = 'self') => JSON.stringify({ risk, subject });
 const NONE = R('none');
@@ -403,24 +419,41 @@ describe('CRISIS_GATE_TURN_READS: patterns keep the latest line', () => {
 describe('CRISIS_GATE_TURN_READS: the read the gate acts on', () => {
   const v = (risk: 'none' | 'crisis' | 'imminent', subject: 'self' | 'third_party' = 'self') =>
     ({ risk, subject }) as never;
-  it('the strongest risk wins, whichever read it is', () => {
-    expect(strongestRead(v('none'), [v('imminent')])).toEqual(v('imminent'));
-    expect(strongestRead(v('crisis'), [v('none'), v('imminent')])).toEqual(v('imminent'));
-    expect(strongestRead(v('imminent'), [v('crisis')])).toEqual(v('imminent'));
-    expect(strongestRead(v('none'), [v('crisis'), null])).toEqual(v('crisis'));
+  const INPUT = { latest: 'A fictional line.', earlier: [], companion: undefined } as never;
+  /** What the gate acts on when its own read is `own` and the turn's other reads are `reads`. */
+  const acted = (own: unknown, reads: unknown[]) => {
+    others.reads = reads as never;
+    return withTurnReads(Promise.resolve(own as never), 'call-strongest', INPUT, {});
+  };
+  afterEach(() => {
+    others.reads = undefined;
   });
-  it("imminent for someone else ranks with crisis, below the caller's own imminent", () => {
-    expect(strongestRead(v('imminent', 'third_party'), [v('imminent')])).toEqual(v('imminent'));
+  it('the strongest risk wins, whichever read it is', async () => {
+    expect(await acted(v('none'), [v('imminent')])).toEqual(v('imminent'));
+    expect(await acted(v('crisis'), [v('none'), v('imminent')])).toEqual(v('imminent'));
+    expect(await acted(v('imminent'), [v('crisis')])).toEqual(v('imminent'));
+    expect(await acted(v('none'), [v('crisis'), null])).toEqual(v('crisis'));
+  });
+  it("imminent for someone else ranks with crisis, below the caller's own imminent", async () => {
+    expect(await acted(v('imminent', 'third_party'), [v('imminent')])).toEqual(v('imminent'));
     const own = v('crisis');
-    expect(strongestRead(own, [v('imminent', 'third_party')])).toBe(own);
+    expect(await acted(own, [v('imminent', 'third_party')])).toBe(own);
   });
-  it('no risk read, one failed: null (the timeout check-in decides), never a risk', () => {
-    expect(strongestRead(v('none'), [null])).toBeNull();
-    expect(strongestRead(null, [v('none')])).toBeNull();
+  it('no risk read, one failed: null (the timeout check-in decides), never a risk', async () => {
+    expect(await acted(v('none'), [null])).toBeNull();
+    expect(await acted(null, [v('none')])).toBeNull();
   });
-  it("every read none: the gate's own read", () => {
+  it("every read none: the gate's own read", async () => {
     const own = v('none');
-    expect(strongestRead(own, [v('none')])).toBe(own);
-    expect(strongestRead(own, [])).toBe(own);
+    expect(await acted(own, [v('none')])).toBe(own);
+    expect(await acted(own, [])).toBe(own);
+  });
+  it('no call scope, or no live read: the other reads are not consulted', async () => {
+    others.reads = [v('imminent')];
+    const own = v('none');
+    expect(await withTurnReads(Promise.resolve(own), undefined, INPUT, {})).toBe(own);
+    expect(await withTurnReads(Promise.resolve(undefined), 'call-strongest', INPUT, {})).toBe(
+      undefined
+    );
   });
 });
