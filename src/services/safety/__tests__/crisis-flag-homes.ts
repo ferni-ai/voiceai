@@ -233,7 +233,10 @@ export interface MemoryOnlyRow {
 export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
   // A gate crisis starts the proactive quiet window. The caller's own crisis: a wordless crisis
   // record. A held caller, or a crisis about someone else: only a quietUntil time (and its
-  // expireAt) on minor_care_holds. Proactive sends only go quieter; no reply changes.
+  // expireAt) on minor_care_holds. The crisis turn's reply, and the crisis note on later turns and
+  // calls, are unchanged. What reads the record only holds back, for CRISIS_QUIET_DAYS: proactive
+  // sends and, on later calls, the pondered opener, the greeting's date line, the call sheet's
+  // recentCrisis and the remembered-call card (hadCrisisWithin). Nothing adds crisis words.
   CRISIS_QUIET_FROM_GATE: {
     file: 'src/services/outreach/proactive-channels/__tests__/crisis-gate-quiet-path.test.ts',
     rows: [

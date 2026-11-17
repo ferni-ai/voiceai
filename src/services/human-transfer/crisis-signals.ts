@@ -10,9 +10,10 @@
  *
  * CRISIS_QUIET_FROM_GATE (agents/safety/crisis-quiet-window.ts): the reply gate's crisis
  * handling starts the quiet period too. The caller's own crisis is stored here
- * (gateCrisisSignals), marked QUIET_ONLY_SOURCE: it quiets outreach (hadCrisisWithin) and never
- * shapes a reply, so the crisis follow-up and every other getCrisisHistory / hadRecentCrisis
- * reader skip it. A MINOR_CARE-held caller's, and a crisis about someone the caller knows, are a
+ * (gateCrisisSignals), marked QUIET_ONLY_SOURCE: getCrisisHistory skips it, so the crisis
+ * follow-up never hears of it. hadCrisisWithin counts it: outreach goes quiet, and the readers of
+ * pondering-opener's hadRecentCrisis (opener, greeting date, call sheet, remembered-call card)
+ * hold back. They only drop content. A MINOR_CARE-held caller's, and a crisis about someone the caller knows, are a
  * quietUntil time on minor_care_holds instead. Until a write is stored, this process holds the
  * quiet (holdQuietHere).
  *

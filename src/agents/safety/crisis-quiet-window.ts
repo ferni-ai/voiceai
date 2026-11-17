@@ -10,9 +10,11 @@
  *   (about: 'third_party'). Never a soft check-in, the gentle offer or an eased guide.
  * - The caller's own crisis: one crisis_signals doc with no words, by the existing writer
  *   (logCrisisSignal, gateCrisisSignals), with the session and caller turn. Once per call per level.
- *   Marked QUIET_ONLY_SOURCE: it only quiets outreach. The crisis follow-up note and every other
- *   reader that shapes a reply (getCrisisHistory, hadRecentCrisis) skip it, so no later turn or
- *   call hears of it.
+ *   Marked QUIET_ONLY_SOURCE: getCrisisHistory's readers (the crisis follow-up note and the
+ *   crisis history's hadRecentCrisis) skip it, so no later turn or call hears of it.
+ *   hadCrisisWithin counts it, so for CRISIS_QUIET_DAYS proactive outreach holds back, and so do
+ *   later calls' pondered opener, greeting date line, call sheet recentCrisis and remembered-call
+ *   card (pondering-opener's hadRecentCrisis). Each only drops content; none adds crisis words.
  * - A MINOR_CARE-held caller (careHeld, as CRISIS_EVENT_RECORD), or a crisis about someone else:
  *   no crisis record, only a quietUntil time on minor_care_holds (recordQuietHold). So a third
  *   party's crisis never reads as the caller's in the crisis follow-up (getCrisisHistory).
