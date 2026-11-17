@@ -249,6 +249,7 @@ import {
   crisisLevelSignalsSince,
   noteWrittenThisCall,
   type CrisisEventRecord,
+  type QuietOnlySource,
 } from './crisis-signals.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { isAnonymousDemoUser, isSharedPlaceholderId } from '../../utils/synthetic-user.js';
@@ -282,7 +283,9 @@ export async function logCrisisSignal(
   /** @deprecated Ignored: never stored, anywhere. Pass undefined. */
   _unusedTranscript?: string,
   sessionId?: string,
-  turn?: number
+  turn?: number,
+  /** QUIET_ONLY_SOURCE: the record only quiets outreach; no reply reads it (crisis-signals.ts). */
+  source?: QuietOnlySource
 ): Promise<boolean> {
   // Only log if any crisis signals detected (severity > 0 or explicit flags)
   const hasSignals =
@@ -340,6 +343,7 @@ export async function logCrisisSignal(
         ...(keepsSession && sessionId ? { sessionId } : {}),
         // CRISIS_SAME_CALL_NOTE_FADES: the caller turn, so the same-call note can fade
         ...(fades ? { turn } : {}),
+        ...(source ? { source } : {}),
       });
     // No session id kept: remember in memory which call wrote it, so its note can fade too
     if (fades && sessionId && !keepsSession) noteWrittenThisCall(sessionId, userId, timestamp);
@@ -364,7 +368,7 @@ async function queryCrisisHistory(userId: string, limitDays: number): Promise<Cr
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - limitDays);
 
-  return crisisLevelSignalsSince(db, userId, cutoffDate);
+  return crisisLevelSignalsSince(db, userId, cutoffDate, { withQuietOnly: false }); // shapes replies
 }
 
 /**

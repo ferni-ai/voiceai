@@ -10,9 +10,11 @@
  *
  * CRISIS_QUIET_FROM_GATE (agents/safety/crisis-quiet-window.ts): the reply gate's crisis
  * handling starts the quiet period too. The caller's own crisis is stored here
- * (gateCrisisSignals). A MINOR_CARE-held caller's, and a crisis about someone the caller
- * knows, are a quietUntil time on minor_care_holds instead, so they never reach the crisis
- * follow-up. Until a write is stored, this process holds the quiet (holdQuietHere).
+ * (gateCrisisSignals), marked QUIET_ONLY_SOURCE: it quiets outreach (hadCrisisWithin) and never
+ * shapes a reply, so the crisis follow-up and every other getCrisisHistory / hadRecentCrisis
+ * reader skip it. A MINOR_CARE-held caller's, and a crisis about someone the caller knows, are a
+ * quietUntil time on minor_care_holds instead. Until a write is stored, this process holds the
+ * quiet (holdQuietHere).
  *
  * @module services/human-transfer/crisis-signals
  */
@@ -22,6 +24,10 @@ import { classifyEscalation } from './escalation-classifier.js';
 import type { CrisisSignals, EscalationType } from './types.js';
 
 const log = createLogger({ module: 'crisis-signals' });
+
+/** The source of a record that only quiets outreach (CRISIS_QUIET_FROM_GATE): no reply reads it. */
+export const QUIET_ONLY_SOURCE = 'gate_quiet';
+export type QuietOnlySource = typeof QUIET_ONLY_SOURCE;
 
 /** A crisis this recent keeps pondered questions out of openers and outreach. */
 export const CRISIS_QUIET_DAYS = 14;
@@ -173,11 +179,15 @@ export function followUpCrisis(
   );
 }
 
-/** The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read errors. */
+/**
+ * The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read
+ * errors. `withQuietOnly: false` (every reader that shapes a reply) skips QUIET_ONLY_SOURCE records.
+ */
 export async function crisisLevelSignalsSince(
   db: Pick<FirebaseFirestore.Firestore, 'collection'>,
   userId: string,
-  since: Date
+  since: Date,
+  { withQuietOnly = true }: { withQuietOnly?: boolean } = {}
 ): Promise<CrisisEventRecord[]> {
   const snapshot = await db
     .collection('bogle_users')
@@ -188,7 +198,9 @@ export async function crisisLevelSignalsSince(
     .limit(SIGNALS_READ)
     .get();
   return snapshot.docs
-    .map((doc) => crisisFromSignal(userId, doc.data()))
+    .map((doc) => doc.data())
+    .filter((data) => withQuietOnly || data.source !== QUIET_ONLY_SOURCE)
+    .map((data) => crisisFromSignal(userId, data))
     .filter((event): event is CrisisEventRecord => event !== null)
     .slice(0, 10);
 }

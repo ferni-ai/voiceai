@@ -4,6 +4,8 @@
  * real writer (logCrisisSignal), and the next day's promise check-in, through the per-minute
  * scheduler handler, sends nothing. A MINOR_CARE-held caller, and a crisis about someone the caller
  * knows, get only a quietUntil time: never a crisis record, never the next call's crisis note.
+ * The caller's own record is marked quiet-only: it holds outreach and never reaches a reply (the
+ * crisis follow-up note), on a later turn of the call or a later call.
  * Off, the same call leaves nothing, the check-in goes, and hadCrisisWithin answers as main.
  * Firestore is in memory; Firebase Auth and the Twilio send are stubbed at the SDK edge.
  */
@@ -81,10 +83,17 @@ vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
-const { CRISIS_QUIET_DAYS, crisisFromSignal, hadCrisisWithin, releaseQuietHere } =
-  await import('../../../human-transfer/crisis-signals.js');
-const { getCrisisHistory, hadRecentCrisis, forgetRecentCrisis } =
+const {
+  CRISIS_QUIET_DAYS,
+  crisisFromSignal,
+  gateCrisisSignals,
+  hadCrisisWithin,
+  releaseQuietHere,
+} = await import('../../../human-transfer/crisis-signals.js');
+const { getCrisisHistory, hadRecentCrisis, forgetRecentCrisis, logCrisisSignal } =
   await import('../../../human-transfer/index.js');
+const { buildCrisisHistoryInjection } =
+  await import('../../../../agents/processors/injection-builders/better-than-human-builders.js');
 const { decisionFor, gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
 const { unfinishedTurnHoldMs } = await import('../../../../agents/multi-agent/unfinished-turn.js');
 const { resetCrisisClassifierCache } = await import('../../../safety/crisis-classifier.js');
@@ -334,6 +343,41 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     expect(texts).toEqual([]);
   });
 
+  it('a crisis turn, then an everyday turn: the crisis note and the reply are the same off and on, this call and the next', async () => {
+    /** The second turn of a call whose first turn heard the 988 script: its crisis note and reply. */
+    const afterCrisis = async (flag: 'on' | 'off') => {
+      docs.clear();
+      seedMemberAndPromise();
+      forgetRecentCrisis(UID);
+      vi.setSystemTime(CALL_AT);
+      vi.stubEnv('CRISIS_QUIET_FROM_GATE', flag);
+      const session = call();
+      const sid = session.userData.services.sessionId;
+      expect(await speak(session)).toContain('988');
+      await settle();
+      forgetRecentCrisis(UID);
+      const note = await buildCrisisHistoryInjection(UID, sid, 2);
+      const reply = await speak(session, 'what should I cook tonight?');
+      vi.setSystemTime(RUN_AT);
+      forgetRecentCrisis(UID);
+      const nextCall = await buildCrisisHistoryInjection(UID, 'session-q-next', 1);
+      return { note, reply, nextCall, stored: signalDocs().length };
+    };
+    const off = await afterCrisis('off');
+    const on = await afterCrisis('on');
+    expect([off.stored, on.stored]).toEqual([0, 1]); // on, the quiet record is there
+    expect(on.note).toEqual(off.note);
+    expect(on.reply).toBe(off.reply);
+    expect(on.nextCall).toEqual(off.nextCall);
+    expect(on.note).toBeNull();
+
+    // Not a builder that never speaks: a record from the live crisis detector does bring the note.
+    forgetRecentCrisis(UID);
+    await logCrisisSignal(UID, gateCrisisSignals('script'), undefined, 'session-detector');
+    const detected = await buildCrisisHistoryInjection(UID, 'session-q-next', 1);
+    expect(JSON.stringify(detected)).toContain('CRISIS FOLLOW-UP');
+  });
+
   it('a soft check-in or a pass stores nothing, and the check-in goes', async () => {
     signalGateDecisions(call(), gateOf({ action: 'guide', guidance: 'soft check' }));
     signalGateDecisions(call(), gateOf({ action: 'pass' }));
@@ -491,10 +535,18 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
       expect(await getCrisisHistory(UID)).toEqual([]);
       expect((await hadRecentCrisis(UID)).hasCrisis).toBe(false);
 
-      // The caller's own crisis does reach both, so the two reads can tell them apart
+      // The caller's own crisis from the gate is quiet-only: it reaches neither read either
       forgetRecentCrisis(UID);
       signalGateDecisions(call(), gateOf(decisionFor(OWN as never)));
       await settle();
+      expect(signalDocs()).toHaveLength(1);
+      expect(await getCrisisHistory(UID)).toEqual([]);
+      expect((await hadRecentCrisis(UID)).hasCrisis).toBe(false);
+      expect(await hadCrisisWithin(readable(), UID)).toBe(true); // it still quiets outreach
+
+      // A record from the live crisis detector (no source) reaches both: the reads still see one
+      forgetRecentCrisis(UID);
+      await logCrisisSignal(UID, gateCrisisSignals('script'), undefined, 'session-detector');
       expect(await getCrisisHistory(UID)).toHaveLength(1);
       expect((await hadRecentCrisis(UID)).hasCrisis).toBe(true);
     });
