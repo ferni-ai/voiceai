@@ -20,6 +20,9 @@
  * state died with the call, so the new one would start as an everyday call and could quote
  * the line back. A risk read that fails counts as risk.
  *
+ * A turn read that comes back full (MAX_TURNS_READ) may have stopped short of the newest
+ * turns, where a crisis is likeliest, so that call resumes nothing either.
+ *
  * @module agents/multi-agent/resume-after-drop
  */
 
@@ -47,7 +50,7 @@ export const RESUME_WINDOW_MS = 2 * 60_000;
 export const RESTORED_TURNS = 12;
 /** Pods' clocks differ a little: a last turn this far "in the future" still counts. */
 const CLOCK_SKEW_MS = 30_000;
-/** Turns read from the dropped call (the store reads oldest first). */
+/** Turns read from a call (the store reads oldest first); a full read resumes nothing. */
 const MAX_TURNS_READ = 200;
 /** How long the greeting waits for the lookup before greeting cold. */
 const LOOKUP_WAIT_MS = 1500;
@@ -100,9 +103,9 @@ export async function findDroppedCall(
   const recent = await getRecentConversations(userId, 2);
   const previous = recent.find((c) => c.id !== currentConversationId);
   if (!previous || previous.endedAt) return undefined;
-  const turns = (await getConversationTurns(userId, previous.id, MAX_TURNS_READ)).filter((t) =>
-    t.content?.trim()
-  );
+  const read = await getConversationTurns(userId, previous.id, MAX_TURNS_READ);
+  if (read.length >= MAX_TURNS_READ) return undefined; // full: the newest turns may be unread
+  const turns = read.filter((t) => t.content?.trim());
   const last = turns.at(-1);
   if (!last) return undefined;
   const ageMs = now - new Date(last.timestamp).getTime();
@@ -231,8 +234,10 @@ export async function restoreMovedTurns(
   const late = new Promise<ConversationTurn[]>((resolve) => {
     timer = setTimeout(() => resolve([]), LOOKUP_WAIT_MS);
   });
-  const all = (await Promise.race([read, late])).filter((t) => t.content?.trim());
+  const got = await Promise.race([read, late]);
   clearTimeout(timer);
+  if (got.length >= MAX_TURNS_READ) return { moved: true, turns: 0 }; // full: newest may be unread
+  const all = got.filter((t) => t.content?.trim());
   const last = all.at(-1);
   const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
   if (fresh && callerLinesReadAsRisk(all)) return { moved: true, turns: 0 }; // read as risk

@@ -5,7 +5,8 @@
  * time, means held. The new call's own hold is checked again where the turns would be used.
  * Held: no turns are read, nothing goes back into the history, and the call greets as usual.
  * A call whose kept caller lines read as risk, or whose risk read fails, is treated the same:
- * the opening and the history are exactly what they are with the flag off.
+ * the opening and the history are exactly what they are with the flag off. So is a call whose
+ * turn read comes back full: its newest turns may not have been read.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,10 +21,14 @@ const store = vi.hoisted(() => ({
 const getRecentConversations = vi.fn(async (_userId: string, limit: number) =>
   store.conversations.slice(0, limit)
 );
-const getConversationTurns = vi.fn(async (_userId: string, conversationId: string) => {
-  store.onTurnsRead?.();
-  return store.turns.get(conversationId) ?? [];
-});
+/** Like the store: oldest first, at most `limit` turns. */
+const getConversationTurns = vi.fn(
+  async (_userId: string, conversationId: string, limit?: number) => {
+    store.onTurnsRead?.();
+    const all = store.turns.get(conversationId) ?? [];
+    return limit === undefined ? all : all.slice(0, limit);
+  }
+);
 vi.mock('../../../services/memory/realtime-memory.js', () => ({
   getRecentConversations,
   getConversationTurns,
@@ -47,8 +52,15 @@ vi.mock('../../safety/crisis-guard.js', async (orig) => {
   };
 });
 
-const { findDroppedCall, greetingOrResume, startResumeLookup, MOVED_NOTE, MOVED_TURNS } =
-  await import('../resume-after-drop.js');
+const {
+  findDroppedCall,
+  greetingOrResume,
+  startResumeLookup,
+  MOVED_NOTE,
+  MOVED_TURNS,
+  RESTORED_TURNS,
+} = await import('../resume-after-drop.js');
+const { detectCrisis } = await import('../../safety/crisis-guard.js');
 const { bindSessionUser, holdSession, resetMinorCare, userHeld } =
   await import('../../../utils/minor-care.js');
 const { setHoldStore } = await import('../../../services/outreach/minor-care-shared-hold.js');
@@ -368,5 +380,194 @@ describe('a dropped or moved call whose caller lines read as risk', () => {
     expect(getConversationTurns).toHaveBeenCalledTimes(1);
     expect(committed).toHaveLength(0);
     expect(moments()).toEqual(['greeting']);
+  });
+});
+
+/** A longer call: `count` turns, the caller's on even turns, the last one 25 s ago. */
+function seedLongCall(count = 20): Turn[] {
+  const turns: Turn[] = [];
+  for (let i = 0; i < count; i++) {
+    turns.push({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: i % 2 === 0 ? `user line ${i}` : `ferni line ${i}`,
+      timestamp: ago(25_000 + (count - 1 - i) * 1000),
+    });
+  }
+  store.conversations = [{ id: 'conv_new' }, { id: 'conv_dropped' }];
+  store.turns.set('conv_new', []);
+  store.turns.set('conv_dropped', turns);
+  return turns;
+}
+
+/** The 10-turn dropped call with some of the caller's lines replaced. */
+function seedLines(lines: Record<number, string>): void {
+  seedDroppedCall();
+  const turns = store.turns.get('conv_dropped')!;
+  for (const [at, content] of Object.entries(lines)) {
+    turns[Number(at)] = { ...turns[Number(at)], content };
+  }
+}
+
+/** Any crisis-guard signal, the guard's own test. */
+const anySignal = (read: { isCrisis: boolean; severity: number; indicators: string[] }) =>
+  read.isCrisis || read.severity > 0 || read.indicators.length > 0;
+
+/** A fictional line with risk signals that is not a crisis read on its own. */
+const SIGNAL_LINE = 'i feel so empty these days';
+
+async function droppedOpening(userId: string) {
+  const sessionId = nextSession();
+  startResumeLookup(sessionId, userId, 'conv_new');
+  return opening(sessionId);
+}
+const movedOpening = (userId: string) => opening(movedPhoneCall(userId));
+
+/** The turns were read, then nothing was used: no history, the usual greeting. */
+function expectNothingResumed(committed: Msg[][]): void {
+  expect(getConversationTurns).toHaveBeenCalledTimes(1);
+  expect(committed).toHaveLength(0);
+  expect(moments()).toEqual(['greeting']);
+}
+
+describe('the whole kept call is read, with any signal, and a full read resumes nothing', () => {
+  beforeEach(() => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+  });
+
+  it('RESUME_AFTER_DROP: a crisis line before the restored turns resumes nothing', async () => {
+    const turns = seedLongCall();
+    turns[0] = { ...turns[0], content: CRISIS_LINE };
+    expect(turns.length - RESTORED_TURNS).toBeGreaterThan(0); // turn 0 is not restored
+
+    expectNothingResumed((await droppedOpening('user-r5')).committed);
+  });
+
+  it('RESUME_AFTER_DROP control: a long call with no crisis line resumes its last turns', async () => {
+    const turns = seedLongCall();
+
+    const { committed } = await droppedOpening('user-c3');
+
+    expect(committed).toHaveLength(1);
+    expect(committed[0].slice(0, -1).map((m) => m.content)).toEqual(
+      turns.slice(-RESTORED_TURNS).map((t) => t.content)
+    );
+    expect(moments()).toEqual(['resume_after_drop']);
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE: a crisis line before the carried-over turns carries nothing over', async () => {
+    const turns = seedLongCall();
+    turns[0] = { ...turns[0], content: CRISIS_LINE };
+    expect(turns.length - MOVED_TURNS).toBeGreaterThan(0); // turn 0 is not carried over
+
+    expectNothingResumed((await movedOpening('user-r6')).committed);
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE control: a long app call with no crisis line carries its last turns over', async () => {
+    const turns = seedLongCall();
+
+    const { committed } = await movedOpening('user-c4');
+
+    expect(committed).toHaveLength(1);
+    expect(committed[0].slice(0, -1).map((m) => m.content)).toEqual(
+      turns.slice(-MOVED_TURNS).map((t) => t.content)
+    );
+    expect(committed[0].at(-1)!.content).toBe(MOVED_NOTE);
+  });
+
+  it('RESUME_AFTER_DROP: a line with risk signals but no crisis read resumes nothing', async () => {
+    const read = detectCrisis(SIGNAL_LINE);
+    expect(read.isCrisis).toBe(false);
+    expect(read.severity).toBeGreaterThan(0);
+    expect(read.indicators.length).toBeGreaterThan(0);
+    seedLines({ 8: SIGNAL_LINE });
+
+    expectNothingResumed((await droppedOpening('user-r7')).committed);
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE: a line with risk signals but no crisis read carries nothing over', async () => {
+    expect(detectCrisis(SIGNAL_LINE).isCrisis).toBe(false);
+    seedLines({ 8: SIGNAL_LINE });
+
+    expectNothingResumed((await movedOpening('user-r8')).committed);
+  });
+
+  /** Fictional lines: two of distress, then one that is a signal only after them. */
+  const EARLIER = ['everything is too much', 'feeling so alone lately'];
+  const QUIET_ALONE = 'thank you for everything';
+  const seedContextCall = () => seedLines({ 4: EARLIER[0], 6: EARLIER[1], 8: QUIET_ALONE });
+
+  it('RESUME_AFTER_DROP: a line that reads as risk only after its earlier lines resumes nothing', async () => {
+    expect(anySignal(detectCrisis(QUIET_ALONE))).toBe(false);
+    const before = ['user line 0', 'user line 2', ...EARLIER];
+    expect(anySignal(detectCrisis(QUIET_ALONE, undefined, { recentMessages: before }))).toBe(true);
+    seedContextCall();
+
+    expectNothingResumed((await droppedOpening('user-r9')).committed);
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE: a line that reads as risk only after its earlier lines carries nothing over', async () => {
+    expect(anySignal(detectCrisis(QUIET_ALONE))).toBe(false);
+    seedContextCall();
+
+    expectNothingResumed((await movedOpening('user-r10')).committed);
+  });
+
+  it('RESUME_AFTER_DROP: a call that fills the turn read resumes nothing', async () => {
+    const turns = seedLongCall(201);
+    turns[200] = { ...turns[200], content: CRISIS_LINE }; // past the store's 200-turn read
+
+    expect(await findDroppedCall('user-r11', 'conv_new')).toBeUndefined();
+    expect(getConversationTurns).toHaveBeenCalledTimes(1);
+    expect(await getConversationTurns.mock.results[0].value).toHaveLength(200); // the line unread
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE: an app call that fills the turn read carries nothing over', async () => {
+    const turns = seedLongCall(201);
+    turns[200] = { ...turns[200], content: CRISIS_LINE };
+
+    expectNothingResumed((await movedOpening('user-r12')).committed);
+    expect(await getConversationTurns.mock.results[0].value).toHaveLength(200);
+  });
+
+  /** A long call with four empty turns, which the readers drop after the read. */
+  function seedWithEmpties(count: number): Turn[] {
+    const turns = seedLongCall(count);
+    for (const at of [1, 3, 5, 7]) turns[at] = { ...turns[at], content: at === 7 ? '   ' : '' };
+    return turns;
+  }
+  const kept = (turns: Turn[]) => turns.filter((t) => t.content.trim()).map((t) => t.content);
+
+  it('RESUME_AFTER_DROP: a full read with empty turns resumes nothing', async () => {
+    const turns = seedWithEmpties(200);
+    expect(kept(turns)).toHaveLength(196); // below the limit once the empty turns are dropped
+
+    expect(await findDroppedCall('user-r13', 'conv_new')).toBeUndefined();
+    expect(getConversationTurns).toHaveBeenCalledTimes(1);
+  });
+
+  it('RESUME_AFTER_DROP control: a read one short of full, with empty turns, still resumes', async () => {
+    const turns = seedWithEmpties(199);
+
+    const found = await findDroppedCall('user-c5', 'conv_new');
+
+    expect(found?.turns.map((t) => t.content)).toEqual(kept(turns).slice(-RESTORED_TURNS));
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE: a full read with empty turns carries nothing over', async () => {
+    expect(kept(seedWithEmpties(200))).toHaveLength(196);
+
+    expectNothingResumed((await movedOpening('user-r14')).committed);
+  });
+
+  it('CALL_ME_MOVES_TO_PHONE control: a read one short of full, with empty turns, still carries over', async () => {
+    const turns = seedWithEmpties(199);
+
+    const { committed } = await movedOpening('user-c6');
+
+    expect(committed).toHaveLength(1);
+    expect(committed[0].slice(0, -1).map((m) => m.content)).toEqual(
+      kept(turns).slice(-MOVED_TURNS)
+    );
+    expect(committed[0].at(-1)!.content).toBe(MOVED_NOTE);
   });
 });
