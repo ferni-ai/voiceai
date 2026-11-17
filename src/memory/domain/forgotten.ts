@@ -124,17 +124,22 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
 /**
  * The phone numbers in a text as their digits, so "(435) 555-0199", "435/555/0199" and "four
  * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
- * any format. That reader fails closed for storage (any 7+ digit run), so here a run counts
- * only in a phone's shape: 7 to 15 digits joined by spaces, dashes, dots, slashes, parentheses
- * or a plus. Commas and colons (prices, times, lists of years) are not phone numbers, and a
- * passage holding one keeps (#4042 review). Known gap: a trunk prefix ("020 ..." for "+44 20").
+ * any format, which fails closed: any 7+ digit run may be one. Here that holds too, except a
+ * run that is plainly something else: a price in thousands ("1,250,000"), a time or a span of
+ * times ("10:30-11:45"), a list of years ("2019, 2020"). Those hid whole call summaries (#4042
+ * review); every other shape still counts, two numbers in one run and over-long ones included.
+ * Known gap: a trunk prefix ("020 ..." for "+44 20 ...").
  */
-const PHONE_SEPARATORS = /^[\d\s().+/\-\u2010-\u2015\u2212]+$/u;
+const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
+const TIME = '\\d{1,2}:\\d{2}(?::\\d{2})?';
+const TIMES = new RegExp(`^${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
+const YEARS = /^(?:19|20)\d\d(?:[\s,;]+(?:19|20)\d\d)+$/;
+const notAPhoneNumber = (run: string): boolean =>
+  THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
 const phoneNumbers = (text: string): string[] =>
   contactNumberRuns(text)
-    .filter((run) => PHONE_SEPARATORS.test(run))
-    .map((run) => run.replace(/\D/g, ''))
-    .filter((digits) => digits.length <= 15);
+    .filter((run) => !notAPhoneNumber(run))
+    .map((run) => run.replace(/\D/g, ''));
 
 /**
  * A number a topic names is in the text, in any format (#3995 follow-up). Either may hold the
@@ -150,10 +155,11 @@ function holdsTopicNumber(text: string, topics: readonly string[]): boolean {
 
 /**
  * A topic about a contact number ("brother phone number", "mom's cell", "his landline"), by
- * whole word. "Number of" is a count ("number of kids"), not a phone number.
+ * whole word. "Number of kids" counts too: "the number of my therapist" is a phone number, and
+ * a privacy request errs toward hiding.
  */
 const NUMBER_TOPIC =
-  /\b(?:(?:tele|cell|smart)?phones?|numbers?(?!\s+of\b)|cell|mobile|digits|landline|tel)\b/i;
+  /\b(?:(?:tele|cell|smart)?phones?|numbers?|cell|mobile|digits|landline|tel)\b/i;
 
 /** The text a stored fact document is about, in any fact collection's shape, for matching. */
 export function factText(d: Record<string, unknown>): string {

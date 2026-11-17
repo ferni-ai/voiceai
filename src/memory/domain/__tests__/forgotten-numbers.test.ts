@@ -44,6 +44,13 @@ describe('a forgotten number, in any format', () => {
     expect(isForgottenPassage('call 435/555/0142', NUMBER)).toBe(false);
   });
 
+  it.each([
+    ['joined by a comma', 'his are +1 435 555 0142, +1 435 555 0199'],
+    ['back to back', 'his are 435 555 0142 435 555 0199'],
+  ])('the forgotten number beside another, %s, is found', (_l, text) => {
+    expect(isForgotten(text, NUMBER)).toBe(true);
+  });
+
   it('a forgotten price is not a phone number: a bigger price stays', () => {
     expect(isForgotten('we raised 12,500,000 for the school', ['the $1,250,000 house'])).toBe(
       false
@@ -89,13 +96,23 @@ describe('a forgotten "number" topic hides a raw passage holding a number', () =
     ['a list of years', 'in 2019, 2020 and 2021 we moved twice'],
     ['a time range', 'from 10:30-11:45:30 today'],
     ['a price', 'we paid 1,250,000 for the house'],
-    ['an order number longer than any phone number', 'order 112-3456789-0123456 arrived'],
   ])('%s is not a phone number: the passage stays', (_l, text) => {
     expect(isForgottenPassage(text, ['brother phone number'])).toBe(false);
   });
 
-  it('"number of" is a count, not a phone number', () => {
-    expect(isForgottenPassage('the dentist is 435 555 0142', ['number of kids'])).toBe(false);
+  // The security review of the second commit: a filter on the whole run dropped real numbers.
+  it.each([
+    ['two numbers joined by a comma', 'his are +1 435 555 0142, +1 435 555 0177'],
+    ['two numbers back to back', 'his are 435 555 0142 435 555 0177'],
+    ['digits grouped by commas', 'it is 435, 555, 0142'],
+    ['spoken digits grouped by commas', 'four three five, five five five, zero one four two'],
+    ['a number longer than a phone number', 'order 112-3456789-0123456 arrived'],
+  ])('%s: hidden, it may be a phone number (fails closed)', (_l, text) => {
+    expect(isForgottenPassage(text, ['brother phone number'])).toBe(true);
+  });
+
+  it('"number of" a person is still their phone number', () => {
+    expect(isForgottenPassage('it is 435 555 0142', ['the number of my therapist'])).toBe(true);
   });
 
   it.each([["brother's cellphone"], ['his telephone'], ['her landline'], ['his tel']])(
