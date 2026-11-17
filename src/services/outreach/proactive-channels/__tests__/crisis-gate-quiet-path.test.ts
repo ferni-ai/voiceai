@@ -80,6 +80,12 @@ vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
   }),
 }));
 vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
+/** A pondered follow-up for the next call's opener (only greeting-direction.ts reads it live). */
+const PONDERED = 'How did the garden plot turn out?';
+vi.mock('../../../../intelligence/pondering/pondering-reader.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  readPonderingForGreeting: vi.fn(async () => ({ followUp: { text: PONDERED, basis: 's1' } })),
+}));
 
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
@@ -95,6 +101,8 @@ const { getCrisisHistory, hadRecentCrisis, forgetRecentCrisis, logCrisisSignal }
 const { buildCrisisHistoryInjection } =
   await import('../../../../agents/processors/injection-builders/better-than-human-builders.js');
 const { decisionFor, gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
+const { ponderingForOpener } =
+  await import('../../../../intelligence/pondering/pondering-opener.js');
 const { unfinishedTurnHoldMs } = await import('../../../../agents/multi-agent/unfinished-turn.js');
 const { resetCrisisClassifierCache } = await import('../../../safety/crisis-classifier.js');
 const { detectCrisis } = await import('../../../safety/crisis-guard.js');
@@ -590,13 +598,24 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
 
 describe('CRISIS_QUIET_FROM_GATE off or shadow', () => {
   for (const mode of ['off', 'shadow']) {
-    it(`${mode}: the call stores nothing and the check-in goes`, async () => {
+    it(`${mode}: the caller's own crisis (the 988 script) stores no crisis record and the check-in goes`, async () => {
       vi.stubEnv('CRISIS_QUIET_FROM_GATE', mode);
-      expect(await speak(call())).toContain('988');
-      signalGateDecisions(call(), gateOf(decisionFor(THIRD_PARTY as never)));
+      expect(await speak(call())).toContain('988'); // the gate_quiet record's branch when on
       await settle();
       expect(signalDocs()).toHaveLength(0);
       expect(docs.has(HOLD)).toBe(false);
+      // false: nothing stored, and no in-process hold either (it comes before the write when on)
+      expect(await hadCrisisWithin(readable(), UID, CRISIS_QUIET_DAYS, CALL_AT)).toBe(false);
+      await runCheckIns();
+      expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
+    });
+
+    it(`${mode}: a crisis about someone the caller knows stores no quietUntil and the check-in goes`, async () => {
+      vi.stubEnv('CRISIS_QUIET_FROM_GATE', mode);
+      signalGateDecisions(call(), gateOf(decisionFor(THIRD_PARTY as never)));
+      await settle();
+      expect(docs.has(HOLD)).toBe(false);
+      expect(signalDocs()).toHaveLength(0);
       expect(await hadCrisisWithin(readable(), UID, CRISIS_QUIET_DAYS, CALL_AT)).toBe(false);
       await runCheckIns();
       expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
@@ -618,6 +637,35 @@ describe('CRISIS_QUIET_FROM_GATE off or shadow', () => {
     // unreadable: true (fails closed)
     const broken = { collection: () => ({}) } as never;
     expect(await hadCrisisWithin(broken, UID, CRISIS_QUIET_DAYS, CALL_AT)).toBe(true);
+  });
+});
+
+describe("the next call after a gate crisis: hadCrisisWithin's readers are quieter, never louder", () => {
+  // With the flag on, the gate's own record (source gate_quiet) counts for hadCrisisWithin, as for
+  // outreach: the pondered opener, the greeting date line, the call sheet's recentCrisis and the
+  // call-remembered card hold back for CRISIS_QUIET_DAYS. They only drop content; no crisis words.
+  it('a gate crisis, then the next call: no pondered ask with the flag on; with it off the ask stays', async () => {
+    const opener = () =>
+      ponderingForOpener(readable(), UID, { now: RUN_AT, env: { PONDERING: 'on' } });
+    expect((await opener())?.text).toBe(PONDERED); // before any crisis: the ask is there
+
+    vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'off');
+    expect(await speak(call())).toContain('988');
+    await settle();
+    expect(signalDocs()).toHaveLength(0);
+    expect((await opener())?.text).toBe(PONDERED); // off: as on main
+
+    vi.stubEnv('CRISIS_QUIET_FROM_GATE', 'on');
+    expect(await speak(call())).toContain('988');
+    await settle();
+    const stored = signalDocs();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]![1]).toMatchObject({ source: 'gate_quiet' });
+    expect(await opener()).toBeUndefined(); // on: the pondered ask holds back
+
+    // Only the gate's record holds it (the in-process hold let go once it was stored)
+    docs.delete(stored[0]![0]);
+    expect((await opener())?.text).toBe(PONDERED);
   });
 });
 
