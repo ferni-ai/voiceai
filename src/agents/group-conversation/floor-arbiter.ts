@@ -1,23 +1,17 @@
 /**
  * GROUP_CALL: the floor arbiter, one speech stream for the agent built from one per person.
  *
- * On a three-way call each person has their own speech-to-text stream, but the agent
- * session has a single "user" and reads a single stream of speech events. This merges the
- * per-person streams into that one stream and decides, for the whole room, when the
- * user's turn starts and ends:
+ * The agent session reads one stream of speech events; this merges each person's into it
+ * and decides, for the whole room, when the user's turn starts and ends:
  *
  * - START_OF_SPEECH passes only when the floor goes from empty to busy.
  * - END_OF_SPEECH passes only when the last person speaking stops.
- * - FINAL_TRANSCRIPT and PREFLIGHT_TRANSCRIPT become chat text, so each says who spoke:
- *   `[Sarah (guest)] text`, labelled through turn-label.ts. A preflight passes only while
- *   nobody else is speaking.
+ * - FINAL_TRANSCRIPT and PREFLIGHT_TRANSCRIPT say who spoke, `[Sarah (guest)] text`
+ *   (turn-label.ts). A preflight passes only while nobody else is speaking.
  * - INTERIM_TRANSCRIPT passes only for the most recent speaker, with its text unchanged.
  * - FINAL, PREFLIGHT and INTERIM all carry the person's identity as `speakerId`.
  * - Empty text stays empty and unlabelled, so the SDK still ignores an empty final.
- * - Times pass through unchanged; each person's stream sets its own offset.
- * - Anything else (usage, metrics) passes through unchanged.
- *
- * No room, no audio and no I/O beyond reading its input.
+ * - Times, and anything else (usage, metrics), pass through unchanged.
  *
  * @module agents/group-conversation/floor-arbiter
  */
