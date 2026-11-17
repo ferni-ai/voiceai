@@ -16,7 +16,8 @@ import {
 } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
-import { personaFirstName } from '../config/personas.js';
+import { COORDINATOR_ID, personaFirstName } from '../config/personas.js';
+import type { PersonaConfig } from '../types/persona.js';
 import { announce } from '../utils/accessibility.js';
 import { endLabelKey, installCallRoom } from './call-room/call-room.js';
 
@@ -71,6 +72,25 @@ function callee(): string {
   return name ? personaFirstName(name) : 'Ferni';
 }
 
+/**
+ * The idle button's words: whoever the tap will call. connect() sends
+ * selectedPersona (the teammate picked in the strip, kept across reloads), so
+ * the label names that persona, not always Ferni (app audit 2026-11-16, item 8).
+ */
+export function talkLabel(persona: Pick<PersonaConfig, 'id' | 'name'>): string {
+  return persona.id === COORDINATOR_ID
+    ? t('entrance.connectToTalk')
+    : t('teamRoster.talkTo', { name: personaFirstName(persona.name) });
+}
+
+function renderTalkLabel(): void {
+  const label = elements?.connectBtn.querySelector<HTMLElement>(LABEL_SELECTOR);
+  if (!label) return;
+  // This module owns the words now; a static re-translation would put "Talk to Ferni" back.
+  delete label.dataset.i18n;
+  label.textContent = talkLabel(appState.get('selectedPersona'));
+}
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -99,6 +119,8 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
     // The call's own room, behind its off-by-default flag
     uninstallCallRoom?.();
     uninstallCallRoom = installCallRoom();
+
+    renderTalkLabel();
 
     // Initial state (no arrival to announce for a call already on)
     shownState = null;
@@ -155,6 +177,9 @@ function setupSubscriptions(): void {
       if (appState.get('isMuted')) appState.set('isMuted', false);
     }
   });
+
+  // Picking a teammate changes who the button calls
+  appState.subscribe('selectedPersona', () => renderTalkLabel());
 
   // Mute state changes
   appState.subscribe('isMuted', (muted) => {

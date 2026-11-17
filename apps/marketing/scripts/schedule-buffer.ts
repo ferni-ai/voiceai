@@ -85,7 +85,7 @@ class BufferClient {
       throw new Error(`Buffer API error: ${response.status} - ${text}`);
     }
     
-    return response.json();
+    return (await response.json()) as BufferProfile[];
   }
 
   async createUpdate(update: BufferUpdate): Promise<{ success: boolean; updates: unknown[] }> {
@@ -113,7 +113,7 @@ class BufferClient {
       throw new Error(`Buffer API error: ${response.status} - ${text}`);
     }
 
-    return response.json();
+    return (await response.json()) as { success: boolean; updates: unknown[] };
   }
 }
 

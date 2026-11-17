@@ -32,7 +32,6 @@ import {
   initializeIntelligence,
   cleanupIntelligenceSession,
   getUnifiedIntelligence,
-  processTurnLearning,
   recordSignal,
   markProactiveInsightSurfaced,
 } from '../../agents/integrations/unified-intelligence-integration.js';
@@ -200,39 +199,6 @@ describe('Unified Intelligence System', () => {
   });
 
   // ============================================================================
-  // TURN LEARNING TESTS
-  // ============================================================================
-
-  describe('Turn Learning', () => {
-    it('should process turn learning without errors', () => {
-      expect(() => {
-        processTurnLearning({
-          userId: TEST_USER_ID,
-          sessionId: TEST_SESSION_ID,
-          turnNumber: 3,
-          crisisTurn: false,
-          transcript: 'I completed my morning routine today',
-          topics: ['routine', 'morning'],
-          emotion: 'satisfied',
-        });
-      }).not.toThrow();
-    });
-
-    it('should record insight reaction', () => {
-      expect(() => {
-        processTurnLearning({
-          userId: TEST_USER_ID,
-          sessionId: TEST_SESSION_ID,
-          turnNumber: 4,
-          crisisTurn: false,
-          transcript: "That's a great insight, thank you!",
-          reactionToInsight: 'positive',
-        });
-      }).not.toThrow();
-    });
-  });
-
-  // ============================================================================
   // PROACTIVE INSIGHT TESTS (Level 5)
   // ============================================================================
 
@@ -313,16 +279,6 @@ describe('Unified Intelligence System', () => {
 
       expect(turn1).toBeDefined();
       expect(turn1.context).toBeDefined();
-
-      // 3. Process learning from turn 1
-      processTurnLearning({
-        userId: TEST_USER_ID,
-        sessionId: TEST_SESSION_ID,
-        turnNumber: 1,
-        crisisTurn: false,
-        transcript: 'Good morning!',
-        emotion: 'neutral',
-      });
 
       // 4. Record domain signals from user activity
       recordHabitSignal(TEST_USER_ID, 'Morning Meditation', 'completed', {

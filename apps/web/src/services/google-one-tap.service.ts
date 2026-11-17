@@ -279,7 +279,8 @@ export function initGoogleOneTap(): void {
 
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
-    log.warn('Google One-Tap not configured (missing VITE_GOOGLE_CLIENT_ID)');
+    // A build without the client id simply has no One-Tap: not worth a warning on every load
+    log.debug('Google One-Tap off (no VITE_GOOGLE_CLIENT_ID)');
     return;
   }
 

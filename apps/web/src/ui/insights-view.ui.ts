@@ -29,6 +29,8 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
 import { CHAPTER_ICONS } from './icons/hub-icons.js';
 import { apiGet } from '../utils/api.js';
+import { relationshipStageService } from '../services/relationship-stage.service.js';
+import { relationshipStatsHtml } from './relationship-facts-view.js';
 
 const log = createLogger('InsightsView');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -374,11 +376,7 @@ export class InsightsView {
         <div class="insights-milestone">
           <span class="insights-milestone__badge">${t('insights.journeyTogether')}</span>
           <p class="insights-milestone__text">${escapeHtml(relationship.milestone || '')}</p>
-          <div class="insights-milestone__stats">
-            <span>${relationship.daysTogether} days</span>
-            <span>•</span>
-            <span>${relationship.conversations} conversations</span>
-          </div>
+          ${relationshipStatsHtml('insights-milestone__stats')}
         </div>
       </section>
     `;
@@ -532,7 +530,8 @@ export class InsightsView {
         return;
       }
 
-      const response = await apiGet<InsightData>(`/api/insights/${userId}`);
+      // The footer's days and count are the one relationship record every surface shows
+      const [response] = await Promise.all([apiGet<InsightData>(`/api/insights/${userId}`), relationshipStageService.loadFromBackend()]);
       if (response.ok && response.data) {
         this.update(response.data);
       } else {

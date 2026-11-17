@@ -1,10 +1,7 @@
 /**
  * Superhuman Services - Better Than Human Capabilities
  *
- * These services implement capabilities that make Ferni genuinely
- * better than human support - not through artificial intelligence,
- * but through perfect memory, constant presence, and pattern recognition
- * that humans simply cannot match.
+ * Better than human support through memory, presence and pattern recognition.
  *
  * @module services/superhuman
  */
@@ -32,7 +29,10 @@ export {
   type CommitmentStatus,
   type CommitmentType,
 } from './commitment-keeper.js';
-export { loadCompletedCommitmentsOrThrow } from './commitment-store.js';
+export {
+  loadActiveCommitmentsOrThrow,
+  loadCompletedCommitmentsOrThrow,
+} from './commitment-store.js';
 
 // Superhuman Observations - "Only I Would Notice" pattern detection
 export {

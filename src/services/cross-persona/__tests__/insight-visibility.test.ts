@@ -21,9 +21,10 @@ import {
   acknowledgeInsight,
   addCrossPersonaInsight,
   getInsightsForPersona,
+  markInsightToasted,
   type CrossPersonaInsight,
 } from '../cross-persona-insights.js';
-import { hideFromUser, isHiddenFromUser } from '../insight-visibility.js';
+import { hideFromUser, isHiddenFromUser, markToasted, wasToasted } from '../insight-visibility.js';
 
 function insight(id: string, metadata?: Record<string, unknown>): CrossPersonaInsight {
   return {
@@ -81,5 +82,50 @@ describe('insight visibility', () => {
     const ids = getInsightsForPersona(userId, 'ferni').map((item) => item.insight.id);
     expect(ids).toContain(added.id);
     expect(isHiddenFromUser(added)).toBe(true);
+  });
+});
+
+describe('toasted insights (issue 3945)', () => {
+  it('marks a note toasted without hiding it from the team panel', () => {
+    const insights = [insight('a', { streak: 3 }), insight('b')];
+    expect(wasToasted(insights[0])).toBe(false);
+
+    expect(markToasted(insights, 'a', 1000)).toBe(true);
+
+    expect(wasToasted(insights[0])).toBe(true);
+    expect(isHiddenFromUser(insights[0])).toBe(false);
+    expect(insights[0].metadata).toEqual({ streak: 3, toastedAt: 1000 });
+    expect(wasToasted(insights[1])).toBe(false);
+  });
+
+  it('keeps the first toast time when shown twice', () => {
+    const insights = [insight('a')];
+    markToasted(insights, 'a', 1000);
+    markToasted(insights, 'a', 2000);
+    expect(insights[0].metadata).toEqual({ toastedAt: 1000 });
+  });
+
+  it('reports an unknown insight', () => {
+    expect(markToasted([insight('a')], 'missing')).toBe(false);
+  });
+
+  it('a toasted note stays visible to the user and with the team', async () => {
+    const userId = 'toasted-test-user';
+    const added = addCrossPersonaInsight(userId, {
+      source: 'maya',
+      target: 'ferni',
+      priority: 'high',
+      content: 'Nine days of morning walks',
+      category: 'habits',
+      proactive: true,
+      oneTime: true,
+    });
+
+    await markInsightToasted(userId, added.id);
+
+    const ids = getInsightsForPersona(userId, 'ferni').map((item) => item.insight.id);
+    expect(ids).toContain(added.id);
+    expect(wasToasted(added)).toBe(true);
+    expect(isHiddenFromUser(added)).toBe(false);
   });
 });

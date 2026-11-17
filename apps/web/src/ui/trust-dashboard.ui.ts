@@ -35,6 +35,7 @@ import {
   type UpcomingEvent,
 } from './trust-dashboard-data.js';
 import { renderHealthTab, renderInsightsTab, TOGETHER_STYLES } from './trust-dashboard-together.js';
+import { TRUST_TAB_STYLES, wireTrustTabs } from './trust-dashboard-tabs.js';
 
 export { renderHealthTab, renderInsightsTab };
 
@@ -471,19 +472,8 @@ function setupEventListeners(): void {
     .querySelector('.trust-dashboard-backdrop')
     ?.addEventListener('click', hideTrustDashboard);
 
-  // Tab buttons
-  container.querySelectorAll('.tab-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const tab = (e.currentTarget as HTMLElement).dataset.tab as DashboardState['activeTab'];
-      if (tab) {
-        // Update active state, and bring a half-hidden tab fully into view
-        container?.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-        (e.currentTarget as HTMLElement).classList.add('active');
-        (e.currentTarget as HTMLElement).scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-        loadTabData(tab);
-      }
-    });
-  });
+  // Tabs: a tablist (arrow keys, Home/End); a click selects and loads the tab
+  wireTrustTabs(container, (tab) => void loadTabData(tab as DashboardState['activeTab']));
 
   // Refresh button
   container.querySelector('.refresh-btn')?.addEventListener('click', () => {
@@ -563,8 +553,8 @@ function addStyles(): void {
     .trust-dashboard-modal {
       position: relative;
       width: 90%;
-      max-width: clamp(420px, 90vw, 600px);
-      max-height: 85vh;
+      max-width: clamp(420px, 90vw, 640px); /* six tabs fit at desktop widths */
+      height: min(85vh, 45rem); /* fixed: switching tabs never moves the tab bar; content scrolls */
       background: var(--color-bg-elevated, #FFFDFB);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
@@ -622,47 +612,7 @@ function addStyles(): void {
       height: 20px;
     }
     
-    /* Six tabs don't fit a phone (or quite fit 600px): they scroll, never clip, and the right edge fades */
-    .trust-dashboard-tabs {
-      display: flex; flex-shrink: 0;
-      gap: var(--space-1);
-      padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
-      border-bottom: 1px solid var(--color-border);
-      overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--space-4);
-      -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent); /* Safari < 15.4 */
-      mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent);
-    }
-    
-    .tab-btn {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-3);
-      background: none;
-      border: none;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--color-text-muted);
-      font-size: 0.85rem;
-      white-space: nowrap; flex: 0 0 auto; scroll-snap-align: start;
-      transition: all ${DURATION.FAST}ms;
-    }
-    
-    .tab-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-    
-    .tab-btn:hover {
-      background: var(--color-background-hover);
-      color: var(--color-text-secondary);
-    }
-    
-    .tab-btn.active {
-      background: var(--persona-primary);
-      color: white;
-    }
-    
+${TRUST_TAB_STYLES}
     .trust-dashboard-content {
       flex: 1;
       padding: var(--space-6);

@@ -64,8 +64,9 @@ function asDate(v: FirestoreDate): Date | undefined {
 /**
  * Ferni's promises to this user (ferni_commitments), newest first. Invitations
  * ("let me know how it goes") aren't promises, so they never count either way.
+ * Throws when the store can't be read: a failed read is never "no promises".
  */
-async function readPromises(userId: string): Promise<PromiseRecord[]> {
+export async function loadFerniPromises(userId: string): Promise<PromiseRecord[]> {
   try {
     const snap = await getTrustDb()
       .collection('bogle_users')
@@ -106,7 +107,7 @@ export async function loadTogetherSignals(userId: string): Promise<TogetherSigna
   const [timeline, events, promises] = await Promise.all([
     source<SentimentTimeline>(userId, TIMELINE_DOC),
     source<LifeEvent[]>(userId, LIFE_EVENTS_DOC),
-    readPromises(userId),
+    loadFerniPromises(userId),
   ]);
   return { snapshots: timeline?.snapshots ?? [], lifeEvents: events ?? [], promises };
 }

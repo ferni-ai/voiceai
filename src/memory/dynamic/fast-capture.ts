@@ -15,6 +15,7 @@ import { safeEmitEvent } from './async-events-config.js';
 import { recordFastCapture } from './metrics.js';
 import { isThirdPartyCallUser, noCapture } from '../third-party-call.js';
 import { mayCapture } from '../../utils/minor-care.js';
+import { nameAsSaid } from '../domain/index.js';
 
 const log = createLogger({ module: 'FastCapture' });
 
@@ -397,84 +398,48 @@ function detectEntityMentions(transcript: string): EntityMention[] {
         name: word,
         type: 'person',
         context: extractContext(transcript, word),
-        confidence: transcript.toLowerCase().includes(`my ${word}`) ? 0.9 : 0.7,
+        confidence: matches.some((m) => /^my\s/i.test(m)) ? 0.9 : 0.7,
       });
     }
   }
 
-  // 🧠 IMPROVED: Detect named entities more comprehensively
-  // Pattern: "my [relationship] [Name]" or "[relationship] [Name]"
-  // e.g., "my sister Sarah", "friend Mike", "boss Jennifer"
-  const namedRelationPattern =
-    /\b(?:my\s+)?(?:sister|brother|friend|boss|coworker|partner|wife|husband|girlfriend|boyfriend|mom|dad)\s+([A-Z][a-z]+)\b/gi;
+  // People named as said, each pattern with its confidence. The patterns are case-insensitive
+  // for their cue words, so every name goes through nameAsSaid: "this is", "work was" and "with
+  // dinner" name no one (#3993). Relation words are mentions already (above). [pattern, confidence,
+  // shortest name]: only an explicit "named Jo" keeps a two-letter name.
+  const personPatterns: Array<[RegExp, number, number]> = [
+    // "my sister Sarah", "friend Mike", "boss Jennifer": explicit relation + name
+    [
+      /\b(?:my\s+)?(?:sister|brother|friend|boss|coworker|partner|wife|husband|girlfriend|boyfriend|mom|dad)\s+([A-Z][a-z]+)\b/gi,
+      0.85,
+      3,
+    ],
+    [/\b([A-Z][a-z]+)'s\s+\w+/g, 0.8, 3], // "Sarah's wedding": possessive
+    [
+      /\b([A-Z][a-z]+)\b\s+(?:said|told|asked|called|texted|is|was|has|had|wants|needs|likes|loves|thinks)\b/gi,
+      0.7,
+      3,
+    ],
+    [
+      /\b(?:talked?\s+to|called|texted|met\s+with|met|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi,
+      0.75,
+      3,
+    ],
+    [/\b(?:named|called|name\s+is)\s+([A-Z][a-z]+)\b/gi, 0.9, 2], // explicit naming
+  ];
   let match;
-  while ((match = namedRelationPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (name.length > 2) {
+  for (const [pattern, confidence, shortest] of personPatterns) {
+    while ((match = pattern.exec(transcript)) !== null) {
+      const name = nameAsSaid(match[1]);
+      if (!name || name.length < shortest || RELATIONSHIP_WORDS.includes(name.toLowerCase()))
+        continue;
       mentions.push({
         name,
         type: 'person',
         context: extractContext(transcript, name),
-        confidence: 0.85, // High confidence - explicit relation + name
+        confidence,
       });
     }
-  }
-
-  // Pattern: "[Name]'s [thing]" - possessive names
-  // e.g., "Sarah's wedding", "Mike's birthday"
-  const possessivePattern = /\b([A-Z][a-z]+)'s\s+\w+/g;
-  while ((match = possessivePattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
-      mentions.push({
-        name,
-        type: 'person',
-        context: extractContext(transcript, name),
-        confidence: 0.8, // High confidence - possessive form
-      });
-    }
-  }
-
-  // Pattern: Names followed by common verbs
-  const verbFollowingPattern =
-    /\b([A-Z][a-z]+)\b\s+(?:said|told|asked|called|texted|is|was|has|had|wants|needs|likes|loves|thinks)\b/gi;
-  while ((match = verbFollowingPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
-      mentions.push({
-        name,
-        type: 'person',
-        context: extractContext(transcript, name),
-        confidence: 0.7,
-      });
-    }
-  }
-
-  // Pattern: Common name introductions
-  // "talked to [Name]", "called [Name]", "met [Name]", "with [Name]"
-  const interactionPattern =
-    /\b(?:talked?\s+to|called|texted|met|met\s+with|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi;
-  while ((match = interactionPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
-      mentions.push({
-        name,
-        type: 'person',
-        context: extractContext(transcript, name),
-        confidence: 0.75,
-      });
-    }
-  }
-
-  // Pattern: "named [Name]" or "called [Name]"
-  const namedPattern = /\b(?:named|called|name\s+is)\s+([A-Z][a-z]+)\b/gi;
-  while ((match = namedPattern.exec(transcript)) !== null) {
-    mentions.push({
-      name: match[1],
-      type: 'person',
-      context: extractContext(transcript, match[1]),
-      confidence: 0.9, // Very high - explicit naming
-    });
   }
 
   // Detect place mentions
@@ -617,7 +582,8 @@ function detectLinkingSignals(transcript: string): LinkingSignal[] {
 // ============================================================================
 
 function extractContext(transcript: string, keyword: string): string {
-  const index = transcript.toLowerCase().indexOf(keyword.toLowerCase());
+  const word = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // whole word: "son" is not in "Jason"
+  const index = transcript.search(new RegExp(`(?<!\\p{L})${word}(?!\\p{L})`, 'iu'));
   if (index === -1) return '';
 
   const start = Math.max(0, index - 30);
@@ -677,15 +643,15 @@ async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
 
     if (emitted) {
       log.info(
-        { 
-          jobId, 
-          userId: job.userId, 
+        {
+          jobId,
+          userId: job.userId,
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
           priority,
           entityHints: job.fastCaptureHints.mentionedEntities.length,
           emotionSignals: job.fastCaptureHints.emotionSignals.length,
-        }, 
+        },
         '🧠 [MEMORY-AUDIT] Queued deep extraction job'
       );
     } else {
@@ -695,7 +661,10 @@ async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
       );
     }
   } catch (error) {
-    log.warn({ error: String(error), jobId }, '🧠 [MEMORY-AUDIT] Failed to queue deep extraction (non-blocking)');
+    log.warn(
+      { error: String(error), jobId },
+      '🧠 [MEMORY-AUDIT] Failed to queue deep extraction (non-blocking)'
+    );
   }
 
   return jobId;
