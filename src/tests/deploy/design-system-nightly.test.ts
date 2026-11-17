@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { running } from './workflow-jobs.js';
+import { allNeeds, running } from './workflow-jobs.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const WORKFLOW = 'design-system.yml';
@@ -48,6 +48,15 @@ describe('design-system.yml nightly', () => {
     // live: a push to main tagged [publish] does publish
     const tagged = { 'github.event.head_commit.message': 'release [publish]' };
     expect(running(WORKFLOW, 'push', tagged).has('publish')).toBe(true);
+  });
+
+  // publish uploads only what package-check packed, so a broken entry point stops
+  // at package-check. Only pull requests follow OPTIONAL_CI there.
+  it('a push to main publishes with OPTIONAL_CI off, after the package check', () => {
+    const ran = running(WORKFLOW, 'push', OFF);
+    expect(ran.has('package-check')).toBe(true);
+    expect(ran.has('publish')).toBe(true);
+    expect(allNeeds(WORKFLOW, 'publish')).toContain('package-check');
   });
 
   it.each(CHECKS)('%s has no step that can fail without failing the job', (id) => {

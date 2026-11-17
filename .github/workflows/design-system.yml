@@ -158,12 +158,14 @@ jobs:
   # ============================================================================
   # Package check: what each package would publish
   # ============================================================================
-  # Runs whatever OPTIONAL_CI says, because a version on npm can't be republished:
-  # a broken entry point has to fail the pull request, not the publish. It holds
-  # no secrets: everything that installs or builds runs here, and publish only
-  # uploads the tarballs this job packed.
+  # A version on npm can't be republished, so publish needs this job: a package
+  # with a missing entry point fails here and never reaches npm. Pushes, the
+  # nightly and manual runs always pack; pull requests follow OPTIONAL_CI like
+  # the rest of this workflow. It holds no secrets: everything that installs or
+  # builds runs here, and publish only uploads the tarballs this job packed.
   package-check:
     name: Package check
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
