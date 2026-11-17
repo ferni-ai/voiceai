@@ -93,6 +93,7 @@ import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { loggedEscalation } from './crisis-gate-failure.js';
 import { holdUntilCleared } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
+import { gateTurnReadsOn, withTurnReads } from './crisis-gate-turn-reads.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
@@ -130,6 +131,12 @@ const RANK = { pass: 0, guide: 1, replace: 2 } as const;
 
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
 const own = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance, crisis: true });
+/** What a classifier read is given: the caller's words and the Ferni line they answer. */
+const turnWords = ({ latest, earlier, companion }: ReturnType<typeof callerWords>) => ({
+  latest,
+  earlier,
+  companion,
+});
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
@@ -167,6 +174,9 @@ export function startCrisisGate(
   if (resolveCrisisGuardMode(env) !== 'live') return null;
   const { latest, earlier, companion, ferni } = callerWords(chatCtx);
   if (!latest) return null;
+  // CRISIS_GATE_TURN_READS: only the classifier read, and the reads it is weighed with, get the
+  // whole turn; patterns and every other decision keep the latest line, so none can be lower.
+  const turnReads = gateTurnReadsOn(env);
 
   const voice = toGuardVoiceEmotion(
     (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
@@ -199,6 +209,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
+  const turn = turnReads ? turnWords(callerWords(chatCtx, { sinceCompleted: true })) : said;
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
@@ -209,8 +220,9 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   let who: ReturnType<typeof startWhoRead> | undefined;
   const at = { pattern, env, generate, scope, call, secondRead } as const;
+  const readScope = scope ?? (turnReads ? call : undefined); // kept for the turn's other reads
   const read = (): Promise<CrisisVerdict | null> | undefined => {
-    const run = startCrisisClassifier(said, at);
+    const run = startCrisisClassifier(turn, { ...at, scope: readScope });
     if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
     who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
     return run.verdict;
@@ -298,7 +310,8 @@ export function startCrisisGate(
     return stronger;
   };
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
-  const logged = loggedEscalation(verdictRead, (v) => checkin.escalation(v, checkinTurn, escalate));
+  const acted = turnReads ? withTurnReads(verdictRead, readScope, turn, env) : verdictRead;
+  const logged = loggedEscalation(acted, (v) => checkin.escalation(v, checkinTurn, escalate));
   return { decision, escalation: logged, reask };
 }
 
