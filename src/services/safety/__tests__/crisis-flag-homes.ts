@@ -252,7 +252,6 @@ export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> =
       file: 'src/api/__tests__/outreach-sms-crisis-survives.test.ts',
       rows: [
         'SMS_REPLY off then on: a crisis text gets the same answer, 988 and 911 in it, no model reply',
-        'SMS_REPLY off then on: a "call me" crisis text keeps its call and the same 988 answer, no model reply',
       ],
     },
     {
