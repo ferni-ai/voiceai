@@ -6,6 +6,7 @@
  *
  * Sub-routes:
  * - /api/v1/admin/flags/*         - Feature flag management
+ * - /api/v1/admin/agent-flags/*   - Dev voice agent flag switchboard (dev UI server only)
  * - /api/v1/admin/agents/*        - Agent management
  * - /api/v1/admin/diagnostics/*   - System diagnostics & handoff monitoring
  * - /api/v1/admin/tts-monitoring/*- TTS sanitization monitoring
@@ -17,6 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { requireAdmin } from '../../auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { handleAdminAgentFlagsRoutes } from './agent-flags.js';
 import { handleAdminAgentsRoutes } from './agents.js';
 import { handleBTHAnalyticsRoutes } from './better-than-human-analytics.js';
 import { handleAdminDashboardRoutes } from './dashboard.js';
@@ -66,6 +68,11 @@ export async function handleAdminRoutes(
   // Feature Flags
   if (pathname.startsWith(`${BASE_PATH}/flags`)) {
     return handleAdminFlagsRoutes(req, res, pathname, parsedUrl);
+  }
+
+  // Dev agent flag switchboard (404 unless DEPLOY_ENV is dev)
+  if (pathname.startsWith(`${BASE_PATH}/agent-flags`)) {
+    return handleAdminAgentFlagsRoutes(req, res, pathname, parsedUrl);
   }
 
   // Agent management

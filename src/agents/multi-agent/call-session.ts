@@ -19,6 +19,7 @@ import { watchSessionSttAudio } from '../model-provider/stt-audio-diagnostics.js
 import { gateScriptedSay } from '../personas/scripted-name-gate.js';
 import { watchAgentState } from '../shared/loop-watch.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
+import { isolateSessionListeners } from '../shared/session-listener-guard.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
 import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience.js';
 import type { UserData } from '../shared/types.js';
@@ -149,6 +150,7 @@ export async function createCallSession(
     },
   });
   limitSessionListeners(session); // ~16 features watch agent_state_changed
+  isolateSessionListeners(session); // before any feature listens: see session-listener-guard.ts
 
   logBargeInDecisions(session, sessionId);
   // PHONE_AUDIO_SUMMARY at call end: the phone audio A/B reads it.

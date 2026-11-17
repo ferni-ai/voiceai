@@ -18,6 +18,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { nameAsSaid, properNameAsSaid } from '../../memory/index.js';
 import { findCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 // ============================================================================
@@ -298,12 +299,9 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   for (const pattern of petPatterns) {
     const matches = text.matchAll(pattern);
     for (const match of matches) {
-      details.push({
-        type: 'pet_name',
-        value: match[1],
-        context: match[0],
-        extractedAt: now,
-      });
+      const name = nameAsSaid(match[1]); // "my dog and I" is not a dog named "and" (#3993)
+      if (name)
+        details.push({ type: 'pet_name', value: name, context: match[0], extractedAt: now });
     }
   }
 
@@ -316,51 +314,27 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   for (const pattern of familyPatterns) {
     const matches = text.matchAll(pattern);
     for (const match of matches) {
-      details.push({
-        type: 'person_name',
-        value: match[1],
-        context: match[0],
-        extractedAt: now,
-      });
+      const name = nameAsSaid(match[1]); // "my son and I" is not a son named "and" (#3993)
+      if (name)
+        details.push({ type: 'person_name', value: name, context: match[0], extractedAt: now });
     }
   }
 
-  // Places - "I live in Denver", "moving to Austin"
-  const placePatterns = [
-    /(?:live|living|moved|moving|from|in)\s+(?:to\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
+  // Places ("I live in Denver", "moving to Austin") and companies ("I work at Acme"). No i
+  // flag: under it "[A-Z]" matched any word ("moving in March" gave place "in March"), so the
+  // cue words spell both cases and the name must be capitalised as said (#4028).
+  const placeOrCompany: Array<[RegExp, 'place' | 'company']> = [
+    [
+      /\b(?:[Ll]ive|[Ll]iving|[Mm]oved|[Mm]oving|[Ff]rom|[Ii]n)\s+(?:to\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
+      'place',
+    ],
+    [/\b[Ww]ork(?:ed|ing)?\s+(?:at|for)\s+([A-Z][a-zA-Z]+)/g, 'company'],
+    [/\b[Mm]y (?:company|employer|job at)\s+([A-Z][a-zA-Z]+)/g, 'company'],
   ];
-
-  for (const pattern of placePatterns) {
-    const matches = text.matchAll(pattern);
-    for (const match of matches) {
-      // Filter out common non-places
-      const place = match[1];
-      if (!['The', 'My', 'Our', 'This', 'That'].includes(place)) {
-        details.push({
-          type: 'place',
-          value: place,
-          context: match[0],
-          extractedAt: now,
-        });
-      }
-    }
-  }
-
-  // Companies - "I work at Google", "my company Acme"
-  const companyPatterns = [
-    /(?:work|worked|working)\s+(?:at|for)\s+([A-Z][a-zA-Z]+)/gi,
-    /my (?:company|employer|job at)\s+([A-Z][a-zA-Z]+)/gi,
-  ];
-
-  for (const pattern of companyPatterns) {
-    const matches = text.matchAll(pattern);
-    for (const match of matches) {
-      details.push({
-        type: 'company',
-        value: match[1],
-        context: match[0],
-        extractedAt: now,
-      });
+  for (const [pattern, type] of placeOrCompany) {
+    for (const match of text.matchAll(pattern)) {
+      const value = properNameAsSaid(match[1]);
+      if (value) details.push({ type, value, context: match[0], extractedAt: now });
     }
   }
 

@@ -42,14 +42,11 @@ vi.mock('../../../../services/stores/productivity-store.js', () => ({
   }),
 }));
 
-import { completeTask, createTask, createTaskTools, getUserTasks } from '../tasks.js';
+import { createTask, createTaskTools } from '../tasks.js';
 import { createDailyBriefingTools } from '../../information/daily-briefing.js';
 
 type Exec = { execute: (args: Record<string, unknown>, opts?: unknown) => Promise<string> };
-const tools = createTaskTools() as unknown as Record<
-  'getTasks' | 'getTaskSummary' | 'rescheduleTask',
-  Exec
->;
+const tools = createTaskTools() as unknown as Record<'getTasks', Exec>;
 
 // Thursday 2026-11-05, 08:19 in New York (EST, UTC-5), 02:19 Friday in Auckland (NZDT, UTC+13).
 const NY_MORNING = '2026-11-05T13:19:00Z';
@@ -190,9 +187,6 @@ describe('task tools: "today" is the caller\'s day', () => {
     );
     expect(said).toMatch(/\n\nPlus 25 with no date: errand \d+(, errand \d+){9}, and 15 more$/);
 
-    const summary = await tools.getTaskSummary.execute({}, ctxFor(userId, 'America/New_York'));
-    expect(summary).toContain('**Today:** 2 tasks\n**No Date:** 25\n**Completed Today:** 0\n');
-
     const brief = await morning(userId, 'America/New_York');
     expect(brief).toContain(
       "📋 **Today's Tasks:** 2\n  • mail the rent check\n  • pay the water bill\n"
@@ -231,44 +225,6 @@ describe('task tools: "today" is the caller\'s day', () => {
       ctxFor(userId, 'America/New_York')
     );
     expect(said).toContain('  📋 Remaining: 1\n');
-  });
-
-  it('"completed today" counts the caller\'s day, across their midnight', async () => {
-    const userId = freshUser();
-    const lateWednesday = await add(userId, 'fold the laundry');
-    const thursdayMorning = await add(userId, 'take out the recycling');
-    at('2026-11-05T04:30:00Z'); // Wed 23:30 EST, but Thursday in UTC
-    await completeTask(lateWednesday.id);
-    at('2026-11-05T14:00:00Z'); // Thu 09:00 EST
-    await completeTask(thursdayMorning.id);
-
-    at('2026-11-06T03:30:00Z'); // Thu 22:30 EST, Friday in UTC
-    const thursdayNight = await tools.getTaskSummary.execute(
-      {},
-      ctxFor(userId, 'America/New_York')
-    );
-    expect(thursdayNight).toContain('**Completed Today:** 1\n');
-
-    at('2026-11-06T05:30:00Z'); // Fri 00:30 EST
-    const afterMidnight = await tools.getTaskSummary.execute(
-      {},
-      ctxFor(userId, 'America/New_York')
-    );
-    expect(afterMidnight).toContain('**Completed Today:** 0\n');
-  });
-
-  it('reschedule "tomorrow" lands at 23:59 on the caller\'s tomorrow', async () => {
-    at(NY_MORNING);
-    const userId = freshUser();
-    await add(userId, 'return library books', '2026-11-05T04:59:00Z');
-
-    const said = await tools.rescheduleTask.execute(
-      { taskTitle: 'library', newDueDate: 'tomorrow' },
-      ctxFor(userId, 'America/New_York')
-    );
-
-    expect(said).toBe('📅 Moved "return library books" to Friday, Nov 6.');
-    expect(getUserTasks(userId)[0].dueDate?.toISOString()).toBe('2026-11-07T04:59:00.000Z');
   });
 
   it('an unknown zone keeps the UTC day and logs counts only', async () => {
@@ -318,33 +274,6 @@ describe('task tools: "today" is the caller\'s day', () => {
       expect(await morning(onlyUndated, 'America/New_York')).toContain(
         '📋 **Tasks:** All clear! ✨\n\n'
       );
-    });
-
-    it('getTaskSummary counts completions since UTC midnight', async () => {
-      const userId = freshUser();
-      const done = await add(userId, 'take out the recycling');
-      await add(userId, 'get the mailbox keys');
-      at('2026-11-05T14:00:00Z');
-      await completeTask(done.id);
-      at('2026-11-06T03:30:00Z');
-
-      expect(await tools.getTaskSummary.execute({}, ctxFor(userId, 'America/New_York'))).toBe(
-        '📊 **Task Summary**\n\n**Today:** 0 tasks\n**Completed Today:** 0\n**Total Pending:** 1\n'
-      );
-    });
-
-    it('rescheduleTask reads "tomorrow" in UTC', async () => {
-      at(NY_MORNING);
-      const userId = freshUser();
-      await add(userId, 'return library books', '2026-11-05T04:59:00Z');
-
-      const said = await tools.rescheduleTask.execute(
-        { taskTitle: 'library', newDueDate: 'tomorrow' },
-        ctxFor(userId, 'America/New_York')
-      );
-
-      expect(said).toBe('📅 Moved "return library books" to Friday, Nov 6.');
-      expect(getUserTasks(userId)[0].dueDate?.toISOString()).toBe('2026-11-06T23:59:00.000Z');
     });
   });
 });

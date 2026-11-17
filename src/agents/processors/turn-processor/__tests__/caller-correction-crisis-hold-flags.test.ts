@@ -314,6 +314,12 @@ beforeEach(() => {
   // Generation on in every row, whatever the shared setup writes (#3882: 'false'; unset on main:
   // on). Under 'false' a zero model-helper count cannot see the dynamic-content route at all.
   vi.stubEnv('LLM_DYNAMIC_CONTENT_ENABLED', 'true');
+  // Rows start at the manifest default for the three flags that change their reads; a describe
+  // or row that tests another state stubs it after this (parent hooks run first). The afterEach
+  // restores the process env, so unpinned, a shell or CI env with the gate on leaked in.
+  vi.stubEnv('CRISIS_AGREEMENT_GATE', 'off');
+  vi.stubEnv('CRISIS_ADJUDICATOR', 'off');
+  vi.stubEnv('CRISIS_CLASSIFIER_ONLY_CHECKIN', 'off');
 });
 
 // Embeddings answer locally in every row: with a project set and Vertex on, the provider is
@@ -631,6 +637,67 @@ describe('the humanizer question suggestion fires (pinned session)', () => {
     expect(turn.writes).toBe(0);
     expectReads({ classifier: 1 });
     expect(h.llmPrompts[0]).toContain(`USER SAID: "${ORDINARY}"`);
+  });
+});
+
+/**
+ * The hold rows above that run only at the defaults, again with the agreement gate on and the
+ * adjudicator in shadow (a state a deploy may run). D1's twin is G1's shadow run (same line, same
+ * read). Shadow's verdict disagrees on purpose: it is asked once on an escalated read and changes
+ * nothing.
+ */
+describe('CRISIS_AGREEMENT_GATE=on, CRISIS_ADJUDICATOR=shadow: the hold rows above', () => {
+  beforeEach(() => {
+    vi.stubEnv('CRISIS_AGREEMENT_GATE', 'on');
+    vi.stubEnv('CRISIS_ADJUDICATOR', 'shadow');
+    h.adjudicator = 'checkin';
+  });
+
+  it('E1 twin, CRISIS_CLASSIFIER_ONLY_CHECKIN=live (held): a scope, the adjudicator asked once, one earlier line so no easing read, writes 0', async () => {
+    vi.stubEnv('CRISIS_CLASSIFIER_ONLY_CHECKIN', 'live');
+    const turn = await oneTurn(ORDINARY, 'crisis');
+    await drain();
+    expect(turn.crisis).toMatchObject({ isCrisis: true });
+    expect(turn.crisis?.softCheck).toBeUndefined();
+    expect(turn.writes).toBe(0);
+    expectReads({ classifier: 1, adjudicator: 1 });
+  });
+
+  it('H1 twin, through the real turn hook: a classifier-only crisis read escalates, held: the adjudicator asked once, writes 0', async () => {
+    const result = await hookTurn(ORDINARY, 'crisis');
+    expect(result?.crisis).toMatchObject({ isCrisis: true });
+    expect(writes()).toBe(0);
+    expectReads({ classifier: 1, adjudicator: 1 });
+  });
+
+  describe('the humanizer question suggestion fires (pinned session)', () => {
+    beforeEach(() => pinHumanizer(ASKS));
+
+    it('Q1 twin: crisis read of ORDINARY escalates, held: 1 model-helper call, writes 0', async () => {
+      h.expectedLLM = 1;
+      const turn = await oneTurn(ORDINARY, 'crisis');
+      expect(turn.crisis).toMatchObject({ isCrisis: true, shouldOverrideLLM: false });
+      expect(turn.crisis?.softCheck).toBeUndefined();
+      expect(turn.writes).toBe(0);
+      expectReads({ classifier: 1, adjudicator: 1 });
+    });
+
+    it('Q1 twin: crisis read of QUESTION_BACK is a soft check-in, held: no model-helper call, no adjudicator, writes 0', async () => {
+      const turn = await oneTurn(QUESTION_BACK, 'crisis');
+      expect(turn.crisis).toMatchObject({ isCrisis: false, shouldOverrideLLM: false });
+      expect(turn.crisis?.softCheck).toBe(true);
+      expect(turn.writes).toBe(0);
+      expectReads({ classifier: 1 });
+    });
+
+    it("Q2 twin, KNOWN #3874 (current behaviour, not a ruling): the held crisis turn's suggestion still sends the caller line as USER SAID", async () => {
+      h.expectedLLM = 1;
+      const turn = await oneTurn(ORDINARY, 'crisis');
+      expect(turn.crisis).toMatchObject({ isCrisis: true });
+      expect(turn.writes).toBe(0);
+      expectReads({ classifier: 1, adjudicator: 1 });
+      expect(h.llmPrompts[0]).toContain(`USER SAID: "${ORDINARY}"`);
+    });
   });
 });
 

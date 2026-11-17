@@ -196,6 +196,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
         run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::The ANTHROPIC_API_KEY repo secret is not set, so the editorial judge can't run and no post can publish."
+          fi
           pnpm tsx scripts/blog/judge-post.ts "$DRAFT" --meta "$RUNNER_TEMP/draft-meta.json" \
             --out "$RUNNER_TEMP/judge.md"
 

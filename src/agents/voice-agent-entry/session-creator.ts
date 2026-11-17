@@ -28,6 +28,7 @@ import { getToolGateway } from '../../tools/gateway/index.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
+import { isolateSessionListeners } from '../shared/session-listener-guard.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
 
 
@@ -448,6 +449,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     llm, tts, userData, voiceOptions,
   });
   limitSessionListeners(session); // see session-listener-limit.ts
+  isolateSessionListeners(session); // a throwing listener must not deafen the call (#3991)
 
   // Gemini native audio speaks for itself: route scripted say() lines through the
   // model so the call keeps one voice (see agents/shared/native-speech.ts).

@@ -175,6 +175,8 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   visual_memories: `${OTHERS}: OCR of uploaded images (screenshots, cards, letters)`,
   tool_executions: `${OTHERS}: tool arguments and results (recipients, messages)`,
   semantic_intelligence: `${OTHERS}: execution_records keeps the raw args of the last 100 tool calls`,
+  // A guest's yes to being called into the person's calls (messaging/guest-consent)
+  guest_consents: `${OTHERS}: guests' consent to be called in, keyed by their phone's hash`,
 };
 
 /**
