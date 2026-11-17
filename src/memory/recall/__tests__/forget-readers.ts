@@ -171,6 +171,16 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     reaches: 'web',
     check: 'always',
   },
+  // Every insight reader (the sanctuary and semantic-intelligence routes, the session's prompt,
+  // the semantic context) reads getInsightsToSurface, which filters before it scores.
+  {
+    id: 'web.proactiveInsights',
+    file: 'src/services/superhuman/semantic-intelligence/insight-broker.ts',
+    site: 'await rememberedInsights(userId, await loadInsights(userId))',
+    reaches: 'web',
+    check: 'always',
+    probe: 'src/services/superhuman/semantic-intelligence/__tests__/insight-broker-forget.test.ts',
+  },
   {
     id: 'web.remembered',
     file: 'src/memory/recall/memory-control.ts',
