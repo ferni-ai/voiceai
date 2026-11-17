@@ -411,7 +411,8 @@ jobs:
       # 'true' when this run tests the whole suite: every event but a pull request,
       # a pull request labelled ci:full-tests, one whose diff makes `--changed`
       # run everything anyway (`!= 'false'`: a missing answer runs all four), and
-      # one that touches crisis-safety or memory code (setup's full-tests).
+      # one that touches crisis-safety or memory code or any crisis-lane path
+      # (setup's full-tests).
       FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true' }}
       # 'true' when a pull request that runs only the affected tests has so many that
       # setup split them over the four shards (setup's unit-affected-sharded). Only an
@@ -566,7 +567,7 @@ jobs:
       # one runs everything. The merge queue always runs the whole suite with coverage,
       # so this changes how early a PR hears, never what reaches main. The
       # `ci:full-tests` label runs the whole suite on a PR, and so does a change to
-      # crisis-safety or memory code (setup's full-tests).
+      # crisis-safety or memory code or to any crisis-lane path (setup's full-tests).
       - name: Run unit tests affected by this pull request
         if: env.FULL_SUITE != 'true'
         run: |

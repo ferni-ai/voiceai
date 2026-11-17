@@ -11,7 +11,7 @@
  */
 import { pathToFileURL } from 'url';
 
-import { globPattern, loadPolicy, POLICY_PATH } from './autonomy-lanes.js';
+import { globPattern, loadPolicy, POLICY_PATH } from './autonomy-lanes.ts';
 
 export const EVERY_PATH = '.';
 
