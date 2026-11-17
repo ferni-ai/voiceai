@@ -26,15 +26,15 @@ const log = createLogger({ module: 'RoomMixInput' });
 
 export const MIX_SAMPLE_RATE = 16_000;
 /** 10 ms at 16 kHz mono. */
-export const MIX_SAMPLES_PER_FRAME = 160;
+const MIX_SAMPLES_PER_FRAME = 160;
 /** A guest's frames waiting for the next owner frame: 50 ms. When full, the oldest is dropped. */
-export const GUEST_QUEUE_FRAMES = 5;
+const GUEST_QUEUE_FRAMES = 5;
 
 /**
  * The clock the mix stamps ledger notes with: monotonic milliseconds. Anything
  * that asks the ledger about a window (STT turn labelling) must read this clock.
  */
-export function mixClock(): number {
+function mixClock(): number {
   return performance.now();
 }
 
@@ -109,7 +109,7 @@ export class RoomMixInput extends voice.AudioInput {
    */
   addTrack(identity: string, frames: ReadableStream<AudioFrame>): void {
     if (this.closed) {
-      log.warn({ identity }, 'Room mix is closed, track not added');
+      log.warn({ role: this.roleOf(identity) }, 'Room mix is closed, track not added');
       return;
     }
     this.removeTrack(identity);
@@ -124,7 +124,8 @@ export class RoomMixInput extends voice.AudioInput {
     if (!track) return;
     this.tracks.delete(identity);
     track.reader.cancel().catch((error: unknown) => {
-      log.warn({ identity, error: String(error) }, 'Room mix could not cancel a removed track');
+      const role = this.roleOf(identity);
+      log.warn({ role, error: String(error) }, 'Room mix could not cancel a removed track');
     });
   }
 
@@ -141,6 +142,11 @@ export class RoomMixInput extends voice.AudioInput {
     await super.close();
   }
 
+  /** Who a track is in logs: the role, never the identity (the owner's is their uid). */
+  private roleOf(identity: string): 'owner' | 'guest' {
+    return identity === this.owner ? 'owner' : 'guest';
+  }
+
   private async readTrack(identity: string, track: Track): Promise<void> {
     try {
       for (;;) {
@@ -152,7 +158,8 @@ export class RoomMixInput extends voice.AudioInput {
       }
     } catch (error) {
       if (this.tracks.get(identity) === track) {
-        log.warn({ identity, error: String(error) }, 'Room mix track failed, treating it as ended');
+        const role = this.roleOf(identity);
+        log.warn({ role, error: String(error) }, 'Room mix track failed, treating it as ended');
       }
     } finally {
       // A track that ends is gone from the mix: from now on that person is silence.
@@ -190,7 +197,7 @@ export class RoomMixInput extends voice.AudioInput {
       if (frame && !fits && !track.warnedFormat) {
         track.warnedFormat = true;
         log.warn(
-          { identity, guest: formatOf(frame), owner: formatOf(ownerFrame) },
+          { role: 'guest', guest: formatOf(frame), owner: formatOf(ownerFrame) },
           'Room mix guest frame format differs from the owner, mixing it as silence'
         );
       }
