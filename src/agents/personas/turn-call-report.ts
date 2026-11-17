@@ -17,18 +17,60 @@ import {
   withoutCallReport,
 } from '../../intelligence/context-builders/external/call-report.js';
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
+import { reachesHelp } from '../../services/safety/safety-talk.js';
 import { TURN_CONTEXT_SAFETY } from '../multi-agent/pushed-notes.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { PROTECTED_TOOL_NAMES } from '../../tools/orchestrator/persona-tool-policy.js';
 
-/** Crisis resources in a tool's output: job-loss and new-parent tools name 988 too (#3080 r8). */
-const CRISIS_RESOURCES = /\b988\b|lifeline|crisis (?:line|text)/i;
+/** How deep a decoded tool output is walked for its text. */
+const MAX_DEPTH = 8;
 
-/** A safety tool's call or output, or any tool output naming crisis resources: unmarked guidance. */
+/**
+ * Every text part of a tool's output. LiveKit keeps the output JSON-encoded, so "\n988" reads
+ * as "n988" until it is decoded; numbers count as text ("911" decodes to 911).
+ */
+function textParts(output: unknown): string[] {
+  let value = output;
+  if (typeof output === 'string') {
+    try {
+      value = JSON.parse(output);
+    } catch {
+      return [output];
+    }
+  }
+  const parts: string[] = [];
+  const walk = (v: unknown, depth: number): void => {
+    if (typeof v === 'string' || typeof v === 'number') parts.push(String(v));
+    else if (v && typeof v === 'object' && depth < MAX_DEPTH)
+      for (const inner of Object.values(v)) walk(inner, depth + 1);
+  };
+  walk(value, 0);
+  return parts;
+}
+
+/**
+ * Help named anywhere in a tool's output (#3157): job-loss and new-parent tools name 988 too
+ * (#3080 r8), and reachesHelp is the one reader of help lines in any form. The parts are read
+ * joined by a space and by nothing ("Crisis Life" + "line"), and the raw output is read as well.
+ */
+function namesHelp(output: unknown): boolean {
+  const parts = textParts(output);
+  return [String(output ?? ''), parts.join(' '), parts.join('')].some(reachesHelp);
+}
+
+/** What each tool output named, read once: an item's output never changes, and history keeps it. */
+const helpByItem = new WeakMap<object, boolean>();
+
+/** A safety tool's call or output, or any tool output naming help: unmarked guidance. */
 function safetyTool(item: unknown): boolean {
   const { type, name, output } = item as { type?: string; name?: string; output?: unknown };
   if (type !== 'function_call' && type !== 'function_call_output') return false;
-  return PROTECTED_TOOL_NAMES.has(name ?? '') || CRISIS_RESOURCES.test(String(output ?? ''));
+  if (PROTECTED_TOOL_NAMES.has(name ?? '')) return true;
+  const known = helpByItem.get(item as object);
+  if (known !== undefined) return known;
+  const named = namesHelp(output);
+  helpByItem.set(item as object, named);
+  return named;
 }
 
 /** Any safety signal on this request or call. Fails safe: an error holds the report. */

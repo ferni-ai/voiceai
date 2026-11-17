@@ -114,6 +114,41 @@ describe('turnRequestFor: a safety tool in the request is a signal too (#3080 r8
   });
 });
 
+describe('turnRequestFor: any tool output naming help holds the report (#3157)', () => {
+  function withOutput(output: string): llm.ChatContext {
+    const c = request();
+    c.insert(llm.FunctionCall.create({ callId: 'c2', name: 'jobLossSupport', args: '{}' }));
+    c.insert(
+      llm.FunctionCallOutput.create({ callId: 'c2', name: 'jobLossSupport', output, isError: false })
+    );
+    return c;
+  }
+
+  // Fictional surroundings; the numbers are the real lines a tool could name.
+  it.each([
+    ['988 in words', 'You can call nine eight eight tonight.'],
+    ['9 8 8 with spaces', 'Dial 9 8 8 if it gets heavy.'],
+    ['9-8-8 with dashes', 'Dial 9-8-8 if it gets heavy.'],
+    ['988 after a newline in JSON', JSON.stringify({ tips: 'Rest first.\n988 is open all night.' })],
+    ['the Crisis Text Line number alone', 'Text 741741 any time.'],
+    ['the DV hotline number alone', 'Reach them at 1-800-799-7233.'],
+    ['the Trevor number alone', 'Reach them at 1-866-488-7386.'],
+    ['the old Lifeline number alone', 'Reach them at 1-800-273-8255.'],
+    ['call 911', 'If you are hurt, call 911.'],
+    ['a line name split across array parts', JSON.stringify(['Crisis Life', 'line, open now'])],
+  ])('%s: stripped, and it waits', (_l, output) => {
+    const [ctx, waits] = turnRequestFor(withOutput(output), 's-help', false);
+    expect(waits).toBe(true);
+    expect(text(ctx)).not.toContain('ZEBRA-SECRET');
+  });
+
+  it('an amount is not a line: the report rides', () => {
+    const [ctx, waits] = turnRequestFor(withOutput('The flight is $988 return.'), 's-fare', false);
+    expect(waits).toBe(false);
+    expect(text(ctx)).toContain('ZEBRA-SECRET');
+  });
+});
+
 describe('noteCallReportReached', () => {
   it('a held report is never marked; any other turn marks it, with its words and hold', () => {
     const ctx = llm.ChatContext.empty();
