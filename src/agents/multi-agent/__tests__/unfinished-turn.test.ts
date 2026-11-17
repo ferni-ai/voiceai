@@ -22,6 +22,8 @@ import { labelTurn, stripTurnLabel } from '../../group-conversation/turn-label.j
 import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import type { TurnReceipt } from '../../shared/turn-receipt.js';
 
+/** A solo call's transcripts: no group call labels to take off. */
+const asSaid = (transcript: string): string => transcript;
 const PAUSE_OFF = { PAUSE_REQUEST_COMMITS_TURN: 'off' };
 const PAUSE_ON = { PAUSE_REQUEST_COMMITS_TURN: 'on' };
 
@@ -203,11 +205,11 @@ describe('unfinishedness', () => {
 
   it('installs on the session unless UNFINISHED_TURN_HOLD=off', () => {
     const on: { unfinishedTurnHoldMs?: (transcript: string) => number } = {};
-    expect(installUnfinishedTurnHold(on, {})).toBe(true);
+    expect(installUnfinishedTurnHold(on, {}, asSaid)).toBe(true);
     for (const said of ['We don’t get', 'so,', 'Sounds good.'])
       expect(on.unfinishedTurnHoldMs?.(said)).toBe(unfinishedTurnHoldMs(said));
     const off: { unfinishedTurnHoldMs?: unknown } = {};
-    expect(installUnfinishedTurnHold(off, { UNFINISHED_TURN_HOLD: 'off' })).toBe(false);
+    expect(installUnfinishedTurnHold(off, { UNFINISHED_TURN_HOLD: 'off' }, asSaid)).toBe(false);
     expect(off.unfinishedTurnHoldMs).toBeUndefined();
   });
 });
@@ -229,7 +231,7 @@ function activity() {
     chatCtx: { items: [] },
     sessionOptions: { turnHandling: { interruption: { minWords: 0 } } },
   };
-  installUnfinishedTurnHold(session, {});
+  installUnfinishedTurnHold(session, {}, asSaid);
   return {
     agentSession: session,
     schedulingPaused: false,
