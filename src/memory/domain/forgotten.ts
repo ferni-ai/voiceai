@@ -8,6 +8,7 @@
  *
  * @module memory/domain/forgotten
  */
+import { contactNumberRuns } from './contact-data.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
 /** Words too common to say what a memory is about (recall's content words share them). */
@@ -63,6 +64,7 @@ const LEGACY_SKIP: ReadonlySet<string> = new Set([...STOPWORDS, ...FORGET_FILLER
  */
 export function isForgotten(text: string, topics: readonly string[]): boolean {
   if (topics.length === 0) return false;
+  if (holdsTopicNumber(text, topics)) return true;
   const words = new Set(forgetTokens(text));
   // "ex wife" in a memory is the "ex-wife" / "exwife" of a request, and back.
   const raw = foldedWords(text).map((w) => w.word);
@@ -101,6 +103,8 @@ export function isForgotten(text: string, topics: readonly string[]): boolean {
  */
 export function isForgottenPassage(text: string, topics: readonly string[]): boolean {
   if (isForgotten(text, topics)) return true;
+  // "Forget my brother's number" and then "his cell is 435 555 0199": no topic word is in it.
+  if (topics.some((t) => NUMBER_TOPIC.test(t)) && contactNumberRuns(text).length > 0) return true;
   const words = new Set(forgetTokens(text));
   // "Distinctive" is judged on the word as written, not its stem: a stemmer
   // can shorten "wedding" below five letters, and the topic must still count.
@@ -116,6 +120,29 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
       )
   );
 }
+
+/**
+ * The phone numbers in a text as their digits, so "(435) 555-0199", "435/555/0199" and "four
+ * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
+ * any format; dates and years are not numbers there.
+ */
+const numberKeys = (text: string): string[] =>
+  contactNumberRuns(text).map((run) => run.replace(/\D/g, ''));
+
+/**
+ * A number a topic names is in the text, in any format (#3995 follow-up). Either may hold the
+ * other: a country code ("+1 435 ..."), a number without its area code, or one run together
+ * with another number all still count.
+ */
+function holdsTopicNumber(text: string, topics: readonly string[]): boolean {
+  const wanted = topics.flatMap(numberKeys);
+  if (wanted.length === 0) return false;
+  const found = numberKeys(text);
+  return wanted.some((w) => found.some((f) => f.includes(w) || w.endsWith(f)));
+}
+
+/** A topic about a contact number ("brother phone number", "mom's cell"), by whole word. */
+const NUMBER_TOPIC = /\b(?:phone|numbers?|cell|mobile|digits)\b/i;
 
 /** The text a stored fact document is about, in any fact collection's shape, for matching. */
 export function factText(d: Record<string, unknown>): string {
