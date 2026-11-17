@@ -1,0 +1,175 @@
+/**
+ * CRISIS_GUIDED_LINE_FLOOR through the real gatedReply: a reply the gate guided for a crisis read
+ * names its line, said by code when the model leaves it out, on the first reply and on the reply
+ * asked again after a classifier escalation. Every other reply reads exactly as with the flag off.
+ * All lines are fictional.
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { llm } from '@livekit/agents';
+import { ReadableStream } from 'node:stream/web';
+import {
+  resetCrisisClassifierCache,
+  type CrisisGenerateFn,
+} from '../../../services/safety/crisis-classifier.js';
+import { FOR_THEM_988, TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
+import { detectCrisis } from '../../../services/safety/crisis-guard.js';
+import { decisionFor, gatedReply } from '../crisis-gate.js';
+
+const BASE = {
+  CRISIS_GUARD_MODE: 'live',
+  CRISIS_CLASSIFIER_MODE: 'live',
+  CRISIS_CLASSIFIER_TIMEOUT_MS: '40',
+};
+const ON = { ...BASE, CRISIS_GUIDED_LINE_FLOOR: 'on' };
+const OFF = { ...BASE, CRISIS_GUIDED_LINE_FLOOR: 'off' };
+
+const ANSWER = {
+  none: async () => '{"risk":"none","subject":"self"}',
+  crisis: async () => '{"risk":"crisis","subject":"self"}',
+  throws: async (): Promise<string> => {
+    throw new Error('provider down');
+  },
+} satisfies Record<string, CrisisGenerateFn>;
+
+const PILLS = 'i have a bottle of pills and i want to take them all';
+const FRIEND = 'my friend told me she wants to kill herself';
+const UNSAFE = 'i feel unsafe with myself tonight';
+const ORDINARY = 'what should I cook tonight?';
+const CHAT = 'Sounds good.';
+
+const streamOf = (text: string): ReadableStream<unknown> =>
+  new ReadableStream<unknown>({
+    start(controller) {
+      if (text) controller.enqueue(text);
+      controller.close();
+    },
+  });
+
+async function turn(
+  said: string,
+  env: Record<string, string>,
+  generate: CrisisGenerateFn,
+  modelSays: () => string = () => CHAT
+): Promise<{ spoken: string; asks: number }> {
+  resetCrisisClassifierCache();
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0.42); // same style picks every turn
+  const model = vi.fn(async () => streamOf(modelSays()));
+  const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
+  const ctx = llm.ChatContext.empty();
+  ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+  ctx.addMessage({ role: 'user', content: said });
+  const reply = await gatedReply(ctx, { userData: undefined }, model as never, opener as never, {
+    env,
+    generate,
+  });
+  let spoken = '';
+  if (reply) for await (const chunk of reply as unknown as AsyncIterable<string>) spoken += chunk;
+  random.mockRestore();
+  return { spoken, asks: model.mock.calls.length };
+}
+
+beforeEach(() => resetCrisisClassifierCache());
+
+describe('CRISIS_GUIDED_LINE_FLOOR: a crisis guide reply names its line', () => {
+  it('a classifier escalation: the reply asked again gets 988 when the model leaves it out', async () => {
+    const off = await turn(PILLS, OFF, ANSWER.crisis);
+    const on = await turn(PILLS, ON, ANSWER.crisis);
+    expect(off.asks).toBe(2); // the held reply dropped, the model asked again with the guidance
+    expect(off.spoken).toBe(CHAT); // main today: no 988 reaches the caller
+    expect(on.asks).toBe(2);
+    expect(on.spoken).toBe(`${CHAT} ${TALK_TO_988}`);
+  });
+
+  it('a pattern guide on the first reply: a friend at risk gets the for-them 988 line', async () => {
+    const off = await turn(FRIEND, OFF, ANSWER.none);
+    const on = await turn(FRIEND, ON, ANSWER.none);
+    expect(off.spoken).toBe(CHAT);
+    expect(on.spoken).toBe(`${CHAT} ${FOR_THEM_988}`);
+  });
+
+  it('the first reply holds the line with no read at all (the classifier throws)', async () => {
+    expect((await turn(FRIEND, ON, ANSWER.throws)).spoken).toBe(`${CHAT} ${FOR_THEM_988}`);
+  });
+
+  it('a reply that already says 988 is never added to', async () => {
+    const says988 = () => 'You can call or text 988 any time.';
+    for (const [line, generate] of [
+      [PILLS, ANSWER.crisis],
+      [FRIEND, ANSWER.none],
+    ] as const) {
+      const off = await turn(line, OFF, generate, says988);
+      expect((await turn(line, ON, generate, says988)).spoken, line).toBe(off.spoken);
+    }
+  });
+
+  it('an empty reply gets the line alone', async () => {
+    const silent = () => '';
+    expect((await turn(PILLS, ON, ANSWER.crisis, silent)).spoken).toBe(TALK_TO_988);
+    expect((await turn(FRIEND, ON, ANSWER.none, silent)).spoken).toBe(FOR_THEM_988);
+  });
+});
+
+describe('CRISIS_GUIDED_LINE_FLOOR: every reply without a crisis guide is unchanged', () => {
+  it('an ordinary turn the classifier reads as nothing, or cannot read', async () => {
+    for (const generate of [ANSWER.none, ANSWER.throws]) {
+      const off = await turn(ORDINARY, OFF, generate);
+      expect(off.spoken).toBe(CHAT);
+      expect((await turn(ORDINARY, ON, generate)).spoken).toBe(off.spoken);
+    }
+  });
+
+  it('an ordinary line the classifier reads as crisis is a crisis guide: it gets 988', async () => {
+    expect((await turn(ORDINARY, OFF, ANSWER.crisis)).spoken).toBe(CHAT);
+    expect((await turn(ORDINARY, ON, ANSWER.crisis)).spoken).toBe(`${CHAT} ${TALK_TO_988}`);
+  });
+
+  it('the timeout check-in keeps its own ending: the floor adds nothing to it', async () => {
+    const checkin = { CRISIS_TIMEOUT_CHECKIN: 'on' };
+    const off = await turn(UNSAFE, { ...OFF, ...checkin }, ANSWER.throws);
+    const on = await turn(UNSAFE, { ...ON, ...checkin }, ANSWER.throws);
+    expect(off.spoken).toContain('988'); // the check-in's own 988, said once
+    expect(on.spoken).toBe(off.spoken);
+  });
+
+  it('a turn the patterns replace with a script is the script, flag on or off', async () => {
+    const plain = 'i want to kill myself';
+    const off = await turn(plain, OFF, ANSWER.none);
+    expect(off.asks).toBe(0);
+    expect((await turn(plain, ON, ANSWER.none)).spoken).toBe(off.spoken);
+  });
+});
+
+describe('decisionFor: which crisis guides carry a line', () => {
+  const lineOf = (said: string) => {
+    const decision = decisionFor(detectCrisis(said));
+    return decision.action === 'guide' ? decision.line : decision.action;
+  };
+
+  it("the caller's own crisis read, and a friend at risk", () => {
+    expect(lineOf('i have the pills right here')).toBe('pass'); // no read: no guide at all
+    expect(lineOf(FRIEND)).toEqual({ who: 'them', urgent: false, lang: 'en' });
+  });
+
+  it("the kernel's own abuse read keeps 988 beside the abuse line, so its guide has the line", () => {
+    const read = detectCrisis('my husband hits me');
+    const decision = decisionFor(read);
+    expect(decision.action).toBe('guide');
+    const guidance = decision.action === 'guide' ? decision.guidance : '';
+    const line = decision.action === 'guide' ? decision.line : undefined;
+    // The line exactly where the guidance asks for 988.
+    expect(/\b988\b/.test(guidance)).toBe(line !== undefined);
+  });
+
+  it('an abuse-only read (no self-risk) has no line: its own care is the abuse line', () => {
+    const read = detectCrisis('my husband hits me');
+    const abuseOnly = {
+      ...read,
+      indicators: read.indicators.filter((i) => !i.endsWith('_self_harm')),
+    };
+    const decision = decisionFor(abuseOnly);
+    expect(decision.action).toBe('guide');
+    const guidance = decision.action === 'guide' ? decision.guidance : '';
+    expect(guidance).not.toMatch(/\b988\b/); // main asks for no 988 here either
+    expect(decision.action === 'guide' ? decision.line : 'x').toBeUndefined();
+  });
+});

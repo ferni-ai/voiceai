@@ -27,8 +27,8 @@ import { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
-import { TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
-import { withReplyEnding } from './crisis-grounded-screen.js';
+import { names988, TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
+import { withMissingEnding } from './crisis-grounded-screen.js';
 
 const log = createLogger({ module: 'CrisisTimeoutCheckin' });
 
@@ -132,7 +132,6 @@ A safety read of the caller's last words could not be made, and their words touc
 
 const SAFETY_QUESTION = { en: 'Are you safe right now?', es: '¿Estás a salvo ahora mismo?' };
 const LINE_988 = { en: TALK_TO_988, es: TALK_TO_988_ES };
-const SAID_988 = /(?<!\d)988(?!\d)|\bnine[\s,-]+eight[\s,-]+eight\b/i;
 const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
 
 /**
@@ -173,15 +172,10 @@ function withCheckinEnding<T>(
   caller: { latest: string }
 ): ReadableStream<T | string> {
   const lang = languageOf(caller.latest);
-  const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
-  return withReplyEnding(reply ?? empty, (said) => {
-    const missing = [
-      ASKED_SAFE.test(said) ? '' : SAFETY_QUESTION[lang],
-      SAID_988.test(said) ? '' : LINE_988[lang],
-    ].filter(Boolean);
-    if (!missing.length) return '';
-    return `${said.trim() ? ' ' : ''}${missing.join(' ')}`;
-  });
+  return withMissingEnding(reply, [
+    { present: (said) => ASKED_SAFE.test(said), words: SAFETY_QUESTION[lang] },
+    { present: names988, words: LINE_988[lang] },
+  ]);
 }
 
 type GateTurn = Omit<Parameters<typeof timeoutCheckin>[0], 'verdict'> & { env?: Env };

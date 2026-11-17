@@ -239,7 +239,7 @@ const chunkText = (chunk: unknown): string => {
  * A reply stream with the words code says after it: ending(said) gets the model's whole text and
  * returns what to add, or '' for nothing (the grounded screen, the timeout check-in).
  */
-export function withReplyEnding<T>(
+function withReplyEnding<T>(
   reply: ReadableStream<T>,
   ending: (said: string) => string
 ): ReadableStream<T | string> {
@@ -256,6 +256,35 @@ export function withReplyEnding<T>(
       },
     })
   );
+}
+
+/** One thing a safety reply must say: a test for whether it was said, and the words if not. */
+export interface ReplyPart {
+  present: (said: string) => boolean;
+  words: string;
+}
+
+/**
+ * A safety reply with each part it lacks said after it, in order (the timeout check-in, the 988
+ * floor). No reply: every part's words alone. A presence test that throws counts as missing, so
+ * a failure adds words and never drops them.
+ */
+export function withMissingEnding<T>(
+  reply: ReadableStream<T> | null,
+  parts: readonly ReplyPart[]
+): ReadableStream<T | string> {
+  const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
+  return withReplyEnding(reply ?? empty, (said) => {
+    const missing = parts.filter((part) => {
+      try {
+        return !part.present(said);
+      } catch {
+        return true;
+      }
+    });
+    if (!missing.length) return '';
+    return `${said.trim() ? ' ' : ''}${missing.map((part) => part.words).join(' ')}`;
+  });
 }
 
 /**

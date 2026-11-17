@@ -201,7 +201,11 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the grade', () => {
         subject: 'self',
       }
     );
-    expect(out.decision).toEqual({ action: 'guide', guidance: buildCrisisGuidance(merged) });
+    expect(out.decision).toEqual({
+      action: 'guide',
+      guidance: buildCrisisGuidance(merged),
+      line: { who: 'self', urgent: false, lang: 'en' }, // CRISIS_GUIDED_LINE_FLOOR's mark
+    });
     expect(grades()).toHaveLength(1); // the pipeline's own read was none: main passes, no line
   });
 

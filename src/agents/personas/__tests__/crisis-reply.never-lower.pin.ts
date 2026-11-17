@@ -72,6 +72,7 @@ export const PINNED_NEVER_HEARD: readonly string[] = [
 ];
 
 export const PINNED_SHOWN_ON: Readonly<Record<string, Shown>> = {
+  CRISIS_GUIDED_LINE_FLOOR: { call: 'pills', raises: ['crisis', '988 spoken'] },
   CRISIS_READ_JOINED_TURN: { call: 'a line still held' },
   CRISIS_SCRIPT_IMMINENT_READ: { call: 'plain', raises: ['imminent', 'emergency'] },
   CRISIS_TIMEOUT_CHECKIN: { call: 'pills', raises: ['throws', '988 spoken'] },
@@ -84,6 +85,7 @@ export const PINNED_LOWERS_A_REPLY: readonly string[] = ['THIRD_PARTY_SELF_HARM'
 
 /** What each flag's own sentences must carry, at least (WORDING_NOT_READ.onlyWithFlag). */
 export const PINNED_SAYS: Readonly<Record<string, readonly string[]>> = {
+  CRISIS_GUIDED_LINE_FLOOR: ['988'],
   CRISIS_SCRIPT_IMMINENT_READ: ['911', '988'],
   CRISIS_SELF_HARM_911_LINE: ['911'],
   CRISIS_TIMEOUT_CHECKIN: ['988'],

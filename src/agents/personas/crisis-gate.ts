@@ -72,6 +72,11 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
 import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
+  guideLineOf,
+  withGuidedLine,
+  type GuideLine,
+} from '../../services/safety/crisis-guided-line-floor.js';
+import {
   applyClassifierVerdict,
   buildCrisisGuidance,
   detectCrisis,
@@ -110,7 +115,8 @@ const log = createLogger({ module: 'CrisisGate' });
 export type CrisisGateDecision =
   | { action: 'pass' }
   // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
-  | { action: 'guide'; guidance: string; about?: 'third_party' }
+  // line: the line a crisis read's reply must name (CRISIS_GUIDED_LINE_FLOOR); soft guides have none.
+  | { action: 'guide'; guidance: string; about?: 'third_party'; line?: GuideLine }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
 
@@ -126,18 +132,30 @@ export interface CrisisGateTurn {
 
 type Chunk = llm.ChatChunk | string | object;
 
+// By action only: an emergency replace can't outrank a crisis-line replace that came first.
 const RANK = { pass: 0, guide: 1, replace: 2 } as const;
 
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
+
+/** A crisis read's guide: its guidance and the line its reply must name, when it has one. */
+const crisisGuide = (guidance: string, line: GuideLine | undefined): GuideDecision =>
+  line ? { action: 'guide', guidance, line } : { action: 'guide', guidance };
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
   if (crisis.isCrisis && crisis.subject === 'third_party') {
-    return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
+    const guided = crisisGuide(buildCrisisGuidance(crisis), guideLineOf(crisis));
+    return { ...guided, about: 'third_party' };
   }
-  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
+  if (crisis.isCrisis) {
+    const disclosure = disclosureGuidance(crisis);
+    return crisisGuide(
+      disclosure ?? buildCrisisGuidance(crisis),
+      guideLineOf(crisis, disclosure !== null)
+    );
+  }
   return { action: 'pass' };
 }
 
@@ -287,7 +305,8 @@ export function startCrisisGate(
     }
     const lone = { call, input: said, verdict, detection, pattern, env, generate } as const;
     const eased = await afterCheckLoneRead({ ...lone, source: 'gate' }); // CRISIS_CONFIRMED_CALL_RISK
-    if (eased) return guide(eased.guidance);
+    // The stepped-down read of an imminent turn is still a crisis read; an after-check ease is not.
+    if (eased) return crisisGuide(eased.guidance, eased.crisis && guideLineOf(eased.crisis));
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
@@ -425,17 +444,23 @@ export async function gatedReply(
   };
   // A grounded release, or a re-ask after it: code says the direct question, last (crisis-grounded-screen.ts).
   const asking = (s: ReadableStream<Chunk> | null, on = gate?.reask) => (on ? screenReply(s) : s);
-  const reply = asking(await ask(ctx));
+  // CRISIS_GUIDED_LINE_FLOOR: code says the line a crisis guide's reply left out (crisis-guided-line-floor.ts).
+  const first = await ask(ctx);
+  const reply = asking(
+    gate?.decision.action === 'guide' ? withGuidedLine(first, gate.decision, env) : first
+  );
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
   return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
-    const guided = checkin.ending(
-      await ask(guidedRequest(decision), burst === undefined ? undefined : false, true),
+    const asked = await ask(guidedRequest(decision), burst === undefined ? undefined : false, true);
+    // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks; a crisis guide, its line.
+    const guided = withGuidedLine(
+      checkin.ending(asked, decision, callerWords(chatCtx)),
       decision,
-      callerWords(chatCtx) // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks
+      env
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });

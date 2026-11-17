@@ -529,9 +529,21 @@ describe('no flag lowers what a caller in crisis hears', () => {
     '%s on top of every other flag set to live loses only what it loses alone',
     async (name, known) => {
       const base = allBut(name, 'live');
-      expect(await losses(base, { ...base, [name]: known.value })).toEqual(known.lost);
+      const lost = known.onEveryLive ?? known.lost;
+      expect(await losses(base, { ...base, [name]: known.value })).toEqual(lost);
     }
   );
+
+  // The floor never lowers under the known lowering (crisis lead, 2026-11-17): with
+  // THIRD_PARTY_SELF_HARM live, it only raises the friend-at-risk crisis turn to 988 spoken.
+  it('CRISIS_GUIDED_LINE_FLOOR with THIRD_PARTY_SELF_HARM live raises only', async () => {
+    const lowered = { THIRD_PARTY_SELF_HARM: 'live' };
+    const floored = { ...lowered, CRISIS_GUIDED_LINE_FLOOR: 'on' };
+    expect(await losses(lowered, floored)).toEqual([]);
+    const friend = (r: Readings): Gives => gives(r.get('a friend at risk/crisis')![0]);
+    expect(MEETS['988 spoken'](friend(await readUnder(lowered)))).toBe(false);
+    expect(MEETS['988 spoken'](friend(await readUnder(floored)))).toBe(true);
+  });
 
   describe('the holds this grid leans on', () => {
     // The grid gives the adjudicator no answer, so it cannot see a check-in the adjudicator
