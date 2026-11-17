@@ -14,9 +14,13 @@ import { createLogger } from '../../utils/logger.js';
 import { adminFetch } from '../admin-fetch.js';
 import {
   confirmState,
+  runningForStage,
+  settle,
   stage,
+  unconfirm,
   type AgentFlagsBody,
   type OccupiedRoom,
+  type Staged,
 } from './agent-flags-state.js';
 import {
   EMPTY,
@@ -109,7 +113,9 @@ function shell(inner: string): string {
 /** Loads the flags and the dev rooms, and returns the section. */
 export async function render(): Promise<string> {
   stopPolling();
+  const { unconfirmed } = view; // survives a reload of the section
   view = freshView();
+  view.unconfirmed = unconfirmed;
   let loaded: Loaded;
   try {
     loaded = await loadFlags();
@@ -123,6 +129,7 @@ export async function render(): Promise<string> {
     return shell(`<p class="af-banner">${escapeHtml(text)}</p>`);
   }
   view.body = loaded.body;
+  view.unconfirmed = settle(view.unconfirmed, loaded.body.snapshot);
   await refreshRooms();
   return shell(`
     <div id="afBanners">${renderBanners(view)}</div>
@@ -136,6 +143,9 @@ export async function render(): Promise<string> {
 // APPLY AND CONFIRM
 // ============================================================================
 
+const isStagedIn = (s: Staged, name: string): boolean =>
+  Object.hasOwn(s.set, name) || s.reset.includes(name);
+
 function stopPolling(): void {
   if (pollTimer) clearTimeout(pollTimer);
   pollTimer = null;
@@ -147,8 +157,10 @@ async function poll(): Promise<void> {
   if (p.kind !== 'confirming' || !document.getElementById('agentFlagsRoot')) return;
   try {
     const loaded = await loadFlags();
-    if (loaded.ok) view.body = loaded.body;
-    else log.warn('Agent flags poll failed', { status: loaded.status });
+    if (loaded.ok) {
+      view.body = loaded.body;
+      view.unconfirmed = settle(view.unconfirmed, loaded.body.snapshot);
+    } else log.warn('Agent flags poll failed', { status: loaded.status });
   } catch (error) {
     log.warn('Agent flags poll failed', error);
   }
@@ -164,6 +176,7 @@ async function poll(): Promise<void> {
     pollTimer = setTimeout(() => void poll(), POLL_MS);
     return;
   }
+  if (state === 'timeout') view.unconfirmed = unconfirm(view.unconfirmed, p.applied, p.appliedAt);
   view.phase = { kind: state };
   view.staged = EMPTY;
   repaint();
@@ -191,6 +204,10 @@ async function apply(): Promise<void> {
     // A 200 always carries appliedAt; if the reply was unreadable, time the wait from now.
     const appliedAt = reply.appliedAt ?? new Date().toISOString();
     view.auditWarning = reply.auditWarning ?? '';
+    // Re-applied names are tracked by this apply now; a timeout records them again.
+    view.unconfirmed = Object.fromEntries(
+      Object.entries(view.unconfirmed).filter(([n]) => !isStagedIn(applied, n))
+    );
     view.phase = { kind: 'confirming', applied, appliedAt };
     pollTimer = setTimeout(() => void poll(), POLL_MS);
   } else if (res.status === 409) {
@@ -213,7 +230,9 @@ function onSelect(select: HTMLSelectElement): void {
   if (!flag || locked(view)) return;
   const value = select.value === 'default' ? 'default' : flag.modes.find((m) => m === select.value);
   if (!value) return;
-  view.staged = stage(view.staged, flag.name, value, runningValue(view, flag) ?? '', flag.default);
+  const pending = view.body?.pendingRestart ?? [];
+  const running = runningForStage(flag.name, runningValue(view, flag), pending, view.unconfirmed);
+  view.staged = stage(view.staged, flag.name, value, running, flag.default);
   if (view.phase.kind !== 'idle') view.phase = { kind: 'idle' };
   select.closest('.af-row')?.classList.toggle('af-row--staged', isStaged(view, flag.name));
   paint('afBar', renderBar(view));

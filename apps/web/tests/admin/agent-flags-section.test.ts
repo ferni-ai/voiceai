@@ -81,11 +81,33 @@ function choose(root: HTMLElement, flag: string, value: string): void {
 const applyButton = (root: HTMLElement): HTMLButtonElement | null =>
   root.querySelector<HTMLButtonElement>('[data-af="apply"]');
 
+/** The old worker: SOUND_CONDUCTOR set on, ATTUNE_LEDGER unset (its default, off). */
+const OLD_WORKER = {
+  ...FLAGS_BODY,
+  stale: false,
+  snapshot: {
+    startedAt: '2026-11-17T09:00:00.000Z',
+    buildSha: null,
+    flags: {
+      SOUND_CONDUCTOR: { raw: 'on', resolved: 'on' },
+      ATTUNE_LEDGER: { raw: null, resolved: 'off' },
+      FLAG_SNAPSHOT: { raw: 'on', resolved: 'on' },
+    },
+  },
+};
+
+const selectOf = (root: HTMLElement, flag: string): HTMLSelectElement | null =>
+  root.querySelector<HTMLSelectElement>(`select[data-flag="${flag}"]`);
+
+const rowOf = (root: HTMLElement, flag: string): Element | null | undefined =>
+  root.querySelector(`select[data-flag="${flag}"]`)?.closest('.af-row');
+
 describe('AgentFlagsSection', () => {
   beforeEach(() => {
     fetchMock.mockReset();
   });
   afterEach(() => {
+    vi.useRealTimers();
     document.body.innerHTML = '';
   });
 
@@ -139,5 +161,76 @@ describe('AgentFlagsSection', () => {
     choose(root, 'SOUND_CONDUCTOR', 'on');
     expect(root.textContent).toContain('Dev room in use: room-a');
     expect(applyButton(root)?.disabled).toBe(true);
+  });
+
+  it('stages any choice for a flag waiting for a restart', async () => {
+    serve({
+      '/api/v1/admin/agent-flags': () => json({ ...OLD_WORKER, pendingRestart: ['ATTUNE_LEDGER'] }),
+      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+    });
+    const root = await mount();
+    expect(selectOf(root, 'ATTUNE_LEDGER')?.value).toBe('');
+    choose(root, 'ATTUNE_LEDGER', 'off');
+    expect(root.textContent).toContain('1 change staged');
+    choose(root, 'ATTUNE_LEDGER', 'default');
+    expect(root.textContent).toContain('1 change staged');
+  });
+
+  it('keeps a timed-out change marked and lets it be reverted', async () => {
+    vi.useFakeTimers({ now: new Date('2026-11-17T10:00:00.000Z'), toFake: ['setTimeout', 'Date'] });
+    serve({
+      '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
+      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+      '/api/v1/admin/agent-flags/apply': () => json({ appliedAt: '2026-11-17T10:00:00.000Z' }),
+    });
+    const root = await mount();
+    choose(root, 'SOUND_CONDUCTOR', 'default');
+    choose(root, 'ATTUNE_LEDGER', 'on');
+    applyButton(root)?.click();
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    expect(root.textContent).toContain('Applied, not confirmed yet');
+
+    expect(rowOf(root, 'SOUND_CONDUCTOR')?.classList.contains('af-row--unconfirmed')).toBe(true);
+    expect(rowOf(root, 'ATTUNE_LEDGER')?.classList.contains('af-row--unconfirmed')).toBe(true);
+
+    // Each select shows what was applied, so picking the old value fires a change.
+    expect(selectOf(root, 'SOUND_CONDUCTOR')?.value).toBe('default');
+    expect(selectOf(root, 'ATTUNE_LEDGER')?.value).toBe('on');
+    // The old worker still runs on and off; reverting to them must stage, not vanish.
+    choose(root, 'SOUND_CONDUCTOR', 'on');
+    choose(root, 'ATTUNE_LEDGER', 'default');
+    expect(root.textContent).toContain('2 changes staged');
+  });
+
+  it('keeps the mark across a reload while the agent still runs the old values', async () => {
+    serve({
+      '/api/v1/admin/agent-flags': () => json(OLD_WORKER),
+      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+    });
+    const root = await mount();
+    expect(rowOf(root, 'SOUND_CONDUCTOR')?.classList.contains('af-row--unconfirmed')).toBe(true);
+    expect(rowOf(root, 'ATTUNE_LEDGER')?.classList.contains('af-row--unconfirmed')).toBe(true);
+  });
+
+  it('clears the mark once a newer snapshot shows the applied values', async () => {
+    const confirmed = {
+      ...OLD_WORKER,
+      snapshot: {
+        startedAt: '2026-11-17T10:06:00.000Z',
+        buildSha: null,
+        flags: {
+          SOUND_CONDUCTOR: { raw: null, resolved: 'off' },
+          ATTUNE_LEDGER: { raw: 'on', resolved: 'on' },
+          FLAG_SNAPSHOT: { raw: 'on', resolved: 'on' },
+        },
+      },
+    };
+    serve({
+      '/api/v1/admin/agent-flags': () => json(confirmed),
+      '/api/v1/admin/agent-flags/rooms': () => json({ rooms: [] }),
+    });
+    const root = await mount();
+    expect(root.querySelector('.af-row--unconfirmed')).toBeNull();
+    expect(rowOf(root, 'ATTUNE_LEDGER')).not.toBeNull();
   });
 });

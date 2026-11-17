@@ -13,6 +13,7 @@ import type {
   OccupiedRoom,
   Staged,
   SwitchableFlag,
+  Unconfirmed,
 } from './agent-flags-state.js';
 
 /** The page reads the snapshot this flag turns on, so only lk changes it (the server refuses it). */
@@ -37,6 +38,8 @@ export interface View {
   roomsUnknown: boolean;
   phase: Phase;
   auditWarning: string;
+  /** Applies that timed out, kept marked until a snapshot confirms them or they are re-applied. */
+  unconfirmed: Unconfirmed;
 }
 
 export const freshView = (): View => ({
@@ -47,6 +50,7 @@ export const freshView = (): View => ({
   roomsUnknown: false,
   phase: { kind: 'idle' },
   auditWarning: '',
+  unconfirmed: {},
 });
 
 export const stagedCount = (v: View): number =>
@@ -75,8 +79,18 @@ function renderControl(v: View, f: SwitchableFlag, running: string | null): stri
   if (f.name === SNAPSHOT_FLAG) return '<span class="af-meta">set with lk</span>';
   if (!f.switchable) return '<span class="af-meta">read-only</span>';
   const unset = v.body?.snapshot?.flags[f.name]?.raw == null;
-  const current = unset ? 'default' : (running ?? 'default');
-  const chosen = v.staged.reset.includes(f.name) ? 'default' : (v.staged.set[f.name] ?? current);
+  const applied = v.unconfirmed[f.name];
+  // An unconfirmed name shows what was applied, so picking the old value is a change.
+  const current = applied
+    ? (applied.value ?? 'default')
+    : unset
+      ? 'default'
+      : (running ?? 'default');
+  const staged = v.staged.reset.includes(f.name) ? 'default' : v.staged.set[f.name];
+  // Waiting for a restart with no apply from this page: the next value is unknown.
+  const unknown = !staged && !applied && (v.body?.pendingRestart.includes(f.name) ?? false);
+  const chosen = staged ?? (unknown ? '' : current);
+  const head = unknown ? '<option value="" disabled selected>pending restart</option>' : '';
   const options = ['default', ...f.modes]
     .map((opt) => {
       const label = opt === 'default' ? `default (${f.default})` : opt;
@@ -86,19 +100,20 @@ function renderControl(v: View, f: SwitchableFlag, running: string | null): stri
     .join('');
   const name = escapeHtml(f.name);
   const disabled = locked(v) ? ' disabled' : '';
-  return `<select class="af-select" data-flag="${name}" aria-label="${name} value"${disabled}>${options}</select>`;
+  return `<select class="af-select" data-flag="${name}" aria-label="${name} value"${disabled}>${head}${options}</select>`;
 }
 
 function renderRow(v: View, f: SwitchableFlag): string {
   const running = runningValue(v, f);
   const differs = running !== null && running !== f.default;
-  const classes = `af-row${differs ? ' af-row--changed' : ''}${isStaged(v, f.name) ? ' af-row--staged' : ''}`;
+  const unconfirmed = Object.hasOwn(v.unconfirmed, f.name);
+  const classes = `af-row${differs ? ' af-row--changed' : ''}${isStaged(v, f.name) ? ' af-row--staged' : ''}${unconfirmed ? ' af-row--unconfirmed' : ''}`;
   return `
     <li class="${classes}">
       <span class="af-name">${escapeHtml(f.name)}</span>
       <span class="af-badge">${escapeHtml(f.kind)}</span>
       <span class="af-meta">default ${escapeHtml(f.default)}</span>
-      <span class="af-meta">running ${escapeHtml(running ?? 'unknown')}${differs ? ' (not default)' : ''}</span>
+      <span class="af-meta">running ${escapeHtml(running ?? 'unknown')}${differs ? ' (not default)' : ''}${unconfirmed ? '; applied, not confirmed' : ''}</span>
       ${renderControl(v, f, running)}
     </li>`;
 }
@@ -182,6 +197,7 @@ export const STYLES = `
     }
     .af-row--changed { border-left-color: var(--color-accent-primary); }
     .af-row--staged { background: var(--color-accent-subtle); }
+    .af-row--unconfirmed { border-left: 3px dashed var(--color-semantic-warning-text); }
     .af-name { font-family: monospace; color: var(--color-text-primary); overflow-wrap: anywhere; }
     .af-badge {
       font-size: var(--text-xs); padding: var(--space-0) var(--space-2); border-radius: var(--radius-badge);

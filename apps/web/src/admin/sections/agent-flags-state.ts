@@ -78,15 +78,26 @@ export function stage(
   return { set: { ...set, [name]: value }, reset };
 }
 
-/** Whether `snapshot` came from a worker started after the apply and shows every change. */
-function showsApplied(snapshot: FlagSnapshot | null, applied: Staged, appliedAt: number): boolean {
+/**
+ * Whether `snapshot` came from a worker started after `appliedAt` and shows `name` at
+ * `value`, or unset for a reset (null): a reset removes the secret, so the worker reports none.
+ */
+function confirms(
+  snapshot: FlagSnapshot | null,
+  name: string,
+  value: FlagValue | null,
+  appliedAt: number
+): boolean {
   if (!snapshot || !(Date.parse(snapshot.startedAt) > appliedAt)) return false;
-  const setLive = Object.entries(applied.set).every(
-    ([name, value]) => snapshot.flags[name]?.resolved === value
+  const flag = snapshot.flags[name];
+  return value === null ? flag?.raw === null : flag?.resolved === value;
+}
+
+function showsApplied(snapshot: FlagSnapshot | null, applied: Staged, appliedAt: number): boolean {
+  return (
+    Object.entries(applied.set).every(([n, v]) => confirms(snapshot, n, v, appliedAt)) &&
+    applied.reset.every((n) => confirms(snapshot, n, null, appliedAt))
   );
-  // A reset removes the secret, so the new worker reports the flag unset.
-  const resetLive = applied.reset.every((name) => snapshot.flags[name]?.raw === null);
-  return setLive && resetLive;
 }
 
 /**
@@ -105,4 +116,39 @@ export function confirmState(
   if (Number.isNaN(appliedMs)) return 'timeout';
   if (showsApplied(snapshot, applied, appliedMs)) return 'live';
   return now.getTime() - appliedMs >= timeoutMs ? 'timeout' : 'waiting';
+}
+
+/** Applied changes no snapshot has confirmed yet, by flag: the value set, or null for a reset. */
+export type Unconfirmed = Record<string, { value: FlagValue | null; appliedAt: string }>;
+
+/** Adds every name of an apply at `appliedAt` that timed out; a later apply replaces a name. */
+export function unconfirm(u: Unconfirmed, applied: Staged, appliedAt: string): Unconfirmed {
+  const next = { ...u };
+  for (const [name, value] of Object.entries(applied.set)) next[name] = { value, appliedAt };
+  for (const name of applied.reset) next[name] = { value: null, appliedAt };
+  return next;
+}
+
+/** Drops each name `snapshot` confirms: from a worker started after its apply, at its value. */
+export function settle(u: Unconfirmed, snapshot: FlagSnapshot | null): Unconfirmed {
+  return Object.fromEntries(
+    Object.entries(u).filter(
+      ([name, { value, appliedAt }]) => !confirms(snapshot, name, value, Date.parse(appliedAt))
+    )
+  );
+}
+
+/**
+ * The running value to stage `name` against. For a name changed after the worker started (an
+ * unconfirmed apply, or the server's pendingRestart) the agent's next value is unknown, so ''
+ * makes every choice stage; otherwise the snapshot's `resolved` ('' when there is none).
+ */
+export function runningForStage(
+  name: string,
+  resolved: string | null,
+  pendingRestart: readonly string[],
+  u: Unconfirmed
+): string {
+  if (Object.hasOwn(u, name) || pendingRestart.includes(name)) return '';
+  return resolved ?? '';
 }

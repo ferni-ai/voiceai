@@ -6,7 +6,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   confirmState,
+  runningForStage,
+  settle,
   stage,
+  unconfirm,
   type FlagSnapshot,
   type Staged,
 } from '../../src/admin/sections/agent-flags-state.js';
@@ -160,5 +163,70 @@ describe('initialSectionId', () => {
     const ids = ADMIN_SECTIONS.map((s) => s.id);
     expect(ids[ids.indexOf('flags') + 1]).toBe('agent-flags');
     expect(ADMIN_SECTIONS.find((s) => s.id === 'agent-flags')?.name).toBe('Agent flags (dev)');
+  });
+});
+
+describe('unconfirmed changes', () => {
+  const applied: Staged = { set: { ATTUNE_LEDGER: 'on' }, reset: ['SOUND_CONDUCTOR'] };
+  const timedOut = unconfirm({}, applied, APPLIED_AT);
+
+  it('records every applied set and reset name', () => {
+    expect(timedOut).toEqual({
+      ATTUNE_LEDGER: { value: 'on', appliedAt: APPLIED_AT },
+      SOUND_CONDUCTOR: { value: null, appliedAt: APPLIED_AT },
+    });
+  });
+
+  it("stages 'off' and 'default' for an unconfirmed name although the old worker runs them", () => {
+    const running = runningForStage('ATTUNE_LEDGER', 'off', [], timedOut);
+    expect(stage(EMPTY, 'ATTUNE_LEDGER', 'off', running, 'off')).toEqual({
+      set: { ATTUNE_LEDGER: 'off' },
+      reset: [],
+    });
+    expect(stage(EMPTY, 'ATTUNE_LEDGER', 'default', running, 'off')).toEqual({
+      set: {},
+      reset: ['ATTUNE_LEDGER'],
+    });
+  });
+
+  it('stages any choice for a name waiting for a restart', () => {
+    const running = runningForStage('ATTUNE_LEDGER', 'off', ['ATTUNE_LEDGER'], {});
+    expect(stage(EMPTY, 'ATTUNE_LEDGER', 'off', running, 'off')).toEqual({
+      set: { ATTUNE_LEDGER: 'off' },
+      reset: [],
+    });
+    expect(stage(EMPTY, 'ATTUNE_LEDGER', 'default', running, 'off')).toEqual({
+      set: {},
+      reset: ['ATTUNE_LEDGER'],
+    });
+  });
+
+  it('uses the running value for a settled name', () => {
+    expect(runningForStage('CALL_TELEMETRY', 'off', [], timedOut)).toBe('off');
+    expect(runningForStage('CALL_TELEMETRY', null, [], timedOut)).toBe('');
+  });
+
+  it('keeps names an older or non-matching snapshot does not confirm', () => {
+    const old = snapshot('2026-11-17T09:00:00.000Z', {
+      ATTUNE_LEDGER: { raw: 'on', resolved: 'on' },
+      SOUND_CONDUCTOR: { raw: null, resolved: 'off' },
+    });
+    expect(settle(timedOut, old)).toEqual(timedOut);
+    expect(settle(timedOut, null)).toEqual(timedOut);
+  });
+
+  it('drops each name a newer snapshot confirms, one by one', () => {
+    const partly = snapshot('2026-11-17T10:06:00.000Z', {
+      ATTUNE_LEDGER: { raw: 'on', resolved: 'on' },
+      SOUND_CONDUCTOR: { raw: 'on', resolved: 'on' },
+    });
+    expect(settle(timedOut, partly)).toEqual({
+      SOUND_CONDUCTOR: { value: null, appliedAt: APPLIED_AT },
+    });
+    const all = snapshot('2026-11-17T10:06:00.000Z', {
+      ATTUNE_LEDGER: { raw: 'on', resolved: 'on' },
+      SOUND_CONDUCTOR: { raw: null, resolved: 'off' },
+    });
+    expect(settle(timedOut, all)).toEqual({});
   });
 });
