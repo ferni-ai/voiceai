@@ -6,14 +6,12 @@ import {
 } from 'node:stream/web';
 import { setImmediate as nextTick } from 'node:timers/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  GUEST_QUEUE_FRAMES,
-  MIX_SAMPLE_RATE,
-  MIX_SAMPLES_PER_FRAME,
-  RoomMixInput,
-  mixClock,
-} from '../room-mix-input.js';
+import { MIX_SAMPLE_RATE, RoomMixInput, mixClock } from '../room-mix-input.js';
 import { TalkerLedger } from '../talker-ledger.js';
+
+/** The mix's frame (10 ms at 16 kHz) and guest queue (50 ms), from the plan. */
+const MIX_SAMPLES_PER_FRAME = 160;
+const GUEST_QUEUE_FRAMES = 5;
 
 const OWNER = 'owner_web';
 const GUEST = 'guest_call1';
