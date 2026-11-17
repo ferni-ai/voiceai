@@ -12,7 +12,9 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { FOR_THEM_988, TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
+import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
+import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { decisionFor, gatedReply } from '../crisis-gate.js';
 
 const BASE = {
@@ -170,6 +172,74 @@ describe('CRISIS_GUIDED_LINE_FLOOR: every reply without a crisis guide is unchan
     const off = await turn(plain, OFF, ANSWER.none);
     expect(off.asks).toBe(0);
     expect((await turn(plain, ON, ANSWER.none)).spoken).toBe(off.spoken);
+  });
+});
+
+describe('CRISIS_GUIDED_LINE_FLOOR with CRISIS_GATE_TURN_READS: the path once both are promoted', () => {
+  // No pattern reads this line; only a classifier could. The gate's own read calls it none,
+  // the pipeline's read of the whole turn calls it a crisis.
+  const EVERYDAY = 'Okay, I should head to bed soon';
+  const EARLIER = ['Hey Ferni.', 'Not much, a long week at work.'];
+  const FERNI = 'That sounds like a lot. What has been the hardest part?';
+  const NIGHT = 'Sleep well.';
+  let n = 0;
+
+  async function bothTurn(env: Record<string, string>): Promise<{ spoken: string; asks: number }> {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    resetCrisisClassifierCache();
+    resetCrisisCallRisk();
+    const call = `floor-turn-reads-${++n}`;
+    startTurnCrisis(
+      EVERYDAY.toLowerCase(),
+      { recentTranscripts: [...EARLIER, EVERYDAY.toLowerCase()], lastAgentResponse: FERNI },
+      { sessionId: call, env, generate: ANSWER.crisis }
+    );
+    const model = vi.fn(async () => streamOf(NIGHT));
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+    for (const line of EARLIER) ctx.addMessage({ role: 'user', content: line });
+    ctx.addMessage({ role: 'assistant', content: FERNI });
+    ctx.addMessage({ role: 'user', content: EVERYDAY });
+    const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
+    const reply = await gatedReply(
+      ctx,
+      { userData: { services: { sessionId: call } } } as never,
+      model as never,
+      opener as never,
+      { env, generate: ANSWER.none }
+    );
+    let spoken = '';
+    try {
+      if (reply)
+        for await (const chunk of reply as unknown as AsyncIterable<string>) spoken += chunk;
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    return { spoken, asks: model.mock.calls.length };
+  }
+
+  it('gate none, pipeline crisis: turn reads escalate, and the reply asked again ends naming 988', async () => {
+    expect(detectCrisis(EVERYDAY).isCrisis).toBe(false); // only a classifier reads it
+    const reads = { ...BASE, CRISIS_GATE_TURN_READS: 'on' };
+
+    const both = await bothTurn({ ...reads, CRISIS_GUIDED_LINE_FLOOR: 'on' });
+    expect(both.asks).toBe(2); // the first reply held, then asked again for the escalated guide
+    expect(both.spoken.startsWith(NIGHT)).toBe(true);
+    expect(both.spoken.trimEnd().endsWith(TALK_TO_988)).toBe(true);
+
+    // The floor is what names 988: off, the same escalation, and the reply has none.
+    const floorOff = await bothTurn({ ...reads, CRISIS_GUIDED_LINE_FLOOR: 'off' });
+    expect(floorOff.asks).toBe(2);
+    expect(floorOff.spoken).toBe(NIGHT);
+
+    // Turn reads are what escalate: off, the gate's own none stands and the reply passes.
+    const readsOff = await bothTurn({
+      ...BASE,
+      CRISIS_GATE_TURN_READS: 'off',
+      CRISIS_GUIDED_LINE_FLOOR: 'on',
+    });
+    expect(readsOff.asks).toBe(1);
+    expect(readsOff.spoken).toBe(NIGHT);
   });
 });
 
