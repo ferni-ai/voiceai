@@ -53,6 +53,15 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     check: 'always',
   },
   {
+    // open_loops is outside STORE_SIGNATURE, so this row is how the call's loops note is held to it (#3995).
+    id: 'recall.openLoops',
+    file: 'src/agents/multi-agent/open-loops-recall.ts',
+    site: 'loopsToRaise',
+    reaches: 'prompt',
+    check: 'always',
+    probe: 'src/agents/multi-agent/__tests__/open-loops-recall-forget.test.ts',
+  },
+  {
     id: 'recall.episodes',
     file: 'src/memory/recall/episodes.ts',
     site: 'isForgotten',
