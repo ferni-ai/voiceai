@@ -640,7 +640,6 @@
   "src/intelligence/coaching/memory-loader.ts -> src/services/memory/voice-conversation-memory.ts",
   "src/intelligence/cognitive-load.ts -> src/intelligence/detectors/cognitive-load.ts",
   "src/intelligence/cognitive/engine.ts -> src/personas/cognitive-differentiation.ts",
-  "src/intelligence/collective-learning-integration.ts -> src/intelligence/collective/integration.ts",
   "src/intelligence/collective-learning-scheduler.ts -> src/intelligence/collective/scheduler.ts",
   "src/intelligence/community-insights.ts -> src/intelligence/collective/community-insights.ts",
   "src/intelligence/context-routing/smart-selector.ts -> src/tools/intelligence/learning/index.ts",

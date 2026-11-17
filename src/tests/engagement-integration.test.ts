@@ -20,7 +20,7 @@ import {
 import {
   getRitualOnboardingService,
   resetRitualOnboardingService,
-} from '../services/ritual-onboarding.js';
+} from '../services/engagement/ritual-onboarding.js';
 import {
   getHandoffBanter,
   getTeamEngagementService,
