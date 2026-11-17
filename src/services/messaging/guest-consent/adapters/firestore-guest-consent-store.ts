@@ -10,6 +10,7 @@
  * @module services/messaging/guest-consent/adapters/firestore-guest-consent-store
  */
 import type { DocumentReference, Firestore } from '@google-cloud/firestore';
+import { isErasedOrErasing } from '../../../../utils/erasing-mark.js';
 import { parseGuestConsent, type GuestConsent } from '../domain/guest-consent.js';
 import type { GuestConsentStore } from '../ports/guest-consent-store.js';
 
@@ -37,16 +38,27 @@ export function firestoreGuestConsentStore(db: Firestore | null | undefined): Gu
   };
   return {
     async read(ownerUid, hash) {
-      const snap = await consentRef(need(), ownerUid, hash).get();
-      return snap.exists ? parseGuestConsent(snap.data()) : null;
+      const firestore = need();
+      const [account, snap] = await Promise.all([
+        firestore.collection('bogle_users').doc(ownerUid).get(),
+        consentRef(firestore, ownerUid, hash).get(),
+      ]);
+      if (isErasedOrErasing(account) || !snap.exists) return null;
+      return parseGuestConsent(snap.data());
     },
     async update(ownerUid, hash, change) {
       const firestore = need();
       const ref = consentRef(firestore, ownerUid, hash);
+      const account = firestore.collection('bogle_users').doc(ownerUid);
       await firestore.runTransaction(async (tx) => {
+        const erased = isErasedOrErasing(await tx.get(account));
         const snap = await tx.get(ref);
         const next = change(snap.exists ? parseGuestConsent(snap.data()) : null);
-        if (next) tx.set(ref, toStored(next));
+        if (!next) return;
+        // As putUnlessErased: an account gone or being erased gets no new consent,
+        // and a withdrawal there deletes the record rather than keep one under it.
+        if (!erased) tx.set(ref, toStored(next));
+        else if (next.revokedAt !== undefined) tx.delete(ref); // afterYes never sets revokedAt
       });
     },
   };

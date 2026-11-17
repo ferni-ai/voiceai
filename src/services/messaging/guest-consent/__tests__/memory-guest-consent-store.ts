@@ -1,6 +1,7 @@
 /**
  * An in-memory GuestConsentStore for tests: records by "{ownerUid}/{phoneHash}",
  * as the Firestore adapter keys them under bogle_users/{uid}/guest_consents.
+ * It models no accounts: the erasure rules are the Firestore adapter's.
  */
 import type { GuestConsent } from '../domain/guest-consent.js';
 import type { GuestConsentStore } from '../ports/guest-consent-store.js';
