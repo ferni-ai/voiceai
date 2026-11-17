@@ -212,6 +212,19 @@ describe('sttWithNameFix', () => {
     expect(await texts(await sttWithNameFix(solo, heard(), ON))).toEqual([said]);
   });
 
+  it('keeps every label where it is, and fixes only the words between them', async () => {
+    const group = { userData: { personaId: 'ferni' } };
+    const turn = (...finals: string[]) => Promise.resolve(streamOf([final(finals.join(' '))]));
+    const unclear = (text: string) => labelTurn(group, 'unclear', text);
+    expect(
+      await texts(await sttWithNameFix(group, turn('Hey Fred.', unclear('okay')), ON))
+    ).toEqual(['Hey Ferni. [unclear] okay']);
+    const twice = turn(unclear('Hey Fred.'), unclear('okay'));
+    expect(await texts(await sttWithNameFix(group, twice, ON))).toEqual([
+      '[unclear] Hey Ferni. [unclear] okay',
+    ]);
+  });
+
   it('fixes final transcripts while Ferni is on the call', async () => {
     const session = { userData: { personaId: 'ferni' } };
     expect(await texts(await sttWithNameFix(session, events(), ON))).toEqual([

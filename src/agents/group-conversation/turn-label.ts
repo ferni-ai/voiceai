@@ -38,6 +38,29 @@ export function stripTurnLabel(session: object | undefined, text: string): strin
 }
 
 /**
+ * `text` with `fix` run on each spoken part between the labels `session`'s call put on, those
+ * labels kept where they are: in `[unclear] Hey Fred. [unclear] okay` it fixes `Hey Fred. ` and
+ * `okay`. With no label put on, `fix` gets the whole text.
+ */
+export function fixSpoken(
+  session: object | undefined,
+  text: string,
+  fix: (spoken: string) => string
+): string {
+  const labels = session ? putOn.get(session) : undefined;
+  if (!labels) return fix(text);
+  let out = '';
+  let from = 0;
+  for (const match of text.matchAll(TURN_LABEL)) {
+    const at = match.index ?? 0;
+    if (!labels.has(match[1] ?? '')) continue;
+    out += fix(text.slice(from, at)) + match[0];
+    from = at + match[0].length;
+  }
+  return out + fix(text.slice(from));
+}
+
+/**
  * `text` without every `[tag] ` of the label's shape, for the backchannel question
  * alone. The SDK asks it with no call to go by (installBackchannelHook), and a bracketed
  * tag before only "mm" is a backchannel whoever wrote it: `[unclear] mm`, `[laughs] mm`.

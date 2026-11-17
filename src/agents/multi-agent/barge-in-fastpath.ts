@@ -164,7 +164,7 @@ export function createBargeInFastPath(deps: {
   /** BARGE_IN_SOFT_PAUSE=on: sustained speech pauses Ferni until confirmed. */
   softPause?: SoftPause;
   /** The words of a transcript without its group call turn label (turn-label.ts). */
-  unlabel?: (transcript: string) => string;
+  unlabel: (transcript: string) => string;
 }): BargeInFastPath {
   const setTimer = deps.setTimer ?? setTimeout;
   const clearTimer = deps.clearTimer ?? clearTimeout;
@@ -330,7 +330,7 @@ export function createBargeInFastPath(deps: {
     onTranscript(event) {
       if (firedThisReply) return;
       const heard = (event as { transcript?: string })?.transcript ?? '';
-      const transcript = deps.unlabel?.(heard) ?? heard;
+      const transcript = deps.unlabel(heard);
       if (pending) {
         const ws = words(transcript);
         const confirm = { transcript, agentSpeaking: true, spokenText };

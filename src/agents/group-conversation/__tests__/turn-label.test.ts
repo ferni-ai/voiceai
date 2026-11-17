@@ -4,7 +4,7 @@
  * labels reach another call.
  */
 import { describe, expect, it } from 'vitest';
-import { labelTurn, stripTurnLabel, withoutTag } from '../turn-label.js';
+import { fixSpoken, labelTurn, stripTurnLabel, withoutTag } from '../turn-label.js';
 
 describe('labelTurn and stripTurnLabel', () => {
   it('puts the label in front and takes it off again on the same call', () => {
@@ -48,6 +48,23 @@ describe('labelTurn and stripTurnLabel', () => {
     expect(stripTurnLabel(call, '[Sarah (guest)]hi')).toBe('[Sarah (guest)]hi');
     labelTurn(call, 'a:b', 'mm'); // not label grammar: never read back as one
     expect(stripTurnLabel(call, '[a:b] mm')).toBe('[a:b] mm');
+  });
+});
+
+describe('fixSpoken', () => {
+  const shout = (spoken: string): string => spoken.toUpperCase();
+
+  it("fixes each spoken part and keeps this call's labels where they are", () => {
+    const call = {};
+    const turn = `hey ${labelTurn(call, 'unclear', 'okay')} ${labelTurn(call, 'Sarah (guest)', 'hi')}`;
+    expect(fixSpoken(call, turn, shout)).toBe('HEY [unclear] OKAY [Sarah (guest)] HI');
+  });
+
+  it('a bracket this call did not put on is words, fixed with the rest', () => {
+    const call = {};
+    const turn = `${labelTurn(call, 'unclear', 'okay')} [note] hi`;
+    expect(fixSpoken(call, turn, shout)).toBe('[unclear] OKAY [NOTE] HI');
+    expect(fixSpoken({}, '[unclear] okay', shout)).toBe('[UNCLEAR] OKAY');
   });
 });
 

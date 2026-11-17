@@ -11,6 +11,9 @@ import {
   shouldInterrupt,
 } from '../barge-in-fastpath.js';
 
+/** A solo call's transcript: no group call turn label to take off (turn-label.ts). */
+const asSaid = (transcript: string): string => transcript;
+
 const talking = {
   agentSpeaking: true,
   spokenText: 'so for her birthday I was thinking a trail day',
@@ -46,7 +49,7 @@ describe('shouldInterrupt', () => {
 describe('createBargeInFastPath', () => {
   it('interrupts once per reply, from live transcripts', () => {
     const interrupt = vi.fn();
-    const fp = createBargeInFastPath({ interrupt });
+    const fp = createBargeInFastPath({ interrupt, unlabel: asSaid });
     fp.onAgentState({ newState: 'speaking' });
     fp.onSpokenText('so for her birthday');
     fp.onTranscript({ transcript: 'Wait', isFinal: false });
@@ -62,7 +65,7 @@ describe('createBargeInFastPath', () => {
 
   it('ignores transcripts when Ferni is not speaking', () => {
     const interrupt = vi.fn();
-    const fp = createBargeInFastPath({ interrupt });
+    const fp = createBargeInFastPath({ interrupt, unlabel: asSaid });
     fp.onAgentState({ newState: 'listening' });
     fp.onTranscript({ transcript: 'I wanted to tell you something', isFinal: false });
     expect(interrupt).not.toHaveBeenCalled();
@@ -75,6 +78,7 @@ describe('sustained speech over Ferni', () => {
     const interrupt = vi.fn();
     const fp = createBargeInFastPath({
       interrupt,
+      unlabel: asSaid,
       setTimer: (fn, ms) => {
         const t = { fn, ms, cleared: false };
         pending.push(t);

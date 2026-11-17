@@ -37,7 +37,7 @@ import { stt } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { stripTurnLabel } from '../group-conversation/turn-label.js';
+import { fixSpoken } from '../group-conversation/turn-label.js';
 
 const log = createLogger({ module: 'NameMishear' });
 
@@ -137,16 +137,20 @@ function fixEvent<E>(ev: E, scope: NameFixScope, session?: object): E {
   const event = ev as unknown as stt.SpeechEvent;
   const alt = event.alternatives?.[0];
   if (!TRANSCRIPTS.has(event.type) || alt === undefined) return ev;
-  const said = stripTurnLabel(session, alt.text); // a group call turn's label is not words
-  const { text, fixed } = fixName(said, scope);
+  const fixed: string[] = [];
+  // A group call turn's labels are not words: each spoken part is fixed, the labels kept in place.
+  const text = fixSpoken(session, alt.text, (said) => {
+    const part = fixName(said, scope);
+    fixed.push(...part.fixed);
+    return part.text;
+  });
   if (fixed.length === 0) return ev;
   if (event.type === stt.SpeechEventType.FINAL_TRANSCRIPT) {
     // Never the caller's words: only which name was changed, and how often.
     log.info({ variants: fixed, count: fixed.length }, 'NAME_MISHEAR fixed');
   }
   const rest = event.alternatives?.slice(1) ?? [];
-  const label = alt.text.slice(0, alt.text.length - said.length);
-  return { ...event, alternatives: [{ ...alt, text: label + text }, ...rest] } as unknown as E;
+  return { ...event, alternatives: [{ ...alt, text }, ...rest] } as unknown as E;
 }
 
 interface SessionLike {
