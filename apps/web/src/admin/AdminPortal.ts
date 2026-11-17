@@ -59,9 +59,7 @@ function cleanupOrphanedElements(): void {
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Initialize the admin portal
- */
+/** Initialize the admin portal, opening the section `?section=` names if there is one. */
 export async function initAdminPortal(): Promise<void> {
   if (state.initialized) {
     log.debug('Admin portal already initialized');
