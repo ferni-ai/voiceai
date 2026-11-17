@@ -1,13 +1,17 @@
 # Crisis script words a caller can hear
 
-Every distinct voice turn the crisis gate can say in place of a reply, word for word, as the
-caller hears it with CRISIS_SCRIPT_IMMINENT_READ on. crisis-script-words.test.ts writes this file
-from the real scriptReply and fails when the code says anything else. Never edit it by hand: run
-that test with CRISIS_SCRIPT_WORDS_WRITE=1, then ask the owner to review the new words.
+Every distinct voice turn the crisis gate can say in place of a reply, word for word, as sent to
+the voice with CRISIS_SCRIPT_IMMINENT_READ on, before the 988-digit rewrite (SPEAK_988_DIGITS):
+the text, not the audio. crisis-script-words.test.ts writes it from the real code and fails when
+the code says anything else; never edit it by hand (run that test with CRISIS_SCRIPT_WORDS_WRITE=1).
 
-The stamp below covers every block after it. It is `none` until the owner reviews these words;
-a builder then writes it (reviewer, date, hash) in a commit of its own, after the owner approves
-that commit's exact head. CRISIS_SCRIPT_IMMINENT_READ may default on only while it is current.
+Not here: the screen question (crisis-grounded-screen.ts), typed chat (crisis-gate-text.ts) and
+SMS. Spoken crisis words pinned in a follow-up: the other someone-else and for-them-first turns,
+the Spanish youth line, the timeout check-in lines and EMERGENCY_LINE.
+
+The stamp below covers every block after it: `none` until a crisis owner (approvers.crisis in
+scripts/ci/autonomy-policy.json) approves these words, then written in a commit of its own.
+CRISIS_SCRIPT_IMMINENT_READ may default on only while it is current.
 
 reviewed: none
 
@@ -493,7 +497,57 @@ If you've taken something or you're in danger right now, please call 911 or get 
 I'm staying right here with you. Is anyone nearby who can be with you?
 ```
 
-## 30. about someone else at risk · never asks
+## 30. imminent script (the patterns read imminent) · child-safety lines · never asks
+
+Heard on:
+
+- imminent script (the patterns read imminent) · child-safety lines · never asks
+
+```text
+I'm really glad you told me. Your safety matters most right now.
+
+If you've taken something or you're in danger right now, please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.
+
+I'm staying right here with you. Is anyone nearby who can be with you?
+
+What you told me is not your fault, and you're not in trouble. When you can, tell a safe adult you trust, like a teacher or a school counselor. You can also call or text the Childhelp National Child Abuse Hotline at 1-800-422-4453, any time.
+```
+
+## 31. imminent script (the patterns read imminent) · youth line · never asks
+
+Heard on:
+
+- imminent script (the patterns read imminent) · youth line · never asks
+
+```text
+I'm really glad you told me. Your safety matters most right now.
+
+If you've taken something or you're in danger right now, please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.
+
+I'm staying right here with you. Is anyone nearby who can be with you?
+
+Teens can text 988, and tell an adult you trust.
+```
+
+## 32. imminent script (the patterns read imminent) · youth line · child-safety lines · never asks
+
+Heard on:
+
+- imminent script (the patterns read imminent) · youth line · child-safety lines · never asks
+
+```text
+I'm really glad you told me. Your safety matters most right now.
+
+If you've taken something or you're in danger right now, please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.
+
+I'm staying right here with you. Is anyone nearby who can be with you?
+
+Teens can text 988, and tell an adult you trust.
+
+What you told me is not your fault, and you're not in trouble. When you can, tell a safe adult you trust, like a teacher or a school counselor. You can also call or text the Childhelp National Child Abuse Hotline at 1-800-422-4453, any time.
+```
+
+## 33. about someone else at risk · never asks
 
 Heard on:
 
@@ -507,7 +561,7 @@ You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk
 What's going on with them right now?
 ```
 
-## 31. Spanish script · never asks
+## 34. Spanish script · never asks
 
 Heard on:
 
@@ -521,7 +575,7 @@ Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de
 Estoy aquí contigo. ¿Me cuentas qué está pasando?
 ```
 
-## 32. an emergency for someone else (down, not breathing) · never asks
+## 35. an emergency for someone else (down, not breathing) · never asks
 
 Heard on:
 
@@ -535,7 +589,7 @@ If they're not breathing or not responding, tell the dispatcher; they'll walk yo
 I'm right here with you. Is anyone else there who can help?
 ```
 
-## 33. an emergency for someone else, then the caller check · never asks
+## 36. an emergency for someone else, then the caller check · never asks
 
 Heard on:
 
@@ -551,7 +605,7 @@ I'm right here with you. Is anyone else there who can help?
 You can also call or text 988 to talk to someone immediately.
 ```
 
-## 34. an emergency for someone else, then the caller’s own severe script · never asks
+## 37. an emergency for someone else, then the caller’s own severe script · never asks
 
 Heard on:
 

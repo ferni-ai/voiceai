@@ -1,28 +1,39 @@
 /**
- * The kept copy of the crisis script words a caller can hear (crisis-script-words.kept.md), and
- * the owner's stamp on it. crisis-script-words.test.ts writes the file from the real scriptReply,
- * and its flip gate reads the stamp: CRISIS_SCRIPT_IMMINENT_READ may default on only while the
- * stamp is current.
+ * The kept crisis script words (crisis-script-words.kept.md) and the owner's stamp on them, which
+ * the flip gate reads: CRISIS_SCRIPT_IMMINENT_READ may default on only while it is current.
  *
- * The stamp line is `reviewed: none`, or `reviewed: <github login> <YYYY-MM-DD> sha256:<hex>`,
- * where the hash is of everything after the stamp line. A builder writes it, in a commit of its
- * own, after the owner approves that commit's exact head; never the verifier.
+ * The stamp line is `reviewed: none`, or `reviewed: <github login> <YYYY-MM-DD> sha256:<hex>`
+ * (the hash of everything after it). Current means the hash matches and the login is a crisis
+ * owner in scripts/ci/autonomy-policy.json (approvers.crisis); no login is written here. A builder
+ * writes it, in a commit of its own, after the owner approves that commit's exact head.
  */
 import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 
 export const KEPT_PATH = join(
   process.cwd(),
   'src/agents/personas/__tests__/crisis-script-words.kept.md'
 );
+const POLICY_PATH = join(process.cwd(), 'scripts/ci/autonomy-policy.json');
 
+interface Policy {
+  approvers?: { crisis?: unknown };
+}
 const STAMP_LINE = /^reviewed: (.*)$/m;
 const STAMPED = /^(\S+) (\d{4}-\d{2}-\d{2}) sha256:([0-9a-f]{64})$/;
 
 export type KeptStamp =
   | { state: 'none' }
-  | { state: 'current' | 'stale'; reviewer: string; date: string }
+  | { state: 'current' | 'stale' | 'not-owner'; reviewer: string; date: string }
   | { state: 'malformed'; why: string };
+
+/** The crisis owners the policy names (approvers.crisis); empty when it names none. */
+export function crisisOwners(): string[] {
+  const policy = JSON.parse(readFileSync(POLICY_PATH, 'utf8')) as Policy;
+  const owners = policy.approvers?.crisis;
+  return Array.isArray(owners) ? owners.filter((o): o is string => typeof o === 'string') : [];
+}
 
 /** The kept file split at its stamp line: what comes before it, the stamp, and the blocks. */
 export function splitKept(file: string): { head: string; stamp: string; blocks: string } | null {
@@ -35,15 +46,17 @@ export function splitKept(file: string): { head: string; stamp: string; blocks: 
 const blocksHash = (blocks: string): string =>
   createHash('sha256').update(blocks, 'utf8').digest('hex');
 
-/** The owner's stamp on a kept file: none yet, current, stale (the words changed), or malformed. */
-export function stampOf(file: string): KeptStamp {
+/** The stamp: none, current, stale (the words changed), not-owner (by the policy) or malformed. */
+export function stampOf(file: string, owners: readonly string[] = crisisOwners()): KeptStamp {
   const parts = splitKept(file);
   if (!parts) return { state: 'malformed', why: 'no `reviewed:` line' };
   if (parts.stamp === 'none') return { state: 'none' };
   const stamped = STAMPED.exec(parts.stamp);
   if (!stamped) return { state: 'malformed', why: `unreadable stamp '${parts.stamp}'` };
   const [, reviewer, date, hash] = stamped;
-  return { state: hash === blocksHash(parts.blocks) ? 'current' : 'stale', reviewer, date };
+  if (hash !== blocksHash(parts.blocks)) return { state: 'stale', reviewer, date };
+  const owner = owners.some((o) => o.toLowerCase() === reviewer.toLowerCase());
+  return { state: owner ? 'current' : 'not-owner', reviewer, date };
 }
 
 /** The kept file with the owner's stamp on its current blocks (the follow-up commit's change). */
