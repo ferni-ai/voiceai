@@ -1,7 +1,7 @@
 /**
- * Pure person rules of the memory context, for callers outside it. Importing these leaf
- * modules, not src/memory/index.ts, keeps the store adapters (redis, Firestore) out of
- * bundles that only need a rule, such as the web build.
+ * Pure person and forget rules of the memory context, for callers outside it. Importing
+ * these leaf modules, not src/memory/index.ts, keeps the store adapters (redis, Firestore)
+ * out of bundles that only need a rule, such as the web build.
  *
  * @module memory/domain
  */
@@ -16,3 +16,4 @@ export {
   relationOf,
 } from './person-key.js';
 export { relationWordNearest, relationWords } from './person-key.js';
+export { isForgottenPassage } from './forgotten.js';

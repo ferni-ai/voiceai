@@ -41,7 +41,10 @@ export function openLoopsInContextEnabled(
 export interface CallLoopsSources {
   /** Open loops due a follow-up, highest priority first. */
   loops: (userId: string) => Promise<OpenLoop[]>;
-  /** What the caller asked Ferni to forget, as a filter; null when it can't be read. */
+  /**
+   * What the caller asked Ferni to forget, as a filter on raw words; null when it can't be read.
+   * It is asked again when the note is given, so it should count topics forgotten since.
+   */
   forgotten: (userId: string) => Promise<((text: string) => boolean) | null>;
   /** Ferni's promises for the prompt, and the misses in it. Only reads. */
   promises: (userId: string) => Promise<{ text: string; misses: FerniCommitment[] }>;
@@ -56,8 +59,8 @@ const realSources: CallLoopsSources = {
     return getLoopsReadyForFollowUp(userId);
   },
   async forgotten(userId) {
-    const { forgottenFilter } = await import('./forgotten-filter.js');
-    return forgottenFilter(userId);
+    const { forgottenPassageFilter } = await import('./forgotten-filter.js');
+    return forgottenPassageFilter(userId);
   },
   async promises(userId) {
     const { promiseContextFor } =
@@ -160,19 +163,21 @@ export interface CallLoopsDeps {
   userId: string;
   /** The call (its session id): every persona on it shares one note. */
   callId: string;
-  sources?: CallLoopsSources;
+  /** Replaces the real sources it names. */
+  sources?: Partial<CallLoopsSources>;
   now?: () => Date;
 }
 
 /** Loads the call's open loops and Ferni's promises at call start. */
 export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
-  const sources = deps.sources ?? realSources;
+  const sources: CallLoopsSources = { ...realSources, ...deps.sources };
   const now = deps.now ?? (() => new Date());
   let text = '';
   let shown: OpenLoop[] = [];
   let loopsDue = 0;
   let misses: FerniCommitment[] = [];
   let hasPromises = false;
+  let forgottenNow: (text: string) => boolean = () => true;
 
   const ready = (async () => {
     const [loops, promises, forgottenRead] = await Promise.allSettled([
@@ -191,6 +196,7 @@ export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
       log.info({ reason: 'forgotten-unreadable' }, 'Call loops: no note');
       return;
     }
+    forgottenNow = forgotten;
     const { formatOpenLoopsContext } =
       await import('../../services/superhuman/semantic-intelligence/open-loops.js');
     const due = loopsToRaise(loops.status === 'fulfilled' ? loops.value : [], forgotten);
@@ -209,7 +215,8 @@ export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
 
   return {
     ready,
-    note: () => (text && !raisedCalls.has(deps.callId) ? text : null),
+    // A topic forgotten after the note loaded, before it is given, leaves it all out.
+    note: () => (text && !raisedCalls.has(deps.callId) && !forgottenNow(text) ? text : null),
     raised() {
       if (!text || raisedCalls.has(deps.callId)) return;
       raisedCalls.add(deps.callId);
