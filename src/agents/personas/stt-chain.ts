@@ -10,14 +10,20 @@
  * session object; the room mix with no hearing labels every final. With no guest ever,
  * or the flag off, events are untouched.
  *
+ * GROUP_CALL: while anyone on the call is heard on their own stream (people-speech.ts),
+ * STT hears silence of the same length in place of the mixed input: the SDK times speech
+ * by the audio it was fed, so dropping frames would put every later turn early.
+ *
  * @module agents/personas/stt-chain
  */
 import { stt } from '@livekit/agents';
-import type { AudioFrame } from '@livekit/rtc-node';
-import { ReadableStream } from 'node:stream/web';
+import { AudioFrame } from '@livekit/rtc-node';
+import { ReadableStream, TransformStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { groupHearingFor } from '../group-conversation/group-hearing.js';
+import { peopleSpeechFor } from '../group-conversation/people-speech.js';
 import { mixClock, RoomMixInput } from '../group-conversation/room-mix-input.js';
+import { labelTurn } from '../group-conversation/turn-label.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
 
@@ -43,10 +49,11 @@ function guestInTurn(session: object, windowStartMs: number): boolean {
  * blank final stays as it is, so the SDK still drops it rather than taking a turn of
  * just the label.
  */
-function unclear(event: stt.SpeechEvent): stt.SpeechEvent {
+function unclear(event: stt.SpeechEvent, session: object): stt.SpeechEvent {
   const [first, ...rest] = event.alternatives ?? [];
   if (!first?.text.trim()) return event;
-  return { ...event, alternatives: [{ ...first, text: `[unclear] ${first.text}` }, ...rest] };
+  const text = labelTurn(session, 'unclear', first.text);
+  return { ...event, alternatives: [{ ...first, text }, ...rest] };
 }
 
 /** `events` with each final transcript labelled while a guest is on the call (above). */
@@ -63,7 +70,7 @@ function labelGuestTurns<E extends Event>(
       if (typeof value === 'string' || value.type !== stt.SpeechEventType.FINAL_TRANSCRIPT) {
         return controller.enqueue(value);
       }
-      const labelled = guestInTurn(session, windowStart) ? unclear(value) : value;
+      const labelled = guestInTurn(session, windowStart) ? unclear(value, session) : value;
       windowStart = mixClock();
       controller.enqueue(labelled as E);
     },
@@ -73,13 +80,31 @@ function labelGuestTurns<E extends Event>(
   });
 }
 
+/** `audio`, with silence of the same length in place of each frame while `apart()`. */
+function silentWhile(
+  audio: ReadableStream<AudioFrame>,
+  apart: () => boolean
+): ReadableStream<AudioFrame> {
+  return audio.pipeThrough(
+    new TransformStream<AudioFrame, AudioFrame>({
+      transform(frame, controller) {
+        if (!apart()) return controller.enqueue(frame);
+        const { sampleRate, channels, samplesPerChannel } = frame;
+        controller.enqueue(AudioFrame.create(sampleRate, channels, samplesPerChannel)); // silence
+      },
+    })
+  );
+}
+
 /** The persona's STT events for `audio` from the SDK's `base` node, through every step above. */
 export async function sttChain(
   session: Session,
   audio: ReadableStream<AudioFrame>,
   base: (audio: ReadableStream<AudioFrame>) => Promise<ReadableStream<Event> | null>
 ): Promise<ReadableStream<Event> | null> {
-  const events = await sttWithNameFix(session, sttWithFirstTurnFast(session, audio, base));
-  if (!events || !session || !flagOn('GROUP_CALL')) return events;
+  const people = session && flagOn('GROUP_CALL') ? peopleSpeechFor(session) : undefined;
+  const heard = people ? silentWhile(audio, () => people.live) : audio;
+  const events = await sttWithNameFix(session, sttWithFirstTurnFast(session, heard, base));
+  if (!events || !session || !people) return events;
   return labelGuestTurns(events, session);
 }

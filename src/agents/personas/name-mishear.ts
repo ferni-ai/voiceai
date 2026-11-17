@@ -37,6 +37,7 @@ import { stt } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { fixSpoken } from '../group-conversation/turn-label.js';
 
 const log = createLogger({ module: 'NameMishear' });
 
@@ -131,12 +132,18 @@ const TRANSCRIPTS = new Set([
   stt.SpeechEventType.FINAL_TRANSCRIPT,
 ]);
 
-function fixEvent<E>(ev: E, scope: NameFixScope): E {
+function fixEvent<E>(ev: E, scope: NameFixScope, session?: object): E {
   if (typeof ev !== 'object' || ev === null) return ev;
   const event = ev as unknown as stt.SpeechEvent;
   const alt = event.alternatives?.[0];
   if (!TRANSCRIPTS.has(event.type) || alt === undefined) return ev;
-  const { text, fixed } = fixName(alt.text, scope);
+  const fixed: string[] = [];
+  // A group call turn's labels are not words: each spoken part is fixed, the labels kept in place.
+  const text = fixSpoken(session, alt.text, (said) => {
+    const part = fixName(said, scope);
+    fixed.push(...part.fixed);
+    return part.text;
+  });
   if (fixed.length === 0) return ev;
   if (event.type === stt.SpeechEventType.FINAL_TRANSCRIPT) {
     // Never the caller's words: only which name was changed, and how often.
@@ -178,7 +185,9 @@ export async function sttWithNameFix<E>(
         vocatives: personaOf(session) === 'ferni',
         transfers: flagOn('NAME_MISHEAR_HANDOFF', env),
       };
-      controller.enqueue(scope.vocatives || scope.transfers ? fixEvent(value, scope) : value);
+      controller.enqueue(
+        scope.vocatives || scope.transfers ? fixEvent(value, scope, session) : value
+      );
     },
     async cancel(reason) {
       return reader.cancel(reason);
