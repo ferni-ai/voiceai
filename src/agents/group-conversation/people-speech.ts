@@ -16,6 +16,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PeopleSpeech' });
 
+/** An error as logged here: its class, never its message, which can name who spoke. */
+const kindOf = (error: unknown): string => (error instanceof Error ? error.name : typeof error);
+
 export class PeopleSpeech {
   /** Each person heard on their own stream, by identity: how to stop reading them. */
   private readonly people = new Map<string, () => void>();
@@ -35,7 +38,7 @@ export class PeopleSpeech {
       Promise.resolve()
         .then(async () => input.return?.())
         .catch((error: unknown) =>
-          log.debug({ error: String(error) }, 'A person stream did not close')
+          log.debug({ error: kindOf(error) }, 'A person stream did not close')
         );
     };
     this.people.set(identity, stop);
@@ -45,8 +48,7 @@ export class PeopleSpeech {
     };
     read()
       .catch((error: unknown) => {
-        const kind = error instanceof Error ? error.name : typeof error; // never who
-        log.warn({ error: kind }, 'GROUP_CALL: a person stream failed');
+        log.warn({ error: kindOf(error) }, 'GROUP_CALL: a person stream failed');
       })
       .finally(() => {
         if (this.people.get(identity) === stop) this.people.delete(identity); // their stream ended

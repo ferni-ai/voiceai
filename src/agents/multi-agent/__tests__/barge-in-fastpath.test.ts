@@ -185,6 +185,25 @@ describe('a group call turn label is not words', () => {
     expect(interrupt).toHaveBeenCalledTimes(1);
   });
 
+  it('a whole turn of labelled finals counts only its words: "wait. stop" is two', () => {
+    const call = {};
+    const { fp, interrupt } = overFerni(call);
+    const turn = `${labelTurn(call, 'unclear', 'wait.')} ${labelTurn(call, 'unclear', 'stop')}`;
+    fp.onTranscript({ transcript: turn, isFinal: true });
+    expect(interrupt).not.toHaveBeenCalled();
+    fp.onTranscript({ transcript: `${turn} ${labelTurn(call, 'unclear', 'now')}`, isFinal: true });
+    expect(interrupt).toHaveBeenCalledTimes(1);
+  });
+
+  it('at end of turn, two labelled "mm"s are still a backchannel to the hook', () => {
+    installBackchannelHook();
+    const hook = (globalThis as { __FERNI_IS_BACKCHANNEL?: (t: string) => boolean })
+      .__FERNI_IS_BACKCHANNEL;
+    const call = {};
+    const turn = `${labelTurn(call, 'unclear', 'Mm.')} ${labelTurn(call, 'unclear', 'Yeah.')}`;
+    expect(hook?.(turn)).toBe(true);
+  });
+
   it('the hook LiveKit consults reads a labelled "mm" as a backchannel', () => {
     installBackchannelHook();
     const hook = (globalThis as { __FERNI_IS_BACKCHANNEL?: (t: string) => boolean })

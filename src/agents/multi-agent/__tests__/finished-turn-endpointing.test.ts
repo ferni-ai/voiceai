@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { voice } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
+import { labelTurn, stripTurnLabel } from '../../group-conversation/turn-label.js';
 import { finishedTurnMinDelayMs, installFinishedTurnEndpointing } from '../unfinished-turn.js';
 
 describe('finishedTurnMinDelayMs', () => {
@@ -75,6 +76,26 @@ describe('installFinishedTurnEndpointing', () => {
     session.agentState = 'speaking';
     say('Wait, hold on, that is not what I meant.');
     expect(floors).toEqual([]);
+  });
+
+  it('a group call turn gets the floor its words get, not its label', () => {
+    const solo = fakeSession();
+    installFinishedTurnEndpointing(solo.session, 300, { ENDPOINT_FAST_FINISHED: 'on' });
+    solo.say('Yeah, sure.');
+    const call = {};
+    const group = fakeSession();
+    installFinishedTurnEndpointing(
+      group.session,
+      300,
+      { ENDPOINT_FAST_FINISHED: 'on' },
+      () => undefined,
+      (transcript) => stripTurnLabel(call, transcript)
+    );
+    group.say(labelTurn(call, 'unclear', 'Yeah, sure.'));
+    expect(group.floors).toEqual(solo.floors); // both keep the base floor: two words
+    expect(solo.floors).toEqual([]);
+    group.say(labelTurn(call, 'unclear', 'Should I push back?'));
+    expect(group.floors).toEqual([150]);
   });
 
   it("moves LiveKit's own endpointing floor through the public session API", () => {

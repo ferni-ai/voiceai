@@ -90,8 +90,7 @@ function silentWhile(
       transform(frame, controller) {
         if (!apart()) return controller.enqueue(frame);
         const { sampleRate, channels, samplesPerChannel } = frame;
-        const silence = new Int16Array(channels * samplesPerChannel);
-        controller.enqueue(new AudioFrame(silence, sampleRate, channels, samplesPerChannel));
+        controller.enqueue(AudioFrame.create(sampleRate, channels, samplesPerChannel)); // silence
       },
     })
   );

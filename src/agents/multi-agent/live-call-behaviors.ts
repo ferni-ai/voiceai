@@ -106,6 +106,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       .catch((error: unknown) => log.warn({ error: String(error) }, 'LK_PATCH_CHECK failed'));
   }
 
+  const unlabel = (t: string): string => stripTurnLabel(session, t); // GROUP_CALL turn labels
   // Stop Ferni within ~a second of a clear interruption (barge-in-fastpath.ts);
   // LiveKit's barge-in model still handles backchannels and short overlaps.
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
@@ -127,7 +128,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
       },
       softPause,
-      unlabel: (transcript) => stripTurnLabel(session, transcript),
+      unlabel,
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
     setBargeInFastPath(session, bargeIn);
@@ -217,13 +218,15 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // the model already waits through unfinished thoughts (turn-detector-sole.ts).
   const sole = holdsStandDown(session);
   if (!sole) {
-    if (installUnfinishedTurnHold(session)) reportUnfinishedTurnHolds(session, sessionId);
+    const held = installUnfinishedTurnHold(session, process.env, unlabel);
+    if (held) reportUnfinishedTurnHolds(session, sessionId);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
       session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
       endpointingDelays().minEndpointingDelay,
       process.env,
-      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
+      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR'),
+      unlabel
     );
     if (detach) cleanupFunctions.push(detach);
   }
