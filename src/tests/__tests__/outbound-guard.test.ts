@@ -21,6 +21,7 @@ import {
   allowOutbound,
   assertNoOutboundAttempts,
   clearModelSettings,
+  countedBuilds,
   outboundAttempts,
   resetOutboundGuard,
 } from '../outbound-guard.js';
@@ -72,11 +73,11 @@ const CLIENTS: Array<[kind: string, what: string, build: Build]> = [
     },
   ],
   [
-    'auth',
-    'new GoogleAuth()',
+    'gemini',
+    'new GoogleGenerativeAI()',
     async () => {
-      const { GoogleAuth } = await import('google-auth-library');
-      return new GoogleAuth();
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      return new GoogleGenerativeAI('k');
     },
   ],
 ];
@@ -88,6 +89,21 @@ describe('a real client class in a test', () => {
     expect(outboundAttempts()).toEqual([
       { kind, what, caller: expect.stringContaining('outbound-guard.test.ts') },
     ]);
+  });
+
+  it('GoogleAuth is counted, not refused: it builds, and only the count shows it', async () => {
+    const { GoogleAuth } = await import('google-auth-library');
+
+    expect(new GoogleAuth()).toBeInstanceOf(GoogleAuth);
+    expect(outboundAttempts()).toEqual([]);
+    expect(countedBuilds()).toEqual([
+      {
+        kind: 'auth',
+        what: 'new GoogleAuth()',
+        caller: expect.stringContaining('outbound-guard.test.ts'),
+      },
+    ]);
+    expect(() => assertNoOutboundAttempts()).not.toThrow();
   });
 
   it('leaves the rest of each package real', async () => {
@@ -204,7 +220,7 @@ describe('the record', () => {
     await expect(CLIENTS[1][2]()).rejects.toBeInstanceOf(RealOutboundInTestError);
 
     expect(() => assertNoOutboundAttempts()).toThrow(
-      /tried to build 1 real model or auth client\(s\)[\s\S]*openai: new OpenAI\(\)/
+      /tried to build 1 real model client\(s\)[\s\S]*openai: new OpenAI\(\)/
     );
   });
 
@@ -321,7 +337,7 @@ describe("the setup file's afterAll, in a test run of its own", () => {
 
     expect(rowsOf('builds-a-client.test.ts')).toEqual(['passed']);
     expect(file?.status).toBe('failed');
-    expect(file?.message).toMatch(/tried to build \d+ real model or auth client\(s\)/);
+    expect(file?.message).toMatch(/tried to build \d+ real model client\(s\)/);
     expect(file?.message).toContain('vertex: new VertexAI()');
     expect(probes.exit).toBe(1);
   });

@@ -9,6 +9,7 @@ import {
 import {
   assertNoOutboundAttempts,
   clearModelSettings,
+  countClient,
   guardClient,
   resetOutboundGuard,
 } from './outbound-guard.js';
@@ -28,10 +29,12 @@ isolateGcpCredentials();
 guardRealFirestore();
 setGcpGuardTestPath(expect.getState().testPath);
 
-// No test builds a real model or auth client: the four packages production
-// imports them from are themselves, except that `new` on a client class
-// records the attempt and throws. Production swallows that throw and falls
-// back, so the afterAll below is what fails the file. See outbound-guard.ts.
+// No test builds a real model client through the five packages as production
+// imports them: each is itself, except that `new` on a model client class
+// records the attempt and throws, and `new GoogleAuth()` is counted (building
+// one sends nothing). Production swallows the throw and falls back, so the
+// afterAll below is what fails the file. A client a LiveKit plugin builds from
+// inside node_modules is not reached here. See outbound-guard.ts.
 resetOutboundGuard(expect.getState().testPath);
 vi.mock('@google-cloud/vertexai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@google-cloud/vertexai')>();
@@ -46,9 +49,14 @@ vi.mock('@google/genai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@google/genai')>();
   return { ...actual, GoogleGenAI: guardClient('gemini', 'GoogleGenAI', actual.GoogleGenAI) };
 });
+vi.mock('@google/generative-ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@google/generative-ai')>();
+  const GoogleGenerativeAI = guardClient('gemini', 'GoogleGenerativeAI', actual.GoogleGenerativeAI);
+  return { ...actual, GoogleGenerativeAI };
+});
 vi.mock('google-auth-library', async (importOriginal) => {
   const actual = await importOriginal<typeof import('google-auth-library')>();
-  return { ...actual, GoogleAuth: guardClient('auth', 'GoogleAuth', actual.GoogleAuth) };
+  return { ...actual, GoogleAuth: countClient('auth', 'GoogleAuth', actual.GoogleAuth) };
 });
 
 // Background reply generation (services/llm/llm-dynamic-content.ts) starts on
@@ -397,7 +405,7 @@ beforeAll(() => {
   initializeLogger({ pretty: false });
 });
 
-// A test file that tried to build a real model or auth client fails here.
+// A test file that tried to build a real model client fails here.
 afterAll(() => {
   assertNoOutboundAttempts();
 });

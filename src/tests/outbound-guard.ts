@@ -2,16 +2,16 @@
  * Keeps every test away from real model and auth clients.
  *
  * Production builds its model clients lazily, through `import('openai')`,
- * `import('@google-cloud/vertexai')`, `import('@google/genai')` and
- * `import('google-auth-library')`. A test that drives a turn without stubbing
+ * `import('@google-cloud/vertexai')`, `import('@google/genai')`,
+ * `import('@google/generative-ai')` and `import('google-auth-library')`. A test that drives a turn without stubbing
  * every model option builds a real client: with a key in the shell it asks the
  * provider, and without one it fails late, after retries. Either way the test
  * passes, because production treats a failed model as "no answer" and falls
  * back (one crisis test file asked the real client 182 times per run,
  * 2026-11-13).
  *
- * So the test setup file replaces those four packages with themselves, except
- * that the client classes refuse to be constructed:
+ * So the test setup file replaces those five packages with themselves, except
+ * that the model client classes refuse to be constructed:
  *
  * 1. guardClient() wraps a client class. `new` records the attempt and throws
  *    RealOutboundInTestError; everything else on the class (statics, error
@@ -20,13 +20,21 @@
  *    assertNoOutboundAttempts() runs after every test file (src/tests/setup.ts)
  *    and throws when the record is not empty.
  *
+ * GoogleAuth is counted, not refused (countClient): it is auth plumbing that
+ * sends nothing when built (one run built 696 and connected 0 times), so it
+ * never fails a file. The report file still names every build.
+ *
  * A file that stubs the package itself (`vi.mock('openai', ...)`) never reaches
  * this guard: its own stub wins. A file that needs a real client says so with
  * allowOutbound('<reason>'), and the opt-out census names every such file.
  *
  * Not covered: a client imported from a deep path inside one of the packages,
- * a client required through Node's own require (vi.mock never sees it), and
- * plain fetch or sockets.
+ * a client required through Node's own require (vi.mock never sees it), a
+ * client a LiveKit plugin builds from inside node_modules (the Google plugin
+ * loads its own @google/genai copy; the census lists the test files that build
+ * through a plugin), a client built after a file's afterAll (the next file's
+ * reset clears the record before anything reads it), and plain fetch or
+ * sockets.
  */
 
 import { appendFileSync } from 'node:fs';
@@ -45,6 +53,8 @@ export interface OutboundAttempt {
 
 interface OutboundState {
   attempts: OutboundAttempt[];
+  /** Auth clients built (countClient): reported, never a failure. */
+  counted: OutboundAttempt[];
   /** The reason a test file gave for building real clients, when it gave one. */
   allowed: string | null;
   testPath: string | null;
@@ -57,7 +67,7 @@ const STATE = Symbol.for('ferni.outboundTestGuard');
 const shared = globalThis as { [STATE]?: OutboundState };
 
 function state(): OutboundState {
-  shared[STATE] ??= { attempts: [], allowed: null, testPath: null };
+  shared[STATE] ??= { attempts: [], counted: [], allowed: null, testPath: null };
   return shared[STATE];
 }
 
@@ -98,7 +108,7 @@ export function clearModelSettings(env: Env = process.env): void {
 export class RealOutboundInTestError extends Error {
   constructor(what: string) {
     super(
-      `${what} in a test: tests must never build a real model or auth client. Stub the ` +
+      `${what} in a test: tests must never build a real model client. Stub the ` +
         `model call the code under test makes, or say why this file needs a real client ` +
         `with allowOutbound('<reason>') from src/tests/outbound-guard.ts.`
     );
@@ -108,12 +118,17 @@ export class RealOutboundInTestError extends Error {
 
 /** A new test file starts with an empty record and no opt-out. */
 export function resetOutboundGuard(testPath: string | undefined): void {
-  shared[STATE] = { attempts: [], allowed: null, testPath: testPath ?? null };
+  shared[STATE] = { attempts: [], counted: [], allowed: null, testPath: testPath ?? null };
 }
 
 /** Every real client this test file tried to build so far. */
 export function outboundAttempts(): readonly OutboundAttempt[] {
   return state().attempts;
+}
+
+/** Every auth client this test file built so far (counted, never refused). */
+export function countedBuilds(): readonly OutboundAttempt[] {
+  return state().counted;
 }
 
 /** Lets this test file build real clients. The reason is for the reader and the census. */
@@ -144,11 +159,12 @@ function callerFrame(): string | null {
   return frames.length > 0 ? frames.join(' < ') : null;
 }
 
-function record(kind: OutboundKind, what: string): void {
+function record(kind: OutboundKind, what: string, refused = true): void {
   const attempt: OutboundAttempt = { kind, what, caller: callerFrame() };
-  state().attempts.push(attempt);
+  (refused ? state().attempts : state().counted).push(attempt);
   const file = process.env.FERNI_OUTBOUND_GUARD_REPORT;
-  if (file) appendFileSync(file, `${JSON.stringify({ test: state().testPath, ...attempt })}\n`);
+  const line = { test: state().testPath, ...attempt, ...(refused ? {} : { counted: true }) };
+  if (file) appendFileSync(file, `${JSON.stringify(line)}\n`);
 }
 
 function realClientsAllowed(env: Env = process.env): boolean {
@@ -170,6 +186,16 @@ export function guardClient<T extends Constructor>(kind: OutboundKind, name: str
   });
 }
 
+/** The same class, except that `new` records the build; the real client is built. */
+export function countClient<T extends Constructor>(kind: OutboundKind, name: string, Real: T): T {
+  return new Proxy(Real, {
+    construct(target, args, newTarget): object {
+      if (!realClientsAllowed()) record(kind, `new ${name}()`, false);
+      return Reflect.construct(target, args, newTarget) as object;
+    },
+  });
+}
+
 /**
  * Fails the test file that tried to build a real client, naming each attempt.
  * Production swallows the constructor's throw, so this is the only place the
@@ -182,7 +208,7 @@ export function assertNoOutboundAttempts(): void {
     (a) => `  ${a.kind}: ${a.what} ${a.caller ?? '(no application frame)'}`
   );
   throw new Error(
-    `This test file tried to build ${attempts.length} real model or auth client(s), and each ` +
+    `This test file tried to build ${attempts.length} real model client(s), and each ` +
       `was refused:\n${lines.join('\n')}\nStub the model call the code under test makes, or ` +
       `say why this file needs a real client with allowOutbound('<reason>') from ` +
       `src/tests/outbound-guard.ts.`
