@@ -11,7 +11,7 @@
  * - The caller's own crisis: one crisis_signals doc with no words, by the existing writer
  *   (logCrisisSignal, gateCrisisSignals), with the session and caller turn. Once per call per level.
  *   Marked QUIET_ONLY_SOURCE: getCrisisHistory's readers (the crisis follow-up note and the
- *   crisis history's hadRecentCrisis) skip it, so no later turn or call hears of it.
+ *   crisis history's hadRecentCrisis) skip it, so no later turn or call mentions it.
  *   hadCrisisWithin counts it, so for CRISIS_QUIET_DAYS proactive outreach holds back, and so do
  *   later calls' pondered opener, greeting date line, call sheet recentCrisis and remembered-call
  *   card (pondering-opener's hadRecentCrisis). Each only drops content; none adds crisis words.

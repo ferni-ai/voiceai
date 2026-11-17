@@ -11,11 +11,11 @@
  * CRISIS_QUIET_FROM_GATE (agents/safety/crisis-quiet-window.ts): the reply gate's crisis
  * handling starts the quiet period too. The caller's own crisis is stored here
  * (gateCrisisSignals), marked QUIET_ONLY_SOURCE: getCrisisHistory skips it, so the crisis
- * follow-up never hears of it. hadCrisisWithin counts it: outreach goes quiet, and the readers of
- * pondering-opener's hadRecentCrisis (opener, greeting date, call sheet, remembered-call card)
- * hold back. They only drop content. A MINOR_CARE-held caller's, and a crisis about someone the caller knows, are a
- * quietUntil time on minor_care_holds instead. Until a write is stored, this process holds the
- * quiet (holdQuietHere).
+ * follow-up never mentions it. hadCrisisWithin counts it: outreach goes quiet, and the readers
+ * of pondering-opener's hadRecentCrisis (opener, greeting date, call sheet, remembered-call
+ * card) hold back. They only drop content. A MINOR_CARE-held caller's, and a crisis about
+ * someone the caller knows, are a quietUntil time on minor_care_holds instead. Until a write
+ * is stored, this process holds the quiet (holdQuietHere).
  *
  * @module services/human-transfer/crisis-signals
  */
@@ -182,7 +182,8 @@ export function followUpCrisis(
 
 /**
  * The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read
- * errors. `withQuietOnly: false` (every reader that shapes a reply) skips QUIET_ONLY_SOURCE records.
+ * errors. `withQuietOnly: false` (getCrisisHistory's readers) skips QUIET_ONLY_SOURCE records;
+ * the default counts them (hadCrisisWithin).
  */
 export async function crisisLevelSignalsSince(
   db: Pick<FirebaseFirestore.Firestore, 'collection'>,
