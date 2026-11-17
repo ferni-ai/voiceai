@@ -137,6 +137,10 @@ jobs:
       # whole unit suite on four shards, as the ci:full-tests label does. Only
       # 'false' on a PR that touches none of those paths.
       full-tests: ${{ steps.risky.outputs.matched }}
+      # 'true' when a PR touches a file src/tests/deploy or src/tests/ci reads as
+      # text, which runs Deploy & CI Config Tests. 'true' on other events; that
+      # job is PR-only.
+      deploy-tests: ${{ steps.deploy-tests.outputs.matched }}
     steps:
       # Two commits on a pull request (the merge commit and its base) for the unit
       # trigger check below; the pr-changes steps list files through the API.
@@ -192,6 +196,16 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           include: '^src/(services/safety/|agents/personas/crisis|agents/processors/turn-processor/turn-crisis|tools/domains/life-coaching-shared/safety-guards\.ts$|memory/|services/memory/|utils/safety-whole-word|utils/phrase-match)'
+
+      # The files outside src/ that src/tests/deploy and src/tests/ci read (or run):
+      # no src/ import leads to them, so Related Integration Tests never selects
+      # those tests for them. Add a root here when a test there starts reading one.
+      # Pinned by src/tests/deploy/deploy-tests-on-pr.test.ts.
+      - name: Did CI config change?
+        id: deploy-tests
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(\.github/(workflows|actions)/|scripts/ci/|deploy/ui-server/|(docker/)?Dockerfile\.[^/]+$|apps/figma-plugin/(package\.json|src/ui\.html)$|vitest\.config\.integration\.ts$)'
 
       - name: Generate cache key
         id: cache-key
@@ -848,6 +862,56 @@ jobs:
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+
+  # ============================================================================
+  # DEPLOY & CI CONFIG TESTS (pull requests that change files those tests read)
+  # ============================================================================
+  # Integration Tests skips its steps on pull_request and Related Integration Tests
+  # follows src/ imports, so a PR that changed only files these tests read as text
+  # never ran them before the merge queue did. Not a required check: the queue
+  # and pushes still run them inside Integration Tests. Setup and env follow
+  # Related Integration Tests, minus the native bindings and the LiveKit/GCP
+  # secrets: nothing in these two directories loads or reads them.
+  test-deploy:
+    name: Deploy & CI Config Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: setup
+    if: github.event_name == 'pull_request' && needs.setup.outputs.deploy-tests == 'true'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # No `--` (see Integration Tests).
+      - name: Run src/tests/deploy and src/tests/ci
+        run: pnpm exec vitest run --config vitest.config.integration.ts src/tests/deploy/ src/tests/ci/ --reporter=verbose
+        env:
+          NODE_ENV: test
 
   # ============================================================================
   # AGI FEATURE TESTS
