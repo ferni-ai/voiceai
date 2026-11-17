@@ -43,7 +43,10 @@ export async function loadFlags(): Promise<Loaded> {
 export function track(v: View, body: AgentFlagsBody): void {
   const { unconfirmed, superseded } = trackUnconfirmed(v.unconfirmed, body);
   v.unconfirmed = unconfirmed;
-  v.superseded.push(...describeSuperseded(superseded, body.snapshot));
+  // Once each: a timeout re-adds the names of its apply, and settle can supersede one again.
+  for (const line of describeSuperseded(superseded, body.snapshot)) {
+    if (!v.superseded.includes(line)) v.superseded.push(line);
+  }
 }
 
 /** Re-reads the flags into `v`; false (logged) when that failed. */

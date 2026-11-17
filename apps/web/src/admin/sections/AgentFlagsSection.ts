@@ -50,6 +50,9 @@ const NOT_DEV = 'Agent flags can only be changed on the dev admin server.';
 
 let view = freshView();
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
+let events: AbortController | null = null;
+/** Marks the roots this module rendered, so listeners of another copy of it ignore them. */
+const OWNER = Math.random().toString(36).slice(2);
 
 // ============================================================================
 // RENDER
@@ -68,7 +71,7 @@ function repaint(): void {
 }
 
 function shell(inner: string): string {
-  return `${STYLES}<div id="agentFlagsRoot" class="af">${inner}</div>`;
+  return `${STYLES}<div id="agentFlagsRoot" class="af" data-owner="${OWNER}">${inner}</div>`;
 }
 
 /** Loads the flags and the dev rooms, and returns the section. */
@@ -77,16 +80,22 @@ export async function render(): Promise<string> {
   const { unconfirmed, phase } = view; // both survive a reload of the section
   view = freshView();
   view.unconfirmed = unconfirmed;
-  let loaded: Loaded;
+  let loaded: Loaded | null = null;
   try {
     loaded = await loadFlags();
   } catch (error) {
     log.error('Agent flags not loaded', error);
-    return shell('<p class="af-banner">Could not reach the server to load agent flags.</p>');
   }
-  if (!loaded.ok) {
-    const text =
-      loaded.status === 404 ? NOT_DEV : `Could not load agent flags (HTTP ${loaded.status}).`;
+  if (!loaded?.ok) {
+    // The wait cannot go on without the flags: keep its change marked instead.
+    if (phase.kind === 'confirming') {
+      view.unconfirmed = unconfirm(view.unconfirmed, phase.applied, phase.appliedAt);
+    }
+    const text = !loaded
+      ? 'Could not reach the server to load agent flags.'
+      : loaded.status === 404
+        ? NOT_DEV
+        : `Could not load agent flags (HTTP ${loaded.status}).`;
     return shell(`<p class="af-banner">${escapeHtml(text)}</p>`);
   }
   view.body = loaded.body;
@@ -246,23 +255,35 @@ async function onAction(action: string | undefined): Promise<void> {
 }
 
 /**
- * Binds the section's events on its root, once per render: each render makes a new root, so
- * the listeners go with it and never outlive the section (or a test's module).
+ * Binds the section's events, replacing the last render's. They are delegated from document,
+ * so they work whenever the portal inserts the section (after its fade, which can be later
+ * than this call), and act only inside a root this module rendered.
  */
 export function setupEvents(): void {
-  const root = document.getElementById('agentFlagsRoot');
-  if (!root || root.dataset.bound) return;
-  root.dataset.bound = 'true';
-  root.addEventListener('change', (e) => {
-    if (e.target instanceof HTMLSelectElement) onSelect(e.target);
+  events?.abort();
+  events = new AbortController();
+  const { signal } = events;
+  const ours = (t: EventTarget | null): t is Element =>
+    t instanceof Element && t.closest<HTMLElement>('#agentFlagsRoot')?.dataset.owner === OWNER;
+  const on = (type: 'change' | 'input' | 'click', fn: (t: Element) => void): void => {
+    document.addEventListener(
+      type,
+      (e) => {
+        if (ours(e.target)) fn(e.target);
+      },
+      { signal }
+    );
+  };
+  on('change', (t) => {
+    if (t instanceof HTMLSelectElement) onSelect(t);
   });
-  root.addEventListener('input', (e) => {
-    if (!(e.target instanceof HTMLInputElement) || e.target.id !== 'afSearch') return;
-    view.query = e.target.value;
+  on('input', (t) => {
+    if (!(t instanceof HTMLInputElement) || t.id !== 'afSearch') return;
+    view.query = t.value;
     paint('afList', renderList(view));
   });
-  root.addEventListener('click', (e) => {
-    const button = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-af]') : null;
+  on('click', (t) => {
+    const button = t.closest<HTMLElement>('[data-af]');
     if (button) void onAction(button.dataset.af);
   });
 }

@@ -535,4 +535,40 @@ describe('AgentFlagsSection', () => {
     choose(root, 'ATTUNE_LEDGER', 'default');
     expect(root.textContent).toContain('1 change staged');
   });
+
+  // ---- Fix round 2 (re-review minors) ----------------------------------------------------
+
+  it('reports a newer worker overriding the apply once, also when the wait then times out', async () => {
+    const trail = [
+      {
+        at: '2026-11-17T10:00:00.000Z',
+        actor: 'admin@example.test',
+        set: {},
+        reset: ['SOUND_CONDUCTOR'],
+        result: 'applied',
+      },
+    ];
+    // A worker started at 10:01 still runs SOUND_CONDUCTOR on: it overrode the reset.
+    const overridden = {
+      ...OLD_WORKER,
+      changes: trail,
+      snapshot: { ...OLD_WORKER.snapshot, startedAt: '2026-11-17T10:01:00.000Z' },
+    };
+    const root = await applyResetWith(OLD_WORKER, { ...OLD_WORKER, changes: trail }, overridden);
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    expect(root.textContent).toContain('Applied, not confirmed yet');
+    const note = 'SOUND_CONDUCTOR: the agent runs on, not the default as applied.';
+    expect(root.textContent?.split(note)).toHaveLength(2); // exactly one occurrence
+  });
+
+  it('keeps the change marked when a reload during the wait fails', async () => {
+    await applyResetWith(OLD_WORKER);
+    const section = await import('../../src/admin/sections/AgentFlagsSection.js');
+    fetchMock.mockImplementationOnce(async () => json({ error: 'down' }, 500));
+    document.body.innerHTML = await section.render(); // the header Refresh, and it fails
+    expect(document.body.textContent).toContain('Could not load agent flags (HTTP 500).');
+    serve({ [GET]: () => json(OLD_WORKER), [ROOMS]: () => json({ rooms: [] }) });
+    const root = await mount();
+    expect(rowOf(root, 'SOUND_CONDUCTOR')?.classList.contains('af-row--unconfirmed')).toBe(true);
+  });
 });
