@@ -111,7 +111,7 @@ import { cancelAllAvatarAnimations } from './dev-panel/handlers/index.js';
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
 import {
   ADMIN_UTILITY_LINKS,
-  AI_VOICE_DASHBOARD_LINKS,
+  MODEL_AND_VOICE_DASHBOARD_LINKS,
   CORE_DASHBOARD_LINKS,
   FEATURE_TOOL_LINKS,
   INFRASTRUCTURE_DASHBOARD_LINKS,
@@ -2231,7 +2231,7 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">AI & Voice</span>
           <div class="dev-dashboard-links">
-            ${renderDashboardLinks(AI_VOICE_DASHBOARD_LINKS)}
+            ${renderDashboardLinks(MODEL_AND_VOICE_DASHBOARD_LINKS)}
           </div>
         </div>
         

@@ -41,7 +41,7 @@ export const CORE_DASHBOARD_LINKS: readonly DashboardLink[] = [
   },
 ];
 
-export const AI_VOICE_DASHBOARD_LINKS: readonly DashboardLink[] = [
+export const MODEL_AND_VOICE_DASHBOARD_LINKS: readonly DashboardLink[] = [
   { href: '/llm-dashboard.html', icon: 'robot', label: 'LLM', title: 'LLM Dashboard' },
   {
     href: '/voice-presence-dashboard.html',
