@@ -119,7 +119,12 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     const c = request();
     c.insert(llm.FunctionCall.create({ callId: 'c2', name: 'jobLossSupport', args: '{}' }));
     c.insert(
-      llm.FunctionCallOutput.create({ callId: 'c2', name: 'jobLossSupport', output, isError: false })
+      llm.FunctionCallOutput.create({
+        callId: 'c2',
+        name: 'jobLossSupport',
+        output,
+        isError: false,
+      })
     );
     return c;
   }
@@ -129,7 +134,10 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     ['988 in words', 'You can call nine eight eight tonight.'],
     ['9 8 8 with spaces', 'Dial 9 8 8 if it gets heavy.'],
     ['9-8-8 with dashes', 'Dial 9-8-8 if it gets heavy.'],
-    ['988 after a newline in JSON', JSON.stringify({ tips: 'Rest first.\n988 is open all night.' })],
+    [
+      '988 after a newline in JSON',
+      JSON.stringify({ tips: 'Rest first.\n988 is open all night.' }),
+    ],
     ['the Crisis Text Line number alone', 'Text 741741 any time.'],
     ['the DV hotline number alone', 'Reach them at 1-800-799-7233.'],
     ['the Trevor number alone', 'Reach them at 1-866-488-7386.'],
