@@ -304,6 +304,7 @@ beforeEach(() => {
   later.kept.length = 0;
   resetMinorCare();
   forgetRecentCrisis(UID);
+  releaseQuietHere(UID); // a row's hung or late write can't leave the next row quiet
   vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
   vi.setSystemTime(CALL_AT);
   vi.stubEnv('LOG_HASH_SECRET', 'test-hash-secret');
@@ -462,8 +463,14 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
       guided: off.guided,
       held: off.held.said,
     });
-    await settle(); // the records are written a tick later: let them land here, not in the next test
-    expect(signalDocs()).toHaveLength(2); // one per call: the script's, and the held read's guidance
+    // What the flag kept, written a tick later: one quiet-only record per call (the script's and
+    // the held read's guidance), which no reply reads, and none of the caller's words.
+    await settle();
+    const kept = signalDocs().map(([, d]) => d);
+    expect(kept.map((d) => d.source)).toEqual(['gate_quiet', 'gate_quiet']);
+    const text = JSON.stringify(kept).toLowerCase();
+    for (const words of ['honestly', 'end my life', 'after this call', 'sleeves', 'the marks'])
+      expect(text, words).not.toContain(words);
   });
 
   it('a held turn where the caller goes on: the caller hears the crisis-guided reply, flag off and on', async () => {
