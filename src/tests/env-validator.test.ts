@@ -27,7 +27,7 @@ import {
   validateEnvironmentOrThrow,
   isFeatureAvailable,
   getMissingFeatures,
-} from '../services/env-validator.js';
+} from '../services/platform/env-validator.js';
 
 describe('Environment Validator', () => {
   const originalEnv = process.env;

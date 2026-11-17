@@ -35,6 +35,7 @@ import {
 } from '../../../services/intelligence-publisher.js';
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
+import { crisisTurnSettled } from '../../../utils/crisis-memory-hold.js';
 import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
 import { ownerWriteId, ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
@@ -495,8 +496,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
     }
 
+    let kept: Promise<boolean> | undefined; // the three tasks below share one crisis-read wait
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         const names = await recordNamesSaid(services.userId!, extractNames(userText));
         for (const name of names) diag.state('📇 Recorded person mention', { name });
       },
@@ -505,6 +508,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         const captureResult = await fastCapture({
           transcript: userText,
           userId: services.userId!,
@@ -513,10 +517,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           voiceEmotion: analysisResult.analysis.emotion.primary,
           personaId: ctx.persona?.id,
         });
-
         const { recordTurn } = await import('../../../memory/dynamic/index.js');
         recordTurn(services.sessionId, services.userId!, captureResult, userText, turnCount);
-
         if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
           diag.state('🧠 Dynamic memory capture', {
             entityCount: captureResult.mentionedEntities.length,
@@ -531,19 +533,17 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         try {
           const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
-
           if (!isKnowledgeCaptureReady()) return;
-
           const valenceToNumber = (v?: string): number | undefined => {
             if (!v) return undefined;
             if (v === 'positive') return 1;
             if (v === 'negative') return -1;
             return 0;
           };
-
           // Runs with the next few turns of the session (knowledge-capture-batch.ts)
           queueTurnCapture({
             userId: services.userId!,

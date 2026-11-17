@@ -118,9 +118,9 @@ const log = createLogger({ module: 'CrisisGate' });
 
 export type CrisisGateDecision =
   | { action: 'pass' }
-  // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
+  // about: someone the caller knows is at risk (MINOR_CRISIS_CARE); crisis: the caller is.
   // line: the line a crisis read's reply must name (CRISIS_GUIDED_LINE_FLOOR); soft guides have none.
-  | { action: 'guide'; guidance: string; about?: 'third_party'; line?: GuideLine }
+  | { action: 'guide'; guidance: string; about?: 'third_party'; crisis?: true; line?: GuideLine }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
 
@@ -151,6 +151,9 @@ const turnWords = ({ latest, earlier, companion }: ReturnType<typeof callerWords
 const crisisGuide = (guidance: string, line: GuideLine | undefined): GuideDecision =>
   line ? { action: 'guide', guidance, line } : { action: 'guide', guidance };
 
+/** decisionFor's own-crisis mark (CRISIS_QUIET_FROM_GATE): the caller is the one at risk. */
+const own = (decision: GuideDecision): GuideDecision => ({ ...decision, crisis: true });
+
 /** The stepped-down read of an imminent turn is still a crisis read; an after-check ease is not. */
 const easedGuide = (
   eased: { guidance: string; crisis?: CrisisDetectionResult },
@@ -169,9 +172,11 @@ export function decisionFor(crisis: CrisisDetectionResult, latest?: string): Cri
   }
   if (crisis.isCrisis) {
     const disclosure = disclosureGuidance(crisis);
-    return crisisGuide(
-      disclosure ?? buildCrisisGuidance(crisis),
-      guideLineOf(crisis, disclosure !== null, latest)
+    return own(
+      crisisGuide(
+        disclosure ?? buildCrisisGuidance(crisis),
+        guideLineOf(crisis, disclosure !== null, latest)
+      )
     );
   }
   return { action: 'pass' };

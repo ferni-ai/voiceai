@@ -420,6 +420,7 @@ const THIRD_PARTY = [
   'visual_memories',
   'tool_executions',
   'semantic_intelligence',
+  'guest_consents',
 ];
 
 describe('other people stay in prod', () => {

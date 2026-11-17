@@ -100,6 +100,17 @@ export const names911 = (text: string): boolean => NAMES_911.test(asWritten(text
 export function offersCrisisLine(text: string): boolean {
   return names988(text) || TEXT_LINE_NUMBER.test(text) || NAMED.test(text);
 }
+
+const DIGITS_ONLY = new RegExp(DIGITS);
+
+/**
+ * Whether text carries 988 as a number someone can dial or text: 988, 9-8-8 or 9 8 8, never "$988"
+ * or part of a longer number. Narrower than offersCrisisLine on purpose: a line named without its
+ * number ("a crisis line") is not 988, so a reply that must carry 988 still gets it.
+ */
+export function says988(text: string): boolean {
+  return DIGITS_ONLY.test(text);
+}
 /** How many words either side of a digit form are searched for a cue. */
 const CUE_WINDOW = 3;
 

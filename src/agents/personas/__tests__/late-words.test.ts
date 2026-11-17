@@ -14,6 +14,12 @@ vi.mock('../../safety/crisis-event-record.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   recordCrisisOnCall: recorded,
 }));
+// CRISIS_QUIET_FROM_GATE: what the re-gate tells the quiet window (crisis-gate-quiet-path.test.ts covers the store)
+const quieted = vi.hoisted(() => vi.fn());
+vi.mock('../../safety/crisis-quiet-window.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  quietAfterCrisis: quieted,
+}));
 import { isMergeableTail, lateWordsMerger, MAX_LATE_WORDS, negativeVoice } from '../late-words.js';
 
 const T = stt.SpeechEventType;
@@ -183,6 +189,7 @@ describe('a merged turn is crisis-gated again on the whole sentence', () => {
   beforeEach(() => {
     resetCrisisClassifierCache();
     recorded.mockReset();
+    quieted.mockReset();
   });
 
   it('a crisis only the classifier sees, completed by the tail: the reply in flight gives way to the crisis script', async () => {
@@ -212,6 +219,12 @@ describe('a merged turn is crisis-gated again on the whole sentence', () => {
     expect(session.say.mock.invocationCallOrder[0]).toBeLessThan(
       recorded.mock.invocationCallOrder[0]!
     );
+    // The quiet window starts on the re-gated decision, once, after the script is queued
+    expect(quieted).toHaveBeenCalledTimes(1);
+    expect(quieted).toHaveBeenCalledWith(session, expect.objectContaining({ action: 'replace' }));
+    expect(session.say.mock.invocationCallOrder[0]).toBeLessThan(
+      quieted.mock.invocationCallOrder[0]!
+    );
   });
 
   it('a classifier crisis that calls for guidance regenerates the reply with it', async () => {
@@ -227,6 +240,12 @@ describe('a merged turn is crisis-gated again on the whole sentence', () => {
     await vi.waitFor(() => expect(session.generateReply).toHaveBeenCalledTimes(1));
     expect(session.interrupt).toHaveBeenCalledTimes(1);
     expect(session.generateReply.mock.calls[0][0].instructions).toMatch(/988|crisis|safe/i);
+    // The caller's own crisis guidance starts the quiet window too
+    expect(quieted).toHaveBeenCalledTimes(1);
+    expect(quieted).toHaveBeenCalledWith(
+      session,
+      expect.objectContaining({ action: 'guide', crisis: true })
+    );
   });
 
   it('leaves the reply in flight alone when the classifier passes the whole sentence', async () => {
@@ -242,6 +261,7 @@ describe('a merged turn is crisis-gated again on the whole sentence', () => {
     });
     expect(session.interrupt).not.toHaveBeenCalled();
     expect(session.say).not.toHaveBeenCalled();
+    expect(quieted).not.toHaveBeenCalled(); // a pass starts no quiet
   });
 
   it('never holds the late words when the caller sounds distressed: a new turn, gated as one', () => {
