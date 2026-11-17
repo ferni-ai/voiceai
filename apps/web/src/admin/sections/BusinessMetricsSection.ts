@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { adminGet } from '../admin-api.js';
 import { ICONS } from '../icons.js';
 
 const log = createLogger('BusinessMetricsSection');
@@ -537,16 +538,10 @@ export function render(): string {
 // DATA FETCHING
 // ============================================================================
 
+// Admin-only routes: adminGet sends the admin's credentials and logs failures.
 async function fetchAnalytics(): Promise<AnalyticsSummary | null> {
-  try {
-    const response = await fetch('/api/analytics/summary');
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.data as AnalyticsSummary;
-  } catch (error) {
-    log.error({ error }, 'Failed to fetch analytics');
-    return null;
-  }
+  const result = await adminGet<{ data: AnalyticsSummary }>('/api/analytics/summary');
+  return result.data?.data ?? null;
 }
 
 async function fetchSubscriptionMetrics(): Promise<SubscriptionMetrics | null> {
@@ -562,14 +557,8 @@ async function fetchSubscriptionMetrics(): Promise<SubscriptionMetrics | null> {
 }
 
 async function fetchConcurrent(): Promise<number> {
-  try {
-    const response = await fetch('/api/analytics/concurrent');
-    if (!response.ok) return 0;
-    const data = await response.json();
-    return data.concurrent ?? 0;
-  } catch {
-    return 0;
-  }
+  const result = await adminGet<{ concurrent?: number }>('/api/analytics/concurrent');
+  return result.data?.concurrent ?? 0;
 }
 
 // ============================================================================
