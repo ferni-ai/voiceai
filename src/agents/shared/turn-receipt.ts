@@ -259,7 +259,8 @@ export class TurnReceiptRecorder {
         }
       : { offered: 0, kept: 0, droppedIdx: [] };
     // Where FastLaneLLM sends it, or with the lane off would (a crisis mark, then the words).
-    const { lane, laneShadow } = laneFields(request, this.opts.env);
+    const call = { sessionId: this.opts.sessionId, userId: this.opts.userId };
+    const { lane, laneShadow } = laneFields(request, call, this.opts.env);
     turn.lane = lane;
     turn.laneShadow = laneShadow;
   }

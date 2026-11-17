@@ -275,6 +275,19 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'a phone call held while the turns were read: none go back',
     ],
   },
+  // Logs where the fast lane would send a turn (TURN_RECEIPT prompt.laneShadow); only the receipt
+  // builder reads it. Crisis half: the first three rows. Held half: the fourth. Reply unchanged:
+  // the last (the request the model gets is left as it came, flag on or off).
+  FAST_LANE_SHADOW: {
+    file: 'src/agents/shared/__tests__/turn-receipt-lane-shadow.test.ts',
+    rows: [
+      "a crisis-marked request, then the call's later unmarked chat turn: both null",
+      'a crisis-held call: null, and still null after the hold itself is gone',
+      'a crisis read still running: null (its verdict could hold the call)',
+      'a caller who sounds under 18: null, even read with MINOR_CARE off',
+      'the flag on leaves the request the model gets as it came: an open call logs, a guided one is quiet',
+    ],
+  },
 };
 
 /**
