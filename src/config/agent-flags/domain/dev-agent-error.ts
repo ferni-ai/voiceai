@@ -61,6 +61,17 @@ export function callFailed(method: string, error: unknown): DevAgentError {
   });
 }
 
+/**
+ * The Twirp code when LiveKit answered with an error response (not 2xx, with a code): it
+ * handled the request and changed nothing. Undefined for a timeout, a network error or an
+ * unconfirmed answer, after which the update may have applied.
+ */
+export function refusalCode(error: unknown): string | undefined {
+  if (!(error instanceof DevAgentError)) return undefined;
+  const { status, code } = error.failure;
+  return status !== undefined && (status < 200 || status >= 300) ? code : undefined;
+}
+
 /** What to log about an error from a DevAgent: a DevAgentError's message and fields, else its name. */
 export function loggableError(error: unknown): Record<string, unknown> {
   if (error instanceof DevAgentError) return { message: error.message, ...error.failure };

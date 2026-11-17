@@ -133,6 +133,7 @@ function fakes(
       if (opts.rooms instanceof Error) throw opts.rooms;
       return opts.rooms ?? [];
     }),
+    updateFlags: vi.fn(async () => undefined),
   };
   const store: FlagStore = {
     writeSnapshot: vi.fn(async () => undefined),
@@ -239,6 +240,7 @@ describe('auth', () => {
     for (const r of results) expect(r).toMatchObject({ handled: true, status: code });
     expect(f.deps.agent).not.toHaveBeenCalled();
     expect(f.deps.store).not.toHaveBeenCalled();
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
   });
 
   it('rate limits at 30 requests a minute per caller', async () => {
@@ -371,13 +373,90 @@ describe('GET /api/v1/admin/agent-flags/rooms', () => {
       vi.useRealTimers();
     }
   });
+});
 
-  it('answers 404 to a path or method it does not serve, apply included', async () => {
+describe('POST /api/v1/admin/agent-flags/apply', () => {
+  const BODY = { set: { SOUND_CONDUCTOR: 'on' }, reset: [] };
+
+  it("records the admin's email from requireAdmin as the actor", async () => {
     const f = fakes();
-    expect((await call('POST', `${BASE}/rooms`, f.deps)).status).toBe(404);
-    expect((await call('POST', `${BASE}/apply`, f.deps, { set: {}, reset: [] })).status).toBe(404);
-    expect((await call('GET', `${BASE}/nope`, f.deps)).status).toBe(404);
+    const r = await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(r.status).toBe(200);
+    expect(r.json.appliedAt).toEqual(expect.any(String));
+    expect(r.json).not.toHaveProperty('status');
+    expect(f.agent.updateFlags).toHaveBeenCalledWith(BODY);
+    expect(f.changes[0]).toMatchObject({ actor: 'admin@example.test', result: 'applied' });
+  });
+
+  it("records the admin's uid when requireAdmin has no email", async () => {
+    auth.requireAdmin.mockResolvedValue({ ...ADMIN, email: undefined });
+    const f = fakes();
+    await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(f.changes[0]?.actor).toBe('uid-fictional-admin');
+  });
+
+  it('answers with the use case status: 400 for an invalid body, 409 for an occupied room', async () => {
+    const bad = await call('POST', `${BASE}/apply`, fakes().deps, {
+      set: {},
+      reset: [],
+      actor: 'x',
+    });
+    expect(bad).toMatchObject({ status: 400, json: { errors: expect.any(Array) } });
+    const rooms = [{ name: 'room-fictional-2', participants: 3 }];
+    const busy = fakes({ rooms });
+    const r = await call('POST', `${BASE}/apply`, busy.deps, BODY);
+    expect(r).toMatchObject({ status: 409, json: { rooms } });
+    expect(busy.agent.updateFlags).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 after 10 s, not never, when the room service hangs, and changes nothing', async () => {
+    vi.useFakeTimers();
+    try {
+      const f = fakes();
+      const hung = {
+        listRooms: () =>
+          new Promise<never>(() => {
+            // never settles, like a hung room service
+          }),
+      };
+      const rpc = vi.fn();
+      const deps = { ...f.deps, agent: () => liveKitDevAgent(LIVEKIT_DEV_ENV, rpc, hung) };
+      const answered = vi.fn();
+      void call('POST', `${BASE}/apply`, deps, BODY).then(answered);
+      await vi.advanceTimersByTimeAsync(9_999);
+      expect(answered).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(answered).toHaveBeenCalledWith(expect.objectContaining({ status: 502 }));
+      expect(rpc).not.toHaveBeenCalled();
+      expect(f.changes[0]).toMatchObject({ result: 'failed' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('answers 400 for a body that is not JSON', async () => {
+    const f = fakes();
+    const r = await call('POST', `${BASE}/apply`, f.deps, 'not json!');
+    expect(r.status).toBe(400);
     expect(f.agent.occupiedRooms).not.toHaveBeenCalled();
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
+  });
+
+  it('refuses a body over 16 KB with 413 and changes nothing', async () => {
+    const f = fakes();
+    const big = { set: { SOUND_CONDUCTOR: 'on' }, reset: [], pad: 'x'.repeat(17 * 1024) };
+    const r = await call('POST', `${BASE}/apply`, f.deps, big);
+    expect(r.status).toBe(413);
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
+    expect(f.agent.occupiedRooms).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 to a path or method it does not serve', async () => {
+    const f = fakes();
+    expect((await call('GET', `${BASE}/apply`, f.deps)).status).toBe(404);
+    expect((await call('POST', BASE, f.deps, BODY)).status).toBe(404);
+    expect((await call('GET', `${BASE}/nope`, f.deps)).status).toBe(404);
+    expect(f.agent.updateFlags).not.toHaveBeenCalled();
   });
 });
 
@@ -437,6 +516,94 @@ describe('LiveKit error text stays out of the logs and the replies', () => {
     expect([flags.status, rooms.status]).toEqual([200, 502]);
     expect(logs.calls.length).toBeGreaterThanOrEqual(2);
     expect(dump(logs.calls)).not.toContain(LEAK);
+  });
+});
+
+describe('POST /apply through the real adapter: what LiveKit answered decides the reply', () => {
+  const LEAK = 'fake-secret-do-not-leak-9002';
+  const BODY = { set: { SOUND_CONDUCTOR: 'on' }, reset: [] };
+  const REFUSED = 'LiveKit refused the update; nothing changed';
+  const UNCONFIRMED =
+    'LiveKit did not confirm; the update may have applied and restarted the agent';
+  const noRooms = { listRooms: async (): Promise<never[]> => [] };
+
+  beforeEach(() => {
+    logs.calls.length = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function applyAnswered(answer: () => Promise<Response>) {
+    const fetchFake = vi.fn(answer);
+    vi.stubGlobal('fetch', fetchFake);
+    const f = fakes();
+    const deps = { ...f.deps, agent: () => liveKitDevAgent(LIVEKIT_DEV_ENV, undefined, noRooms) };
+    const r = await call('POST', `${BASE}/apply`, deps, BODY);
+    return { ...r, fetches: fetchFake.mock.calls.length, changes: f.changes };
+  }
+
+  const json = (status: number, body: unknown) => async () =>
+    new Response(JSON.stringify(body), { status });
+
+  it('says nothing changed, with the code, when LiveKit answers a twirp error', async () => {
+    const r = await applyAnswered(json(400, { code: 'invalid_argument', msg: LEAK }));
+    expect(r.status).toBe(502);
+    expect(r.json).toEqual({ error: REFUSED, code: 'invalid_argument' });
+    expect(r.fetches).toBe(1);
+    expect(r.changes).toEqual([
+      expect.objectContaining({
+        result: 'failed',
+        detail: expect.stringContaining('invalid_argument'),
+      }),
+    ]);
+    expect(dump([logs.calls, r.json, r.changes])).not.toContain(LEAK);
+  });
+
+  it.each([
+    [
+      'times out',
+      async (): Promise<Response> => {
+        throw new globalThis.DOMException(`timed out ${LEAK}`, 'TimeoutError');
+      },
+    ],
+    [
+      'fails on the network',
+      async (): Promise<Response> => {
+        throw new TypeError(`fetch failed: ${LEAK}`);
+      },
+    ],
+    ['answers 2xx without success', json(200, {})],
+    ['answers success false', json(200, { success: false, message: LEAK })],
+    [
+      'answers 502 that is not JSON',
+      async () => new Response(`<html>${LEAK}</html>`, { status: 502 }),
+    ],
+  ])('says it may have applied when LiveKit %s, and does not retry', async (_label, answer) => {
+    const r = await applyAnswered(answer);
+    expect(r.status).toBe(502);
+    expect(r.json).toEqual({ error: UNCONFIRMED });
+    expect(r.fetches).toBe(1);
+    expect(r.changes).toEqual([expect.objectContaining({ result: 'failed' })]);
+    expect(dump([logs.calls, r.json, r.changes])).not.toContain(LEAK);
+  });
+
+  it('logs only the error name when any other dev agent fails the update with text', async () => {
+    const f = fakes();
+    vi.mocked(f.agent.updateFlags).mockRejectedValue(new Error(LEAK));
+    const r = await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(r).toMatchObject({ status: 502, json: { error: UNCONFIRMED } });
+    expect(logs.calls.length).toBeGreaterThanOrEqual(1);
+    expect(dump([logs.calls, r.json, f.changes])).not.toContain(LEAK);
+  });
+
+  it('logs only the error name when any other dev agent fails the room check with text', async () => {
+    const f = fakes({ rooms: new Error(LEAK) });
+    const r = await call('POST', `${BASE}/apply`, f.deps, BODY);
+    expect(r.status).toBe(502);
+    expect(logs.calls.length).toBeGreaterThanOrEqual(1);
+    expect(dump([logs.calls, r.json, f.changes])).not.toContain(LEAK);
   });
 });
 

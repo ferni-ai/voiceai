@@ -11,6 +11,9 @@
 import type { Env } from '../../env-flag.js';
 import { agentFlags, resolvedValue } from './switchable.js';
 
+/** Turns the boot snapshot on. Only lk changes it: the page reads the snapshot it makes. */
+export const SNAPSHOT_FLAG = 'FLAG_SNAPSHOT';
+
 export interface FlagSnapshot {
   /** When this worker started (ISO 8601). */
   startedAt: string;

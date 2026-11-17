@@ -5,11 +5,13 @@
  *   snapshot, whether it is stale, the flags waiting for a restart, and the 20 latest changes
  * - GET  /api/v1/admin/agent-flags/rooms  - the dev project's occupied rooms (502 when the
  *   room service fails or takes over 10 s)
+ * - POST /api/v1/admin/agent-flags/apply  - set or reset flags on the dev agent (ApplyResult)
  *
  * Unless DEPLOY_ENV is exactly 'dev', every path is a 404, decided before auth runs and
  * before the LiveKit or Firestore adapter is built. The adapters are built per request with
  * no arguments, so they read this server's env and refuse anything but the dev project and
- * the ferni-dev database.
+ * the ferni-dev database. The actor recorded for a change is the admin requireAdmin
+ * identified, never anything in the body.
  *
  * @module api/v1/admin/agent-flags
  */
@@ -26,13 +28,16 @@ import {
 import { agentFlags } from '../../../config/agent-flags/domain/switchable.js';
 import type { DevAgent } from '../../../config/agent-flags/ports/dev-agent.js';
 import type { FlagStore } from '../../../config/agent-flags/ports/flag-store.js';
+import { applyAgentFlags } from '../../../config/agent-flags/use-cases/apply-flags.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAdmin, type AuthContext } from '../../auth-middleware.js';
-import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
+import { BodyTooLargeError } from '../../bounded-body.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from '../../helpers.js';
 
 const log = createLogger({ module: 'AdminAgentFlagsAPI' });
 
 const BASE_PATH = '/api/v1/admin/agent-flags';
+const MAX_BODY_BYTES = 16 * 1024;
 const CHANGES_SHOWN = 20;
 const TIMES_UNKNOWN =
   "Could not read when the dev agent's flags last changed, so these values may be out of date.";
@@ -44,6 +49,7 @@ const ROOMS_UNKNOWN = 'Could not list the dev rooms. Try again shortly.';
 export interface AgentFlagsDeps {
   agent: () => DevAgent;
   store: () => FlagStore;
+  now?: () => Date;
 }
 
 const LIVE_DEPS: AgentFlagsDeps = {
@@ -106,6 +112,28 @@ async function sendRooms(res: ServerResponse, deps: AgentFlagsDeps): Promise<voi
   sendJSON(res, { rooms });
 }
 
+async function apply(
+  req: IncomingMessage,
+  res: ServerResponse,
+  actor: string,
+  deps: AgentFlagsDeps
+): Promise<void> {
+  let body: unknown;
+  try {
+    body = await parseBody(req, { maxBytes: MAX_BODY_BYTES });
+  } catch (error) {
+    // Over the cap, the body reader has already answered 413 (and logged it).
+    if (!(error instanceof BodyTooLargeError)) sendError(res, 'Invalid JSON body', 400);
+    return;
+  }
+  const { status, ...payload } = await applyAgentFlags(body, actor, {
+    agent: deps.agent(),
+    store: deps.store(),
+    now: deps.now,
+  });
+  sendJSON(res, payload, status);
+}
+
 /**
  * The admin making the request, or null once the request has been answered: 404 off the dev
  * server (before anything else runs), a CORS preflight, 429, or requireAdmin's 401 or 403.
@@ -130,6 +158,7 @@ async function route(
   req: IncomingMessage,
   res: ServerResponse,
   subPath: string,
+  actor: string,
   deps: AgentFlagsDeps
 ): Promise<void> {
   const method = req.method || 'GET';
@@ -137,6 +166,8 @@ async function route(
     await sendFlags(res, deps);
   } else if (subPath === '/rooms' && method === 'GET') {
     await sendRooms(res, deps);
+  } else if (subPath === '/apply' && method === 'POST') {
+    await apply(req, res, actor, deps);
   } else {
     sendError(res, 'Not found', 404);
   }
@@ -154,11 +185,14 @@ export async function handleAdminAgentFlagsRoutes(
   deps: AgentFlagsDeps = LIVE_DEPS
 ): Promise<boolean> {
   if (pathname !== BASE_PATH && !pathname.startsWith(`${BASE_PATH}/`)) return false;
-  if (!(await requireDevAdmin(req, res))) return true;
+  const auth = await requireDevAdmin(req, res);
+  if (!auth) return true;
 
+  // The actor is who requireAdmin identified, never anything in the body.
+  const actor = auth.email || auth.userId;
   const subPath = pathname.slice(BASE_PATH.length) || '/';
   try {
-    await route(req, res, subPath, deps);
+    await route(req, res, subPath, actor, deps);
   } catch (error) {
     log.error({ error, subPath, method: req.method }, 'Admin agent flags API error');
     if (!res.headersSent) sendError(res, 'Internal server error');
