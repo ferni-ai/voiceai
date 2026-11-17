@@ -58,7 +58,7 @@ export function firestoreGuestConsentStore(db: Firestore | null | undefined): Gu
         // As putUnlessErased: an account gone or being erased gets no new consent,
         // and a withdrawal there deletes the record rather than keep one under it.
         if (!erased) tx.set(ref, toStored(next));
-        else if (next.revokedAt !== undefined) tx.delete(ref);
+        else if (next.revokedAt !== undefined) tx.delete(ref); // afterYes never sets revokedAt
       });
     },
   };

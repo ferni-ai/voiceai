@@ -17,7 +17,8 @@ export interface GuestConsentStore {
    * Read-modify-write of one record, atomic where the store allows. `change`
    * returns the record to write, or null to write nothing. When the owner's account
    * is gone or being erased (read in the same transaction), a yes writes nothing and
-   * a revoke deletes the record. Throws when it can't be saved.
+   * a revoke deletes a standing yes (an already-revoked record is left for the
+   * erasure). Throws when it can't be saved.
    */
   update: (
     ownerUid: string,

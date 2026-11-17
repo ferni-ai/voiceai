@@ -1,6 +1,6 @@
 /**
- * A guest's yes by her number: the dial-time check (task 10 puts it in the
- * context's index.ts) and a revoke. The number is normalised to E.164 and keyed
+ * A guest's yes by her number: the dial-time check (task 10 wires it at dial
+ * time) and a revoke. The number is normalised to E.164 and keyed
  * (phoneHash); a check fails closed, a revoke that can't be keyed throws.
  *
  * @module services/messaging/guest-consent/use-cases/check-guest-consent

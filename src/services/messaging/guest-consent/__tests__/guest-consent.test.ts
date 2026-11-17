@@ -10,15 +10,29 @@
 import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GUEST_CONSENT_WORDING_VERSION } from '../domain/guest-consent.js';
-import { phoneHash, toE164 } from '../../../outreach/checkin-replies.js';
+import { phoneHash } from '../../../outreach/checkin-replies.js';
 import { hasGuestConsent, revokeGuestConsent } from '../use-cases/check-guest-consent.js';
-import { recordGuestConsentByKey, type GuestConsentDeps } from '../use-cases/guest-consent.js';
+import {
+  recordGuestConsentByKey,
+  revokeGuestConsentByKey,
+  type GuestConsentDeps,
+} from '../use-cases/guest-consent.js';
 import { memoryGuestConsentStore } from './memory-guest-consent-store.js';
 
 vi.mock('../domain/guest-consent.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../domain/guest-consent.js')>()),
   GUEST_CONSENT_WORDING_VERSION: 2,
 }));
+
+/** Every log line the context writes, to prove what never reaches a log. */
+const logged = vi.hoisted((): unknown[] => []);
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const logger = (): Record<string, unknown> => {
+    const rec = (...args: unknown[]): void => void logged.push(args);
+    return { debug: rec, info: rec, warn: rec, error: rec, child: logger };
+  };
+  return { createLogger: logger };
+});
 
 const OWNER = 'u-fictional-owner';
 const OTHER_OWNER = 'u-fictional-other';
@@ -37,13 +51,14 @@ const depsWith = (over: Partial<GuestConsentDeps> = {}): GuestConsentDeps => ({
 });
 
 beforeEach(() => {
+  logged.length = 0;
   m = memoryGuestConsentStore();
   clock = Date.parse('2026-11-16T15:00:00Z');
 });
 
 /** Her yes by key: the number keyed as the invite keeps it ('' when it can't be). */
 const yes = async (owner: string, e164: string, v: number, deps: GuestConsentDeps, saidAt?: Date) =>
-  recordGuestConsentByKey(owner, phoneHash(toE164(e164) ?? '', deps.env) ?? '', v, deps, saidAt);
+  recordGuestConsentByKey(owner, phoneHash(e164, deps.env) ?? '', v, deps, saidAt);
 
 const only = (): [string, Record<string, unknown>] => {
   expect(m.docs.size).toBe(1);
@@ -157,7 +172,12 @@ describe('hasGuestConsent', () => {
       },
     };
     expect(await hasGuestConsent(OWNER, GUEST, depsWith({ env }))).toBe(false);
-    await expect(yes(OWNER, GUEST, V, depsWith({ env }))).rejects.toThrow(/secret unavailable/);
+    const key = phoneHash(GUEST, { LOG_HASH_SECRET: KEY_A }) ?? '';
+    const before = only()[1];
+    await expect(recordGuestConsentByKey(OWNER, key, V, depsWith({ env }))).rejects.toThrow(
+      /secret unavailable/
+    );
+    expect(only()[1]).toEqual(before);
     await expect(revokeGuestConsent(OWNER, GUEST, depsWith({ env }))).rejects.toThrow(
       /secret unavailable/
     );
@@ -213,6 +233,19 @@ describe('the stored record', () => {
     await expect(yes(OWNER, GUEST, 0, depsWith())).rejects.toThrow(/wording/);
     await expect(yes(OWNER, GUEST, 1.5, depsWith())).rejects.toThrow(/wording/);
     expect(m.docs.size).toBe(0);
+  });
+
+  it('a raw number as the key is refused: nothing stored, nothing about it logged', async () => {
+    for (const raw of [GUEST, '15555550123', '5555550123']) {
+      await expect(recordGuestConsentByKey(OWNER, raw, V, depsWith())).rejects.toThrow(
+        /owner and a key/
+      );
+      await expect(revokeGuestConsentByKey(OWNER, raw, depsWith())).rejects.toThrow(
+        /owner and a key/
+      );
+    }
+    expect(m.docs.size).toBe(0);
+    expect(JSON.stringify(logged)).not.toMatch(/5555550123|555-0123/);
   });
 
   it('a yes to a wording that does not exist yet is refused and nothing is stored', async () => {

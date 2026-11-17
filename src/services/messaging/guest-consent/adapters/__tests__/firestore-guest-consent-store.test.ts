@@ -5,12 +5,12 @@
  * revoke, that a malformed or missing database never reads as a yes, and that
  * an owner whose account is gone or being erased gets no consent written.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { erasingMark } from '../../../../../utils/erasing-mark.js';
 import { getFirestoreDb } from '../../../../../utils/firestore-utils.js';
 import { pathFirestore } from '../../../../outreach/proactive-channels/__tests__/path-firestore.js';
 import { GUEST_CONSENT_WORDING_VERSION } from '../../domain/guest-consent.js';
-import { phoneHash, toE164 } from '../../../../outreach/checkin-replies.js';
+import { phoneHash } from '../../../../outreach/checkin-replies.js';
 import { hasGuestConsent, revokeGuestConsent } from '../../use-cases/check-guest-consent.js';
 import { recordGuestConsentByKey, type GuestConsentDeps } from '../../use-cases/guest-consent.js';
 import { firestoreGuestConsentStore } from '../firestore-guest-consent-store.js';
@@ -42,9 +42,13 @@ beforeEach(() => {
   };
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 /** Her yes by key, as a guest's invite records it. */
-const recordGuestConsent = async (owner: string, e164: string, v: number, d: GuestConsentDeps) =>
-  recordGuestConsentByKey(owner, phoneHash(toE164(e164) ?? '', d.env) ?? '', v, d);
+const yes = async (owner: string, e164: string, v: number, d: GuestConsentDeps) =>
+  recordGuestConsentByKey(owner, phoneHash(e164, d.env) ?? '', v, d);
 
 const stored = (): [string, Record<string, unknown>] => {
   const entries = [...docs].filter(([path]) => path.startsWith(PREFIX));
@@ -56,7 +60,7 @@ const stored = (): [string, Record<string, unknown>] => {
 
 describe('the Firestore guest consent store', () => {
   it("keeps the yes under the owner's record, keyed by the phone hash", async () => {
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     const [path, doc] = stored();
     expect(path.slice(PREFIX.length)).toMatch(/^[0-9a-f]{64}$/);
     expect(doc).toEqual({
@@ -69,7 +73,7 @@ describe('the Firestore guest consent store', () => {
   });
 
   it('a revoke keeps the record and sets revokedAt; a new yes clears it', async () => {
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     await revokeGuestConsent(OWNER, GUEST, deps);
     expect(stored()[1]).toMatchObject({
       wordingVersion: V,
@@ -78,7 +82,7 @@ describe('the Firestore guest consent store', () => {
     });
     expect(await hasGuestConsent(OWNER, GUEST, deps)).toBe(false);
 
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     const doc = stored()[1];
     expect('revokedAt' in doc).toBe(false);
     expect(doc.consentedAt).toBe('2026-11-16T15:03:00.000Z');
@@ -86,7 +90,7 @@ describe('the Firestore guest consent store', () => {
   });
 
   it('never stores the number, in the path or any field', async () => {
-    await recordGuestConsent(OWNER, '(555) 555-0123', V, deps);
+    await yes(OWNER, '(555) 555-0123', V, deps);
     await revokeGuestConsent(OWNER, GUEST, deps);
     const all = JSON.stringify([...docs]);
     expect(all).toContain('guest_consents');
@@ -94,7 +98,7 @@ describe('the Firestore guest consent store', () => {
   });
 
   it('reads a malformed record as no yes', async () => {
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     const [path] = stored();
     docs.set(path, { wordingVersion: 'one', consentedAt: 7 });
     expect(await hasGuestConsent(OWNER, GUEST, deps)).toBe(false);
@@ -102,23 +106,30 @@ describe('the Firestore guest consent store', () => {
 
   it('writes nothing for an owner whose account is being erased, or gone', async () => {
     docs.set(`bogle_users/${OWNER}`, erasingMark());
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     expect([...docs.keys()].filter((path) => path.startsWith(PREFIX))).toEqual([]);
     docs.delete(`bogle_users/${OWNER}`);
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     expect([...docs.keys()].filter((path) => path.startsWith(PREFIX))).toEqual([]);
   });
 
   it('a revoke for an owner being erased deletes the record: no doc, no consent', async () => {
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     docs.set(`bogle_users/${OWNER}`, erasingMark());
     await revokeGuestConsent(OWNER, GUEST, deps);
     expect([...docs.keys()].filter((path) => path.startsWith(PREFIX))).toEqual([]);
     expect(await hasGuestConsent(OWNER, GUEST, deps)).toBe(false);
   });
 
+  it('a revoke for an owner whose account is gone deletes the record too', async () => {
+    await yes(OWNER, GUEST, V, deps);
+    docs.delete(`bogle_users/${OWNER}`);
+    await revokeGuestConsent(OWNER, GUEST, deps);
+    expect([...docs.keys()].filter((path) => path.startsWith(PREFIX))).toEqual([]);
+  });
+
   it('a yes on record reads as no once the owner is being erased, or gone', async () => {
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     expect(await hasGuestConsent(OWNER, GUEST, deps)).toBe(true);
     docs.set(`bogle_users/${OWNER}`, erasingMark());
     expect(await hasGuestConsent(OWNER, GUEST, deps)).toBe(false);
@@ -131,16 +142,15 @@ describe('the Firestore guest consent store', () => {
     vi.stubEnv('LOG_HASH_SECRET', 'test-only-key');
     const entry = await import('../../index.js');
     expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(false);
-    await recordGuestConsent(OWNER, GUEST, V, deps);
+    await yes(OWNER, GUEST, V, deps);
     expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(true);
     await revokeGuestConsent(OWNER, GUEST, deps);
     expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(false);
-    vi.unstubAllEnvs();
   });
 
   it('without a database: reads are no, writes throw', async () => {
     const none = { ...deps, store: firestoreGuestConsentStore(null) };
     expect(await hasGuestConsent(OWNER, GUEST, none)).toBe(false);
-    await expect(recordGuestConsent(OWNER, GUEST, V, none)).rejects.toThrow(/Firestore/);
+    await expect(yes(OWNER, GUEST, V, none)).rejects.toThrow(/Firestore/);
   });
 });

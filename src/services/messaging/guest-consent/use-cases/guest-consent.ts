@@ -1,18 +1,12 @@
 /**
- * Record and revoke a guest's yes to being called into an owner's calls,
- * by her number's key (check-guest-consent.ts keys a number and checks it).
+ * Record and revoke a guest's yes to being called into an owner's calls, by her
+ * number's key: phoneHash (outreach/checkin-replies.ts), the HMAC keyed from
+ * LOG_HASH_SECRET that consent/{phoneHash} uses, so this record and her own STOP
+ * share one key. check-guest-consent.ts keys a number and checks it. Only that
+ * key's shape is accepted, so a raw number can never become a record's id.
  *
- * The guest's number is normalised to E.164 (outreach/checkin-replies.ts
- * toE164) and kept only as its keyed hash: phoneHash, the HMAC keyed from
- * LOG_HASH_SECRET that consent/{phoneHash} uses, so this record and the
- * guest's own STOP share one key. A plain SHA-256 would not do: the phone
- * number space is small enough to brute-force. The number is never stored,
- * logged or returned.
- *
- * Checks fail closed (no key, no number, an unreadable store: no consent);
- * writes that can't be keyed or saved throw, so the caller can say so. The bar
- * is always GUEST_CONSENT_WORDING_VERSION: no caller can lower it, and no yes
- * can be recorded for a wording that doesn't exist yet.
+ * Writes that can't be saved throw, so the caller can say so. No yes can be
+ * recorded for a wording that doesn't exist yet.
  *
  * @module services/messaging/guest-consent/use-cases/guest-consent
  */
@@ -32,6 +26,9 @@ const log = createLogger({ module: 'guest-consent' });
 /** The owner as logs name them: a keyed hash, never the uid. */
 export const ownerTag = (ownerUid: string, env: Env): string | null =>
   bqHash('user', ownerUid, env);
+
+/** A key as phoneHash makes it (64 hex); anything else, a raw number say, is refused. */
+const isPhoneKey = (hash: string): boolean => /^[0-9a-f]{64}$/.test(hash);
 
 export interface GuestConsentDeps {
   store: GuestConsentStore;
@@ -59,7 +56,8 @@ export async function recordGuestConsentByKey(
       `Guest consent needs a wording version from 1 to ${GUEST_CONSENT_WORDING_VERSION}`
     );
   }
-  if (!ownerUid.trim() || !hash) throw new Error('Guest consent needs an owner and a key');
+  if (!ownerUid.trim() || !isPhoneKey(hash))
+    throw new Error('Guest consent needs an owner and a key');
   const now = deps.now();
   const when = saidAt ?? now;
   // A time ahead of ours could outrank, on a retry, a revoke made after the yes.
@@ -85,7 +83,8 @@ export async function revokeGuestConsentByKey(
   hash: string,
   deps: GuestConsentDeps
 ): Promise<void> {
-  if (!ownerUid.trim() || !hash) throw new Error('Guest consent needs an owner and a key');
+  if (!ownerUid.trim() || !isPhoneKey(hash))
+    throw new Error('Guest consent needs an owner and a key');
   const at = deps.now().toISOString();
   await deps.store.update(ownerUid, hash, (prev) => afterRevoke(prev, at));
   log.info({ ownerTag: ownerTag(ownerUid, deps.env) }, 'Guest consent revoke handled');
