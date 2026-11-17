@@ -6,8 +6,9 @@
  */
 import { stt } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ALEX, SARAH } from '../../group-conversation/__tests__/person-speech-events.js';
-import { call, final, frame, settle, textOf, typesOf } from './stt-chain-people-call.js';
+import type { PersonSpeechEvent } from '../../group-conversation/floor-arbiter.js';
+import { ALEX, SARAH, said } from '../../group-conversation/__tests__/person-speech-events.js';
+import { call, feed, final, frame, settle, textOf, typesOf } from './stt-chain-people-call.js';
 
 const guest = vi.hoisted(() => ({ on: false }));
 vi.mock('../../group-conversation/group-hearing.js', () => ({
@@ -79,5 +80,32 @@ describe('sttChain with people heard on their own streams', () => {
     expect(c.heard).toEqual({ samples: 4 * 160, loudFrames: 4 });
     expect(c.out).toEqual([said1]);
     expect(c.out[0]).toBe(said1);
+  });
+
+  it.each([
+    [
+      'their stream ends',
+      (c: Awaited<ReturnType<typeof call>>, own: { end: () => void }) => own.end(),
+    ],
+    ['they are removed', (c: Awaited<ReturnType<typeof call>>) => c.people.remove(ALEX.identity)],
+  ])('a person gone mid-turn because %s lets go of the floor', async (_how, leave) => {
+    const c = await call();
+    const own = feed<PersonSpeechEvent>();
+    c.people.add(ALEX.identity, own.stream);
+    own.put(said(ALEX, START_OF_SPEECH));
+    await settle();
+    leave(c, own); // no END from Alex
+    await settle();
+    const sarah = c.hearApart(SARAH);
+    await sarah(START_OF_SPEECH);
+    await sarah(FINAL_TRANSCRIPT, 'see you at six');
+    await sarah(END_OF_SPEECH);
+    expect(typesOf(c.out)).toEqual([
+      START_OF_SPEECH,
+      END_OF_SPEECH, // Alex let go
+      START_OF_SPEECH,
+      FINAL_TRANSCRIPT,
+      END_OF_SPEECH,
+    ]);
   });
 });

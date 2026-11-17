@@ -12,6 +12,7 @@
  *
  * @module agents/group-conversation/people-speech
  */
+import { stt } from '@livekit/agents';
 import { errorClass } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PersonSpeechEvent } from './floor-arbiter.js';
@@ -45,8 +46,14 @@ export class PeopleSpeech {
     this.remove(identity);
     const input = events[Symbol.asyncIterator]();
     let stopped = false;
-    const stop = (): void => {
+    /** They are gone: an END lets go of the floor if they held it, and changes nothing if not. */
+    const gone = (): void => {
+      if (stopped) return;
       stopped = true;
+      this.heard({ identity, label: '', event: { type: stt.SpeechEventType.END_OF_SPEECH } });
+    };
+    const stop = (): void => {
+      gone();
       Promise.resolve()
         .then(async () => input.return?.())
         .catch((error: unknown) =>
@@ -65,6 +72,7 @@ export class PeopleSpeech {
         log.warn({ error: errorClass(error) }, 'GROUP_CALL: a person stream failed');
       })
       .finally(() => {
+        gone();
         if (this.people.get(identity) === stop) this.people.delete(identity); // their stream ended
       });
   }
