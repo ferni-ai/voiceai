@@ -133,6 +133,46 @@ describe('CRISIS_GUIDED_LINE_FLOOR: what a crisis guide reply always names', () 
     expect(await said(withGuidedLine(streamOf(reply), { line }, ON))).toBe(reply);
   });
 
+  // The same forms with a Unicode dash or space between the digits, as model text writes them.
+  const EN_DASH = '\u2013';
+  const EM_DASH = '\u2014';
+  const NB_HYPHEN = '\u2011';
+  const MINUS = '\u2212';
+  const NBSP = '\u00A0';
+  const parts = (digits: string, between: string) => digits.split('').join(between);
+  it.each<[string, string, GuideLine]>([
+    ['en dash', `You can call or text ${parts('988', EN_DASH)} any time.`, SELF],
+    ['em dash', `You can call or text ${parts('988', EM_DASH)} any time.`, SELF],
+    ['non-breaking hyphen', `You can call or text ${parts('988', NB_HYPHEN)} any time.`, SELF],
+    ['minus sign', `You can call or text ${parts('988', MINUS)} any time.`, SELF],
+    ['no-break spaces', `You can call or text ${parts('988', NBSP)} any time.`, SELF],
+    ['en dash, words', `You can call nine${EN_DASH}eight${EN_DASH}eight tonight.`, SELF],
+    ['en dash, Spanish', `Puedes llamar al ${parts('988', EN_DASH)}.`, SELF_ES],
+    ['en dash, for them', `We could call ${parts('988', EN_DASH)} together for them.`, THEM],
+    ['en dash, imminent', `Please call ${parts('911', EN_DASH)} now, or 988.`, IMMINENT],
+    ['em dash, emergency', `Call ${parts('911', EM_DASH)} right now.`, EMERGENCY],
+    ['non-breaking hyphen, emergency', `Call ${parts('911', NB_HYPHEN)} right now.`, EMERGENCY],
+    ['minus sign, emergency', `Call ${parts('911', MINUS)} right now.`, EMERGENCY],
+    ['no-break spaces, emergency', `Call ${parts('911', NBSP)} right now.`, EMERGENCY],
+    [
+      'en dash, Spanish imminent',
+      `Llama al ${parts('911', EN_DASH)} ahora, o al 988.`,
+      IMMINENT_ES,
+    ],
+  ])('a reply naming its line with a Unicode %s is unchanged: %s', async (_form, reply, line) => {
+    expect(await said(withGuidedLine(streamOf(reply), { line }, ON))).toBe(reply);
+  });
+
+  // The floor's job is that the number is said: another line, or a line by name, is not 988.
+  it.each<[string, GuideLine, string]>([
+    ['You can text HOME to 741741 any time.', SELF, TALK_TO_988],
+    ['There is a crisis line you can reach any time.', SELF, TALK_TO_988],
+    ['They could text HOME to 741741 tonight.', THEM, FOR_THEM_988],
+  ])('a reply naming only another line still gets 988 said: %s', async (reply, line, ending) => {
+    expect(offersCrisisLine(reply)).toBe(true); // precondition: the reply does offer a line
+    expect(await said(withGuidedLine(streamOf(reply), { line }, ON))).toBe(`${reply} ${ending}`);
+  });
+
   it('imminent: only the missing one of 911 and 988 is said, 911 first', async () => {
     const has911 = 'Please call 911.';
     const has988 = 'You can call 988.';
@@ -361,10 +401,28 @@ const mainOffersCrisisLine = (() => {
   return (text: string): boolean => OFFERED.test(text) || NAMED.test(text);
 })();
 
-describe('offersCrisisLine on the shared 988 reader: main, plus exactly two intended forms', () => {
-  /** The only differences from main allowed: forms main missed, which the new reader adds. */
-  const INTENDED = [/\bnueve[\s,-]+ocho[\s,-]+ocho\b/i, /\b988lifeline\b/i];
-  const intended = (text: string) => INTENDED.some((form) => form.test(text));
+describe('offersCrisisLine on the shared 988 reader: main, plus exactly the intended forms', () => {
+  /**
+   * The only lines allowed to differ from main, each false on main and true here: Spanish words,
+   * the site, and 988 with a Unicode dash or space, which main read only in ASCII (the last two
+   * carry main's lenient digit reading over, DEBT #4026). Any other difference fails below.
+   */
+  const DECLARED = [
+    'You can chat at 988lifeline.org any time.',
+    'Their site is 988lifeline.org.',
+    'Puedes llamar al nueve ocho ocho.',
+    'Nueve, ocho, ocho.',
+    'You can call or text 9\u20138\u20138 any time.',
+    'You can call or text 9\u20148\u20148 any time.',
+    'You can call or text 9\u20118\u20118 any time.',
+    'You can call or text 9\u22128\u22128 any time.',
+    'You can call or text 9\u00A08\u00A08 any time.',
+    'Please call ninety\u2013eight\u2013eight tonight.',
+    'You can call nine\u2013eight\u2013eight.',
+    'The code is 9\u00A08\u00A08\u00A00.',
+    'The code is 9\u20138\u20138\u20130.',
+  ];
+  const intended = (text: string) => DECLARED.includes(text);
 
   /** Every written form the floor rows use, then lines around them; `main`: main's reading. */
   const LINES: ReadonlyArray<[string, boolean]> = [
@@ -391,11 +449,27 @@ describe('offersCrisisLine on the shared 988 reader: main, plus exactly two inte
     ['Write 198 8 on the form.', false],
     ['nine eight eighty', false],
     ['nueve ocho', false],
-    // The two intended differences: main missed them.
+    // Spanish words and the site: main missed them.
     ['You can chat at 988lifeline.org any time.', false],
     ['Their site is 988lifeline.org.', false],
     ['Puedes llamar al nueve ocho ocho.', false],
     ['Nueve, ocho, ocho.', false],
+    // The 988 forms with a Unicode dash or space: main read only the ASCII ones.
+    ['You can call or text 9\u20138\u20138 any time.', false],
+    ['You can call or text 9\u20148\u20148 any time.', false],
+    ['You can call or text 9\u20118\u20118 any time.', false],
+    ['You can call or text 9\u22128\u22128 any time.', false],
+    ['You can call or text 9\u00A08\u00A08 any time.', false],
+    ['Please call ninety\u2013eight\u2013eight tonight.', false],
+    ['You can call nine\u2013eight\u2013eight.', false],
+    // Main's lenient digit reading (DEBT #4026) carries over to the same Unicode forms.
+    ['The code is 9\u00A08\u00A08\u00A00.', false],
+    ['The code is 9\u20138\u20138\u20130.', false],
+    // Main already reads 988 beside a Unicode dash; the 741741 part reads as main does.
+    ['Call 988\u2014any time.', true],
+    ['Dial 1\u2013988\u2013555\u20130100 for billing.', true],
+    ['text HOME to 741\u2013741', false],
+    ['That trip cost $9\u20138\u20138.', false],
   ];
 
   it.each(LINES)('%s (main: %s)', (text, main) => {
@@ -403,16 +477,11 @@ describe('offersCrisisLine on the shared 988 reader: main, plus exactly two inte
     expect(offersCrisisLine(text)).toBe(main || intended(text));
   });
 
-  it('differs from main only on the intended forms, and there only by reading the line', () => {
+  it('differs from main only on the declared lines, and there only by reading the line', () => {
     const differs = LINES.filter(
       ([text]) => offersCrisisLine(text) !== mainOffersCrisisLine(text)
     ).map(([text]) => text);
-    expect(differs).toEqual([
-      'You can chat at 988lifeline.org any time.',
-      'Their site is 988lifeline.org.',
-      'Puedes llamar al nueve ocho ocho.',
-      'Nueve, ocho, ocho.',
-    ]);
+    expect(differs).toEqual(DECLARED);
     for (const text of differs) {
       expect([mainOffersCrisisLine(text), offersCrisisLine(text)], text).toEqual([false, true]);
     }

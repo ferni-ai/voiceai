@@ -59,26 +59,43 @@ const TEXT_LINE_NUMBER = new RegExp(
 /** A crisis line by name: a lifeline, a crisis or suicide (hot)line, the Crisis Text Line. */
 const NAMED = /\blifeline\b|\b(?:crisis|suicide)\s+(?:text\s+)?(?:hot)?line\b/i;
 
+/** Every Unicode dash or hyphen (‐ ‑ ‒ – — ― and the minus sign −). */
+const UNICODE_DASH = /[\u2010-\u2015\u2212]/g;
+/** Every Unicode space a model writes between digits or words (no-break, thin, figure ...). */
+const UNICODE_SPACE = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
+
+/**
+ * The text as the 988 and 911 patterns read it: a model writes "9–8–8" (en dash), "9‑8‑8"
+ * (non-breaking hyphen) or "9 8 8" with no-break spaces as readily as the ASCII forms, so every
+ * Unicode dash becomes "-" and every Unicode space " " once, here, instead of in each pattern.
+ * Presence only: the speech rewrite and the transcript keep the text as written.
+ */
+const asWritten = (text: string): string =>
+  text.replace(UNICODE_DASH, '-').replace(UNICODE_SPACE, ' ');
+
 /**
  * The one reader of whether text names 988, in any form a reply writes it: digits (988, 9-8-8,
  * 9 8 8, never "$988" or part of a longer number), English words ("nine eight eight",
  * "ninety-eight-eight", "nine-eighty-eight"), Spanish words ("nueve ocho ocho"), or the site
- * (988lifeline.org). The 988 floor and the timeout check-in read presence here, so a reply that
- * already gave the line in any of these forms never hears it twice.
+ * (988lifeline.org), with any Unicode dash or space between the parts. The 988 floor and the
+ * timeout check-in read presence here, so a reply that already gave the line in any of these
+ * forms never hears it twice.
  */
-export const names988 = (text: string): boolean => NAMES_988.test(text);
+export const names988 = (text: string): boolean => NAMES_988.test(asWritten(text));
 
 /**
  * The one reader of whether text names 911: 911, 9-1-1, 9 1 1, "nine one one" or "nueve uno
- * uno". Digit 911 reads exactly as main's `\b911\b` (the imminent script's own text is digits).
+ * uno", with any Unicode dash or space between the parts. Digit 911 reads exactly as main's
+ * `\b911\b` (the imminent script's own text is digits).
  */
-export const names911 = (text: string): boolean => NAMES_911.test(text);
+export const names911 = (text: string): boolean => NAMES_911.test(asWritten(text));
 
 /**
  * Whether text gives someone a crisis line, in any form a reply writes it: 988 in any form
  * names988 reads, the Crisis Text Line's number (741741 in digits or words), or a line by name
  * ("Suicide and Crisis Lifeline", "crisis line", "Crisis Text Line"). For readers of a finished
- * transcript (wellbeing-tracking/after-call.ts), which keeps what was written.
+ * transcript (wellbeing-tracking/after-call.ts), which keeps what was written. Only the 988 part
+ * reads Unicode dashes and spaces (names988); the 741741 and by-name parts read as main does.
  */
 export function offersCrisisLine(text: string): boolean {
   return names988(text) || TEXT_LINE_NUMBER.test(text) || NAMED.test(text);
