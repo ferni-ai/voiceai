@@ -37,6 +37,7 @@ import { stt } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { stripTurnLabel } from '../group-conversation/turn-label.js';
 
 const log = createLogger({ module: 'NameMishear' });
 
@@ -131,19 +132,21 @@ const TRANSCRIPTS = new Set([
   stt.SpeechEventType.FINAL_TRANSCRIPT,
 ]);
 
-function fixEvent<E>(ev: E, scope: NameFixScope): E {
+function fixEvent<E>(ev: E, scope: NameFixScope, session?: object): E {
   if (typeof ev !== 'object' || ev === null) return ev;
   const event = ev as unknown as stt.SpeechEvent;
   const alt = event.alternatives?.[0];
   if (!TRANSCRIPTS.has(event.type) || alt === undefined) return ev;
-  const { text, fixed } = fixName(alt.text, scope);
+  const said = stripTurnLabel(session, alt.text); // a group call turn's label is not words
+  const { text, fixed } = fixName(said, scope);
   if (fixed.length === 0) return ev;
   if (event.type === stt.SpeechEventType.FINAL_TRANSCRIPT) {
     // Never the caller's words: only which name was changed, and how often.
     log.info({ variants: fixed, count: fixed.length }, 'NAME_MISHEAR fixed');
   }
   const rest = event.alternatives?.slice(1) ?? [];
-  return { ...event, alternatives: [{ ...alt, text }, ...rest] } as unknown as E;
+  const label = alt.text.slice(0, alt.text.length - said.length);
+  return { ...event, alternatives: [{ ...alt, text: label + text }, ...rest] } as unknown as E;
 }
 
 interface SessionLike {
@@ -178,7 +181,9 @@ export async function sttWithNameFix<E>(
         vocatives: personaOf(session) === 'ferni',
         transfers: flagOn('NAME_MISHEAR_HANDOFF', env),
       };
-      controller.enqueue(scope.vocatives || scope.transfers ? fixEvent(value, scope) : value);
+      controller.enqueue(
+        scope.vocatives || scope.transfers ? fixEvent(value, scope, session) : value
+      );
     },
     async cancel(reason) {
       return reader.cancel(reason);

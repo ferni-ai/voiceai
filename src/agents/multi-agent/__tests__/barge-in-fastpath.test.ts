@@ -4,6 +4,7 @@
  * does not.
  */
 import { describe, expect, it, vi } from 'vitest';
+import { labelTurn, stripTurnLabel } from '../../group-conversation/turn-label.js';
 import {
   createBargeInFastPath,
   installBackchannelHook,
@@ -143,4 +144,53 @@ describe('the backchannel hook LiveKit consults', () => {
     'does not treat %j as a backchannel',
     (text) => expect(isBackchannel(text)).toBe(false)
   );
+});
+
+// GROUP_CALL: while a guest is on, #4030 labels each final `[unclear] ...`, and the arbiter
+// will label it `[Sarah (guest)] ...`. The label is who spoke, not what she said: counted
+// as a word, `[unclear] wait, hold` cut Ferni off at two words and `[unclear] mm` was a turn.
+describe('a group call turn label is not words', () => {
+  /** The fast path on `call` (as live-call-behaviors.ts wires it), with Ferni talking. */
+  const overFerni = (call: object) => {
+    const interrupt = vi.fn();
+    const fp = createBargeInFastPath({
+      interrupt,
+      unlabel: (transcript) => stripTurnLabel(call, transcript),
+    });
+    fp.onAgentState({ newState: 'speaking' });
+    fp.onSpokenText(talking.spokenText);
+    return { fp, interrupt };
+  };
+
+  it('counts only the words after the label toward the three it takes to interrupt', () => {
+    const call = {};
+    const { fp, interrupt } = overFerni(call);
+    fp.onTranscript({ transcript: labelTurn(call, 'unclear', 'wait, hold'), isFinal: true });
+    expect(interrupt).not.toHaveBeenCalled();
+    fp.onTranscript({ transcript: labelTurn(call, 'unclear', 'wait, hold on'), isFinal: true });
+    expect(interrupt).toHaveBeenCalledTimes(1);
+  });
+
+  it("still knows Ferni's own words echoed back under a label", () => {
+    const call = {};
+    const { fp, interrupt } = overFerni(call);
+    const echo = labelTurn(call, 'Sarah (guest)', 'for her birthday I was thinking');
+    fp.onTranscript({ transcript: echo, isFinal: true });
+    expect(interrupt).not.toHaveBeenCalled();
+  });
+
+  it('on a solo call, a bracket the caller said is words: "[note] hi there" is three', () => {
+    const { fp, interrupt } = overFerni({});
+    fp.onTranscript({ transcript: '[note] hi there', isFinal: true });
+    expect(interrupt).toHaveBeenCalledTimes(1);
+  });
+
+  it('the hook LiveKit consults reads a labelled "mm" as a backchannel', () => {
+    installBackchannelHook();
+    const hook = (globalThis as { __FERNI_IS_BACKCHANNEL?: (t: string) => boolean })
+      .__FERNI_IS_BACKCHANNEL;
+    expect(hook?.(labelTurn({}, 'unclear', 'Mm-hmm.'))).toBe(true);
+    expect(hook?.('[Sarah (guest)] mm')).toBe(true);
+    expect(hook?.('[note] hi there')).toBe(false);
+  });
 });

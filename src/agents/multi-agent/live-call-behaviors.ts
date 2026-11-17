@@ -55,6 +55,7 @@ import {
   sessionTurnDetector,
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
+import { stripTurnLabel } from '../group-conversation/turn-label.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
@@ -126,6 +127,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
       },
       softPause,
+      unlabel: (transcript) => stripTurnLabel(session, transcript),
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
     setBargeInFastPath(session, bargeIn);
