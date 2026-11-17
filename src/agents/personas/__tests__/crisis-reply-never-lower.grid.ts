@@ -18,7 +18,10 @@ import { ReadableStream } from 'node:stream/web';
 import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
-import { NOT_YET_COVERED } from '../../../services/safety/__tests__/crisis-flag-homes.js';
+import {
+  MEMORY_ONLY,
+  NOT_YET_COVERED,
+} from '../../../services/safety/__tests__/crisis-flag-homes.js';
 import {
   CRISIS_FLAGS,
   RUNNER_MARKERS,
@@ -738,10 +741,13 @@ export const SCOPED: ReadonlyArray<readonly [string, FlagValues]> = [
 export const INERT = READ_BY_GATE.flatMap((name) =>
   inertFor(name).map((word) => [name, shown(word), word] as const)
 );
-/** Crisis-lane flags the gate reads that no call shows yet: no word of one may change a reply. */
-export const NO_ROW = NOT_YET_COVERED.filter((name) => READ_BY_GATE.includes(name)).flatMap(
-  (name) => WORDS.map((word) => [name, shown(word), word] as const)
-);
+/**
+ * Crisis-lane flags the gate reads that no call shows yet, or that by design change no reply
+ * (MEMORY_ONLY): no word of one may change a reply.
+ */
+export const NO_ROW = [...NOT_YET_COVERED, ...Object.keys(MEMORY_ONLY)]
+  .filter((name) => READ_BY_GATE.includes(name))
+  .flatMap((name) => WORDS.map((word) => [name, shown(word), word] as const));
 /** A timezone for the caller, so the code that works out the caller's own time runs. */
 export const ZONE = 'America/Denver';
 export const upTo = (count: number): number[] => Array.from({ length: count }, (_, i) => i);

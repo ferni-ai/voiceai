@@ -18,7 +18,7 @@
  * reads, crisis-lane-flags.ts) acts outside these readers. The guard at the bottom makes each of
  * those either be shown at the reply itself (SHOWN_ON, checked by the seventh reader,
  * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
- * changes a reply nor captures more (MEMORY_ONLY), or sit on a list that may only shrink
+ * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
  * (NOT_YET_COVERED). Both lists are in crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
