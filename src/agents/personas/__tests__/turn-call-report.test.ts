@@ -145,6 +145,9 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     ['call 911', 'If you are hurt, call 911.'],
     ['a line name split across array parts', JSON.stringify(['Crisis Life', 'line, open now'])],
     ['a line written as an object key', JSON.stringify({ 'Call 988 any time': true })],
+    ['a crisis text with no "line"', 'You can send a crisis text any time.'],
+    ['988 after a hash', 'Call #988 now.'],
+    ['988 written as numbers', JSON.stringify({ digits: [9, 8, 8] })],
   ])('%s: stripped, and it waits', (_l, output) => {
     const [ctx, waits] = turnRequestFor(withOutput(output), 's-help', false);
     expect(waits).toBe(true);
@@ -181,6 +184,21 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     const output = `${filler(51)}x call 988 tonight. ${filler(100)}`;
     expect(output.indexOf('988')).toBe(2047);
     expect(turnRequestFor(withOutput(output), 's-edge', false)[1]).toBe(true);
+  });
+
+  it('a number split by the first window edge is read whole by the overlap', () => {
+    // The Trevor number at 2036-2049: the first window ends at 2048 and the second starts at 1920.
+    const output = `${filler(50)}${'x'.repeat(21)} Reach them at 1-866-488-7386 tonight. ${filler(100)}`;
+    expect(output.indexOf('1-866')).toBe(2036);
+    expect(turnRequestFor(withOutput(output), 's-overlap', false)[1]).toBe(true);
+  });
+
+  it('the same tool output still holds on the next request (read once, remembered)', () => {
+    const ctx = withOutput('Dial 9-8-8 if it gets heavy.');
+    expect(turnRequestFor(ctx, 's-again', false)[1]).toBe(true);
+    const [again, waits] = turnRequestFor(ctx, 's-again', false);
+    expect(waits).toBe(true);
+    expect(text(again)).not.toContain('ZEBRA-SECRET');
   });
 
   it('an ordinary long output rides', () => {

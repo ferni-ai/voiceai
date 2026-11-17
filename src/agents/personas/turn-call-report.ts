@@ -25,9 +25,10 @@ import { PROTECTED_TOOL_NAMES } from '../../tools/orchestrator/persona-tool-poli
 /** How deep a decoded tool output is walked for its text; deeper holds the report. */
 const MAX_DEPTH = 8;
 /**
- * reachesHelp reads one sentence at a time and is slower than linear on long text full of
- * short numbers (128 KB of timetable took 620 ms), so tool output is read in windows that
- * overlap by more than any line's name. Text longer than MAX_WINDOWS windows holds the report.
+ * reachesHelp reads one sentence at a time and is slower than linear on some long text (128 KB
+ * of "bus 112 leaves at gate 999 then route 111 to 000 dock" took 620 ms), so tool output is
+ * read in windows that overlap by more than any line's name. Text longer than MAX_WINDOWS
+ * windows holds the report.
  */
 const WINDOW = 2048;
 const OVERLAP = 128;
@@ -60,13 +61,21 @@ function textParts(output: unknown): string[] | null {
   return tooDeep ? null : parts;
 }
 
-/** reachesHelp over bounded windows; text too long to read in MAX_WINDOWS holds (fails safe). */
+/**
+ * The check this file used before #3157, kept as a floor so nothing it held now rides: it reads
+ * "crisis text" and "#988", which reachesHelp does not. Only an amount ("$988") is let through.
+ */
+const FORMER_CHECK = /(?<![$€£])\b988\b|lifeline|crisis[\s-]+(?:line|text)/i;
+
+const windowHelps = (text: string): boolean => FORMER_CHECK.test(text) || reachesHelp(text);
+
+/** Help read over bounded windows; text too long to read in MAX_WINDOWS holds (fails safe). */
 function readsHelp(text: string): boolean {
-  if (text.length <= WINDOW) return reachesHelp(text);
+  if (text.length <= WINDOW) return windowHelps(text);
   const step = WINDOW - OVERLAP;
   if (Math.ceil((text.length - OVERLAP) / step) > MAX_WINDOWS) return true;
   for (let at = 0; at < text.length - OVERLAP; at += step) {
-    if (reachesHelp(text.slice(at, at + WINDOW))) return true;
+    if (windowHelps(text.slice(at, at + WINDOW))) return true;
   }
   return false;
 }
