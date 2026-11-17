@@ -104,7 +104,7 @@ export function isForgotten(text: string, topics: readonly string[]): boolean {
 export function isForgottenPassage(text: string, topics: readonly string[]): boolean {
   if (isForgotten(text, topics)) return true;
   // "Forget my brother's number" and then "his cell is 435 555 0199": no topic word is in it.
-  if (topics.some((t) => NUMBER_TOPIC.test(t)) && contactNumberRuns(text).length > 0) return true;
+  if (topics.some((t) => NUMBER_TOPIC.test(t)) && phoneNumbers(text).length > 0) return true;
   const words = new Set(forgetTokens(text));
   // "Distinctive" is judged on the word as written, not its stem: a stemmer
   // can shorten "wedding" below five letters, and the topic must still count.
@@ -124,10 +124,17 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
 /**
  * The phone numbers in a text as their digits, so "(435) 555-0199", "435/555/0199" and "four
  * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
- * any format; dates and years are not numbers there.
+ * any format. That reader fails closed for storage (any 7+ digit run), so here a run counts
+ * only in a phone's shape: 7 to 15 digits joined by spaces, dashes, dots, slashes, parentheses
+ * or a plus. Commas and colons (prices, times, lists of years) are not phone numbers, and a
+ * passage holding one keeps (#4042 review). Known gap: a trunk prefix ("020 ..." for "+44 20").
  */
-const numberKeys = (text: string): string[] =>
-  contactNumberRuns(text).map((run) => run.replace(/\D/g, ''));
+const PHONE_SEPARATORS = /^[\d\s().+/\-\u2010-\u2015\u2212]+$/u;
+const phoneNumbers = (text: string): string[] =>
+  contactNumberRuns(text)
+    .filter((run) => PHONE_SEPARATORS.test(run))
+    .map((run) => run.replace(/\D/g, ''))
+    .filter((digits) => digits.length <= 15);
 
 /**
  * A number a topic names is in the text, in any format (#3995 follow-up). Either may hold the
@@ -135,14 +142,18 @@ const numberKeys = (text: string): string[] =>
  * with another number all still count.
  */
 function holdsTopicNumber(text: string, topics: readonly string[]): boolean {
-  const wanted = topics.flatMap(numberKeys);
+  const wanted = topics.flatMap(phoneNumbers);
   if (wanted.length === 0) return false;
-  const found = numberKeys(text);
+  const found = phoneNumbers(text);
   return wanted.some((w) => found.some((f) => f.includes(w) || w.endsWith(f)));
 }
 
-/** A topic about a contact number ("brother phone number", "mom's cell"), by whole word. */
-const NUMBER_TOPIC = /\b(?:phone|numbers?|cell|mobile|digits)\b/i;
+/**
+ * A topic about a contact number ("brother phone number", "mom's cell", "his landline"), by
+ * whole word. "Number of" is a count ("number of kids"), not a phone number.
+ */
+const NUMBER_TOPIC =
+  /\b(?:(?:tele|cell|smart)?phones?|numbers?(?!\s+of\b)|cell|mobile|digits|landline|tel)\b/i;
 
 /** The text a stored fact document is about, in any fact collection's shape, for matching. */
 export function factText(d: Record<string, unknown>): string {

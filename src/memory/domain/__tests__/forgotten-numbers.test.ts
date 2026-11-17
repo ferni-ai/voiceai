@@ -44,6 +44,12 @@ describe('a forgotten number, in any format', () => {
     expect(isForgottenPassage('call 435/555/0142', NUMBER)).toBe(false);
   });
 
+  it('a forgotten price is not a phone number: a bigger price stays', () => {
+    expect(isForgotten('we raised 12,500,000 for the school', ['the $1,250,000 house'])).toBe(
+      false
+    );
+  });
+
   it('a date or a short number is not read as the forgotten number', () => {
     expect(isForgottenPassage('on 2026-11-17 we paid 435', NUMBER)).toBe(false);
   });
@@ -77,6 +83,27 @@ describe('a forgotten "number" topic hides a raw passage holding a number', () =
     expect(isForgottenPassage('the shop is 435 555 0199', ['my headphones'])).toBe(false);
     expect(isForgottenPassage('the shop is 435 555 0199', ['wine cellar'])).toBe(false);
   });
+
+  // The verifier of #4042: any 7+ digit run hid the whole call summary. Only a phone shape does.
+  it.each([
+    ['a list of years', 'in 2019, 2020 and 2021 we moved twice'],
+    ['a time range', 'from 10:30-11:45:30 today'],
+    ['a price', 'we paid 1,250,000 for the house'],
+    ['an order number longer than any phone number', 'order 112-3456789-0123456 arrived'],
+  ])('%s is not a phone number: the passage stays', (_l, text) => {
+    expect(isForgottenPassage(text, ['brother phone number'])).toBe(false);
+  });
+
+  it('"number of" is a count, not a phone number', () => {
+    expect(isForgottenPassage('the dentist is 435 555 0142', ['number of kids'])).toBe(false);
+  });
+
+  it.each([["brother's cellphone"], ['his telephone'], ['her landline'], ['his tel']])(
+    '%s names a phone number too',
+    (topic) => {
+      expect(isForgottenPassage('his is 435 555 0142', [topic])).toBe(true);
+    }
+  );
 
   it('a fact (all words) is not hidden by the rule: only raw passages are', () => {
     expect(isForgotten('his cell is 435 555 0199', ['brother phone number'])).toBe(false);
