@@ -35,6 +35,7 @@ import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/f
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
+import { noteTurnPathAttached } from '../shared/turn-path-capture.js';
 import { backgroundTurnVoice } from './background-voice-emotion.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
@@ -461,6 +462,7 @@ export function attachTurnContextPusher(
   options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
 ): () => Promise<void> {
   const { env = process.env, userData } = options;
+  if (session.on) noteTurnPathAttached(session); // the turn path captures this call's lines
   const deferral = deferralForSession(hook, session, env, userData);
   const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');

@@ -226,7 +226,15 @@ export interface MemoryOnlyRow {
  * The census (crisis-all-flags-never-lower.test.ts) checks only that each named file exists and
  * holds each title as an it() or test() call. What a row asserts is a reviewer's check.
  */
-export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {};
+export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
+  TURN_PATH_SINGLE_CAPTURE: {
+    file: 'src/agents/voice-agent/__tests__/turn-path-single-capture.test.ts',
+    rows: [
+      'crisis-guided turn, turn path attached: flag on captures nothing, the handler acts the same on and off',
+      'crisis read pending (reply held), turn path attached: flag on captures nothing, the handler acts the same on and off',
+    ],
+  },
+};
 
 /**
  * Crisis-lane flags that act on a text channel (SMS or typed chat), where the six readers and

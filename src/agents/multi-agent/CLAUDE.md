@@ -204,7 +204,7 @@ MULTI_AGENT_MODE=true BYPASS_TEAM_UNLOCKS=all pnpm dev
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MULTI_AGENT_MODE` | `false` | Enable multi-agent system |
+| `MULTI_AGENT_MODE` | on (`!== 'false'`) | Multi-agent system; set `false` to fall back to single-agent (voice-agent-entry/constants.ts) |
 
 ### Future: Feature Flag
 

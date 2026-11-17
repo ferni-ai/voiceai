@@ -116,11 +116,8 @@ import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
-import {
-  coordinatedSay,
-  getAdaptiveEchoWindow,
-  recordEchoDetected,
-} from '../../speech/coordination/index.js';
+import { coordinatedSay } from '../../speech/coordination/index.js';
+import { getEchoPreventionCooldownMs, recordEchoDetectionForLearning } from './echo-window.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
@@ -135,6 +132,7 @@ import {
 import { getUserResponseGapMs } from './user-response-gap.js';
 import { handleRejectedTranscript, installSpeechTracker } from './rejected-transcript-policy.js';
 import { flagOn } from '../../config/env-flag.js';
+import { transcriptCaptureSkipped } from '../shared/turn-path-capture.js';
 
 // ============================================================================
 // TYPES
@@ -179,68 +177,6 @@ export interface TranscriptHandlerContext {
   };
   /** Function to send data messages to frontend */
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
-}
-
-/**
- * ECHO PREVENTION COOLDOWN
- *
- * After the agent finishes speaking, there's a delay before the microphone
- * stops picking up echo and the speech-to-text finishes processing. During
- * this window, we should NOT use cached responses to prevent the agent from
- * responding to its own echo (e.g., Ferni says "how are you?" → mic picks up
- * echo → transcribes "how are you" → matches cached response → says "I'm doing
- * well, thanks for asking!").
- *
- * With REQUIRE_FIX_VOICE=true, uses the adaptive echo window from
- * SpeechCoordinator; otherwise the fixed 2000ms below.
- *
- * Legacy 2 seconds accounts for:
- * - Audio buffer flush (~200-500ms)
- * - Speech-to-text processing (~500-1000ms)
- * - Network latency buffer (~200ms)
- */
-const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
-
-/**
- * Get adaptive echo prevention window.
- * Uses learned timing from SpeechCoordinator when available.
- *
- * CRITICAL FIX: Now content-aware! Pass userTranscript to enable
- * intelligent detection of legitimate requests vs echoes.
- *
- * @param lastUtteranceDurationMs - Duration of last agent utterance
- * @param userTranscript - The user's transcript for content-aware detection
- */
-export function getEchoPreventionCooldownMs(
-  lastUtteranceDurationMs?: number,
-  userTranscript?: string
-): number {
-  // The adaptive window used to be loaded with a bare require(), which throws
-  // under ESM, so every call has run on the fixed 2000ms default. Turning the
-  // adaptive window on changes call timing, so it waits behind its own flag.
-  if (!isAdaptiveEchoWindowEnabled()) return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
-  try {
-    return getAdaptiveEchoWindow(lastUtteranceDurationMs, userTranscript);
-  } catch {
-    return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
-  }
-}
-
-function isAdaptiveEchoWindowEnabled(): boolean {
-  return process.env.REQUIRE_FIX_VOICE === 'true';
-}
-
-/**
- * Record echo detection for adaptive learning.
- * Call this when we detect what appears to be agent echo being picked up.
- */
-export function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
-  if (!isAdaptiveEchoWindowEnabled()) return;
-  try {
-    recordEchoDetected(sessionId, delayMs);
-  } catch {
-    // Learning is best-effort
-  }
 }
 
 export interface TranscriptEvent {
@@ -1416,8 +1352,14 @@ async function processFinalTranscript(
   // ===============================================
   safeFireAndForget(
     async () => {
-      if (!memoryUserId || !(await crisisTurnSettled(sessionId, event.transcript))) {
-        diag.debug('Skipping memory capture - no userId, or no settled crisis read');
+      if (
+        !memoryUserId ||
+        transcriptCaptureSkipped(session) ||
+        !(await crisisTurnSettled(sessionId, event.transcript))
+      ) {
+        diag.debug(
+          'Skipping memory capture - no userId, the turn path captures this line, or no settled crisis read'
+        );
       } else {
         const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
         const captureResult = await fastCapture({

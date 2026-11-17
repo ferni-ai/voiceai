@@ -182,6 +182,7 @@
 /src/agents/shared/call-timeline.ts @sethdford
 /src/agents/shared/final-transcript-observer.ts @sethdford
 /src/agents/shared/tool-executors/memory-executor.ts @sethdford
+/src/agents/shared/turn-path-capture.ts @sethdford
 /src/agents/voice-agent-entry/caller-recognition.ts @sethdford
 /src/agents/voice-agent-entry/handler-setup.ts @sethdford
 /src/agents/voice-agent-entry/user-input-transcribed.ts @sethdford
@@ -189,6 +190,7 @@
 /src/agents/voice-agent/audio-processor.ts @sethdford
 /src/agents/voice-agent/cleanup-handler.ts @sethdford
 /src/agents/voice-agent/daily-checkin-handler.ts @sethdford
+/src/agents/voice-agent/echo-window.ts @sethdford
 /src/agents/voice-agent/periodic-sync-handler.ts @sethdford
 /src/agents/voice-agent/session-init-handler.ts @sethdford
 /src/agents/voice-agent/transcript-handler.ts @sethdford
