@@ -217,14 +217,15 @@ export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
     text = [loopsText, promiseText].filter(Boolean).join('\n\n');
   })().catch((error: unknown) => log.warn({ error: String(error) }, 'Call loops not loaded'));
 
-  // Each shown loop's own words, and the promise block, are checked again when the note is
-  // given: a topic forgotten since it loaded leaves the note out. The note's fixed header is
-  // never checked, so a topic like "these" or "check" doesn't silence it.
+  // The caller-derived words are checked again when the note is given: each shown loop alone,
+  // and all of them with the promise block together, so two loops that only between them name
+  // a topic ("call Bob", "the DUI hearing") leave it out too. A topic forgotten since it loaded
+  // counts. The note's fixed header is never checked, so "these" or "check" can't silence it.
   const givable = (): boolean =>
     Boolean(text) &&
     !raisedCalls.has(deps.callId) &&
     !shown.some((loop) => forgottenNow(loopWords(loop))) &&
-    !(promiseText && forgottenNow(promiseText));
+    !forgottenNow([...shown.map(loopWords), promiseText].filter(Boolean).join(' '));
 
   return {
     ready,

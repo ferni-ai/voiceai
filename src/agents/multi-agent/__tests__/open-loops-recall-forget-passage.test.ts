@@ -1,9 +1,9 @@
 /**
  * The open-loops note through the real forget filter (#3995). A loop's context is the caller's
  * raw words, so a topic of several words leaves it out on any distinctive word; a topic
- * forgotten during the call (the real forgetTopic) leaves the note out from then on; and a topic
- * that only matches the note's own fixed words ("check in on these") doesn't silence it. Only
- * the stored list is faked.
+ * forgotten during the call (the real forgetTopic) leaves the note out from then on, as do two
+ * loops that only together name one; and a topic that only matches the note's own fixed words
+ * ("check in on these") doesn't silence it. Only the stored list is faked.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -103,12 +103,12 @@ describe('open-loops note, real forget filter (#3995)', () => {
     expect(note).toContain('tomatoes');
   });
 
-  it('two loops that together name a topic each still show', async () => {
+  it('two loops that only together name a topic leave the note out', async () => {
     stored(['Bob DUI']);
     const bob = loop('d', 'call Bob back', 'about the weekend');
     const hearing = loop('e', 'the DUI hearing', 'next month');
-    const note = (await loaded('u-pair', [bob, hearing, GARDEN])).note() ?? '';
-    expect(note).toContain('tomatoes');
+    expect((await loaded('u-pair', [bob, GARDEN])).note()).toContain('Bob');
+    expect((await loaded('u-pair2', [bob, hearing, GARDEN])).note()).toBeNull();
   });
 
   it('an unreadable stored list gives no note', async () => {
