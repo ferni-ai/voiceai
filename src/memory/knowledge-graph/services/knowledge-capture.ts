@@ -19,6 +19,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { isThirdPartyCallUser } from '../../third-party-call.js';
 import { memoryHeld, userHeld } from '../../../utils/minor-care.js';
+import { crisisMemoryHeld } from '../../../utils/crisis-memory-hold.js';
 import {
   extractEntities,
   extractFacts,
@@ -214,13 +215,12 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     metrics: { totalTimeMs: 0, extractionTimeMs: 0, storageTimeMs: 0 },
   };
 
-  // Off, or the person on an on-behalf call (not our user): nothing is extracted.
-  if (!captureEnabled || isThirdPartyCallUser(input.userId)) {
+  // Off, the other person on an on-behalf call, or a crisis-held call: nothing is extracted.
+  if (!captureEnabled || isThirdPartyCallUser(input.userId) || crisisMemoryHeld(input.sessionId)) {
     log.debug({ userId: input.userId }, '🧠 [MEMORY-AUDIT] Capture disabled, skipping');
     return result;
   }
 
-  // Rate limiting
   const lastCapture = recentCaptures.get(input.userId) || 0;
   if (Date.now() - lastCapture < MIN_CAPTURE_INTERVAL_MS) {
     log.debug({ userId: input.userId }, '🧠 [MEMORY-AUDIT] Skipping capture due to rate limit');
