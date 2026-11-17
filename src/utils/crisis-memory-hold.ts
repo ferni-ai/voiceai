@@ -69,6 +69,16 @@ export function crisisMemoryHeld(sessionId: string | undefined): boolean {
   return !!sessionId && live(held.get(sessionId));
 }
 
+/** The sessions a crisis read holds now: a copy (write-hold.ts, for writes naming no session). */
+export function crisisHeldSessions(): string[] {
+  return [...held].filter(([, at]) => live(at)).map(([id]) => id);
+}
+
+/** The sessions with a crisis read still running: a copy. */
+export function crisisReadingSessions(): string[] {
+  return [...reads].filter(([, running]) => running.size > 0).map(([id]) => id);
+}
+
 /** A crisis read of these caller words started on this call (the turn's pattern read). */
 export function noteCrisisTurnRead(sessionId: string | undefined, words: string): void {
   if (!sessionId) return;

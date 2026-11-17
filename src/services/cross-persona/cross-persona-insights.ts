@@ -818,12 +818,7 @@ function normalizePersonaId(personaId: string): InsightSource {
 }
 
 // ============================================================================
-// EXPORTS
-// ============================================================================
-
-// ============================================================================
-// BACKWARDS COMPATIBILITY EXPORTS
-// These exports support existing code that was expecting different function names
+// BACKWARDS COMPATIBILITY EXPORTS: the names existing callers expect
 // ============================================================================
 
 export type PersonaId =
@@ -943,6 +938,11 @@ export async function acknowledgeInsight(
   _personaId?: string
 ): Promise<void> {
   await applyChange(userId, insightChanges.hide(insightId, Date.now()));
+}
+
+/** The app showed the insight as a toast: it stays in the app's team panel (issue 3945). */
+export async function markInsightToasted(userId: string, insightId: string): Promise<void> {
+  await applyChange(userId, insightChanges.toast(insightId, Date.now()));
 }
 
 /**

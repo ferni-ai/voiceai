@@ -8,6 +8,7 @@
  * @module TurnCrisis
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import {
   agreementOutcome,
   resolveCrisisAgreementGate,
@@ -228,7 +229,9 @@ export function startTurnCrisis(
   // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('pipeline', userData, patterns.subject);
   const run = { pattern, env, generate, scope, call, secondRead } as const;
-  const classifier = startCrisisClassifier(input, run);
+  // CRISIS_GATE_TURN_READS: the reply gate weighs this read too (crisis-gate-turn-reads.ts).
+  const readScope = scope ?? (flagOn('CRISIS_GATE_TURN_READS', env) ? call : undefined);
+  const classifier = startCrisisClassifier(input, { ...run, scope: readScope });
   const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>
