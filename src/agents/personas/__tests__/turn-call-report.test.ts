@@ -143,6 +143,23 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     expect(text(ctx)).not.toContain('ZEBRA-SECRET');
   });
 
+  it('no report on the request (flag off): a tool naming help leaves the request as sent', () => {
+    const c = llm.ChatContext.empty();
+    c.addMessage({ role: 'user', content: 'what can I do tonight?' });
+    c.insert(llm.FunctionCall.create({ callId: 'c3', name: 'jobLossSupport', args: '{}' }));
+    c.insert(
+      llm.FunctionCallOutput.create({
+        callId: 'c3',
+        name: 'jobLossSupport',
+        output: 'Call 9-8-8 any time.',
+        isError: false,
+      })
+    );
+    const [ctx, waits] = turnRequestFor(c, 's-off', false);
+    expect(waits).toBe(true);
+    expect(ctx).toBe(c);
+  });
+
   it('an amount is not a line: the report rides', () => {
     const [ctx, waits] = turnRequestFor(withOutput('The flight is $988 return.'), 's-fare', false);
     expect(waits).toBe(false);
