@@ -259,3 +259,32 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
     ],
   },
 };
+
+/**
+ * Crisis-lane flags that act on a text channel (SMS or typed chat), where the six readers and
+ * SHOWN_ON (voice calls) cannot see them. Voice flags use SHOWN_ON. This home is open only to a
+ * flag whose named rows drive its real text path with a fictional crisis text, flag off then on,
+ * and assert the on answer is never lower: 988 or 911 still in it, nothing softened, no model
+ * reply in its place.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  SMS_REPLY: [
+    {
+      file: 'src/api/__tests__/outreach-sms-crisis-survives.test.ts',
+      rows: [
+        'SMS_REPLY off then on: a crisis text gets the same answer, 988 and 911 in it, no model reply',
+      ],
+    },
+    {
+      // The reply's own crisis read, when the route's screen missed: its crisis reply, 988 in it.
+      file: 'src/services/outreach/sms-reply/__tests__/sms-reply-webhook.test.ts',
+      rows: [
+        "on: the text's own crisis read: SMS_CRISIS_REPLY, flagged crisis for the route",
+        "main vs head: the crisis read runs first and sends today's crisis reply, word for word",
+      ],
+    },
+  ],
+};
