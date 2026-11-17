@@ -5,8 +5,8 @@
  * call's open-loops note) reads through open-loops.ts's three getters, and they all pass here.
  * Not covered: the copies of a loop's text written when it is saved, into the insight broker
  * (source 'open_loop') and the coaching semantic index (`open_loop_<id>`); their readers are
- * #3995 part 2. A loop holds the caller's raw words, so the passage matcher reads it (any
- * distinctive word of a topic). When the list can't be read, nothing is shown: a privacy
+ * #3995 part 2. A loop holds the caller's raw words, so the passage matcher reads all its text
+ * (any distinctive word of a topic). When the list can't be read, nothing is shown: a privacy
  * request fails closed.
  *
  * @module services/superhuman/semantic-intelligence/remembered-loops
@@ -28,5 +28,12 @@ export async function rememberedLoops(userId: string, loops: OpenLoop[]): Promis
     log.warn({ userId, count: loops.length }, 'Forgotten topics unreadable: open loops held');
     return [];
   }
-  return loops.filter((l) => !forgotten([l.content, l.context, l.description].join(' ')));
+  return loops.filter((l) => !forgotten(loopText(l)));
 }
+
+/**
+ * Every field of a loop a reader can show: its words, and the person and topic it is about,
+ * which can name what its words don't ("call him tomorrow" about Kessler; #4048 review).
+ */
+const loopText = (l: OpenLoop): string =>
+  [l.content, l.context, l.description, l.resolution, l.relatedPerson, l.relatedTopic].join(' ');

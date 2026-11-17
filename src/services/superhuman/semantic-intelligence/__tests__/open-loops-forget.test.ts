@@ -7,7 +7,11 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { firestoreForgetStore } from '../../../../memory/recall/forget.js';
+import {
+  firestoreForgetStore,
+  forgetTopic,
+  type ForgetStore,
+} from '../../../../memory/recall/forget.js';
 
 type Doc = Record<string, unknown>;
 const stored: Doc[] = [];
@@ -31,12 +35,17 @@ vi.mock('../../firestore-utils.js', () => ({
   }),
   cleanForFirestore: <T>(v: T) => v,
 }));
+vi.mock('../../../../api/verified-subject.js', () => ({
+  requireVerifiedSubject: async () => 'u-fiction',
+}));
 vi.mock('../../../data-layer/hooks/coaching-hooks.js', () => ({
   onCoachingInsightChange: vi.fn(),
 }));
 
 const loops = await import('../open-loops.js');
 const { fetchOpenLoops } = await import('../../../../api/your-story-sections.js');
+const { handleSemanticIntelligenceRoutes } =
+  await import('../../../../servers/api/routes/semantic-intelligence.js');
 
 const DAY = 86_400_000;
 const ts = (ms: number) => ({ toDate: () => new Date(ms) });
@@ -99,6 +108,29 @@ describe('the open-loop getters leave forgotten topics out', () => {
     expect(ids(await loops.getAllOpenLoops('u-fiction'))).toEqual(['a', 'c']);
   });
 
+  // The verifier of #4048: a loop's side fields can name what its words don't ("call him").
+  it.each([
+    ['relatedPerson', { relatedPerson: 'Kessler' }],
+    ['relatedTopic', { relatedTopic: 'the Kessler audit' }],
+  ])('a topic named only in %s', async (_l, extra) => {
+    stored.push({ ...loop('k', 'call him tomorrow', 'I will call him tomorrow'), ...extra });
+    forgotten(['Kessler']);
+    expect(ids(await loops.getAllOpenLoops('u-fiction'))).toEqual(['a', 'c']);
+  });
+
+  it('a topic forgotten during the call counts from then on', async () => {
+    forgotten([]);
+    expect(ids(await loops.getAllOpenLoops('u-later'))).toEqual(['a', 'c']);
+    const store: ForgetStore = {
+      facts: async () => [],
+      markForgotten: async () => undefined,
+      addTopic: async () => 1,
+      topics: async () => [],
+    };
+    await forgetTopic('u-later', 'the tomatoes', store, new Date(), {});
+    expect(ids(await loops.getAllOpenLoops('u-later'))).toEqual(['a']);
+  });
+
   it('a list that cannot be read shows nothing (fails closed)', async () => {
     vi.spyOn(firestoreForgetStore, 'topics').mockRejectedValue(new Error('unavailable'));
     expect(await loops.getAllOpenLoops('u-fiction')).toEqual([]);
@@ -112,6 +144,27 @@ describe('every reader through the getters', () => {
     const text = await loops.formatOpenLoopsContext('u-fiction');
     expect(text).toContain('plant the tomatoes');
     expect(text).not.toMatch(/Denver|the offer/);
+  });
+
+  it('the /open-loops route (raw loop objects) leaves out a person named only in a side field', async () => {
+    stored.push({ ...loop('k', 'call him tomorrow', 'I will'), relatedPerson: 'Kessler' });
+    forgotten(['Kessler']);
+    let body = '';
+    const res = {
+      writeHead: () => res,
+      setHeader: () => undefined,
+      end: (b: string) => void (body = b),
+    } as unknown as import('http').ServerResponse;
+    const req = {
+      method: 'GET',
+      url: '/api/semantic-intelligence/open-loops?userId=u-fiction',
+      headers: {},
+    } as unknown as import('http').IncomingMessage;
+    expect(
+      await handleSemanticIntelligenceRoutes(req, res, '/api/semantic-intelligence/open-loops')
+    ).toBe(true);
+    expect(JSON.parse(body).count).toBe(2);
+    expect(body).not.toContain('Kessler');
   });
 
   it('Story So Far leaves the topic out', async () => {
