@@ -76,6 +76,8 @@ describe('readSmsCrisis: either read is enough, none is lowered', () => {
 
 describe('smsCrisisReply: the flag', () => {
   it('off (the default): no read, no reply', async () => {
+    // Pinned, so the row holds when the suite runs with the flag on in the environment.
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'off');
     const r = read(true);
     expect(await smsCrisisReply('I want to kill myself', r)).toBeNull();
     expect(r).not.toHaveBeenCalled();
