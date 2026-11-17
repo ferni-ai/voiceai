@@ -40,7 +40,7 @@ import type { CallParticipant, CallRoom, CallSession, CallTrack } from './call-s
 const log = createLogger({ module: 'GroupHearing' });
 
 /** What the rest of the call can ask about who is on it. */
-export interface GroupHearing {
+interface GroupHearing {
   /** A guest's spoken name (any guest seen this call); undefined for anyone else. */
   guestName: (identity: string) => string | undefined;
   /** Every guest seen this call, including ones who left, in the order they joined. */
@@ -66,7 +66,7 @@ const hearings = new Map<string, { hearing: GroupHearing; detach: () => void }>(
 const sessionHearings = new WeakMap<object, GroupHearing>();
 
 /** The hearing `session` hears the call with, or undefined on a solo call or with GROUP_CALL off. */
-export function groupHearingFor(session: object): GroupHearing | undefined {
+function groupHearingFor(session: object): GroupHearing | undefined {
   return sessionHearings.get(session);
 }
 

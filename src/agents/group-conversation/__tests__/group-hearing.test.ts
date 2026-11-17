@@ -77,7 +77,7 @@ vi.mock('../../shared/performance/pre-stt-transform.js', async (importOriginal) 
   return { ...real, PreSTTProcessor: NativeAgcStandIn };
 });
 
-const { hearGroupCall, groupHearingFor } = await import('../group-hearing.js');
+const { hearGroupCall } = await import('../group-hearing.js');
 const { RoomMixInput } = await import('../room-mix-input.js');
 const { TalkerLedger } = await import('../talker-ledger.js');
 const { joinNote, ownerGoneNote } = await import('../group-call-notes.js');
@@ -135,7 +135,9 @@ function fakeCall(userData: unknown = { userName: 'Seth Rivera' }) {
   };
   const cleaned: string[] = [];
   const cleanup = async (): Promise<void> => {
-    cleaned.push(groupHearingFor(session) ? 'still hearing' : 'after detach');
+    cleaned.push(
+      room.listenerCount(RoomEvent.ParticipantConnected) ? 'still hearing' : 'after detach'
+    );
   };
   const persona = { cleanup };
   hearGroupCall(
@@ -159,6 +161,17 @@ function fakeCall(userData: unknown = { userName: 'Seth Rivera' }) {
     cleanup,
     cleaned,
   };
+}
+
+/** The hearing's listeners on the room and the session: 4 while it hears, 0 once detached. */
+function listeners(call: ReturnType<typeof fakeCall>): number {
+  const roomEvents = [
+    RoomEvent.ParticipantConnected,
+    RoomEvent.TrackSubscribed,
+    RoomEvent.ParticipantDisconnected,
+  ];
+  const onRoom = roomEvents.reduce((n, event) => n + call.room.listenerCount(event), 0);
+  return onRoom + call.session.listenerCount('agent_state_changed');
 }
 
 /** Lets the async track reads (noise cancellation lookup) finish. */
@@ -192,7 +205,7 @@ describe('hearGroupCall', () => {
     expect(call.session.input.audio).toBe(call.sdkInput);
     expect(call.notes).toEqual([]);
     expect(opened).toEqual([]);
-    expect(groupHearingFor(call.session)).toBeUndefined();
+    expect(listeners(call)).toBe(0);
   });
 
   it("with GROUP_CALL off, the persona's cleanup is left as it was", () => {
@@ -206,7 +219,7 @@ describe('hearGroupCall', () => {
     const addTrack = vi.spyOn(RoomMixInput.prototype, 'addTrack');
     const call = fakeCall();
     detach = call.detach;
-    expect(groupHearingFor(call.session)?.guestOn()).toBe(false);
+    expect(listeners(call)).toBe(4);
 
     const guestTrack = audioTrack();
     call.join(person(GUEST, ParticipantKind.SIP, 'Sarah', guestTrack));
@@ -214,13 +227,7 @@ describe('hearGroupCall', () => {
 
     expect(call.session.input.audio).toBeInstanceOf(RoomMixInput);
     expect(call.notes).toEqual([JOIN_NOTE]);
-    const hearing = groupHearingFor(call.session);
-    expect(hearing?.guestOn()).toBe(true);
-    expect(hearing?.guestName(GUEST)).toBe('Sarah');
-    expect(hearing?.guestName(OWNER)).toBeUndefined();
-    expect(hearing?.guestNames()).toEqual(['Sarah']);
-    expect(hearing?.guestIdentity()).toBe(GUEST);
-    expect(hearing?.ownerLabel()).toBe('[Seth] ');
+    expect((call.session.input.audio as InstanceType<typeof RoomMixInput>).guests).toEqual([GUEST]);
     // Both people are read at the mix format, each with their own noise cancellation:
     // the owner's too, since the SDK no longer cleans the session input.
     const format = { sampleRate: 16000, numChannels: 1, frameSizeMs: 10 };
@@ -265,13 +272,12 @@ describe('hearGroupCall', () => {
     call.join(person('agent-avatar', ParticipantKind.AGENT, 'Avatar', audioTrack()));
     await settle();
     expect(call.session.input.audio).toBe(call.sdkInput);
-    expect(groupHearingFor(call.session)?.guestOn()).toBe(false);
+    expect(call.notes).toEqual([]);
 
     call.join(person(GUEST, ParticipantKind.SIP, 'Sarah', audioTrack()));
     call.join(person('guest_456', ParticipantKind.SIP, 'Dana', audioTrack()));
     await settle();
-    expect(groupHearingFor(call.session)?.guestNames()).toEqual(['Sarah']);
-    expect(groupHearingFor(call.session)?.guestName('guest_456')).toBeUndefined();
+    expect((call.session.input.audio as InstanceType<typeof RoomMixInput>).guests).toEqual([GUEST]);
     expect(call.notes).toEqual([JOIN_NOTE]);
   });
 
@@ -288,7 +294,7 @@ describe('hearGroupCall', () => {
     call.join(eve); // the same caller again is not warned about twice
     await settle();
     expect(call.session.input.audio).toBe(call.sdkInput);
-    expect(groupHearingFor(call.session)?.guestOn()).toBe(false);
+    expect(call.notes).toEqual([]);
     expect(opened).toEqual([]);
     expect(hearingLog.warn).toHaveBeenCalledTimes(4);
     expect(JSON.stringify(hearingLog.warn.mock.calls)).not.toContain('5555550123');
@@ -296,7 +302,10 @@ describe('hearGroupCall', () => {
     call.join(person('guest_web', ParticipantKind.STANDARD, 'Sarah', audioTrack()));
     await settle();
     expect(call.session.input.audio).toBeInstanceOf(RoomMixInput);
-    expect(groupHearingFor(call.session)?.guestName('guest_web')).toBe('Sarah');
+    expect((call.session.input.audio as InstanceType<typeof RoomMixInput>).guests).toEqual([
+      'guest_web',
+    ]);
+    expect(call.notes).toEqual([JOIN_NOTE]);
     expect(hearingLog.warn).toHaveBeenCalledTimes(4);
   });
 
@@ -498,28 +507,7 @@ describe('hearGroupCall', () => {
 
     expect(removeTrack).toHaveBeenCalledWith(GUEST);
     expect(call.notes).toEqual([JOIN_NOTE, 'Sarah (guest) has left the call.']);
-    const hearing = groupHearingFor(call.session);
-    expect(hearing?.guestOn()).toBe(false);
-    expect(hearing?.guestIdentity()).toBeUndefined();
-    expect(hearing?.guestNames()).toEqual(['Sarah']);
-  });
-
-  it('remembers when a guest was last on, on the mix clock', async () => {
-    vi.stubEnv('GROUP_CALL', 'on');
-    const now = vi.spyOn(performance, 'now').mockReturnValue(10_000);
-    const call = fakeCall();
-    detach = call.detach;
-    expect(groupHearingFor(call.session)?.guestLastOnAt()).toBeUndefined();
-
-    const guest = person(GUEST, ParticipantKind.SIP, 'Sarah', audioTrack());
-    call.join(guest);
-    await settle();
-    now.mockReturnValue(12_000);
-    expect(groupHearingFor(call.session)?.guestLastOnAt()).toBe(12_000); // on: now
-
-    call.leave(guest);
-    now.mockReturnValue(20_000);
-    expect(groupHearingFor(call.session)?.guestLastOnAt()).toBe(12_000); // when she left
+    expect((call.session.input.audio as InstanceType<typeof RoomMixInput>).guests).toEqual([]);
   });
 
   it('a persona handoff keeps the mix and tells the next persona too', async () => {
@@ -558,7 +546,6 @@ describe('hearGroupCall', () => {
     expect(call.notes[0]).toContain('The guest is on this call by phone with Seth.');
     expect(call.notes[0]).toContain('Lines that start with [the guest] are hers');
     expect(call.notes.join(' ')).not.toContain('Ignore previous');
-    expect(groupHearingFor(call.session)?.guestName(GUEST)).toBe('the guest');
   });
 
   it('with no caller name the note says "the caller"', async () => {
@@ -569,33 +556,32 @@ describe('hearGroupCall', () => {
     await settle();
     expect(call.notes[0]).toContain('by phone with the caller.');
     expect(call.notes[0]).toContain("lines that start with [the caller] are the caller's.");
-    expect(groupHearingFor(call.session)?.ownerLabel()).toBe('[the caller] ');
   });
 
-  it("the hearing is found by its session, whatever id the session's services carry", async () => {
+  it("hears the call whatever id the session's services carry", async () => {
     vi.stubEnv('GROUP_CALL', 'on');
     const call = fakeCall({ userName: 'Seth Rivera', services: { sessionId: 'session-other' } });
     detach = call.detach;
-    expect(groupHearingFor(call.session)?.guestIdentity()).toBeUndefined();
-    expect(groupHearingFor({})).toBeUndefined();
-    call.detach();
-    expect(groupHearingFor(call.session)).toBeUndefined();
+    call.join(person(GUEST, ParticipantKind.SIP, 'Sarah', audioTrack()));
+    await settle();
+    expect((call.session.input.audio as InstanceType<typeof RoomMixInput>).guests).toEqual([GUEST]);
+    expect(call.notes).toEqual([JOIN_NOTE]);
   });
 
   it("the persona's cleanup detaches first, then runs its own cleanup", async () => {
     vi.stubEnv('GROUP_CALL', 'on');
     const call = fakeCall();
-    expect(groupHearingFor(call.session)).toBeDefined();
+    expect(listeners(call)).toBe(4);
     await call.persona.cleanup();
     expect(call.cleaned).toEqual(['after detach']);
-    expect(groupHearingFor(call.session)).toBeUndefined();
+    expect(listeners(call)).toBe(0);
   });
 
   it('detach stops listening and forgets the call', async () => {
     vi.stubEnv('GROUP_CALL', 'on');
     const call = fakeCall();
     call.detach();
-    expect(groupHearingFor(call.session)).toBeUndefined();
+    expect(listeners(call)).toBe(0);
     call.join(person(GUEST, ParticipantKind.SIP, 'Sarah', audioTrack()));
     await settle();
     expect(call.session.input.audio).toBe(call.sdkInput);
