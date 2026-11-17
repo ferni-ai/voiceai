@@ -31,6 +31,19 @@ describe('places from what the caller said', () => {
     expect(valuesOf('I moved to Denver last year', 'place')).toEqual(['Denver']);
   });
 
+  it.each([
+    ['I moved to NYC in June', 'NYC'],
+    ['I live in LA now', 'LA'],
+    ['we moved to Washington DC', 'Washington DC'],
+    ['I moved from UK last year', 'UK'],
+  ])('keeps the listed abbreviation in "%s" (#4034)', (said, place) => {
+    expect(valuesOf(said, 'place')).toEqual([place]);
+  });
+
+  it('takes no "LA" out of "LAX" (#4034)', () => {
+    expect(valuesOf('I flew in LAX yesterday', 'place')).toEqual([]);
+  });
+
   it('keeps a two-word place that starts with a common word: "New York"', () => {
     expect(valuesOf('I live in New York', 'place')).toEqual(['New York']);
   });
@@ -39,6 +52,13 @@ describe('places from what the caller said', () => {
 describe('companies from what the caller said', () => {
   it('saves "Acme" from "I work at Acme"', () => {
     expect(valuesOf('I work at Acme', 'company')).toEqual(['Acme']);
+  });
+
+  it.each([
+    ['I work at IBM', 'IBM'],
+    ['I work for NASA', 'NASA'],
+  ])('keeps a company said in capitals in "%s"', (said, company) => {
+    expect(valuesOf(said, 'company')).toEqual([company]);
   });
 
   it.each(['I work at the hospital', 'I work for myself these days', 'I worked at Monday'])(

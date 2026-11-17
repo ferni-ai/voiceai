@@ -1285,4 +1285,4 @@ export { containsContactData, contactNumberRuns, foldContactText } from './domai
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
 export * from './recall/opener-claim.js'; // and the call's proactive budget (PROACTIVE_BUDGET)
-export { couldBePerson, keepLetters, nameAsSaid, nameTokens, OWNER_LEAD, personKey, properNameAsSaid, relationWordNearest, relationWords } from './domain/index.js'; // prettier-ignore
+export { couldBePerson, keepLetters, nameAsSaid, nameTokens, OWNER_LEAD, personKey, placeAfter, properNameAsSaid, relationWordNearest, relationWords } from './domain/index.js'; // prettier-ignore
