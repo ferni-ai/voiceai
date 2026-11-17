@@ -63,6 +63,7 @@ describe('src/tests/deploy and src/tests/ci run on pull requests that change wha
       'deploy/ui-server/env.yaml',
       'docker/Dockerfile.ui',
       'Dockerfile.worker',
+      'apps/figma-plugin/package.json',
       'apps/figma-plugin/src/ui.html',
       'vitest.config.integration.ts',
     ];
