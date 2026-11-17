@@ -1,6 +1,6 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set (with merge)/update/create/delete, collection add, runTransaction (serialized; get, create, set with merge), collection where (==, >=,
+ * doc get/set (with merge)/update/create/delete, collection add, runTransaction (serialized; get, create, set with merge, delete), collection where (==, >=,
  * <=, array-contains; dotted field paths), select, orderBy (asc/desc, or '__name__' for the document id),
  * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
@@ -136,6 +136,7 @@ export function pathFirestore(docs: Map<string, Json>) {
       docs.set(r.path, structuredClone(d));
     },
     set: (r: Ref, d: Json, opts?: { merge?: boolean }) => write(r.path, d, opts),
+    delete: (r: { path: string }) => void docs.delete(r.path),
   };
   const runTransaction = async <T>(fn: (t: typeof tx) => Promise<T>): Promise<T> => {
     const run = (queues.get(docs) ?? Promise.resolve()).then(async () => fn(tx));

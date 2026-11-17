@@ -11,11 +11,8 @@
  */
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { firestoreGuestConsentStore } from './adapters/firestore-guest-consent-store.js';
-import * as useCases from './use-cases/guest-consent.js';
+import * as check from './use-cases/check-guest-consent.js';
 import type { GuestConsentDeps } from './use-cases/guest-consent.js';
-
-export { GUEST_CONSENT_WORDING_VERSION } from './domain/guest-consent.js';
-export type { GuestConsentDeps } from './use-cases/guest-consent.js';
 
 function defaultGuestConsentDeps(): GuestConsentDeps {
   return {
@@ -31,29 +28,5 @@ export async function hasGuestConsent(
   e164: string,
   deps: GuestConsentDeps = defaultGuestConsentDeps()
 ): Promise<boolean> {
-  return useCases.hasGuestConsent(ownerUid, e164, deps);
-}
-
-/**
- * Records the guest's yes to `wordingVersion`, said at `saidAt` (default now): a
- * revoke made after that time stands. Throws for a wording version above the
- * current one, or when it can't be keyed or saved.
- */
-export async function recordGuestConsent(
-  ownerUid: string,
-  e164: string,
-  wordingVersion: number,
-  saidAt?: Date,
-  deps: GuestConsentDeps = defaultGuestConsentDeps()
-): Promise<void> {
-  return useCases.recordGuestConsent(ownerUid, e164, wordingVersion, deps, saidAt);
-}
-
-/** Records the guest's revoke; the record stays. Throws when it can't be keyed or saved. */
-export async function revokeGuestConsent(
-  ownerUid: string,
-  e164: string,
-  deps: GuestConsentDeps = defaultGuestConsentDeps()
-): Promise<void> {
-  return useCases.revokeGuestConsent(ownerUid, e164, deps);
+  return check.hasGuestConsent(ownerUid, e164, deps);
 }

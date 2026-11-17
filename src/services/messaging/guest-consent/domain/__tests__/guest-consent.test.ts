@@ -3,10 +3,10 @@
  * writes nothing, so it can never undo the stop that came after it.
  */
 import { describe, expect, it } from 'vitest';
+import { consentStands } from '../consent-stands.js';
 import {
   afterRevoke,
   afterYes,
-  consentStands,
   GUEST_CONSENT_WORDING_VERSION,
   type GuestConsent,
 } from '../guest-consent.js';
@@ -27,6 +27,12 @@ describe('afterYes', () => {
   it('writes nothing when the revoke on record (T2) is later than this yes (T1)', () => {
     const prev = revokedAt(T2);
     expect(afterYes(prev, V, T1, null)).toBeNull();
+    expect(consentStands(prev)).toBe(false);
+  });
+
+  it('writes nothing when the revoke and the yes have the same time: the revoke stands', () => {
+    const prev = revokedAt(T2);
+    expect(afterYes(prev, V, T2, null)).toBeNull();
     expect(consentStands(prev)).toBe(false);
   });
 
