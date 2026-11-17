@@ -52,6 +52,8 @@ export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
 export { checkin } from './crisis-timeout-checkin.js';
+// CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
+export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
 export {
   resolveCrisisClassifierTimeoutMs,

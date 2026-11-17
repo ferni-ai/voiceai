@@ -70,12 +70,15 @@ import {
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
-import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
 import {
+  checkin,
+  disclosureGuidance,
   guideLineOf,
+  mainOf,
+  shadowGrade,
   withGuidedLine,
   type GuideLine,
-} from '../../services/safety/crisis-guided-line-floor.js';
+} from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
