@@ -258,8 +258,8 @@ describe('no flag lowers what a caller in crisis hears', () => {
         `${name}=on changes no turn of "${call}"`
       ).toBe(true);
       if (!raises) continue;
-      const [answer, floor] = raises;
-      const turn = (r: Readings): Gives => gives(r.get(`${call}/${answer}`)![0]);
+      const [answer, floor, at = 0] = raises;
+      const turn = (r: Readings): Gives => gives(r.get(`${call}/${answer}`)![at]);
       expect(MEETS[floor](turn(defaults)), `${call}/${answer} is ${floor} without ${name}`).toBe(
         false
       );

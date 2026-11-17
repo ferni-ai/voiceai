@@ -205,6 +205,21 @@ export let classifierCalls = 0;
 export const verdict =
   (risk: string, subject: string): CrisisGenerateFn =>
   async () => (classifierCalls++, JSON.stringify({ risk, subject }));
+/**
+ * A cut call's reads (ReplyCall.cut): the answer only for a read whose latest words hold the
+ * call's first line, none for any other (the classifier is sent its input as JSON; earlier lines
+ * are context, as in the real prompt). The one call whose reads differ by input, so the whole-turn
+ * read (CRISIS_GATE_TURN_READS) shows at the reply: off, the next turn's latest words are only the
+ * new line; on, they hold the cut-off line too.
+ */
+const splitRead =
+  (answer: CrisisGenerateFn, line: string): CrisisGenerateFn =>
+  async (prompt, content, signal) => {
+    const latest = String((JSON.parse(content) as { latest?: unknown }).latest ?? '');
+    return latest.toLowerCase().includes(line.toLowerCase())
+      ? answer(prompt, content, signal)
+      : CLASSIFIER.none(prompt, content, signal);
+  };
 export const CLASSIFIER: Record<Answer, CrisisGenerateFn> = {
   none: verdict('none', 'self'),
   crisis: verdict('crisis', 'self'),
@@ -385,7 +400,7 @@ export async function place(call: ReplyCall, answer: Answer, at?: At): Promise<H
     void inReply.run(true, async (): Promise<void> => {
       const stream = await gatedReply(ctx.copy(), session, model as never, opener as never, {
         env: process.env as Record<string, string>,
-        generate: CLASSIFIER[answer],
+        generate: call.cut ? splitRead(CLASSIFIER[answer], call.says[0]) : CLASSIFIER[answer],
         adjudicate: ADJUDICATOR,
       });
       if (stream)
@@ -400,7 +415,7 @@ export async function place(call: ReplyCall, answer: Answer, at?: At): Promise<H
       await vi.advanceTimersByTimeAsync(step);
     if (!came) vi.clearAllTimers();
     heard.push({ came, firstWordsMs, spoken, asked, holdAsked });
-    ctx.addMessage({ role: 'assistant', content: spoken });
+    ctx.addMessage({ role: 'assistant', content: spoken, interrupted: call.cut ?? false });
   }
   return heard;
 }

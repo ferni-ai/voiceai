@@ -129,6 +129,7 @@
         "src/agents/multi-agent/agent-setup.ts",
         "src/agents/multi-agent/first-turn-defer.ts",
         "src/agents/multi-agent/prediction-check-in.ts",
+        "src/agents/multi-agent/resume-after-drop.ts",
         "src/agents/personas/ferni-state.ts",
         "src/agents/personas/friend-repair.ts",
         "src/agents/personas/life-ledger.ts",

@@ -234,4 +234,28 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'crisis read pending (reply held), turn path attached: flag on captures nothing, the handler acts the same on and off',
     ],
   },
+  // A dropped call's turns go back only when none of its caller lines reads as risk; a held
+  // caller's are never read. Crisis half: the first two rows. Held half: the rest.
+  RESUME_AFTER_DROP: {
+    file: 'src/agents/multi-agent/__tests__/resume-after-drop-held.test.ts',
+    rows: [
+      'RESUME_AFTER_DROP: a call that dropped right after a crisis line opens exactly as with the flag off',
+      'RESUME_AFTER_DROP: a risk read that throws resumes nothing',
+      "a held call's pre-hold turns are not resumed on another pod (no endedAt)",
+      'a caller held in this process (another live session of theirs) gets no resume',
+      'a new call already held when it starts never looks',
+      'a new call held while the lookup ran: the found turns are not put back',
+    ],
+  },
+  // The same for the app call a "call me" moved to the phone.
+  CALL_ME_MOVES_TO_PHONE: {
+    file: 'src/agents/multi-agent/__tests__/resume-after-drop-held.test.ts',
+    rows: [
+      'CALL_ME_MOVES_TO_PHONE: an app call with a crisis line opens the phone call exactly as with the flag off',
+      'CALL_ME_MOVES_TO_PHONE: a risk read that throws carries nothing over',
+      'a held app call: nothing is read or restored, and no moved note',
+      'a phone call already held: nothing is read',
+      'a phone call held while the turns were read: none go back',
+    ],
+  },
 };

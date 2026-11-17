@@ -166,6 +166,7 @@
 /src/agents/multi-agent/agent-setup.ts @sethdford
 /src/agents/multi-agent/first-turn-defer.ts @sethdford
 /src/agents/multi-agent/prediction-check-in.ts @sethdford
+/src/agents/multi-agent/resume-after-drop.ts @sethdford
 /src/agents/personas/ferni-state.ts @sethdford
 /src/agents/personas/friend-repair.ts @sethdford
 /src/agents/personas/life-ledger.ts @sethdford
