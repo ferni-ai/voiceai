@@ -17,7 +17,7 @@ import {
   withoutCallReport,
 } from '../../intelligence/context-builders/external/call-report.js';
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
-import { reachesHelp } from '../../services/safety/safety-talk.js';
+import { reachesHelp } from '../../services/safety/index.js';
 import { TURN_CONTEXT_SAFETY } from '../multi-agent/pushed-notes.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { PROTECTED_TOOL_NAMES } from '../../tools/orchestrator/persona-tool-policy.js';
