@@ -133,7 +133,8 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
 const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
 const TIME = '\\d{1,2}:\\d{2}(?::\\d{2})?';
 const TIMES = new RegExp(`^${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
-const YEARS = /^(?:19|20)\d\d(?:[\s,;]+(?:19|20)\d\d)+$/;
+// A list of years has a comma or semicolon: "2012 1999" may be an eight-digit phone number.
+const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
 const notAPhoneNumber = (run: string): boolean =>
   THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
 const phoneNumbers = (text: string): string[] =>

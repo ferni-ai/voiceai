@@ -111,6 +111,20 @@ describe('a forgotten "number" topic hides a raw passage holding a number', () =
     expect(isForgottenPassage(text, ['brother phone number'])).toBe(true);
   });
 
+  // The exemptions are whole runs only (#4042 verifier): beside a price, a time or years, a
+  // phone number still hides. Each case leaks if an anchor is dropped.
+  it.each([
+    ['digits in thousands groups', 'his is 435,555,0199'],
+    ['a price before it', 'paid 1,250,000 435 555 0199'],
+    ['a price after it', 'his is 435 555 0199, 1,250'],
+    ['a time before it', 'at 10:30 435 555 0199'],
+    ['a time after it', 'his is 435 555 0199 10:30'],
+    ['years after it', 'his is 435 555 0199, 2019, 2020'],
+    ['two four-digit groups spaced like years', 'her line is 2012 1999'],
+  ])('a phone number with %s still hides', (_l, text) => {
+    expect(isForgottenPassage(text, ['brother phone number'])).toBe(true);
+  });
+
   it('"number of" a person is still their phone number', () => {
     expect(isForgottenPassage('it is 435 555 0142', ['the number of my therapist'])).toBe(true);
   });
