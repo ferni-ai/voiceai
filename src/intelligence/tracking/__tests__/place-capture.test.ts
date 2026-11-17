@@ -40,6 +40,14 @@ describe('places from what the caller said', () => {
     expect(valuesOf(said, 'place')).toEqual([place]);
   });
 
+  // Every word on the place-name.ts list, so a listed abbreviation that can never be saved fails here.
+  it.each(['NYC', 'LA', 'SF', 'DC', 'UK', 'USA', 'UAE', 'NOLA'])(
+    'saves the listed abbreviation "%s" from "I moved to …"',
+    (place) => {
+      expect(valuesOf(`I moved to ${place}`, 'place')).toEqual([place]);
+    }
+  );
+
   it('takes no "LA" out of "LAX" (#4034)', () => {
     expect(valuesOf('I flew in LAX yesterday', 'place')).toEqual([]);
   });

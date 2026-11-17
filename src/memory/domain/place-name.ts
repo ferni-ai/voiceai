@@ -19,9 +19,11 @@ const CALENDAR = new Set(
 
 /**
  * Places said as capitals. A fixed list, never "any capitals": that saved "AA" (from "in AA
- * meetings"), "ICU", "HR" and "OK" as places (#4029, #4034).
+ * meetings"), "ICU", "HR" and "OK" as places (#4029, #4034). No "US": alone it reads as the
+ * pronoun "us" and is never saved, so it only got in with the next word, mostly not a place
+ * ("at US Bank", "to US Open"). "USA" is listed.
  */
-const PLACE_ABBREVIATIONS = ['NYC', 'LA', 'SF', 'DC', 'UK', 'USA', 'US', 'UAE', 'NOLA'];
+const PLACE_ABBREVIATIONS = ['NYC', 'LA', 'SF', 'DC', 'UK', 'USA', 'UAE', 'NOLA'];
 
 /** One word of a place, as regex source: capitalised ("Denver") or a listed abbreviation, whole. */
 const PLACE_WORD = `(?:[A-Z][a-z]+|(?:${PLACE_ABBREVIATIONS.join('|')})(?![A-Za-z]))`;
