@@ -15,9 +15,20 @@
 const LABEL = String.raw`[\p{L}\p{M}\p{N} .'’()-]{1,40}`;
 /** A final's label as it is put on: `[` a label `] `, at the start of the text or after a space. */
 const TURN_LABEL = new RegExp(`(?<=^|\\s)\\[(${LABEL})\\] `, 'gu');
+const ALLOWED_LABEL = new RegExp(`^${LABEL}$`, 'u');
 
 /** The labels each call has put on its turns. */
 const putOn = new WeakMap<object, Set<string>>();
+
+/**
+ * A person's display name as a label: NFKC and trimmed if every character is allowed (above),
+ * otherwise `unclear`. Anything else (a bracket of any script, a control, format or separator
+ * character) could forge another person's label.
+ */
+export function safeLabel(name: string): string {
+  const normalised = name.normalize('NFKC').trim();
+  return ALLOWED_LABEL.test(normalised) ? normalised : 'unclear';
+}
 
 /** `text` as a turn by `label` on `session`'s call, e.g. `[unclear] see you at six`. */
 export function labelTurn(session: object, label: string, text: string): string {
