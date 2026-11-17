@@ -322,11 +322,10 @@ export function extractSmallDetails(text: string): SmallDetail[] {
 
   // Places ("I live in Denver", "moving to Austin") and companies ("I work at Acme"). No i
   // flag: under it "[A-Z]" matched any word ("moving in March" gave place "in March"), so the
-  // cue words spell both cases and the name must be capitalised as said, or all capitals
-  // ("NYC", "LA") (#4028).
+  // cue words spell both cases and the name must be capitalised as said (#4028).
   const placeOrCompany: Array<[RegExp, 'place' | 'company']> = [
     [
-      /\b(?:[Ll]ive|[Ll]iving|[Mm]oved|[Mm]oving|[Ff]rom|[Ii]n)\s+(?:to\s+)?([A-Z](?:[a-z]+|[A-Z]+)(?:\s+[A-Z](?:[a-z]+|[A-Z]+))?)/g,
+      /\b(?:[Ll]ive|[Ll]iving|[Mm]oved|[Mm]oving|[Ff]rom|[Ii]n)\s+(?:to\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
       'place',
     ],
     [/\b[Ww]ork(?:ed|ing)?\s+(?:at|for)\s+([A-Z][a-zA-Z]+)/g, 'company'],
