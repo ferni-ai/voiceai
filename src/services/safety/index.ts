@@ -43,7 +43,9 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
-export { offersCrisisLine } from './crisis-line-speech.js';
+// A crisis pattern holds the call's memory before capture (transcript-handler.ts).
+export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
+export { offersCrisisLine, says988 } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
@@ -56,6 +58,13 @@ export {
   startCrisisClassifier,
   type CrisisClassifierInput,
   type StartCrisisClassifierOptions,
+} from './crisis-classifier.js';
+// CRISIS_GATE_TURN_READS: the turn's other reads and the line cap (agents/personas/crisis-gate-turn-reads.ts).
+export {
+  MAX_EARLIER_MESSAGES,
+  turnVerdicts,
+  verdictOutcome,
+  type CrisisVerdict,
 } from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
@@ -152,6 +161,9 @@ import {
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
+
+/** Whether a crisis is self-harm: code outside the kernel asks this, never the type name. */
+export const isSelfHarm = (type: CrisisType | undefined): boolean => type === 'self_harm';
 
 // ============================================================================
 // FIRESTORE SETUP

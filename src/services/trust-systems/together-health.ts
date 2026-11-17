@@ -23,6 +23,7 @@ import {
   conversationDays,
   mean,
   signalsAsOf,
+  tallyPromises,
   within,
   type LocalClock,
   type TogetherSignals,
@@ -87,17 +88,16 @@ function rhythm(s: TogetherSignals, now: Date, clock: LocalClock): TogetherFacto
 
 function promises(s: TogetherSignals): TogetherFactor | null {
   // Only promises with a known outcome count; an open one is not a broken one.
-  const resolved = s.promises.filter((p) => p.fulfilled || p.violated);
-  if (resolved.length === 0) return null;
-  const kept = resolved.filter((p) => p.fulfilled && !p.violated).length;
-  const score = Math.round((kept / resolved.length) * 100);
+  const { kept, resolved } = tallyPromises(s.promises);
+  if (resolved === 0) return null;
+  const score = Math.round((kept / resolved) * 100);
   return {
     id: 'promises',
     tone: band(score, 80, 50),
     score,
     trend: null,
-    detail: { kept, total: resolved.length },
-    evidence: resolved.map((p) => p.id),
+    detail: { kept, total: resolved },
+    evidence: s.promises.filter((p) => p.fulfilled || p.violated).map((p) => p.id),
   };
 }
 

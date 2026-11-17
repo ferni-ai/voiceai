@@ -8,6 +8,7 @@
  * @module TurnCrisis
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import {
   agreementOutcome,
   resolveCrisisAgreementGate,
@@ -76,6 +77,7 @@ import {
 } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
+import { noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TurnCrisis' });
@@ -202,6 +204,7 @@ export function startTurnCrisis(
   const abuseRisk = abuseCallRisk(options.sessionId, userText, pattern !== 'none' && !abuseOnly);
   if (pattern !== 'none') notePatternRisk(options.sessionId, patterns);
   if (pattern !== 'none') noteConfirmedRisk(options.sessionId || undefined, options.env);
+  noteCrisisTurnRead(options.sessionId, userText); // read and any hold set: capture may go on
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
   // other reads; a shadow adjudicator runs beside it and never delays it.
@@ -226,7 +229,9 @@ export function startTurnCrisis(
   // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('pipeline', userData, patterns.subject);
   const run = { pattern, env, generate, scope, call, secondRead } as const;
-  const classifier = startCrisisClassifier(input, run);
+  // CRISIS_GATE_TURN_READS: the reply gate weighs this read too (crisis-gate-turn-reads.ts).
+  const readScope = scope ?? (flagOn('CRISIS_GATE_TURN_READS', env) ? call : undefined);
+  const classifier = startCrisisClassifier(input, { ...run, scope: readScope });
   const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>

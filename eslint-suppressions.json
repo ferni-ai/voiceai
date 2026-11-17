@@ -161,6 +161,11 @@
       "count": 1
     }
   },
+  "src/agents/voice-agent/echo-window.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
   "src/agents/voice-agent/phases/performance-init.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -181,7 +186,7 @@
   },
   "src/agents/voice-agent/transcript-handler.ts": {
     "ferni/no-env-flag-compare": {
-      "count": 2
+      "count": 1
     }
   },
   "src/agents/voice-agent/turn-voice-emotion.ts": {

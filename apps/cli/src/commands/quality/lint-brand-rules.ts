@@ -41,6 +41,13 @@ const LOG_CALL_START = new RegExp(
   'g'
 );
 
+/**
+ * An issue or PR number ("#3958", "(#2291)"), not a colour: this repo cites them
+ * with four or five digits, and the hex rule's colours are three or six. Without
+ * this, "#3958" read as "#395", and a new flag's `issue: '#3958'` failed the ratchet.
+ */
+const ISSUE_REF = /^#\d{4,5}(?![0-9A-Za-z_])/;
+
 /** A log call longer than this, or one never closed, is treated as a parse miss, not a log range. */
 const MAX_LOG_CALL_LINES = 40;
 
@@ -214,6 +221,7 @@ export const LINT_RULES: LintRule[] = [
         if (line.includes('var(') && line.includes(',')) return;
         let match;
         while ((match = hexPattern.exec(line)) !== null) {
+          if (ISSUE_REF.test(line.slice(match.index))) continue;
           errors.push({
             file,
             line: index + 1,

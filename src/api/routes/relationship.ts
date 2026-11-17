@@ -210,22 +210,8 @@ export async function handleGetRelationshipProgress(
     );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get relationship progress');
-    sendJSON(
-      res,
-      {
-        error: 'Failed to get progress',
-        stage: 'first-meeting',
-        stageNumber: 1,
-        progress: 0,
-        metrics: {
-          totalConversations: 0,
-          daysSinceFirstMeeting: 0,
-          currentStreak: 0,
-          longestStreak: 0,
-        },
-      },
-      500
-    );
+    // No stage or counts: a failed read is unknown, not a new relationship at 0
+    sendJSON(res, { error: 'Failed to get progress' }, 500);
   }
 }
 

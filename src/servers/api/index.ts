@@ -1,7 +1,6 @@
 /** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
-import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
-import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import './first-imports.js'; // log redaction, dotenv and prod-data guard, error reporting
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';

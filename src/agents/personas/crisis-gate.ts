@@ -44,7 +44,7 @@ import {
   noteCrisisRisk,
   notePatternRisk,
 } from '../../services/safety/crisis-call-risk.js';
-import { withoutGrowthNote } from '../multi-agent/recall-note.js';
+import { withoutCrisisHeldNotes } from '../multi-agent/recall-note.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -84,13 +84,16 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
+import type { ReplyLane } from '../model-provider/lane-request.js';
 import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
+import { loggedEscalation } from './crisis-gate-failure.js';
 import { holdUntilCleared } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
+import { gateTurnReadsOn, withTurnReads } from './crisis-gate-turn-reads.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
@@ -107,8 +110,8 @@ const log = createLogger({ module: 'CrisisGate' });
 
 export type CrisisGateDecision =
   | { action: 'pass' }
-  // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
-  | { action: 'guide'; guidance: string; about?: 'third_party' }
+  // about: someone the caller knows is at risk (MINOR_CRISIS_CARE); crisis: the caller is.
+  | { action: 'guide'; guidance: string; about?: 'third_party'; crisis?: true }
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
 
@@ -127,6 +130,13 @@ type Chunk = llm.ChatChunk | string | object;
 const RANK = { pass: 0, guide: 1, replace: 2 } as const;
 
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
+const own = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance, crisis: true });
+/** What a classifier read is given: the caller's words and the Ferni line they answer. */
+const turnWords = ({ latest, earlier, companion }: ReturnType<typeof callerWords>) => ({
+  latest,
+  earlier,
+  companion,
+});
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
@@ -135,7 +145,7 @@ export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (crisis.isCrisis && crisis.subject === 'third_party') {
     return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
   }
-  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
+  if (crisis.isCrisis) return own(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
   return { action: 'pass' };
 }
 
@@ -164,6 +174,9 @@ export function startCrisisGate(
   if (resolveCrisisGuardMode(env) !== 'live') return null;
   const { latest, earlier, companion, ferni } = callerWords(chatCtx);
   if (!latest) return null;
+  // CRISIS_GATE_TURN_READS: only the classifier read, and the reads it is weighed with, get the
+  // whole turn; patterns and every other decision keep the latest line, so none can be lower.
+  const turnReads = gateTurnReadsOn(env);
 
   const voice = toGuardVoiceEmotion(
     (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
@@ -196,6 +209,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
+  const turn = turnReads ? turnWords(callerWords(chatCtx, { sinceCompleted: true })) : said;
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
@@ -206,8 +220,9 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   let who: ReturnType<typeof startWhoRead> | undefined;
   const at = { pattern, env, generate, scope, call, secondRead } as const;
+  const readScope = scope ?? (turnReads ? call : undefined); // kept for the turn's other reads
   const read = (): Promise<CrisisVerdict | null> | undefined => {
-    const run = startCrisisClassifier(said, at);
+    const run = startCrisisClassifier(turn, { ...at, scope: readScope });
     if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
     who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
     return run.verdict;
@@ -295,7 +310,9 @@ export function startCrisisGate(
     return stronger;
   };
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
-  return { decision, escalation: checkin.escalation(verdictRead, checkinTurn, escalate), reask };
+  const acted = turnReads ? withTurnReads(verdictRead, readScope, turn, env) : verdictRead;
+  const logged = loggedEscalation(acted, (v) => checkin.escalation(v, checkinTurn, escalate));
+  return { decision, escalation: logged, reask };
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -337,7 +354,7 @@ function holdAfterCrisis(session: object): void {
 export async function gatedReply(
   request: llm.ChatContext,
   session: { userData: unknown },
-  model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
+  model: (ctx: llm.ChatContext, lane: ReplyLane) => Promise<ReadableStream<Chunk> | null>,
   openerGate: {
     wrap(
       stream: ReadableStream<Chunk>,
@@ -349,9 +366,10 @@ export async function gatedReply(
   options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
-  // PERSONA_GROWTH's note (recall-note.ts) never reaches a reply on a call with crisis risk noted.
+  // The notes about Ferni himself (recall-note.ts: PERSONA_GROWTH's, FERNI_SELF_RECALL's)
+  // never reach a reply on a call with crisis risk noted.
   const risk = sessionScope(session.userData);
-  const chatCtx = withoutGrowthNote(
+  const chatCtx = withoutCrisisHeldNotes(
     withoutPastLeadIns(request, env),
     !!risk && crisisRiskNoted(risk)
   );
@@ -371,11 +389,11 @@ export async function gatedReply(
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
   // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
-  // A guided reply never carries PERSONA_GROWTH's note, whenever this turn found the risk.
+  // A guided reply never carries the notes about Ferni himself, whenever this turn found the risk.
   // A soft check-in asks for no crisis talk, so it gets no youth crisis note (MINOR_CRISIS_CARE);
   // a friend at risk gets the friend note.
   const plain = ({ guidance, about }: GuideDecision): llm.ChatContext =>
-    withTurnReminder(withoutGrowthNote(chatCtx), session, {
+    withTurnReminder(withoutCrisisHeldNotes(chatCtx), session, {
       shape: false,
       closeLoop: false,
       youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),
@@ -395,8 +413,12 @@ export async function gatedReply(
     mayBurst = burst,
     guided = gate?.decision.action === 'guide'
   ): Promise<ReadableStream<Chunk> | null> => {
+    // Crisis guidance or risk on the call: the main model, never the fast lane (lane-request.ts).
+    // Read now, not at the turn's start: a reply asked again after a read escalated sees its risk.
+    const mainLane = guided || (!!risk && crisisRiskNoted(risk));
     // LISTEN_OFFER_STRIP: no "I'm here if you want to vent" (listen-offer.ts); never with crisis guidance.
-    const stream = withoutListenOffer(tapToolCalls(await model(request), session), { guided, env });
+    const asked = await model(request, { mainLane });
+    const stream = withoutListenOffer(tapToolCalls(asked, session), { guided, env });
     if (!stream) return stream;
     // FERNI_PLAYFUL: a bright turn's reminder invited a reaction word (ferni-playful.ts).
     const bright = brightOpenerInvited(request);

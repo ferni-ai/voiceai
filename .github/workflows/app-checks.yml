@@ -1,0 +1,212 @@
+name: App checks
+
+# Build and lint checks for the apps that had no workflow at all (2026-11-16 CI
+# coverage plan, docs/plans/2026-11-16-ci-coverage.md, PR 4). One job per app,
+# each run only when its own folder (or this file) changed:
+#
+#   marketing      JSON content parses; scripts typecheck (no package.json, nothing to build)
+#   swift          apps/shared tests + apps/macos-menubar build (the menubar's one consumer)
+#   marketplace    apps/marketplace-agents/registry.json has what the server reads
+#   shared-types   packages/shared-types typecheck
+#   ml-training    ruff's correctness rules (syntax errors, undefined names)
+#
+# Not a required check, and no merge_group trigger: a required check that a path
+# filter skips stays "expected" and blocks the PR. A push to main that touches
+# any of these folders runs every job (pr-changes answers 'true' off a PR).
+
+on:
+  pull_request:
+    paths:
+      - 'apps/marketing/**'
+      - 'apps/shared/**'
+      - 'apps/macos-menubar/**'
+      - 'apps/marketplace-agents/registry.json'
+      - 'scripts/ci/marketplace-registry.ts'
+      - 'packages/shared-types/**'
+      - 'apps/ml-training/**'
+      - '.github/workflows/app-checks.yml'
+  push:
+    branches: [main]
+    # The same list as pull_request above.
+    paths:
+      - 'apps/marketing/**'
+      - 'apps/shared/**'
+      - 'apps/macos-menubar/**'
+      - 'apps/marketplace-agents/registry.json'
+      - 'scripts/ci/marketplace-registry.ts'
+      - 'packages/shared-types/**'
+      - 'apps/ml-training/**'
+      - '.github/workflows/app-checks.yml'
+  workflow_dispatch:
+
+# One run per PR: a new push cancels the PR's running one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  # pr-changes lists the PR's files.
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Which apps changed?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      marketing: ${{ steps.marketing.outputs.matched }}
+      swift: ${{ steps.swift.outputs.matched }}
+      marketplace: ${{ steps.marketplace.outputs.matched }}
+      shared-types: ${{ steps.shared-types.outputs.matched }}
+      ml-training: ${{ steps.ml-training.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: marketing
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/marketing/|\.github/workflows/app-checks\.yml$)'
+      - id: swift
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/shared/|apps/macos-menubar/|\.github/workflows/app-checks\.yml$)'
+      - id: marketplace
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/marketplace-agents/registry\.json|scripts/ci/marketplace-registry\.ts|\.github/workflows/app-checks\.yml)$'
+      - id: shared-types
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(packages/shared-types/|\.github/workflows/app-checks\.yml$)'
+      - id: ml-training
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/ml-training/|\.github/workflows/app-checks\.yml$)'
+
+  marketing:
+    name: Marketing scripts and content
+    needs: changes
+    if: needs.changes.outputs.marketing == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # The versions pnpm-lock.yaml resolves for the root workspace.
+      TYPESCRIPT_VERSION: 5.9.3
+      NODE_TYPES_VERSION: 22.20.5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # tsconfig.json is JSONC (comments), so tsc reads it, not this step. Finding
+      # no files fails: a check that passes on nothing cannot go red.
+      - name: Every JSON file parses
+        run: |
+          mapfile -t files < <(git ls-files 'apps/marketing/*.json' ':!apps/marketing/tsconfig.json')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::found no JSON files under apps/marketing"; exit 1
+          fi
+          node -e '
+            const { readFileSync } = require("fs");
+            for (const file of process.argv.slice(1)) {
+              try { JSON.parse(readFileSync(file, "utf8")); }
+              catch (error) { console.log("::error file=" + file + "::" + error.message); process.exitCode = 1; }
+            }
+            console.log(process.argv.length - 1 + " JSON files checked");
+          ' "${files[@]}"
+
+      # Only TypeScript and Node's types: the scripts need nothing else (see the
+      # tsconfig for the one that does), and the whole workspace install is minutes.
+      - name: Typecheck the scripts
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/tsc" \
+            "typescript@$TYPESCRIPT_VERSION" "@types/node@$NODE_TYPES_VERSION"
+          "$RUNNER_TEMP/tsc/node_modules/.bin/tsc" -p apps/marketing/tsconfig.json \
+            --typeRoots "$RUNNER_TEMP/tsc/node_modules/@types"
+
+  swift:
+    name: macOS menubar and shared Swift package
+    needs: changes
+    if: needs.changes.outputs.swift == 'true'
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # FerniShared compiles a Metal shader, and Xcode 26+ ships the Metal
+      # toolchain as a separate download. Install it only when it is missing; a
+      # failed download fails the step.
+      - name: Metal toolchain
+        run: |
+          xcodebuild -version
+          if ! xcrun metal --version >/dev/null 2>&1; then
+            xcodebuild -downloadComponent MetalToolchain
+          fi
+          xcrun metal --version
+
+      - name: Test the shared package
+        working-directory: apps/shared
+        run: swift test
+
+      # Build only: the app needs a signing identity to run, and its tests launch
+      # it (test.sh). Building also builds apps/shared, which it depends on.
+      - name: Build the menubar app
+        working-directory: apps/macos-menubar
+        run: swift build
+
+  marketplace:
+    name: Marketplace registry
+    needs: changes
+    if: needs.changes.outputs.marketplace == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      # Its unit test (scripts/ci/__tests__/marketplace-registry.test.ts) runs in
+      # ci.yml's unit shards.
+      - name: Check the registry
+        run: node --experimental-strip-types scripts/ci/marketplace-registry.ts
+
+  shared-types:
+    name: Shared types typecheck
+    needs: changes
+    if: needs.changes.outputs.shared-types == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Its one dependency, at the version pnpm-lock.yaml resolves for it. A
+      # filtered pnpm install still pulls ~950 root packages (2.5 GB).
+      TYPESCRIPT_VERSION: 5.9.3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      # The package's own "typecheck" script, run with that TypeScript.
+      - name: Typecheck
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/tsc" "typescript@$TYPESCRIPT_VERSION"
+          "$RUNNER_TEMP/tsc/node_modules/.bin/tsc" -p packages/shared-types/tsconfig.json --noEmit
+
+  ml-training:
+    name: ML training lint
+    needs: changes
+    if: needs.changes.outputs.ml-training == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RUFF_VERSION: 0.15.1
+    steps:
+      - uses: actions/checkout@v7
+      # The rules that mean "this code cannot run": syntax errors (E9), broken
+      # comparisons (F63), misplaced statements (F7), undefined names (F82).
+      # --isolated: no machine's ruff config changes the answer. The style rules
+      # have 96 findings today; they are cleanup, not a gate. No import smoke:
+      # every module imports torch and transformers at the top, a multi-GB
+      # install for a job that must never train.
+      - name: Ruff
+        run: pipx run "ruff==$RUFF_VERSION" check --isolated --select E9,F63,F7,F82 apps/ml-training

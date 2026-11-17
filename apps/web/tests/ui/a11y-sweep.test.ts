@@ -56,12 +56,15 @@ describe('scroll areas a keyboard can reach', () => {
 });
 
 describe('Trust & Growth tab bar', () => {
-  it('scrolls instead of clipping: tabs keep their width and the bar can scroll', () => {
-    const css = src('ui/trust-dashboard.ui.ts');
+  it('scrolls instead of clipping: tabs keep their width, the bar scrolls with no visible bar, an edge fades', () => {
+    const css = src('ui/trust-dashboard-tabs.ts');
     const bar = css.match(/\.trust-dashboard-tabs\s*\{([^}]*)\}/)?.[1] ?? '';
+    const fade = css.match(/\.trust-dashboard-tabs\.fade-end\s*\{([^}]*)\}/)?.[1] ?? '';
     const tab = css.match(/\.tab-btn\s*\{([^}]*)\}/)?.[1] ?? '';
     expect(bar).toMatch(/overflow-x:\s*auto/);
-    expect(bar).toMatch(/mask-image/);
+    expect(bar).toMatch(/scrollbar-width:\s*none/);
+    expect(css).toMatch(/\.trust-dashboard-tabs::-webkit-scrollbar\s*\{\s*display:\s*none/);
+    expect(fade).toMatch(/mask-image/);
     expect(tab).toMatch(/flex:\s*0 0 auto/);
   });
 });

@@ -33,6 +33,7 @@ vi.mock('../../../services/cross-persona-insights.js', () => ({
   buildInsightBriefingForHandoff: vi.fn(async () => ({
     incomingInsights: [],
     proactiveDiscoveries: [],
+    proactiveNotes: [],
   })),
   generateTeamStatus: vi.fn(async () => ({})),
   acknowledgeInsight: vi.fn(async () => undefined),
