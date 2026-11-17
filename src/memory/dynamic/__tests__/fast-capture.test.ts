@@ -174,6 +174,14 @@ describe('Fast Capture', () => {
       expect(places).toEqual([]);
     });
 
+    it.each(['I work at US Bank.', 'We went to US Open last year.'])(
+      'saves no place starting with "US" from "%s"',
+      (said) => {
+        const places = detectEntityMentions(said).filter((m) => m.type === 'place');
+        expect(places).toEqual([]);
+      }
+    );
+
     it('still saves "Denver" and "New York" as places', () => {
       const places = detectEntityMentions('I moved to Denver, then visiting New York.')
         .filter((m) => m.type === 'place')
