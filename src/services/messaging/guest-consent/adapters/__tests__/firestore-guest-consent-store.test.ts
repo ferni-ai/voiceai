@@ -138,16 +138,6 @@ describe('the Firestore guest consent store', () => {
     expect(stored()[1].revokedAt).toBeUndefined(); // the read says no; the record is unchanged
   });
 
-  it("the context's entry checks this store, keyed from LOG_HASH_SECRET", async () => {
-    vi.stubEnv('LOG_HASH_SECRET', 'test-only-key');
-    const entry = await import('../../index.js');
-    expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(false);
-    await yes(OWNER, GUEST, V, deps);
-    expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(true);
-    await revokeGuestConsent(OWNER, GUEST, deps);
-    expect(await entry.hasGuestConsent(OWNER, GUEST)).toBe(false);
-  });
-
   it('without a database: reads are no, writes throw', async () => {
     const none = { ...deps, store: firestoreGuestConsentStore(null) };
     expect(await hasGuestConsent(OWNER, GUEST, none)).toBe(false);

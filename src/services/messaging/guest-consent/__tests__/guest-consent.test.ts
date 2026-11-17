@@ -13,6 +13,7 @@ import { GUEST_CONSENT_WORDING_VERSION } from '../domain/guest-consent.js';
 import { phoneHash } from '../../../outreach/checkin-replies.js';
 import { hasGuestConsent, revokeGuestConsent } from '../use-cases/check-guest-consent.js';
 import {
+  forgetGuestConsentByKey,
   recordGuestConsentByKey,
   revokeGuestConsentByKey,
   type GuestConsentDeps,
@@ -241,6 +242,9 @@ describe('the stored record', () => {
         /owner and a key/
       );
       await expect(revokeGuestConsentByKey(OWNER, raw, depsWith())).rejects.toThrow(
+        /owner and a key/
+      );
+      await expect(forgetGuestConsentByKey(OWNER, raw, depsWith())).rejects.toThrow(
         /owner and a key/
       );
     }
