@@ -11,16 +11,21 @@
 
 import { escapeHtml } from '../../utils/escape-html.js';
 import { createLogger } from '../../utils/logger.js';
-import { adminFetch } from '../admin-fetch.js';
+import {
+  loadFlags,
+  postApply,
+  readReply,
+  refreshRooms,
+  reload,
+  track,
+  type Loaded,
+} from './agent-flags-api.js';
 import {
   confirmState,
   nowOnServerClock,
   runningForStage,
-  settle,
   stage,
   unconfirm,
-  type AgentFlagsBody,
-  type OccupiedRoom,
   type Staged,
 } from './agent-flags-state.js';
 import {
@@ -33,62 +38,18 @@ import {
   renderBar,
   renderChanges,
   renderList,
-  runningValue,
   stagedCount,
+  updateBar,
 } from './agent-flags-view.js';
 
 const log = createLogger('AgentFlagsSection');
 
-const BASE = '/api/v1/admin/agent-flags';
 const POLL_MS = 5_000;
 const CONFIRM_TIMEOUT_MS = 4 * 60_000;
 const NOT_DEV = 'Agent flags can only be changed on the dev admin server.';
 
-/** POST …/apply replies: 200, 400, 409 and 502 bodies in one shape. */
-interface ApplyReply {
-  appliedAt?: string;
-  auditWarning?: string;
-  errors?: string[];
-  rooms?: OccupiedRoom[];
-  error?: string;
-}
-
 let view = freshView();
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
-
-// ============================================================================
-// API
-// ============================================================================
-
-type Loaded = { ok: true; body: AgentFlagsBody } | { ok: false; status: number };
-
-async function loadFlags(): Promise<Loaded> {
-  const res = await adminFetch(BASE);
-  if (!res.ok) return { ok: false, status: res.status };
-  return { ok: true, body: (await res.json()) as AgentFlagsBody };
-}
-
-async function refreshRooms(): Promise<void> {
-  try {
-    const res = await adminFetch(`${BASE}/rooms`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    view.rooms = ((await res.json()) as { rooms: OccupiedRoom[] }).rooms;
-    view.roomsUnknown = false;
-  } catch (error) {
-    log.warn('Dev rooms not listed', error);
-    view.rooms = [];
-    view.roomsUnknown = true;
-  }
-}
-
-async function readReply(res: Response): Promise<ApplyReply> {
-  try {
-    return (await res.json()) as ApplyReply;
-  } catch (error) {
-    log.warn('Agent flags apply reply was not JSON', { status: res.status, error });
-    return {};
-  }
-}
 
 // ============================================================================
 // RENDER
@@ -103,7 +64,7 @@ function repaint(): void {
   paint('afBanners', renderBanners(view));
   paint('afList', renderList(view));
   paint('afChanges', renderChanges(view));
-  paint('afBar', renderBar(view));
+  updateBar(view);
 }
 
 function shell(inner: string): string {
@@ -113,7 +74,7 @@ function shell(inner: string): string {
 /** Loads the flags and the dev rooms, and returns the section. */
 export async function render(): Promise<string> {
   stopPolling();
-  const { unconfirmed } = view; // survives a reload of the section
+  const { unconfirmed, phase } = view; // both survive a reload of the section
   view = freshView();
   view.unconfirmed = unconfirmed;
   let loaded: Loaded;
@@ -129,14 +90,20 @@ export async function render(): Promise<string> {
     return shell(`<p class="af-banner">${escapeHtml(text)}</p>`);
   }
   view.body = loaded.body;
-  view.unconfirmed = settle(view.unconfirmed, loaded.body.snapshot);
-  await refreshRooms();
+  track(view, loaded.body);
+  if (phase.kind === 'confirming') {
+    // Still waiting on an apply: keep waiting. A copy, so a poll already in flight stops.
+    view.phase = { ...phase };
+    view.staged = phase.applied;
+    pollTimer = setTimeout(() => void poll(), POLL_MS);
+  }
+  await refreshRooms(view);
   return shell(`
     <div id="afBanners">${renderBanners(view)}</div>
     <input id="afSearch" class="af-search" type="search" placeholder="Search flags" aria-label="Search flags">
     <div id="afList">${renderList(view)}</div>
     <section class="af-group"><h3>Recent changes</h3><div id="afChanges">${renderChanges(view)}</div></section>
-    <div id="afBar" class="af-bar" role="status" aria-live="polite">${renderBar(view)}</div>`);
+    <div id="afBar" class="af-bar">${renderBar(view)}</div>`);
 }
 
 // ============================================================================
@@ -154,16 +121,13 @@ function stopPolling(): void {
 async function poll(): Promise<void> {
   pollTimer = null;
   const p = view.phase;
-  if (p.kind !== 'confirming' || !document.getElementById('agentFlagsRoot')) return;
-  try {
-    const loaded = await loadFlags();
-    if (loaded.ok) {
-      view.body = loaded.body;
-      view.unconfirmed = settle(view.unconfirmed, loaded.body.snapshot);
-    } else log.warn('Agent flags poll failed', { status: loaded.status });
-  } catch (error) {
-    log.warn('Agent flags poll failed', error);
+  if (p.kind !== 'confirming') return;
+  if (!document.getElementById('agentFlagsRoot')) {
+    // The section was left: keep the change marked in case it is never reopened here.
+    view.unconfirmed = unconfirm(view.unconfirmed, p.applied, p.appliedAt);
+    return;
   }
+  await reload(view);
   if (view.phase !== p) return; // the section was reloaded meanwhile
   const now = nowOnServerClock(p.appliedAt, p.receivedMs, Date.now());
   const state = confirmState(
@@ -177,7 +141,10 @@ async function poll(): Promise<void> {
     pollTimer = setTimeout(() => void poll(), POLL_MS);
     return;
   }
-  if (state === 'timeout') view.unconfirmed = unconfirm(view.unconfirmed, p.applied, p.appliedAt);
+  if (state === 'timeout') {
+    view.unconfirmed = unconfirm(view.unconfirmed, p.applied, p.appliedAt);
+    if (view.body) track(view, view.body);
+  }
   view.phase = { kind: state };
   view.staged = EMPTY;
   repaint();
@@ -187,10 +154,11 @@ async function apply(): Promise<void> {
   const applied = view.staged;
   view.phase = { kind: 'applying' };
   view.auditWarning = '';
+  view.superseded = [];
   repaint();
   let res: Response;
   try {
-    res = await adminFetch(`${BASE}/apply`, { method: 'POST', body: JSON.stringify(applied) });
+    res = await postApply(applied);
   } catch (error) {
     log.error('Agent flags apply failed', error);
     view.phase = {
@@ -218,11 +186,20 @@ async function apply(): Promise<void> {
     view.rooms = reply.rooms ?? [];
     view.phase = { kind: 'idle' };
     repaint();
-    await refreshRooms();
+    // The server checks the rooms again on Apply, so a clean re-check releases the hold.
+    if ((await refreshRooms(view)) && view.rooms.length === 0) view.roomBusy = false;
   } else {
     const why = reply.errors?.join('; ') ?? reply.error ?? `HTTP ${res.status}`;
     log.warn('Agent flags not applied', { status: res.status });
-    view.phase = { kind: 'error', message: `Apply failed: ${why}` };
+    // A 502 with no code may have applied (never retried): reload to show whether it landed,
+    // and hold Apply until the admin changes a selection or discards.
+    const unsure = res.status === 502 && !reply.code;
+    const check = unsure ? ' Check the banners above before applying again.' : '';
+    view.phase = { kind: 'error', message: `Apply failed: ${why.replace(/\.$/, '')}.${check}` };
+    if (unsure) {
+      view.maybeApplied = true;
+      await reload(view);
+    }
   }
   repaint();
 }
@@ -237,11 +214,20 @@ function onSelect(select: HTMLSelectElement): void {
   const value = select.value === 'default' ? 'default' : flag.modes.find((m) => m === select.value);
   if (!value) return;
   const pending = view.body?.pendingRestart ?? [];
-  const running = runningForStage(flag.name, runningValue(view, flag), pending, view.unconfirmed);
+  const reported = view.body?.snapshot?.flags[flag.name];
+  const running = runningForStage(
+    flag.name,
+    value,
+    flag.default,
+    reported,
+    pending,
+    view.unconfirmed
+  );
   view.staged = stage(view.staged, flag.name, value, running, flag.default);
+  view.maybeApplied = false;
   if (view.phase.kind !== 'idle') view.phase = { kind: 'idle' };
   select.closest('.af-row')?.classList.toggle('af-row--staged', isStaged(view, flag.name));
-  paint('afBar', renderBar(view));
+  updateBar(view);
 }
 
 async function onAction(action: string | undefined): Promise<void> {
@@ -250,11 +236,12 @@ async function onAction(action: string | undefined): Promise<void> {
   } else if (action === 'discard' && !locked(view)) {
     view.staged = EMPTY;
     view.phase = { kind: 'idle' };
+    view.maybeApplied = false;
     repaint();
   } else if (action === 'rooms') {
     view.roomBusy = false;
-    await refreshRooms();
-    paint('afBar', renderBar(view));
+    await refreshRooms(view);
+    updateBar(view);
   }
 }
 

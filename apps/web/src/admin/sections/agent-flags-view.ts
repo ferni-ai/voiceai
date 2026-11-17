@@ -1,7 +1,8 @@
 /**
  * The agent flags section's markup: banners, the flag list grouped by owner, recent changes
- * and the sticky apply bar, each a pure function of the section's View. AgentFlagsSection.ts
- * owns the requests, polling and events. Everything from the server is escaped.
+ * and the sticky apply bar, each a pure function of the section's View (updateBar alone
+ * writes the DOM, to keep the bar's elements). AgentFlagsSection.ts owns polling and events;
+ * agent-flags-api.ts the requests. Everything from the server is escaped.
  *
  * @module AgentFlagsView
  */
@@ -10,6 +11,7 @@ import { escapeHtml } from '../../utils/escape-html.js';
 import type {
   AgentFlagsBody,
   FlagChange,
+  FlagSnapshot,
   OccupiedRoom,
   Staged,
   SwitchableFlag,
@@ -21,7 +23,7 @@ const SNAPSHOT_FLAG = 'FLAG_SNAPSHOT';
 export const EMPTY: Staged = { set: {}, reset: [] };
 
 const STALE =
-  'Values may be out of date: a flag was changed outside this page since the agent started.';
+  'Values may be out of date: a flag changed after the agent started (here or with lk).';
 const NO_SNAPSHOT = 'The dev agent has not reported its flags yet, so running values are unknown.';
 const OLD_WORKER = 'The old worker may keep finishing calls for a while.';
 
@@ -42,6 +44,10 @@ export interface View {
   auditWarning: string;
   /** Applies that timed out, kept marked until a snapshot confirms them or they are re-applied. */
   unconfirmed: Unconfirmed;
+  /** Lines about applies a newer worker overrode (settle's superseded), shown until the next apply. */
+  superseded: string[];
+  /** A 502 said the apply may have landed: Apply is held until a selection changes or Discard. */
+  maybeApplied: boolean;
 }
 
 export const freshView = (): View => ({
@@ -54,6 +60,8 @@ export const freshView = (): View => ({
   phase: { kind: 'idle' },
   auditWarning: '',
   unconfirmed: {},
+  superseded: [],
+  maybeApplied: false,
 });
 
 export const stagedCount = (v: View): number =>
@@ -62,15 +70,24 @@ export const locked = (v: View): boolean =>
   v.phase.kind === 'applying' || v.phase.kind === 'confirming';
 export const isStaged = (v: View, name: string): boolean =>
   Object.hasOwn(v.staged.set, name) || v.staged.reset.includes(name);
-export const runningValue = (v: View, f: SwitchableFlag): string | null =>
+const runningValue = (v: View, f: SwitchableFlag): string | null =>
   v.body?.snapshot?.flags[f.name]?.resolved ?? null;
+
+/** Whether `name` is in the apply the page is waiting on (its row is not "not confirmed" yet). */
+const restarting = (v: View, name: string): boolean =>
+  v.phase.kind === 'confirming' &&
+  (Object.hasOwn(v.phase.applied.set, name) || v.phase.applied.reset.includes(name));
 
 export function renderBanners(v: View): string {
   const b = v.body;
   if (!b) return '';
   const lines: string[] = [];
   if (b.warning) lines.push(b.warning);
-  if (b.stale) lines.push(STALE);
+  // A wait for this page's own applies shows as "Waiting for a restart" below, not as stale.
+  const foreign = b.pendingRestart.filter(
+    (n) => !Object.hasOwn(v.unconfirmed, n) && !restarting(v, n)
+  );
+  if (b.stale && (b.pendingRestart.length === 0 || foreign.length > 0)) lines.push(STALE);
   if (!b.snapshot) lines.push(NO_SNAPSHOT);
   if (b.pendingRestart.length > 0) {
     lines.push(`Waiting for a restart: ${b.pendingRestart.join(', ')}.`);
@@ -109,7 +126,7 @@ function renderControl(v: View, f: SwitchableFlag, running: string | null): stri
 function renderRow(v: View, f: SwitchableFlag): string {
   const running = runningValue(v, f);
   const differs = running !== null && running !== f.default;
-  const unconfirmed = Object.hasOwn(v.unconfirmed, f.name);
+  const unconfirmed = Object.hasOwn(v.unconfirmed, f.name) && !restarting(v, f.name);
   const classes = `af-row${differs ? ' af-row--changed' : ''}${isStaged(v, f.name) ? ' af-row--staged' : ''}${unconfirmed ? ' af-row--unconfirmed' : ''}`;
   return `
     <li class="${classes}">
@@ -150,6 +167,14 @@ export function renderChanges(v: View): string {
   return `<ul>${changes.map(describeChange).join('')}</ul>`;
 }
 
+/** One line per name a newer worker runs at another value than was applied. */
+export function describeSuperseded(s: Unconfirmed, snapshot: FlagSnapshot | null): string[] {
+  return Object.entries(s).map(([name, { value }]) => {
+    const runs = snapshot?.flags[name]?.resolved ?? 'unknown';
+    return `${name}: the agent runs ${runs}, not ${value ?? 'the default'} as applied.`;
+  });
+}
+
 function phaseText(v: View): string {
   const p = v.phase;
   if (p.kind === 'applying') return 'Applying…';
@@ -160,24 +185,66 @@ function phaseText(v: View): string {
   return '';
 }
 
-export function renderBar(v: View): string {
+/** What the sticky bar shows; renderBar draws it once and the section updates it in place. */
+interface BarState {
+  count: string;
+  status: string;
+  rooms: string;
+  busy: boolean;
+  discardOff: boolean;
+  applyOff: boolean;
+}
+
+function barState(v: View): BarState {
   const n = stagedCount(v);
   const busy = v.rooms.length > 0 || v.roomBusy;
   const names = v.rooms.map((r) => r.name).join(', ');
   const rooms = busy
-    ? `<span class="af-warn">Dev room in use${names ? `: ${escapeHtml(names)}` : ''}</span>
-       <button class="admin-btn admin-btn--secondary" data-af="rooms">Check again</button>`
+    ? `Dev room in use${names ? `: ${names}` : ''}`
     : v.roomsUnknown
-      ? '<span class="af-meta">Could not list the dev rooms; the server checks again on Apply.</span>'
+      ? 'Could not list the dev rooms; the server checks again on Apply.'
       : '';
-  const notes = [phaseText(v), v.auditWarning].filter(Boolean).join(' ');
+  return {
+    count: `${n} change${n === 1 ? '' : 's'} staged`,
+    status: [phaseText(v), v.auditWarning, ...v.superseded].filter(Boolean).join(' '),
+    rooms,
+    busy,
+    discardOff: n === 0 || locked(v),
+    applyOff: n === 0 || busy || locked(v) || v.maybeApplied,
+  };
+}
+
+const off = (disabled: boolean): string => (disabled ? ' disabled' : '');
+
+/** The bar's elements. They persist, so updates keep focus and announce only the status. */
+export function renderBar(v: View): string {
+  const s = barState(v);
   return `
-    <span>${n} change${n === 1 ? '' : 's'} staged</span>
-    ${notes ? `<span class="af-meta">${escapeHtml(notes)}</span>` : ''}
-    ${rooms}
+    <span id="afBarCount">${escapeHtml(s.count)}</span>
+    <span id="afBarStatus" class="af-meta" role="status" aria-live="polite">${escapeHtml(s.status)}</span>
+    <span id="afBarRooms" class="${s.busy ? 'af-warn' : 'af-meta'}">${escapeHtml(s.rooms)}</span>
+    <button class="admin-btn admin-btn--secondary" data-af="rooms"${s.busy ? '' : ' hidden'}>Check again</button>
     <span class="af-spacer"></span>
-    <button class="admin-btn admin-btn--secondary" data-af="discard"${n === 0 || locked(v) ? ' disabled' : ''}>Discard</button>
-    <button class="admin-btn admin-btn--primary" data-af="apply"${n === 0 || busy || locked(v) ? ' disabled' : ''}>Apply</button>`;
+    <button class="admin-btn admin-btn--secondary" data-af="discard"${off(s.discardOff)}>Discard</button>
+    <button class="admin-btn admin-btn--primary" data-af="apply"${off(s.applyOff)}>Apply</button>`;
+}
+
+/** Updates the bar in place, so a focused button keeps focus and only new status is announced. */
+export function updateBar(v: View): void {
+  const bar = document.getElementById('afBar');
+  if (!bar) return;
+  const s = barState(v);
+  const text = (id: string, t: string): void => {
+    const el = bar.querySelector(`#${id}`);
+    if (el && el.textContent !== t) el.textContent = t;
+  };
+  text('afBarCount', s.count);
+  text('afBarStatus', s.status);
+  text('afBarRooms', s.rooms);
+  bar.querySelector('#afBarRooms')?.setAttribute('class', s.busy ? 'af-warn' : 'af-meta');
+  bar.querySelector('[data-af="rooms"]')?.toggleAttribute('hidden', !s.busy);
+  bar.querySelector('[data-af="discard"]')?.toggleAttribute('disabled', s.discardOff);
+  bar.querySelector('[data-af="apply"]')?.toggleAttribute('disabled', s.applyOff);
 }
 
 export const STYLES = `
@@ -216,4 +283,5 @@ export const STYLES = `
       color: var(--color-text-primary);
     }
     .af-spacer { flex: 1; }
+    .af-bar [hidden] { display: none; }
   </style>`;

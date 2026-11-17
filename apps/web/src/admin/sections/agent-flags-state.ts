@@ -85,7 +85,7 @@ export function stage(
 function confirms(
   snapshot: FlagSnapshot | null,
   name: string,
-  value: FlagValue | null,
+  value: string | null,
   appliedAt: number
 ): boolean {
   if (!snapshot || !(Date.parse(snapshot.startedAt) > appliedAt)) return false;
@@ -128,36 +128,88 @@ export function confirmState(
 }
 
 /** Applied changes no snapshot has confirmed yet, by flag: the value set, or null for a reset. */
-export type Unconfirmed = Record<string, { value: FlagValue | null; appliedAt: string }>;
+export type Unconfirmed = Record<string, { value: string | null; appliedAt: string }>;
 
-/** Adds every name of an apply at `appliedAt` that timed out; a later apply replaces a name. */
-export function unconfirm(u: Unconfirmed, applied: Staged, appliedAt: string): Unconfirmed {
+/** Adds every name of an apply at `appliedAt`, unless the name has a later apply already. */
+export function unconfirm(
+  u: Unconfirmed,
+  applied: { set: Record<string, string>; reset: string[] },
+  appliedAt: string
+): Unconfirmed {
   const next = { ...u };
-  for (const [name, value] of Object.entries(applied.set)) next[name] = { value, appliedAt };
-  for (const name of applied.reset) next[name] = { value: null, appliedAt };
+  const add = (name: string, value: string | null): void => {
+    const had = next[name];
+    if (!had || !(Date.parse(had.appliedAt) > Date.parse(appliedAt))) {
+      next[name] = { value, appliedAt };
+    }
+  };
+  for (const [name, value] of Object.entries(applied.set)) add(name, value);
+  for (const name of applied.reset) add(name, null);
   return next;
 }
 
-/** Drops each name `snapshot` confirms: from a worker started after its apply, at its value. */
-export function settle(u: Unconfirmed, snapshot: FlagSnapshot | null): Unconfirmed {
-  return Object.fromEntries(
-    Object.entries(u).filter(
-      ([name, { value, appliedAt }]) => !confirms(snapshot, name, value, Date.parse(appliedAt))
-    )
-  );
+export interface Settled {
+  unconfirmed: Unconfirmed;
+  /** Names a newer worker runs at another value than applied: dropped, to be reported once. */
+  superseded: Unconfirmed;
 }
 
 /**
- * The running value to stage `name` against. For a name changed after the worker started (an
- * unconfirmed apply, or the server's pendingRestart) the agent's next value is unknown, so ''
- * makes every choice stage; otherwise the snapshot's `resolved` ('' when there is none).
+ * Drops each name `snapshot` confirms. A worker started after the apply is authoritative, so
+ * a name it reports at another value is dropped too (into `superseded`), unless it is waiting
+ * for a restart (`pendingRestart`).
+ */
+export function settle(
+  u: Unconfirmed,
+  snapshot: FlagSnapshot | null,
+  pendingRestart: readonly string[]
+): Settled {
+  const settled: Settled = { unconfirmed: {}, superseded: {} };
+  for (const [name, entry] of Object.entries(u)) {
+    const appliedMs = Date.parse(entry.appliedAt);
+    if (confirms(snapshot, name, entry.value, appliedMs)) continue;
+    const newer = snapshot !== null && Date.parse(snapshot.startedAt) > appliedMs;
+    const into = newer && !pendingRestart.includes(name) ? 'superseded' : 'unconfirmed';
+    settled[into][name] = entry;
+  }
+  return settled;
+}
+
+/**
+ * The unconfirmed names after a GET: `u`, plus every applied change in the audit trail made
+ * after the snapshot's worker started (so the marks survive a reload, other tabs and other
+ * admins, resets included), then settled against the snapshot.
+ */
+export function trackUnconfirmed(u: Unconfirmed, body: AgentFlagsBody): Settled {
+  const started = Date.parse(body.snapshot?.startedAt ?? '');
+  let next = u;
+  // Any order: unconfirm keeps the latest apply of a name (the trail arrives newest first).
+  for (const c of body.changes) {
+    if (c.result === 'applied' && Date.parse(c.at) > started) next = unconfirm(next, c, c.at);
+  }
+  return settle(next, body.snapshot, body.pendingRestart);
+}
+
+/**
+ * The running value to stage `value` for `name` against (see stage). An unconfirmed name
+ * stages against what was applied (the default, for a reset), so re-picking it stages
+ * nothing. A name waiting for a restart has an unknown next value, so '' makes every choice
+ * stage; so does no snapshot. 'default' on a flag whose secret is set, even to the default's
+ * value, stages a reset, so the secret is removed and the flag follows the manifest again.
  */
 export function runningForStage(
   name: string,
-  resolved: string | null,
+  value: FlagValue | 'default',
+  def: string,
+  running: { raw: string | null; resolved: string } | undefined,
   pendingRestart: readonly string[],
   u: Unconfirmed
 ): string {
-  if (Object.hasOwn(u, name) || pendingRestart.includes(name)) return '';
-  return resolved ?? '';
+  const applied = u[name];
+  if (applied) {
+    if (applied.value === null) return def;
+    return value === 'default' ? '' : applied.value;
+  }
+  if (pendingRestart.includes(name) || !running) return '';
+  return value === 'default' && running.raw !== null ? '' : running.resolved;
 }
