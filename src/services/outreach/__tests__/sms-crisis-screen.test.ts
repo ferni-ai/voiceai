@@ -75,9 +75,16 @@ describe('readSmsCrisis: either read is enough, none is lowered', () => {
 });
 
 describe('smsCrisisReply: the flag', () => {
-  it('off (the default): no read, no reply', async () => {
-    // Pinned, so the row holds when the suite runs with the flag on in the environment.
+  it('off (pinned): no read, no reply', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'off');
+    const r = read(true);
+    expect(await smsCrisisReply('I want to kill myself', r)).toBeNull();
+    expect(r).not.toHaveBeenCalled();
+  });
+
+  it('the default (env unset): no read, no reply', async () => {
+    // Deleted, not set to '': the manifest default decides, not the suite's environment.
+    vi.stubEnv('SMS_CRISIS_SCREEN', undefined);
     const r = read(true);
     expect(await smsCrisisReply('I want to kill myself', r)).toBeNull();
     expect(r).not.toHaveBeenCalled();
