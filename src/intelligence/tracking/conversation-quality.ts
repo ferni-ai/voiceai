@@ -18,6 +18,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { nameAsSaid } from '../../memory/index.js';
 import { findCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 // ============================================================================
@@ -298,12 +299,9 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   for (const pattern of petPatterns) {
     const matches = text.matchAll(pattern);
     for (const match of matches) {
-      details.push({
-        type: 'pet_name',
-        value: match[1],
-        context: match[0],
-        extractedAt: now,
-      });
+      const name = nameAsSaid(match[1]); // "my dog and I" is not a dog named "and" (#3993)
+      if (name)
+        details.push({ type: 'pet_name', value: name, context: match[0], extractedAt: now });
     }
   }
 
@@ -316,12 +314,9 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   for (const pattern of familyPatterns) {
     const matches = text.matchAll(pattern);
     for (const match of matches) {
-      details.push({
-        type: 'person_name',
-        value: match[1],
-        context: match[0],
-        extractedAt: now,
-      });
+      const name = nameAsSaid(match[1]); // "my son and I" is not a son named "and" (#3993)
+      if (name)
+        details.push({ type: 'person_name', value: name, context: match[0], extractedAt: now });
     }
   }
 

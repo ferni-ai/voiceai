@@ -123,6 +123,38 @@ describe('Fast Capture', () => {
       expect(mentions).toContainEqual(expect.objectContaining({ name: 'Sarah', type: 'person' }));
     });
 
+    it.each([
+      'this is great',
+      'This is great',
+      'work was rough',
+      'I had lunch with dinner plans after',
+      'my sister and I talked',
+      'Today was long',
+    ])('takes no ordinary word for a person in "%s" (#3993)', (said) => {
+      const people = detectEntityMentions(said)
+        .filter((m) => m.type === 'person')
+        .map((m) => m.name);
+      expect(people.filter((n) => !['sister'].includes(n))).toEqual([]);
+    });
+
+    it('still catches the names said in "my brother Jason called, then I met Priya"', () => {
+      const people = detectEntityMentions('my brother Jason called, then I met Priya.')
+        .filter((m) => m.type === 'person')
+        .map((m) => m.name);
+      expect(people).toEqual(expect.arrayContaining(['brother', 'Jason', 'Priya']));
+    });
+
+    it('catches Priya in "I met with Priya"', () => {
+      const people = detectEntityMentions('I met with Priya today.').map((m) => m.name);
+      expect(people).toContain('Priya');
+    });
+
+    it('quotes the words around "son" itself, not around ja-SON', () => {
+      const said = 'Jason from the office keeps calling about the late report, and my son is sick.';
+      const son = detectEntityMentions(said).find((m) => m.name === 'son');
+      expect(son?.context).toContain('my son is sick');
+    });
+
     it('should detect place mentions', () => {
       const mentions = detectEntityMentions('I traveled to California last week.');
       expect(mentions).toContainEqual(
