@@ -32,7 +32,8 @@ import { withTurnReads } from '../crisis-gate-turn-reads.js';
  * that describe sets them, so every other row reads the turn's real kept reads.
  */
 const others = vi.hoisted(() => ({
-  reads: undefined as Array<import('../../../services/safety/index.js').CrisisVerdict | null> | undefined,
+  reads: undefined as
+    Array<import('../../../services/safety/index.js').CrisisVerdict | null> | undefined,
 }));
 vi.mock('../../../services/safety/index.js', async (orig) => {
   const real = await orig<typeof import('../../../services/safety/index.js')>();
