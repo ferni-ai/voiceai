@@ -74,12 +74,14 @@ function readsHelp(text: string): boolean {
 /**
  * Help named anywhere in a tool's output (#3157): job-loss and new-parent tools name 988 too
  * (#3080 r8), and reachesHelp is the one reader of help lines in any form. The parts are read
- * joined by a space and by nothing, for a name split across parts ("Crisis Life" + "line").
+ * joined by a space and by nothing, for a name split across parts ("Crisis Life" + "line"), and
+ * the output as stored is read too, so a line written as an object key is not missed.
  */
 function namesHelp(output: unknown): boolean {
   const parts = textParts(output);
   if (parts === null) return true;
-  return [...new Set([parts.join(' '), parts.join('')])].some(readsHelp);
+  const raw = typeof output === 'string' ? output : JSON.stringify(output ?? '');
+  return [...new Set([raw, parts.join(' '), parts.join('')])].some(readsHelp);
 }
 
 /** What each tool output named, read once: an item's output never changes, and history keeps it. */

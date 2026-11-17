@@ -136,6 +136,7 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     ['the old Lifeline number alone', 'Reach them at 1-800-273-8255.'],
     ['call 911', 'If you are hurt, call 911.'],
     ['a line name split across array parts', JSON.stringify(['Crisis Life', 'line, open now'])],
+    ['a line written as an object key', JSON.stringify({ 'Call 988 any time': true })],
   ])('%s: stripped, and it waits', (_l, output) => {
     const [ctx, waits] = turnRequestFor(withOutput(output), 's-help', false);
     expect(waits).toBe(true);
