@@ -2,17 +2,43 @@
  * The Firestore flag store on an in-memory Firestore keyed by path: the snapshot lives at
  * ops/agent_flag_snapshot, the audit trail in agent_flag_changes, newest first.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from '../../../services/outreach/proactive-channels/__tests__/path-firestore.js';
-import { type FlagChange, firestoreFlagStore } from '../adapters/flag-store.js';
+import { firestoreFlagStore } from '../adapters/flag-store.js';
 import type { FlagSnapshot } from '../domain/snapshot.js';
+import type { FlagChange, FlagStore } from '../ports/flag-store.js';
+
+const admin = vi.hoisted(() => ({ getAdminFirestore: vi.fn() }));
+vi.mock('../../../utils/firebase-admin-app.js', () => admin);
+
+const DEV = { FIRESTORE_DATABASE: 'ferni-dev' };
 
 let docs: Map<string, Record<string, unknown>>;
-let store: ReturnType<typeof firestoreFlagStore>;
+let store: FlagStore;
 
 beforeEach(() => {
   docs = new Map();
-  store = firestoreFlagStore(pathFirestore(docs) as never);
+  store = firestoreFlagStore(pathFirestore(docs) as never, DEV);
+});
+
+describe('firestoreFlagStore outside dev', () => {
+  it.each([
+    ["prod's database", { FIRESTORE_DATABASE: '(default)' }],
+    ['no database set (prod)', {}],
+    ['an empty database name (prod)', { FIRESTORE_DATABASE: '' }],
+    ['a misspelt dev database', { FIRESTORE_DATABASE: 'Ferni-dev' }],
+    ['dev with a space', { FIRESTORE_DATABASE: 'ferni-dev ' }],
+  ])('refuses to open on %s', (_label, env) => {
+    const db = pathFirestore(new Map());
+    expect(() => firestoreFlagStore(db as never, env)).toThrow(/ferni-dev/);
+  });
+
+  it("refuses before opening the process's Firestore", () => {
+    expect(() => firestoreFlagStore(undefined, { FIRESTORE_DATABASE: '(default)' })).toThrow(
+      /ferni-dev/
+    );
+    expect(admin.getAdminFirestore).not.toHaveBeenCalled();
+  });
 });
 
 const SNAP: FlagSnapshot = {
@@ -75,6 +101,19 @@ describe('firestoreFlagStore', () => {
     expect(recent[0]).toEqual(
       change('2026-11-16T12:00:00.000Z', { result: 'refused', detail: 'room occupied' })
     );
+  });
+
+  it('clamps the number of changes listed to 1..100', async () => {
+    await Promise.all(
+      Array.from({ length: 101 }, (_, i) =>
+        store.appendChange(change(new Date(Date.UTC(2026, 10, 16, 0, 0, i)).toISOString()))
+      )
+    );
+    expect(await store.recentChanges(1000)).toHaveLength(100);
+    expect(await store.recentChanges(0)).toHaveLength(1);
+    expect(await store.recentChanges(-5)).toHaveLength(1);
+    expect(await store.recentChanges(Number.NaN)).toHaveLength(1);
+    expect(await store.recentChanges(2.7)).toHaveLength(2);
   });
 
   it('stores a change with no detail without an undefined field (Firestore rejects those)', async () => {
