@@ -15,7 +15,7 @@ import { safeEmitEvent } from './async-events-config.js';
 import { recordFastCapture } from './metrics.js';
 import { isThirdPartyCallUser, noCapture } from '../third-party-call.js';
 import { mayCapture } from '../../utils/minor-care.js';
-import { nameAsSaid, properNameAsSaid } from '../domain/index.js';
+import { nameAsSaid, placeAfter, properNameAsSaid } from '../domain/index.js';
 
 const log = createLogger({ module: 'FastCapture' });
 
@@ -446,11 +446,7 @@ function detectEntityMentions(transcript: string): EntityMention[] {
   // clause word: "up to Friday" and "from Mom" are no place (#4028). No i flag on the org
   // pattern: under it "[A-Z]" matched "the" in "work at the hospital".
   const placeOrOrg: Array<[RegExp, 'place' | 'organization', number]> = [
-    [
-      /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g,
-      'place',
-      0.6,
-    ],
+    [placeAfter(String.raw`in|at|to|from|visiting|live\s+in|moved\s+to`), 'place', 0.6],
     [
       /\b(?:[Ww]ork\s+(?:at|for)|[Cc]ompany|[Ee]mployer|[Jj]ob\s+at)\s+([A-Z][a-zA-Z\s]+?)(?:\s+(?:and|but|where|which)|\.|,|$)/g,
       'organization',

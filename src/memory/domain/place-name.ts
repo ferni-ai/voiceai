@@ -18,13 +18,31 @@ const CALENDAR = new Set(
 );
 
 /**
+ * Places said as capitals. A fixed list, never "any capitals": that saved "AA" (from "in AA
+ * meetings"), "ICU", "HR" and "OK" as places (#4029, #4034).
+ */
+export const PLACE_ABBREVIATIONS = ['NYC', 'LA', 'SF', 'DC', 'UK', 'USA', 'US', 'UAE', 'NOLA'];
+
+/** One word of a place, as regex source: capitalised ("Denver") or a listed abbreviation, whole. */
+const PLACE_WORD = `(?:[A-Z][a-z]+|(?:${PLACE_ABBREVIATIONS.join('|')})(?![A-Za-z]))`;
+
+const ABBREVIATION = new Set(PLACE_ABBREVIATIONS);
+
+/** A place of one or two words after `cues` (regex source), captured as group 1. Case-sensitive. */
+export function placeAfter(cues: string): RegExp {
+  return new RegExp(String.raw`\b(?:${cues})\s+(${PLACE_WORD}(?:\s+${PLACE_WORD})?)\b`, 'g');
+}
+
+/**
  * The phrase as a place or organisation name, or null: capitalised as said, not a relation
  * ("Mom"), and not only clause, weekday, month or pronoun words. "up to Friday", "in March"
- * and "from work" are no place; "New York" keeps its "New".
+ * and "from work" are no place; "New York" keeps its "New". An all-capitals word must be a
+ * listed abbreviation ("NYC", not "AA").
  */
 export function properNameAsSaid(phrase: string | undefined): string | null {
   const said = phrase?.trim();
   if (!said || !/^\p{Lu}/u.test(said) || relationOf(said)) return null;
+  if (said.split(/\s+/).some((w) => /^[A-Z]{2,}$/.test(w) && !ABBREVIATION.has(w))) return null;
   const words = said.toLowerCase().split(/\s+/);
   return words.every((w) => CLAUSE_WORDS.has(w) || NOT_A_NAME.has(w) || CALENDAR.has(w))
     ? null

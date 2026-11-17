@@ -160,6 +160,20 @@ describe('Fast Capture', () => {
       expect(places).toEqual([]);
     });
 
+    it('saves the listed abbreviations "NYC" and "Washington DC" as places (#4034)', () => {
+      const places = detectEntityMentions('I moved to NYC, then visiting Washington DC.')
+        .filter((m) => m.type === 'place')
+        .map((m) => m.name);
+      expect(places).toEqual(expect.arrayContaining(['NYC', 'Washington DC']));
+    });
+
+    it('takes no "LA" out of "flew to LAX" (#4034)', () => {
+      const places = detectEntityMentions('I flew to LAX last night.').filter(
+        (m) => m.type === 'place'
+      );
+      expect(places).toEqual([]);
+    });
+
     it('still saves "Denver" and "New York" as places', () => {
       const places = detectEntityMentions('I moved to Denver, then visiting New York.')
         .filter((m) => m.type === 'place')

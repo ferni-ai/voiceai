@@ -21,6 +21,14 @@ describe('properNameAsSaid (#4028)', () => {
     expect(properNameAsSaid(p)).toBeNull();
   });
 
+  it.each(['NYC', 'LA', 'Washington DC'])('keeps the listed abbreviation "%s" (#4034)', (p) => {
+    expect(properNameAsSaid(p)).toBe(p);
+  });
+
+  it.each(['AA', 'ICU', 'HR', 'OK'])('is no place for an unlisted acronym: "%s"', (p) => {
+    expect(properNameAsSaid(p)).toBeNull();
+  });
+
   it('trims what it keeps', () => {
     expect(properNameAsSaid(' Acme Labs ')).toBe('Acme Labs');
   });
