@@ -152,6 +152,18 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/FlagsSection.js')).render(),
   },
   {
+    id: 'agent-flags',
+    name: 'Agent flags (dev)',
+    icon: ICON_FLAGS,
+    description: "Switch the dev voice agent's flags",
+    component: async () => {
+      const section = await import('./sections/AgentFlagsSection.js');
+      const html = await section.render();
+      setTimeout(() => section.setupEvents(), 100);
+      return html;
+    },
+  },
+  {
     id: 'finops',
     name: 'FinOps',
     icon: ICON_CHART,
@@ -228,3 +240,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/MoreDashboardsSection.js')).render(),
   },
 ];
+
+/** The section `?section=<id>` names (how the Dev Panel opens one), or `fallback`. */
+export function initialSectionId(search: string, fallback: string): string {
+  const id = new URLSearchParams(search).get('section');
+  return id && ADMIN_SECTIONS.some((s) => s.id === id) ? id : fallback;
+}

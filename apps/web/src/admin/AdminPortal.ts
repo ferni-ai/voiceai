@@ -19,7 +19,7 @@ import {
   ICON_WARNING,
   iconSm,
 } from './icons.js';
-import { ADMIN_SECTIONS, type AdminSection } from './section-registry.js';
+import { ADMIN_SECTIONS, initialSectionId, type AdminSection } from './section-registry.js';
 
 const log = createLogger('AdminPortal');
 
@@ -74,6 +74,7 @@ export async function initAdminPortal(): Promise<void> {
   cleanupOrphanedElements();
 
   state.sections = ADMIN_SECTIONS;
+  state.activeSection = initialSectionId(window.location.search, state.activeSection);
 
   // Inject styles
   injectAdminPortalStyles();
