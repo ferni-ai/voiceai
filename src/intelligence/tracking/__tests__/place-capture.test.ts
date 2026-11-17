@@ -20,6 +20,9 @@ describe('places from what the caller said', () => {
     'we are moving in March',
     'I just got back from Mom and Dad',
     'This is living in Today',
+    "I'm in AA meetings on Tuesdays", // recovery, never a place
+    'I was in ICU for two days', // health, never a place
+    "I'm in OK shape",
   ])('saves no place from "%s"', (said) => {
     expect(valuesOf(said, 'place')).toEqual([]);
   });

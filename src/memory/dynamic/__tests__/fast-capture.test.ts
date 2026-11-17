@@ -153,6 +153,8 @@ describe('Fast Capture', () => {
       'My manager moved a big deadline up to Friday.',
       'I got back from Mom and then went to Today.',
       'We meet in March at This place.',
+      "I'm in AA meetings on Tuesdays.",
+      'I was in ICU for two days, then back from HR.',
     ])('saves no weekday, month, relation or clause word as a place in "%s" (#4028)', (said) => {
       const places = detectEntityMentions(said).filter((m) => m.type === 'place');
       expect(places).toEqual([]);
