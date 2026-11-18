@@ -33,7 +33,7 @@ import { EventEmitter } from 'node:events';
 import { attachTurnOpeningSound } from '../../integrations/turn-opening-sound.js';
 import { OpenerGate } from '../opener-gate.js';
 import { gatedReply, startCrisisGate, textReply, type CrisisGateDecision } from '../crisis-gate.js';
-import { holdUntilCleared } from '../crisis-gate-hold.js';
+import { holdFor, holdUntilCleared } from '../crisis-gate-hold.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
@@ -266,20 +266,29 @@ describe('holdUntilCleared', () => {
     expect(out).toEqual(['ok']);
   });
 
-  it('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed, the held reply never goes out', async () => {
-    const error = new Error('x');
-    const cancelled = vi.fn();
-    const reply = new ReadableStream<unknown>({
-      start: (controller) => controller.enqueue('ok'), // held, never closed: the model still talking
-      cancel: cancelled,
-    });
-    const replacement = vi.fn(async () => textReply('replaced'));
-    const reader = holdUntilCleared(reply as never, Promise.reject(error), replacement, {
-      failClosed: true,
-    }).getReader();
-    await expect(reader.read()).rejects.toBe(error); // never { value: 'ok' }
-    expect(cancelled).toHaveBeenCalledTimes(1); // the model's reply is dropped
-    expect(replacement).not.toHaveBeenCalled();
+  const failClosedHolds: [string, typeof holdUntilCleared][] = [
+    ['the failClosed option', (r, e, f) => holdUntilCleared(r, e, f, { failClosed: true })],
+    ["holdFor's hold with the flag on", holdFor({ CRISIS_GATE_FAIL_CLOSED: 'on' })],
+  ];
+  it.each(failClosedHolds)(
+    'CRISIS_GATE_FAIL_CLOSED on (%s): a rejected escalation fails closed, the held reply never goes out',
+    async (_name, hold) => {
+      const error = new Error('x');
+      const cancelled = vi.fn();
+      const reply = new ReadableStream<unknown>({
+        start: (controller) => controller.enqueue('ok'), // held, never closed: the model still talking
+        cancel: cancelled,
+      });
+      const replacement = vi.fn(async () => textReply('replaced'));
+      const reader = hold(reply as never, Promise.reject(error), replacement).getReader();
+      await expect(reader.read()).rejects.toBe(error); // never { value: 'ok' }
+      expect(cancelled).toHaveBeenCalledTimes(1); // the model's reply is dropped
+      expect(replacement).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([{}, { CRISIS_GATE_FAIL_CLOSED: 'off' }])("holdFor(%j) is main's hold", (env) => {
+    expect(holdFor(env)).toBe(holdUntilCleared);
   });
 });
 
