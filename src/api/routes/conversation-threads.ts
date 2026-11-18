@@ -242,6 +242,22 @@ async function extractThreadsFromHistory(userId: string): Promise<ConversationTh
   }
 }
 
+/**
+ * The threads not about a topic the caller asked Ferni to forget (FORGET_EVERY_READER on; off,
+ * every thread). A thread's topic and last message are the caller's own words and a call's
+ * summary, so its text reads as a passage (forgottenPassageCheck). The stored threads stay.
+ */
+async function rememberedThreads(
+  userId: string,
+  threads: ConversationThread[]
+): Promise<ConversationThread[]> {
+  if (threads.length === 0) return threads;
+  const { forgottenPassageCheck, remembered } = await import('../../memory/index.js');
+  return remembered(threads, await forgottenPassageCheck(userId, 'conversation-threads'), (t) =>
+    [t.topic, t.lastMessage, t.emotionalContext, ...(t.relatedCommitments ?? [])].join(' ')
+  );
+}
+
 function getPersonaName(personaId: string): string {
   const names: Record<string, string> = {
     ferni: 'Ferni',
@@ -287,6 +303,7 @@ export async function handleGetThreads(
       // Persist extracted threads to Firestore
       await Promise.all(threads.map((thread) => saveThread(thread)));
     }
+    threads = await rememberedThreads(userId, threads); // FORGET_EVERY_READER
 
     // Filter by status
     if (status !== 'all') {
