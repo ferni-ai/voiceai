@@ -48,7 +48,12 @@ export interface LiveCall {
   /** The owner speaks over Ferni. */
   ownerOver: (text: string) => void;
   ferni: (text: string) => void;
-  otherTool: (callId: string) => void;
+  /** Another tool's output reaches the model; with no name it counts as outbound. */
+  otherTool: (callId: string, name?: string) => void;
+  /** Ferni starts speaking (agent_state_changed), e.g. the read-back starts playing. */
+  speaks: () => void;
+  /** The owner starts speaking (user_state_changed); their final lands later. */
+  ownerStarts: () => void;
 }
 
 export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
@@ -74,7 +79,10 @@ export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
     },
     ferni: (text: string) =>
       on.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: text } }),
-    otherTool: (callId: string) => on.onToolsExecuted({ functionCalls: [{ callId }] }),
+    otherTool: (callId: string, name?: string) =>
+      on.onToolsExecuted({ functionCalls: [{ callId, name }] }),
+    speaks: () => on.onAgentState({ newState: 'speaking' }),
+    ownerStarts: () => on.onUserState({ newState: 'speaking' }),
   };
 }
 

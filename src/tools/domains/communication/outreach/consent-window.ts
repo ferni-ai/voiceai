@@ -13,7 +13,8 @@
 import { flagOn, type Env } from '../../../../config/env-flag.js';
 import { detectCrisis } from '../../../../services/safety/index.js';
 import { askOnceLine, channelOf, numberOf, personOf, STOP, targetWords } from './consent-action.js';
-import { judge, judgedNow } from './consent-judge.js';
+import { getLogger } from '../../../../utils/safe-logger.js';
+import { consentNaturalOn, judge, judgedNow, type ConsentJudgement } from './consent-judge.js';
 import {
   CHANNEL_WORDS,
   digitRuns,
@@ -25,6 +26,7 @@ import {
 import type { ActionFacts, FerniTurn } from './consent-readback.js';
 import {
   agreesAfterNo,
+  hasHardNo,
   isClearYes,
   isContentFree,
   isNonAnswer,
@@ -33,10 +35,13 @@ import {
   LATER,
   NOES,
   OTHERS,
+  ownerMessage,
   pronounOf,
   words,
 } from './consent-words.js';
 import type { ConfirmEvent, PendingAction } from './outreach-confirm.js';
+
+const log = getLogger();
 
 export type ConfirmState = 'confirmed' | 'waiting' | 'void' | 'unclear' | 'declined';
 
@@ -99,12 +104,10 @@ function answerWindow(
   for (const e of events) {
     if (e.seq <= pending.createdSeq) continue;
     if (e.kind === 'tool') {
-      // The preview's own output reaching the model is expected once; any other output voids it.
-      if (!delivered && e.callIds.length > 0 && e.callIds.every((id) => id === pending.callId)) {
-        delivered = true;
-        continue;
-      }
-      return 'void';
+      const effect = toolEffect(e, pending, delivered);
+      if (effect === 'void') return 'void';
+      delivered ||= effect === 'delivers';
+      continue;
     }
     // Words before the preview was read are not the answer.
     if (!delivered) continue;
@@ -123,6 +126,22 @@ function answerWindow(
     else turns.push({ text: e.text, detail: asksDetail(e.text, pending) });
   }
   return { turns: turns.map((t) => t.text), overTalk: overTalk || blocked };
+}
+
+/** What a tool's output does to the window: the preview's own output reaching the model is
+ * expected once; any other output voids it. CALL_CONSENT_NATURAL: only another outbound run voids
+ * it; a read-only one (callStatus, a memory lookup) is skipped. */
+function toolEffect(
+  e: Extract<ConfirmEvent, { kind: 'tool' }>,
+  pending: PendingAction,
+  delivered: boolean
+): 'delivers' | 'skip' | 'void' {
+  if (!consentNaturalOn()) {
+    const own = e.callIds.length > 0 && e.callIds.every((id) => id === pending.callId);
+    return !delivered && own ? 'delivers' : 'void';
+  }
+  if ((e.outbound ?? e.callIds).some((id) => id !== pending.callId)) return 'void';
+  return !delivered && e.callIds.includes(pending.callId) ? 'delivers' : 'skip';
 }
 
 // Said any time after the read-back, these end it for good: only a fresh read-back can follow.
@@ -273,16 +292,21 @@ const endsForGood = (text: string, pending: PendingAction): boolean =>
 /** Any final since the read-back was stored, over Ferni or before he read it, that ends it.
  * Finals are also read together: STT may split "call" | "my sister". A clarifying "Wait, which
  * number?" is exempt from the plain-no check only. */
-function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
+function endedBy(pending: PendingAction, events: ConfirmEvent[], all = events): boolean {
   const said = callerTurns(pending, events);
   const joined = said.filter((t) => !asksStatus(t, pending)).join(' ');
   const answers = noAnswers(pending, events);
+  // CALL_CONSENT_NATURAL: a bare "Wait." or "Hold on." asks nothing, so it is a no.
+  const asks = (t: string): boolean =>
+    clarifies(t, pending) && (!consentNaturalOn() || words(t).join(' ').replace(PAUSES, '') !== '');
   // A refusal that doesn't open like a no ("Forget it.", "I changed my mind.") is not one here,
   // with the flag on or off: Ferni asks once, and a second refusal cancels (consent-loop.ts).
   const no = (t: string, i: number): boolean =>
-    isPlainNo(t) && !clarifies(t, pending) && aboutIt(said, i, answers, pending);
-  // With OUTREACH_NO_ANSWERS_READBACK, a crisis turn anywhere in the window ends it, as a no does.
-  if (noMustAnswerOn() && crisisIn(said)) return true;
+    isPlainNo(t) && !asks(t) && aboutIt(said, i, answers, pending);
+  // With OUTREACH_NO_ANSWERS_READBACK or CALL_CONSENT_NATURAL, a crisis turn anywhere in the window
+  // ends it, as a no does: every final since the read-back was stored, heard or not (`all`).
+  const crisisEnds = noMustAnswerOn() || consentNaturalOn();
+  if (crisisEnds && crisisIn(callerTurns(pending, all))) return true;
   return said.some((t, i) => endsForGood(t, pending) || no(t, i)) || endsForGood(joined, pending);
 }
 /** Whether a fresh read-back (at seq `to`) may reopen it after a cancel (consent-loop.ts): every
@@ -291,6 +315,7 @@ function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
 export function reopenable(pending: PendingAction, events: ConfirmEvent[], to: number): boolean {
   const said = callerTurns(pending, events, pending.startSeq, to);
   return (
+    !(consentNaturalOn() && crisisIn(said)) && // CALL_CONSENT_NATURAL: a crisis line never reopens
     !said.some((t) => foreclosesReopen(t, pending)) &&
     !deferredOrRedirected(said.join(' ')) &&
     !callsSomeoneElse(said.join(' '), pending)
@@ -312,11 +337,12 @@ export function foreclosesReopen(text: string, pending: PendingAction): boolean 
 /** Where it stands now: the fast path's answer, else the judge's if it has finished. */
 export function windowState(
   pending: PendingAction,
-  events: ConfirmEvent[],
+  all: ConfirmEvent[],
   now: number
 ): ConfirmState {
   if (now > pending.expiresAt) return 'void';
-  if (endedBy(pending, events)) return 'declined';
+  const events = heardOf(pending, all);
+  if (endedBy(pending, events, all)) return 'declined';
   const answer = answerWindow(pending, events);
   if (answer === 'void') return 'void';
   const { turns } = answer;
@@ -338,8 +364,62 @@ export function windowState(
   const answered = last < 0 || aboutIt(said, last, noAnswers(pending, events), pending);
   if (judged?.verdict === 'no' && !plain) return answered ? 'declined' : 'unclear';
   const doubt = judged?.verdict !== undefined && judged.verdict !== 'yes';
-  if (!plain || (doubt && !['error', 'question'].includes(judged.reason))) return 'unclear';
+  if (
+    !isYes(plain, pending, answer, judged) ||
+    (doubt && !['error', 'question'].includes(judged.reason))
+  )
+    return 'unclear';
   return 'confirmed';
+}
+
+/** A plain yes; or, with CALL_CONSENT_NATURAL, the judge's yes to what the allow-list can't read,
+ * never over Ferni, beside a question or a hard no, nor with a message for the person when the
+ * action has no purpose to carry it. */
+function isYes(
+  plain: boolean,
+  pending: PendingAction,
+  answer: { turns: string[]; overTalk: boolean },
+  judged: ConsentJudgement | undefined
+): boolean {
+  if (plain || !consentNaturalOn() || judged?.verdict !== 'yes') return plain;
+  const said = answer.turns.join(' ');
+  const carried = !ownerMessage(said) || typeof pending.args.purpose === 'string';
+  return !answer.overTalk && !answer.turns.some(isQuestion) && !hasHardNo(said) && carried;
+}
+
+/** CALL_CONSENT_NATURAL: where the read-back started playing, as a count of Ferni's speech starts
+ * (outreach-confirm.ts stamps each event): the first after its preview reached the model, or, for
+ * one reopened on a fresh read-back, that read-back's own. Undefined: not playing yet. */
+function readBackStart(pending: PendingAction, events: ConfirmEvent[]): number | undefined {
+  const after = events.filter((e) => e.seq > pending.createdSeq);
+  if (pending.reopened) return after.find((e) => e.kind === 'agent')?.ferniStarts;
+  const delivery = after.find((e) => e.kind === 'tool' && e.callIds.includes(pending.callId));
+  return delivery ? (delivery.ferniStarts ?? 0) + 1 : undefined;
+}
+/** The events the window reads: with CALL_CONSENT_NATURAL, only the owner's finals begun after the
+ * read-back started playing; earlier ones are neither a yes nor a no. */
+function heardOf(pending: PendingAction, events: ConfirmEvent[]): ConfirmEvent[] {
+  if (!consentNaturalOn()) return events;
+  const start = readBackStart(pending, events);
+  const heard = (e: ConfirmEvent): boolean => start !== undefined && (e.ferniStarts ?? -1) >= start;
+  return events.filter((e) => e.kind !== 'caller' || e.seq <= pending.createdSeq || heard(e));
+}
+
+/** What a confirmed action runs with: with CALL_CONSENT_NATURAL, a message the owner gave in their
+ * yes ("Yes, tell him I'm running late.") is added to the call's purpose, as data. Only its length
+ * is logged, never its words. */
+export function argsOnYes(pending: PendingAction, events: ConfirmEvent[]): Record<string, unknown> {
+  const { purpose } = pending.args;
+  if (!consentNaturalOn() || typeof purpose !== 'string') return pending.args;
+  const answer = answerWindow(pending, heardOf(pending, events));
+  const message = answer === 'void' ? undefined : ownerMessage(answer.turns.join(' '));
+  if (!message) return pending.args;
+  log.info(
+    { toolId: pending.toolId, messageLength: message.length },
+    'CALL_CONSENT_NATURAL: the yes carried a message, added to the purpose'
+  );
+  const tell = `tell them ${JSON.stringify(message)}`;
+  return { ...pending.args, purpose: purpose.trim() ? `${purpose.trim()}, and ${tell}` : tell };
 }
 
 /** Starts the judge on the current answer (a plain yes too: it may take it away); resolves when done. */
@@ -356,7 +436,7 @@ export async function judgeWindow(
   );
   const state = windowState(pending, events, Date.now());
   if (!on || (state !== 'unclear' && state !== 'confirmed')) return;
-  const answer = answerWindow(pending, events);
+  const answer = answerWindow(pending, heardOf(pending, events));
   if (answer === 'void' || judgedNow(pending, answer.turns)) return;
   // The judge hears the person, channel and last four digits: never the number or message.
   const [channel, person, last4] = [

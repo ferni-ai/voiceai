@@ -42,6 +42,7 @@ import {
 } from './consent-loop.js';
 import { isClearNo, words } from './consent-words.js';
 import {
+  argsOnYes,
   classifyFerniTurn,
   foreclosesReopen,
   judgeWindow,
@@ -90,12 +91,21 @@ export function testAccountReply(toolId: string): string {
 
 /** Marks a definition already wrapped, so wrapping it again (e.g. at registration) is a no-op. */
 const GATED = Symbol.for('ferni.outbound-confirm');
+/** Every tool id wrapped here: a run of one between a read-back and its yes voids it. */
+const gatedIds = new Set<string>();
+function markGated(def: ToolDefinition, id: string): void {
+  (def as unknown as Record<symbol, unknown>)[GATED] = true;
+  gatedIds.add(id);
+}
 
 type SessionEvent =
   | { kind: 'caller'; text: string; agentSpeaking: boolean }
-  | { kind: 'tool'; callIds: string[] }
+  // outbound: the calls run by a gated tool (or one with no name), which void a read-back
+  | { kind: 'tool'; callIds: string[]; outbound?: string[] }
   | { kind: 'agent'; text: string }; // what Ferni said, only to find his read-backs
-export type ConfirmEvent = SessionEvent & { seq: number };
+/** ferniStarts: how many times Ferni had started speaking (agent_state_changed) when the owner
+ * began this final (user_state_changed), or when a tool or Ferni event was recorded. */
+export type ConfirmEvent = SessionEvent & { seq: number; ferniStarts?: number };
 
 export interface PendingAction {
   toolId: string;
@@ -137,6 +147,9 @@ export interface SessionLog {
   asks?: Map<string, AskRecord>;
   /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
   closed?: { action: PendingAction; seq: number; at: number; final: boolean };
+  /** Times Ferni has started speaking on this call, and that count when the owner last began to. */
+  ferniStarts?: number;
+  ownerStart?: number;
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -169,7 +182,9 @@ export function ownerKnown(session: object | undefined): boolean {
 
 function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
-  entry.events.push({ ...event, seq: ++entry.seq });
+  const ferniStarts =
+    event.kind === 'caller' ? (entry.ownerStart ?? entry.ferniStarts) : entry.ferniStarts;
+  entry.events.push({ ...event, seq: ++entry.seq, ferniStarts: ferniStarts ?? 0 });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
   // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it; after a cancel
@@ -263,8 +278,24 @@ export function outreachConfirmListeners(
       if (serverConfirmOn()) settleThenSend(serverGate, session, logFor(session));
     },
     onToolsExecuted: (event: unknown) => {
-      const calls = (event as { functionCalls?: Array<{ callId?: string }> }).functionCalls ?? [];
-      record(session, { kind: 'tool', callIds: calls.map((c) => c.callId ?? '') });
+      const run = event as { functionCalls?: Array<{ callId?: string; name?: string }> };
+      const calls = run.functionCalls ?? [];
+      const callIds = calls.map((c) => c.callId ?? '');
+      const outbound = calls.flatMap((c, i) =>
+        !c.name || gatedIds.has(c.name) ? [callIds[i]] : []
+      );
+      record(session, { kind: 'tool', callIds, outbound });
+    },
+    /** When Ferni and the owner start speaking: the read-back only hears words begun after it plays. */
+    onAgentState: (event: unknown) => {
+      if ((event as { newState?: string })?.newState !== 'speaking') return;
+      const entry = logFor(session);
+      entry.ferniStarts = (entry.ferniStarts ?? 0) + 1;
+    },
+    onUserState: (event: unknown) => {
+      if ((event as { newState?: string })?.newState !== 'speaking') return;
+      const entry = logFor(session);
+      entry.ownerStart = entry.ferniStarts ?? 0;
     },
     /** Ferni's own words (conversation_item_added), read only to find where he asked again. */
     onItemAdded: (event: unknown) => {
@@ -388,7 +419,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
               'OUTREACH_CONFIRM: caller said yes, sending'
             );
             await attestOnConfirm(ctx.userId, pending.args);
-            return sentConfirmThread(pending, execute(pending.args, opts));
+            return sentConfirmThread(pending, execute(argsOnYes(pending, entry.events), opts));
           }
           const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
           const expiresAt = Date.now() + CONFIRM_WINDOW_MS;
@@ -436,6 +467,6 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
       return { ...tool, execute: gated } as Tool;
     },
   };
-  (gatedDef as unknown as Record<symbol, unknown>)[GATED] = true;
+  markGated(gatedDef, def.id);
   return gatedDef;
 }

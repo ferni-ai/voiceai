@@ -131,6 +131,23 @@ export function isClearNo(text: string): boolean {
   return words(text).some((x) => NOES.includes(x));
 }
 
+// CALL_CONSENT_NATURAL: never placed on the judge's yes when any of these is said anywhere.
+const HARD_NO = /\b(no|nope|nah|stop|wait|dont|cancel|hold on|never mind)\b/;
+/** Whether the reply says a hard no anywhere ("Yeah, no, wait."): the judge's yes can't place it. */
+export const hasHardNo = (text: string): boolean => HARD_NO.test(words(text).join(' '));
+
+// "Yes, tell him I'm running late.", "Let her know I'll be late": what the owner asks Ferni to
+// pass on to the person called. Never "let me know", "tell you what".
+const MESSAGE =
+  /\b(?:tell|let)\s+(?!(?:me|us|you|ferni)\b)(?:my\s+)?[\p{L}'’]+\s+(?:know\s+)?(?:that\s+)?(.+)$/iu;
+/** The owner's message for the person, in their own words, or undefined. */
+export function ownerMessage(text: string): string | undefined {
+  const said = MESSAGE.exec(text)?.[1]
+    ?.replace(/[\s.!,;]+$/u, '')
+    .trim();
+  return said || undefined;
+}
+
 // A reply that opens with one of these is a no to the read-back ("No, wait.", "Hold on, who?").
 const NO_OPENERS = [
   ...'no nope nah dont cancel wait stop'.split(' '),
