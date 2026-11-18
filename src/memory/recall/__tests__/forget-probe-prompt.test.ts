@@ -200,6 +200,19 @@ const TRUST_ITEM: Record<string, (said: string) => Record<string, unknown>> = {
       },
     ],
   }),
+  // The shape boundary-memory.ts buildProtectiveMemoryContext writes.
+  'prompt.trustProtective': (said) => ({
+    protectiveMemory: [
+      '[PROTECTIVE MEMORY]',
+      'Topics to avoid:',
+      '⚠️ the Denver lease (topic)',
+      '',
+      'Topics that may be reopening:',
+      `- ${said}: ease back in gently`,
+      '',
+      'Your friend forgets what not to bring up. You remember forever.',
+    ].join('\n'),
+  }),
 };
 
 beforeEach(() => {
@@ -303,5 +316,27 @@ describe('FORGET_EVERY_READER off: the readers say what they said before', () =>
     expect(rememberedTrust(trust as never, said)).toBe(trust);
     const threads = [thread('t1', 'Biscuit and feeling alone', 'Biscuit gets me')];
     expect(await rememberedThreads(USER, threads as never)).toBe(threads);
+  });
+});
+
+describe('protective memory once a topic is forgotten', () => {
+  const said = (text: string) => /biscuit/i.test(text);
+  const block = (said: string) =>
+    TRUST_ITEM['prompt.trustProtective']!(said).protectiveMemory as string;
+
+  it('drops the entry and its emptied heading, and keeps the rest', () => {
+    const out = rememberedTrust(
+      { ...EMPTY_TRUST, protectiveMemory: block('Biscuit') } as never,
+      said
+    );
+    expect(out.protectiveMemory).not.toMatch(/biscuit|may be reopening/i);
+    expect(out.protectiveMemory).toContain('⚠️ the Denver lease (topic)');
+    expect(out.protectiveMemory).toContain('Topics to avoid:');
+  });
+
+  it('is empty once every entry is about a forgotten topic', () => {
+    const only = block('Biscuit').replace('the Denver lease', 'Biscuit at the vet');
+    const out = rememberedTrust({ ...EMPTY_TRUST, protectiveMemory: only } as never, said);
+    expect(out.protectiveMemory).toBe('');
   });
 });

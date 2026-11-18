@@ -33,5 +33,26 @@ export function rememberedTrust(
     pendingOutreach: remembered(context.pendingOutreach ?? [], said, (m) =>
       [m.trigger?.context, m.trigger?.theirWords, m.message].join(' ')
     ),
+    protectiveMemory: rememberedProtectiveMemory(context.protectiveMemory, said),
   };
+}
+
+/** One stored topic per line: a boundary, advice to hold back, a topic that may be reopening. */
+const PROTECTIVE_ENTRY = /^(?:- |🚫 |⚠️ |💡 )/u;
+
+/**
+ * Protective memory (boundary-memory.ts buildProtectiveMemoryContext) less every entry about a
+ * forgotten topic. "Topics that may be reopening" invites Ferni to raise one, so a forgotten
+ * topic can't stay listed. A heading left with no entries goes, and with no entry left at all
+ * the block is empty, as when nothing was stored.
+ */
+function rememberedProtectiveMemory(text: string, said: (text: string) => boolean): string {
+  if (!text) return text;
+  const lines = text.split('\n').filter((line) => !(PROTECTIVE_ENTRY.test(line) && said(line)));
+  if (!lines.some((line) => PROTECTIVE_ENTRY.test(line))) return '';
+  const heading = (line: string) => !PROTECTIVE_ENTRY.test(line) && line.endsWith(':');
+  return lines
+    .filter((line, i) => !heading(line) || PROTECTIVE_ENTRY.test(lines[i + 1] ?? ''))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
 }

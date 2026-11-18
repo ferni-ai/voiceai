@@ -357,6 +357,14 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     check: 'flag',
     probe: PROBE_PROMPT,
   },
+  {
+    id: 'prompt.trustProtective',
+    file: 'src/agents/processors/injection-builders/trust-builders.ts',
+    site: 'rememberedTrust(built, await said)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
 
   // ── Not checked: PR2a, outbound and third-party first ──────────────────────
   {
