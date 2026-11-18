@@ -161,6 +161,10 @@ describe('a number topic and the shapes a stored record carries', () => {
     ],
     ['a date then a year', 'we met 2025-11-18 \n 2019'],
     [
+      'an id ending in a digit, then a count in the next field',
+      'session-AJ_x7-1763478000123 \n 123456 steps',
+    ],
+    [
       'an id ending in digits, a date, then a count',
       'loop_1763478000123_abc123 \n 2025-11-18 \n 4567 steps',
     ],
