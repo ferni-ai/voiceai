@@ -211,7 +211,7 @@ describe('sttChain group call labels', () => {
     expect(textOf(await heard(feed, reader, final('hi Sarah'), 50_000))).toBe('[unclear] hi Sarah');
   });
 
-  it('puts the name right before the label goes on', async () => {
+  it('puts the name right on a labelled final, the label kept', async () => {
     vi.stubEnv('NAME_MISHEAR_NORMALIZE', 'on');
     hearingOnCall();
     const feed = sttFeed();
