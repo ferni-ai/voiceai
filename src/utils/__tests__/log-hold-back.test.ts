@@ -86,6 +86,28 @@ describe('a long unfinished line is never cut through a value', () => {
   });
 });
 
+describe('values that share text', () => {
+  it('a value that starts another, or overlaps it, is never cut through either', () => {
+    configured = ['fake-seth', 'fake-seth-id', 'aaaa-bbbb', 'bbbb-cccc'];
+    for (const value of ['fake-seth-id', 'aaaa-bbbb-cccc', 'xfake-seth-id', 'fake-seth-idx']) {
+      const line = `${'z'.repeat(600)} voice ${value} ${'w'.repeat(80)}`;
+      const start = line.indexOf(value);
+      expectEverySplitWhole(line, start - 70, line.length);
+    }
+  });
+});
+
+describe('a value found at the cut is judged on the whole line', () => {
+  it('a glued copy of a value that repeats inside itself does not hide the real one', () => {
+    // "xa-a-a-a": the copy glued to the x is not the value; the one two chars later is.
+    configured = ['a-a-a'];
+    const line = `${'z'.repeat(600)} xa-a-a-a ${'w'.repeat(80)}`;
+    expect(whole(line)).toContain(`xa-${REDACTED}`);
+    const start = line.indexOf('xa-a');
+    expectEverySplitWhole(line, start, line.length);
+  });
+});
+
 describe('a long unfinished line is never cut through a phone number or its context', () => {
   // No values registered: a long one would hold more back and hide a cut through a number.
   beforeEach(() => {
@@ -118,9 +140,95 @@ describe('a long unfinished line is never cut through a phone number or its cont
     expectEverySplitWhole(line, start - 70, line.length);
   });
 
+  it('a number that carries a list context across a long gap keeps it, wherever it is cut', () => {
+    // The phone pass carries "phone:" from one number to the next across up to 64 chars of
+    // list punctuation; a cut in that gap must not leave the second number without it.
+    for (const next of ['+5550123', '%2B5550123', '(555) 0123 4']) {
+      const line = `${'z'.repeat(600)} phone: 5550100, ${' '.repeat(61)}${next} end`;
+      expect(whole(line)).not.toContain('5550123');
+      const start = line.indexOf('phone:');
+      expectEverySplitWhole(line, start - 70, line.length);
+    }
+  });
+
   it('a long line dense with digits is still written whole and right', () => {
     const line = Array.from({ length: 400 }, (_, i) => `n${i} ${i * 7}`).join(' ');
     expectEverySplitWhole(line, line.length - 200, line.length);
+  });
+});
+
+describe('how much is held', () => {
+  it('a line dense with digits keeps at most 4 KB back, so each write stays cheap', () => {
+    const s = sink();
+    const dense = '"k":17950046,'.repeat(4000); // 52 KB, no clean place to cut
+    for (let i = 0; i < dense.length; i += 4096) s.target.write(dense.slice(i, i + 4096));
+    expect(dense.length - s.text().length).toBeLessThanOrEqual(4096);
+    s.target.write('\n');
+    expect(s.text()).toBe(`${whole(dense)}\n`);
+  });
+
+  it('a clone id where the 4 KB limit falls is still never split', () => {
+    const unit = '"k":17950046,';
+    const line = `${unit.repeat(600)}"voice":"${UUID_CLONE}",${unit.repeat(400)}`;
+    const start = line.indexOf(UUID_CLONE);
+    // The first write ends 4096 chars after the limit: these put the limit inside the id.
+    for (let at = start + 4096 - 4; at < start + 4096 + UUID_CLONE.length + 4; at++) {
+      expect(splitAt(line, at)).not.toContain(UUID_CLONE);
+    }
+  });
+});
+
+describe('random lines in random pieces', () => {
+  it('2,000 seeded lines written in 2 to 5 pieces each come out as when redacted whole', () => {
+    let seed = 4146;
+    const rand = (n: number): number => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed % n;
+    };
+    const tokens = [
+      CLONE,
+      UUID_CLONE,
+      UUID_CLONE.toUpperCase(),
+      'phone: ',
+      'sip_',
+      '"to":"',
+      '+1 555 555 0123',
+      '5550100',
+      '(555) 0123',
+      ', ',
+      ' ',
+      '  ',
+      '[',
+      ']',
+      '"',
+      'voice ',
+      'id 7 ok ',
+      'a1',
+      'z'.repeat(40),
+      'preview-',
+      '.mp3',
+      '%2B',
+      '1795004609442',
+      '-',
+      'w',
+    ];
+    const wrong: string[] = [];
+    for (let n = 0; n < 2000 && wrong.length < 3; n++) {
+      let line = 'z'.repeat(520 + rand(200));
+      while (line.length < 900 + rand(300)) line += tokens[rand(tokens.length)];
+      const cuts = Array.from({ length: 1 + rand(4) }, () => rand(line.length)).sort(
+        (x, y) => x - y
+      );
+      const s = sink();
+      let from = 0;
+      for (const cut of cuts) {
+        s.target.write(line.slice(from, cut));
+        from = cut;
+      }
+      s.target.write(`${line.slice(from)}\n`);
+      if (s.text() !== `${whole(line)}\n`) wrong.push(`${n}: ${JSON.stringify(cuts)}`);
+    }
+    expect(wrong).toEqual([]);
   });
 });
 

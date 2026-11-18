@@ -27,6 +27,8 @@ const REREAD_MS = 1000;
 const sources = new Set<Source>();
 let cachedKey = '';
 let cachedPattern: RegExp | null = null;
+/** The same pattern, sticky: whether a value starts exactly at a given index. */
+let cachedAt: RegExp | null = null;
 let cachedLongest = 0;
 let readAt = -Infinity;
 
@@ -35,6 +37,8 @@ export function registerRedactedLogValues(source: Source): void {
   sources.add(source);
   readAt = -Infinity;
 }
+
+const WORD_CHAR = /[A-Za-z0-9]/;
 
 const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -54,13 +58,12 @@ function currentPattern(): RegExp | null {
   if (key === cachedKey) return cachedPattern;
   cachedKey = key;
   cachedLongest = Math.max(0, ...values.map((v) => v.length));
-  cachedPattern =
-    values.length === 0
-      ? null
-      : new RegExp(
-          `(?<![A-Za-z0-9])(?:${values.map(escapeRegExp).join('|')})(?![A-Za-z0-9])`,
-          'gi'
-        );
+  // Longest first: an alternation takes the first that fits, and a value that is the start
+  // of another must not be replaced alone, leaving the rest of the longer one showing.
+  values.sort((a, b) => b.length - a.length);
+  const source = `(?<![A-Za-z0-9])(?:${values.map(escapeRegExp).join('|')})(?![A-Za-z0-9])`;
+  cachedPattern = values.length === 0 ? null : new RegExp(source, 'gi');
+  cachedAt = values.length === 0 ? null : new RegExp(source, 'iy');
   return cachedPattern;
 }
 
@@ -80,16 +83,16 @@ export function redactLogValues(line: string): string {
 export function cutOutsideLogValues(text: string, cut: number): number {
   if (sources.size === 0) return cut;
   const pattern = currentPattern();
-  if (!pattern) return cut;
+  const at = cachedAt;
+  if (!pattern || !at) return cut;
   let safe = Math.max(0, Math.min(cut, text.length - cachedLongest + 1));
-  for (;;) {
-    const from = Math.max(0, safe - cachedLongest);
-    let across: number | undefined;
-    for (const m of text.slice(from, safe + cachedLongest).matchAll(pattern)) {
-      const start = from + m.index;
-      if (start < safe && safe < start + m[0].length) across = start;
-    }
-    if (across === undefined) return safe;
-    safe = across;
+  // Every start a value crossing `safe` could have is tried against the whole text, so the
+  // boundary checks see the real neighbours and overlapping values can't hide one another.
+  for (let start = safe - 1; start >= 0 && start > safe - cachedLongest; start--) {
+    if (start > 0 && WORD_CHAR.test(text[start - 1] ?? '')) continue; // can't start a value
+    at.lastIndex = start;
+    const m = at.exec(text);
+    if (m && start + m[0].length > safe) safe = start;
   }
+  return safe;
 }
