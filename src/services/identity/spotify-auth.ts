@@ -43,6 +43,22 @@ let revokedRefreshToken: string | null = null;
 export const isSpotifyRefreshRevoked = (): boolean =>
   revokedRefreshToken !== null && cachedTokens?.refresh_token === revokedRefreshToken;
 
+const availabilityListeners = new Set<() => void>();
+/** Told when the token is found revoked or a new one is stored; returns the unsubscribe. */
+export function onSpotifyAvailabilityChange(listener: () => void): () => void {
+  availabilityListeners.add(listener);
+  return () => availabilityListeners.delete(listener);
+}
+function notifyAvailabilityChange(): void {
+  for (const listener of availabilityListeners) {
+    try {
+      listener();
+    } catch (error) {
+      getLogger().warn({ error: String(error) }, 'Spotify availability listener failed');
+    }
+  }
+}
+
 // ============================================================================
 // MUTEX FOR THREAD-SAFE TOKEN REFRESH
 // ============================================================================
@@ -137,6 +153,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
       if (errorData.error === 'invalid_grant') {
         revokedRefreshToken = refreshToken;
         getLogger().warn({ description: errorData.error_description }, '🎵 Spotify refresh token revoked; Spotify off until a new token is configured');
+        notifyAvailabilityChange();
         return null;
       }
       getLogger().error({ error: errorData.error, description: errorData.error_description }, 'Spotify token refresh failed');
@@ -396,6 +413,7 @@ export function storeSpotifyTokens(
   cachedTokens = tokens;
 
   getLogger().info('New Spotify tokens stored');
+  notifyAvailabilityChange();
 }
 
 /**

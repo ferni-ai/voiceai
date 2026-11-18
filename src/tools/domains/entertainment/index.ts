@@ -28,6 +28,8 @@ import { spotifyConnectTools } from './spotify-connect.js';
 
 import { createSonosMusicTools } from './sonos-music.js';
 import { requiringEnv } from '../../registry/tool-availability.js';
+import { onSpotifyAvailabilityChange } from '../../../services/identity/spotify-auth.js';
+import { gateSpotifyOnlyTools, syncSpotifyOnlyTools } from './spotify-tool-gate.js';
 const SONOS_ENV = ['SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET'];
 
 const log = getLogger();
@@ -549,8 +551,12 @@ log.info(
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
   'entertainment',
-  entertainmentTools
+  gateSpotifyOnlyTools(entertainmentTools)
 );
+
+// SPOTIFY_TOOLS_HIDE_WHEN_DOWN: the Spotify-only tools follow the house token, no polling
+onSpotifyAvailabilityChange(() => syncSpotifyOnlyTools(definitions));
+syncSpotifyOnlyTools(definitions);
 
 export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getSonosMusicToolDefinitions };
 
