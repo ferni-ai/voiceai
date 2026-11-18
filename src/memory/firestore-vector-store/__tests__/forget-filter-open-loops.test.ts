@@ -163,6 +163,27 @@ describe("an open loop's copy is checked against the loop's whole record", () =>
     expect(await run(r, [loopCopy(LOOP_ID, 'plant the tomatoes')])).toHaveLength(1);
   });
 
+  it.each([
+    ['status', 'expired passport'],
+    ['emotionAtCreation', 'hopeful letters'],
+  ])('the record\'s %s is not the caller\'s words (topic "%s")', async (_l, topic) => {
+    const rec = record({
+      content: 'plant the tomatoes',
+      status: 'expired',
+      emotionAtCreation: 'hopeful',
+    });
+    const { r } = withDocs([topic], { [PATH]: rec });
+    expect(await run(r, [loopCopy(LOOP_ID, 'plant the tomatoes')])).toHaveLength(1);
+  });
+
+  it('nothing forgotten: no record is read, and a failing read drops nothing', async () => {
+    const r: ForgetReads = {
+      topics: async () => [],
+      docs: async () => Promise.reject(new Error('down')),
+    };
+    expect(await run(r, [loopCopy(LOOP_ID, cut)])).toHaveLength(1);
+  });
+
   it('a record that is gone leaves the copy to its own words', async () => {
     const { r } = withDocs(['Denver job'], {});
     expect(await run(r, [loopCopy(LOOP_ID, cut)])).toHaveLength(1);
@@ -184,5 +205,39 @@ describe("an open loop's copy is checked against the loop's whole record", () =>
     const { r, asked } = withDocs(['Denver job'], { [PATH]: record() });
     expect(await run(r, [loopCopy(LOOP_ID, cut)], {})).toHaveLength(1);
     expect(asked).toEqual([]);
+  });
+});
+
+describe("an expired loop's copy is only labels", () => {
+  const expired = (loopId: string) => ({
+    document: {
+      id: `coaching_coaching_insight_open_loop_${loopId}`,
+      text: 'Coaching insight: Open loop (intention) expired. Context: Status: expired. Category: follow_up.',
+      metadata: {},
+    },
+    score: 0.7,
+  });
+
+  it.each([['expired passport'], ['follow up with Dana'], ['intention papers']])(
+    'a topic "%s" on its labels keeps it',
+    async (topic) => {
+      expect(await forgetOn([expired('loop_9_zz')], [topic])).toHaveLength(1);
+    }
+  );
+
+  it("a forgotten word in the loop's record still drops it", async () => {
+    const r: ForgetReads = {
+      topics: async () => ['Denver job'],
+      docs: async (paths) =>
+        new Map(paths.map((p) => [p, { status: 'expired', content: 'the Denver offer' }])),
+    };
+    const out = await withoutForgotten('u-fiction', [expired('loop_9_zz')], r, Date.now(), ON);
+    expect(out).toEqual([]);
+  });
+
+  it('text after the template is read whole (a shape it does not know)', async () => {
+    const copy = expired('loop_9_zz');
+    copy.document.text += ' I got the offer from the Denver office.';
+    expect(await forgetOn([copy], ['Denver job'])).toEqual([]);
   });
 });

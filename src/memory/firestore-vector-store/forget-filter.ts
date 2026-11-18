@@ -121,12 +121,18 @@ export function sourcePath(
 
 /**
  * The caller's words in an open loop's copy (open-loops.ts saveOpenLoop), without the copy's own labels ("Priority", "Actionable"),
- * which would match a topic on their own; the whole text if its shape is new.
+ * which would match a topic on their own; none for an expired loop's copy, which is only
+ * labels (open-loop-expiry.ts); the whole text if its shape is new.
  * Undefined for any other result.
  */
+/** An expired loop's whole copy, as coaching-hooks.ts writes open-loop-expiry.ts's fields. */
+const EXPIRED_COPY =
+  /^Coaching insight: Open loop \(\w+\) expired\. Context: Status: expired\. Category: \w+\.$/;
+
 export function openLoopWords(doc: { id: string; text: string }): string | undefined {
   // The store's id is `${storeType}_${entityType}_${entityId}`: coaching_coaching_insight_open_loop_<id>
   if (!doc.id.includes('_open_loop_')) return undefined;
+  if (EXPIRED_COPY.test(doc.text)) return '';
   const said = /Open loop \([^)]*\):\s*([\s\S]*?)\.\s*Context: Priority:/.exec(doc.text);
   return said?.[1] ?? doc.text;
 }
@@ -140,7 +146,7 @@ export function openLoopPath(userId: string, doc: { id: string }): string | unde
 }
 
 /** The loop's labels: never the caller's words. */
-const LOOP_LABELS = new Set(['id', 'userId', 'type', 'status']);
+const LOOP_LABELS = new Set(['id', 'userId', 'type', 'status', 'emotionAtCreation']);
 
 /** Every string in a stored loop but its labels (content, context, the person, the topic...). */
 export function loopRecordText(record: Record<string, unknown>): string {
@@ -176,7 +182,9 @@ export async function withoutForgotten<
     if (loop !== undefined && isForgottenPassage(loop, topics)) return false;
     return !isForgotten(r.document.text, topics);
   });
-  const loopOf = (r: T) => (byWord ? openLoopPath(userId, r.document) : undefined);
+  // Nothing forgotten: no record to read (and none to fail closed on).
+  const loopOf = (r: T) =>
+    byWord && topics.length > 0 ? openLoopPath(userId, r.document) : undefined;
   const read = (r: T) => [sourcePath(userId, r.document), loopOf(r)].filter((p) => p !== undefined);
   const paths = [...new Set(kept.flatMap(read))];
   if (paths.length === 0) return kept;
