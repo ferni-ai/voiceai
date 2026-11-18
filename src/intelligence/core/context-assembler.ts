@@ -507,7 +507,8 @@ export function formatAssembledContextForPrompt(context: ContextWindow): string 
   const sections: string[] = [];
 
   // Immediate context
-  sections.push(`[MOMENT] ${context.immediate.timeOfDay}, ${context.immediate.dayOfWeek}`);
+  const { timeOfDay, dayOfWeek } = context.immediate;
+  if (timeOfDay && dayOfWeek) sections.push(`[MOMENT] ${timeOfDay}, ${dayOfWeek}`); // none: clock unknown
 
   if (context.immediate.isLateNight) {
     sections.push('[AWARENESS] Late night - be extra gentle and present');

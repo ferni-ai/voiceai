@@ -771,10 +771,10 @@ export function formatIntelligenceForLLM(
     parts.push(`[EMOTIONAL STATE] User appears ${ctx.immediate.currentMood}`);
   }
 
-  // Add temporal context
-  parts.push(
-    `[TIME] ${ctx.immediate.timeOfDay.replace('_', ' ')} on ${ctx.immediate.dayOfWeek}${ctx.immediate.isWeekend ? ' (weekend)' : ''}`
-  );
+  // Add temporal context (none when the caller's clock is unknown)
+  const { timeOfDay: part, dayOfWeek: day, isWeekend } = ctx.immediate;
+  if (part && day)
+    parts.push(`[TIME] ${part.replace('_', ' ')} on ${day}${isWeekend ? ' (weekend)' : ''}`);
 
   // Add active domains
   if (ctx.activeDomains.length > 0) {

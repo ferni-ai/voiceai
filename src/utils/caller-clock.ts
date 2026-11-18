@@ -12,9 +12,11 @@
 import { flagOn, type Env } from '../config/env-flag.js';
 import { isValidTimeZone } from './time-zone.js';
 
-/** The zone to read the clock in, or undefined to keep the server clock. */
+export function callerClockEnabled(env: Env = process.env): boolean {
+  return flagOn('CALLER_CLOCK_TIME_OF_DAY', env);
+}
+
+/** The zone to read the clock in, or undefined (flag off, or no valid zone). */
 export function callerClockZone(timeZone: unknown, env: Env = process.env): string | undefined {
-  return flagOn('CALLER_CLOCK_TIME_OF_DAY', env) && isValidTimeZone(timeZone)
-    ? timeZone
-    : undefined;
+  return callerClockEnabled(env) && isValidTimeZone(timeZone) ? timeZone : undefined;
 }

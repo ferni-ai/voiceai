@@ -4,10 +4,15 @@
  * The agent server runs in UTC, so 23:00Z (6 pm Eastern) read as late night and
  * 03:00Z Saturday (7 pm Friday Pacific) read as the weekend. With the flag on and
  * the call's zone known, hour, day and late night come from the caller's clock.
- * Flag off, or no valid zone: the server clock, exactly as before.
+ * Flag on with no valid zone: no time of day and never late night (the UTC hour
+ * is wrong for the caller). Flag off: the server clock, exactly as before.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assembleContext, clearContextCache } from '../context-assembler.js';
+import {
+  assembleContext,
+  clearContextCache,
+  formatAssembledContextForPrompt,
+} from '../context-assembler.js';
 import { getIntelligenceForTurn } from '../unified-intelligence-api.js';
 import { forgetCallerTimeZone, rememberCallerTimeZone } from '../../../utils/caller-time-zone.js';
 
@@ -81,10 +86,27 @@ describe('assembleContext with CALLER_CLOCK_TIME_OF_DAY on', () => {
     expect(moment.isWeekend).toBe(false);
   });
 
-  it('an unknown zone keeps the server clock', async () => {
+  it('no zone at 23:00Z: no time of day, and not late night', async () => {
     at(EASTERN_SIX_PM);
-    expect((await immediate(undefined)).hour).toBe(serverClock().hour);
-    expect((await immediate('Not/AZone')).hour).toBe(serverClock().hour);
+    const neutral = { isWeekend: false, isLateNight: false };
+    expect(await immediate(undefined)).toEqual(neutral);
+    expect(await immediate('Not/AZone')).toEqual(neutral);
+  });
+
+  it('no zone at 03:00Z (late on the server clock): no late-night line or insight', async () => {
+    at('2026-11-19T03:00:00Z');
+    const context = await assembleContext({ userId: USER, forceRefresh: true });
+    expect(context.immediate.isLateNight).toBe(false);
+    expect(context.activeDomains).not.toContain('late_night_support');
+    const prompt = formatAssembledContextForPrompt(context);
+    expect(prompt).not.toContain('[MOMENT]');
+    expect(prompt).not.toContain('Late night');
+    const { proactiveInsights } = await getIntelligenceForTurn(USER, {
+      moment: 'session_start',
+      sessionId: SESSION, // a session with no zone recorded
+      forceRefresh: true,
+    });
+    expect(proactiveInsights.map((i) => i.category)).not.toContain('late_night_support');
   });
 
   it('getIntelligenceForTurn reads the zone the call settled, by session id', async () => {
@@ -101,6 +123,17 @@ describe('assembleContext with CALLER_CLOCK_TIME_OF_DAY on', () => {
 });
 
 describe('assembleContext with CALLER_CLOCK_TIME_OF_DAY off', () => {
+  it('no zone: the server clock and the [MOMENT] line, as before', async () => {
+    at(EASTERN_SIX_PM);
+    const context = await assembleContext({ userId: USER, forceRefresh: true });
+    const { hour } = serverClock();
+    expect(context.immediate.hour).toBe(hour);
+    expect(context.immediate.isLateNight).toBe(hour >= 22 || hour < 6);
+    expect(formatAssembledContextForPrompt(context)).toContain(
+      `[MOMENT] ${context.immediate.timeOfDay}, ${context.immediate.dayOfWeek}`
+    );
+  });
+
   it('a known zone is ignored: hour and day come from the server clock', async () => {
     at('2026-11-22T03:00:00Z'); // 08:45 Sunday in Kathmandu (UTC+5:45), no server's own zone
     const moment = await immediate('Asia/Kathmandu');

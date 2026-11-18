@@ -14,9 +14,14 @@ vi.mock('../../../memory/embeddings.js', () => ({
 
 import {
   cleanupIntelligenceSession,
+  formatIntelligenceForLLM,
   getUnifiedIntelligence,
 } from '../unified-intelligence-integration.js';
-import { forgetCallerTimeZone, rememberCallerTimeZone } from '../../../utils/caller-time-zone.js';
+import {
+  forgetCallerTimeZone,
+  markZonelessCall,
+  rememberCallerTimeZone,
+} from '../../../utils/caller-time-zone.js';
 
 const USER = 'riley-test-turn-clock';
 const SESSION = 'riley-test-turn-clock-session';
@@ -46,5 +51,20 @@ describe('getUnifiedIntelligence with CALLER_CLOCK_TIME_OF_DAY on', () => {
     expect(result.context.immediate.hour).toBe(18);
     expect(result.context.immediate.isLateNight).toBe(false);
     expect(result.proactiveInsights.map((i) => i.category)).not.toContain('late_night_support');
+    expect(formatIntelligenceForLLM(result)).toContain('[TIME] evening on Wednesday');
+  });
+
+  it('a call with no zone at 03:00Z claims no time of day and no late night', async () => {
+    vi.setSystemTime(new Date('2026-11-19T03:00:00Z')); // late on the server's UTC clock
+    markZonelessCall(SESSION, USER); // a phone call: no browser zone, no owner zone
+    const result = await getUnifiedIntelligence({
+      userId: USER,
+      sessionId: SESSION,
+      turnNumber: 1,
+      transcript: 'hi there',
+    });
+    expect(result.context.immediate.isLateNight).toBe(false);
+    expect(result.proactiveInsights.map((i) => i.category)).not.toContain('late_night_support');
+    expect(formatIntelligenceForLLM(result)).not.toContain('[TIME]');
   });
 });
