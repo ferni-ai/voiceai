@@ -345,23 +345,25 @@ function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
   }, {} as Record<string, FeatureFlag[]>);
 }
 
+/** What GET /api/v1/admin/flags sends: the trust flags, keyed by id (services/platform/feature-flags.ts). */
 interface FlagsResponse {
-  flags?: FeatureFlag[];
-  trustFlags?: Record<string, { enabled?: boolean; percentage?: number }>;
+  trustFlags?: Record<string, { enabled?: boolean; percentage?: number; description?: string }>;
 }
 
-/** Merge general flags and trust flags */
+/**
+ * The trust flags, the only flags this API manages. Its `flags` field is the same flags
+ * again without their ids, so it is not read: listing it drew each flag twice, once
+ * as an unnamed "System" row.
+ */
 function toFlags(data: FlagsResponse): FeatureFlag[] {
-  const generalFlags = (data.flags ?? []).map((f) => ({ ...f, category: f.category ?? 'System' }));
-  const trustFlags = Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
+  return Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
     id,
-    name: id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-    description: config.enabled ? 'Enabled' : 'Disabled',
+    name: id,
+    description: config.description ?? '',
     enabled: config.enabled ?? false,
     percentage: config.percentage,
     category: 'Trust',
   }));
-  return [...generalFlags, ...trustFlags];
 }
 
 export default { render };

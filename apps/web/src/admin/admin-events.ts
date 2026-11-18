@@ -572,7 +572,7 @@ export async function runQuickAction(action: string): Promise<void> {
     case 'enable-all':
       showConfirmDialog(
         'Enable All Trust Flags',
-        'This will enable every trust flag. Other feature flags do not change.',
+        'This turns on every trust flag listed here, at 100% rollout. Agent flags do not change.',
         'Enable Trust Flags',
         async () => {
           if (await enableAllFlags()) {
@@ -586,7 +586,7 @@ export async function runQuickAction(action: string): Promise<void> {
     case 'disable-all':
       showConfirmDialog(
         'Disable All Trust Flags',
-        'This will disable every trust flag (kill switch). Other feature flags do not change.',
+        'This turns off every trust flag listed here, at 0% rollout (kill switch). Agent flags do not change.',
         'Disable Trust Flags',
         async () => {
           if (await disableAllFlags()) {
@@ -923,7 +923,7 @@ export function showConfirmDialog(
       </div>
       <footer class="admin-modal-footer">
         <button aria-label="Cancel" class="admin-btn" data-action="cancel">Cancel</button>
-        <button aria-label="Cancel" class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
+        <button aria-label="${confirmText}" class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
       </footer>
     </div>
   `;
