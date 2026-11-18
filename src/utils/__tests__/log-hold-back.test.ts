@@ -157,24 +157,120 @@ describe('a long unfinished line is never cut through a phone number or its cont
   });
 });
 
-describe('how much is held', () => {
-  it('a line dense with digits keeps at most 4 KB back, so each write stays cheap', () => {
+describe('a line with no clean place to cut is held, not cut through a number', () => {
+  const unit = '"t":1795004609442,"n":7,';
+
+  it('a phone at the edge of the searched part comes out masked (the verifier repro)', () => {
+    configured = [];
+    const line = `${unit.repeat(34)} "phone":"+15555550123" ${unit.repeat(250)}`;
+    const out = splitAt(line, 4923); // the first write ends `"phone":"+`
+    expect(out).toBe(`${whole(line)}\n`);
+    expect(out).not.toContain('5555550123');
+  });
+
+  it('JSON lines of 20 to 40 KB with phone fields come out as when redacted whole', () => {
+    configured = [];
+    let seed = 7;
+    const rand = (n: number): number => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed % n;
+    };
+    const wrong: string[] = [];
+    for (let n = 0; n < 40; n++) {
+      const fields: string[] = [];
+      for (let len = 0, target = 20000 + rand(20000); len < target;) {
+        const key = rand(33) === 0 ? ['phone', 'to', 'callerId'][rand(3)] : `k${rand(50)}`;
+        const field = key.startsWith('k')
+          ? `"${key}":${1795004609442 + rand(1000)}`
+          : `"${key}":"+1555555${String(100 + rand(100))
+              .slice(-4)
+              .padStart(4, '0')}"`;
+        fields.push(field);
+        len += field.length + 1;
+      }
+      const line = `{${fields.join(',')}}`;
+      for (const size of [512, 1000, 4096, 4097, 8192]) {
+        const s = sink();
+        for (let i = 0; i < line.length; i += size) s.target.write(line.slice(i, i + size));
+        s.target.write('\n');
+        if (s.text() !== `${whole(line)}\n`) wrong.push(`${n}@${size}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('a dense line up to 64 KB is held whole until its newline', () => {
     const s = sink();
-    const dense = '"k":17950046,'.repeat(4000); // 52 KB, no clean place to cut
+    const dense = '"k":17950046,'.repeat(4800); // 62 KB
     for (let i = 0; i < dense.length; i += 4096) s.target.write(dense.slice(i, i + 4096));
-    expect(dense.length - s.text().length).toBeLessThanOrEqual(4096);
+    expect(s.text()).toBe('');
     s.target.write('\n');
     expect(s.text()).toBe(`${whole(dense)}\n`);
   });
+});
 
-  it('a clone id where the 4 KB limit falls is still never split', () => {
-    const unit = '"k":17950046,';
-    const line = `${unit.repeat(600)}"voice":"${UUID_CLONE}",${unit.repeat(400)}`;
-    const start = line.indexOf(UUID_CLONE);
-    // The first write ends 4096 chars after the limit: these put the limit inside the id.
-    for (let at = start + 4096 - 4; at < start + 4096 + UUID_CLONE.length + 4; at++) {
-      expect(splitAt(line, at)).not.toContain(UUID_CLONE);
+describe('past 64 KB the cut is forced and fails closed', () => {
+  const unit = '"t":1795004609442,"to":"5555550123",';
+  const DIGIT_CLONE = '0d1e2f3a-4b5c-6d7e-8f90-a1b2c3d4e5f6';
+  const withoutDigits = (text: string): string => text.replace(/[\d*]/g, '');
+
+  it('no phone number of a 140 KB dense line shows, and no text is lost', () => {
+    configured = [];
+    const s = sink();
+    const line = unit.repeat(4000);
+    for (let i = 0; i < line.length; i += 4096) s.target.write(line.slice(i, i + 4096));
+    s.target.write('\n');
+    expect(s.text()).not.toMatch(/5555/);
+    expect(withoutDigits(s.text())).toBe(withoutDigits(`${whole(line)}\n`));
+  });
+
+  it('wherever the forced cut falls in a number, no part of it shows', () => {
+    configured = [];
+    const line = unit.repeat(2000);
+    const wrong: number[] = [];
+    for (let at = 70000; at < 70000 + unit.length; at++) {
+      if (/5555/.test(splitAt(line, at))) wrong.push(at);
     }
+    expect(wrong).toEqual([]);
+  });
+
+  it('a clone id with digits where the cut is forced is still replaced whole', () => {
+    configured = [DIGIT_CLONE];
+    const line = `${unit.repeat(2000)}"voice":"${DIGIT_CLONE}",${unit.repeat(200)}`;
+    const start = line.indexOf(DIGIT_CLONE);
+    // The first write ends 4096 chars after the forced cut: these put it in and around the id.
+    for (let at = start + 4096 - 70; at < start + 4096 + DIGIT_CLONE.length + 70; at += 3) {
+      const out = splitAt(line, at);
+      expect(out.split(REDACTED)).toHaveLength(2);
+      expect(out).not.toMatch(/d\*e\*f/);
+    }
+  });
+
+  it('the masking ends with the line: the next one is redacted as usual', () => {
+    configured = [];
+    const s = sink();
+    const line = unit.repeat(2000);
+    for (let i = 0; i < line.length; i += 4096) s.target.write(line.slice(i, i + 4096));
+    s.target.write('\n');
+    s.target.write('order 42 "to":"5555550199"\n');
+    expect(s.text().endsWith('\norder 42 "to":"***0199"\n')).toBe(true);
+  });
+
+  it('what the timer writes out of a force-cut line is masked too', () => {
+    configured = [];
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(clock);
+    const s = sink();
+    const line = unit.repeat(2000);
+    for (let i = 0; i < line.length; i += 4096) s.target.write(line.slice(i, i + 4096));
+    const before = s.text().length;
+    vi.advanceTimersByTime(50);
+    const released = s.text().slice(before);
+    expect(released.length).toBeGreaterThan(4000);
+    expect(released).not.toMatch(/\d/);
+    // The rest of that line, written whole after the release, is masked as well.
+    s.target.write(', 5550123]\n');
+    expect(s.text().endsWith(', *******]\n')).toBe(true);
   });
 });
 

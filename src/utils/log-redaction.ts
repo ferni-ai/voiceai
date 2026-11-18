@@ -77,7 +77,7 @@ import {
   validWeak,
   WEAK,
 } from './log-object-redaction.js';
-import { holdFrom } from './log-hold-back.js';
+import { createHoldBack } from './log-hold-back.js';
 import { redactLogValues } from './redacted-log-values.js';
 import { onSdkLogger } from './sdk-logger-slot.js';
 
@@ -368,6 +368,7 @@ export function redactWrites(target: unknown): void {
   if (!t || typeof t.write !== 'function' || t[REDACTING] === true) return;
   const { write } = t;
   const decoder = new StringDecoder('utf8');
+  const hold = createHoldBack();
   let pending = '';
   let timer: NodeJS.Timeout | undefined;
 
@@ -377,7 +378,7 @@ export function redactWrites(target: unknown): void {
     if (pending === '') return;
     const text = pending;
     pending = '';
-    write.call(t, redactionOff() ? text : redactText(text));
+    write.call(t, redactionOff() ? text : redactText(hold.release(text)));
   };
   flushers.add(flush);
   if (!exitHooked) {
@@ -393,21 +394,20 @@ export function redactWrites(target: unknown): void {
     }
     const asChunk = (s: string): unknown =>
       typeof chunk === 'string' ? s : Buffer.from(s, 'utf8');
-    if (pending === '' && wholeLines(chunk, text)) {
+    if (pending === '' && !hold.masking && wholeLines(chunk, text)) {
       const redacted = redactText(text);
       return write.call(this, redacted === text ? chunk : asChunk(redacted), ...rest);
     }
-    const all = pending + text;
-    const cut = holdFrom(all);
-    pending = all.slice(cut);
+    const { now, held } = hold.split(pending + text);
+    pending = held;
     if (timer) clearTimeout(timer);
     timer = pending === '' ? undefined : setTimeout(flush, HOLD_MS).unref();
-    if (cut === 0) {
+    if (now === '') {
       const cb = callbackOf(rest);
       if (cb) process.nextTick(cb);
       return true;
     }
-    return write.call(this, asChunk(redactText(all.slice(0, cut))), ...rest);
+    return write.call(this, asChunk(redactText(now)), ...rest);
   };
   t[REDACTING] = true;
 }

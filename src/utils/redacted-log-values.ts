@@ -96,3 +96,29 @@ export function cutOutsideLogValues(text: string, cut: number): number {
   }
   return safe;
 }
+
+const maskDigits = (s: string): string => s.replace(/\d/g, '*');
+
+/**
+ * `text` with every digit in [from, to) replaced by "*", except inside a registered value,
+ * which is left whole for redactLogValues to replace (masking its digits would stop it
+ * matching and print the rest of it). Matches are judged on the whole text.
+ */
+export function maskDigitsOutsideLogValues(text: string, from: number, to: number): string {
+  const pattern = sources.size === 0 ? null : currentPattern();
+  let out = text.slice(0, from);
+  let at = from;
+  if (pattern) {
+    pattern.lastIndex = Math.max(0, from - cachedLongest);
+    for (let m = pattern.exec(text); m && m.index < to; m = pattern.exec(text)) {
+      const end = m.index + m[0].length;
+      if (end <= at) continue;
+      out +=
+        maskDigits(text.slice(at, Math.max(at, m.index))) + text.slice(Math.max(at, m.index), end);
+      at = end;
+    }
+    pattern.lastIndex = 0;
+  }
+  if (at < to) out += maskDigits(text.slice(at, to));
+  return out + text.slice(Math.max(at, to));
+}

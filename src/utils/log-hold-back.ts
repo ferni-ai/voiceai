@@ -14,22 +14,27 @@
  * - a word, since whether a value matches depends on the letters beside it.
  *
  * Each side is redacted on its own and half a value matches nothing, so a cut through one
- * would write it out unredacted. At most HOLD_LIMIT chars are kept back, so each write costs
- * at most a walk that long: on a line dense with digits the cut may then go through a number
- * (there is no clean place to cut), but never through a registered value. The timer in
- * redactWrites writes what is held out within HOLD_MS.
+ * would write it out unredacted. Only the last HOLD_LIMIT chars are searched, so each write
+ * stays cheap. When they hold no clean place to cut (a line dense with digits), nothing of
+ * the line is written: it is held whole, up to HOLD_HARD chars, until its newline or the
+ * timer in redactWrites (HOLD_MS). Past HOLD_HARD the cut is forced, and it fails closed:
+ * every digit from the number run before the cut to the end of that line is masked, since
+ * a number after the cut may need context from before it. A forced cut still never splits
+ * a registered value, and digits inside one are left for it to be replaced whole.
  *
  * @module utils/log-hold-back
  */
 
-import { cutOutsideLogValues } from './redacted-log-values.js';
+import { cutOutsideLogValues, maskDigitsOutsideLogValues } from './redacted-log-values.js';
 
 /** A line longer than this with no newline yet is written out, keeping only its end. */
 const HOLD_MAX = 512;
 /** How much is kept back: more than a phone number and the words before it. */
 const HOLD_TAIL = 64;
-/** The most that is kept back, however dense with digits the line is. */
+/** How far back from the end a clean place to cut is looked for. */
 const HOLD_LIMIT = 4096;
+/** The longest line held whole when no clean place to cut is found; past it the cut is forced. */
+const HOLD_HARD = 65536;
 /** What a phone number can be written with. */
 const RUN_CHARS = new Set('0123456789+%(). \t-');
 /** What may lie between two numbers of one list (log-redaction.ts `continues`), and how much. */
@@ -67,19 +72,65 @@ function wordStart(text: string, cut: number, floor: number): number {
   return start;
 }
 
-/** Where the part of `text` to hold back for the next write starts. */
-export function holdFrom(text: string): number {
-  if (text.endsWith('\n')) return text.length;
+/** `cut` moved back once past whatever it would split; unchanged when it splits nothing. */
+function moveBack(text: string, cut: number, floor: number): number {
+  const after = text.slice(cut, cut + HOLD_TAIL).search(DIGIT);
+  const digit = after >= 0 ? cut + after : numberJustBefore(text, cut, floor);
+  const moved = digit >= 0 ? Math.max(floor, runStart(text, digit, floor) - HOLD_TAIL) : cut;
+  return cutOutsideLogValues(text, wordStart(text, moved, floor)); // last: never splits a value
+}
+
+/** Where to cut `text`, and whether the cut is forced (no clean place within reach). */
+function findCut(text: string): { cut: number; forced: boolean } {
+  if (text.endsWith('\n')) return { cut: text.length, forced: false };
   const lineStart = text.lastIndexOf('\n') + 1;
-  if (text.length - lineStart <= HOLD_MAX) return lineStart;
+  const lineLength = text.length - lineStart;
+  if (lineLength <= HOLD_MAX) return { cut: lineStart, forced: false };
   const floor = Math.max(lineStart, text.length - HOLD_LIMIT);
-  let cut = text.length - HOLD_TAIL;
-  for (let before = -1; cut !== before && cut > floor;) {
-    before = cut;
-    const after = text.slice(cut, cut + HOLD_TAIL).search(DIGIT);
-    const digit = after >= 0 ? cut + after : numberJustBefore(text, cut, floor);
-    if (digit >= 0) cut = Math.max(floor, runStart(text, digit, floor) - HOLD_TAIL);
-    cut = cutOutsideLogValues(text, wordStart(text, cut, floor)); // last: never splits a value
+  for (let cut = text.length - HOLD_TAIL; cut > floor;) {
+    const next = moveBack(text, cut, floor);
+    if (next === cut) return { cut, forced: false };
+    cut = next;
   }
-  return cut;
+  if (lineLength <= HOLD_HARD) return { cut: lineStart, forced: false }; // fail closed: hold it
+  const cut = cutOutsideLogValues(text, floor);
+  return cut > lineStart ? { cut, forced: true } : { cut: lineStart, forced: false };
+}
+
+/** Splits one writer's text into what to redact and write now and what to hold back. */
+export interface HoldBack {
+  /** True while a force-cut line is unfinished: its digits are masked until its newline. */
+  readonly masking: boolean;
+  /** Everything not yet written (held text plus the new write), split at the cut. */
+  split(text: string): { now: string; held: string };
+  /** Held text the timer writes out early, masked if its line was force-cut. */
+  release(held: string): string;
+}
+
+export function createHoldBack(): HoldBack {
+  let masking = false;
+  /** `part` with the digits up to its first newline masked if a forced cut is on that line. */
+  const maskRestOfLine = (part: string): string => {
+    if (!masking) return part;
+    const newline = part.indexOf('\n');
+    if (newline >= 0) masking = false;
+    return maskDigitsOutsideLogValues(part, 0, newline >= 0 ? newline : part.length);
+  };
+  return {
+    get masking() {
+      return masking;
+    },
+    split(text) {
+      const { cut, forced } = findCut(text);
+      let now = maskRestOfLine(text.slice(0, cut));
+      if (forced) {
+        const lineStart = now.lastIndexOf('\n') + 1;
+        const from = runStart(now, Math.max(lineStart, cut - HOLD_TAIL), lineStart);
+        now = maskDigitsOutsideLogValues(now, from, now.length);
+        masking = true;
+      }
+      return { now, held: text.slice(cut) };
+    },
+    release: (held) => maskRestOfLine(held),
+  };
 }
