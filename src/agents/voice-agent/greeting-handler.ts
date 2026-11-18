@@ -37,6 +37,7 @@ import { getDJController } from '../../audio/dj-controller.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
 import { getProactiveContext, type ProactiveContext } from './greeting-proactive-context.js';
+import { greetingIntentions, greetingProfile } from './greeting-remembered.js';
 // NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
 import { logPrimingApplied } from '../shared/function-call-telemetry.js';
 // Speech coordination for centralized speech management
@@ -690,42 +691,24 @@ async function greetingFromProfile(
   openQuestions: string[],
   bundleRuntime?: BundleRuntimeEngine
 ): Promise<string> {
-  // BETTER-THAN-HUMAN: Load pending intentions for follow-up
-  let pendingIntentions: Array<{ intention: string; statedAt: Date; targetTime?: Date }> = [];
-  const intentionsUserId = services.userId;
-  try {
-    if (intentionsUserId) {
-      const { getPendingIntentions } = await import('../../services/trust-systems/small-wins.js');
-      const rawIntentions = getPendingIntentions(intentionsUserId);
-      pendingIntentions = rawIntentions.map((i) => ({
-        intention: i.intention,
-        statedAt: i.statedAt,
-        targetTime: i.targetTime,
-      }));
-    }
-  } catch {
-    // Non-critical - continue without intentions
-  }
-
+  // FORGET_EVERY_READER: the profile and intentions, less what the caller asked to forget
+  const profile = await greetingProfile(services);
+  const pendingIntentions = await greetingIntentions(services.userId);
   return generateGreeting(sessionPersona, {
     isReturningUser,
     userName: userData.name,
-    lastConversationSummary: services.userProfile?.lastConversationSummary,
+    lastConversationSummary: profile?.lastConversationSummary,
     personaMemories,
     bundleRuntime,
-    relationshipStage: services.userProfile?.relationshipStage as
+    relationshipStage: profile?.relationshipStage as
       'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor' | undefined,
-    usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-    lastConversationDate: services.userProfile?.lastContact
-      ? new Date(services.userProfile.lastContact)
-      : undefined,
-    goals: services.userProfile?.goals,
-    primaryConcerns: services.userProfile?.primaryConcerns,
+    usedGreetings: profile?.humanizingState?.usedGreetings,
+    lastConversationDate: profile?.lastContact ? new Date(profile.lastContact) : undefined,
+    goals: profile?.goals,
+    primaryConcerns: profile?.primaryConcerns,
     openQuestions,
-    lifeEvents: services.userProfile?.lifeEvents
-      ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
-      : undefined,
-    conversationCount: services.userProfile?.totalConversations,
+    lifeEvents: profile?.lifeEvents ? convertFromUserProfileEvents(profile.lifeEvents) : undefined,
+    conversationCount: profile?.totalConversations,
     userId: services.userId,
     pendingIntentions,
   });
