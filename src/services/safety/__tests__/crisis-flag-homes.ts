@@ -346,7 +346,18 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
       // Each router (semantic, intelligent, FTIS) holds the tool on a hold, a failed read and a
       // check that throws.
       file: 'src/tools/semantic-router/integration/__tests__/auto-execute-hold.test.ts',
-      rows: ['each router holds the tool on a hold, a failed read and a check that throws'],
+      rows: [
+        'each router holds the tool on a hold, a failed read and a check that throws',
+        'with the flag on, each router holds the tool when no check is handed and logs no_check',
+      ],
+    },
+    {
+      // FTIS run by the transcript handler, outside processTurn.
+      file: 'src/agents/voice-agent/__tests__/ftis-transcript-crisis-hold.test.ts',
+      rows: [
+        'flag on, FTIS on: a crisis only the classifier reads runs no tool through the transcript handler',
+        'flag on, FTIS on: no crisis read of the turn starts, so no tool runs (fail closed)',
+      ],
     },
   ],
 };
