@@ -29,6 +29,32 @@ import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 const log = getLogger().child({ module: 'SpeechMetricsRoutes' });
 
+type ThresholdKey = keyof ReturnType<typeof getQualityThresholds>;
+/** Each threshold's allowed range: accuracies and confidence are ratios, latencies are ms. */
+const THRESHOLD_RANGES: Record<ThresholdKey, readonly [number, number]> = {
+  turnPredictionAccuracy: [0, 1],
+  backchannelAccuracy: [0, 1],
+  emotionConfidence: [0, 1],
+  responseLatencyMs: [1, 60_000],
+  p99LatencyMs: [1, 60_000],
+};
+
+/** The thresholds a POST may change, or why it was refused (unknown key, not a number, out of range). */
+export function parseThresholdUpdate(
+  body: Record<string, unknown>
+): Partial<Record<ThresholdKey, number>> | string {
+  const update: Partial<Record<ThresholdKey, number>> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (!Object.hasOwn(THRESHOLD_RANGES, key)) return `Unknown threshold: ${key.slice(0, 40)}`;
+    const [min, max] = THRESHOLD_RANGES[key as ThresholdKey];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      return `${key} must be a number from ${min} to ${max}`;
+    update[key as ThresholdKey] = value;
+  }
+  if (Object.keys(update).length === 0) return 'No thresholds given';
+  return update;
+}
+
 // ============================================================================
 // HTTP HANDLER (for ui-server.js)
 // ============================================================================
@@ -51,8 +77,8 @@ export async function handleSpeechMetricsRoutes(
     return true;
   }
 
-  // Require authentication (allow dev mode for local testing)
-  const auth = await requireAuth(req, res, { allowDevMode: true });
+  // Pipeline-wide metrics and alert thresholds: admins only (the admin portal is the only caller).
+  const auth = await requireAuth(req, res, { allowDevMode: true, requireAdmin: true });
   if (!auth) {
     return true; // 401 already sent
   }
@@ -266,16 +292,12 @@ export async function handleSpeechMetricsRoutes(
       }
 
       if (method === 'POST') {
-        const body = await readBody();
-        setQualityThresholds(
-          body as Partial<{
-            turnPredictionAccuracy: number;
-            backchannelAccuracy: number;
-            responseLatencyMs: number;
-            emotionConfidence: number;
-            p99LatencyMs: number;
-          }>
-        );
+        const update = parseThresholdUpdate(await readBody());
+        if (typeof update === 'string') {
+          sendJson(400, { error: update });
+          return true;
+        }
+        setQualityThresholds(update);
         const thresholds = getQualityThresholds();
         sendJson(200, {
           success: true,
