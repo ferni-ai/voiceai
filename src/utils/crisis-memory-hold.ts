@@ -17,6 +17,7 @@
  *
  * @module utils/crisis-memory-hold
  */
+import { flagOn } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'crisis-memory-hold' });
@@ -35,6 +36,8 @@ export const CRISIS_READ_WAIT = { startMs: 5000, settleMs: 10_000 };
 const held = new Map<string, number>();
 /** sessionId -> the turns a crisis read started for (crisisTurnKey). */
 const seen = new Map<string, string[]>();
+/** sessionId -> the turns the reply gate read (personas/crisis-gate.ts), CRISIS_HOLD_FOLLOWS_REPLY. */
+const gateSeen = new Map<string, string[]>();
 /** sessionId -> its reads still running. */
 const reads = new Map<string, Set<Promise<void>>>();
 
@@ -79,13 +82,34 @@ export function crisisReadingSessions(): string[] {
   return [...reads].filter(([, running]) => running.size > 0).map(([id]) => id);
 }
 
+function remember(of: Map<string, string[]>, sessionId: string, words: string): void {
+  const turns = (of.get(sessionId) ?? []).concat(crisisTurnKey(words)).slice(-TURNS_KEPT);
+  of.delete(sessionId);
+  of.set(sessionId, turns);
+  trim(of);
+}
+
 /** A crisis read of these caller words started on this call (the turn's pattern read). */
 export function noteCrisisTurnRead(sessionId: string | undefined, words: string): void {
-  if (!sessionId) return;
-  const turns = (seen.get(sessionId) ?? []).concat(crisisTurnKey(words)).slice(-TURNS_KEPT);
-  seen.delete(sessionId);
-  seen.set(sessionId, turns);
-  trim(seen);
+  if (sessionId) remember(seen, sessionId, words);
+}
+
+/**
+ * CRISIS_HOLD_FOLLOWS_REPLY: the reply gate read these caller words. Its escalation, when it has
+ * one, runs as one of the call's reads until it settles, so replyGateTurnSettled waits for it.
+ * Flag off: nothing noted, so no other reader waits longer than on main.
+ */
+export function noteReplyGateTurn(
+  sessionId: string | undefined,
+  words: string,
+  escalation: Promise<unknown> | null,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): void {
+  if (!sessionId || !flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return;
+  remember(gateSeen, sessionId, words);
+  if (!escalation) return;
+  const { end } = beginCrisisRead(sessionId, words);
+  escalation.then(end, end);
 }
 
 /** A classifier read of these words starts: running until `end()`, which its reader calls. */
@@ -113,8 +137,8 @@ export function crisisReadsSettled(sessionId: string | undefined): Promise<void>
   return running?.size ? Promise.all(running).then(() => undefined) : null;
 }
 
-const readOf = (sessionId: string, turn: string): boolean =>
-  !!turn && !!seen.get(sessionId)?.some((t) => t === turn || t.includes(turn) || turn.includes(t));
+const readOf = (of: Map<string, string[]>, sessionId: string, turn: string): boolean =>
+  !!turn && !!of.get(sessionId)?.some((t) => t === turn || t.includes(turn) || turn.includes(t));
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => {
@@ -149,9 +173,30 @@ export async function crisisTurnSettled(
   words: string,
   wait = CRISIS_READ_WAIT
 ): Promise<boolean> {
+  return turnSettled(seen, sessionId, words, wait);
+}
+
+/**
+ * crisisTurnSettled for the reply gate's read of the turn alone (noteReplyGateTurn): another
+ * engine's read never stands in for it. False when the gate read none within `startMs`.
+ */
+export async function replyGateTurnSettled(
+  sessionId: string | undefined,
+  words: string,
+  wait = CRISIS_READ_WAIT
+): Promise<boolean> {
+  return turnSettled(gateSeen, sessionId, words, wait);
+}
+
+async function turnSettled(
+  of: Map<string, string[]>,
+  sessionId: string | undefined,
+  words: string,
+  wait: typeof CRISIS_READ_WAIT
+): Promise<boolean> {
   if (!sessionId) return false;
   const turn = crisisTurnKey(words);
-  for (let waited = 0; !readOf(sessionId, turn); waited += POLL_MS) {
+  for (let waited = 0; !readOf(of, sessionId, turn); waited += POLL_MS) {
     if (waited >= wait.startMs) return unread(sessionId, 'no crisis read of the turn');
     await sleep(POLL_MS);
   }
@@ -168,5 +213,6 @@ function unread(sessionId: string, why: string): false {
 export function resetCrisisMemoryHold(): void {
   held.clear();
   seen.clear();
+  gateSeen.clear();
   reads.clear();
 }

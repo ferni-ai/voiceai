@@ -25,7 +25,8 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { crisisTurnSettled } from '../../utils/crisis-memory-hold.js';
+import { crisisTurnSettled, replyGateTurnSettled } from '../../utils/crisis-memory-hold.js';
+import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetection } from '../processors/types.js';
 
@@ -42,8 +43,11 @@ export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
  *
  * Reuses the call's shared hold (utils/crisis-memory-hold.ts), which both engines feed: a pattern
  * guide or replace and every classifier read that is not a clean none, gave no verdict or failed
- * hold the call (services/safety/crisis-call-risk.ts). Held when the call's reads did not settle in
- * time, no read of the turn started, or a read held the call: fail closed.
+ * hold the call (services/safety/crisis-call-risk.ts). With the gate live (every voice reply runs
+ * it: gatedReply), it waits for the gate's own read of the turn and its escalation
+ * (noteReplyGateTurn): the pipeline's read never stands in for it. With the gate off or in shadow,
+ * any read of the turn counts, as for the pipeline's own writers. Held when that read did not
+ * start or the call's reads did not settle in time, or a read held the call: fail closed.
  */
 export function replyReadHold(
   sessionId: string | undefined,
@@ -51,9 +55,10 @@ export function replyReadHold(
   env: Readonly<Record<string, string | undefined>> = process.env
 ): (() => Promise<boolean>) | null {
   if (!flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return null;
+  const settled = resolveCrisisGuardMode(env) === 'live' ? replyGateTurnSettled : crisisTurnSettled;
   let held: Promise<boolean> | undefined;
   return async () =>
-    (held ??= crisisTurnSettled(sessionId, words).then(
+    (held ??= settled(sessionId, words).then(
       (kept) => !kept,
       () => true
     ));

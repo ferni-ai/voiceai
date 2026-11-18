@@ -151,9 +151,15 @@ afterEach(() => {
 /**
  * One turn: the reply gate starts its read of the line (its model call answers `gateRead` once
  * released), the handler runs it with the pipeline's read, then the gate's read is released.
+ * `gateStarts: 'late'`: the gate reads the line only after the handler's writers have asked.
  * Returns the pipeline's level, the gate's final action and every write the handler made.
  */
-async function turn(line: string, gateRead: string | null, flag: 'on' | 'off') {
+async function turn(
+  line: string,
+  gateRead: string | null,
+  flag: 'on' | 'off',
+  gateStarts: 'first' | 'late' = 'first'
+) {
   vi.stubEnv('CRISIS_HOLD_FOLLOWS_REPLY', flag);
   const sessionId = `hold-follows-reply-${++n}`;
   Object.assign(state, { sessionId, pipelineEnv: PATTERNS_ONLY });
@@ -163,14 +169,14 @@ async function turn(line: string, gateRead: string | null, flag: 'on' | 'off') {
   });
   const chat = llm.ChatContext.empty();
   chat.addMessage({ role: 'user', content: line });
-  const gate =
+  const startGate = (): ReturnType<typeof startCrisisGate> =>
     gateRead === null
       ? null
       : startCrisisGate(
           chat,
           { services: { sessionId } },
           {
-            env: GATE,
+            env: { ...GATE, CRISIS_HOLD_FOLLOWS_REPLY: flag },
             generate: async () => {
               await released;
               if (gateRead === NEVER) {
@@ -183,6 +189,7 @@ async function turn(line: string, gateRead: string | null, flag: 'on' | 'off') {
             },
           }
         );
+  let gate = gateStarts === 'first' ? startGate() : null;
   const messages: Array<{ type: string; data?: Record<string, unknown> }> = [];
   await handleUserTurn({
     turnCtx: llm.ChatContext.empty(),
@@ -194,6 +201,12 @@ async function turn(line: string, gateRead: string | null, flag: 'on' | 'off') {
     sendDataMessage: async (type: string, data?: Record<string, unknown>) =>
       void messages.push({ type, data }),
   } as unknown as Ctx);
+  if (gateStarts === 'late') {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 150); // past the writers' first check of the turn's reads
+    });
+    gate = startGate();
+  }
   release();
   const escalated = await gate?.escalation;
   const contexts = flag === 'on' ? [...WRITERS, 'learning-trust-recording'] : WRITERS;
@@ -236,6 +249,19 @@ describe('a gate-only crisis: the pipeline reads the turn as ordinary, the gate 
 
   it('flag on: every writer that consults the hold records nothing', async () => {
     const t = await turn(LINE, CRISIS, 'on');
+    expect(t.realClient).toBe(0);
+    expect(t.pipeline).toBe('pass');
+    expect(t.gate).toBe('guide');
+    expect(t.writes).toEqual([]);
+    expect(t.bond).toBe(0);
+    expect(t.captures).toBe(0);
+    expect(t.semantic).toEqual([true]);
+  });
+});
+
+describe('the gate reads the turn only after the pipeline read settled clean and the writers asked', () => {
+  it('flag on: held, the pipeline read never standing in for the gate', async () => {
+    const t = await turn(LINE, CRISIS, 'on', 'late');
     expect(t.realClient).toBe(0);
     expect(t.pipeline).toBe('pass');
     expect(t.gate).toBe('guide');
