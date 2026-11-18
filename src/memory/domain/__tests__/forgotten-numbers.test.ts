@@ -162,6 +162,9 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['in a snake_case note', 'note_for_mom 435 555 0199'],
     ['after a stored id with no epoch', 'id_x 4355550199'],
     ['as thirteen digits with no underscore', 'his line is 1435555019912'],
+    ['after a list of years', 'in 2019, 2020 435 555 0199'],
+    ['before a time', 'his is 435-555-0199 15:00'],
+    ['before a stored id', 'his cell is 435 555 0199 summary_x_1763478000123'],
   ])('a real number %s still hides', (_l, text) => {
     expect(isForgottenPassage(text, ['his number'])).toBe(true);
   });
