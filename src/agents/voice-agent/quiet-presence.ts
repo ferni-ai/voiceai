@@ -245,13 +245,17 @@ interface QuietCallContext {
 
 /**
  * Any crisis signal on this call: a reply the crisis gate guided or replaced, or risk noted
- * (or a read still in flight) under either of the call's ids. Fails toward the short wait.
+ * (or a read still in flight) under either of the call's ids (the session id and the
+ * services' id). Fails toward the short wait. Also read by the idle check-in
+ * (phases/idle-checkin.ts), which skips a call with one.
  */
-function callHasCrisisSignal(
+export function callHasCrisisSignal(
   session: unknown,
-  callIds: ReadonlyArray<string | undefined>
+  sessionId: string,
+  userData: unknown
 ): boolean {
   if (crisisDecidedOn(session)) return true;
+  const callIds = [sessionId, sessionScope(userData)];
   return callIds.some((id) => id !== undefined && crisisRiskThisCall(id));
 }
 
@@ -273,7 +277,7 @@ export function quietPresenceFor(
       return {
         ...cues,
         askedQuestion: askedQuestion(turns.ferni.at(-1)),
-        crisis: callHasCrisisSignal(session, [sessionId, sessionScope(userData)]),
+        crisis: callHasCrisisSignal(session, sessionId, userData),
       };
     },
     afterQuestion: () => quietAfterQuestionOn(),
@@ -284,16 +288,33 @@ export function quietPresenceFor(
       isRealSilence(session as unknown as SessionStates) &&
       !silenceResponseBlocked(sessionId, room, (Date.now() - callerLastSpokeAt()) / 1000, userData),
     speak: (instructions) =>
-      fireAndForget(async () => {
-        await safeGenerateReply(session, {
-          instructions,
-          allowInterruptions: true,
-          context: 'silence-quiet-presence',
-          sessionId,
-          timeoutMs: 10_000,
-          priority: 'low',
-          waitForPlayout: false,
-        });
-      }, 'quiet-presence'),
+      speakPresenceCheck(session, sessionId, instructions, {
+        context: 'silence-quiet-presence',
+        label: 'quiet-presence',
+      }),
   });
+}
+
+/**
+ * One soft presence line in the persona's own words, interruptible and low priority, not
+ * waited on: quiet presence's check, and the idle check-in (phases/idle-checkin.ts).
+ */
+export function speakPresenceCheck(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: voice.AgentSession<any>,
+  sessionId: string,
+  instructions: string,
+  names: { context: string; label: string }
+): void {
+  fireAndForget(async () => {
+    await safeGenerateReply(session, {
+      instructions,
+      allowInterruptions: true,
+      context: names.context,
+      sessionId,
+      timeoutMs: 10_000,
+      priority: 'low',
+      waitForPlayout: false,
+    });
+  }, names.label);
 }
