@@ -183,6 +183,30 @@ describe('CSV data export', () => {
     expect(table(csv, '## ANSWER_CARDS')[0].question).toBe(`'=HYPERLINK("http://x","y")`);
   });
 
+  it.each(['=', '+', '-', '@', '\t', '\r'])('neutralises text starting with %j', async (lead) => {
+    cards.mockResolvedValue([{ id: 'a1', question: `${lead}cmd`, [`${lead}k`]: 1, temp: -4 }]);
+
+    const csv = await exportCsv(['Answer Cards']);
+
+    expect(section(csv, '## ANSWER_CARDS')[0]).toEqual(['id', 'question', `'${lead}k`, 'temp']);
+    // A negative number is a number, not a formula: it stays bare
+    expect(table(csv, '## ANSWER_CARDS')[0]).toMatchObject({ question: `'${lead}cmd`, temp: '-4' });
+  });
+
+  it('names the overflow column so it never clashes with a real field', async () => {
+    const wide = Object.fromEntries(Array.from({ length: 101 }, (_, k) => [`k${k}`, k]));
+    records.mockResolvedValue({ Wide: [{ _otherFields: 'real', ...wide }] });
+
+    const csv = await exportCsv(['Records']);
+
+    const [header, row] = section(csv, '## RECORDS / Wide');
+    expect(header[0]).toBe('_otherFields');
+    expect(header[100]).toBe('__otherFields');
+    expect(new Set(header).size).toBe(header.length);
+    expect(row[0]).toBe('real');
+    expect(JSON.parse(row[100])).toEqual({ k99: 99, k100: 100 });
+  });
+
   it('caps a table at 100 columns and keeps the rest of each row in one JSON cell', async () => {
     // Every row with its own keys: a column per key would grow as rows times keys
     const rows = Array.from({ length: 30 }, (_, r) =>

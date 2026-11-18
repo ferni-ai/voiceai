@@ -93,7 +93,9 @@ function writeTable(lines: string[], rows: readonly Row[]): void {
   const headers = keys.slice(0, MAX_COLUMNS);
   const columns = new Set(headers);
   const overflow = keys.length > MAX_COLUMNS;
-  lines.push([...headers, ...(overflow ? [OTHER_FIELDS] : [])].map(field).join(','));
+  let other = OTHER_FIELDS;
+  while (columns.has(other)) other = `_${other}`;
+  lines.push([...headers, ...(overflow ? [other] : [])].map(field).join(','));
   for (const row of rows) {
     const cells = headers.map((h) => cell(row[h]));
     if (overflow) {
