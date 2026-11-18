@@ -20,6 +20,7 @@ export {
 // The turn's check before a router runs a tool on its own (ROUTER_EXEC_AFTER_CRISIS_READ)
 export {
   autoExecuteHeld,
+  type AutoExecuteCheck,
   type AutoExecuteGate,
   type AutoExecuteOutcome,
 } from './auto-execute-hold.js';

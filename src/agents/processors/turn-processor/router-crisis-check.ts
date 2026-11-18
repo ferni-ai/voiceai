@@ -7,22 +7,28 @@
  * (turn-crisis.ts bypassAllowed), and no crisis risk noted on the call by earlier reads
  * (crisisRiskThisCall, where the reply gate's reads land; its read of this turn starts after
  * routing). A live classifier read with no verdict, or a read that throws, is 'failed'. Any other
- * no is 'held'. With the flag off the routers get no check and the bypass asks bypassAllowed, as
- * on main.
+ * no is 'held'. With the flag off the routers get a null check and the bypass asks bypassAllowed,
+ * as on main.
+ *
+ * A router that runs outside processTurn (transcript-handler.ts runs FTIS on the final transcript)
+ * has no TurnCrisis: turnSettledToolCheck answers 'allowed' only once a crisis read of that turn
+ * has started and the call's reads settled with nothing holding the call (crisisTurnSettled).
  *
  * @module agents/processors/turn-processor/router-crisis-check
  */
 import { flagOn } from '../../../config/env-flag.js';
 import { crisisRiskThisCall } from '../../../services/safety/index.js';
 import type {
+  AutoExecuteCheck,
   AutoExecuteGate,
   AutoExecuteOutcome,
 } from '../../../tools/semantic-router/integration/index.js';
+import { crisisTurnSettled } from '../../../utils/crisis-memory-hold.js';
 import type { TurnCrisis } from './turn-crisis.js';
 
 /** What processTurn hands the routers and asks before any reply that skips the reply model. */
 export interface RouterCrisisChecks {
-  /** Spread into each router's context; empty with the flag off. */
+  /** Spread into each router's context; a null check with the flag off. */
   gate: AutoExecuteGate;
   /** Whether a reply may skip the reply model (FTIS bypass, semantic short-circuit). */
   bypassAllowed: () => Promise<boolean>;
@@ -42,7 +48,7 @@ export function routerCrisisChecks(
 ): RouterCrisisChecks {
   if (!flagOn('ROUTER_EXEC_AFTER_CRISIS_READ', env)) {
     return {
-      gate: {},
+      gate: { autoExecuteCheck: null },
       bypassAllowed: turnCrisis.bypassAllowed,
       blocksDirectReply: () => Promise.resolve(turnCrisis.patterns.isCrisis),
     };
@@ -61,5 +67,25 @@ export function routerCrisisChecks(
     gate: { autoExecuteCheck: check },
     bypassAllowed,
     blocksDirectReply: async () => !(await bypassAllowed()),
+  };
+}
+
+/**
+ * The check for a router outside processTurn: 'allowed' only when a crisis read of these words
+ * started and the call's reads settled with nothing holding the call; no read, a late read or
+ * any hold is 'held', and a read that throws is 'failed'. Null with the flag off.
+ */
+export function turnSettledToolCheck(
+  sessionId: string,
+  words: string,
+  env: NodeJS.ProcessEnv = process.env
+): AutoExecuteCheck | null {
+  if (!flagOn('ROUTER_EXEC_AFTER_CRISIS_READ', env)) return null;
+  return async () => {
+    try {
+      return (await crisisTurnSettled(sessionId, words)) ? 'allowed' : 'held';
+    } catch {
+      return 'failed';
+    }
   };
 }

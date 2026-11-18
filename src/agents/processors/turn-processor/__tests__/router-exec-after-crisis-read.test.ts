@@ -41,7 +41,7 @@ vi.mock('../../../../tools/semantic-router/integration/index.js', async (importO
   isIntelligentRouterInitialized: () => false,
   startSemanticRouting: async (
     _text: string,
-    context: { autoExecuteCheck?: () => Promise<'allowed' | 'held' | 'failed'> }
+    context: { autoExecuteCheck: (() => Promise<'allowed' | 'held' | 'failed'>) | null }
   ) => {
     h.handedGate.push(typeof context.autoExecuteCheck === 'function');
     const { autoExecuteHeld } =

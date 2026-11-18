@@ -1,14 +1,14 @@
 /**
  * ROUTER_EXEC_AFTER_CRISIS_READ at the routers: the real startSemanticRouting,
  * startIntelligentRouting (execute and plan decisions) and runFTISRouting run a matched tool only
- * when the turn's check says 'allowed'. A turn that hands no check (flag off) runs the tool as
- * before; 'held', 'failed' or a check that throws keeps it, and the tool never runs. Each check
- * logs its outcome and wait. The route, the classifier and the tools are stubs that count runs;
+ * when the turn's check says 'allowed'. A null check runs the tool as before with the flag off
+ * and holds it with the flag on (fail closed); 'held', 'failed' or a check that throws keeps it,
+ * and the tool never runs. Each check logs its outcome and wait. The route, the classifier and the tools are stubs that count runs;
  * nothing leaves the process.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AutoExecuteOutcome } from '../auto-execute-hold.js';
+import type { AutoExecuteCheck, AutoExecuteOutcome } from '../auto-execute-hold.js';
 
 const h = vi.hoisted(() => ({
   semanticRuns: 0,
@@ -122,10 +122,10 @@ const { initializeIntelligentRouter, startIntelligentRouting } =
 await initializeIntelligentRouter();
 
 const LINE = 'text riley test that the spare key is under the blue pot';
-type Answer = (() => Promise<AutoExecuteOutcome>) | undefined;
+type Answer = AutoExecuteCheck | null;
 /** Answers a router runs the tool on. */
 const RUNS: Array<[string, Answer]> = [
-  ['no check handed (flag off)', undefined],
+  ['no check handed (flag off)', null],
   ['the turn allows it', async () => 'allowed'],
 ];
 /** Answers a router holds the tool on, with the outcome the log must carry. */
@@ -133,6 +133,13 @@ const HOLDS: Array<[string, Answer, AutoExecuteOutcome]> = [
   ['the turn holds it', async () => 'held', 'held'],
   ['a read failed', async () => 'failed', 'failed'],
   ['the check throws', async () => Promise.reject(new Error('read failed')), 'failed'],
+  [
+    'the check throws before it returns',
+    () => {
+      throw new Error('read failed');
+    },
+    'failed',
+  ],
 ];
 
 const CONTEXT = {
@@ -144,17 +151,11 @@ const CONTEXT = {
 };
 
 function semantic(answer: Answer) {
-  return startSemanticRouting(LINE, {
-    ...CONTEXT,
-    ...(answer ? { autoExecuteCheck: answer } : {}),
-  });
+  return startSemanticRouting(LINE, { ...CONTEXT, autoExecuteCheck: answer });
 }
 
 function intelligent(answer: Answer) {
-  return startIntelligentRouting(LINE, {
-    ...CONTEXT,
-    ...(answer ? { autoExecuteCheck: answer } : {}),
-  });
+  return startIntelligentRouting(LINE, { ...CONTEXT, autoExecuteCheck: answer });
 }
 
 function ftis(answer: Answer) {
@@ -162,7 +163,7 @@ function ftis(answer: Answer) {
     userId: 'riley-test',
     sessionId: 's-hold',
     personaId: 'ferni',
-    ...(answer ? { autoExecuteCheck: answer } : {}),
+    autoExecuteCheck: answer,
   });
 }
 
@@ -223,11 +224,28 @@ it('each router holds the tool on a hold, a failed read and a check that throws'
   expect(ran).toEqual([]);
 });
 
+it('with the flag on, each router holds the tool when no check is handed and logs no_check', async () => {
+  vi.stubEnv('ROUTER_EXEC_AFTER_CRISIS_READ', 'on');
+  try {
+    const ran: string[] = [];
+    for (const [router, run] of ROUTERS) {
+      h.semanticRuns = 0;
+      h.ftisRuns = 0;
+      const seen = await run(null);
+      if (seen.ran || seen.says) ran.push(router);
+    }
+    expect(ran).toEqual([]);
+    expect(h.checks.map((c) => c.outcome)).toEqual(ROUTERS.map(() => 'no_check'));
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
 it('each check logs the router, the outcome and the wait, ids and numbers only', async () => {
   const [, run] = ROUTERS[0];
   for (const [, answer] of [...RUNS, ...HOLDS]) await run(answer);
-  // Flag off hands no check, so nothing is logged for it.
-  expect(h.checks.map((c) => c.outcome)).toEqual(['allowed', 'held', 'failed', 'failed']);
+  // A null check with the flag off is main: nothing is logged for it.
+  expect(h.checks.map((c) => c.outcome)).toEqual(['allowed', 'held', 'failed', 'failed', 'failed']);
   for (const check of h.checks) {
     expect(Object.keys(check).sort()).toEqual(['outcome', 'router', 'sessionId', 'waitMs']);
     expect(check).toMatchObject({ router: 'semantic', sessionId: 's-hold' });
