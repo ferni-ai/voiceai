@@ -174,6 +174,33 @@ describe('CSV data export', () => {
     expect(table(csv, '## RECORDS / Notes')).toEqual([{ id: 'n1', text: tricky }]);
   });
 
+  it('stops text from running as a spreadsheet formula', async () => {
+    cards.mockResolvedValue([{ id: 'a1', '=key': 'x', question: '=HYPERLINK("http://x","y")' }]);
+
+    const csv = await exportCsv(['Answer Cards']);
+
+    expect(section(csv, '## ANSWER_CARDS')[0]).toEqual(['id', "'=key", 'question']);
+    expect(table(csv, '## ANSWER_CARDS')[0].question).toBe(`'=HYPERLINK("http://x","y")`);
+  });
+
+  it('caps a table at 100 columns and keeps the rest of each row in one JSON cell', async () => {
+    // Every row with its own keys: a column per key would grow as rows times keys
+    const rows = Array.from({ length: 30 }, (_, r) =>
+      Object.fromEntries(Array.from({ length: 5 }, (_, k) => [`r${r}k${k}`, r * 10 + k]))
+    );
+    records.mockResolvedValue({ Wide: rows });
+
+    const csv = await exportCsv(['Records']);
+
+    const [header, ...body] = section(csv, '## RECORDS / Wide');
+    expect(header).toHaveLength(101);
+    expect(header[100]).toBe('_otherFields');
+    expect(body.every((r) => r.length === 101)).toBe(true);
+    // Nothing is lost: the last row's fields are all in the overflow cell
+    expect(JSON.parse(body[29][100])).toEqual(rows[29]);
+    expect(body[0][100]).toBe('');
+  });
+
   it('keeps the file header and a top-level scalar category as before', async () => {
     records.mockResolvedValue({ plan: 'free', joined: '2026-01-02' });
 

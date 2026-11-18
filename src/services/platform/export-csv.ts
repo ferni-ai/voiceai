@@ -7,12 +7,23 @@
  * Records store come out row by row instead of as a count. A table's columns are every key any
  * of its rows has, in first-seen order, so a field only a later row carries (heldByForget, a
  * newer store field) still gets a column. A list or object inside a row is kept as a JSON cell.
+ * Past MAX_COLUMNS, a row's remaining fields go in one JSON cell: rows with different keys
+ * would otherwise make the file grow as rows times columns, past the bytes the export budget
+ * charged for the data.
  *
  * Cells follow RFC 4180: a quoted cell doubles its inner quotes and may hold commas and
- * newlines.
+ * newlines. Text that a spreadsheet would run as a formula (it starts with = + - @, a tab or a
+ * carriage return) gets a leading ' (OWASP CSV injection): stored text includes what other
+ * people wrote, such as contact names and email subjects.
  *
  * @module services/platform/export-csv
  */
+
+/** Columns per table; a row's fields past these share the OTHER_FIELDS cell. */
+const MAX_COLUMNS = 100;
+const OTHER_FIELDS = '_otherFields';
+/** What a spreadsheet would run as a formula. */
+const FORMULA_START = /^[=+\-@\t\r]/;
 
 /** What the CSV reads from an export: the envelope and its categories. */
 export interface CsvExport {
@@ -78,9 +89,19 @@ function writeFields(
 /** A header row of every key the rows have, in first-seen order, then one line per row. */
 function writeTable(lines: string[], rows: readonly Row[]): void {
   if (rows.length === 0) return;
-  const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  lines.push(headers.map(field).join(','));
-  for (const row of rows) lines.push(headers.map((h) => cell(row[h])).join(','));
+  const keys = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const headers = keys.slice(0, MAX_COLUMNS);
+  const columns = new Set(headers);
+  const overflow = keys.length > MAX_COLUMNS;
+  lines.push([...headers, ...(overflow ? [OTHER_FIELDS] : [])].map(field).join(','));
+  for (const row of rows) {
+    const cells = headers.map((h) => cell(row[h]));
+    if (overflow) {
+      const rest = Object.entries(row).filter(([k]) => !columns.has(k));
+      cells.push(rest.length > 0 ? cell(Object.fromEntries(rest)) : '');
+    }
+    lines.push(cells.join(','));
+  }
 }
 
 /** A plain object that becomes a row or a group of fields (a Date is a value, not a record). */
@@ -101,11 +122,12 @@ function cell(value: unknown): string {
   return String(value);
 }
 
-/** A header or key cell: bare unless it holds a comma, quote or newline. */
+/** A header or key cell: bare unless it holds a comma, quote or newline, or reads as a formula. */
 function field(name: string): string {
-  return /[",\r\n]/.test(name) ? quote(name) : name;
+  return /[",\r\n]/.test(name) || FORMULA_START.test(name) ? quote(name) : name;
 }
 
 function quote(text: string): string {
-  return `"${text.replace(/"/g, '""')}"`;
+  const safe = FORMULA_START.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
 }
