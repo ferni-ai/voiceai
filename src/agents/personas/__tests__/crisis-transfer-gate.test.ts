@@ -282,7 +282,7 @@ describe('router bypasses never skip the soft check-in', () => {
     );
     expect(checks).toMatch(/if \(!\(await turnCrisis\.bypassAllowed\(\)\)\) return 'held';/);
     expect(checks).toMatch(
-      /bypassAllowed = async \(\): Promise<boolean> => \(await check\(\)\) === 'allowed'/
+      /bypassAllowed = async \(\): Promise<boolean> => \(await check\(\)\.catch\(failed\)\) === 'allowed'/
     );
   });
 });

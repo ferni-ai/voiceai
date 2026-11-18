@@ -8,7 +8,8 @@
  * handed null runs the tool as on main.
  *
  * Each check logs AUTO_TOOL_CHECK with the router, the outcome and how long the turn waited for
- * it, so the cost of waiting on an ordinary tool turn can be measured. Ids and numbers only.
+ * it, so the cost of waiting on an ordinary tool turn can be measured; a check that throws or
+ * rejects is 'failed' and adds the error's class. Ids, enums and numbers only, never error text.
  *
  * @module tools/semantic-router/integration/auto-execute-hold
  */
@@ -38,13 +39,23 @@ export async function autoExecuteHeld(
   const check = gate.autoExecuteCheck;
   if (!check && !flagOn('ROUTER_EXEC_AFTER_CRISIS_READ', env)) return false;
   const started = performance.now();
-  // A check that throws, even before it returns a promise, is a failed read
+  let errorClass: string | undefined;
+  // A check that throws, even before it returns a promise, or rejects is a failed read
   const outcome = check
     ? await Promise.resolve()
         .then(check)
-        .catch((): AutoExecuteOutcome => 'failed')
+        .catch((error: unknown): AutoExecuteOutcome => {
+          errorClass = errorClassOf(error);
+          return 'failed';
+        })
     : ('no_check' as const);
   const waitMs = Math.round(performance.now() - started);
-  log.info({ sessionId: gate.sessionId, router, outcome, waitMs }, 'AUTO_TOOL_CHECK');
+  const fields = { sessionId: gate.sessionId, router, outcome, waitMs };
+  log.info(errorClass ? { ...fields, errorClass } : fields, 'AUTO_TOOL_CHECK');
   return outcome !== 'allowed';
+}
+
+/** The class an error was built from (TypeError, AbortError...); its message can carry words. */
+function errorClassOf(error: unknown): string {
+  return error instanceof Error ? error.constructor.name : typeof error;
 }

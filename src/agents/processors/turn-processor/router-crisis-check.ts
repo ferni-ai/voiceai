@@ -53,16 +53,14 @@ export function routerCrisisChecks(
       blocksDirectReply: () => Promise.resolve(turnCrisis.patterns.isCrisis),
     };
   }
+  // A read that throws rejects: the routers' hold reads that as 'failed' and logs its class.
   const check = async (): Promise<AutoExecuteOutcome> => {
-    try {
-      if (await turnCrisis.classifierReadFailed()) return 'failed';
-      if (!(await turnCrisis.bypassAllowed())) return 'held';
-      return call && crisisRiskThisCall(call, userText) ? 'held' : 'allowed';
-    } catch {
-      return 'failed';
-    }
+    if (await turnCrisis.classifierReadFailed()) return 'failed';
+    if (!(await turnCrisis.bypassAllowed())) return 'held';
+    return call && crisisRiskThisCall(call, userText) ? 'held' : 'allowed';
   };
-  const bypassAllowed = async (): Promise<boolean> => (await check()) === 'allowed';
+  const failed = (): AutoExecuteOutcome => 'failed';
+  const bypassAllowed = async (): Promise<boolean> => (await check().catch(failed)) === 'allowed';
   return {
     gate: { autoExecuteCheck: check },
     bypassAllowed,
@@ -73,7 +71,8 @@ export function routerCrisisChecks(
 /**
  * The check for a router outside processTurn: 'allowed' only when a crisis read of these words
  * started and the call's reads settled with nothing holding the call; no read, a late read or
- * any hold is 'held', and a read that throws is 'failed'. Null with the flag off.
+ * any hold is 'held'; a read that throws rejects, which the routers' hold reads as 'failed'.
+ * Null with the flag off.
  */
 export function turnSettledToolCheck(
   sessionId: string,
@@ -81,11 +80,5 @@ export function turnSettledToolCheck(
   env: NodeJS.ProcessEnv = process.env
 ): AutoExecuteCheck | null {
   if (!flagOn('ROUTER_EXEC_AFTER_CRISIS_READ', env)) return null;
-  return async () => {
-    try {
-      return (await crisisTurnSettled(sessionId, words)) ? 'allowed' : 'held';
-    } catch {
-      return 'failed';
-    }
-  };
+  return async () => ((await crisisTurnSettled(sessionId, words)) ? 'allowed' : 'held');
 }

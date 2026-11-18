@@ -300,7 +300,7 @@ describe('the turn pipeline agrees', () => {
     );
     expect(checks).toMatch(/if \(!\(await turnCrisis\.bypassAllowed\(\)\)\) return 'held';/);
     expect(checks).toMatch(
-      /bypassAllowed = async \(\): Promise<boolean> => \(await check\(\)\) === 'allowed'/
+      /bypassAllowed = async \(\): Promise<boolean> => \(await check\(\)\.catch\(failed\)\) === 'allowed'/
     );
   });
 

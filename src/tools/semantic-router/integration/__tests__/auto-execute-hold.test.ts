@@ -132,11 +132,15 @@ const RUNS: Array<[string, Answer]> = [
 const HOLDS: Array<[string, Answer, AutoExecuteOutcome]> = [
   ['the turn holds it', async () => 'held', 'held'],
   ['a read failed', async () => 'failed', 'failed'],
-  ['the check throws', async () => Promise.reject(new Error('read failed')), 'failed'],
+  [
+    'the check rejects',
+    async () => Promise.reject(new TypeError('riley test read failed')),
+    'failed',
+  ],
   [
     'the check throws before it returns',
     () => {
-      throw new Error('read failed');
+      throw new RangeError('riley test read failed');
     },
     'failed',
   ],
@@ -246,8 +250,24 @@ it('each check logs the router, the outcome and the wait, ids and numbers only',
   for (const [, answer] of [...RUNS, ...HOLDS]) await run(answer);
   // A null check with the flag off is main: nothing is logged for it.
   expect(h.checks.map((c) => c.outcome)).toEqual(['allowed', 'held', 'failed', 'failed', 'failed']);
+  // A check that rejects or throws adds the error's class, never its message.
+  expect(h.checks.map((c) => c.errorClass)).toEqual([
+    undefined,
+    undefined,
+    undefined,
+    'TypeError',
+    'RangeError',
+  ]);
+  expect(JSON.stringify(h.checks)).not.toContain('riley');
   for (const check of h.checks) {
-    expect(Object.keys(check).sort()).toEqual(['outcome', 'router', 'sessionId', 'waitMs']);
+    const keys = [
+      'outcome',
+      'router',
+      'sessionId',
+      'waitMs',
+      ...(check.errorClass ? ['errorClass'] : []),
+    ];
+    expect(Object.keys(check).sort()).toEqual(keys.sort());
     expect(check).toMatchObject({ router: 'semantic', sessionId: 's-hold' });
     expect(Number.isInteger(check.waitMs) && (check.waitMs as number) >= 0).toBe(true);
   }
