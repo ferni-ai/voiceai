@@ -1,6 +1,9 @@
 /**
  * A crisis escalation that rejects is counted (crisis-gate-failure.ts) and the gate
  * behaves as before: the held reply is released and the escalation still rejects.
+ * With CRISIS_GATE_FAIL_CLOSED on it fails closed instead: the classifier's decision
+ * stands after its verdict, the timeout check-in decides before it, and the held
+ * reply never goes out.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
@@ -44,9 +47,14 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
+import { TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
 import { gatedReply, startCrisisGate } from '../crisis-gate.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
+const FAIL_CLOSED = { ...LIVE, CRISIS_GATE_FAIL_CLOSED: 'on' };
+// Safety words the patterns read as nothing: only a read, or a failed one, can act on them.
+const UNSAFE = 'i feel unsafe with myself tonight';
+const CRISIS = '{"risk":"crisis","subject":"self"}';
 const MISSED = 'im parked on the bridge, engine off, just sitting here deciding';
 const ORDINARY = 'what should I cook tonight?';
 const SENTINEL = 'sentinel-6d1f the caller said this';
@@ -98,8 +106,14 @@ const opener = {
     ),
 };
 
+/** The model's first reply is the one the gate holds; any later one is a replacement. */
+const HELD = 'Sounds good.';
+const REPLACEMENT = 'Checking in with you.';
+
 async function replyTo(text: string, options: Parameters<typeof gatedReply>[4]) {
-  const model = vi.fn(async (_ctx: llm.ChatContext) => streamOf(['Sounds good.']));
+  const model = vi.fn(async (_ctx: llm.ChatContext) =>
+    streamOf([model.mock.calls.length === 1 ? HELD : REPLACEMENT])
+  );
   const out = await collect(
     (await gatedReply(
       request(text),
@@ -109,7 +123,10 @@ async function replyTo(text: string, options: Parameters<typeof gatedReply>[4]) 
       options
     )) as never
   );
-  return { out, asked: model.mock.calls.length };
+  const lastAsked = model.mock.calls.map(
+    ([ctx]) => (ctx.items.at(-1) as llm.ChatMessage).textContent ?? ''
+  );
+  return { out, asked: model.mock.calls.length, lastAsked };
 }
 
 const failures = () =>
@@ -210,6 +227,124 @@ describe('an escalation that settles', () => {
   it('a normal escalation logs no failure line', async () => {
     const gate = startCrisisGate(request(MISSED), undefined, { env: LIVE, ...models(IMMINENT) });
     expect((await gate?.escalation)?.action).toBe('replace');
+    expect(failures()).toEqual([]);
+  });
+});
+
+describe('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed', () => {
+  it.each([
+    ['imminent', IMMINENT, 'replace'],
+    ['crisis', CRISIS, 'guide'],
+  ])(
+    '(a) an easing step throws after a %s read: the decision stands, no held chunk goes out',
+    async (_read, classifier, action) => {
+      // Pre: the decision the same read gives with no throw.
+      const settled = startCrisisGate(request(MISSED), undefined, {
+        env: FAIL_CLOSED,
+        ...models(classifier),
+      });
+      const decision = await settled?.escalation;
+      expect(decision?.action).toBe(action);
+      const cleared = await replyTo(MISSED, { env: FAIL_CLOSED, ...models(classifier) });
+
+      resetCrisisClassifierCache(); // each turn gets its own read
+      ease.reject = new TypeError(SENTINEL);
+      const gate = startCrisisGate(request(MISSED), undefined, {
+        env: FAIL_CLOSED,
+        ...models(classifier),
+      });
+      expect(gate?.decision.action).toBe('pass'); // the patterns read nothing
+      expect(await gate?.escalation).toEqual(decision);
+      expect(failures().map(([level, fields]) => [level, fields])).toEqual([
+        ['warn', { action: 'escalation_failed', stage: 'after_verdict', errorClass: 'TypeError' }],
+      ]);
+
+      resetCrisisClassifierCache();
+      const rejected = await replyTo(MISSED, { env: FAIL_CLOSED, ...models(classifier) });
+      expect(rejected.out).not.toContain(`~${HELD}`);
+      expect(rejected.out).toEqual(cleared.out);
+      expect(rejected.out.length).toBeGreaterThan(0);
+      expect(JSON.stringify(logged)).not.toContain('sentinel-6d1f');
+    }
+  );
+
+  it('(b) a rejection before any verdict: the check-in with 988, no held chunk goes out', async () => {
+    const error = new RangeError(SENTINEL);
+    const generate = vi.fn(verdict(NONE));
+    const options = { env: FAIL_CLOSED, ...models(NONE), generate };
+    // CRISIS_TIMEOUT_CHECKIN is unset: fail-closed turns the check-in on for a failed read.
+    expect(options.env).not.toHaveProperty('CRISIS_TIMEOUT_CHECKIN');
+    const gate = startCrisisGate(request(UNSAFE), undefined, {
+      ...options,
+      readAfter: () => Promise.reject(error),
+    });
+    expect(gate?.decision.action).toBe('pass'); // the patterns read nothing
+    expect(await gate?.escalation).toMatchObject({ action: 'guide' });
+    expect(failures().map(([level, fields]) => [level, fields])).toEqual([
+      ['warn', { action: 'escalation_failed', stage: 'before_verdict', errorClass: 'RangeError' }],
+    ]);
+
+    const turn = await replyTo(UNSAFE, { ...options, readAfter: () => Promise.reject(error) });
+    expect(generate).not.toHaveBeenCalled(); // no verdict, ever
+    expect(turn.out).not.toContain(`~${HELD}`);
+    expect(turn.asked).toBe(2); // the check-in reply was asked for
+    expect(turn.lastAsked[1]).toContain('[SAFETY - CHECK-IN]');
+    const spoken = turn.out.join(' ');
+    expect(spoken).toContain(`~${REPLACEMENT}`);
+    expect(spoken).toContain('Are you safe right now?');
+    expect(spoken).toContain(TALK_TO_988);
+  });
+
+  it('a rejection before the verdict on an ordinary line: the timeout path, its reply released', async () => {
+    const turn = await replyTo(ORDINARY, {
+      env: FAIL_CLOSED,
+      ...models(NONE),
+      readAfter: () => Promise.reject(new RangeError(SENTINEL)),
+    });
+    expect(turn.out).toEqual([`~${HELD}`]); // a failed read with no safety words, as on a timeout
+    expect(turn.asked).toBe(1);
+  });
+});
+
+describe('CRISIS_GATE_FAIL_CLOSED off or unset: main', () => {
+  for (const env of [LIVE, { ...LIVE, CRISIS_GATE_FAIL_CLOSED: 'off' }]) {
+    const label = 'CRISIS_GATE_FAIL_CLOSED' in env ? 'off' : 'unset';
+    it(`${label}: the rejected turns of (a) and (b) release the held reply and reject`, async () => {
+      ease.reject = new TypeError(SENTINEL);
+      const after = startCrisisGate(request(MISSED), undefined, { env, ...models(IMMINENT) });
+      await expect(after?.escalation).rejects.toBe(ease.reject);
+      resetCrisisClassifierCache();
+      expect((await replyTo(MISSED, { env, ...models(IMMINENT) })).out).toEqual([`~${HELD}`]);
+
+      ease.reject = undefined;
+      const error = new RangeError(SENTINEL);
+      const before = await replyTo(UNSAFE, {
+        env,
+        ...models(NONE),
+        readAfter: () => Promise.reject(error),
+      });
+      expect(before.out).toEqual([`~${HELD}`]);
+      expect(before.asked).toBe(1);
+    });
+  }
+
+  it('turns that settle read the same with the flag on as off', async () => {
+    // The turn reminder picks its style lines at random: the same picks on every turn compared.
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.42);
+    for (const [line, classifier] of [
+      [MISSED, IMMINENT],
+      [MISSED, CRISIS],
+      [MISSED, NONE],
+      [ORDINARY, NONE],
+      [UNSAFE, NONE],
+    ] as const) {
+      resetCrisisClassifierCache();
+      const off = await replyTo(line, { env: LIVE, ...models(classifier) });
+      resetCrisisClassifierCache();
+      const on = await replyTo(line, { env: FAIL_CLOSED, ...models(classifier) });
+      expect(on, `${line} / ${classifier}`).toEqual(off);
+    }
+    random.mockRestore();
     expect(failures()).toEqual([]);
   });
 });

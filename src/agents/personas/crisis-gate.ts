@@ -98,7 +98,11 @@ import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
-import { loggedEscalation } from './crisis-gate-failure.js';
+import {
+  escalationFailsClosed,
+  loggedEscalation,
+  type EscalationStage,
+} from './crisis-gate-failure.js';
 import { holdUntilCleared } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
 import { gateTurnReadsOn, withTurnReads } from './crisis-gate-turn-reads.js';
@@ -135,6 +139,12 @@ export interface CrisisGateTurn {
 }
 
 type Chunk = llm.ChatChunk | string | object;
+
+/** A failed read under CRISIS_GATE_FAIL_CLOSED always gets the timeout check-in. */
+const CHECKIN_ON = (env: Record<string, string | undefined>) => ({
+  ...env,
+  CRISIS_TIMEOUT_CHECKIN: 'on',
+});
 
 // By action only: an emergency replace can't outrank a crisis-line replace that came first.
 const RANK = { pass: 0, guide: 1, replace: 2 } as const;
@@ -264,6 +274,12 @@ export function startCrisisGate(
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
   const scripted = scriptRead(said, detection, decision, at); // CRISIS_SCRIPT_IMMINENT_READ
   if (!verdictRead) return { decision, escalation: null, reask, read: scripted };
+  /** The decision a merged read raises the patterns' to, or null when it raises nothing. */
+  const raised = (merged: CrisisDetectionResult, rerouted = false): CrisisGateDecision | null => {
+    if (merged === detection) return null;
+    const stronger = decisionFor(merged, latest);
+    return RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted ? null : stronger;
+  };
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
@@ -280,10 +296,9 @@ export function startCrisisGate(
     }
     const base = applyClassifierVerdict(detection, verdict);
     const merged = who?.live ? await who.resolve(base, verdict) : base;
-    if (merged === detection) return null;
-    const stronger = decisionFor(merged, latest);
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
-    if (RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted) return null;
+    const stronger = raised(merged, rerouted);
+    if (!stronger) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
@@ -344,7 +359,34 @@ export function startCrisisGate(
   };
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
   const acted = turnReads ? withTurnReads(verdictRead, readScope, turn, env) : verdictRead;
-  const logged = loggedEscalation(acted, (v) => checkin.escalation(v, checkinTurn, escalate));
+  // CRISIS_GATE_FAIL_CLOSED: a rejected escalation is settled, never cleared (crisis-gate-failure.ts).
+  // Before the verdict, a failed read: the timeout path, its check-in on (owner, 2026-11-15).
+  // After it, the classifier's own decision stands, with no easing step.
+  const settle = async (
+    stage: EscalationStage,
+    read: typeof acted
+  ): Promise<CrisisGateDecision | null> => {
+    if (stage === 'before_verdict') {
+      return checkin.escalation(
+        Promise.resolve(null),
+        { ...checkinTurn, env: CHECKIN_ON(env) },
+        escalate
+      );
+    }
+    const verdict = await read;
+    const standing =
+      verdict === undefined ? null : raised(applyClassifierVerdict(detection, verdict));
+    if (standing) {
+      noteCrisisRisk(call);
+      log.info({ action: standing.action, source: 'fail_closed' }, 'CRISIS_GATE');
+    }
+    return standing;
+  };
+  const logged = loggedEscalation(
+    acted,
+    (v) => checkin.escalation(v, checkinTurn, escalate),
+    escalationFailsClosed(env) ? settle : undefined
+  );
   return { decision, escalation: logged, reask };
 }
 
@@ -479,17 +521,27 @@ export async function gatedReply(
   );
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
-  return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
-    if (decision.action !== 'pass') holdAfterCrisis(session);
-    if (decision.action === 'replace') return textReply(script(decision.script));
-    if (decision.action === 'pass') return null;
-    const asked = await ask(guidedRequest(decision), burst === undefined ? undefined : false, true);
-    // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks; a crisis guide, its line.
-    const guided = withGuidedLine(
-      checkin.ending(asked, decision, callerWords(chatCtx)),
-      decision,
-      env
-    );
-    return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
-  });
+  const failClosed = escalationFailsClosed(env); // CRISIS_GATE_FAIL_CLOSED
+  return holdUntilCleared(
+    reply ?? textReply(''),
+    gate.escalation,
+    async (decision) => {
+      if (decision.action !== 'pass') holdAfterCrisis(session);
+      if (decision.action === 'replace') return textReply(script(decision.script));
+      if (decision.action === 'pass') return null;
+      const asked = await ask(
+        guidedRequest(decision),
+        burst === undefined ? undefined : false,
+        true
+      );
+      // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks; a crisis guide, its line.
+      const guided = withGuidedLine(
+        checkin.ending(asked, decision, callerWords(chatCtx)),
+        decision,
+        env
+      );
+      return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
+    },
+    { failClosed }
+  );
 }

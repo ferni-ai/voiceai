@@ -259,11 +259,27 @@ describe('holdUntilCleared', () => {
     expect(out).toEqual(['Please call 911.']);
   });
 
-  it('treats a rejected escalation as no escalation', async () => {
+  it('flag off (main): treats a rejected escalation as no escalation', async () => {
     const out = await collect(
       holdUntilCleared(streamOf(['ok']) as never, Promise.reject(new Error('x')), async () => null)
     );
     expect(out).toEqual(['ok']);
+  });
+
+  it('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed, the held reply never goes out', async () => {
+    const error = new Error('x');
+    const cancelled = vi.fn();
+    const reply = new ReadableStream<unknown>({
+      start: (controller) => controller.enqueue('ok'), // held, never closed: the model still talking
+      cancel: cancelled,
+    });
+    const replacement = vi.fn(async () => textReply('replaced'));
+    const reader = holdUntilCleared(reply as never, Promise.reject(error), replacement, {
+      failClosed: true,
+    }).getReader();
+    await expect(reader.read()).rejects.toBe(error); // never { value: 'ok' }
+    expect(cancelled).toHaveBeenCalledTimes(1); // the model's reply is dropped
+    expect(replacement).not.toHaveBeenCalled();
   });
 });
 
