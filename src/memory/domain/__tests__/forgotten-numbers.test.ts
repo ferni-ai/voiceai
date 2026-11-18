@@ -155,6 +155,15 @@ describe('a number topic and the shapes a stored record carries', () => {
       'an id ending in digits, then a date on the next line',
       'loop_1763478000123_abc123\n2025-11-18',
     ],
+    [
+      'an id ending in digits, then a date and time in the next field',
+      'loop_1763478000123_abc123 \n 2025-11-18T15:00:00.000Z',
+    ],
+    ['a date then a year', 'we met 2025-11-18 \n 2019'],
+    [
+      'an id ending in digits, a date, then a count',
+      'loop_1763478000123_abc123 \n 2025-11-18 \n 4567 steps',
+    ],
     ['a timestamp with milliseconds', '2026-11-18T15:00:00.000Z'],
     ['a date with its time', 'we met on 2026-11-18 15:00'],
     ['a span of times with milliseconds', '15:00:00.000-15:30:00.000'],
@@ -182,6 +191,12 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['as fourteen digits glued to a word', 'tel_15555550199123'],
     ['as twelve digits glued to a word', 'mom-155555501991'],
     ['broken across a line', 'his cell is 435\n555 0199'],
+    ['broken after its area code and exchange', 'his cell is 435 555\n0199'],
+    ['broken inside its dashes', 'his cell is (435) 555-\n0199'],
+    ['split across two joined fields', 'his cell is 435 555 \n 0199'],
+    ['after a date on the line before', '2025-11-18\n435 555 0199'],
+    ['that only ends like a date', 'his cell is 4352019-55-01'],
+    ['that only starts like a date', 'his cell is 2019-55-0199'],
     ['after a space and a joiner', 'call _1555555019900'],
     ['at the start after a joiner', '-1555555019900 is his'],
   ])('a real number %s still hides', (_l, text) => {

@@ -126,34 +126,31 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
  * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
  * any format, which fails closed: any 7+ digit run may be one. Here that holds too, except a
  * run that is plainly something else: a price in thousands ("1,250,000"), a time or a span of
- * times ("10:30-11:45", "15:00:00.000"), a date with its time ("2026-11-18 15:00"), a list of
- * years ("2019, 2020"), and a stored id's epoch in ms (thirteen digits from 2017 to 2033 joined
+ * times ("10:30-11:45", "15:00:00.000"), a date ("2026-11-18"), a list of years
+ * ("2019, 2020"), and a stored id's epoch in ms (thirteen digits from 2017 to 2033 joined
  * to a word by "-" or "_": "summary_session-AJ_x-1763478000123_1763478000456", as the voice
  * agent and outreach mint them). Those hid whole call summaries (#4042 reviews);
  * every other shape still counts, two numbers in one run and over-long ones included.
  * Known gaps: a trunk prefix ("020 ..." for "+44 20 ..."), and any other 7+ digit run (an order
  * number, counting aloud to eight, "2020-2019") still holds a passage under a number topic, and
  * a +1 number with a two-digit extension glued to a word ("mom-1555...12") reads as an epoch,
- * and a number broken across two lines is two runs.
+ * A number broken across lines is still one run.
  */
 const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
 const TIME = '\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?';
-const TIMES = new RegExp(
-  `^(?:\\d{4}-\\d{2}-\\d{2}[ T])?${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`
-);
+const TIMES = new RegExp(`^${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
 // A list of years has a comma or semicolon: "2012 1999" may be an eight-digit phone number.
 const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
 const notAPhoneNumber = (run: string): boolean =>
   THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
-// Only an epoch in ms glued to a word: a markdown "_435 555 0199_" keeps every digit. It is
-// replaced by a word, so the id's last digit can't run on into what follows ("…F7-<ms> 2025-…")
+// Only an epoch in ms glued to a word: a markdown "_435 555 0199_" keeps every digit.
 const STORED_EPOCH = /(?<=[\p{L}\p{N}][-_])1[5-9]\d{11}(?!\p{N})/gu;
-// Line by line: readers join a record's fields with newlines (call-summaries, revived), and a
-// run across two fields ("…abc123", then a date) is no number anyone said.
+const ISO_DATE = /(?<!\p{N})(?:19|20)\d\d-\d\d-\d\d(?!\p{N})/gu;
+// Both become words, so a run can't go on through them: readers join a record's fields with
+// newlines (call-summaries, revived), and an id ending in digits ("…abc123", "…F7-<ms>") then
+// a date is no number anyone said. The whole text is one scan: "435 555\n0199" is a number.
 const phoneNumbers = (text: string): string[] =>
-  text
-    .split('\n')
-    .flatMap((line) => contactNumberRuns(line.replace(STORED_EPOCH, ' epoch ')))
+  contactNumberRuns(text.replace(STORED_EPOCH, ' epoch ').replace(ISO_DATE, ' date '))
     .filter((run) => !notAPhoneNumber(run))
     .map((run) => run.replace(/\D/g, ''));
 
