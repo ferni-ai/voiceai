@@ -18,7 +18,7 @@ import {
   ICON_SUCCESS,
   iconSm,
 } from '../icons.js';
-import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
+import { isUnavailable, loadJson, renderUnavailable } from '../../utils/unavailable-state.js';
 
 const log = createLogger('ExperimentsSection');
 

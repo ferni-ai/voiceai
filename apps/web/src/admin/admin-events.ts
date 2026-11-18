@@ -12,7 +12,7 @@ import { toast } from '../ui/whisper.ui.js';
 import { getAdminHeadersAsync } from './admin-api.js';
 import { adminFetch } from './admin-fetch.js';
 import { previewAgentVoice } from './admin-voice-preview.js';
-import { unavailableReason } from './unavailable-state.js';
+import { unavailableReason } from '../utils/unavailable-state.js';
 
 export { previewAgentVoice };
 

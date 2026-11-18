@@ -28,7 +28,12 @@ import {
   ICON_ZAP,
   iconSm,
 } from '../icons.js';
-import { isUnavailable, loadJson, measured, renderUnavailable } from '../unavailable-state.js';
+import {
+  isUnavailable,
+  loadJson,
+  measured,
+  renderUnavailable,
+} from '../../utils/unavailable-state.js';
 
 const log = createLogger('DashboardSection');
 
