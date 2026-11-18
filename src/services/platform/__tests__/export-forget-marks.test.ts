@@ -179,6 +179,14 @@ describe('data export, FORGET_EVERY_READER on, production shapes', () => {
     expect(call).toMatchObject({ heldByForget: true });
   });
 
+  it('CSV keeps the topics on their comment line when a topic has a newline', async () => {
+    topics.mockResolvedValue(['the Denver\n=job']);
+    const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
+    const lines = csv.split('\n');
+    expect(lines).toContain('# Forgotten topics: the Denver =job');
+    expect(lines.filter((line) => line.startsWith('='))).toEqual([]);
+  });
+
   it('CSV says when the list could not be read, and gives no count', async () => {
     topics.mockResolvedValue(null);
     const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);

@@ -97,7 +97,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** The CSV file's header lines for the marks; none with the flag off. */
 export function forgetMarksCsvLines(marks: Partial<ForgetMarks>): string[] {
   if (marks.forgottenTopics === undefined) return [];
-  const topics = marks.forgottenTopics?.join('; ') ?? 'could not be read';
+  // The caller's own words: a newline would end the comment line and start a bare data line
+  const topics = marks.forgottenTopics?.join('; ').replace(/[\r\n]+/g, ' ') ?? 'could not be read';
   const lines = [`# Forgotten topics: ${topics}`, `# ${marks.forgottenNote ?? ''}`];
   if (marks.forgottenTopics === null) return lines;
   // Each tagged record is a row with a heldByForget cell (export-csv.ts); this says how many

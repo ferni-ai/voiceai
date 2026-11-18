@@ -225,6 +225,27 @@ describe('CSV data export', () => {
     expect(body[0][100]).toBe('');
   });
 
+  it('writes a Date as its ISO string, at the top level and in a row', async () => {
+    const when = new Date('2026-11-03T09:30:00.000Z');
+    records.mockResolvedValue({ Settings: { updatedAt: when }, Notes: [{ id: 'n1', at: when }] });
+
+    const csv = await exportCsv(['Records']);
+
+    expect(section(csv, '## RECORDS')).toEqual([['Settings.updatedAt', when.toISOString()]]);
+    expect(table(csv, '## RECORDS / Notes')).toEqual([{ id: 'n1', at: when.toISOString() }]);
+  });
+
+  it('keeps a table heading on one line when its stored key has a newline', async () => {
+    records.mockResolvedValue({ 'Notes\n=cmd': [{ id: 'n1' }] });
+
+    const csv = await exportCsv(['Records']);
+
+    expect(csv.split('\n')).toContain('## RECORDS / Notes =cmd');
+    // No line of the file starts with a formula
+    expect(csv.split('\n').filter((line) => /^[=+\-@]/.test(line))).toEqual([]);
+    expect(table(csv, '## RECORDS / Notes =cmd')).toEqual([{ id: 'n1' }]);
+  });
+
   it('keeps the file header and a top-level scalar category as before', async () => {
     records.mockResolvedValue({ plan: 'free', joined: '2026-01-02' });
 
