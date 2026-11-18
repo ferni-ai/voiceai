@@ -27,6 +27,7 @@ import {
 import { routeUserInput, createSemanticRouter } from '../router.js';
 import type { SemanticRouterResult } from '../types.js';
 import type { TurnRouterResult, RoutingContext } from './turn-processor-integration.js';
+import { autoExecuteHeld } from './auto-execute-hold.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'intelligent-router-integration' });
@@ -297,6 +298,20 @@ async function convertToTurnRouterResult(
   context: RoutingContext,
   latencyMs: number
 ): Promise<TurnRouterResult & { intelligentDecision?: RoutingDecision }> {
+  // CRISIS_BLOCKS_AUTO_TOOLS: a plan or execute decision runs a tool; a held one is left to the reply model
+  const runsTool =
+    (decision.action === 'plan' && !!decision.plan?.steps[0]) ||
+    (decision.action === 'execute' && !!decision.toolId);
+  if (runsTool && (await autoExecuteHeld(context, 'intelligent'))) {
+    return {
+      attempted: true,
+      executed: false,
+      routeResult: createRouteResultFromDecision(decision),
+      routingPath: 'json_fallback',
+      intelligentDecision: decision,
+    };
+  }
+
   // Handle plan action
   if (decision.action === 'plan' && decision.plan) {
     // For now, execute first step of plan

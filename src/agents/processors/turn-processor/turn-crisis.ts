@@ -25,7 +25,11 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { noteCrisisRisk, notePatternRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  crisisRiskThisCall,
+  noteCrisisRisk,
+  notePatternRisk,
+} from '../../../services/safety/crisis-call-risk.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -104,6 +108,13 @@ export interface TurnCrisis {
    * soft check-in, which only the normal reply path carries.
    */
   bypassAllowed(): Promise<boolean>;
+  /**
+   * CRISIS_BLOCKS_AUTO_TOOLS: whether a router may run a tool on its own, or answer without the
+   * reply model: bypassAllowed, the live classifier gave a verdict, and no crisis risk on this
+   * call (crisisRiskThisCall, where the reply gate's reads land). Fails closed: a read that
+   * failed or throws is a no.
+   */
+  autoToolsAllowed(): Promise<boolean>;
 }
 
 /** What startTurnCrisis reads from the session's user data. */
@@ -364,13 +375,26 @@ export function startTurnCrisis(
     // K1e: the call's outreach waits on this read, up to a first and a second classifier read.
     return first ? trackAbuseRead(call, told, 2 * resolveCrisisClassifierTimeoutMs(env)) : told;
   };
+  const bypassAllowed = (): Promise<boolean> =>
+    settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis));
+  // A live read that gave no verdict (timeout, error, refusal) is a failed read, never a none.
+  const readFailed = async (): Promise<boolean> =>
+    classifier?.mode === 'live' && (await classifier.verdict) === null;
   return {
     patterns,
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
     summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
-    bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
+    bypassAllowed,
+    autoToolsAllowed: async () => {
+      try {
+        if (!(await bypassAllowed()) || (await readFailed())) return false;
+        return !(call && crisisRiskThisCall(call, userText));
+      } catch {
+        return false;
+      }
+    },
   };
 }
 
