@@ -229,6 +229,48 @@
   },
   {
     "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "ttlAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "ttlAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "ttlAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/guest_invites/fields/ttlAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
       "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
     },
     "name": "projects/johnb-2025/databases/(default)/collectionGroups/insights/fields/ttl_date",
