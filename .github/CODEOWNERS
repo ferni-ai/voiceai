@@ -184,6 +184,7 @@
 /src/agents/shared/final-transcript-observer.ts @sethdford
 /src/agents/shared/tool-executors/memory-executor.ts @sethdford
 /src/agents/shared/turn-path-capture.ts @sethdford
+/src/agents/shared/turn-receipt-lane.ts @sethdford
 /src/agents/voice-agent-entry/caller-recognition.ts @sethdford
 /src/agents/voice-agent-entry/handler-setup.ts @sethdford
 /src/agents/voice-agent-entry/user-input-transcribed.ts @sethdford

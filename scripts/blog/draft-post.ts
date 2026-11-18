@@ -15,14 +15,21 @@
  * codes, counts and source PR numbers, and a written one its title and slug
  * (log-safe.ts). --details also prints a rejected draft and its findings, for
  * a person running this locally; the workflow never passes it.
+ *
+ * BLOG_REVISE=on (off by default) has the editorial judge score a draft that
+ * passed the brand gate, and rewrites it once with the judge's notes when it
+ * fails (draft.ts). It needs ANTHROPIC_API_KEY like judge-post.ts; without a
+ * key the judge gives no verdict and the draft stands.
  */
 
 import * as fs from 'node:fs';
 import { parseArgs } from 'node:util';
-import { draftPost } from './draft.js';
+import { draftPost, reviseEnabled } from './draft.js';
 import { renderPack, runGh, sourceList } from './grounding.js';
-import { issueDetails, rejectedSummary, writtenSummary } from './log-safe.js';
+import { claudeJudge, judgePost, truthPack } from './judge.js';
+import { issueDetails, rejectedSummary, reviewSummary, writtenSummary } from './log-safe.js';
 import { geminiModel } from './model.js';
+import { getPostType } from './post-types.js';
 
 const { values } = parseArgs({
   options: {
@@ -42,14 +49,22 @@ if (!values.type) {
 }
 
 const dryRun = values['dry-run'] ?? false;
+const root = process.cwd();
+const { audience } = getPostType(values.type);
+const review =
+  !dryRun && reviseEnabled()
+    ? async (markdown: string, sourceText: string) =>
+        judgePost(markdown, audience, { model: claudeJudge(), truth: truthPack(root), sourceText })
+    : undefined;
 const result = await draftPost(
   { type: values.type, since: values.since, persona: values.persona, dryRun },
   {
-    root: process.cwd(),
+    root,
     repo: process.env.GITHUB_REPOSITORY || 'ferni-ai/voiceai',
     gh: runGh,
     today: values.date ?? new Date().toISOString().slice(0, 10),
     model: dryRun ? undefined : await geminiModel(),
+    review,
   }
 );
 
@@ -74,6 +89,7 @@ switch (result.status) {
     break;
   case 'written':
     console.log(writtenSummary(result.title ?? '', result.path ?? ''));
+    if (result.review) console.log(reviewSummary(result.review));
     break;
   case 'rejected':
     for (const line of rejectedSummary(result)) console.error(line);
