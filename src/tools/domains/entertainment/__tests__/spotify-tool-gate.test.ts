@@ -8,6 +8,9 @@
  * new worker would.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { capToolsToLimit, isEssentialTool } from '../../../../config/tool-config.js';
+import type { ToolRegistry } from '../../../registry/index.js';
+import type { ToolContext } from '../../../registry/types.js';
 
 type TokenReply = 'revoked' | 'valid';
 
@@ -100,6 +103,26 @@ async function startWorker(tokenReply: TokenReply) {
 
 const present = (registry: { has: (id: string) => boolean }, ids: string[]) =>
   ids.filter((id) => registry.has(id));
+/** What a call holding a Spotify-only tool hears once Spotify is down (music-honesty.ts). */
+const NOT_LINKED =
+  "Spotify isn't connected right now, so I can only play short previews. I can't play from your own Spotify account.";
+const ctx = {
+  userId: 'riley-test-user',
+  agentId: 'ferni',
+  agentDisplayName: 'Ferni',
+  services: { has: () => false, get: () => undefined, getOptional: () => undefined },
+} as unknown as ToolContext;
+interface Held {
+  execute: (args: Record<string, unknown>, opts?: unknown) => Promise<unknown>;
+}
+/** A live call's toolset, built from the registry the way the always-on fetcher does. */
+const holdTools = (registry: ToolRegistry, ids: string[]) =>
+  ids.map((id) => {
+    const def = registry.get(id);
+    if (!def) throw new Error(`${id} is not registered`);
+    return def.create(ctx) as Held;
+  });
+const ARGS = { room: 'kitchen', query: 'Sunny Strum', action: 'transfer' };
 const hiddenLogs = () => world.info.filter((line) => line.msg === 'SPOTIFY_TOOLS_HIDDEN');
 /** Lets the startup validation's pending callbacks run. */
 const tick = () =>
@@ -183,6 +206,56 @@ describe('flag on (SPOTIFY_TOOLS_HIDE_WHEN_DOWN=on)', () => {
     expect(world.info.map((line) => line.msg)).toContain('SPOTIFY_TOOLS_RESTORED');
   });
 
+  it('a call that already holds the tools gets the honest not-connected line, not a crash', async () => {
+    const { auth, registry } = await startWorker('revoked');
+    const held = holdTools(registry, SPOTIFY_ONLY); // the call started before Spotify answered
+
+    world.release();
+    await vi.waitFor(() => expect(present(registry, SPOTIFY_ONLY)).toEqual([]));
+    const callsBefore = world.spotifyCalls.length;
+
+    const replies = await Promise.all(held.map((tool) => tool.execute(ARGS)));
+    expect(replies).toEqual(SPOTIFY_ONLY.map(() => NOT_LINKED));
+    expect(world.spotifyCalls.length).toBe(callsBefore); // no Spotify attempt
+    expect(auth.isSpotifyRefreshRevoked()).toBe(true);
+  });
+
+  it('two stored tokens in a row register each tool once, without a throw', async () => {
+    const { auth, registry } = await startWorker('revoked');
+    world.release();
+    await vi.waitFor(() => expect(present(registry, SPOTIFY_ONLY)).toEqual([]));
+    const registered: string[] = [];
+    registry.on((event) => {
+      if (event.type === 'tool_registered' && SPOTIFY_ONLY.includes(event.tool.id)) {
+        registered.push(event.tool.id);
+      }
+    });
+
+    auth.storeSpotifyTokens('a2', 'new-refresh', 3600);
+    auth.storeSpotifyTokens('a3', 'newer-refresh', 3600);
+
+    expect([...registered].sort()).toEqual([...SPOTIFY_ONLY].sort());
+    expect(present(registry, SPOTIFY_ONLY)).toEqual(SPOTIFY_ONLY);
+  });
+
+  it('playMusicInRoom leaving frees a slot under the tool cap', async () => {
+    const { auth, entertainment, registry } = await startWorker('revoked');
+    world.release();
+    await vi.waitFor(() => expect(auth.isSpotifyRefreshRevoked()).toBe(true));
+    expect(isEssentialTool('playMusicInRoom')).toBe(true);
+    const offered = Object.fromEntries(
+      registry.query({ domains: ['entertainment'] }).map((def) => [def.id, def.id])
+    );
+    const nextInLine = { ...offered, nextInLine: 'nextInLine' };
+    expect(entertainment.definitions.map((def) => def.id)).toContain('playMusicInRoom');
+    const withRoom = { ...nextInLine, playMusicInRoom: 'playMusicInRoom' };
+    const limit = Object.keys(nextInLine).length; // exactly what the hidden set needs
+
+    expect(Object.keys(capToolsToLimit(nextInLine, limit))).toContain('nextInLine');
+    expect(Object.keys(capToolsToLimit(withRoom, limit))).not.toContain('nextInLine');
+    expect(offered).not.toHaveProperty('playMusicInRoom');
+  });
+
   it('no Spotify configured: never registered, logged once as not_configured', async () => {
     vi.stubEnv('SPOTIFY_REFRESH_TOKEN', '');
     const { registry } = await startWorker('revoked');
@@ -209,5 +282,7 @@ describe('flag off (default)', () => {
     const gated = entertainment.definitions.filter((def) => SPOTIFY_ONLY.includes(def.id));
     expect(gated.map((def) => def.availableWhen?.() ?? true)).toEqual(SPOTIFY_ONLY.map(() => true));
     expect(hiddenLogs()).toEqual([]);
+    const [status] = holdTools(registry, ['spotifyStatus']); // runs as on main
+    expect(await status.execute({})).not.toBe(NOT_LINKED);
   });
 });

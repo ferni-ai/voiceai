@@ -7,10 +7,11 @@
  * Spotify previews, Spotify status) were still offered on every call, and
  * playMusicInRoom is essential, so it kept a tool-cap slot. With the flag on,
  * while the token is revoked or none is configured, the registry does not hold
- * them, so no session path offers them. The music tools that play iTunes
- * previews without Spotify stay (playMusic, musicControl, musicInfo,
- * musicProvider), and say Spotify isn't connected under
- * MUSIC_HONEST_WHEN_UNLINKED (music-honesty.ts).
+ * them, so no session path offers them, and a call that already holds one
+ * hears the honest not-connected line instead of a Spotify attempt. The music
+ * tools that play iTunes previews without Spotify stay (playMusic,
+ * musicControl, musicInfo, musicProvider), and say Spotify isn't connected
+ * under MUSIC_HONEST_WHEN_UNLINKED (music-honesty.ts).
  *
  * No polling: the registry follows Spotify's state when spotify-auth reports
  * a revoked token or a newly stored one. A refresh that merely failed hides
@@ -22,7 +23,7 @@ import { flagOn, type Env } from '../../../config/env-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { toolRegistry, type ToolRegistry } from '../../registry/index.js';
 import type { ToolDefinition } from '../../registry/types.js';
-import { spotifyDownReason, type SpotifyDownReason } from './music-honesty.js';
+import { notLinkedReply, spotifyDownReason, type SpotifyDownReason } from './music-honesty.js';
 
 /** Tools that can do nothing without a working house Spotify token. */
 const SPOTIFY_ONLY_TOOL_IDS: ReadonlySet<string> = new Set([
@@ -46,6 +47,25 @@ function spotifyToolsHiddenReason(env: Env = process.env): SpotifyDownReason | n
   return hideSpotifyToolsWhenDownOn(env) ? spotifyDownReason() : null;
 }
 
+/**
+ * A call that got the tool before Spotify went down keeps it (unregistering
+ * does not reach a live toolset), so while hidden it answers the honest
+ * not-connected line instead of trying Spotify.
+ */
+function answerHonestlyWhileHidden(create: ToolDefinition['create']): ToolDefinition['create'] {
+  return (ctx) => {
+    const tool: unknown = create(ctx);
+    const execute = (tool as { execute?: unknown } | null)?.execute;
+    if (!hideSpotifyToolsWhenDownOn() || typeof execute !== 'function') return tool;
+    const run = execute.bind(tool) as (...args: unknown[]) => Promise<unknown>;
+    return {
+      ...(tool as object),
+      execute: async (...args: unknown[]) =>
+        spotifyToolsHiddenReason() === null ? run(...args) : notLinkedReply(),
+    };
+  };
+}
+
 /** The same definitions; the registry refuses a Spotify-only one while hidden (tool-availability.ts). */
 export function gateSpotifyOnlyTools(defs: ToolDefinition[]): ToolDefinition[] {
   return defs.map((def) => {
@@ -54,6 +74,7 @@ export function gateSpotifyOnlyTools(defs: ToolDefinition[]): ToolDefinition[] {
     return {
       ...def,
       availableWhen: () => (ownCheck?.() ?? true) && spotifyToolsHiddenReason() === null,
+      create: answerHonestlyWhileHidden(def.create),
     };
   });
 }
