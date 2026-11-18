@@ -28,8 +28,7 @@ const SAMPLE_RATE = 24_000;
 const BYTES_API = `${CARTESIA_API_URL.replace(/\/$/, '')}/tts/bytes`;
 
 /** Why a line has no audio. Logged as is: no words. */
-type RenderFailure =
-  'no_voice' | 'no_key' | 'network' | 'http_status' | 'not_audio' | 'empty';
+type RenderFailure = 'no_voice' | 'no_key' | 'network' | 'http_status' | 'not_audio' | 'empty';
 
 export type RenderedLine =
   { frames: AudioFrame[] } | { failure: RenderFailure; statusClass?: string };
