@@ -17,11 +17,19 @@
  * (metadata.sourceCollection / sourceDocId). If the forgotten topics or the
  * source docs can't be read, the affected results are dropped (fails closed).
  *
+ * With FORGET_EVERY_READER on, an open loop's copy (openLoopWords) is matched
+ * on any distinctive word (isForgottenPassage), as the open-loops store and
+ * the insight broker read it: it quotes the caller, so "forget the Denver
+ * job" drops "the offer from the Denver office". Other copies keep isForgotten.
+ *
  * @module memory/firestore-vector-store/forget-filter
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { withoutHeldAt } from '../../utils/held-window-check.js';
+import type { Env } from '../../config/env-flag.js';
+import { isForgottenPassage } from '../domain/forgotten.js';
 import { forgetGeneration, forgottenTopicsOrNull } from '../recall/forget.js';
+import { forgetEveryReaderEnabled } from '../recall/forget-every-reader.js';
 import { isForgotten } from '../recall/session-recall.js';
 
 /** Topics change rarely; a short cache keeps search from paying a read every time. */
@@ -109,6 +117,18 @@ export function sourcePath(
 }
 
 /**
+ * The caller's words in an open loop's copy (open-loops.ts saveOpenLoop), without the copy's own labels ("Priority", "Actionable"),
+ * which would match a topic on their own; the whole text if its shape is new.
+ * Undefined for any other result.
+ */
+export function openLoopWords(doc: { id: string; text: string }): string | undefined {
+  // The store's id is `${storeType}_${entityType}_${entityId}`: coaching_coaching_insight_open_loop_<id>
+  if (!doc.id.includes('_open_loop_')) return undefined;
+  const said = /Open loop \([^)]*\):\s*([\s\S]*?)\.\s*Context: Priority:/.exec(doc.text);
+  return said?.[1] ?? doc.text;
+}
+
+/**
  * Leaves out results about a forgotten topic or copying a forgotten or
  * deleted source. Graph copies (fact_fact_) may come from `memories`, so
  * only a source that exists and is marked forgotten drops them.
@@ -119,14 +139,20 @@ export async function withoutForgotten<
   userId: string,
   results: T[],
   reads: ForgetReads = firestoreReads,
-  now = Date.now()
+  now = Date.now(),
+  env: Env = process.env
 ): Promise<T[]> {
   if (results.length === 0) return results;
   // MINOR_CARE: nor what was indexed during a purged held call (held-index-purge.ts)
   const live = withoutHeldAt(userId, results, (r) => r.document.metadata?.indexedAt);
   const topics = await topicsFor(userId, reads, now);
   if (topics === null) return [];
-  const kept = live.filter((r) => !isForgotten(r.document.text, topics));
+  const byWord = forgetEveryReaderEnabled(env);
+  const kept = live.filter((r) => {
+    const loop = byWord ? openLoopWords(r.document) : undefined;
+    if (loop !== undefined && isForgottenPassage(loop, topics)) return false;
+    return !isForgotten(r.document.text, topics);
+  });
   const paths = [...new Set(kept.flatMap((r) => sourcePath(userId, r.document) ?? []))];
   if (paths.length === 0) return kept;
   let docs: Map<string, Record<string, unknown> | undefined>;
