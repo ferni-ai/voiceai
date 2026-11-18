@@ -29,6 +29,7 @@ import { erasureErrorCode, erasureSteps } from './erasure-step.js';
 import { EXPORT_CATEGORIES } from './export-categories.js';
 import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
 import { countUserRecords, exportUserRecords } from './user-records-export.js';
+import { formatExportCsv } from './export-csv.js';
 
 const log = getLogger();
 
@@ -241,7 +242,7 @@ class DataExportService {
     if (format === 'json') {
       return JSON.stringify(exportData, null, 2);
     } else {
-      return this.convertToCSV(exportData);
+      return formatExportCsv(exportData);
     }
   }
 
@@ -845,68 +846,6 @@ class DataExportService {
    */
   private categoryToKey(category: string): string {
     return category.toLowerCase().replace(/\s+/g, '_');
-  }
-
-  /**
-   * Convert export data to CSV format.
-   */
-  private convertToCSV(data: ExportData): string {
-    const lines: string[] = [];
-    lines.push('# Ferni Data Export');
-    lines.push(`# Exported: ${data.exportedAt}`);
-    lines.push(`# User: ${data.userId}`);
-    lines.push(`# Version: ${data.version}`);
-    lines.push('');
-
-    for (const [category, content] of Object.entries(data.categories)) {
-      lines.push(`## ${category.toUpperCase()}`);
-      lines.push('');
-
-      if (Array.isArray(content)) {
-        if (content.length > 0) {
-          const first = content[0] as Record<string, unknown>;
-          const headers = Object.keys(first).filter(
-            (k) => typeof first[k] !== 'object' || first[k] === null
-          );
-          lines.push(headers.join(','));
-          for (const item of content) {
-            const row = headers.map((h) => {
-              const val = (item as Record<string, unknown>)[h];
-              if (val === null || val === undefined) return '';
-              if (typeof val === 'string') {
-                return `"${val.replace(/"/g, '""')}"`;
-              }
-              return String(val);
-            });
-            lines.push(row.join(','));
-          }
-        }
-      } else if (typeof content === 'object' && content !== null) {
-        this.flattenObjectToCSV(content as Record<string, unknown>, lines, '');
-      }
-      lines.push('');
-    }
-
-    return lines.join('\n');
-  }
-
-  /**
-   * Recursively flatten an object for CSV output.
-   */
-  private flattenObjectToCSV(obj: Record<string, unknown>, lines: string[], prefix: string): void {
-    for (const [key, value] of Object.entries(obj)) {
-      const fullKey = prefix ? `${prefix}.${key}` : key;
-
-      if (Array.isArray(value)) {
-        lines.push(`${fullKey},${value.length} items`);
-      } else if (typeof value === 'object' && value !== null) {
-        this.flattenObjectToCSV(value as Record<string, unknown>, lines, fullKey);
-      } else if (value !== undefined) {
-        const strValue =
-          typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : String(value);
-        lines.push(`${fullKey},${strValue}`);
-      }
-    }
   }
 }
 
