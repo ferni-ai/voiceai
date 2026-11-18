@@ -33,7 +33,7 @@ import {
   measured,
   renderUnavailable,
   type Unavailable,
-} from '../unavailable-state.js';
+} from '../../utils/unavailable.js';
 
 const log = createLogger('BTHValidationSection');
 
