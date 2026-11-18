@@ -132,7 +132,11 @@ vi.mock('../turn-crisis.js', async (importOriginal) => {
           ...(h.timeoutMs ? { CRISIS_CLASSIFIER_TIMEOUT_MS: String(h.timeoutMs) } : {}),
         },
         generate: async () => {
-          if (h.pending) return new Promise<string>(() => undefined);
+          if (h.pending) {
+            return new Promise<string>(() => {
+              // never answers: only the classifier's timeout ends the read
+            });
+          }
           if (h.verdict instanceof Error) throw h.verdict;
           return h.verdict;
         },
