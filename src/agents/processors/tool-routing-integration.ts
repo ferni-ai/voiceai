@@ -194,7 +194,8 @@ export async function runFTISRouting(
       isOpenIntent: false,
     };
 
-    // High confidence → execute directly, unless the turn holds it (CRISIS_BLOCKS_AUTO_TOOLS)
+    // High confidence → execute directly, unless the turn holds it
+    // (ROUTER_EXEC_AFTER_CRISIS_READ)
     if (
       topPrediction.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD &&
       !(await autoExecuteHeld(context, 'ftis'))

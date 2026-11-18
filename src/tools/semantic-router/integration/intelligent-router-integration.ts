@@ -298,7 +298,8 @@ async function convertToTurnRouterResult(
   context: RoutingContext,
   latencyMs: number
 ): Promise<TurnRouterResult & { intelligentDecision?: RoutingDecision }> {
-  // CRISIS_BLOCKS_AUTO_TOOLS: a plan or execute decision runs a tool; a held one is left to the reply model
+  // ROUTER_EXEC_AFTER_CRISIS_READ: a plan or execute decision runs a tool; a held one is left to
+  // the reply model
   const runsTool =
     (decision.action === 'plan' && !!decision.plan?.steps[0]) ||
     (decision.action === 'execute' && !!decision.toolId);

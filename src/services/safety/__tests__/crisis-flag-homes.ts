@@ -331,9 +331,9 @@ export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> =
  * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
  */
 export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
-  CRISIS_BLOCKS_AUTO_TOOLS: [
+  ROUTER_EXEC_AFTER_CRISIS_READ: [
     {
-      file: 'src/agents/processors/turn-processor/__tests__/crisis-blocks-auto-tools.test.ts',
+      file: 'src/agents/processors/turn-processor/__tests__/router-exec-after-crisis-read.test.ts',
       rows: [
         'a crisis only the classifier reads: no tool runs and no direct reply',
         'a classifier read that fails: no tool runs and no direct reply',
@@ -343,9 +343,10 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
       ],
     },
     {
-      // Each router (semantic, intelligent, FTIS) holds the tool on a "no" and on a check that throws.
+      // Each router (semantic, intelligent, FTIS) holds the tool on a hold, a failed read and a
+      // check that throws.
       file: 'src/tools/semantic-router/integration/__tests__/auto-execute-hold.test.ts',
-      rows: ['each router holds the tool on a no and on a check that throws'],
+      rows: ['each router holds the tool on a hold, a failed read and a check that throws'],
     },
   ],
 };

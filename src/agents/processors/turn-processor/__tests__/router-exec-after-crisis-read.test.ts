@@ -1,5 +1,5 @@
 /**
- * CRISIS_BLOCKS_AUTO_TOOLS through the real processTurn and the real turn crisis reads
+ * ROUTER_EXEC_AFTER_CRISIS_READ through the real processTurn and the real turn crisis reads
  * (startTurnCrisis, classifier live with a stubbed model call): a router runs a tool on its
  * own only when the turn's reads allow it, and the direct tool reply that skips the reply model
  * is refused on a crisis read or a failed one. Flag off equals main: there, a crisis only the
@@ -41,9 +41,9 @@ vi.mock('../../../../tools/semantic-router/integration/index.js', async (importO
   isIntelligentRouterInitialized: () => false,
   startSemanticRouting: async (
     _text: string,
-    context: { autoExecuteAllowed?: () => Promise<boolean> }
+    context: { autoExecuteCheck?: () => Promise<'allowed' | 'held' | 'failed'> }
   ) => {
-    h.handedGate.push(typeof context.autoExecuteAllowed === 'function');
+    h.handedGate.push(typeof context.autoExecuteCheck === 'function');
     const { autoExecuteHeld } =
       await import('../../../../tools/semantic-router/integration/auto-execute-hold.js');
     if (!h.ignoreHold && (await autoExecuteHeld(context, 'semantic'))) {
@@ -127,13 +127,13 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('CRISIS_BLOCKS_AUTO_TOOLS', () => {
+describe('ROUTER_EXEC_AFTER_CRISIS_READ', () => {
   it('the line is one the patterns read as nothing', () => {
     expect(hasCrisisSignal(detectCrisis(LINE))).toBe(false);
   });
 
   describe('flag on', () => {
-    beforeEach(() => vi.stubEnv('CRISIS_BLOCKS_AUTO_TOOLS', 'on'));
+    beforeEach(() => vi.stubEnv('ROUTER_EXEC_AFTER_CRISIS_READ', 'on'));
 
     // With no call id there is no call risk, so the turn's own reads alone must hold the tool.
     describe.each([

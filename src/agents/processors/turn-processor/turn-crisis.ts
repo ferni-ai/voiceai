@@ -81,6 +81,7 @@ import {
 } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
+import type { AutoExecuteOutcome } from '../../../tools/semantic-router/integration/auto-execute-hold.js';
 import { noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
@@ -109,12 +110,12 @@ export interface TurnCrisis {
    */
   bypassAllowed(): Promise<boolean>;
   /**
-   * CRISIS_BLOCKS_AUTO_TOOLS: whether a router may run a tool on its own, or answer without the
-   * reply model: bypassAllowed, the live classifier gave a verdict, and no crisis risk on this
-   * call (crisisRiskThisCall, where the reply gate's reads land). Fails closed: a read that
-   * failed or throws is a no.
+   * ROUTER_EXEC_AFTER_CRISIS_READ: whether a router may run a tool on its own, or answer without
+   * the reply model. 'allowed' only when bypassAllowed holds and no crisis risk is noted on this
+   * call (crisisRiskThisCall, where the reply gate's reads land); 'failed' when the live
+   * classifier gave no verdict or a read throws; 'held' otherwise.
    */
-  autoToolsAllowed(): Promise<boolean>;
+  autoToolsCheck(): Promise<AutoExecuteOutcome>;
 }
 
 /** What startTurnCrisis reads from the session's user data. */
@@ -387,12 +388,13 @@ export function startTurnCrisis(
     softCheck: () => settle().then((s) => s.soft),
     summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
     bypassAllowed,
-    autoToolsAllowed: async () => {
+    autoToolsCheck: async (): Promise<AutoExecuteOutcome> => {
       try {
-        if (!(await bypassAllowed()) || (await readFailed())) return false;
-        return !(call && crisisRiskThisCall(call, userText));
+        if (await readFailed()) return 'failed';
+        if (!(await bypassAllowed())) return 'held';
+        return call && crisisRiskThisCall(call, userText) ? 'held' : 'allowed';
       } catch {
-        return false;
+        return 'failed';
       }
     },
   };

@@ -388,7 +388,7 @@ export async function startSemanticRouting(
     // For auto-execute, run the tool directly
     if (routeResult.action.type === 'execute' && routeResult.matches.length > 0) {
       const topMatch = routeResult.matches[0];
-      // CRISIS_BLOCKS_AUTO_TOOLS: a held tool is left to the reply model
+      // ROUTER_EXEC_AFTER_CRISIS_READ: a held tool is left to the reply model
       if (await autoExecuteHeld(context, 'semantic')) {
         return {
           attempted: true,

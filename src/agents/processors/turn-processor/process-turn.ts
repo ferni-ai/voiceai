@@ -197,14 +197,16 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
   const turnCrisis = startTurnCrisis(userText, userData, { sessionId: services.sessionId });
   const crisisResult = turnCrisis.patterns;
-  // CRISIS_BLOCKS_AUTO_TOOLS: a router asks the turn's crisis reads before it runs a tool, and every
-  // answer without the reply model asks them too (turn-crisis.ts autoToolsAllowed).
-  const blocksAutoTools = flagOn('CRISIS_BLOCKS_AUTO_TOOLS');
+  // ROUTER_EXEC_AFTER_CRISIS_READ: a router asks the turn's crisis reads before it runs a tool,
+  // and every answer without the reply model asks them too (turn-crisis.ts autoToolsCheck).
+  const blocksAutoTools = flagOn('ROUTER_EXEC_AFTER_CRISIS_READ');
   const autoExecuteGate = blocksAutoTools
-    ? { autoExecuteAllowed: turnCrisis.autoToolsAllowed }
+    ? { autoExecuteCheck: turnCrisis.autoToolsCheck }
     : {};
   const routerBypassAllowed = (): Promise<boolean> =>
-    blocksAutoTools ? turnCrisis.autoToolsAllowed() : turnCrisis.bypassAllowed();
+    blocksAutoTools
+      ? turnCrisis.autoToolsCheck().then((outcome) => outcome === 'allowed')
+      : turnCrisis.bypassAllowed();
 
   if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {

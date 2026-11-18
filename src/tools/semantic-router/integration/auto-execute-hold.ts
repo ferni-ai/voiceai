@@ -1,9 +1,12 @@
 /**
  * The one question a router asks before it runs a matched tool on its own: may this turn run
- * it? The turn hands the answer in (CRISIS_BLOCKS_AUTO_TOOLS: the turn's crisis reads,
- * turn-crisis.ts autoToolsAllowed); a router handed nothing runs the tool as before. A check
- * that throws holds the tool, so a failed read never lets one through. A held tool goes to
- * the reply model, which answers the turn with its crisis guidance.
+ * it? The turn hands the check in (ROUTER_EXEC_AFTER_CRISIS_READ: the turn's crisis reads,
+ * turn-crisis.ts autoToolsCheck); a router handed nothing runs the tool as before. Only
+ * 'allowed' runs the tool: a hold, a failed read and a check that throws all keep it for the
+ * reply model, which answers the turn with its crisis guidance.
+ *
+ * Each check logs AUTO_TOOL_CHECK with the router, the outcome and how long the turn waited for
+ * it, so the cost of waiting on an ordinary tool turn can be measured. Ids and numbers only.
  *
  * @module tools/semantic-router/integration/auto-execute-hold
  */
@@ -11,16 +14,22 @@ import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'auto-execute-hold' });
 
-/** A routing context that may carry the turn's answer. */
+/** The turn's word on running a tool on its own: a crisis read holds it, a failed read fails it. */
+export type AutoExecuteOutcome = 'allowed' | 'held' | 'failed';
+
+/** A routing context that may carry the turn's check. */
 export interface AutoExecuteGate {
-  /** Asked before a tool runs on its own; false holds it for the reply model. */
-  autoExecuteAllowed?: () => Promise<boolean>;
+  sessionId?: string;
+  /** Asked before a tool runs on its own; anything but 'allowed' keeps it for the reply model. */
+  autoExecuteCheck?: () => Promise<AutoExecuteOutcome>;
 }
 
-/** Whether the tool must wait for the reply model. Logs the router and a count, no words. */
+/** Whether the tool must wait for the reply model. */
 export async function autoExecuteHeld(gate: AutoExecuteGate, router: string): Promise<boolean> {
-  if (!gate.autoExecuteAllowed) return false;
-  const allowed = await gate.autoExecuteAllowed().catch(() => false);
-  if (!allowed) log.info({ router, held: 1 }, 'AUTO_TOOL_HELD');
-  return !allowed;
+  if (!gate.autoExecuteCheck) return false;
+  const started = performance.now();
+  const outcome = await gate.autoExecuteCheck().catch((): AutoExecuteOutcome => 'failed');
+  const waitMs = Math.round(performance.now() - started);
+  log.info({ sessionId: gate.sessionId, router, outcome, waitMs }, 'AUTO_TOOL_CHECK');
+  return outcome !== 'allowed';
 }
