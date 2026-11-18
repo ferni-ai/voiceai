@@ -3,6 +3,7 @@ import {
   createNeverSilentGuard,
   FALLBACK_LINES,
   hangMs,
+  type LineRender,
   neverSilentMode,
   NEVER_SILENT_HANG_MS,
   type NeverSilentSession,
@@ -14,7 +15,6 @@ function fakeSession(over: Partial<NeverSilentSession> = {}) {
     agentState: 'listening',
     userState: 'listening',
     output: { audio: {}, audioEnabled: true },
-    tts: null,
     interrupts: 0,
     say(text: string, opts?: { audio?: unknown }) {
       said.push({ text, audio: Boolean(opts?.audio) });
@@ -29,7 +29,11 @@ function fakeSession(over: Partial<NeverSilentSession> = {}) {
 
 const speech = (interrupted = false) => ({ interrupted, done: () => false });
 
-function setup(mode: 'on' | 'shadow' = 'on', over: Partial<NeverSilentSession> = {}) {
+function setup(
+  mode: 'on' | 'shadow' = 'on',
+  over: Partial<NeverSilentSession> = {},
+  renderLine?: (text: string) => Promise<LineRender>
+) {
   const { session, said } = fakeSession(over);
   const logs: Array<Record<string, unknown>> = [];
   let quiet = false;
@@ -41,6 +45,7 @@ function setup(mode: 'on' | 'shadow' = 'on', over: Partial<NeverSilentSession> =
     toolHoldMs: 15_000,
     stayQuiet: () => quiet,
     replyPaused: () => paused,
+    renderLine,
     log: (f) => logs.push(f),
   });
   /** A caller turn as LiveKit runs it: speech created, message committed, thinking. */
@@ -218,14 +223,14 @@ describe('createNeverSilentGuard', () => {
     const data = Int16Array.from({ length: 24_000 }, (_, i) =>
       Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / 24_000))
     );
-    const synthesize = vi.fn(async function* () {
-      yield { frame: { samplesPerChannel: data.length, sampleRate: 24_000, data } };
-    });
-    const h = setup('on', { tts: { synthesize } });
+    const renderLine = vi.fn(async (_text: string) => ({
+      frames: [{ samplesPerChannel: data.length, sampleRate: 24_000, data }],
+    }));
+    const h = setup('on', {}, renderLine);
     h.state('speaking');
     h.state('listening');
     await vi.runAllTimersAsync();
-    expect(synthesize).toHaveBeenCalledTimes(FALLBACK_LINES.length);
+    expect(renderLine.mock.calls.map(([text]) => text)).toEqual([...FALLBACK_LINES]);
     h.turn();
     h.state('listening');
     expect(h.said[0]).toEqual({ text: FALLBACK_LINES[0], audio: true });

@@ -15,10 +15,12 @@ import {
 import { AudioFrame } from '@livekit/rtc-node';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { RenderedLine } from '../fallback-line-render.js';
 import { FALLBACK_LINES } from '../never-silent.js';
 import { installNeverSilent } from '../never-silent-install.js';
 
 const SAMPLE_RATE = 24_000;
+const VOICE_ID = 'voice-riley-test';
 const BUDGET_MS = 2500;
 
 type Step = 'ok' | 'fail' | 'hang' | 'tool';
@@ -86,8 +88,13 @@ class FakeTTS extends tts.TTS {
   down = false;
   garbled = false;
   requests = 0;
+  /** Lines rendered for the fallback (fallback-line-render.ts), by the voice asked for. */
+  renders: string[] = [];
   constructor() {
     super(SAMPLE_RATE, 1, { streaming: false });
+  }
+  getVoiceId(): string {
+    return VOICE_ID;
   }
   synthesize(text: string): tts.ChunkedStream {
     this.requests += 1;
@@ -96,6 +103,12 @@ class FakeTTS extends tts.TTS {
   stream(): tts.SynthesizeStream {
     throw new Error('not streaming');
   }
+  /** Stands in for renderFallbackLine: the same audio this TTS would make, or a failed request. */
+  readonly render = async (_text: string, voiceId: string): Promise<RenderedLine> => {
+    this.renders.push(voiceId);
+    if (this.down) return { failure: 'http_status', statusClass: '5xx' };
+    return { frames: [toneOrNoise(this.garbled)] };
+  };
 }
 
 class FakeChunked extends tts.ChunkedStream {
@@ -110,13 +123,22 @@ class FakeChunked extends tts.ChunkedStream {
   }
   protected async run(): Promise<void> {
     if (this.down) return;
-    const samples = this.garbled ? 552 : SAMPLE_RATE;
-    const data = Int16Array.from({ length: samples }, (_, i) =>
-      this.garbled ? 0x7b22 : Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / SAMPLE_RATE))
-    );
-    const frame = new AudioFrame(data, SAMPLE_RATE, 1, samples);
-    this.queue.put({ requestId: 'r', segmentId: 's', frame, final: true });
+    this.queue.put({
+      requestId: 'r',
+      segmentId: 's',
+      frame: toneOrNoise(this.garbled),
+      final: true,
+    });
   }
+}
+
+/** 1 s of a voiced tone, or 23 ms of noise: a failed REST body read as PCM. */
+function toneOrNoise(garbled: boolean): AudioFrame {
+  const samples = garbled ? 552 : SAMPLE_RATE;
+  const data = Int16Array.from({ length: samples }, (_, i) =>
+    garbled ? 0x7b22 : Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / SAMPLE_RATE))
+  );
+  return new AudioFrame(data, SAMPLE_RATE, 1, samples);
 }
 
 /** An audio sink that "plays" each segment instantly and records what it played. */
@@ -203,10 +225,11 @@ async function harness(
     sessionId: `ns-${open.length}`,
     userId: undefined,
   };
-  installNeverSilent(input, {
-    NEVER_SILENT: opts.mode ?? 'on',
-    NEVER_SILENT_HANG_MS: opts.hangMs ?? '1000',
-  });
+  installNeverSilent(
+    input,
+    { NEVER_SILENT: opts.mode ?? 'on', NEVER_SILENT_HANG_MS: opts.hangMs ?? '1000' },
+    ttsModel.render
+  );
 
   const ask = async (text: string, waitMs = 3000): Promise<number | null> => {
     let committedAt = 0;
@@ -260,8 +283,8 @@ describe('never silent: fault injection on a real AgentSession', () => {
   it('TTS gateway down: the pre-rendered fallback still plays', async () => {
     const h = await harness(['ok']);
     await h.ask('warm up', 1000); // first reply, then the lines are rendered
-    const rendered = h.ttsModel.requests;
-    expect(rendered).toBeGreaterThanOrEqual(1 + FALLBACK_LINES.length);
+    // Rendered in the session's voice, read from its TTS.
+    expect(h.ttsModel.renders).toEqual(FALLBACK_LINES.map(() => VOICE_ID));
     h.ttsModel.down = true;
     const framesBefore = h.out.frames;
     const ms = await h.ask('tell me more');
