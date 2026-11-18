@@ -147,6 +147,7 @@
         "src/agents/shared/final-transcript-observer.ts",
         "src/agents/shared/tool-executors/memory-executor.ts",
         "src/agents/shared/turn-path-capture.ts",
+        "src/agents/shared/turn-receipt-lane.ts",
         "src/agents/voice-agent-entry/caller-recognition.ts",
         "src/agents/voice-agent-entry/handler-setup.ts",
         "src/agents/voice-agent-entry/user-input-transcribed.ts",

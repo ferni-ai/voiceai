@@ -23,12 +23,13 @@
  * @module CrisisTimeoutCheckin
  */
 
-import { ReadableStream } from 'node:stream/web';
+import type { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_QUESTION_ES, TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
-import { withReplyEnding } from './crisis-grounded-screen.js';
+import { withMissingEnding } from './crisis-grounded-screen.js';
+import { names988 } from './crisis-line-speech.js';
 
 const log = createLogger({ module: 'CrisisTimeoutCheckin' });
 
@@ -119,8 +120,12 @@ function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
   return riskBefore || !found.every((mention) => plainDenial(words, mention));
 }
 
-/** The check-in's language: Spanish when the line holds a Spanish check-in word, denied or not. */
-const languageOf = (line: string): 'en' | 'es' =>
+/**
+ * The language of a caller's crisis words: Spanish when the line holds a Spanish check-in word,
+ * denied or not. The check-in's ending and the 988 floor's guide (crisis-guided-line-floor.ts)
+ * both answer in it. A Spanish line with none of these words reads 'en'.
+ */
+export const crisisWordsLanguage = (line: string): 'en' | 'es' =>
   [...wordsOf(line).matchAll(ES)].length ? 'es' : 'en';
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
@@ -132,7 +137,6 @@ A safety read of the caller's last words could not be made, and their words touc
 
 const SAFETY_QUESTION = { en: 'Are you safe right now?', es: SAFETY_QUESTION_ES };
 const LINE_988 = { en: TALK_TO_988, es: TALK_TO_988_ES };
-const SAID_988 = /(?<!\d)988(?!\d)|\bnine[\s,-]+eight[\s,-]+eight\b/i;
 const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
 
 /**
@@ -172,16 +176,11 @@ function withCheckinEnding<T>(
   reply: ReadableStream<T> | null,
   caller: { latest: string }
 ): ReadableStream<T | string> {
-  const lang = languageOf(caller.latest);
-  const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
-  return withReplyEnding(reply ?? empty, (said) => {
-    const missing = [
-      ASKED_SAFE.test(said) ? '' : SAFETY_QUESTION[lang],
-      SAID_988.test(said) ? '' : LINE_988[lang],
-    ].filter(Boolean);
-    if (!missing.length) return '';
-    return `${said.trim() ? ' ' : ''}${missing.join(' ')}`;
-  });
+  const lang = crisisWordsLanguage(caller.latest);
+  return withMissingEnding(reply, [
+    { present: (said) => ASKED_SAFE.test(said), words: SAFETY_QUESTION[lang] },
+    { present: names988, words: LINE_988[lang] },
+  ]);
 }
 
 type GateTurn = Omit<Parameters<typeof timeoutCheckin>[0], 'verdict'> & { env?: Env };

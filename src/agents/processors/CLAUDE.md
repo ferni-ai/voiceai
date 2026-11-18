@@ -30,7 +30,7 @@ processors/
 ├── index.ts                       # Public exports
 │
 ├── # Context Injection Pipeline
-├── injection-builders.ts          # Context injection builders (safety, trust, coaching)
+├── injection-builders/            # Context injection builders (safety, trust, coaching); import index.js
 ├── injection-filter.ts            # Smart injection filtering & prioritization
 ├── context-injection-builder.ts   # Full context injection assembly
 ├── timing-aware-injection.ts      # Timing-aware injection scheduling
@@ -101,7 +101,7 @@ The main orchestrator that coordinates all processing:
 | `trigger-outcome-handler.ts` | Handle intelligence trigger outcomes | `handleTriggerOutcome()` |
 | `team-huddle-recording.ts` | Record team huddle sessions | `recordTeamHuddle()` |
 
-### Injection Builders (injection-builders.ts)
+### Injection Builders (injection-builders/)
 Builds specific context injections:
 - Safety injections
 - Trust system injections

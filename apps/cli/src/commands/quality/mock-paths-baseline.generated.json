@@ -16,14 +16,6 @@
     "../../speech/cartesia-tts.js",
     "../shared/lightweight-tts.js"
   ],
-  "src/agents/processors/__tests__/test-utils.ts": [
-    "../../../intelligence/context-builders/conversation-humanizing.js",
-    "../../../intelligence/context-builders/humanizing-debug.js",
-    "../../../intelligence/context-builders/humanizing.js",
-    "../../../services/health-awareness/voice-biometrics.js",
-    "../../../services/identity/human-first-2fa.js",
-    "../../../speech/text-voice-mismatch.js"
-  ],
   "src/services/outreach/proactive-channels/__tests__/more-triggers-path.test.ts": [
     "../../../llm/llm-utils.js"
   ],

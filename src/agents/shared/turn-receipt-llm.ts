@@ -22,6 +22,7 @@
  */
 import type { LlmMetric } from './turn-metrics.js';
 import type { PromptSection } from './prompt-sections.js';
+import type { LaneShadow } from './turn-receipt-lane.js';
 
 /** 2: ran to completion with usage, 1: cut but billed, 0: no usage. */
 function rank(m: LlmMetric): number {
@@ -67,6 +68,8 @@ export function thoughtTokens(m: LlmMetric): number | null {
 export interface RequestView {
   sections: PromptSection[] | null;
   lane: { lane: 'fast' | 'main'; reason: string } | null;
+  /** Where the router would send it with the lane off (FAST_LANE_SHADOW, turn-receipt-lane.ts). */
+  laneShadow: LaneShadow | null;
   director: { offered: number; kept: number; droppedIdx: number[] };
   toolsOffered: number | null;
   toolSchemaChars?: number;
@@ -76,6 +79,7 @@ export interface RequestView {
 export const requestOf = (turn: RequestView): RequestView => ({
   sections: turn.sections,
   lane: turn.lane,
+  laneShadow: turn.laneShadow,
   director: turn.director,
   toolsOffered: turn.toolsOffered,
   toolSchemaChars: turn.toolSchemaChars,

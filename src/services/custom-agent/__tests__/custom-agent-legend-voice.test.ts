@@ -26,4 +26,11 @@ describe('a custom agent and a legend voice', () => {
     expect(isForbiddenCustomAgentVoiceId(INVENTED_VOICE)).toBe(true);
     expect(isForbiddenCustomAgentVoiceId(` ${INVENTED_VOICE.toUpperCase()} `)).toBe(true);
   });
+
+  it("may never use Seth's own clone once his setting names it", () => {
+    vi.stubEnv('ROSTER_VOICE_SETH', '');
+    expect(isForbiddenCustomAgentVoiceId('fake-seth-id')).toBe(false);
+    vi.stubEnv('ROSTER_VOICE_SETH', 'fake-seth-id');
+    expect(isForbiddenCustomAgentVoiceId('fake-seth-id')).toBe(true);
+  });
 });

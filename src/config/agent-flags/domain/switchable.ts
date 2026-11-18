@@ -22,8 +22,8 @@ import { FLAG_MANIFEST, type FlagName } from '../../flag-manifest.js';
 import type { FlagSpec } from '../../flag-spec.js';
 import * as FLAG_FILES from '../../flags/index.generated.js';
 
-/** Every word some flag reader acts on ('reports' and 'defer' have one reader each). */
-type FlagValue = 'on' | 'off' | 'shadow' | 'live' | 'defer' | 'reports';
+/** Every word some flag reader acts on (reports, defer, decision, sample: one reader each). */
+type FlagValue = 'on' | 'off' | 'shadow' | 'live' | 'defer' | 'reports' | 'decision' | 'sample';
 
 export interface SwitchableFlag {
   readonly name: string;
@@ -74,6 +74,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   CRISIS_READ_JOINED_TURN: ON_OFF, // crisis-read-joined-turn.ts, === 'on'
   EARLY_WARNING_STT_FORMS: WITH_SHADOW, // phrase-match.ts, resolveShadowMode
   EARLY_WARNING_WORD_BOUNDARY: ON_OFF, // phrase-match.ts
+  FAST_LANE_SHADOW: Object.freeze<FlagValue[]>(['off', 'decision', 'sample']), // turn-receipt-lane.ts
   GMAIL_SEND_AS_USER: ON_OFF, // gmail-send-flag.ts, process.env[CONST] === 'on'
   PATTERN_MIRROR_ONCE: ON_OFF, // commitment-follow-up-gate.ts, === 'on'
   PREEMPT_STABLE_CONTEXT: Object.freeze<FlagValue[]>(['off', 'on', 'defer']), // preempt-stable-context.ts

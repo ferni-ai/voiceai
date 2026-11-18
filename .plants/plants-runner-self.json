@@ -1,0 +1,28 @@
+{
+  "plants": [
+    {
+      "id": "P1",
+      "file": "scripts/ci/plants/run-plants.ts",
+      "find": "&& target.assertion === true",
+      "replace": "",
+      "test": "scripts/ci/plants/__tests__/run-plants.test.ts",
+      "expectRed": "runPlants verdicts > an Error renamed AssertionError by hand, with no expected or actual, does not count"
+    },
+    {
+      "id": "P2",
+      "file": "scripts/ci/plants/run-plants.ts",
+      "find": "t.fullName === title;",
+      "replace": "t.fullName.includes(title);",
+      "test": "scripts/ci/plants/__tests__/run-plants.test.ts",
+      "expectRed": "runPlants verdicts > expectRed must be the whole row title: a part of a title is NO SUCH TEST"
+    },
+    {
+      "id": "P3",
+      "file": "scripts/ci/plants/run-plants.ts",
+      "find": "return fromTest(target.frame)",
+      "replace": "return true",
+      "test": "scripts/ci/plants/__tests__/run-plants.test.ts",
+      "expectRed": "the real vitest runner: a counted assertion is thrown from a test file, never the plant > an AssertionError-shaped throw from production code is not counted"
+    }
+  ]
+}
