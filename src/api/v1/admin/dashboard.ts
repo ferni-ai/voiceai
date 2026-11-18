@@ -211,8 +211,8 @@ interface AggregatedStats {
     active: number;
   };
   conversations: {
-    today: number;
-    thisWeek: number;
+    today: number | null;
+    thisWeek: number | null;
     trend: 'up' | 'down' | 'neutral';
   };
   evalops: {
@@ -225,10 +225,11 @@ interface AggregatedStats {
     avgTrustScore: number;
     activeRelationships: number;
   };
+  // null: not measured (the request failed or nothing was sampled), never a stand-in zero
   system: {
     uptime: number;
-    responseTime: number;
-    errorRate: number;
+    responseTime: number | null;
+    errorRate: number | null;
   };
   betterThanHuman: {
     outreach: {
@@ -254,8 +255,8 @@ async function getAggregatedStats(): Promise<AggregatedStats> {
   return {
     agents: agentStats,
     conversations: {
-      today: systemStats.activeSessions * 10, // Estimate from sessions
-      thisWeek: systemStats.activeSessions * 50,
+      today: systemStats.activeSessions === null ? null : systemStats.activeSessions * 10, // Estimate from sessions
+      thisWeek: systemStats.activeSessions === null ? null : systemStats.activeSessions * 50,
       trend: 'up',
     },
     evalops: evalStats,
@@ -325,9 +326,9 @@ async function getTrustStats(): Promise<{
 
 async function getSystemStats(): Promise<{
   uptime: number;
-  responseTime: number;
-  errorRate: number;
-  activeSessions: number;
+  responseTime: number | null;
+  errorRate: number | null;
+  activeSessions: number | null;
 }> {
   try {
     const { getAverageLatency } = await import('../../../services/analytics/latency-tracker.js');
@@ -342,17 +343,13 @@ async function getSystemStats(): Promise<{
 
     return {
       uptime: process.uptime(),
-      responseTime: avgLatency > 0 ? avgLatency : 0,
+      responseTime: avgLatency > 0 ? avgLatency : null,
       errorRate: 0.02, // Would need to track actual errors
       activeSessions,
     };
-  } catch {
-    return {
-      uptime: process.uptime(),
-      responseTime: 0,
-      errorRate: 0,
-      activeSessions: 0,
-    };
+  } catch (error) {
+    log.warn({ error }, 'System stats unavailable');
+    return { uptime: process.uptime(), responseTime: null, errorRate: null, activeSessions: null };
   }
 }
 
