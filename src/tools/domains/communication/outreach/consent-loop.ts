@@ -13,7 +13,8 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { READBACK_GRACE_MS } from './consent-readback.js';
-import { askOnceLine, channelOf, personOf, VERB } from './consent-action.js';
+import { askOnceLine, channelOf, personOf, plainAskLine, VERB } from './consent-action.js';
+import { consentNaturalOn } from './consent-judge.js';
 import {
   asksAgain,
   classifyFerniTurn,
@@ -144,6 +145,7 @@ export async function reopenClosed(
     startSeq: fresh.seq - 1,
     reopened: true,
     asked: false,
+    reasked: false,
   });
   closed.action.expiresAt = Date.now() + windowMs;
   [entry.pending, entry.closed] = [closed.action, undefined];
@@ -159,7 +161,9 @@ export function unconfirmedReply(
   next: { callId: string; same: boolean; expiresAt: number }
 ): string | undefined {
   if (!next.same || state === 'void' || state === 'confirmed') return undefined;
-  if (state === 'declined' || (state === 'unclear' && pending.asked))
+  // CALL_CONSENT_NATURAL: a second unclear asks once more in plain words; a third cancels.
+  const again = state === 'unclear' && pending.asked === true;
+  if (state === 'declined' || (again && (!consentNaturalOn() || pending.reasked === true)))
     return cancel(entry, pending, state);
   // Its next answer is to what Ferni says now, so judge from here (the earlier words still count
   // for reopening it, see reopenable).
@@ -169,9 +173,10 @@ export function unconfirmedReply(
     reopened: false, // the window now waits for this reply to reach the model
   });
   if (state === 'waiting') return stillWaitingReply(pending.readBack, pending.toolId);
+  if (again) pending.reasked = true;
   pending.asked = true;
-  const ask = askOnceLine(pending);
-  log.info({ toolId: pending.toolId }, 'OUTREACH_CONFIRM: unclear, asking once');
+  const ask = again ? plainAskLine(pending) : askOnceLine(pending);
+  log.info({ toolId: pending.toolId, again }, 'OUTREACH_CONFIRM: unclear, asking once');
   return (
     `NOT SENT YET: the caller's answer wasn't a clear yes. Ask exactly this, once, and nothing ` +
     `else about it: "${ask}" Call ${pending.toolId} again only after they answer.`

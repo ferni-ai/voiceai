@@ -46,6 +46,7 @@ import {
   classifyFerniTurn,
   foreclosesReopen,
   judgeWindow,
+  logDecision,
   windowState,
   type ConfirmState,
 } from './consent-window.js';
@@ -127,6 +128,8 @@ export interface PendingAction {
   owner?: string[];
   /** Ferni already asked once whether it is still wanted (consent-loop.ts). */
   asked?: boolean;
+  /** CALL_CONSENT_NATURAL: and asked again in plain words; the next unclear cancels. */
+  reasked?: boolean;
   /** Stored again after a cancel, from Ferni's fresh read-back: its window starts there. */
   reopened?: boolean;
   /** The arguments the read-back was made from: a call with the same ones is the same request. */
@@ -195,8 +198,10 @@ function record(session: object, event: SessionEvent): void {
   if (event.kind !== 'caller' || !pending) return;
   if (foreclosesReopen(event.text, pending)) pending.final = true;
   // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
-  if (confirmationState(pending, entry.events, Date.now()) === 'declined')
+  if (confirmationState(pending, entry.events, Date.now()) === 'declined') {
+    logDecision(pending, entry.events, 'declined');
     cancel(entry, pending, 'declined', entry.seq - 1);
+  }
   // Judged now, in parallel with the model's reply, so the tool call rarely waits on it.
   else void judgeConfirmation(pending, entry.events);
 }
@@ -374,6 +379,22 @@ async function attestOnConfirm(userId: string, args: Record<string, unknown>): P
   await recordOwnerAttestation(planned.to, channel, userId);
 }
 
+/** Sends what was confirmed. CALL_CONSENT_NATURAL: when the yes carried a message for the person
+ * (argsOnYes), the model is told to say it will pass it on; the note holds none of its words. */
+async function sendOnYes(
+  toolId: string,
+  pending: PendingAction,
+  entry: SessionLog,
+  execute: Execute,
+  opts: unknown
+): Promise<unknown> {
+  log.info({ toolId, previewedBy: pending.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');
+  const args = argsOnYes(pending, entry.events);
+  const result = await sentConfirmThread(pending, execute(args, opts));
+  if (args === pending.args || typeof result !== 'string') return result;
+  return `${result} Their yes carried a message for the person, now in the call's purpose: tell them in a few words you'll pass it on.`;
+}
+
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
   if ((def as unknown as Record<symbol, unknown>)[GATED]) return def;
@@ -411,15 +432,12 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           // A call racing this one took it (or replaced it) while the judge read the answer.
           if (entry.pending !== pending)
             return 'Nothing more to do here: that was already handled.';
+          logDecision(pending, entry.events, state);
           if (state === 'confirmed') {
             entry.pending = undefined; // taken before sending, so a second call can't repeat it
             forgetAsks(entry, pending);
-            log.info(
-              { toolId: def.id, previewedBy: pending.toolId },
-              'OUTREACH_CONFIRM: caller said yes, sending'
-            );
             await attestOnConfirm(ctx.userId, pending.args);
-            return sentConfirmThread(pending, execute(argsOnYes(pending, entry.events), opts));
+            return sendOnYes(def.id, pending, entry, execute, opts);
           }
           const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
           const expiresAt = Date.now() + CONFIRM_WINDOW_MS;

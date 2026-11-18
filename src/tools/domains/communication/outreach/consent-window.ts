@@ -27,6 +27,7 @@ import type { ActionFacts, FerniTurn } from './consent-readback.js';
 import {
   agreesAfterNo,
   hasHardNo,
+  isClearNo,
   isClearYes,
   isContentFree,
   isNonAnswer,
@@ -420,6 +421,26 @@ export function argsOnYes(pending: PendingAction, events: ConfirmEvent[]): Recor
   );
   const tell = `tell them ${JSON.stringify(message)}`;
   return { ...pending.args, purpose: purpose.trim() ? `${purpose.trim()}, and ${tell}` : tell };
+}
+
+/** CONSENT_NATURAL_DECISION, in both flag states so the flag can be measured before it flips: what
+ * the allow-list and the judge made of the heard answer, and the outcome. Enums only, no words. */
+export function logDecision(
+  pending: PendingAction,
+  events: ConfirmEvent[],
+  outcome: ConfirmState
+): void {
+  const answer = answerWindow(pending, heardOf(pending, events));
+  const turns = answer === 'void' ? [] : answer.turns;
+  const said = turns.join(' ');
+  const yes = isClearYes(said, targetWords(pending), pending.owner, channelOf(pending) === 'call');
+  const lexical = yes ? 'yes' : isClearNo(said) ? 'no' : 'neither';
+  const judged = turns.length > 0 ? judgedNow(pending, turns) : undefined;
+  const judge = judged?.reason === 'error' ? 'error' : (judged?.verdict ?? 'skipped');
+  log.info(
+    { toolId: pending.toolId, natural: consentNaturalOn(), lexical, judge, outcome },
+    'CONSENT_NATURAL_DECISION'
+  );
 }
 
 /** Starts the judge on the current answer (a plain yes too: it may take it away); resolves when done. */

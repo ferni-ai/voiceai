@@ -40,6 +40,11 @@ export const numberOf = (pending: Pick<PendingAction, 'args'>): string => {
 export const STOP = new Set(words('my the a your his her their'));
 export const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
 
+/** CALL_CONSENT_NATURAL: after a second unclear answer, the question once more in plain words. */
+export function plainAskLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
+  return `Should I ${VERB[channelOf(pending)]} ${personOf(pending)} now? Just say yes or no.`;
+}
+
 /** The one question the gate has Ferni ask when an answer isn't a plain yes (consent-loop.ts). */
 export function askOnceLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
   return `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;

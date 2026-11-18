@@ -52,7 +52,7 @@ unclear: everything else, including
 - deferred: a later time ("later", "tomorrow", "on Monday", "again tonight");
 - conditional: ${natural ? 'a condition on whether to do it at all ("Yes, but only if he\'s free.", "Call if it\'s not too late."), or a change to who, how or when' : 'a condition, a change or an extra instruction ("Yes, but...", "call him and tell him...")'};
 - question: a question, or a fresh request with no agreement word ("You should call.", "Call.");
-- off_topic: about something else, grudging or sarcastic ("Fine, whatever.", "Wow, yes, what a brilliant plan.").
+- off_topic: about something else, grudging or sarcastic ("Fine, whatever.", "Wow, yes, what a brilliant plan.")${natural ? ', or a joke not meant as a request ("Yeah sure, call him and tell him he owes me a million bucks.")' : ''}.
 Turns may be split mid-sentence, and the owner may call Ferni by name ("Yes," then "Ferni."): neither is a refusal. Never answer yes when unsure.`;
 
 /** The owner's words as data, one per line, so nothing in them reads as an instruction. */
