@@ -126,19 +126,26 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
  * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
  * any format, which fails closed: any 7+ digit run may be one. Here that holds too, except a
  * run that is plainly something else: a price in thousands ("1,250,000"), a time or a span of
- * times ("10:30-11:45"), a list of years ("2019, 2020"). Those hid whole call summaries (#4042
- * review); every other shape still counts, two numbers in one run and over-long ones included.
- * Known gap: a trunk prefix ("020 ..." for "+44 20 ...").
+ * times ("10:30-11:45", "15:00:00.000"), a date with its time ("2026-11-18 15:00"), years
+ * ("2019, 2020", "2020-2019"), and a run inside an identifier ("summary_s1_1763478000123", a
+ * stored id, never a number someone said). Those hid whole call summaries (#4042 reviews);
+ * every other shape still counts, two numbers in one run and over-long ones included.
+ * Known gaps: a trunk prefix ("020 ..." for "+44 20 ..."), and any other 7+ digit run (an order
+ * number, counting aloud to eight) still holds a passage under a number topic: it fails closed.
  */
 const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
-const TIME = '\\d{1,2}:\\d{2}(?::\\d{2})?';
-const TIMES = new RegExp(`^${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
-// A list of years has a comma or semicolon: "2012 1999" may be an eight-digit phone number.
-const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
+const TIME = '\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?';
+const DASH = '[-\\u2010-\\u2015\\u2212]';
+const TIMES = new RegExp(`^(?:\\d{4}-\\d{2}-\\d{2}[ T])?${TIME}(?:\\s*${DASH}\\s*${TIME})?$`);
+// Years joined by a comma, semicolon or one dash: "2012 1999" may be an eight-digit number.
+const YEAR = '(?:19|20)\\d\\d';
+const YEARS = new RegExp(`^${YEAR}(?:(?:\\s*[,;]\\s*${YEAR})+|\\s*${DASH}\\s*${YEAR})$`);
 const notAPhoneNumber = (run: string): boolean =>
   THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
+// A token with an underscore is a stored key ("summary_s1_1763478000123"), not something said
+const IDENTIFIER = /[\p{L}\p{N}-]*_[\p{L}\p{N}_-]*/gu;
 const phoneNumbers = (text: string): string[] =>
-  contactNumberRuns(text)
+  contactNumberRuns(text.replace(IDENTIFIER, ' '))
     .filter((run) => !notAPhoneNumber(run))
     .map((run) => run.replace(/\D/g, ''));
 

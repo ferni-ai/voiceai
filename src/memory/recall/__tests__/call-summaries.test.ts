@@ -227,3 +227,23 @@ describe('createSummaryRecall', () => {
     expect(summaryRecallEnabled({ RECALL_SUMMARIES: 'on' })).toBe(true);
   });
 });
+
+// A stored summary's id carries the epoch in ms and its timestamp milliseconds (#4042 bot
+// verifier): under a number topic, neither may hide a summary that holds no number.
+describe('summarySnippets: a forgotten number and the stored shape', () => {
+  const stored = (point: string) => ({
+    id: 'summary_session-prev_1763478000123',
+    sessionId: 'session-prev',
+    timestamp: '2026-11-18T15:00:00.000Z',
+    keyPoints: [point],
+  });
+
+  it('keeps a summary that holds no number', () => {
+    const kept = summarySnippets([stored('User planned the garden beds')], ['his number']);
+    expect(kept.map((s) => s.text)).toEqual(['User planned the garden beds']);
+  });
+
+  it('still drops one that holds the number', () => {
+    expect(summarySnippets([stored('His cell is 435 555 0199')], ['his number'])).toEqual([]);
+  });
+});

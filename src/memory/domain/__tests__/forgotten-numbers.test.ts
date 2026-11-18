@@ -140,3 +140,34 @@ describe('a forgotten "number" topic hides a raw passage holding a number', () =
     expect(isForgotten('his cell is 435 555 0199', ['brother phone number'])).toBe(false);
   });
 });
+
+// Stored keys and timestamps are not numbers anyone said (#4042 bot verifier): under "his
+// number" they hid every stored call summary, whose id carries the epoch in milliseconds.
+describe('a number topic and the shapes a stored record carries', () => {
+  it.each([
+    ['a stored summary id', 'summary_session-prev_1763478000123'],
+    ['an id with a nine-digit run', 'id_435555019'],
+    ['a timestamp with milliseconds', '2026-11-18T15:00:00.000Z'],
+    ['a date with its time', 'we met on 2026-11-18 15:00'],
+    ['a span of times with milliseconds', '15:00:00.000-15:30:00.000'],
+    ['a descending pair of years', 'the 2020-2019 seasons'],
+  ])('%s hides nothing', (_l, text) => {
+    expect(isForgottenPassage(text, ['his number'])).toBe(false);
+  });
+
+  it.each([
+    ['beside a stored id', 'summary_session-prev_1763478000123 his cell is 435 555 0199'],
+    ['beside a timestamp', '2026-11-18T15:00:00.000Z call 435-555-0199'],
+    ['after a date and time', 'on 2026-11-18 15:00 he gave me 435 555 0199'],
+    ['beside a year pair', 'the 2020-2019 seasons, call 435 555 0199'],
+  ])('a real number %s still hides', (_l, text) => {
+    expect(isForgottenPassage(text, ['his number'])).toBe(true);
+  });
+
+  it.each([
+    ['an eight-digit order number', 'order 48213377 shipped'],
+    ['counting aloud to eight', 'one two three four five six seven eight'],
+  ])('%s still hides: it fails closed (a known gap)', (_l, text) => {
+    expect(isForgottenPassage(text, ['his number'])).toBe(true);
+  });
+});
