@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import type { Env } from './env-flag.js';
+import { flagOn, type Env } from './env-flag.js';
 
 const log = createLogger({ module: 'VoiceIds' });
 
@@ -198,9 +198,10 @@ export const DEFAULT_VOICE_IDS = VOICE_IDS;
 export function getVoiceIdForPersona(personaId: string): string {
   const normalized = personaId.toLowerCase();
 
-  // Seth speaks only in his own clone. Unset means no voice: '' rather than the
-  // unknown-persona fallback below, which would give him Ferni's.
-  if (normalized === 'seth') return sethVoiceId() ?? '';
+  // Seth speaks only in his own clone, and only while SETH_TEAMMATE is on. Off or
+  // unset means no voice: '' rather than the unknown-persona fallback below,
+  // which would give him Ferni's.
+  if (normalized === 'seth') return (flagOn('SETH_TEAMMATE') && sethVoiceId()) || '';
 
   // Check environment variable override first
   // Canonical names (preferred) with fallback to legacy names

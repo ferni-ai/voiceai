@@ -1,7 +1,7 @@
 /**
  * Seth speaks in his own cloned voice, read from one setting and never written
- * in code. Unset means he has no voice, never Ferni's. The voice id here is
- * invented.
+ * in code, and only while SETH_TEAMMATE is on. Otherwise he has no voice, never
+ * Ferni's. The voice id here is invented.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { configuredLegendVoiceIds } from '../../personas/roster/index.js';
@@ -13,6 +13,7 @@ describe("Seth's voice", () => {
   });
 
   it('is empty, never Ferni, while the setting is unset or blank', () => {
+    vi.stubEnv('SETH_TEAMMATE', 'on');
     for (const value of ['', '   ']) {
       vi.stubEnv('ROSTER_VOICE_SETH', value);
       expect(getVoiceIdForPersona('seth')).toBe('');
@@ -20,7 +21,16 @@ describe("Seth's voice", () => {
     }
   });
 
-  it('is the setting, trimmed, once it holds one', () => {
+  it('is empty while SETH_TEAMMATE is off, even with the setting set', () => {
+    vi.stubEnv('ROSTER_VOICE_SETH', 'fake-seth-id');
+    for (const value of ['', 'off']) {
+      vi.stubEnv('SETH_TEAMMATE', value);
+      expect(getVoiceIdForPersona('seth')).toBe('');
+    }
+  });
+
+  it('is the setting, trimmed, once the flag is on and the setting holds one', () => {
+    vi.stubEnv('SETH_TEAMMATE', 'on');
     vi.stubEnv('ROSTER_VOICE_SETH', ' fake-seth-id ');
     expect(getVoiceIdForPersona('seth')).toBe('fake-seth-id');
     expect(getVoiceIdForPersona('SETH')).toBe('fake-seth-id');
@@ -29,6 +39,7 @@ describe("Seth's voice", () => {
   it("reads the same setting as Seth's consent record", () => {
     // voice-ids.ts can't import the roster (the roster imports it), so the two
     // name the setting separately; this keeps them in step.
+    vi.stubEnv('SETH_TEAMMATE', 'on');
     vi.stubEnv('LEGEND_VOICE_JOHN_BOGLE', '');
     vi.stubEnv('ROSTER_VOICE_SETH', 'fake-seth-id');
     expect(getVoiceIdForPersona('seth')).toBe('fake-seth-id');
