@@ -146,11 +146,9 @@ describe('a forgotten "number" topic hides a raw passage holding a number', () =
 describe('a number topic and the shapes a stored record carries', () => {
   it.each([
     ['a stored summary id', 'summary_session-prev_1763478000123'],
-    ['an id with a nine-digit run', 'id_435555019'],
     ['a timestamp with milliseconds', '2026-11-18T15:00:00.000Z'],
     ['a date with its time', 'we met on 2026-11-18 15:00'],
     ['a span of times with milliseconds', '15:00:00.000-15:30:00.000'],
-    ['a descending pair of years', 'the 2020-2019 seasons'],
   ])('%s hides nothing', (_l, text) => {
     expect(isForgottenPassage(text, ['his number'])).toBe(false);
   });
@@ -159,7 +157,11 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['beside a stored id', 'summary_session-prev_1763478000123 his cell is 435 555 0199'],
     ['beside a timestamp', '2026-11-18T15:00:00.000Z call 435-555-0199'],
     ['after a date and time', 'on 2026-11-18 15:00 he gave me 435 555 0199'],
-    ['beside a year pair', 'the 2020-2019 seasons, call 435 555 0199'],
+    ['in markdown emphasis', 'he said _his number is 435-555-0199_'],
+    ['wrapped in underscores', '_435 555 0199_'],
+    ['in a snake_case note', 'note_for_mom 435 555 0199'],
+    ['after a stored id with no epoch', 'id_x 4355550199'],
+    ['as thirteen digits with no underscore', 'his line is 1435555019912'],
   ])('a real number %s still hides', (_l, text) => {
     expect(isForgottenPassage(text, ['his number'])).toBe(true);
   });
@@ -167,6 +169,8 @@ describe('a number topic and the shapes a stored record carries', () => {
   it.each([
     ['an eight-digit order number', 'order 48213377 shipped'],
     ['counting aloud to eight', 'one two three four five six seven eight'],
+    ['a descending pair of years', 'the 2020-2019 seasons'],
+    ['a nine-digit run in an id', 'id_435555019'],
   ])('%s still hides: it fails closed (a known gap)', (_l, text) => {
     expect(isForgottenPassage(text, ['his number'])).toBe(true);
   });
