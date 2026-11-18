@@ -25,12 +25,12 @@ export interface RouterCrisisChecks {
   /** Spread into each router's context; empty with the flag off. */
   gate: AutoExecuteGate;
   /** Whether a reply may skip the reply model (FTIS bypass, semantic short-circuit). */
-  bypassAllowed(): Promise<boolean>;
+  bypassAllowed: () => Promise<boolean>;
   /**
    * Whether the routing result's direct tool reply is refused. Flag off: the pattern read alone,
    * as on main. Flag on: anything but 'allowed'.
    */
-  blocksDirectReply(): Promise<boolean>;
+  blocksDirectReply: () => Promise<boolean>;
 }
 
 /** The router checks for one turn, from its crisis reads and the call they belong to. */
@@ -44,7 +44,7 @@ export function routerCrisisChecks(
     return {
       gate: {},
       bypassAllowed: turnCrisis.bypassAllowed,
-      blocksDirectReply: async () => turnCrisis.patterns.isCrisis,
+      blocksDirectReply: () => Promise.resolve(turnCrisis.patterns.isCrisis),
     };
   }
   const check = async (): Promise<AutoExecuteOutcome> => {
@@ -56,7 +56,7 @@ export function routerCrisisChecks(
       return 'failed';
     }
   };
-  const bypassAllowed = (): Promise<boolean> => check().then((outcome) => outcome === 'allowed');
+  const bypassAllowed = async (): Promise<boolean> => (await check()) === 'allowed';
   return {
     gate: { autoExecuteCheck: check },
     bypassAllowed,
