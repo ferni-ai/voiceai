@@ -28,6 +28,9 @@ import { handleHandoffFromDataChannel } from '../multi-agent-entry.js';
 import { AgentOrchestrator, createAgentOrchestrator } from '../orchestrator.js';
 import { PacedTTS, RoomLikeAudioOutput } from './fake-room-audio.js';
 
+/** A solo call's transcript: no group call turn label to take off (turn-label.ts). */
+const asSaid = (transcript: string): string => transcript;
+
 const SESSION = 'talk-through-sdk-test';
 const REQUEST = 'Okay, thanks Jordan. Can you take me back to Ferni?';
 const SENTENCE = 'And tell Ferni my dentist moved my cleaning to Thursday at four.';
@@ -170,6 +173,7 @@ async function call(caller: 'talks' | 'waits' = 'talks', start: Start = 'playing
         refused.push(String(error));
       }
     },
+    unlabel: asSaid,
   });
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, fast.onAgentState);
   session.on(voice.AgentSessionEventTypes.UserStateChanged, fast.onUserState);

@@ -72,7 +72,8 @@ export type CrisisGenerateFn = (
 
 /** Above the measured p95; on voice the call overlaps the LLM's own first-token wait. */
 export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1000;
-const MAX_EARLIER_MESSAGES = 5;
+/** The most caller lines a read is given, as context (earlier) or, joined, as one turn. */
+export const MAX_EARLIER_MESSAGES = 5;
 
 export const CRISIS_CLASSIFIER_PROMPT = `You triage suicide and self-harm risk for a voice companion app. Read the caller's LATEST message, using EARLIER messages from the same conversation only as context, and classify the LATEST message.
 

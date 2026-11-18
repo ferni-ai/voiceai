@@ -130,21 +130,28 @@ export function normalizeLogin(login: string): string {
   return l.startsWith('app/') ? `${l.slice(4)}[bot]` : l;
 }
 
+/**
+ * A policy glob as an unanchored pattern both JavaScript and `grep -E` read the same way (no
+ * `(?:`), so ci.yml's crisis-lane step matches exactly what matchesGlob does.
+ */
+export function globPattern(glob: string): string {
+  return glob
+    .split(/(\*\*\/|\*\*|\*|\?)/)
+    .map((part) => {
+      if (part === '**/') return '(.*/)?';
+      if (part === '**') return '.*';
+      if (part === '*') return '[^/]*';
+      if (part === '?') return '[^/]';
+      return part.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    })
+    .join('');
+}
+
 const globCache = new Map<string, RegExp>();
 function globRegExp(glob: string): RegExp {
   let re = globCache.get(glob);
   if (!re) {
-    const body = glob
-      .split(/(\*\*\/|\*\*|\*|\?)/)
-      .map((part) => {
-        if (part === '**/') return '(?:.*/)?';
-        if (part === '**') return '.*';
-        if (part === '*') return '[^/]*';
-        if (part === '?') return '[^/]';
-        return part.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-      })
-      .join('');
-    re = new RegExp(`^${body}$`);
+    re = new RegExp(`^${globPattern(glob)}$`);
     globCache.set(glob, re);
   }
   return re;

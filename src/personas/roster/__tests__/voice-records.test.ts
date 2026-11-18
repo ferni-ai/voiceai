@@ -28,4 +28,11 @@ describe('configuredLegendVoiceIds', () => {
       expect(configuredLegendVoiceIds({ LEGEND_VOICE_JOHN_BOGLE: value })).toEqual([]);
     }
   });
+
+  it("lists Seth's own clone once his setting holds one", () => {
+    expect(configuredLegendVoiceIds({ ROSTER_VOICE_SETH: 'fake-seth-id' })).toContain(
+      'fake-seth-id'
+    );
+    expect(configuredLegendVoiceIds({ ROSTER_VOICE_SETH: '' })).toEqual([]);
+  });
 });

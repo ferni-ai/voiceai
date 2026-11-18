@@ -30,6 +30,8 @@ export interface Verdict {
 export interface JudgeModel {
   name: string;
   generate: (prompt: string) => Promise<string | null>;
+  /** Why the model can't be called at all (e.g. no API key); set, the judge doesn't try. */
+  unavailable?: string;
 }
 
 export interface JudgeResult {
@@ -118,6 +120,9 @@ export async function judgePost(
 ): Promise<JudgeResult> {
   const prompt = judgePrompt(markdown, audience, deps.truth, deps.sourceText);
   const model = deps.model.name;
+  // Said apart from "no readable verdict": claudeText returns null for a missing
+  // key too, which hid an unset secret for three weekly runs.
+  if (deps.model.unavailable) return { status: 'error', model, failures: [deps.model.unavailable] };
   for (let n = 1; n <= 2; n++) {
     // Sequential on purpose: ask again only when the first answer was unreadable.
     // eslint-disable-next-line no-await-in-loop
@@ -128,6 +133,20 @@ export async function judgePost(
     }
   }
   return { status: 'error', model, failures: ['the judge gave no readable verdict'] };
+}
+
+/**
+ * The judge's reasons for each dimension under the bar, for the drafter to
+ * revise against: "craft 3 (needs 4): <reason>". Empty when it passed or gave
+ * no verdict.
+ */
+export function editorNotes(result: JudgeResult): string[] {
+  const { verdict } = result;
+  if (!verdict) return [];
+  return result.failures.map((failure) => {
+    const dimension = failure.split(' ')[0] as Dimension;
+    return `${failure}: ${cap(stripMarkup(verdict.scores[dimension].reason), 600)}`;
+  });
 }
 
 /** Claude through the repo's Anthropic client (ANTHROPIC_API_KEY, optional ANTHROPIC_WORKSPACE_ID). */
@@ -142,6 +161,9 @@ export function claudeJudge(env: NodeJS.ProcessEnv = process.env): JudgeModel {
   return {
     name,
     generate: (prompt) => claudeText(prompt, { maxTokens: 16_000, timeout: 180_000 }, claudeEnv),
+    unavailable: env.ANTHROPIC_API_KEY
+      ? undefined
+      : 'ANTHROPIC_API_KEY is not set, so the judge never ran (add it as a repo secret)',
   };
 }
 

@@ -100,6 +100,21 @@ vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => 
   createGeminiCrisisGenerate: () => async () => '{"risk":"none"}',
 }));
 
+// SMS_REPLY's model call: a crisis text must never reach it.
+const smsModel = vi.hoisted(() => vi.fn(async () => 'Sounds like a long day.'));
+vi.mock('../../services/outreach/sms-reply/sms-reply-reads.js', async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import('../../services/outreach/sms-reply/sms-reply-reads.js')>();
+  const reads = {
+    refusal: async () => null,
+    lastCrisisAt: async () => undefined,
+    recall: async () => ({ note: null, count: 0 }),
+    identity: async () => 'You are Ferni.',
+    generate: smsModel,
+  };
+  return { ...real, defaultSmsReplyReads: { ...real.defaultSmsReplyReads, ...reads } };
+});
+
 // The screen can be made to reject, though by contract it never does.
 const screenRejects = vi.hoisted(() => ({ on: false }));
 const screened = vi.hoisted(() => vi.fn());
@@ -252,6 +267,46 @@ describe('a crisis text survives every write after the screen', () => {
     expect(sent).toContain('Calling you now.');
     const failed = lines.filter((l) => String(l.message).includes('step failed'));
     expect(failed[0]?.fields).toEqual({ step: 'screen', crisis: false, errorClass: 'Error' });
+  });
+});
+
+// TEXT_SHOWN_ON (crisis-flag-homes.ts): SMS_REPLY on never lowers a crisis text's answer. Every
+// flag it needs to act is on in both runs; only SMS_REPLY changes.
+describe('SMS_REPLY never lowers a crisis text at the real route', () => {
+  const answer = async (body: string, smsReply: 'off' | 'on') => {
+    for (const flag of ['MINOR_CARE', 'MINOR_CARE_SHARED_HOLD']) vi.stubEnv(flag, 'on');
+    vi.stubEnv('SMS_REPLY', smsReply);
+    return text(body);
+  };
+
+  it('SMS_REPLY off then on: a crisis text gets the same answer, 988 and 911 in it, no model reply', async () => {
+    // A text the router answers in words, not with a call: the one route SMS_REPLY acts on.
+    routed.mockResolvedValue({
+      routeDecision: { agentId: 'ferni', confidence: 1 },
+      shouldInitiateCall: false,
+      callNow: false,
+    });
+    // Live: on this route, an ordinary text gets SMS_REPLY's model reply.
+    expect((await answer('walked Biscuit in the rain', 'on')).sent).toContain(
+      'Sounds like a long day.'
+    );
+    smsModel.mockClear();
+    const off = await answer('I want to kill myself', 'off');
+    const on = await answer('I want to kill myself', 'on');
+    expect(on).toEqual(off);
+    expect(on.sent).toContain('please call or text 988');
+    expect(on.sent).toContain('call 911');
+    expect(smsModel).not.toHaveBeenCalled();
+  });
+
+  // The router's call answer comes before SMS_REPLY, so it never sees a "call me" text.
+  it('SMS_REPLY off then on: a "call me" crisis text keeps its call and the same 988 answer, no model reply', async () => {
+    const off = await answer(CRISIS, 'off');
+    const on = await answer(CRISIS, 'on');
+    expect(on).toEqual(off);
+    expect(on.sent).toContain('please call or text 988');
+    expect(adapter.call).toHaveBeenCalledTimes(2);
+    expect(smsModel).not.toHaveBeenCalled();
   });
 });
 

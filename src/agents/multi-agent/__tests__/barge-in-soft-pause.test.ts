@@ -24,6 +24,8 @@ import {
   softPauseGraceMs,
 } from '../barge-in-soft-pause.js';
 
+/** A solo call's transcript: no group call turn label to take off (turn-label.ts). */
+const asSaid = (transcript: string): string => transcript;
 const FERNI_SAYS = 'so for her birthday I was thinking a trail day by the lake';
 
 function call(flag: string | undefined, env: Record<string, string> = {}) {
@@ -35,7 +37,7 @@ function call(flag: string | undefined, env: Record<string, string> = {}) {
     { BARGE_IN_SOFT_PAUSE: flag, ...env },
     { pause, resume, log: (fields) => decisions.push(fields) }
   );
-  const fp = createBargeInFastPath({ interrupt, softPause });
+  const fp = createBargeInFastPath({ interrupt, softPause, unlabel: asSaid });
   /** Ferni starts a reply and the caller talks over it for the sustained-speech time. */
   const talkOver = () => {
     fp.onAgentState({ newState: 'speaking' });
