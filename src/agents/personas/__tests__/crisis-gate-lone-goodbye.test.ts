@@ -286,9 +286,20 @@ describe('the turn pipeline agrees', () => {
     const start = source.indexOf('// FTIS DIRECT EXECUTION');
     const ftis = source.slice(start, source.indexOf('return {', start));
     expect(ftis).toMatch(
-      /ftisResult\.bypassLLM &&\s+ftisResult\.toolResult &&\s+\(await turnCrisis\.bypassAllowed\(\)\)/
+      /ftisResult\.bypassLLM &&\s+ftisResult\.toolResult &&\s+\(await routerChecks\.bypassAllowed\(\)\)/
     );
-    expect(source).toMatch(/crisisDetected: !\(await turnCrisis\.bypassAllowed\(\)\)/);
+    expect(source).toMatch(/crisisDetected: !\(await routerChecks\.bypassAllowed\(\)\)/);
+    // routerChecks.bypassAllowed is turnCrisis.bypassAllowed with the flag off, and asks it first
+    // with ROUTER_EXEC_AFTER_CRISIS_READ on
+    const checks = readFileSync(
+      new URL('../../processors/turn-processor/router-crisis-check.ts', import.meta.url),
+      'utf8'
+    );
+    expect(checks).toMatch(/gate: \{\},\s+bypassAllowed: turnCrisis\.bypassAllowed,/);
+    expect(checks).toMatch(/if \(!\(await turnCrisis\.bypassAllowed\(\)\)\) return 'held';/);
+    expect(checks).toMatch(
+      /bypassAllowed = async \(\): Promise<boolean> => \(await check\(\)\) === 'allowed'/
+    );
   });
 
   it('keeps the override for a goodbye after risk', async () => {
