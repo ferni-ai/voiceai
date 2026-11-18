@@ -14,6 +14,7 @@
 import { createLogger } from '../../utils/logger.js';
 import { finopsFetch } from '../admin-fetch.js';
 import { ICONS } from '../icons.js';
+import { finopsGet, finopsLoadFailure } from './finops-load.js';
 
 const log = createLogger('FinOpsSection');
 
@@ -109,17 +110,8 @@ let isLoading = false;
 // API
 // ============================================================================
 
-async function fetchSnapshot(): Promise<FinOpsSnapshot> {
-  const response = await finopsFetch('/api/finops/snapshot');
-  if (!response.ok) throw new Error('Failed to fetch FinOps data');
-  return response.json();
-}
-
-async function fetchThresholds(): Promise<Thresholds> {
-  const response = await finopsFetch('/api/finops/thresholds');
-  if (!response.ok) throw new Error('Failed to fetch thresholds');
-  return response.json();
-}
+const fetchSnapshot = async () => finopsGet<FinOpsSnapshot>('/api/finops/snapshot');
+const fetchThresholds = async () => finopsGet<Thresholds>('/api/finops/thresholds');
 
 async function _updateThreshold(key: string, value: number): Promise<void> {
   await finopsFetch('/api/finops/thresholds', {
@@ -1103,6 +1095,8 @@ async function refreshData(): Promise<void> {
     updateUI();
   } catch (error) {
     log.error({ error }, 'Failed to refresh FinOps data');
+    const loadingText = document.querySelector('#finops-loading p');
+    if (loadingText) loadingText.textContent = finopsLoadFailure(error);
   } finally {
     isLoading = false;
   }
