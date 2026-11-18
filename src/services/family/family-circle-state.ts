@@ -12,6 +12,8 @@ export interface FamilyCircleMember {
   sponsoredIdentityId: string;
   familyUserId: string;
   displayName: string;
+  /** The LiveKit identity of the SIP participant the proofs were checked on. */
+  participantIdentity: string;
 }
 
 const bySession = new Map<string, FamilyCircleMember>();

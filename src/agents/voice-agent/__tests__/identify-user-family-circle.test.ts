@@ -4,7 +4,7 @@
  * only once the job executor has registered the decision and it admits them.
  * With either gate closed nothing is looked up, and a caller recognised as an
  * account owner never reaches the family lookup. Only Firebase Auth, the
- * sponsored-identity lookup and the signed attestation are faked; all data is
+ * fresh sponsored-identity read and the signed attestation are faked; all data is
  * fictional.
  */
 import type { Room } from '@livekit/rtc-node';
@@ -15,7 +15,7 @@ import type { SipAttestation } from '../../voice-agent-entry/sip-caller.js';
 const fakes = vi.hoisted(() => ({
   getFirebaseUserByPhone: vi.fn(),
   identifyFromMetadata: vi.fn(),
-  lookupByPhone: vi.fn(),
+  readFresh: vi.fn(),
   signed: { level: 'A' as string | null },
 }));
 
@@ -26,8 +26,8 @@ vi.mock('../../../services/identity/firebase-auth.js', () => ({
 vi.mock('../../../services/identity/user-identification.js', () => ({
   identifyFromMetadata: fakes.identifyFromMetadata,
 }));
-vi.mock('../../../services/identity/sponsored-identity.js', () => ({
-  lookupByPhone: fakes.lookupByPhone,
+vi.mock('../../../services/identity/sponsored-identity-fresh.js', () => ({
+  readSponsoredIdentityByPhoneFresh: fakes.readFresh,
 }));
 vi.mock('../../voice-agent-entry/sip-caller.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../voice-agent-entry/sip-caller.js')>()),
@@ -94,7 +94,7 @@ beforeEach(() => {
   vi.stubEnv('SETH_FAMILY_CIRCLE', 'on');
   vi.stubEnv('SETH_OWNER_UID', OWNER);
   fakes.getFirebaseUserByPhone.mockReset().mockResolvedValue(null);
-  fakes.lookupByPhone.mockReset().mockResolvedValue({ found: true, identity: member });
+  fakes.readFresh.mockReset().mockResolvedValue(member);
   fakes.signed.level = 'A';
   remember.mockClear();
 });
@@ -103,7 +103,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe('identifyUser and the family circle', () => {
   it('decides nothing until the job executor registers the decision', async () => {
     const before = await call();
-    expect(fakes.lookupByPhone).not.toHaveBeenCalled();
+    expect(fakes.readFresh).not.toHaveBeenCalled();
     expect(before.result.userId).toMatch(/^anon:/);
     await registered();
     const after = await call();
@@ -113,7 +113,7 @@ describe('identifyUser and the family circle', () => {
   it('runs a proven family caller as their own sponsored identity, never verified', async () => {
     await registered();
     const { result, sessionId } = await call();
-    expect(fakes.lookupByPhone).toHaveBeenCalledWith(CALLER);
+    expect(fakes.readFresh).toHaveBeenCalledWith(CALLER);
     expect(result.userId).toBe('family_sid-test');
     expect(result.userName).toBe('Test Member');
     expect(result.verified).toBe(false);
@@ -122,6 +122,7 @@ describe('identifyUser and the family circle', () => {
       sponsoredIdentityId: 'sid-test',
       familyUserId: 'family_sid-test',
       displayName: 'Test Member',
+      participantIdentity: `sip_${CALLER}`,
     });
   });
 
@@ -131,7 +132,7 @@ describe('identifyUser and the family circle', () => {
       await registered();
       vi.stubEnv(flag, 'off');
       const { result } = await call();
-      expect(fakes.lookupByPhone).not.toHaveBeenCalled();
+      expect(fakes.readFresh).not.toHaveBeenCalled();
       expect(result.userId).toMatch(/^anon:/);
       expect(result.userName).toBeUndefined();
       expect(remember).not.toHaveBeenCalled();
@@ -145,7 +146,7 @@ describe('identifyUser and the family circle', () => {
       displayName: 'Test Owner',
     });
     const { result } = await call();
-    expect(fakes.lookupByPhone).not.toHaveBeenCalled();
+    expect(fakes.readFresh).not.toHaveBeenCalled();
     expect(result.userId).toBe('uid-account-test');
   });
 

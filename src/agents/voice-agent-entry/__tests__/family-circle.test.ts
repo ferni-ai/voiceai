@@ -9,10 +9,7 @@
  */
 import { ParticipantKind } from '@livekit/rtc-node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  PhoneLookupResult,
-  SponsoredIdentity,
-} from '../../../services/identity/sponsored-identity.js';
+import type { SponsoredIdentity } from '../../../services/identity/sponsored-identity.js';
 import type { SipAttestation } from '../sip-caller.js';
 
 const logged = vi.hoisted(() => [] as unknown[][]);
@@ -30,7 +27,27 @@ vi.mock('../../../services/family/index.js', async (importOriginal) => {
   return { ...real, rememberFamilyCircle: family.remember, forgetFamilyCircle: family.forget };
 });
 
+// Firestore as the production lookup sees it: docs by collection, then id.
+const firestore = vi.hoisted(() => ({ docs: new Map<string, Record<string, unknown>>() }));
+vi.mock('../../../utils/firebase-admin-app.js', () => ({
+  getAdminFirestore: () => ({
+    collection: (name: string) => ({
+      doc: (id: string) => ({
+        get: async () => {
+          const data = firestore.docs.get(`${name}/${id}`);
+          return { exists: data !== undefined, id, data: () => data };
+        },
+      }),
+    }),
+  }),
+}));
+vi.mock('../sip-caller.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sip-caller.js')>()),
+  readSignedAttestation: async () => 'A',
+}));
+
 const { resolveFamilyCircle } = await import('../family-circle.js');
+const { lookupByPhone } = await import('../../../services/identity/sponsored-identity.js');
 const { runSessionCleanup } = await import('../../session/event-cleanup-registry.js');
 
 const CALLER = '+15555550101';
@@ -66,19 +83,17 @@ function identity(over: Partial<SponsoredIdentity> = {}): SponsoredIdentity {
 
 function fakeDeps(found: SponsoredIdentity | null, signed: SipAttestation | null = 'A') {
   return {
-    lookup: vi.fn(async (_e164: string): Promise<PhoneLookupResult> =>
-      found ? { found: true, identity: found } : { found: false }
-    ),
+    lookup: vi.fn(async (_e164: string): Promise<SponsoredIdentity | null> => found),
     signedAttestation: vi.fn(
       async (_p: object, _e164: string): Promise<SipAttestation | null> => signed
     ),
   };
 }
 
-function room(number = CALLER) {
+function room(number = CALLER, kind = ParticipantKind.SIP) {
   const caller = {
     identity: `sip_${number}`,
-    kind: ParticipantKind.SIP,
+    kind,
     attributes: { 'sip.phoneNumber': number },
   };
   return { remoteParticipants: new Map([['caller', caller]]), on: vi.fn(), off: vi.fn() };
@@ -103,6 +118,7 @@ describe('resolveFamilyCircle', () => {
       sponsoredIdentityId: 'sid-test',
       familyUserId: 'family_sid-test',
       displayName: 'Test Member',
+      participantIdentity: `sip_${CALLER}`,
     });
     expect(family.remember).toHaveBeenCalledWith(sessionId, member);
     expect(deps.lookup).toHaveBeenCalledWith(CALLER);
@@ -160,12 +176,12 @@ describe('resolveFamilyCircle', () => {
   });
 
   it('runs the lookup and the attestation read together, so timing says nothing', async () => {
-    let releaseLookup: (r: PhoneLookupResult) => void = () => {};
+    let releaseLookup: (r: SponsoredIdentity | null) => void = () => {};
     let releaseSigned: (s: SipAttestation | null) => void = () => {};
     const deps = {
       lookup: vi.fn(
         () =>
-          new Promise<PhoneLookupResult>((r) => {
+          new Promise<SponsoredIdentity | null>((r) => {
             releaseLookup = r;
           })
       ),
@@ -182,7 +198,7 @@ describe('resolveFamilyCircle', () => {
     });
     expect(deps.lookup).toHaveBeenCalledTimes(1);
     expect(deps.signedAttestation).toHaveBeenCalledTimes(1);
-    releaseLookup({ found: false });
+    releaseLookup(null);
     releaseSigned('A');
     expect(await pending).toBeNull();
   });
@@ -196,6 +212,37 @@ describe('resolveFamilyCircle', () => {
     for (const secret of [CALLER, '5555550101', 'Test Member', 'family_sid-test']) {
       expect(text).not.toContain(secret);
     }
+  });
+
+  it('reads the identity fresh: a revoked identity still in the lookup cache is refused', async () => {
+    firestore.docs.set(`sponsored_identity_phone_index/${CALLER}`, { identityId: 'sid-test' });
+    firestore.docs.set('sponsored_identities/sid-test', { ...identity(), status: 'active' });
+    expect((await lookupByPhone(CALLER)).found).toBe(true); // primes the process cache
+    firestore.docs.set('sponsored_identities/sid-test', { ...identity(), status: 'revoked' });
+    expect((await lookupByPhone(CALLER)).identity?.status).toBe('active'); // the cache is stale
+    expect(await resolveFamilyCircle(room(), nextSession(), undefined, OPEN)).toBeNull();
+    firestore.docs.set('sponsored_identities/sid-test', { ...identity(), status: 'active' });
+    expect(await resolveFamilyCircle(room(), nextSession(), undefined, OPEN)).not.toBeNull();
+  });
+
+  it('gives up after 2 s and is the public circle', async () => {
+    vi.useFakeTimers();
+    const sessionId = nextSession();
+    const deps = fakeDeps(identity());
+    deps.lookup.mockReturnValue(new Promise(() => {}));
+    const pending = resolveFamilyCircle(room(), sessionId, deps, OPEN);
+    await vi.advanceTimersByTimeAsync(2000);
+    vi.useRealTimers();
+    expect(await pending).toBeNull();
+    expect(family.remember).not.toHaveBeenCalled();
+    expect(logged).toContainEqual([{ sessionId, reason: 'timeout' }, 'family_circle refused']);
+  });
+
+  it('is null when the first participant is not a SIP caller', async () => {
+    const deps = fakeDeps(identity());
+    const web = room(CALLER, ParticipantKind.STANDARD);
+    expect(await resolveFamilyCircle(web, nextSession(), deps, OPEN)).toBeNull();
+    expect(deps.lookup).not.toHaveBeenCalled();
   });
 
   it('forgets the session when the call ends', async () => {

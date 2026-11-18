@@ -9,6 +9,10 @@
  */
 import type { Room } from '@livekit/rtc-node';
 import type { FamilyCircleMember } from '../../services/family/index.js';
+import { errorClass } from '../../utils/error-class.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'family-circle-hook' });
 
 type FamilyCircleDecision = (room: Room, sessionId: string) => Promise<FamilyCircleMember | null>;
 
@@ -18,10 +22,13 @@ export function registerFamilyCircleDecision(decision: FamilyCircleDecision): vo
   decide = decision;
 }
 
-/** The phone caller's family circle membership, or null (never throws). */
+/** The phone caller's family circle membership, or null (never throws; a failure is logged). */
 export async function familyCircleMember(
   room: Room,
   sessionId: string
 ): Promise<FamilyCircleMember | null> {
-  return decide(room, sessionId).catch(() => null);
+  return decide(room, sessionId).catch((e: unknown) => {
+    log.warn({ sessionId, reason: 'error', error: errorClass(e) }, 'family_circle refused');
+    return null;
+  });
 }
