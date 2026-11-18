@@ -29,8 +29,7 @@
  * and the turn detection and interruption mode LiveKit resolved for the turn.
  * `holds` and `audio` say which deliberate hold kept the first words back and
  * when the caller first heard anything (turn-receipt-timing.ts); `flags` and
- * `commit` say which arm of an A/B the turn ran in (turn-receipt-flags.ts). `crisis` says
- * what the crisis engines decided and whether the reply named 988 or 911 (turn-receipt-crisis.ts).
+ * `commit` say which arm of an A/B the turn ran in (turn-receipt-flags.ts).
  *
  * @module agents/shared/turn-receipt
  */
@@ -223,15 +222,9 @@ export class TurnReceiptRecorder {
   }
 
   /** The number the open turn's receipt will carry (call-turn.ts joins other lines to it). */
-  currentTurn(): number {
-    return this.count + 1;
-  }
-
-  /** A crisis engine decided on `turn` of this call (turn-receipt-crisis.ts); another turn's is dropped. */
-  onCrisis(turn: number | null, note: crisis.CrisisTurnNote): void {
-    if (turn !== null && turn !== this.currentTurn()) return;
-    crisis.addCrisisNote(this.open().crisis, note);
-  }
+  currentTurn = (): number => this.count + 1;
+  /** A crisis note on the open turn (turn-receipt-crisis.ts). */
+  onCrisis = (note: crisis.CrisisTurnNote): void => crisis.addCrisisNote(this.open().crisis, note);
 
   /** Ferni was stopped for the caller; the first decision that did it counts. */
   onBargeIn(source: BargeInSource): void {

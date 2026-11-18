@@ -21,8 +21,7 @@
  *
  * @module agents/shared/turn-receipt-crisis
  */
-import type { PatternOutcome } from '../../services/safety/crisis-classifier.js';
-import { names911, names988 } from '../../services/safety/crisis-line-speech.js';
+import { names911, names988, type PatternOutcome } from '../../services/safety/index.js';
 import type { CrisisEventKind } from '../safety/crisis-event-record.js';
 
 type CrisisEngine = 'gate' | 'pipeline';

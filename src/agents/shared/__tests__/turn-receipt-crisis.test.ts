@@ -19,6 +19,7 @@ import { decisionFor, gatedReply } from '../../personas/crisis-gate.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { crisisKindOf } from '../../safety/crisis-event-record.js';
 import type { TurnReceipt } from '../turn-receipt.js';
+import { noteCrisisTurn } from '../turn-receipt-crisis.js';
 import { attachTurnReceipts } from '../turn-receipt-session.js';
 
 const { logged } = vi.hoisted(() => ({ logged: [] as unknown[][] }));
@@ -175,6 +176,18 @@ describe('TURN_RECEIPT crisis field', () => {
     const c = openCall();
     await c.turn(SCRIPT_LINE, PATTERNS, { cut: true });
     expect(receipts()[0]!.crisis.delivered).toBe('cut');
+  });
+
+  it('a read that settles after the next commit is not credited to the new turn', async () => {
+    const c = openCall();
+    await c.turn('hello there', PATTERNS); // turn 1 done; turn 2 is open
+    noteCrisisTurn(c.sessionId, 1, { engine: 'pipeline', tier: 'block' }); // turn 1's, late
+    noteCrisisTurn(c.sessionId, 2, { engine: 'pipeline', tier: 'crisis' }); // turn 2's own
+    await c.turn('thanks, see you', PATTERNS);
+    expect(receipts()[1]).toMatchObject({
+      turn: 2,
+      crisis: { engine: 'pipeline', tier: 'crisis' },
+    });
   });
 
   it('a classifier escalation guides the reply; a later turn starts clean', async () => {

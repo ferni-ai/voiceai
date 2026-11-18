@@ -131,8 +131,10 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
   const offHold = onPauseHoldReleased((sessionId, heldMs) => {
     if (sessionId === opts.sessionId) rec.onPauseHold(heldMs);
   });
+  // A note made on another turn (a read that settled after the next commit) is dropped.
   const offCrisis = onCrisisTurn((sessionId, turn, note) => {
-    if (sessionId === opts.sessionId) rec.onCrisis(turn, note);
+    if (sessionId !== opts.sessionId) return;
+    if (turn === null || turn === rec.currentTurn()) rec.onCrisis(note);
   });
   const unbindTurn = bindCallTurn(opts.sessionId, () => rec.currentTurn());
   return () => {

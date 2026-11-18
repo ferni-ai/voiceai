@@ -13,18 +13,17 @@
  * @module agents/safety/crisis-turn-note
  */
 import { callTurnOf, type CallTurnIds } from '../../utils/call-turn.js';
-import { SOFT_CRISIS_CHECK } from '../../services/safety/crisis-agreement.js';
 import {
+  GROUNDED_LIGHT_TOUCH,
   logCrisisOverride,
-  type CrisisDetectionResult,
-} from '../../services/safety/crisis-guard.js';
-import { GROUNDED_LIGHT_TOUCH } from '../../services/safety/crisis-grounded-release.js';
-import { SCREEN_GENTLE_OFFER } from '../../services/safety/crisis-grounded-screen.js';
-import { names911 } from '../../services/safety/crisis-line-speech.js';
-import { replacesReply } from '../../services/safety/crisis-severity.js';
-import { TIMEOUT_CHECKIN } from '../../services/safety/crisis-timeout-checkin.js';
-import type { CrisisReader } from '../../services/safety/index.js';
-import { sessionIdIn } from '../../speech/output-control/turn-timing.js';
+  names911,
+  replacesReply,
+  SCREEN_GENTLE_OFFER,
+  SOFT_CRISIS_CHECK,
+  TIMEOUT_CHECKIN,
+  type CrisisReader,
+} from '../../services/safety/index.js';
+import { sessionIdIn } from '../../speech/output-control/index.js';
 import { noteCrisisTurn, type CrisisReplyClass } from '../shared/turn-receipt-crisis.js';
 import type { CrisisEventKind } from './crisis-event-record.js';
 
@@ -120,7 +119,7 @@ export function noteGateTurn(
 /** The turn pipeline's settled read (turn-crisis.ts), on the call's open turn. */
 export function notePipelineRead(
   sessionId: string | undefined,
-  settled: { crisis: CrisisDetectionResult; soft: boolean }
+  settled: { crisis: { isCrisis: boolean; severity: number }; soft: boolean }
 ): void {
   const { crisis, soft } = settled;
   const tier = replacesReply(crisis) ? 'block' : crisis.isCrisis || soft ? 'crisis' : 'none';
