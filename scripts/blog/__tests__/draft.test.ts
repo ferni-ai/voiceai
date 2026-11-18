@@ -3,7 +3,14 @@ import * as path from 'node:path';
 import matter from 'gray-matter';
 import { describe, expect, it, vi } from 'vitest';
 import { REQUIRED_FIELDS } from '../brand-gate.js';
-import { draftPost, isoWeek, reviseEnabled, usedSources, type DraftDeps } from '../draft.js';
+import {
+  draftPost,
+  isoWeek,
+  repeatGateEnabled,
+  reviseEnabled,
+  usedSources,
+  type DraftDeps,
+} from '../draft.js';
 import type { JudgeResult, Verdict } from '../judge.js';
 import { existingPosts } from '../existing-posts.js';
 import { HOUSE_FACTS, sourceList, type GhRunner } from '../grounding.js';
@@ -452,6 +459,46 @@ describe('the retry', () => {
     const result = await draftPost({ type: 'whats-new' }, d);
     expect(generate).toHaveBeenCalledTimes(2);
     expect(result.status).toBe('written');
+  });
+});
+
+describe('the repetition rule in the drafter', () => {
+  /** A body long enough for whats-new with no six words repeated. */
+  const consonants = 'bcdfghjklmnprstvz';
+  const VARIED = Array.from({ length: 400 }, (_, i) => {
+    const c = consonants[i % 17];
+    const v = 'aeiou'[Math.floor(i / 17) % 5];
+    return `${c}${v}${consonants[Math.floor(i / 85) % 17]}o`;
+  }).join(' ');
+
+  it('is on only when BLOG_REPEAT_GATE is "on"', () => {
+    expect(repeatGateEnabled({ BLOG_REPEAT_GATE: 'on' })).toBe(true);
+    for (const value of [undefined, 'off', 'true', 'ON', '1'])
+      expect(repeatGateEnabled({ BLOG_REPEAT_GATE: value })).toBe(false);
+  });
+
+  it('off: a draft that repeats itself is written on the first call', async () => {
+    vi.stubEnv('BLOG_REPEAT_GATE', 'off');
+    const { d, generate } = deps(() => answer('Better memory'));
+    const result = await draftPost({ type: 'whats-new' }, d);
+    vi.unstubAllEnvs();
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe('written');
+  });
+
+  it('on: a draft that repeats itself goes back once with the repeated line', async () => {
+    vi.stubEnv('BLOG_REPEAT_GATE', 'on');
+    const replies = [answer('Better memory'), answer('Better memory', VARIED)];
+    const { d, writes, generate } = deps(() => replies.shift() ?? '');
+    const result = await draftPost({ type: 'whats-new' }, d);
+    vi.unstubAllEnvs();
+
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate.mock.calls[1][0]).toContain(
+      '[repetition] said twice in the post: "we kept working on this part of ferni with care and patience'
+    );
+    expect(result.status).toBe('written');
+    expect(writes[0].content).toContain(VARIED);
   });
 });
 

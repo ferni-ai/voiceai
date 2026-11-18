@@ -9,17 +9,16 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { adminFetch } from '../admin-fetch.js';
-import { toast } from '../../ui/whisper.ui.js';
 import {
   ICON_CHART,
   ICON_PAUSE,
   ICON_PLAY,
-  ICON_PLUS,
   ICON_REFRESH,
   ICON_SETTINGS,
   ICON_SUCCESS,
   iconSm,
 } from '../icons.js';
+import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
 
 const log = createLogger('ExperimentsSection');
 
@@ -77,20 +76,6 @@ interface ExperimentsResponse {
 // API
 // ============================================================================
 
-async function fetchExperiments(): Promise<ExperimentsResponse> {
-  try {
-    const response = await adminFetch('/api/v1/admin/experiments');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    log.error('Failed to fetch experiments:', error);
-    return {
-      experiments: [],
-      summary: { total: 0, running: 0, completed: 0, draft: 0, paused: 0 },
-    };
-  }
-}
-
 async function startExperiment(id: string): Promise<boolean> {
   try {
     const response = await adminFetch(`/api/v1/admin/experiments/${id}/start`, {
@@ -138,7 +123,11 @@ async function completeExperiment(id: string, winner: string): Promise<boolean> 
 export async function render(): Promise<string> {
   log.debug('Rendering experiments section');
 
-  const data = await fetchExperiments();
+  const data = await loadJson<ExperimentsResponse>(adminFetch('/api/v1/admin/experiments'), 'experiments');
+  // A failed load is not "no experiments": show why, with no zero counts
+  if (isUnavailable(data)) {
+    return `<div class="experiments-section">${renderUnavailable(`Experiments ${data.unavailable}`)}</div>`;
+  }
   const { experiments, summary } = data;
 
   return `
@@ -153,10 +142,6 @@ export async function render(): Promise<string> {
 
       <!-- Actions -->
       <div class="experiments-actions" role="button" tabindex="0">
-        <button aria-label="Add" class="admin-btn primary" data-action="create-experiment">
-          <span class="admin-icon">${iconSm(ICON_PLUS)}</span>
-          New Experiment
-        </button>
         <button aria-label="Refresh" class="admin-btn" data-action="refresh-experiments">
           <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
           Refresh
@@ -172,7 +157,7 @@ export async function render(): Promise<string> {
             <div class="empty-state">
               <span class="admin-icon">${iconSm(ICON_CHART)}</span>
               <h3>No Experiments Yet</h3>
-              <p>Create your first A/B test to start optimizing.</p>
+              <p>No A/B tests are stored yet.</p>
             </div>
           </div>
         `
@@ -613,12 +598,6 @@ export function setupEvents(): void {
             }
           }
         }
-        break;
-
-      case 'create-experiment':
-        // Create experiment modal not yet implemented - log and show toast
-        log.info('Create experiment requested - feature in development');
-        toast.info('Create experiment coming soon!');
         break;
     }
     })();

@@ -545,15 +545,8 @@ async function fetchAnalytics(): Promise<AnalyticsSummary | null> {
 }
 
 async function fetchSubscriptionMetrics(): Promise<SubscriptionMetrics | null> {
-  try {
-    const response = await fetch('/api/subscription/metrics');
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data as SubscriptionMetrics;
-  } catch (error) {
-    log.debug({ error }, 'Subscription metrics not available');
-    return null;
-  }
+  const result = await adminGet<SubscriptionMetrics>('/api/subscription/metrics');
+  return result.data ?? null;
 }
 
 async function fetchConcurrent(): Promise<number> {
