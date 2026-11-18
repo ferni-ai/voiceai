@@ -17,7 +17,8 @@
  * left gives a re-dispatch the whole grace period to join. A SIP leg still
  * dialing or ringing doesn't count as a person, so an outbound room waiting on
  * its agent is never swept. A room with no person (empty, or egress/recorder
- * only) is left to LiveKit's own timeouts.
+ * only) is left to LiveKit's own timeouts, and a room meant to have no agent
+ * (NO_AGENT_ROOM_PREFIXES) is never read.
  *
  * The clocks live in SweepClocks, not in memory: the server scales to zero and
  * each pass may land on a different instance. They are keyed by a hash of the
@@ -36,8 +37,16 @@ const defaultLog = createLogger({ module: 'room-sweep' });
 /** How long a room is alone before it is deleted, unless ROOM_SWEEP_GRACE_MINUTES says otherwise. */
 const DEFAULT_GRACE_MINUTES = 5;
 
+/**
+ * Rooms meant to hold people with no agent, by name prefix. Group coaching sessions
+ * (services/group-coaching/livekit.ts getRoomName) get no agent dispatch; Ferni joins only
+ * on a host's request, with a plain token, so it shows as a person, not an agent.
+ */
+const NO_AGENT_ROOM_PREFIXES = ['group_'];
+
 /** Why a room was kept, or that it was swept. */
 type SweepReason =
+  | 'no_agent_by_design'
   | 'agent_present'
   | 'no_person'
   | 'ringing'
@@ -125,6 +134,7 @@ async function sweepRoom(
   deps: RoomSweepDeps
 ): Promise<SweepReason> {
   const hash = roomHash(room);
+  if (NO_AGENT_ROOM_PREFIXES.some((prefix) => room.startsWith(prefix))) return 'no_agent_by_design';
   const state = roomState(await deps.rooms.listParticipants(room));
   if (state !== 'alone') {
     if (since !== undefined) await deps.clocks.clear(hash);

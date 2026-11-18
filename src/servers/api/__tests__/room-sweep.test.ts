@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { ParticipantInfo_Kind as Kind, ParticipantInfo_State as State } from '@livekit/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { roomSweepEnabled, sweepGraceMs, sweepRooms, type SweepClocks } from '../room-sweep.js';
+import { getRoomName as getGroupRoomName } from '../../../services/group-coaching/livekit.js';
 
 /** The participant fields the sweep reads (a LiveKit ParticipantInfo). */
 interface SweepParticipant {
@@ -171,6 +172,27 @@ describe('kept', () => {
     expect(await s.at(MIN + GRACE + MIN)).toEqual({ within_grace: 1 });
     expect(await s.at(MIN + 2 * GRACE)).toEqual({ within_grace: 1 });
     expect(s.deleted).toEqual([]);
+  });
+
+  it('a group coaching room, which has no agent by design, is never read or swept', async () => {
+    const listParticipants = vi.fn(async () => [person]);
+    const deleteRoom = vi.fn();
+    const clocks = memoryClocks();
+    const group = getGroupRoomName('session-riley-test');
+    const pass = async (now: number) =>
+      sweepRooms({
+        rooms: { listRooms: async () => [{ name: group }], listParticipants },
+        deleteRoom,
+        clocks,
+        graceMs: GRACE,
+        now: () => now,
+        log: quiet,
+      });
+    expect(await pass(0)).toEqual({ no_agent_by_design: 1 });
+    expect(await pass(60 * MIN)).toEqual({ no_agent_by_design: 1 });
+    expect(listParticipants).not.toHaveBeenCalled();
+    expect(deleteRoom).not.toHaveBeenCalled();
+    expect(clocks.docs.size).toBe(0);
   });
 
   it('a room that closed and reopened under the same name starts a new clock', async () => {
