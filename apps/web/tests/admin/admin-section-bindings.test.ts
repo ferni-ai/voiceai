@@ -78,6 +78,30 @@ describe('Business Metrics', () => {
     expect(adminGet).not.toHaveBeenCalled();
   });
 
+  it('runs a full refresh every minute and checks active-now every 10 seconds', async () => {
+    vi.useFakeTimers();
+    const bm = await import('../../src/admin/sections/BusinessMetricsSection.js');
+    document.body.innerHTML = bm.render();
+    await bm.init();
+    adminGet.mockClear();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(paths().filter((p) => p === '/api/analytics/summary')).toHaveLength(1);
+    expect(paths().filter((p) => p === '/api/analytics/concurrent')).toHaveLength(6);
+    bm.cleanup();
+  });
+
+  it('the portal stops it through the registry when it leaves the section', async () => {
+    vi.useFakeTimers();
+    const entry = section('business-metrics');
+    document.body.innerHTML = `<div id="adminContent">${await entry.component()}</div>`;
+    await entry.setup?.(document.getElementById('adminContent') as HTMLElement);
+    entry.cleanup?.();
+    await vi.advanceTimersByTimeAsync(0);
+    adminGet.mockClear();
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    expect(adminGet).not.toHaveBeenCalled();
+  });
+
   it('does not stack a second set of polls when opened twice', async () => {
     vi.useFakeTimers();
     const bm = await import('../../src/admin/sections/BusinessMetricsSection.js');
@@ -91,18 +115,39 @@ describe('Business Metrics', () => {
   });
 });
 
+const DEFAULTS = { model: 'gemini-3.5-flash', temperature: 0.7, language: 'en-US' };
+const FERNI = {
+  personaId: 'ferni',
+  useSystemPromptOverride: true,
+  systemPromptOverride: 'be brief',
+  gemini: DEFAULTS,
+  updatedAt: '2026-11-18T00:00:00.000Z',
+};
+
+/** A model-config server: GET answers with the store, PUT and DELETE succeed. */
+function modelConfigServer(personas: Record<string, unknown>) {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'PUT' || init?.method === 'DELETE') {
+      return new Response('{"success":true}', { status: 200 });
+    }
+    if (url === '/api/v1/admin/model-config') {
+      const store = { defaults: DEFAULTS, toolDefaults: null, personas, version: 1 };
+      return new Response(JSON.stringify({ data: store }), { status: 200 });
+    }
+    return new Response('{}', { status: 200 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return {
+    sent: (method: string) =>
+      fetchMock.mock.calls.filter(([, init]) => init?.method === method).map(([url]) => url),
+  };
+}
+
+const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+
 describe('Model Config', () => {
   it('sends one PUT per save after a persona is loaded', async () => {
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (init?.method === 'PUT') return new Response('{"success":true}', { status: 200 });
-      if (url === '/api/v1/admin/model-config') {
-        const defaults = { model: 'gemini-3.5-flash', temperature: 0.7, language: 'en-US' };
-        const store = { defaults, toolDefaults: null, personas: {}, version: 1 };
-        return new Response(JSON.stringify({ data: store }), { status: 200 });
-      }
-      return new Response('{}', { status: 200 });
-    });
-    vi.stubGlobal('fetch', fetchMock);
+    const server = modelConfigServer({});
     const mc = await import('../../src/admin/sections/ModelConfigSection.js');
     document.body.innerHTML = await mc.render();
     mc.setupEvents();
@@ -110,16 +155,51 @@ describe('Model Config', () => {
     for (let i = 0; i < 3; i++) {
       document.querySelector<HTMLButtonElement>('[data-action="load-persona"]')?.click();
     }
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await settle();
 
     const form = document.querySelector<HTMLFormElement>('[data-form="defaults"]');
     expect(form).not.toBeNull();
     form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    await vi.waitFor(() =>
-      expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(true)
-    );
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    const puts = fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT');
-    expect(puts.map(([url]) => url)).toEqual(['/api/v1/admin/model-config/defaults']);
+    await vi.waitFor(() => expect(server.sent('PUT')).not.toHaveLength(0));
+    await settle();
+    expect(server.sent('PUT')).toEqual(['/api/v1/admin/model-config/defaults']);
+  });
+
+  it('binds the persona form once on first render and again after a load', async () => {
+    const server = modelConfigServer({ ferni: FERNI });
+    vi.stubGlobal('confirm', () => true);
+    const mc = await import('../../src/admin/sections/ModelConfigSection.js');
+    document.body.innerHTML = await mc.render();
+    mc.setupEvents();
+
+    const exercise = async (): Promise<void> => {
+      const form = document.querySelector<HTMLFormElement>('[data-form="persona"]');
+      const box = form?.querySelector<HTMLInputElement>('input[name="useSystemPromptOverride"]');
+      const prompt = form?.querySelector<HTMLTextAreaElement>(
+        'textarea[name="systemPromptOverride"]'
+      );
+      expect(box && prompt).toBeTruthy();
+      if (!box || !prompt) return;
+      box.checked = false;
+      box.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(prompt.disabled).toBe(true);
+      box.checked = true;
+      box.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(prompt.disabled).toBe(false);
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await settle();
+      form?.querySelector<HTMLButtonElement>('[data-action="delete-persona"]')?.click();
+      await settle();
+    };
+
+    await exercise();
+    expect(server.sent('PUT')).toEqual(['/api/v1/admin/model-config/persona/ferni']);
+    expect(server.sent('DELETE')).toEqual(['/api/v1/admin/model-config/persona/ferni']);
+
+    document.querySelector<HTMLButtonElement>('[data-action="load-persona"]')?.click();
+    await settle();
+    await exercise();
+    expect(server.sent('PUT')).toHaveLength(2);
+    expect(server.sent('DELETE')).toHaveLength(2);
   });
 });

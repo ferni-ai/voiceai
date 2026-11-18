@@ -24,6 +24,13 @@ vi.mock('../../src/admin/section-registry.js', async (importOriginal) => {
 const escape = (): void =>
   void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
+/** The test environment's jsdom virtual console, which vitest exposes as `globalThis.jsdom`. */
+function jsdomConsole(): { on(event: 'jsdomError', listener: (e: Error) => void): void } {
+  const env = (globalThis as { jsdom?: { virtualConsole: ReturnType<typeof jsdomConsole> } }).jsdom;
+  if (!env) throw new Error('globalThis.jsdom is missing: this test needs the jsdom environment');
+  return env.virtualConsole;
+}
+
 function openModal(id: string): void {
   const modal = document.createElement('div');
   modal.className = 'admin-modal-overlay';
@@ -49,7 +56,14 @@ describe('Escape in the admin portal', () => {
     escape();
     expect(document.getElementById('first')).toBeNull();
 
+    // jsdom cannot navigate: an attempt is raised as a "navigation" jsdomError on its virtual
+    // console (vitest's own console never sees it, so a console spy would pass regardless).
+    const navigation: string[] = [];
+    jsdomConsole().on('jsdomError', (e) => {
+      if (/navigation/i.test(e.message)) navigation.push(e.message);
+    });
     escape();
+    expect(navigation).toEqual([]);
     expect(window.location.href).toBe(address);
     expect((document.getElementById('field') as HTMLInputElement | null)?.value).toBe('unsaved');
   });
