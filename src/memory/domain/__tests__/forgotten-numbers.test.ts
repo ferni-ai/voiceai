@@ -201,6 +201,22 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['after a date on the line before', '2025-11-18\n435 555 0199'],
     ['that only ends like a date', 'his cell is 4352019-55-01'],
     ['that only starts like a date', 'his cell is 2019-55-0199'],
+    ['grouped in twos after a date-shaped four', 'his cell is 2015-55-01-99'],
+    ['run on from a date by a dash', 'his cell is 2025-11-18-0199'],
+    ['ending in a date-shaped group on one line', 'his cell is 435 555 2025-11-18'],
+    ['joined to a date by a soft hyphen', 'his cell is 2025-11-18\u00ad0199'],
+    ['joined to a date by a zero-width space', 'his cell is 435\u200b2025-11-18'],
+    ['shaped like a date with no such month', 'his cell is 2015-55-01'],
+    ['shaped like a date with no such day', 'his cell is 2015-11-55'],
+    [
+      'as +1, an extension and wide digits glued to a word',
+      'mom_\uff11\uff16\uff11\uff17\uff15\uff15\uff15\uff10\uff11\uff19\uff19\uff11\uff12',
+    ],
+    ['spoken, then a date-shaped group', 'his cell is four three five five five five 2025-11-18'],
+    [
+      'in wide digits, then a date-shaped group',
+      'his cell is \uff14\uff13\uff15 \uff15\uff15\uff15 2025-11-18',
+    ],
     ['after a space and a joiner', 'call _1555555019900'],
     ['at the start after a joiner', '-1555555019900 is his'],
   ])('a real number %s still hides', (_l, text) => {

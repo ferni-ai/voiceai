@@ -8,7 +8,7 @@
  *
  * @module memory/domain/forgotten
  */
-import { contactNumberRuns } from './contact-data.js';
+import { contactNumberRuns, foldContactText } from './contact-data.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
 /** Words too common to say what a memory is about (recall's content words share them). */
@@ -126,31 +126,44 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
  * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
  * any format, which fails closed: any 7+ digit run may be one. Here that holds too, except a
  * run that is plainly something else: a price in thousands ("1,250,000"), a time or a span of
- * times ("10:30-11:45", "15:00:00.000"), a date ("2026-11-18"), a list of years
- * ("2019, 2020"), and a stored id's epoch in ms (thirteen digits from 2017 to 2033 joined
+ * times ("10:30-11:45", "15:00:00.000"), a date with its time ("2026-11-18 15:00"), a list of
+ * years ("2019, 2020"), a date alone in its field, and a stored id's epoch in ms (thirteen digits from 2017 to 2033 joined
  * to a word by "-" or "_": "summary_session-AJ_x-1763478000123_1763478000456", as the voice
  * agent and outreach mint them). Those hid whole call summaries (#4042 reviews);
  * every other shape still counts, two numbers in one run and over-long ones included.
  * Known gaps: a trunk prefix ("020 ..." for "+44 20 ..."), and any other 7+ digit run (an order
  * number, counting aloud to eight, "2020-2019") still holds a passage under a number topic, and
  * a +1 number with a two-digit extension glued to a word ("mom-1555...12") reads as an epoch,
- * A number broken across lines is still one run.
+ * A number broken across lines is still one run. Held on purpose (fails closed): a date
+ * with other digits beside it on its line ("abc123 2025-11-18", "2025-11-18 1234").
  */
 const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
 const TIME = '\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?';
-const TIMES = new RegExp(`^${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
+const TIMES = new RegExp(
+  `^(?:\\d{4}-\\d{2}-\\d{2}[ T])?${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`
+);
 // A list of years has a comma or semicolon: "2012 1999" may be an eight-digit phone number.
 const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
 const notAPhoneNumber = (run: string): boolean =>
   THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
 // Only an epoch in ms glued to a word: a markdown "_435 555 0199_" keeps every digit.
 const STORED_EPOCH = /(?<=[\p{L}\p{N}][-_])1[5-9]\d{11}(?!\p{N})/gu;
-const ISO_DATE = /(?<!\p{N})(?:19|20)\d\d-\d\d-\d\d(?!\p{N})/gu;
-// Both become words, so a run can't go on through them: readers join a record's fields with
-// newlines (call-summaries, revived), and an id ending in digits ("…abc123", "…F7-<ms>") then
-// a date is no number anyone said. The whole text is one scan: "435 555\n0199" is a number.
+// A real date with no digit beside it on its own line (only non-letters between): readers
+// put each field of a record on its own line (call-summaries, revived), and an id ending in
+// digits ("…abc123") then a date field is no number anyone said. A date touching another
+// number on its line ("2025-11-18-0199", "435 555 2025-11-18") stays in the run, as in
+// contact-data, where only a whole run can be a date. The look is bounded (16) so a long
+// stretch of punctuation stays linear.
+const ISO_DATE =
+  /(?<!\d[^\p{L}\n]{0,16})(?:19|20)\d\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?![^\p{L}\n]{0,16}\d)/gu;
+// Both become words, so a run can't go on through them; one scan, so "435 555\n0199" is a
+// number. The epoch is read raw (only ASCII digits are a stored id: a wide-digit "mom_１６１…"
+// is someone's number); the date after folding, so no soft hyphen, zero-width mark, wide or
+// spoken digit beside it escapes its guards.
 const phoneNumbers = (text: string): string[] =>
-  contactNumberRuns(text.replace(STORED_EPOCH, ' epoch ').replace(ISO_DATE, ' date '))
+  contactNumberRuns(
+    foldContactText(text.replace(STORED_EPOCH, ' epoch ')).replace(ISO_DATE, ' date ')
+  )
     .filter((run) => !notAPhoneNumber(run))
     .map((run) => run.replace(/\D/g, ''));
 
