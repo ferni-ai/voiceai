@@ -33,6 +33,7 @@ vi.mock('../../../memory/recall/forget.js', async (importOriginal) => ({
   forgottenTopicsOrNull: async () => forgetting.topics,
 }));
 const { storedTopic } = await import('../../../memory/recall/session-recall.js');
+const { resetForgetTopicsSource } = await import('../../../memory/recall/forget-topics-source.js');
 
 const { createTurnContextPusher, createTurnIntelligenceHook } =
   await import('../turn-intelligence.js');
@@ -82,9 +83,17 @@ const settle = () =>
     setTimeout(r, 0);
   });
 
+/** Revived intelligence on, with the forget check every reader shares (FORGET_EVERY_READER). */
+function revivedOn(): void {
+  process.env.REVIVED_INTELLIGENCE = 'on';
+  process.env.FORGET_EVERY_READER = 'on';
+}
+
 afterEach(() => {
   forgetting.topics = [];
+  resetForgetTopicsSource();
   delete process.env.REVIVED_INTELLIGENCE;
+  delete process.env.FORGET_EVERY_READER;
   delete process.env.REVIVED_BUILDERS;
   processed.injections = [{ category: 'pacing', content: 'Keep it short.', priority: 40 }];
 });
@@ -92,7 +101,7 @@ processed.injections = [{ category: 'pacing', content: 'Keep it short.', priorit
 
 describe('revived intelligence on the live turn path', () => {
   it('flag on: what Ferni knows from the last call reaches the turn note', async () => {
-    process.env.REVIVED_INTELLIGENCE = 'on';
+    revivedOn();
     const { hook } = setup(store());
     await settle();
 
@@ -115,7 +124,7 @@ describe('revived intelligence on the live turn path', () => {
   });
 
   it('allow-list: a builder left out of REVIVED_BUILDERS adds nothing', async () => {
-    process.env.REVIVED_INTELLIGENCE = 'on';
+    revivedOn();
     process.env.REVIVED_BUILDERS = 'session-gap';
     const { hook } = setup(store());
     await settle();
@@ -124,7 +133,7 @@ describe('revived intelligence on the live turn path', () => {
   });
 
   it('a store that never answers never delays the turn', async () => {
-    process.env.REVIVED_INTELLIGENCE = 'on';
+    revivedOn();
     const { hook } = setup({
       summaries: () =>
         new Promise(() => {
@@ -144,7 +153,7 @@ describe('revived intelligence on the live turn path', () => {
   });
 
   it('a crisis turn is left exactly as built', async () => {
-    process.env.REVIVED_INTELLIGENCE = 'on';
+    revivedOn();
     processed.injections = [
       { category: 'safety', content: '[CRISIS] Stay with them.', priority: 99 },
       { category: 'pacing', content: 'Keep it short.', priority: 40 },
@@ -157,8 +166,8 @@ describe('revived intelligence on the live turn path', () => {
     expect(note).not.toContain('From earlier calls');
   });
 
-  it('a call they asked Ferni to forget part of never comes back; unreadable means none', async () => {
-    process.env.REVIVED_INTELLIGENCE = 'on';
+  it('a call they asked Ferni to forget part of never comes back', async () => {
+    revivedOn();
     forgetting.topics = [storedTopic('the move to Denver')];
     const forgot = setup(store());
     await settle();
@@ -166,10 +175,28 @@ describe('revived intelligence on the live turn path', () => {
     expect(note).toContain('Keep it short.');
     expect(note).not.toMatch(/denver/i);
     expect(note).not.toContain(ARC); // the whole summary goes, not one line of it
+  });
 
-    forgetting.topics = null;
-    const closed = setup(store());
+  it('forgotten topics that cannot be read, with none read before: nothing is offered', async () => {
+    revivedOn();
+    forgetting.topics = null; // the read fails and there are no last-known topics
+    const { hook } = setup(store());
     await settle();
-    expect(await noteFor(closed.hook)).not.toContain('From earlier calls');
+
+    const note = await noteFor(hook);
+    expect(note).toContain('Keep it short.');
+    expect(note).not.toContain('From earlier calls');
+  });
+
+  it('without FORGET_EVERY_READER nothing from earlier calls is offered', async () => {
+    process.env.REVIVED_INTELLIGENCE = 'on';
+    const summaries = vi.fn(async () => [LAST_CALL]);
+    const { hook } = setup({ summaries });
+    await settle();
+
+    const note = await noteFor(hook);
+    expect(note).toContain('Keep it short.');
+    expect(note).not.toContain('From earlier calls');
+    expect(note).not.toMatch(/denver/i);
   });
 });

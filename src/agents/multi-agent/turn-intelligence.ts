@@ -31,7 +31,8 @@ import {
 } from '../../intelligence/revived/revived-intelligence.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
-import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { forgottenPassageCheck } from '../../memory/index.js';
+import { forgottenInProcess } from '../../memory/recall/forget.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
@@ -89,11 +90,10 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       lastConversationSummary: profile?.lastConversationSummary,
       store: deps.revivedStore ?? firestoreRevivedStore,
       // Earlier calls' words never bring back what they asked Ferni to forget,
-      // before this call or during it.
-      forgotten: async () => {
-        const topics = userId ? await forgottenTopicsOrNull(userId) : null;
-        return topics && ((text: string) => isForgottenPassage(text, topics));
-      },
+      // before this call or during it. The shared passage check: null (no
+      // FORGET_EVERY_READER, or no member) means nothing from earlier calls.
+      forgotten: async () => forgottenPassageCheck(userId, 'revived-intelligence'),
+      // Per turn, sync: only what was forgotten in this process since the load.
       forgottenNow: () => {
         const topics = userId ? forgottenInProcess(userId) : [];
         return (text: string) => isForgottenPassage(text, topics);
