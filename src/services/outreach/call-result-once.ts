@@ -77,6 +77,9 @@ function fieldsOf(outcome: CallOutcome): string[] {
 }
 
 function toldLevel(outcome: CallOutcome): ToldLevel {
+  // A no-report (call-result-watchdog.ts) is Ferni's own line, no one's words: never a crisis lead,
+  // and status-level, so any real result with words, or a crisis line, outranks it.
+  if (outcome.noReport) return 0;
   if (fieldsOf(outcome).some(carriesCrisis)) return 2;
   const words = [outcome.transcriptSummary, outcome.message].some((t) => !!t?.trim());
   return words || (outcome.actionItems?.length ?? 0) > 0 ? 1 : 0;

@@ -71,6 +71,7 @@ const STATUS_LINE: Record<CallOutcome['status'], string> = {
  */
 export function liveReportMessage(contactName: string, outcome: CallOutcome): string {
   const name = callerText(contactName, 60) || 'them';
+  if (outcome.noReport) return `the call you placed for them to ${name} never reported back, so you can't say how it went.`; // prettier-ignore
   const said = (text: string | undefined): string => screenedCallerText(text, name, 600);
   const lines = [`${STATUS_LINE[outcome.status]}: ${said(outcome.outcome)}`];
   const details = said(callResultDetails(name, outcome));

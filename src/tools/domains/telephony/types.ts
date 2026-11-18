@@ -140,4 +140,7 @@ export interface CallOutcome {
 
   /** Nothing rang: no agent joined, so nothing was dialled (call-not-placed.ts AGENT_NOT_JOINED). */
   notPlaced?: 'agent_not_joined';
+
+  /** The call never reported in time, so how it went is unknown (call-result-watchdog.ts). */
+  noReport?: true;
 }

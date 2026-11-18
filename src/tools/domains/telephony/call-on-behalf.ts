@@ -465,10 +465,9 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         if (held) return held;
         log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
-        return (
-          `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
-          `I'll let you know how it goes once the call is complete.${others}`
-        );
+        const { callResultPromise } = await import('../../../services/outreach/call-result-promise.js'); // prettier-ignore
+        const calling = `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}.`;
+        return `${calling} ${callResultPromise()}${others}`; // how the result reaches them
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why
         // No agent joined, so nothing rang: no "calling now", no "I'll let you know".
