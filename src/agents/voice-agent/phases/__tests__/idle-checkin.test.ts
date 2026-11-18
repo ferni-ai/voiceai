@@ -23,7 +23,10 @@ vi.mock('../../../../speech/direction/index.js', async (importOriginal) => ({
 }));
 
 import { signalCrisisDecision } from '../../../safety/crisis-gate-signal.js';
+import { clearFarewell, markFarewell } from '../../../shared/call-farewell.js';
 import {
+  crisisRiskThisCall,
+  notePatternRisk,
   resetCrisisCallRisk,
   trackCrisisRead,
 } from '../../../../services/safety/crisis-call-risk.js';
@@ -272,6 +275,143 @@ describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log
     expect(JSON.stringify(lines)).not.toContain(words);
     expect(lines.filter((c) => c[1] === 'IDLE_CHECKIN')).toEqual([
       [{ sessionId: SESSION_ID, outcome: 'ended' }, 'IDLE_CHECKIN'],
+    ]);
+  });
+});
+
+describe("idle check-in hold-backs: a crisis in the last minute, silence, the gate's call id", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    cueSay.mockClear();
+    for (const level of Object.values(logged)) level.mockClear();
+    resetCrisisCallRisk();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    resetCrisisCallRisk();
+  });
+
+  const checkInLines = () => logged.info.mock.calls.filter((c) => c[1] === 'IDLE_CHECKIN');
+
+  it('a crisis in the check-in window while Ferni speaks: the call never ends before main', async () => {
+    const session = { ...agentSession };
+    const guidedCall = { ...call, sessionId: `${SESSION_ID}-late`, activeSession: () => session };
+    let readerDown = false;
+    const [main, guided, failing] = [new FakeRoom(), new FakeRoom(), new FakeRoom()];
+    const failingRead = stubCheckIn(failing, {
+      crisis: () => {
+        if (readerDown) throw new Error('reader down');
+        return false;
+      },
+    });
+    const ends = [
+      waitForSessionEnd(main),
+      waitForSessionEnd(guided, { idleCheckIn: idleCheckInFor(guidedCall, ON) }),
+      waitForSessionEnd(failing, { idleCheckIn: failingRead.checkIn }),
+    ];
+
+    await vi.advanceTimersByTimeAsync(CHECK_IN_AT);
+    guided.emit('activeSpeakersChanged', AGENT); // its check-in playing (the stub's room emits its own)
+    expect(cueSay).toHaveBeenCalledTimes(1);
+    expect(failingRead.speak).toHaveBeenCalledTimes(1);
+
+    // 20 s into the window: the gate guides a reply, the other call's reader goes down, Ferni speaks.
+    await vi.advanceTimersByTimeAsync(20 * SECOND);
+    signalCrisisDecision(session, 'guide');
+    readerDown = true;
+    for (const room of [main, guided, failing]) room.emit('activeSpeakersChanged', AGENT);
+
+    // Main's clock restarted on Ferni's voice; past the window's end every call is still open.
+    await vi.advanceTimersByTimeAsync(IDLE_MS - SECOND);
+    expect(await Promise.all(ends.map(state))).toEqual(['still-open', 'still-open', 'still-open']);
+    await vi.advanceTimersByTimeAsync(SECOND);
+    expect(await Promise.all(ends)).toEqual(['idle', 'idle', 'idle']);
+    expect(checkInLines().map((c) => (c[0] as { outcome: string }).outcome)).not.toContain('ended');
+    expect(failingRead.outcomes).not.toContain('ended');
+  });
+
+  it("no check-in while Ferni or the caller is mid-speech, or a silence blocker holds: ends on main's tick", async () => {
+    const calls = [
+      { ...call, sessionId: `${SESSION_ID}-agent-busy` },
+      { ...call, sessionId: `${SESSION_ID}-caller-talking` },
+      { ...call, sessionId: `${SESSION_ID}-goodbyes` },
+    ];
+    calls[0].activeSession = () => ({ ...agentSession, agentState: 'speaking' });
+    calls[1].activeSession = () => ({ ...agentSession, userState: 'speaking' });
+    vi.stubEnv('CALL_WRAP_UP', 'on'); // both goodbyes said: a silence blocker (call-farewell.ts)
+    markFarewell(calls[2].sessionId, 'goodbyes');
+    const rooms = [new FakeRoom(), ...calls.map(() => new FakeRoom())];
+    const ends = [
+      waitForSessionEnd(rooms[0]),
+      ...calls.map((c, i) =>
+        waitForSessionEnd(rooms[i + 1], { idleCheckIn: idleCheckInFor(c, ON) })
+      ),
+    ];
+
+    await vi.advanceTimersByTimeAsync(IDLE_MS - SECOND);
+    expect(await Promise.all(ends.map(state))).toEqual(Array(4).fill('still-open'));
+    await vi.advanceTimersByTimeAsync(SECOND);
+    expect(await Promise.all(ends)).toEqual(Array(4).fill('idle'));
+    expect(cueSay).not.toHaveBeenCalled();
+    expect(checkInLines()).toEqual(
+      calls.map((c) => [{ sessionId: c.sessionId, outcome: 'skipped_blocked' }, 'IDLE_CHECKIN'])
+    );
+    clearFarewell(calls[2].sessionId);
+    vi.unstubAllEnvs();
+  });
+
+  it('risk the gate noted under services.sessionId (crisis-gate.ts) skips the check-in', async () => {
+    const servicesId = 'services-idle-checkin-riley-test';
+    const callHere = {
+      ...call,
+      sessionId: `${SESSION_ID}-svc`,
+      userData: { services: { sessionId: servicesId } },
+    };
+    notePatternRisk(servicesId, { indicators: ['invented_indicator'] }); // as crisis-gate.ts notes it
+    expect(crisisRiskThisCall(callHere.sessionId)).toBe(false); // nothing under the session id
+    const main = new FakeRoom();
+    const flagged = new FakeRoom();
+    const ends = [
+      waitForSessionEnd(main),
+      waitForSessionEnd(flagged, { idleCheckIn: idleCheckInFor(callHere, ON) }),
+    ];
+
+    await vi.advanceTimersByTimeAsync(IDLE_MS - SECOND);
+    expect(await Promise.all(ends.map(state))).toEqual(['still-open', 'still-open']);
+    await vi.advanceTimersByTimeAsync(SECOND);
+    expect(await Promise.all(ends)).toEqual(['idle', 'idle']);
+    expect(cueSay).not.toHaveBeenCalled();
+    expect(checkInLines()).toEqual([
+      [{ sessionId: callHere.sessionId, outcome: 'skipped_crisis' }, 'IDLE_CHECKIN'],
+    ]);
+  });
+
+  it("the check-in still playing after the caller answers is agent activity (main's rule): the end moves past main's by it", async () => {
+    const main = new FakeRoom();
+    const flagged = new FakeRoom();
+    const ends = [
+      waitForSessionEnd(main),
+      waitForSessionEnd(flagged, { idleCheckIn: idleCheckInFor(call, ON) }),
+    ];
+
+    await vi.advanceTimersByTimeAsync(CHECK_IN_AT);
+    expect(cueSay).toHaveBeenCalledTimes(1);
+    flagged.emit('activeSpeakersChanged', AGENT); // the check-in starts playing
+    await vi.advanceTimersByTimeAsync(2 * SECOND);
+    for (const room of [main, flagged]) room.emit('activeSpeakersChanged', CALLER); // the answer
+    await vi.advanceTimersByTimeAsync(6 * SECOND);
+    flagged.emit('activeSpeakersChanged', AGENT); // its last words, 6 s after the answer
+
+    await vi.advanceTimersByTimeAsync(IDLE_MS - 7 * SECOND);
+    expect(await Promise.all(ends.map(state))).toEqual(['still-open', 'still-open']);
+    await vi.advanceTimersByTimeAsync(SECOND); // the answer + IDLE_MS: main ends
+    expect(await Promise.all(ends.map(state))).toEqual(['idle', 'still-open']);
+    await vi.advanceTimersByTimeAsync(5 * SECOND);
+    expect(await state(ends[1])).toBe('still-open');
+    await vi.advanceTimersByTimeAsync(SECOND); // the last words + IDLE_MS
+    expect(await ends[1]).toBe('idle');
+    expect(checkInLines()).toEqual([
+      [{ sessionId: SESSION_ID, outcome: 'resumed' }, 'IDLE_CHECKIN'],
     ]);
   });
 });
