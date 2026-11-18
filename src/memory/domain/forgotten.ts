@@ -138,10 +138,10 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
  * with other digits beside it on its line ("abc123 2025-11-18", "2025-11-18 1234").
  */
 const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
-const TIME = '\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?';
-const TIMES = new RegExp(
-  `^(?:\\d{4}-\\d{2}-\\d{2}[ T])?${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`
-);
+// Real dates and times only: "4355-55-01 99:00" is ten digits of someone's number.
+const DATE = '(?:19|20)\\d\\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])';
+const TIME = '(?:[01]?\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d{1,3})?)?';
+const TIMES = new RegExp(`^(?:${DATE} )?${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
 // A list of years has a comma or semicolon: "2012 1999" may be an eight-digit phone number.
 const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
 const notAPhoneNumber = (run: string): boolean =>
@@ -154,8 +154,7 @@ const STORED_EPOCH = /(?<=[\p{L}\p{N}][-_])1[5-9]\d{11}(?!\p{N})/gu;
 // number on its line ("2025-11-18-0199", "435 555 2025-11-18") stays in the run, as in
 // contact-data, where only a whole run can be a date. The look is bounded (16) so a long
 // stretch of punctuation stays linear.
-const ISO_DATE =
-  /(?<!\d[^\p{L}\n]{0,16})(?:19|20)\d\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?![^\p{L}\n]{0,16}\d)/gu;
+const ISO_DATE = new RegExp(`(?<!\\d[^\\p{L}\\n]{0,16})${DATE}(?![^\\p{L}\\n]{0,16}\\d)`, 'gu');
 // Both become words, so a run can't go on through them; one scan, so "435 555\n0199" is a
 // number. The epoch is read raw (only ASCII digits are a stored id: a wide-digit "mom_１６１…"
 // is someone's number); the date after folding, so no soft hyphen, zero-width mark, wide or
