@@ -356,15 +356,7 @@ export async function runMultiAgentMode(
     // HANDOFF_EARLY_GOODBYE: the handoff tool says the goodbye once its checks pass
     const stopEarlyGoodbye = startEarlyGoodbye(multiAgentResult.orchestrator, config, handoffLock);
     // In-call controls and Ferni's teammate introductions, for the agent speaking now
-    const callParts = {
-      room: ctx.room,
-      ctx,
-      services,
-      userId,
-      sessionId,
-      sessionPersona,
-      callerChecks,
-    };
+    const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona, callerChecks };
     const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);
     process.stderr.write(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
@@ -382,16 +374,10 @@ export async function runMultiAgentMode(
           );
     let endReason: Awaited<ReturnType<typeof waitForSessionEnd>>;
     try {
-      const idleCheckIn = idleCheckInFor({
-        sessionId,
-        userData,
-        room: ctx.room,
-        activeSession: () => multiAgentResult.orchestrator.getActiveAgent()?.session,
-      });
-      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, {
-        ...demoCap?.endOptions,
-        idleCheckIn,
-      });
+      const activeSession = () => multiAgentResult.orchestrator.getActiveAgent()?.session;
+      const idleCheckIn = idleCheckInFor({ sessionId, userData, room: ctx.room, activeSession });
+      const endOptions = { ...demoCap?.endOptions, idleCheckIn };
+      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, endOptions);
     } finally {
       demoCap?.stop();
     }
