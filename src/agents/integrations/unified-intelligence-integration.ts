@@ -247,7 +247,7 @@ export async function getUnifiedIntelligence(
     // New unified intelligence (Levels 2-5)
     getIntelligenceForTurn(userId, {
       moment,
-      // voiceEmotion is tracked in session state, not passed here
+      sessionId, // its settled zone sets the caller's clock (voiceEmotion is in session state)
       forceRefresh: turnNumber === 1,
     }),
 

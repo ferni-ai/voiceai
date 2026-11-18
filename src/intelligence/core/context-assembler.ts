@@ -30,6 +30,7 @@ import { buildNetworkContext } from '../../services/superhuman/relationship-netw
 import { buildSeasonalContext } from '../../services/superhuman/seasonal-awareness.js';
 import { buildNarrativeContextString } from '../../services/superhuman/life-narrative.js';
 import { getSessionState } from '../state/session.js';
+import { immediateTime, type MomentTime } from './immediate-time.js';
 import type { PersonaConfig } from '../../personas/types.js';
 
 const log = createLogger({ module: 'context-assembler' });
@@ -41,14 +42,9 @@ const log = createLogger({ module: 'context-assembler' });
 /**
  * Immediate context about the current moment
  */
-export interface ImmediateContext {
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'late_night';
-  dayOfWeek: string;
-  isWeekend: boolean;
-  hour: number;
+export interface ImmediateContext extends MomentTime {
   currentMood?: string;
   recentActivity?: string;
-  isLateNight: boolean;
 }
 
 /**
@@ -124,6 +120,8 @@ export interface AssemblyOptions {
   }>;
   recentTopics?: string[];
   forceRefresh?: boolean;
+  /** The call's zone: with CALLER_CLOCK_TIME_OF_DAY on, the moment is read on the caller's clock */
+  timeZone?: string;
 }
 
 // ============================================================================
@@ -205,28 +203,7 @@ export async function assembleContext(options: AssemblyOptions): Promise<Context
  * Assemble immediate context (current moment)
  */
 async function assembleImmediate(options: AssemblyOptions): Promise<ImmediateContext> {
-  const now = new Date();
-  const hour = now.getHours();
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-  const timeOfDay: ImmediateContext['timeOfDay'] =
-    hour < 6
-      ? 'late_night'
-      : hour < 12
-        ? 'morning'
-        : hour < 17
-          ? 'afternoon'
-          : hour < 21
-            ? 'evening'
-            : 'late_night';
-
-  const immediate: ImmediateContext = {
-    timeOfDay,
-    dayOfWeek: dayNames[now.getDay()],
-    isWeekend: now.getDay() === 0 || now.getDay() === 6,
-    hour,
-    isLateNight: hour >= 22 || hour < 6,
-  };
+  const immediate: ImmediateContext = immediateTime(new Date(), options.timeZone);
 
   // Add voice emotion if available
   if (options.voiceEmotion?.primary) {
