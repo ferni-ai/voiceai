@@ -50,9 +50,12 @@ export { VOICE_IDS, isValidVoiceId };
 
 // Every canonical persona gets its own voice, from the canonical ID list rather than
 // a hand list: the registry is never built from bundles on the call path, so a persona
-// missing here spoke in Ferni's voice (the john-bogle legend did).
+// missing here spoke in Ferni's voice (the john-bogle legend did). Seth has none here:
+// this registry never holds his clone, and never gives him Ferni's voice.
 const FALLBACK_VOICE_IDS: Record<string, string> = {
-  ...Object.fromEntries(ALL_CANONICAL_IDS.map((id) => [id, getVoiceIdForPersona(id)])),
+  ...Object.fromEntries(
+    ALL_CANONICAL_IDS.filter((id) => !isSeth(id)).map((id) => [id, getVoiceIdForPersona(id)])
+  ),
   'jack-b': getVoiceIdForPersona('jack-b'),
   'generic-advisor': getVoiceIdForPersona('generic-advisor'),
 };
@@ -150,7 +153,7 @@ async function loadBundleVoices(): Promise<void> {
  */
 function initializeFallbacks(): void {
   // Register fallback voices for all canonical personas
-  for (const canonicalId of ALL_CANONICAL_IDS) {
+  for (const canonicalId of ALL_CANONICAL_IDS.filter((id) => !isSeth(id))) {
     const voiceId = FALLBACK_VOICE_IDS[canonicalId] || getVoiceIdForPersona('ferni');
     const displayName = DISPLAY_NAMES[canonicalId] || canonicalId;
 
@@ -190,7 +193,11 @@ function initializeFallbacks(): void {
  * getVoiceId('spend-save')      // frontend ID
  */
 export function getVoiceId(personaId: string): string {
-  const voiceId = registeredVoiceId(personaId);
+  return servable(personaId, registeredVoiceId(personaId));
+}
+
+/** '' for Seth and for a consented clone: the only voice this registry may not hand out. */
+function servable(personaId: string, voiceId: string): string {
   return isSeth(personaId) || isConsentedCloneVoice(voiceId) ? '' : voiceId;
 }
 
@@ -230,11 +237,17 @@ function registeredVoiceId(personaId: string): string {
 }
 
 /**
- * Get voice entry with full details for a persona.
+ * Get voice entry with full details for a persona; its voiceId follows getVoiceId's
+ * rule (never a consented clone, nothing for Seth).
  *
  * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getVoiceEntry(personaId: string): VoiceEntry | undefined {
+  const entry = registeredVoiceEntry(personaId);
+  return entry && { ...entry, voiceId: servable(personaId, entry.voiceId) };
+}
+
+function registeredVoiceEntry(personaId: string): VoiceEntry | undefined {
   if (!initialized) {
     initializeFallbacks();
   }

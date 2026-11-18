@@ -12,7 +12,7 @@ import { AgentDirectory } from '../../personas/agent-directory.js';
 import { livePersonaId } from '../../personas/persona-ids.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import { isHandoffTargetOpen } from '../../tools/handoff/handoff-availability.js';
-import { holdUnaskedHandoff } from '../../tools/handoff/handoff-consent.js';
+import { handoffConsent, holdUnaskedHandoff } from '../../tools/handoff/handoff-consent.js';
 import {
   buildHandoffTools,
   clearHandoffToolCache,
@@ -93,7 +93,7 @@ describe('handing off to Seth', () => {
     expect(await AgentRegistry.getAgentOrNull('seth')).toBeNull();
   }, 60_000);
 
-  it('"transfer me to Seth" reaches him with the gate open', async () => {
+  it('"can I talk to Seth" reaches him by name with the gate open', async () => {
     gate(true);
     const { tools } = await buildHandoffTools({
       currentAgentId: 'ferni',
@@ -103,9 +103,13 @@ describe('handing off to Seth', () => {
     expect(Object.keys(tools)).toContain('handoffToSeth');
     const def = (await createHandoffTools()).tools.find((t) => t.agentId === 'seth');
     expect(def?.name).toBe('handoffToSeth');
+    expect(def?.agentName).toContain('Seth');
+    // Only his name makes this an ask: no "transfer me to", no "your teammate".
     const asked = new llm.ChatContext();
     asked.addMessage({ role: 'assistant', content: 'Hey, what can I do for you?' });
-    asked.addMessage({ role: 'user', content: 'Can you transfer me to Seth?' });
+    asked.addMessage({ role: 'user', content: 'Can I talk to Seth?' });
+    expect(handoffConsent(asked, def?.agentName ?? '', {})).toBe('asked');
+    expect(handoffConsent(asked, 'Maya Santos', {})).toBe('none');
     const runCtx = { session: { history: asked } };
     // HANDOFF_ASK_FIRST holds a transfer the caller didn't ask for; this one they did.
     expect(

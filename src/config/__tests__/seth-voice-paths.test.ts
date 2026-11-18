@@ -71,6 +71,23 @@ describe('the voice registry', () => {
     }
   });
 
+  it("never hands out Seth's clone, or Ferni's voice for him, in a voice entry", async () => {
+    for (const open of [true, false]) {
+      gate(open);
+      vi.resetModules();
+      const { getVoiceEntry, getVoiceId } = await import('../../personas/voice-registry.js');
+      const voice = getVoiceEntry('seth')?.voiceId ?? '';
+      expect(voice, `gate ${open ? 'open' : 'closed'}`).not.toBe('fake-seth-id');
+      expect(voice).not.toBe(getVoiceId('ferni'));
+      expect(getVoiceEntry('maya-santos')?.voiceId).toBe(getVoiceId('maya-santos'));
+    }
+    vi.stubEnv('LEGEND_VOICE_JOHN_BOGLE', 'fake-legend-id');
+    vi.stubEnv('JOHN_BOGLE_VOICE_ID', 'fake-legend-id');
+    vi.resetModules();
+    const { getVoiceEntry } = await import('../../personas/voice-registry.js');
+    expect(getVoiceEntry('john-bogle')?.voiceId).not.toBe('fake-legend-id');
+  });
+
   it('never serves a consented clone set as a persona voice', async () => {
     vi.stubEnv('LEGEND_VOICE_JOHN_BOGLE', 'fake-legend-id');
     vi.stubEnv('JOHN_BOGLE_VOICE_ID', 'fake-legend-id');
