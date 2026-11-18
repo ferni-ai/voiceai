@@ -193,6 +193,20 @@ describe('turnRequestFor: any tool output naming help holds the report (#3157)',
     expect(turnRequestFor(withOutput(output), 's-overlap', false)[1]).toBe(true);
   });
 
+  it('a line only in the last window, at the very end of a long output, still holds', () => {
+    // Windows start every 1920 (2048 - 128 overlap). The line is past the end of the window
+    // before the last, so only the last window reads it.
+    const output = `${filler(150)} call 988 tonight.`;
+    const starts = Array.from(
+      { length: Math.ceil((output.length - 128) / 1920) },
+      (_, i) => i * 1920
+    );
+    const beforeLastEnds = starts[starts.length - 2] + 2048;
+    expect(starts.length).toBeGreaterThan(2);
+    expect(output.indexOf('988')).toBeGreaterThanOrEqual(beforeLastEnds);
+    expect(turnRequestFor(withOutput(output), 's-last-window', false)[1]).toBe(true);
+  });
+
   it('the same tool output still holds on the next request (read once, remembered)', () => {
     const ctx = withOutput('Dial 9-8-8 if it gets heavy.');
     expect(turnRequestFor(ctx, 's-again', false)[1]).toBe(true);
