@@ -372,7 +372,7 @@ function callbackOf(rest: unknown[]): (() => void) | undefined {
   return typeof cb === 'function' ? (cb as () => void) : undefined;
 }
 
-const redactText = (text: string): string => redactLogValues(redactPhoneNumbers(text));
+const redactText = (text: string): string => redactPhoneNumbers(redactLogValues(text));
 
 /** Wraps `target.write` so every chunk is redacted first. Idempotent per target. */
 export function redactWrites(target: unknown): void {

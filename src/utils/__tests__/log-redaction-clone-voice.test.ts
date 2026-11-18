@@ -90,6 +90,20 @@ describe('redactWrites: a clone id split across writes', () => {
     expect(s.text()).toBe(`voice ${REDACTED} ready\n`);
   });
 
+  it('in a long unfinished line, a write that ends inside it still leaves it whole', () => {
+    const s = sink();
+    s.target.write(`${'x'.repeat(600)} voice fake-se`);
+    s.target.write('th-id ok\n');
+    expect(s.text()).toBe(`${'x'.repeat(600)} voice ${REDACTED} ok\n`);
+  });
+
+  it('is replaced whole before the phone pass could mask part of it', () => {
+    configured = ['voice-415-555-0123'];
+    const s = sink();
+    s.target.write('using voice-415-555-0123 now\n');
+    expect(s.text()).toBe(`using ${REDACTED} now\n`);
+  });
+
   it('a Buffer write is redacted too', () => {
     const s = sink();
     s.target.write(Buffer.from(`{"voiceId":"${CLONE}"}\n`));
