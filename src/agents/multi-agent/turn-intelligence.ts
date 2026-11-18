@@ -31,8 +31,7 @@ import {
 } from '../../intelligence/revived/revived-intelligence.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
-import { forgottenPassageCheck } from '../../memory/index.js';
-import { forgottenInProcess } from '../../memory/recall/forget.js';
+import { forgottenInProcess, forgottenPassageCheck } from '../../memory/index.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
