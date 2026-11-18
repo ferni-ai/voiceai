@@ -13,6 +13,7 @@
 import { getAuthToken, initAuth, signInWithGoogle } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
 import { initAdminPortal } from './AdminPortal.js';
+import { getStoredAdminKey } from './admin-fetch.js';
 
 const log = createLogger('AdminAccess');
 
@@ -39,17 +40,30 @@ export interface AccessDeps {
   devBuild: boolean;
   initAuth: typeof initAuth;
   getAuthToken: typeof getAuthToken;
+  /** The server's ADMIN_KEY is saved in this browser (the FinOps routes accept only that). */
+  hasAdminKey: () => boolean;
+  signIn: () => Promise<unknown>;
 }
 
-const liveDeps: AccessDeps = { devBuild: import.meta.env.DEV, initAuth, getAuthToken };
+const liveDeps: AccessDeps = {
+  devBuild: import.meta.env.DEV,
+  initAuth,
+  getAuthToken,
+  hasAdminKey: () => getStoredAdminKey() !== '',
+  signIn: signInWithGoogle,
+};
 
 export async function checkAdminAccess(deps: AccessDeps = liveDeps): Promise<AdminAccess> {
-  if (deps.devBuild) return { kind: 'admin' };
+  if (deps.devBuild || deps.hasAdminKey()) return { kind: 'admin' };
   const state = await deps.initAuth();
   if (!state.isConfigured) return { kind: 'no-sign-in' };
   if (!state.isLinked) return { kind: 'signed-out' };
-  const token = await deps.getAuthToken();
-  if (token !== null && tokenClaims(token).admin === true) return { kind: 'admin' };
+  const hasClaim = async (refresh: boolean): Promise<boolean> => {
+    const token = await deps.getAuthToken(refresh);
+    return token !== null && tokenClaims(token).admin === true;
+  };
+  // A token issued before the claim was granted lacks it for up to an hour: ask again once.
+  if ((await hasClaim(false)) || (await hasClaim(true))) return { kind: 'admin' };
   return { kind: 'not-admin', email: state.email };
 }
 
@@ -90,9 +104,17 @@ export async function openAdminPortal(deps: AccessDeps = liveDeps): Promise<void
   log.info({ access: access.kind }, 'Admin portal closed to this visitor');
   const container = document.getElementById('app') ?? document.body;
   container.innerHTML = renderAccessGate(access);
-  container.querySelector('.admin-access-sign-in')?.addEventListener('click', () => {
-    signInWithGoogle()
+  const button = container.querySelector<HTMLButtonElement>('.admin-access-sign-in');
+  button?.addEventListener('click', () => {
+    button.disabled = true;
+    deps
+      .signIn()
       .then(() => window.location.reload())
-      .catch((error: unknown) => log.error({ error }, 'Admin sign-in failed'));
+      .catch((error: unknown) => {
+        log.error({ error }, 'Admin sign-in failed');
+        button.disabled = false;
+        const detail = container.querySelector('.admin-access-gate p');
+        if (detail) detail.textContent = 'Sign-in did not finish. Try again.';
+      });
   });
 }

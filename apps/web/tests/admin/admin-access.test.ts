@@ -34,8 +34,20 @@ function authState(over: Partial<AuthState>): AuthState {
   };
 }
 
-function deps(state: Partial<AuthState>, token: string | null, devBuild = false): AccessDeps {
-  return { devBuild, initAuth: async () => authState(state), getAuthToken: async () => token };
+function deps(
+  state: Partial<AuthState>,
+  token: string | null,
+  devBuild = false,
+  over: Partial<AccessDeps> = {}
+): AccessDeps {
+  return {
+    devBuild,
+    initAuth: async () => authState(state),
+    getAuthToken: async () => token,
+    hasAdminKey: () => false,
+    signIn: async () => {},
+    ...over,
+  };
 }
 
 describe('admin access', () => {
@@ -109,5 +121,41 @@ describe('admin access', () => {
       'Sign-in is unavailable'
     );
     expect(document.querySelector('.admin-access-sign-in')).toBeNull();
+  });
+  it('lets in an operator who saved the server admin key, as FinOps accepts only that', async () => {
+    const { checkAdminAccess } = await import('../../src/admin/admin-access.js');
+    const access = await checkAdminAccess(
+      deps({ isLinked: false }, null, false, { hasAdminKey: () => true })
+    );
+    expect(access).toEqual({ kind: 'admin' });
+  });
+
+  it('lets in a just-granted admin whose cached token predates the claim', async () => {
+    const { checkAdminAccess } = await import('../../src/admin/admin-access.js');
+    const getAuthToken = vi.fn(async (refresh?: boolean) =>
+      tokenWith(refresh === true ? { admin: true } : {})
+    );
+    expect(await checkAdminAccess(deps({}, null, false, { getAuthToken }))).toEqual({
+      kind: 'admin',
+    });
+    expect(getAuthToken).toHaveBeenCalledWith(true);
+  });
+
+  it('signs in from the gate, and says so when sign-in does not finish', async () => {
+    const { openAdminPortal } = await import('../../src/admin/admin-access.js');
+    let fail: (error: Error) => void = () => {};
+    const signIn = vi.fn(async () => new Promise((_resolve, reject) => (fail = reject)));
+    await openAdminPortal(deps({ isLinked: false }, null, false, { signIn }));
+    const button = document.querySelector<HTMLButtonElement>('.admin-access-sign-in');
+    button?.click();
+    expect(signIn).toHaveBeenCalledOnce();
+    expect(button?.disabled).toBe(true);
+    button?.click();
+    expect(signIn).toHaveBeenCalledOnce();
+    fail(new Error('popup closed'));
+    await vi.waitFor(() => expect(button?.disabled).toBe(false));
+    expect(document.querySelector('.admin-access-gate p')?.textContent).toBe(
+      'Sign-in did not finish. Try again.'
+    );
   });
 });
