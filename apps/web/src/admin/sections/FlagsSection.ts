@@ -9,7 +9,7 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
-import { getAdminHeadersAsync } from '../admin-api.js';
+import { adminFetch } from '../admin-fetch.js';
 import {
   ICON_SUCCESS,
   ICON_ERROR,
@@ -23,6 +23,7 @@ import {
   ICON_SEARCH,
   iconSm,
 } from '../icons.js';
+import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
 
 const log = createLogger('FlagsSection');
 
@@ -41,7 +42,8 @@ interface FeatureFlag {
 export async function render(): Promise<string> {
   log.debug('Rendering flags section');
 
-  const flags = await fetchFlags();
+  const data = await loadJson<FlagsResponse>(adminFetch('/api/v1/admin/flags'), 'flags');
+  const flags = isUnavailable(data) ? [] : toFlags(data);
   const categories = groupByCategory(flags);
 
   return `
@@ -59,13 +61,13 @@ export async function render(): Promise<string> {
           >
         </div>
         <div class="flags-action-btns" role="button" tabindex="0">
-          <button aria-label="Enable All" class="admin-btn" data-action="enable-all-flags">
+          <button aria-label="Enable all trust flags" class="admin-btn" data-action="enable-all-flags">
             <span class="admin-icon">${iconSm(ICON_SUCCESS)}</span>
-            Enable All
+            Enable All Trust Flags
           </button>
-          <button aria-label="Disable All" class="admin-btn" data-action="disable-all-flags">
+          <button aria-label="Disable all trust flags" class="admin-btn" data-action="disable-all-flags">
             <span class="admin-icon">${iconSm(ICON_ERROR)}</span>
-            Disable All
+            Disable All Trust Flags
           </button>
           <button aria-label="Refresh" class="admin-btn" data-action="reset-flags">
             <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
@@ -75,13 +77,12 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Flag Categories -->
-      ${flags.length === 0 ? `
+      ${isUnavailable(data) ? `<div class="admin-card flags-empty">${renderUnavailable(`Feature flags ${data.unavailable}`)}</div>` : flags.length === 0 ? `
         <div class="admin-card flags-empty">
           <div class="empty-state">
             <span class="admin-icon">${iconSm(ICON_FLAGS)}</span>
-            <h3>No Feature Flags Available</h3>
-            <p>Feature flags will appear here when the API is available.</p>
-            <p class="empty-state-hint">Check that the backend is running and connected.</p>
+            <h3>No Feature Flags</h3>
+            <p>The server returned no flags.</p>
           </div>
         </div>
       ` : Object.entries(categories).map(([category, categoryFlags]) => `
@@ -344,35 +345,25 @@ function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
   }, {} as Record<string, FeatureFlag[]>);
 }
 
-async function fetchFlags(): Promise<FeatureFlag[]> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/flags', {
-      headers,
-    });
-    if (response.ok) {
-      const data = await response.json();
-      // Merge general flags and trust flags
-      const generalFlags = (data.flags ?? []).map((f: FeatureFlag) => ({
-        ...f,
-        category: f.category ?? 'System',
-      }));
-      const trustFlags = Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
-        id,
-        name: id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-        description: (config as { enabled?: boolean }).enabled ? 'Enabled' : 'Disabled',
-        enabled: (config as { enabled?: boolean }).enabled ?? false,
-        percentage: (config as { percentage?: number }).percentage,
-        category: 'Trust',
-      }));
-      return [...generalFlags, ...trustFlags];
-    }
-  } catch {
-    // API unavailable
-  }
+/** What GET /api/v1/admin/flags sends: the trust flags, keyed by id (services/platform/feature-flags.ts). */
+interface FlagsResponse {
+  trustFlags?: Record<string, { enabled?: boolean; percentage?: number; description?: string }>;
+}
 
-  // Return empty array - flags will appear when API is available
-  return [];
+/**
+ * The trust flags, the only flags this API manages. Its `flags` field is the same flags
+ * again without their ids, so it is not read: listing it drew each flag twice, once
+ * as an unnamed "System" row.
+ */
+function toFlags(data: FlagsResponse): FeatureFlag[] {
+  return Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
+    id,
+    name: id,
+    description: config.description ?? '',
+    enabled: config.enabled ?? false,
+    percentage: config.percentage,
+    category: 'Trust',
+  }));
 }
 
 export default { render };

@@ -1,0 +1,10 @@
+{
+  "first_time": [
+    { "text": "Hey, I'm Seth's voice on the team. What's on your mind?", "draft": true },
+    { "text": "Hi. Seth's voice here, on the team. What can I tell you?", "draft": true }
+  ],
+  "returning": [
+    { "text": "Hey, good to hear from you again. What's new?", "draft": true },
+    { "text": "You're back. Seth's voice on the team, still. What's on your mind?", "draft": true }
+  ]
+}

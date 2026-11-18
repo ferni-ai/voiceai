@@ -6,4 +6,6 @@
  * @module personas/roster
  */
 
+import './clone-voice-log-redaction.js'; // no log line carries a clone's voice id
+
 export { configuredLegendVoiceIds } from './voice-records.js';

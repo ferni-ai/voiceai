@@ -2,9 +2,9 @@
  * #4069 honest states: an admin screen shows a measurement, or says it has none.
  *
  * Each test fails if a fabricated value comes back: the fixed "+12%" badge,
- * zeros or "System Down" on a failed request, an empty list standing in for a
- * failed load, a "coming soon" button, a dry run reported as "complete", a
- * missing score shown as 0.
+ * zeros or "System Down" on a failed request, a "0%" block rate, the placeholder
+ * corrections list, a "coming soon" button, an invented $50 budget, a dry run
+ * reported as "complete", a missing score shown as 0.
  */
 
 import { readFileSync } from 'node:fs';
@@ -126,6 +126,94 @@ describe('Dashboard (DB2, DB4)', () => {
   });
 });
 
+describe('Semantic Routing (SR1, SR2)', () => {
+  const semantic = {
+    aggregate: {
+      totalRoutes: 0,
+      bypassedLLM: 0,
+      p50LatencyMs: 0,
+      p95LatencyMs: 0,
+      cacheHitRate: 0,
+      toolBreakdown: {},
+      matchPathBreakdown: {},
+    },
+    abTests: { active: 0, experiments: [] },
+    proactive: { suggestionsToday: 0, acceptanceRate: 0 },
+    community: { totalPatterns: 0, avgConfidence: 0, lastAggregation: null },
+    hourly: [],
+    // Servers before #4069 sent this all-zero block; the section must not draw it
+    learning: { totalCorrections: 0, correctionRate: 0, recentCorrections: [] },
+  };
+
+  it('a failed defense read shows its status, not a 0% block rate', async () => {
+    routes = {
+      '/api/observability/semantic-routing': { status: 200, body: semantic },
+      '/api/observability/routing-dashboard': { status: 503 },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    expect(document.getElementById('threat-breakdown')?.textContent).toContain(
+      'Defense metrics unavailable (HTTP 503)'
+    );
+    expect(document.getElementById('block-rate')?.textContent).not.toContain('0%');
+  });
+
+  it('a dashboard with no defense block says defense is not measured', async () => {
+    routes = {
+      '/api/observability/semantic-routing': { status: 200, body: semantic },
+      '/api/observability/routing-dashboard': { status: 200, body: {} },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    expect(document.getElementById('threat-breakdown')?.textContent).toContain(
+      'Defense metrics not measured'
+    );
+  });
+
+  it('a failed semantic-routing load says so above the empty cards', async () => {
+    routes = {
+      '/api/observability/semantic-routing': { status: 502 },
+      '/api/observability/routing-dashboard': { status: 200, body: {} },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    expect(document.getElementById('semantic-routing-status')?.textContent).toBe(
+      'Semantic routing unavailable (HTTP 502)'
+    );
+    routes['/api/observability/semantic-routing'] = { status: 200, body: semantic };
+    await mod.refresh();
+    expect(document.getElementById('semantic-routing-status')?.textContent).toBe('');
+  });
+
+  it('lists an experiment without a made-up variant count', async () => {
+    const experiment = { id: 'exp-1', name: 'Shorter greetings', status: 'running' };
+    routes = {
+      '/api/observability/semantic-routing': {
+        status: 200,
+        body: { ...semantic, abTests: { active: 1, experiments: [experiment] } },
+      },
+      '/api/observability/routing-dashboard': { status: 200, body: {} },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    const list = document.getElementById('ab-tests-list')?.textContent ?? '';
+    expect(list).toContain('Shorter greetings');
+    expect(list).not.toMatch(/variants/);
+  });
+
+  it('shows the correction rate as not measured and no placeholder corrections list', async () => {
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    const html = mod.render();
+    expect(textOf(html)).not.toContain('Recent Corrections');
+    document.body.innerHTML = html;
+    expect(document.getElementById('correction-rate')?.textContent).toContain('not measured');
+  });
+});
+
 describe('Experiments (EX2, EX3)', () => {
   it('a failed load shows its status, not "No Experiments Yet" and zero counts', async () => {
     routes = { '/api/v1/admin/experiments': { status: 500 } };
@@ -148,6 +236,70 @@ describe('Experiments (EX2, EX3)', () => {
     const { render } = await import('../../src/admin/sections/ExperimentsSection.js');
     expect(await render()).not.toContain('create-experiment');
     expect(source('src/admin/sections/ExperimentsSection.ts')).not.toMatch(/coming soon/i);
+  });
+});
+
+describe('Operations (OP5 and a failed load)', () => {
+  const ops = (budget: Record<string, unknown>) => ({
+    services: [],
+    metrics: {
+      latency: { voiceAgent: { p50: 1, p95: 1, p99: 1 }, uiServer: { p50: 1, p95: 1, p99: 1 } },
+      errorRate: { voiceAgent: 0, uiServer: 0 },
+      requestCount: { voiceAgent: 0, uiServer: 0 },
+      instances: { voiceAgent: 1, uiServer: 1 },
+    },
+    budget: { spent: null, currency: 'USD', period: 'monthly', alertThresholds: [], ...budget },
+    links: { dashboard: '#', uptime: '#', alerts: '#', logs: '#', budget: '#' },
+    lastUpdated: new Date().toISOString(),
+  });
+
+  it('no budget found reads "No budget found", not a made-up $50 limit', async () => {
+    routes = {
+      '/api/v1/admin/operations': {
+        status: 200,
+        body: ops({ name: null, limit: null, percentage: null }),
+      },
+    };
+    const { render } = await import('../../src/admin/sections/OperationsSection.js');
+    const text = textOf(await render());
+    expect(text).toContain('No budget found');
+    expect(text).not.toContain('$50');
+    expect(text).not.toContain('% used');
+  });
+
+  it('a named budget with no fixed amount says so, with no limit or bar', async () => {
+    routes = {
+      '/api/v1/admin/operations': {
+        status: 200,
+        body: ops({ name: 'Ferni monthly', limit: null, percentage: null }),
+      },
+    };
+    const { render } = await import('../../src/admin/sections/OperationsSection.js');
+    const text = textOf(await render());
+    expect(text).toContain('Ferni monthly: no fixed limit');
+    expect(text).not.toContain('% used');
+  });
+
+  it('a fixed budget shows its limit and says spend is not measured', async () => {
+    routes = {
+      '/api/v1/admin/operations': {
+        status: 200,
+        body: ops({ name: 'Ferni monthly', limit: 120, percentage: null }),
+      },
+    };
+    const { render } = await import('../../src/admin/sections/OperationsSection.js');
+    const text = textOf(await render());
+    expect(text).toContain('$120 monthly');
+    expect(text).toContain('Spend not measured (it needs the billing export)');
+    expect(text).not.toMatch(/\$\d+ \/ \$120|% used/);
+  });
+
+  it('a failed load shows its status, not an all-zero "System Outage"', async () => {
+    routes = { '/api/v1/admin/operations': 'network-error' };
+    const { render } = await import('../../src/admin/sections/OperationsSection.js');
+    const text = textOf(await render());
+    expect(text).toContain('Operations unavailable (network error)');
+    expect(text).not.toContain('System Outage');
   });
 });
 

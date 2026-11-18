@@ -35,6 +35,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 
 import { discoverAndLoadBundles, loadBundleById, clearBundleCache } from '../bundles/index.js';
 import { buildAliasMap, withHandoffToolNames } from './alias-map.js';
+import { listedNow } from '../../config/seth-teammate.js';
 
 // ============================================================================
 // AGENT CONFIG - Enable/Disable personas from config file
@@ -310,11 +311,10 @@ async function discoverAgents(forceRefresh = false): Promise<Map<string, Agent>>
   // Load all bundles
   const result = await discoverAndLoadBundles();
 
-  // Convert bundles to agents
+  // Convert bundles to agents; seth only while his gate is open (config/seth-teammate.ts)
   const agents = new Map<string, Agent>();
-
   const converted: Agent[] = [];
-  for (const bundle of result.bundles) {
+  for (const bundle of result.bundles.filter((b) => listedNow(b.manifest.identity.id))) {
     try {
       converted.push(bundleToAgent(bundle));
     } catch (err) {
