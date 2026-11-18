@@ -1,0 +1,108 @@
+/**
+ * The caller's recalled memories never reach a crisis reply (CRISIS_NO_MEMORY_RECALL).
+ *
+ * Recalled memory (retrieval-join.ts's per-turn memories, processTurn's memory surfacing,
+ * REVIVED_INTELLIGENCE's block) goes into the turn's background note (inject-context.ts), and
+ * the pusher folds that into the one pushed turn-context note (turn-intelligence.ts). The note
+ * sits in history and reaches the next reply, a crisis-guided one included. With the flag on:
+ *
+ * - a turn whose own crisis read replaced, guided or eased the reply (crisisReadTurn, where no
+ *   read counts as a crisis), or a call with risk noted, builds its note without recalled memory;
+ * - every other note carries, in its `extra`, its text without recalled memory, and a request
+ *   the crisis gate takes crisis-held notes out of (recall-note.ts withoutCrisisHeldNotes: every
+ *   guided request, and every request on a call with risk noted) gets that text instead.
+ *
+ * An ordinary turn's request is byte-equal to the flag off: the model never reads `extra`.
+ *
+ * @module agents/processors/turn-processor/crisis-memory-recall
+ */
+import { flagOn, type Env } from '../../../config/env-flag.js';
+import { REVIVED_CATEGORY } from '../../../intelligence/revived/revived-intelligence.js';
+import { crisisRiskNoted } from '../../../services/safety/crisis-call-risk.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { crisisReadTurn } from '../../voice-agent/crisis-turn-memory.js';
+import type { CrisisDetection } from '../types.js';
+
+const log = createLogger({ module: 'CrisisMemoryRecall' });
+
+export function crisisNoMemoryRecallOn(env: Env = process.env): boolean {
+  return flagOn('CRISIS_NO_MEMORY_RECALL', env);
+}
+
+/** The injection categories that carry what was recalled about the caller. */
+const RECALLED_MEMORY = new Set(['memory', 'proactive_memory', REVIVED_CATEGORY]);
+
+const isRecalledMemory = (category: string): boolean => RECALLED_MEMORY.has(category);
+
+/** Whether this turn's note leaves recalled memory out. A check that throws leaves it out. */
+function memoryHeldOnTurn(crisis: CrisisDetection | undefined, sessionId: string | undefined) {
+  try {
+    return crisisReadTurn(crisis) || (!!sessionId && crisisRiskNoted(sessionId));
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Crisis memory check failed; holding recalled memory');
+    return true;
+  }
+}
+
+/** The turn's injections, without recalled memory when the turn holds it (flag on). */
+export function withoutHeldMemory<I extends { category: string }>(
+  injections: I[],
+  turn: { crisis: CrisisDetection | undefined; sessionId: string | undefined },
+  env: Env = process.env
+): I[] {
+  if (!crisisNoMemoryRecallOn(env) || !memoryHeldOnTurn(turn.crisis, turn.sessionId)) {
+    return injections;
+  }
+  const kept = injections.filter((injection) => !isRecalledMemory(injection.category));
+  const held = injections.length - kept.length;
+  if (held > 0) log.info({ held }, 'CRISIS_MEMORY_RECALL_HELD');
+  return kept;
+}
+
+/** The key, in a message's `extra`, of its whole text without recalled memory ('' for none). */
+export const WITHOUT_RECALLED_MEMORY = 'withoutRecalledMemory';
+
+/** The `extra` of a note made of these injections: its text without recalled memory, if it has any. */
+export function memoryFreeExtra<I extends { category: string }>(
+  injections: I[],
+  join: (list: I[]) => string,
+  env: Env = process.env
+): Record<string, string> | undefined {
+  if (!crisisNoMemoryRecallOn(env) || !injections.some((i) => isRecalledMemory(i.category))) {
+    return undefined;
+  }
+  return {
+    [WITHOUT_RECALLED_MEMORY]: join(injections.filter((i) => !isRecalledMemory(i.category))),
+  };
+}
+
+type Extra = { extra?: Record<string, unknown> };
+
+/** A message's text without recalled memory, or undefined when it carries none. */
+export function memoryFreeText(item: Extra | undefined): string | undefined {
+  const text = item?.extra?.[WITHOUT_RECALLED_MEMORY];
+  return typeof text === 'string' ? text : undefined;
+}
+
+/**
+ * The items with each message that carries recalled memory put back as its text without it,
+ * and left out when that is nothing. A copy of each one: the request's items are the agent's.
+ */
+export function withoutRecalledMemory<T extends Extra>(items: readonly T[]): T[] {
+  return items.flatMap((item) => {
+    const text = memoryFreeText(item);
+    if (text === undefined) return [item];
+    if (text === '') return [];
+    const copy = Object.create(Object.getPrototypeOf(item) as object) as T;
+    return [Object.assign(copy, item, { content: [text] })];
+  });
+}
+
+/** A copy of `extra` without the memory-free text, for a note cut to less than that text. */
+export function withoutMemoryFreeText(
+  extra: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+  if (!extra || !(WITHOUT_RECALLED_MEMORY in extra)) return extra;
+  const { [WITHOUT_RECALLED_MEMORY]: _dropped, ...rest } = extra;
+  return rest;
+}
