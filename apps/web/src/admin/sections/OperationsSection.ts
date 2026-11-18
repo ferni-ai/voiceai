@@ -10,7 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeadersAsync } from '../admin-api.js';
+import { adminFetch } from '../admin-fetch.js';
 import {
   ICON_ACTIVITY,
   ICON_EXTERNAL,
@@ -20,6 +20,7 @@ import {
   ICON_ZAP,
   iconSm,
 } from '../icons.js';
+import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
 
 const log = createLogger('OperationsSection');
 
@@ -57,10 +58,11 @@ interface OperationsMetrics {
 }
 
 interface BudgetStatus {
-  name: string;
-  limit: number;
+  // null when no GCP budget was found
+  name: string | null;
+  limit: number | null;
   spent: number;
-  percentage: number;
+  percentage: number | null;
   currency: string;
   period: string;
   alertThresholds: number[];
@@ -90,8 +92,11 @@ interface OperationsData {
 export async function render(): Promise<string> {
   log.debug('Rendering operations section');
 
-  // Fetch operations data
-  const data = await fetchOperationsData();
+  // A failed load shows its reason, not an all-zero "System Outage"
+  const data = await loadJson<OperationsData>(adminFetch('/api/v1/admin/operations'), 'operations');
+  if (isUnavailable(data)) {
+    return `<div class="ops-section">${renderUnavailable(`Operations ${data.unavailable}`)}</div>`;
+  }
 
   const healthyCount = data.services.filter((s) => s.status === 'healthy').length;
   const totalCount = data.services.length;
@@ -589,6 +594,9 @@ function renderErrorRate(label: string, rate: number): string {
 }
 
 function renderBudgetStatus(budget: BudgetStatus): string {
+  if (budget.limit === null || budget.percentage === null) {
+    return renderUnavailable(budget.name ? `${budget.name}: no fixed limit` : 'No budget found');
+  }
   const fillClass =
     budget.percentage < 50 ? 'good' : budget.percentage < 80 ? 'warning' : 'danger';
 
@@ -614,56 +622,6 @@ function renderQuickLink(label: string, url: string): string {
       <span>${label}</span>
     </a>
   `;
-}
-
-// ============================================================================
-// DATA FETCHING
-// ============================================================================
-
-async function fetchOperationsData(): Promise<OperationsData> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/operations', {
-      headers,
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error) {
-    log.warn({ error }, 'Failed to fetch operations data');
-  }
-
-  // Fallback data
-  return {
-    services: [],
-    metrics: {
-      latency: {
-        voiceAgent: { p50: 0, p95: 0, p99: 0 },
-        uiServer: { p50: 0, p95: 0, p99: 0 },
-      },
-      errorRate: { voiceAgent: 0, uiServer: 0 },
-      requestCount: { voiceAgent: 0, uiServer: 0 },
-      instances: { voiceAgent: 0, uiServer: 0 },
-    },
-    budget: {
-      name: 'No data',
-      limit: 0,
-      spent: 0,
-      percentage: 0,
-      currency: 'USD',
-      period: 'monthly',
-      alertThresholds: [],
-    },
-    links: {
-      dashboard: 'https://console.cloud.google.com/monitoring/dashboards?project=johnb-2025',
-      uptime: 'https://console.cloud.google.com/monitoring/uptime?project=johnb-2025',
-      alerts: 'https://console.cloud.google.com/monitoring/alerting?project=johnb-2025',
-      logs: 'https://console.cloud.google.com/run?project=johnb-2025',
-      budget: 'https://console.cloud.google.com/billing/budgets?project=johnb-2025',
-    },
-    lastUpdated: new Date().toISOString(),
-  };
 }
 
 // ============================================================================

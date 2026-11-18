@@ -5,6 +5,8 @@
  * - Dashboard stats (DB4): when the latency/activity read fails, response time,
  *   error rate and sessions are null, not 0. When it works, the values nothing measures
  *   (error rate, conversations) are still null, not a constant 2% or sessions x10.
+ * - Operations budget (OP5): with no GCP budget found, no "Ferni Monthly
+ *   Budget, limit 50" is invented.
  * - Analytics summary (BM2): without Firestore the summary is a 503, not
  *   zeros read from empty in-memory maps.
  */
@@ -18,6 +20,14 @@ vi.mock('../auth-middleware.js', () => ({
 }));
 
 const latency = vi.hoisted(() => ({ down: true }));
+// No gcloud on the box: every billing lookup fails
+vi.mock('child_process', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('child_process')>()),
+  execFile: vi.fn((_cmd: string, _args: string[], cb: (e: Error) => void) =>
+    cb(new Error('gcloud: not found'))
+  ),
+}));
+
 vi.mock('../../services/analytics/latency-tracker.js', () => ({
   getAverageLatency: () => {
     if (latency.down) throw new Error('latency store down');
@@ -104,6 +114,19 @@ describe('dashboard stats (DB4)', () => {
     } finally {
       latency.down = true;
     }
+  });
+});
+
+describe('operations budget (OP5)', () => {
+  it('with no budget found it invents no name or limit', async () => {
+    const { handleAdminOperationsRoutes } = await import('../v1/admin/operations.js');
+    const { status, json } = await get(
+      handleAdminOperationsRoutes,
+      '/api/v1/admin/operations/budget'
+    );
+    expect(status).toBe(200);
+    expect(json).toMatchObject({ name: null, limit: null, percentage: null, source: 'fallback' });
+    expect(JSON.stringify(json)).not.toContain('Ferni Monthly Budget');
   });
 });
 

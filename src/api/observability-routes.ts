@@ -232,18 +232,8 @@ function getSemanticRoutingMetrics() {
   const aggregate = getAggregateMetrics();
   const { hourly } = getSemanticDashboardData();
 
-  // Learning metrics (corrections, etc.)
-  // Note: This is a simplified version - could be expanded with Firestore data
-  const learning = {
-    totalCorrections: 0,
-    correctionRate: 0,
-    recentCorrections: [] as Array<{
-      query: string;
-      predicted: string;
-      actual: string;
-      timestamp: string;
-    }>,
-  };
+  // No corrections store exists, so no correction counts are sent (#4069): the
+  // admin shows "not measured" rather than a zero.
 
   // A/B test status from agent evolution
   const evolution = getAgentEvolution();
@@ -310,7 +300,6 @@ function getSemanticRoutingMetrics() {
   return {
     aggregate,
     routingPaths,
-    learning,
     abTests,
     proactive,
     community,
@@ -797,16 +786,6 @@ export async function handleObservabilityRoutes(
             percentage: aggregate.totalRoutes > 0 ? (count / aggregate.totalRoutes) * 100 : 0,
           }));
 
-        // Build corrections list (learning opportunities)
-        const corrections: Array<{
-          query: string;
-          predicted: string;
-          actual: string;
-          timestamp: string;
-        }> = [];
-        // Note: Corrections would come from a dedicated corrections store
-        // For now, this is a placeholder - corrections are tracked in the learning loop
-
         sendJSON(res, {
           // Summary cards
           summary: {
@@ -815,10 +794,8 @@ export async function handleObservabilityRoutes(
             avgLatencyMs: aggregate.avgLatencyMs,
             p95LatencyMs: aggregate.p95LatencyMs,
             cacheHitRate: `${(aggregate.cacheHitRate * 100).toFixed(1)}%`,
-            correctionRate:
-              learning.pendingExamples > 0
-                ? `${((learning.pendingExamples / Math.max(1, aggregate.totalRoutes)) * 100).toFixed(1)}%`
-                : '0%',
+            // A count of examples waiting to train on, not a correction rate
+            pendingLearningExamples: learning.pendingExamples,
             threatsBlocked: defense.inputsBlocked,
           },
 
@@ -852,9 +829,6 @@ export async function handleObservabilityRoutes(
 
           // Top routed tools
           topTools: toolCounts,
-
-          // Top corrections (learning opportunities)
-          topCorrections: corrections,
 
           // Defense system status
           defense: {
