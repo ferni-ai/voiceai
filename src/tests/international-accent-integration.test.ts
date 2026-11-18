@@ -16,7 +16,9 @@ global.fetch = mockFetch;
 vi.stubEnv('CARTESIA_API_KEY', 'test-api-key');
 
 // Mock voice-ids
-vi.mock('../config/voice-ids.js', () => ({
+// The real module underneath: the roster (consented clones) reads RETIRED_CLONES from it.
+vi.mock('../config/voice-ids.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../config/voice-ids.js')>()),
   CARTESIA_API_VERSION: '2026-08-14',
   VOICE_IDS: { FERNI: 'ferni-original-voice-id' },
   getVoiceIdForPersona: vi.fn(() => 'ferni-original-voice-id'),
