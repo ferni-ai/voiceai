@@ -33,7 +33,8 @@ vi.mock('../../../memory/recall/forget.js', async (importOriginal) => ({
   forgottenTopicsOrNull: async () => forgetting.topics,
 }));
 const { storedTopic } = await import('../../../memory/recall/session-recall.js');
-const { resetForgetTopicsSource } = await import('../../../memory/recall/forget-topics-source.js');
+const { readTopics, resetForgetTopicsSource } =
+  await import('../../../memory/recall/forget-topics-source.js');
 
 const { createTurnContextPusher, createTurnIntelligenceHook } =
   await import('../turn-intelligence.js');
@@ -186,6 +187,23 @@ describe('revived intelligence on the live turn path', () => {
     const note = await noteFor(hook);
     expect(note).toContain('Keep it short.');
     expect(note).not.toContain('From earlier calls');
+  });
+
+  it('a failed read after an earlier good one offers nothing, never the old list', async () => {
+    revivedOn();
+    forgetting.topics = []; // an earlier reader read the topics: nothing forgotten yet
+    await readTopics('user-revived');
+    forgetting.topics = null; // the move to Denver is forgotten elsewhere; this read fails
+    const now = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000); // past the topics TTL
+    try {
+      const { hook } = setup(store());
+      await settle();
+      const note = await noteFor(hook);
+      expect(note).toContain('Keep it short.');
+      expect(note).not.toContain('From earlier calls');
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it('without FORGET_EVERY_READER nothing from earlier calls is offered', async () => {
