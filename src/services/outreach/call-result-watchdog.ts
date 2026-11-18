@@ -106,22 +106,26 @@ export async function writeCallResult(
   const fields = { mergeFields: Object.keys(clean) };
   if (!callResultWatchdogOn()) return ref.set(clean, fields).then(() => true);
   const noReport = (clean.outcome as CallOutcome | undefined)?.noReport === true;
-  const stored = await db.runTransaction(async (tx) => {
+  const write = await db.runTransaction(async (tx) => {
     const before = (await tx.get(ref)).data()?.outcome as CallOutcome | undefined;
-    if (noReport && before) return false;
+    if (noReport && before) return 'lost';
     // A real result over a no-report one: the next opener brings it up even if that was told.
     const late = !noReport && before?.noReport === true;
     tx.set(ref, late ? { ...clean, delivered: false } : clean, late ? { mergeFields: [...fields.mergeFields, 'delivered'] } : fields); // prettier-ignore
-    return late ? 'late' : true;
+    return late ? 'late' : 'stored';
   });
   const callId = String(clean.callId);
-  if (noReport) logWatch(callId, stored ? 'timed_out' : 'reported');
-  else if (stored === 'late') logWatch(callId, 'late_real_result');
-  return stored !== false;
+  if (noReport) logWatch(callId, write === 'stored' ? 'timed_out' : 'reported');
+  else if (write === 'late') logWatch(callId, 'late_real_result');
+  return write !== 'lost';
 }
 
 /** One due watch: the call reported, or it gets the no-report result. */
-async function settle(callId: string, userId: string, data: Record<string, unknown>): Promise<void> {
+async function settle(
+  callId: string,
+  userId: string,
+  data: Record<string, unknown>
+): Promise<void> {
   const { captureCallResult, getCallResult } = await import('./call-result-capture.js');
   if ((await getCallResult(callId, userId))?.outcome) return logWatch(callId, 'reported');
   // The owner from the watch's path, never the stored request's own field.

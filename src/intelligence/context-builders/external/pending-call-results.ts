@@ -223,7 +223,9 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
     "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
   );
   if (results.some((r) => r.noReport)) {
-    lines.push("- If no report came back: say you couldn't confirm how it went, never that it failed.");
+    lines.push(
+      "- If no report came back: say you couldn't confirm how it went, never that it failed."
+    );
   }
   lines.push('');
 

@@ -169,6 +169,14 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(outcomes()).toEqual(['reported']);
   });
 
+  it('a real result whose push failed is never followed by a no-report push', async () => {
+    push.mockResolvedValueOnce([{ success: false }]); // its push claim is given back
+    await captureCallResult(callId, answered(), request());
+    await captureCallResult(callId, noReportOutcome(callId, NAME), request());
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(told(NO_REPORT_LINE)).toBe(0);
+  });
+
   it('a late real result with their words replaces the no-report and is told; no second no-report', async () => {
     await armCallResultWatchdog(request(), callId, T0);
     await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) });
