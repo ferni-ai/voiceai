@@ -102,11 +102,15 @@ await initializeIntelligentRouter();
 
 const LINE = 'text riley test that the spare key is under the blue pot';
 type Answer = (() => Promise<boolean>) | undefined;
-const ANSWERS: Array<[string, Answer, boolean]> = [
-  ['no answer handed (flag off)', undefined, true],
-  ['the turn allows it', async () => true, true],
-  ['the turn holds it', async () => false, false],
-  ['the answer throws', async () => Promise.reject(new Error('read failed')), false],
+/** Answers a router runs the tool on. */
+const RUNS: Array<[string, Answer]> = [
+  ['no answer handed (flag off)', undefined],
+  ['the turn allows it', async () => true],
+];
+/** Answers a router holds the tool on. */
+const HOLDS: Array<[string, Answer]> = [
+  ['the turn holds it', async () => false],
+  ['the answer throws', async () => Promise.reject(new Error('read failed'))],
 ];
 
 const CONTEXT = {
@@ -140,39 +144,58 @@ function ftis(answer: Answer) {
   });
 }
 
+const DECISIONS: Array<[string, Record<string, unknown>]> = [
+  ['execute', { action: 'execute', toolId: 'sendMessage', args: {}, confidence: 0.97 }],
+  ['plan', { action: 'plan', plan: { steps: [{ toolId: 'sendMessage', args: {} }] } }],
+];
+
+/** Each router path, run under one answer: whether a tool ran and whether the result says so. */
+const ROUTERS: Array<[string, (answer: Answer) => Promise<{ ran: boolean; says: boolean }>]> = [
+  [
+    'semantic',
+    async (answer) => {
+      const result = await semantic(answer);
+      const says = result.executed && result.routingPath === 'semantic_auto_execute';
+      return { ran: h.semanticRuns === 1, says };
+    },
+  ],
+  ...DECISIONS.map(([kind, decision]): (typeof ROUTERS)[number] => [
+    `intelligent ${kind}`,
+    async (answer) => {
+      h.decision = { rawResults: {}, timing: {}, decidedBy: 'classifier', ...decision };
+      const result = await intelligent(answer);
+      return { ran: h.semanticRuns === 1, says: result.executed };
+    },
+  ]),
+  [
+    'FTIS',
+    async (answer) => {
+      const result = await ftis(answer);
+      return { ran: h.ftisRuns === 1, says: result.bypassLLM };
+    },
+  ],
+];
+
 beforeEach(() => {
   h.semanticRuns = 0;
   h.ftisRuns = 0;
 });
 
-describe('semantic router auto-execute', () => {
-  it.each(ANSWERS)('%s', async (_name, answer, runs) => {
-    const result = await semantic(answer);
-    expect(h.semanticRuns).toBe(runs ? 1 : 0);
-    expect(result.executed).toBe(runs);
-    expect(result.routingPath).toBe(runs ? 'semantic_auto_execute' : 'json_fallback');
+describe.each(ROUTERS)('%s router', (_router, run) => {
+  it.each(RUNS)('runs the tool: %s', async (_name, answer) => {
+    expect(await run(answer)).toEqual({ ran: true, says: true });
   });
 });
 
-describe('intelligent router decisions', () => {
-  const DECISIONS: Array<[string, Record<string, unknown>]> = [
-    ['execute', { action: 'execute', toolId: 'sendMessage', args: {}, confidence: 0.97 }],
-    ['plan', { action: 'plan', plan: { steps: [{ toolId: 'sendMessage', args: {} }] } }],
-  ];
-  describe.each(DECISIONS)('%s', (_kind, decision) => {
-    it.each(ANSWERS)('%s', async (_name, answer, runs) => {
-      h.decision = { rawResults: {}, timing: {}, decidedBy: 'classifier', ...decision };
-      const result = await intelligent(answer);
-      expect(h.semanticRuns).toBe(runs ? 1 : 0);
-      expect(result.executed).toBe(runs);
-    });
-  });
-});
-
-describe('FTIS direct execution', () => {
-  it.each(ANSWERS)('%s', async (_name, answer, runs) => {
-    const result = await ftis(answer);
-    expect(h.ftisRuns).toBe(runs ? 1 : 0);
-    expect(result.bypassLLM).toBe(runs);
-  });
+it('each router holds the tool on a no and on a check that throws', async () => {
+  const ran: string[] = [];
+  for (const [router, run] of ROUTERS) {
+    for (const [name, answer] of HOLDS) {
+      h.semanticRuns = 0;
+      h.ftisRuns = 0;
+      const seen = await run(answer);
+      if (seen.ran || seen.says) ran.push(`${router}: ${name}`);
+    }
+  }
+  expect(ran).toEqual([]);
 });

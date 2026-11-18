@@ -318,3 +318,34 @@ export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> =
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act on the turn's tool routing, before the reply gate runs: a tool a
+ * router runs on its own, and the direct tool reply that skips the reply model. The six readers
+ * and SHOWN_ON (the gate's reply) never see that step. This home is open only to a flag whose
+ * named rows drive the real turn path (processTurn, the real crisis reads, a stubbed classifier
+ * model) on a fictional line, flag off then on, and assert that with it on a crisis turn runs no
+ * tool and is never answered by a tool in place of the reply model, a failed read included.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  CRISIS_BLOCKS_AUTO_TOOLS: [
+    {
+      file: 'src/agents/processors/turn-processor/__tests__/crisis-blocks-auto-tools.test.ts',
+      rows: [
+        'a crisis only the classifier reads: no tool runs and no direct reply',
+        'a classifier read that fails: no tool runs and no direct reply',
+        'a router that ran the tool anyway: the direct reply is still refused',
+        'risk an earlier turn noted on the call: no tool runs and no direct reply',
+        'a crisis only the classifier reads still runs the tool and takes the direct reply',
+      ],
+    },
+    {
+      // Each router (semantic, intelligent, FTIS) holds the tool on a "no" and on a check that throws.
+      file: 'src/tools/semantic-router/integration/__tests__/auto-execute-hold.test.ts',
+      rows: ['each router holds the tool on a no and on a check that throws'],
+    },
+  ],
+};
