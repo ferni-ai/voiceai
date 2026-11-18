@@ -326,6 +326,18 @@ describe('never silent: fault injection on a real AgentSession', () => {
     expect(await h.ask('click', 2000)).toBeNull();
   });
 
+  it('NEVER_SILENT shadow: nothing is rendered, and no synthesis beyond the replies', async () => {
+    const off = await harness(['ok'], { mode: 'off' });
+    await off.ask('warm up', 1000);
+    await off.ask('and again', 1000);
+    const shadow = await harness(['ok'], { mode: 'shadow' });
+    await shadow.ask('warm up', 1000); // first reply: under 'on' the lines render here
+    await shadow.ask('and again', 1000);
+    expect(shadow.ttsModel.renders).toEqual([]);
+    expect(shadow.ttsModel.requests).toBeGreaterThan(0); // the replies did synthesize
+    expect(shadow.ttsModel.requests).toBe(off.ttsModel.requests);
+  });
+
   it('NEVER_SILENT off: the same failure is silent (the bug this fixes)', async () => {
     const h = await harness(['fail'], { mode: 'off' });
     expect(await h.ask('anyone home', 2000)).toBeNull();

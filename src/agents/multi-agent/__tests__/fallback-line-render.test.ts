@@ -54,6 +54,17 @@ describe('renderFallbackLine', () => {
     });
   });
 
+  it('a 2xx HTML page (a proxy or gateway error page) is not read as PCM', async () => {
+    const fetch = stubFetch(
+      200,
+      'text/html; charset=utf-8',
+      '<html><body>Bad Gateway</body></html>'
+    );
+    expect(await renderFallbackLine(LINE, VOICE, { fetch, env: ENV })).toEqual({
+      failure: 'not_audio',
+    });
+  });
+
   it('a 2xx body with no content type is not trusted either', async () => {
     const fetch = stubFetch(200, null, tonePcm(500));
     expect(await renderFallbackLine(LINE, VOICE, { fetch, env: ENV })).toEqual({
