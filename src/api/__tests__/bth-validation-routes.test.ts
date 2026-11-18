@@ -124,6 +124,20 @@ describe('GET /validation/telemetry', () => {
     ]);
   });
 
+  it('a capability whose only replies were dismissals sends real 0 rates, not null', async () => {
+    telemetry.getAllCapabilityTelemetry.mockResolvedValue([
+      capabilityTelemetry({
+        acknowledged: 0,
+        dismissed: 3,
+        engaged: 0,
+        acknowledgmentRate: 0,
+        engagementRate: 0,
+      }),
+    ]);
+    const { json } = await get(TELEMETRY);
+    expect(json.entries).toMatchObject([{ acknowledgmentRate: 0, engagementRate: 0 }]);
+  });
+
   it('sends an empty list when the store has no events in the period', async () => {
     telemetry.getAllCapabilityTelemetry.mockResolvedValue([]);
     const { status, json } = await get(TELEMETRY);

@@ -259,6 +259,9 @@ describe('BTHValidationSection', () => {
     root.querySelector<HTMLButtonElement>('[data-action="export-report"]')?.click();
     await settle();
     expect(click).toHaveBeenCalledTimes(1);
+    // Export downloads what is shown: it sends no new request
+    expect(requestsTo(BENCHMARK)).toBe(1);
+    expect(requestsTo(TELEMETRY)).toBe(1);
     const report = JSON.parse(await blobs[0].text()) as Record<string, unknown>;
     expect(report.benchmark).toEqual(BENCHMARK_BODY);
     expect(report.telemetry).toEqual(TELEMETRY_BODY);
