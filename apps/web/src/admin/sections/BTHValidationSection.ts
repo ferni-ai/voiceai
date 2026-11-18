@@ -358,7 +358,7 @@ function renderTelemetryTab(telemetry: ValidationData['telemetry']): string {
           <tr>
             <th>Capability</th>
             <th>Triggers</th>
-            <th>Users</th>
+            <th>People</th>
             <th>Acknowledged</th>
             <th>Engaged</th>
             <th>Avg Confidence</th>
