@@ -152,12 +152,19 @@ describe('pushesUsage: which caller words make a figure a push', () => {
     ).toBe(true);
   });
 
-  it('a long caller turn or note with no stop never backtracks for long (security review)', () => {
-    const said = 'what people ask how often do people tell '.repeat(150);
-    const note = 'people ask you what people asked '.repeat(200);
+  it('20k chars of speech with no stop never backtracks for long (security review)', () => {
+    // STT often gives long unpunctuated turns: each pattern's keywords but its last, spread out.
+    const filler = 'and then we went over to the place and talked for a while ';
+    const spread = (words: string[]) =>
+      Array.from({ length: 300 }, (_, i) => `${words[i % words.length]} ${filler}`)
+        .join('')
+        .slice(0, 20_000);
+    const said = spread(['how many people', 'what people ask', 'do people tell', 'other callers']);
+    const note = spread(['what people asked', 'people ask you', 'what callers said']);
+    expect([said.length, note.length]).toEqual([20_000, 20_000]);
     const start = performance.now();
     expect(pushesUsage('Give a specific number.', said)).toBe(false);
     expect(pushesUsage(note, '')).toBe(false);
-    expect(performance.now() - start).toBeLessThan(100);
+    expect(performance.now() - start).toBeLessThan(50);
   });
 });

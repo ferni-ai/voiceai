@@ -38,7 +38,7 @@ export const usageDirectorRule = (name: string, object: string): string =>
 const GAP = String.raw`[^.?!]{0,60}`;
 const NOTE_GAP = String.raw`[^.]{0,80}`;
 /** The most of the caller's turn that is read: its end, where the question usually is. */
-const MAX_SAID_CHARS = 600;
+const MAX_SAID_CHARS = 400;
 const MAX_NOTE_CHARS = 600;
 
 /** The caller asking how many people talk to Ferni, or what other people ask or tell him. */
