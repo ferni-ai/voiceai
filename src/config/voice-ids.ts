@@ -174,10 +174,9 @@ const SETH_VOICE_SETTING = 'ROSTER_VOICE_SETH';
 
 /**
  * Seth's cloned voice id from its setting, trimmed, or null when it is unset or
- * blank. Exported once a caller outside this file needs it (the seth-teammate
- * gate, docs/plans/2026-11-17-seth-teammate-plan.md Task 2).
+ * blank. The seth-teammate gate reads it (seth-teammate.ts).
  */
-function sethVoiceId(env: Env = process.env): string | null {
+export function sethVoiceId(env: Env = process.env): string | null {
   return env[SETH_VOICE_SETTING]?.trim() || null;
 }
 

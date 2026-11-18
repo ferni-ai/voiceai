@@ -12,6 +12,7 @@ import { toast } from '../ui/whisper.ui.js';
 import { getAdminHeadersAsync } from './admin-api.js';
 import { adminFetch } from './admin-fetch.js';
 import { previewAgentVoice } from './admin-voice-preview.js';
+import { unavailableReason } from './unavailable-state.js';
 
 export { previewAgentVoice };
 
@@ -542,11 +543,10 @@ export async function runQuickAction(action: string): Promise<void> {
       toast.info('Running EvalOps...');
       try {
         const response = await adminFetch('/api/evalops/run-suite', { method: 'POST' });
-        if (response.ok) {
-          toast.success('EvalOps complete');
-        } else {
-          toast.warning('EvalOps found issues');
-        }
+        const result = response.ok ? ((await response.json()) as { dry_run?: boolean }) : null;
+        if (!result) toast.error(`EvalOps did not run: ${unavailableReason(response.status)}`);
+        else if (result.dry_run) toast.warning('Dry run: nothing evaluated');
+        else toast.success('EvalOps complete');
       } catch {
         toast.error("Couldn't run EvalOps");
       }
@@ -669,7 +669,7 @@ export async function runQuickVoiceCheck(): Promise<void> {
     if (response.ok) {
       const result = (await response.json()) as { passed: boolean; score?: number; reason?: string };
       if (result.passed) {
-        toast.success(`Voice check passed (${result.score ?? 0}% consistency)`);
+        toast.success(`Voice check passed (${typeof result.score === 'number' ? `${result.score}%` : 'no score returned'})`);
       } else {
         toast.warning(`Voice check flagged: ${result.reason ?? 'Needs review'}`);
       }
@@ -677,7 +677,7 @@ export async function runQuickVoiceCheck(): Promise<void> {
       // Show detailed results in modal
       showResultsModal('Voice Check Results', result);
     } else {
-      toast.error('Voice check failed');
+      toast.error(`Voice check did not run: ${unavailableReason(response.status)}`);
     }
   } catch (error) {
     log.error({ error }, 'Quick voice check failed');

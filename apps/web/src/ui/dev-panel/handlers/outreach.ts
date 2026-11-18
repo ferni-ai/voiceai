@@ -9,6 +9,36 @@ import { createLogger } from '../../../utils/logger.js';
 
 const log = createLogger('DevPanel:Outreach');
 
+/** What GET /api/user/contact sends for the signed-in user (src/api/user-routes.ts). */
+interface ContactResponse {
+  contactInfo?: { phone?: string; email?: string; verifiedPhone?: string | null } | null;
+}
+
+/**
+ * The signed-in user's outreach channels, as a status line and whether it is an error.
+ * It used to GET /api/outreach/contact, which only takes POST, so every check read
+ * "No contact info configured" whatever was saved.
+ */
+async function checkContactConfig(): Promise<[string, boolean]> {
+  let res: Response;
+  try {
+    res = await fetch('/api/user/contact');
+  } catch (error) {
+    log.warn({ error }, 'Contact check failed');
+    return ['Contact check unavailable (network error)', true];
+  }
+  if (!res.ok) {
+    log.warn({ status: res.status }, 'Contact check failed');
+    return [`Contact check unavailable (HTTP ${res.status})`, true];
+  }
+  const { contactInfo } = (await res.json()) as ContactResponse;
+  const phone = contactInfo?.verifiedPhone ?? contactInfo?.phone;
+  const parts: string[] = [];
+  if (phone) parts.push(`Phone: ${phone}${contactInfo?.verifiedPhone ? ' (verified)' : ''}`);
+  if (contactInfo?.email) parts.push(`Email: ${contactInfo.email}`);
+  return parts.length ? [parts.join(' | '), false] : ['No phone or email saved', true];
+}
+
 /**
  * Handle an outreach action from the dev panel
  *
@@ -44,24 +74,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
       // Check channel config first
       case 'check-config': {
         setStatus('Checking config...');
-        const configRes = await fetch(`/api/outreach/contact?userId=${userId}`);
-        const config = (await configRes.json()) as { phone?: string; email?: string };
-        if (!configRes.ok) {
-          setStatus('No contact info configured', true);
-          log.info('No contact info for user. Set via /api/outreach/contact');
-          // eslint-disable-next-line no-console
-          console.log('To set contact info, POST to /api/outreach/contact with:', {
-            userId,
-            phone: '+1234567890',
-            email: 'user@example.com',
-          });
-        } else {
-          const { phone, email } = config;
-          const parts: string[] = [];
-          if (phone) parts.push(`Phone: ${phone}`);
-          if (email) parts.push(`Email: ${email}`);
-          setStatus(parts.length ? parts.join(' | ') : 'No channels', !parts.length);
-        }
+        setStatus(...(await checkContactConfig()));
         break;
       }
 
