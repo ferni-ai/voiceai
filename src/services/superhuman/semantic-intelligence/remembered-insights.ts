@@ -1,37 +1,32 @@
 /**
- * Proactive insights less any about a topic the caller asked Ferni to forget (#3995).
+ * Proactive insights less any about a topic the caller asked Ferni to forget (#3995), with
+ * FORGET_EVERY_READER on (off in prod); with it off, every insight surfaces as before.
  *
  * Every reader of the insight broker (the sanctuary and semantic-intelligence routes, the
  * session's prompt, the semantic context) reads through getInsightsToSurface, which passes
  * here before it scores or marks anything. An insight often quotes the caller (an open loop's
- * "You mentioned ..." with their words as its context), so the passage matcher reads it: any
- * distinctive word of a topic. It reads every string in the stored document, not a list of
- * fields, because the routes return the document as stored and an old one can carry a field
- * the type doesn't name. When the forgotten list can't be read, nothing surfaces: a privacy
- * request fails closed.
+ * "You mentioned ..." with their words as its context), so the passage matcher reads it
+ * (forgottenPassageCheck: any distinctive word of a topic). It reads every string in the stored
+ * document, not a list of fields, because the routes return the document as stored and an old
+ * one can carry a field the type doesn't name. The topics are the shared read, or the last ones
+ * read when it is late or fails; with no topics ever read, nothing surfaces (fails closed).
  *
  * @module services/superhuman/semantic-intelligence/remembered-insights
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
 import type { ProactiveInsight } from './insight-broker.js';
 
-const log = createLogger({ module: 'remembered-insights' });
-
-/** The insights not about a forgotten topic; none when the forgotten list can't be read. */
+/** The insights not about a forgotten topic (all of them with the flag off). */
 export async function rememberedInsights(
   userId: string,
   insights: ProactiveInsight[]
 ): Promise<ProactiveInsight[]> {
   if (insights.length === 0) return insights;
   // Loaded lazily, as open loops load it: the memory context is heavy to resolve.
-  const { forgottenPassageFilter } = await import('../../../memory/index.js');
-  const forgotten = await forgottenPassageFilter(userId);
-  if (!forgotten) {
-    log.warn({ userId, count: insights.length }, 'Forgotten topics unreadable: insights held');
-    return [];
-  }
-  return insights.filter((i) => !forgotten(callerText(i)));
+  const { forgottenPassageCheck, remembered } = await import('../../../memory/index.js');
+  return remembered(insights, await forgottenPassageCheck(userId, 'insights'), (i) =>
+    callerText(i)
+  );
 }
 
 /** The broker's own labels and ids: never the caller's words ("medium", "session_start"). */

@@ -3,8 +3,9 @@
  * loop copies the caller's words into an insight ("You mentioned the Denver offer"), and every
  * reader (the sanctuary and semantic-intelligence routes, the session's prompt, the semantic
  * context) reads through getInsightsToSurface. These run the real broker, the real
- * /insights route and the real forget filter over stored insight shapes; only Firestore, the
- * caller check and the forgotten list are faked. Names are fictional.
+ * /insights route and the real forget check (FORGET_EVERY_READER on; off surfaces every insight)
+ * over stored insight shapes; only Firestore, the caller check and the forgotten list are faked.
+ * Names are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -14,6 +15,7 @@ import {
   forgetTopic,
   type ForgetStore,
 } from '../../../../memory/recall/forget.js';
+import { resetForgetTopicsSource } from '../../../../memory/recall/forget-topics-source.js';
 
 type Doc = Record<string, unknown>;
 const stored: Doc[] = [];
@@ -80,11 +82,16 @@ async function surfaced(): Promise<string[]> {
 }
 
 beforeEach(() => {
+  vi.stubEnv('FORGET_EVERY_READER', 'on');
+  resetForgetTopicsSource();
   stored.length = 0;
   stored.push(DENVER, GARDEN);
   broker.clearInsightCache();
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
 describe('getInsightsToSurface leaves forgotten topics out', () => {
   it('nothing forgotten: every insight surfaces', async () => {
@@ -136,7 +143,7 @@ describe('getInsightsToSurface leaves forgotten topics out', () => {
     expect(got.map((i) => i.id)).toEqual(['a']);
   });
 
-  it('a list that cannot be read surfaces nothing (fails closed)', async () => {
+  it('a list never read surfaces nothing (fails closed)', async () => {
     vi.spyOn(firestoreForgetStore, 'topics').mockRejectedValue(new Error('unavailable'));
     expect(await surfaced()).toEqual([]);
   });
@@ -145,9 +152,37 @@ describe('getInsightsToSurface leaves forgotten topics out', () => {
     forgotten(['Denver job']);
     const userId = `u-${++n}`;
     await broker.getInsightsToSurface(userId, { isSessionStart: true });
+    resetForgetTopicsSource(); // the caller's next read, past the shared read's cache
     forgotten([]);
     const later = await broker.getInsightsToSurface(userId, { isSessionStart: true });
     expect(later.map((i) => i.id)).toEqual(['a']);
+  });
+});
+
+describe('a read that fails later', () => {
+  it('uses the last list read: insights still surface, the topic stays out', async () => {
+    const read = forgotten(['Denver job']);
+    const userId = `u-${++n}`;
+    const first = await broker.getInsightsToSurface(userId, { isSessionStart: true });
+    expect(first.map((i) => i.id)).toEqual(['c']);
+    stored.push(insight('g', 'Ask about the new puppy', 'we got a beagle on Sunday'));
+    broker.clearInsightCache();
+    read.mockRejectedValue(new Error('unavailable'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000); // past the shared read's cache
+    const later = await broker.getInsightsToSurface(userId, { isSessionStart: true });
+    expect(later.map((i) => i.id).sort()).toEqual(['c', 'g']);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('with FORGET_EVERY_READER off (prod today)', () => {
+  it.each([[undefined], ['off']])('FORGET_EVERY_READER=%s surfaces every insight', async (v) => {
+    vi.stubEnv('FORGET_EVERY_READER', v);
+    const read = forgotten(['Denver job']);
+    expect(await surfaced()).toEqual(['a', 'c']);
+    read.mockRejectedValue(new Error('unavailable'));
+    expect(await surfaced()).toEqual(['a', 'c']);
+    expect(read).not.toHaveBeenCalled();
   });
 });
 
