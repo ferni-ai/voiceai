@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-11-18T23:00:00Z')); // 6 pm Wednesday in New York
   process.env.CALLER_CLOCK_TIME_OF_DAY = 'on';
-  rememberCallerTimeZone('America/New_York', SESSION, USER);
+  rememberCallerTimeZone('America/New_York', SESSION); // by session only: the user id has no zone
 });
 
 afterEach(() => {

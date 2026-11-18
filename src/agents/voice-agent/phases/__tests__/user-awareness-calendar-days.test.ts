@@ -58,6 +58,19 @@ describe('last contact with CALLER_CLOCK_TIME_OF_DAY on', () => {
     expect(facts('Not/AZone')).toContain('You talked earlier today.');
   });
 
+  it('no zone never falls back to UTC calendar days', () => {
+    process.env.CALLER_CLOCK_TIME_OF_DAY = 'on';
+    const lastNight = createUserProfile('riley-test-user', 'Riley Test');
+    lastNight.totalConversations = 3;
+    lastNight.lastContact = new Date('2026-11-17T23:30:00Z'); // 90 minutes before, a UTC day earlier
+    const { facts: noZone } = buildUserAwareness({
+      userProfile: lastNight,
+      isReturningUser: true,
+      sessionStartTime: new Date('2026-11-18T01:00:00Z'),
+    });
+    expect(noZone).toContain('You talked earlier today.');
+  });
+
   it('the injected block uses the zone the call settled', () => {
     process.env.CALLER_CLOCK_TIME_OF_DAY = 'on';
     rememberCallerTimeZone(EASTERN, SESSION);

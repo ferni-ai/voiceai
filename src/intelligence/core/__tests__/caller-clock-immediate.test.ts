@@ -88,7 +88,7 @@ describe('assembleContext with CALLER_CLOCK_TIME_OF_DAY on', () => {
   });
 
   it('getIntelligenceForTurn reads the zone the call settled, by session id', async () => {
-    rememberCallerTimeZone(EASTERN, SESSION, USER);
+    rememberCallerTimeZone(EASTERN, SESSION); // by session only: the user id has no zone
     at(EASTERN_SIX_PM);
     const { context } = await getIntelligenceForTurn(USER, {
       moment: 'session_start',
