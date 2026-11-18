@@ -108,6 +108,30 @@ export function measureClip(frames: readonly FrameLike[]): { ms: number; voicedM
   return { ms: Math.round(ms), voicedMs: Math.round(voicedMs) };
 }
 
+/** A line's frames up to MAX_PRERENDER_SAMPLES. */
+function capped(frames: readonly FrameLike[]): FrameLike[] {
+  const kept: FrameLike[] = [];
+  let samples = 0;
+  for (const frame of frames) {
+    kept.push(frame);
+    samples += frame.samplesPerChannel;
+    if (samples > MAX_PRERENDER_SAMPLES) break;
+  }
+  return kept;
+}
+
+/** The line's render; a render that throws counts as a failure, its message unlogged. */
+async function renderSafely(
+  renderLine: (text: string) => Promise<LineRender>,
+  text: string
+): Promise<LineRender> {
+  try {
+    return await renderLine(text);
+  } catch {
+    return { failure: 'threw' };
+  }
+}
+
 export interface NeverSilentSession {
   readonly agentState: string;
   readonly userState: string;
@@ -240,25 +264,14 @@ export function createNeverSilentGuard(deps: {
     if (prerenderStarted || deps.mode !== 'on' || !renderLine) return;
     prerenderStarted = true;
     for (const [line, text] of FALLBACK_LINES.entries()) {
-      let result: LineRender;
-      try {
-        // eslint-disable-next-line no-await-in-loop -- one at a time: a failure stops the rest
-        result = await renderLine(text);
-      } catch {
-        result = { failure: 'threw' };
-      }
+      // eslint-disable-next-line no-await-in-loop -- one at a time: a failure stops the rest
+      const result = await renderSafely(renderLine, text);
       // The next line would fail the same way: leave the rest to live TTS.
       if ('failure' in result) {
         const { failure, statusClass } = result;
         return deps.log({ prerenderFailed: failure, line, ...(statusClass && { statusClass }) });
       }
-      const frames: FrameLike[] = [];
-      let samples = 0;
-      for (const frame of result.frames) {
-        frames.push(frame);
-        samples += frame.samplesPerChannel;
-        if (samples > MAX_PRERENDER_SAMPLES) break;
-      }
+      const frames = capped(result.frames);
       const clip = measureClip(frames);
       if (clip.voicedMs >= MIN_VOICED_MS) rendered.set(text, frames);
       else deps.log({ prerenderRejected: line, ...clip });
