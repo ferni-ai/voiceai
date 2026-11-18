@@ -27,6 +27,7 @@ const REREAD_MS = 1000;
 const sources = new Set<Source>();
 let cachedKey = '';
 let cachedPattern: RegExp | null = null;
+let cachedLongest = 0;
 let readAt = -Infinity;
 
 /** Registers a source of values to redact from every log line. Registering it again is a no-op. */
@@ -52,6 +53,7 @@ function currentPattern(): RegExp | null {
   const key = values.join('\n');
   if (key === cachedKey) return cachedPattern;
   cachedKey = key;
+  cachedLongest = Math.max(0, ...values.map((v) => v.length));
   cachedPattern =
     values.length === 0
       ? null
@@ -67,4 +69,27 @@ export function redactLogValues(line: string): string {
   if (sources.size === 0) return line;
   const pattern = currentPattern();
   return pattern ? line.replace(pattern, REDACTED_LOG_VALUE) : line;
+}
+
+/**
+ * `cut`, or the nearest point before it, where `text` can be split without splitting a
+ * registered value: not inside one, and far enough from the end that one still being
+ * written (the text ends partway through it) is on the later side whole. Each side is
+ * redacted on its own (log-hold-back.ts), and half a value matches nothing.
+ */
+export function cutOutsideLogValues(text: string, cut: number): number {
+  if (sources.size === 0) return cut;
+  const pattern = currentPattern();
+  if (!pattern) return cut;
+  let safe = Math.max(0, Math.min(cut, text.length - cachedLongest + 1));
+  for (;;) {
+    const from = Math.max(0, safe - cachedLongest);
+    let across: number | undefined;
+    for (const m of text.slice(from, safe + cachedLongest).matchAll(pattern)) {
+      const start = from + m.index;
+      if (start < safe && safe < start + m[0].length) across = start;
+    }
+    if (across === undefined) return safe;
+    safe = across;
+  }
 }
