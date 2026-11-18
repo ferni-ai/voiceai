@@ -242,7 +242,6 @@ function getSemanticRoutingMetrics() {
     id: string;
     name: string;
     status: string;
-    variants: number;
   }> = [];
 
   for (const state of evolutionStates.values()) {
@@ -251,7 +250,6 @@ function getSemanticRoutingMetrics() {
         id: exp.id,
         name: exp.name,
         status: exp.status,
-        variants: 2, // control + treatment
       });
     }
   }

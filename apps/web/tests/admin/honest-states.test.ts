@@ -159,6 +159,52 @@ describe('Semantic Routing (SR1, SR2)', () => {
     expect(document.getElementById('block-rate')?.textContent).not.toContain('0%');
   });
 
+  it('a dashboard with no defense block says defense is not measured', async () => {
+    routes = {
+      '/api/observability/semantic-routing': { status: 200, body: semantic },
+      '/api/observability/routing-dashboard': { status: 200, body: {} },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    expect(document.getElementById('threat-breakdown')?.textContent).toContain(
+      'Defense metrics not measured'
+    );
+  });
+
+  it('a failed semantic-routing load says so above the empty cards', async () => {
+    routes = {
+      '/api/observability/semantic-routing': { status: 502 },
+      '/api/observability/routing-dashboard': { status: 200, body: {} },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    expect(document.getElementById('semantic-routing-status')?.textContent).toBe(
+      'Semantic routing unavailable (HTTP 502)'
+    );
+    routes['/api/observability/semantic-routing'] = { status: 200, body: semantic };
+    await mod.refresh();
+    expect(document.getElementById('semantic-routing-status')?.textContent).toBe('');
+  });
+
+  it('lists an experiment without a made-up variant count', async () => {
+    const experiment = { id: 'exp-1', name: 'Shorter greetings', status: 'running' };
+    routes = {
+      '/api/observability/semantic-routing': {
+        status: 200,
+        body: { ...semantic, abTests: { active: 1, experiments: [experiment] } },
+      },
+      '/api/observability/routing-dashboard': { status: 200, body: {} },
+    };
+    const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
+    document.body.innerHTML = mod.render();
+    await mod.refresh();
+    const list = document.getElementById('ab-tests-list')?.textContent ?? '';
+    expect(list).toContain('Shorter greetings');
+    expect(list).not.toMatch(/variants/);
+  });
+
   it('shows the correction rate as not measured and no placeholder corrections list', async () => {
     const mod = await import('../../src/admin/sections/SemanticRoutingSection.js');
     const html = mod.render();
@@ -202,7 +248,7 @@ describe('Operations (OP5 and a failed load)', () => {
       requestCount: { voiceAgent: 0, uiServer: 0 },
       instances: { voiceAgent: 1, uiServer: 1 },
     },
-    budget: { spent: 12, currency: 'USD', period: 'monthly', alertThresholds: [], ...budget },
+    budget: { spent: null, currency: 'USD', period: 'monthly', alertThresholds: [], ...budget },
     links: { dashboard: '#', uptime: '#', alerts: '#', logs: '#', budget: '#' },
     lastUpdated: new Date().toISOString(),
   });
@@ -219,6 +265,33 @@ describe('Operations (OP5 and a failed load)', () => {
     expect(text).toContain('No budget found');
     expect(text).not.toContain('$50');
     expect(text).not.toContain('% used');
+  });
+
+  it('a named budget with no fixed amount says so, with no limit or bar', async () => {
+    routes = {
+      '/api/v1/admin/operations': {
+        status: 200,
+        body: ops({ name: 'Ferni monthly', limit: null, percentage: null }),
+      },
+    };
+    const { render } = await import('../../src/admin/sections/OperationsSection.js');
+    const text = textOf(await render());
+    expect(text).toContain('Ferni monthly: no fixed limit');
+    expect(text).not.toContain('% used');
+  });
+
+  it('a fixed budget shows its limit and says spend is not measured', async () => {
+    routes = {
+      '/api/v1/admin/operations': {
+        status: 200,
+        body: ops({ name: 'Ferni monthly', limit: 120, percentage: null }),
+      },
+    };
+    const { render } = await import('../../src/admin/sections/OperationsSection.js');
+    const text = textOf(await render());
+    expect(text).toContain('$120 monthly');
+    expect(text).toContain('Spend not measured (it needs the billing export)');
+    expect(text).not.toMatch(/\$\d+ \/ \$120|% used/);
   });
 
   it('a failed load shows its status, not an all-zero "System Outage"', async () => {

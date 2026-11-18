@@ -49,7 +49,6 @@ interface SemanticRoutingMetrics {
       id: string;
       name: string;
       status: string;
-      variants: number;
     }>;
   };
   proactive: {
@@ -62,15 +61,17 @@ interface SemanticRoutingMetrics {
     lastAggregation: string | null;
   };
   // Phase 5: Adversarial Defense metrics, or why they could not be read
-  defense: Unavailable | {
-    totalInputs: number;
-    threatsDetected: number;
-    inputsBlocked: number;
-    blockRate: string;
-    avgRiskScore: string;
-    threatsByType: Record<string, number>;
-    threatsBySeverity: Record<string, number>;
-  };
+  defense:
+    | Unavailable
+    | {
+        totalInputs: number;
+        threatsDetected: number;
+        inputsBlocked: number;
+        blockRate: string;
+        avgRiskScore: string;
+        threatsByType: Record<string, number>;
+        threatsBySeverity: Record<string, number>;
+      };
   hourly: Array<{ hour: number; count: number; avgLatency: number }>;
   timestamp: string;
 }
@@ -100,6 +101,8 @@ export function render(): string {
           </button>
         </div>
       </div>
+
+      <div id="semantic-routing-status"></div>
 
       <!-- Key Metrics Cards -->
       <div class="metrics-grid" role="region" aria-label="Key metrics" aria-live="polite">
@@ -607,7 +610,7 @@ export function render(): string {
 // DATA FETCHING
 // ============================================================================
 
-async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
+async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | Unavailable> {
   try {
     const [semanticResponse, dashboardResponse] = await Promise.all([
       adminFetch('/api/observability/semantic-routing'),
@@ -615,7 +618,7 @@ async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
     ]);
 
     // Get base metrics from semantic-routing endpoint
-    if (!semanticResponse.ok) return null;
+    if (!semanticResponse.ok) return { unavailable: unavailableReason(semanticResponse.status) };
     const baseMetrics = await semanticResponse.json();
 
     // Defense data comes from routing-dashboard; when it is missing, say why instead of zeros
@@ -626,7 +629,7 @@ async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
     return baseMetrics;
   } catch (error) {
     log.error({ error }, 'Failed to fetch semantic routing metrics');
-    return null;
+    return { unavailable: unavailableReason() };
   }
 }
 
@@ -681,7 +684,8 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
   // Defense metrics (Phase 5: Adversarial Robustness)
   if (isUnavailable(defense)) {
     const breakdownEl = document.getElementById('threat-breakdown');
-    if (breakdownEl) breakdownEl.innerHTML = renderUnavailable(`Defense metrics ${defense.unavailable}`);
+    if (breakdownEl)
+      breakdownEl.innerHTML = renderUnavailable(`Defense metrics ${defense.unavailable}`);
   } else {
     updateDefenseUI(defense);
   }
@@ -758,7 +762,6 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
           <div class="ab-test-item" role="listitem">
             <div>
               <span class="ab-test-name">${escapeHtml(exp.name)}</span>
-              <span class="ab-test-variants">(${exp.variants} variants)</span>
             </div>
             <span class="ab-test-status ${exp.status}">${exp.status}</span>
           </div>
@@ -767,7 +770,6 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
         .join('');
     }
   }
-
 }
 
 function formatMatchPath(path: string): string {
@@ -830,8 +832,9 @@ function updateDefenseUI(defense: Exclude<SemanticRoutingMetrics['defense'], Una
         </div>
       `;
     } else {
-      const threatTypeHtml = threatTypes.length > 0
-        ? `
+      const threatTypeHtml =
+        threatTypes.length > 0
+          ? `
           <div class="threat-breakdown-title">Threats by Type</div>
           <div class="threat-type-grid">
             ${threatTypes
@@ -847,10 +850,11 @@ function updateDefenseUI(defense: Exclude<SemanticRoutingMetrics['defense'], Una
               .join('')}
           </div>
         `
-        : '';
+          : '';
 
-      const severityHtml = severityTypes.length > 0
-        ? `
+      const severityHtml =
+        severityTypes.length > 0
+          ? `
           <div class="threat-severity-row">
             ${severityTypes
               .map(
@@ -861,7 +865,7 @@ function updateDefenseUI(defense: Exclude<SemanticRoutingMetrics['defense'], Una
               .join('')}
           </div>
         `
-        : '';
+          : '';
 
       threatBreakdownEl.innerHTML = threatTypeHtml + severityHtml;
     }
@@ -906,9 +910,14 @@ export async function init(): Promise<void> {
 
 export async function refresh(): Promise<void> {
   const metrics = await fetchSemanticMetrics();
-  if (metrics) {
-    updateUI(metrics);
+  const status = document.getElementById('semantic-routing-status');
+  if (isUnavailable(metrics)) {
+    // The cards keep their "--" placeholders; this line says why they are empty
+    if (status) status.innerHTML = renderUnavailable(`Semantic routing ${metrics.unavailable}`);
+    return;
   }
+  if (status) status.innerHTML = '';
+  updateUI(metrics);
 }
 
 export function cleanup(): void {
@@ -917,4 +926,3 @@ export function cleanup(): void {
     refreshInterval = null;
   }
 }
-

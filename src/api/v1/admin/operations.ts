@@ -97,14 +97,13 @@ interface BudgetStatus {
   /** null when no GCP budget was found: never a made-up budget (#4069) */
   name: string | null;
   limit: number | null;
-  spent: number;
+  /** null: real spend needs the BigQuery billing export, which isn't read yet (#4069) */
+  spent: number | null;
   percentage: number | null;
   currency: string;
   period: string;
   alertThresholds: number[];
-  /** Whether spend is estimated (true) or from actual billing data (false) */
-  estimated: boolean;
-  /** Data source: 'billing-api' | 'estimated' | 'fallback' */
+  /** Where the budget came from: the billing API, a billing account with no budget, or nothing */
   source: 'billing-api' | 'estimated' | 'fallback';
 }
 
@@ -441,34 +440,6 @@ async function getBillingAccount(): Promise<string | null> {
 }
 
 /**
- * Estimate current month spend based on service usage
- * Uses pricing estimates similar to costs-ai.ts
- */
-function estimateCurrentMonthSpend(): number {
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const dayOfMonth = now.getDate();
-  const monthProgress = dayOfMonth / daysInMonth;
-
-  // Base monthly estimates (conservative, based on typical Ferni usage)
-  const monthlyEstimates = {
-    // Cloud Run: ~$15-25/month for voice agent + UI server
-    cloudRun: 20,
-    // Firestore: ~$5-10/month for reads/writes/storage
-    firestore: 7,
-    // External APIs (Gemini, Cartesia, LiveKit): ~$10-20/month
-    externalApis: 15,
-    // Storage, networking, misc: ~$3-5/month
-    misc: 4,
-  };
-
-  const totalMonthly = Object.values(monthlyEstimates).reduce((a, b) => a + b, 0);
-
-  // Pro-rate based on current day of month
-  return Math.round(totalMonthly * monthProgress * 100) / 100;
-}
-
-/**
  * Try to get budget info from GCP Billing Budget API
  */
 async function queryGCPBudget(billingAccount: string): Promise<{
@@ -541,9 +512,10 @@ async function getBudgetStatus(): Promise<BudgetStatus> {
       : 'fallback';
   const limit = gcpBudget?.limit ?? null;
 
-  // Estimate current spend (real-time billing data requires BigQuery export)
-  const spent = estimateCurrentMonthSpend();
-  const percentage = limit ? Math.round((spent / limit) * 100) : null;
+  // Spend is not measured: real-time billing data needs the BigQuery export. It used to be
+  // a fixed $46 a month scaled by the date, shown as if it were the bill.
+  const spent = null;
+  const percentage = null;
 
   const result: BudgetStatus = {
     name: gcpBudget?.name ?? null,
@@ -553,7 +525,6 @@ async function getBudgetStatus(): Promise<BudgetStatus> {
     currency: 'USD',
     period: 'monthly',
     alertThresholds: gcpBudget?.thresholds ?? [],
-    estimated: true, // Spend is always estimated without BigQuery export
     source,
   };
 

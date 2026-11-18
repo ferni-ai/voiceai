@@ -20,11 +20,18 @@ vi.mock('../auth-middleware.js', () => ({
 }));
 
 const latency = vi.hoisted(() => ({ down: true }));
-// No gcloud on the box: every billing lookup fails
+// gcloud: by default not on the box, so every billing lookup fails. A test can set the
+// `budgets list` JSON, and then the project has a (fictional) billing account.
+const gcloud = vi.hoisted(() => ({ budgets: null as string | null }));
 vi.mock('child_process', async (importOriginal) => ({
   ...(await importOriginal<typeof import('child_process')>()),
-  execFile: vi.fn((_cmd: string, _args: string[], cb: (e: Error) => void) =>
-    cb(new Error('gcloud: not found'))
+  execFile: vi.fn(
+    (_cmd: string, args: string[], cb: (e: Error | null, out?: { stdout: string }) => void) => {
+      if (gcloud.budgets === null) return cb(new Error('gcloud: not found'));
+      if (args[1] === 'projects') return cb(null, { stdout: 'billingAccounts/000000-TEST01\n' });
+      if (args[1] === 'budgets') return cb(null, { stdout: gcloud.budgets });
+      return cb(new Error(`unexpected gcloud call: ${args.join(' ')}`));
+    }
   ),
 }));
 
@@ -125,8 +132,54 @@ describe('operations budget (OP5)', () => {
       '/api/v1/admin/operations/budget'
     );
     expect(status).toBe(200);
-    expect(json).toMatchObject({ name: null, limit: null, percentage: null, source: 'fallback' });
+    expect(json).toMatchObject({
+      name: null,
+      limit: null,
+      spent: null,
+      percentage: null,
+      alertThresholds: [],
+      source: 'fallback',
+    });
     expect(JSON.stringify(json)).not.toContain('Ferni Monthly Budget');
+  });
+
+  /** The budget route on a fresh module (the budget is cached for 5 minutes). */
+  async function budgetFrom(budgets: unknown[]) {
+    gcloud.budgets = JSON.stringify(budgets);
+    vi.resetModules();
+    try {
+      const { handleAdminOperationsRoutes } = await import('../v1/admin/operations.js');
+      return (await get(handleAdminOperationsRoutes, '/api/v1/admin/operations/budget')).json;
+    } finally {
+      gcloud.budgets = null;
+      vi.resetModules();
+    }
+  }
+
+  it('a real budget with no fixed amount has a null limit and its own thresholds', async () => {
+    const json = await budgetFrom([
+      {
+        displayName: 'Ferni monthly',
+        amount: { lastPeriodAmount: {} },
+        thresholdRules: [{ thresholdPercent: 0.9 }],
+      },
+    ]);
+    expect(json).toMatchObject({
+      name: 'Ferni monthly',
+      limit: null,
+      spent: null,
+      percentage: null,
+      alertThresholds: [90],
+      source: 'billing-api',
+    });
+  });
+
+  it('a fixed budget sends its limit, and spend as not measured, not an estimate', async () => {
+    const json = await budgetFrom([
+      { displayName: 'Ferni monthly', amount: { specifiedAmount: { units: '120' } } },
+    ]);
+    expect(json).toMatchObject({ limit: 120, spent: null, percentage: null, alertThresholds: [] });
+    expect(json).not.toHaveProperty('estimated');
   });
 });
 

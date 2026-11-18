@@ -61,7 +61,8 @@ interface BudgetStatus {
   // null when no GCP budget was found
   name: string | null;
   limit: number | null;
-  spent: number;
+  /** null until real spend is read (it needs the billing export) */
+  spent: number | null;
   percentage: number | null;
   currency: string;
   period: string;
@@ -100,7 +101,8 @@ export async function render(): Promise<string> {
 
   const healthyCount = data.services.filter((s) => s.status === 'healthy').length;
   const totalCount = data.services.length;
-  const overallStatus = healthyCount === totalCount ? 'healthy' : healthyCount > 0 ? 'degraded' : 'down';
+  const overallStatus =
+    healthyCount === totalCount ? 'healthy' : healthyCount > 0 ? 'degraded' : 'down';
 
   return `
     <div class="ops-section">
@@ -594,24 +596,24 @@ function renderErrorRate(label: string, rate: number): string {
 }
 
 function renderBudgetStatus(budget: BudgetStatus): string {
-  if (budget.limit === null || budget.percentage === null) {
+  if (budget.limit === null) {
     return renderUnavailable(budget.name ? `${budget.name}: no fixed limit` : 'No budget found');
   }
-  const fillClass =
-    budget.percentage < 50 ? 'good' : budget.percentage < 80 ? 'warning' : 'danger';
-
-  return `
+  const spent = budget.spent === null ? '' : `$${budget.spent} / `;
+  const header = `
     <div class="ops-budget-header">
       <span class="ops-budget-name">${budget.name}</span>
-      <span class="ops-budget-amount">$${budget.spent} / $${budget.limit}</span>
-    </div>
+      <span class="ops-budget-amount">${spent}$${budget.limit} ${budget.period}</span>
+    </div>`;
+  if (budget.spent === null || budget.percentage === null) {
+    return `${header}${renderUnavailable('Spend not measured (it needs the billing export)')}`;
+  }
+  const fillClass = budget.percentage < 50 ? 'good' : budget.percentage < 80 ? 'warning' : 'danger';
+  return `${header}
     <div class="ops-budget-bar">
       <div class="ops-budget-fill ops-budget-fill--${fillClass}" style="width: ${budget.percentage}%"></div>
     </div>
-    <div class="ops-budget-meta">
-      <span>${budget.percentage}% used</span>
-      <span>${budget.period}</span>
-    </div>
+    <div class="ops-budget-meta"><span>${budget.percentage}% used</span></div>
   `;
 }
 
