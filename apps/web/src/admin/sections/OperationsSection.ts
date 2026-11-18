@@ -20,7 +20,7 @@ import {
   ICON_ZAP,
   iconSm,
 } from '../icons.js';
-import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
+import { isUnavailable, loadJson, renderUnavailable } from '../../utils/unavailable.js';
 
 const log = createLogger('OperationsSection');
 
