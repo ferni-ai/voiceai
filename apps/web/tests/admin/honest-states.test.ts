@@ -63,7 +63,7 @@ afterEach(() => {
 
 describe('shared unavailable state', () => {
   it('names the HTTP status, or a network error when nothing answered', async () => {
-    const { unavailableReason, loadJson } = await import('../../src/utils/unavailable-state.js');
+    const { unavailableReason, loadJson } = await import('../../src/utils/unavailable.js');
     expect(unavailableReason(401)).toBe('unavailable (HTTP 401)');
     expect(unavailableReason(0)).toBe('unavailable (network error)');
     routes = { '/x': 'network-error' };

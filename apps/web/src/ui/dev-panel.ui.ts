@@ -118,7 +118,7 @@ import {
   renderDashboardLinks,
 } from './dev-panel/dashboard-links.js';
 import { ICONS } from './dev-panel/icons.js';
-import { isUnavailable, unavailableReason, type Unavailable } from '../utils/unavailable-state.js';
+import { isUnavailable, unavailableReason, type Unavailable } from '../utils/unavailable.js';
 import { devPanelMayEnable } from './dev-panel-gate.js';
 import { toast } from './whisper.ui.js';
 
