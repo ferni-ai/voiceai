@@ -87,6 +87,13 @@ describe('reviewable.sh', () => {
     ).toBe(12);
   });
 
+  it('leaves out planted-bug specs at the root .plants/ only', () => {
+    expect(reviewable([['.plants/turn-holds.json', 40]])).toBe(0);
+    expect(reviewable([['docs/.plants/x.json', 5]])).toBe(5);
+    expect(reviewable([['src/plants/index.ts', 7]])).toBe(7);
+    expect(reviewable([['.plantsx/a.json', 3]])).toBe(3);
+  });
+
   it('finds at least one awk to run under', () => {
     expect(AWKS.length).toBeGreaterThan(0);
   });

@@ -18,6 +18,7 @@ import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.j
 
 import { expireStoredLoop, isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
 import { sameLoop } from './open-loop-text.js';
+import { rememberedLoops } from './remembered-loops.js';
 const log = createLogger({ module: 'open-loops' });
 
 // ============================================================================
@@ -168,7 +169,7 @@ export async function createOpenLoop(
  * Get open loops that are ready for follow-up.
  */
 export async function getLoopsReadyForFollowUp(userId: string): Promise<OpenLoop[]> {
-  const loops = await loadOpenLoops(userId);
+  const loops = await rememberedLoops(userId, await loadOpenLoops(userId));
   const now = new Date();
 
   return loops
@@ -237,11 +238,9 @@ export async function dismissLoop(userId: string, loopId: string): Promise<void>
   }
 }
 
-/**
- * Get all open loops for a user.
- */
+/** Get all open loops for a user, less any the caller asked Ferni to forget. */
 export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
-  const loops = await loadOpenLoops(userId);
+  const loops = await rememberedLoops(userId, await loadOpenLoops(userId));
   return loops.filter((l) => isLoopLive(l)); // past followUpBefore is never surfaced
 }
 
@@ -249,7 +248,7 @@ export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
  * Get open loops by type.
  */
 export async function getLoopsByType(userId: string, type: OpenLoopType): Promise<OpenLoop[]> {
-  const loops = await loadOpenLoops(userId);
+  const loops = await rememberedLoops(userId, await loadOpenLoops(userId));
   return loops.filter((l) => l.type === type && isLoopLive(l));
 }
 

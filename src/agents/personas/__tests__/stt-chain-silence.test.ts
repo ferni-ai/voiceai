@@ -8,6 +8,7 @@ import { setImmediate as nextTick } from 'node:timers/promises';
 import type { stt } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PersonSpeechEvent } from '../../group-conversation/floor-arbiter.js';
 import { peopleSpeechFor } from '../../group-conversation/people-speech.js';
 
 vi.mock('../../group-conversation/group-hearing.js', () => ({ groupHearingFor: () => undefined }));
@@ -59,7 +60,7 @@ async function heardBySTT(apart: boolean): Promise<{ samples: number; loud: numb
   const people = peopleSpeechFor(session);
   audio.put(frame());
   await settle();
-  if (apart) people.add('owner_web', feed<stt.SpeechEvent>().stream);
+  if (apart) people.add('owner_web', feed<PersonSpeechEvent>().stream);
   for (let i = 0; i < 3; i++) audio.put(frame());
   await settle();
   people.remove('owner_web');
@@ -89,7 +90,7 @@ describe('sttChain while people are heard apart', () => {
   it('with GROUP_CALL off, STT gets the input itself, even with someone heard apart', async () => {
     vi.stubEnv('GROUP_CALL', 'off');
     const session = { userData: {} };
-    peopleSpeechFor(session).add('owner_web', feed<stt.SpeechEvent>().stream);
+    peopleSpeechFor(session).add('owner_web', feed<PersonSpeechEvent>().stream);
     const audio = new ReadableStream<AudioFrame>();
     const base = vi.fn(async () => Promise.resolve(new ReadableStream<stt.SpeechEvent>()));
     await sttChain(session, audio, base);

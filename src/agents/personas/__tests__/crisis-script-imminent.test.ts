@@ -282,6 +282,7 @@ describe('what never asks', () => {
     const on = await asked(PATTERN_IMMINENT, ON);
     expect(on.calls).toBe(0);
     expect(on.heard.text).toBe(off.heard.text);
+    expect(scriptLogs()).toEqual([{ mode: 'on', asked: false, why: 'imminent_script' }]);
   });
 
   it('the Spanish script (its own floor PR)', async () => {
@@ -290,6 +291,7 @@ describe('what never asks', () => {
     const on = await asked(SPANISH, ON);
     expect(on.calls).toBe(0);
     expect(on.heard.text).toBe(off.heard.text);
+    expect(scriptLogs()).toEqual([{ mode: 'on', asked: false, why: 'es' }]);
   });
 
   it('a script about someone else: their emergency, and a guided worry about them', async () => {
@@ -301,7 +303,8 @@ describe('what never asks', () => {
       expect(on.calls).toBe(off.calls);
       expect(on.heard.text).toBe(off.heard.text);
     }
-    expect(scriptLogs()).toEqual([]);
+    // Their emergency is a scripted turn the read never sees; the guided worry is not scripted.
+    expect(scriptLogs()).toEqual([{ mode: 'on', asked: false, why: 'third_party' }]);
   });
 
   it('never asks on a replaced script about someone else, should the patterns ever make one', () => {
@@ -329,6 +332,65 @@ describe('what never asks', () => {
   });
 });
 
+describe('every scripted turn the read never sees logs why, in counts only', () => {
+  const said = (latest: string) => ({ latest, earlier: [] });
+
+  it('flag off: no line, as on main', async () => {
+    await turn(PATTERN_IMMINENT, LIVE, answer(IMMINENT));
+    await turn(SPANISH, LIVE, answer(IMMINENT));
+    expect(scriptLogs()).toEqual([]);
+  });
+
+  it('shadow logs the same reasons as on', async () => {
+    await turn(PATTERN_IMMINENT, SHADOW, answer(IMMINENT));
+    await turn(SPANISH, SHADOW, answer(IMMINENT));
+    expect(scriptLogs()).toEqual([
+      { mode: 'shadow', asked: false, why: 'imminent_script' },
+      { mode: 'shadow', asked: false, why: 'es' },
+    ]);
+  });
+
+  it.each([
+    ['classifier_off', 'off'],
+    ['classifier_shadow', 'shadow'],
+  ])('%s: the 988 script as it is, never read', async (why, classifier) => {
+    const generate = vi.fn(answer(IMMINENT));
+    const env = { ...ON, CRISIS_CLASSIFIER_MODE: classifier };
+    const self = detectCrisis(SUPPLY_NOW);
+    expect(
+      scriptRead(said(SUPPLY_NOW), self, { action: 'replace' }, { pattern: 'block', env, generate })
+    ).toBeUndefined();
+    expect(scriptLogs()).toEqual([{ mode: 'on', asked: false, why }]);
+  });
+
+  it('a replaced script that is neither the 988 nor the imminent script', () => {
+    const odd = { ...detectCrisis(SUPPLY_NOW), suggestedResponse: 'A script these rows wrote.' };
+    const generate = vi.fn(answer(IMMINENT));
+    const at = { pattern: 'block', env: ON, generate } as const;
+    expect(scriptRead(said(SUPPLY_NOW), odd, { action: 'replace' }, at)).toBeUndefined();
+    expect(generate).not.toHaveBeenCalled();
+    expect(scriptLogs()).toEqual([{ mode: 'on', asked: false, why: 'other_script' }]);
+  });
+
+  it('a turn that is not scripted logs nothing, and an asked turn logs only its read', async () => {
+    await turn("i hope i don't wake up tomorrow", ON, answer(NONE));
+    expect(scriptLogs()).toEqual([]);
+    await turn(SUPPLY_NOW, SHADOW, answer(NONE, 300));
+    expect(scriptLogs()).toEqual([
+      { mode: 'shadow', read: 'none', outcome: 'kept', holdMs: HOLD_MS },
+    ]);
+  });
+
+  it("no line ever holds the caller's words", async () => {
+    for (const line of [PATTERN_IMMINENT, SPANISH, THEM_DOWN])
+      await turn(line, ON, answer(IMMINENT));
+    const kept = JSON.stringify(scriptLogs());
+    for (const line of [PATTERN_IMMINENT, SPANISH, THEM_DOWN])
+      for (const word of line.split(' ').filter((w) => w.length > 4))
+        expect(kept).not.toContain(word);
+  });
+});
+
 describe('shadow', () => {
   it('asks, logs what it would change in counts only, and says the script as it is', async () => {
     const heard = await turn(SUPPLY_NOW, SHADOW, answer(IMMINENT, 300));
@@ -349,7 +411,7 @@ describe('shadow', () => {
 
 describe('with CRISIS_SELF_HARM_911_LINE on (#3748)', () => {
   it('still asks the classifier on the severe self-harm script, and goes 911-first', async () => {
-    // Both sides of scriptAsks (the pattern's script and getCrisisResponse) see the flag on here;
+    // Both sides of whyNotAsked (the pattern's script and getCrisisResponse) see the flag on here;
     // the next row sets it in one env only.
     vi.stubEnv('CRISIS_SELF_HARM_911_LINE', 'on');
     const generate = vi.fn(answer(IMMINENT, 300));
@@ -360,7 +422,7 @@ describe('with CRISIS_SELF_HARM_911_LINE on (#3748)', () => {
   });
 
   it('asks when only the gate env sets the line, and when only process.env does', async () => {
-    // detectCrisis writes the script from the gate's env, so scriptAsks must compare in that env.
+    // detectCrisis writes the script from the gate's env, so whyNotAsked must compare in that env.
     const gateOnly = vi.fn(answer(IMMINENT, 300));
     const heardGateOnly = await turn(
       SUPPLY_NOW,

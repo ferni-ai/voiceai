@@ -1,6 +1,6 @@
 /**
- * Record and revoke a guest's yes to being called into an owner's calls, by her
- * number's key: phoneHash (outreach/checkin-replies.ts), the HMAC keyed from
+ * Record, revoke and forget a guest's yes to being called into an owner's calls,
+ * by her number's key: phoneHash (outreach/checkin-replies.ts), the HMAC keyed from
  * LOG_HASH_SECRET that consent/{phoneHash} uses, so this record and her own STOP
  * share one key. check-guest-consent.ts keys a number and checks it. Only that
  * key's shape is accepted, so a raw number can never become a record's id.
@@ -75,6 +75,18 @@ export async function recordGuestConsentByKey(
   const fields = { ownerTag: ownerTag(ownerUid, deps.env), wordingVersion };
   if (written) log.info(fields, 'Guest consent recorded');
   else log.info(fields, 'Guest consent not recorded: a later revoke stands, or no account');
+}
+
+/** The guest's "forget me": her record for this owner is deleted, history and all. */
+export async function forgetGuestConsentByKey(
+  ownerUid: string,
+  hash: string,
+  deps: GuestConsentDeps
+): Promise<void> {
+  if (!ownerUid.trim() || !isPhoneKey(hash))
+    throw new Error('Guest consent needs an owner and a key');
+  await deps.store.remove(ownerUid, hash);
+  log.info({ ownerTag: ownerTag(ownerUid, deps.env) }, 'Guest consent forgotten');
 }
 
 /** The guest withdrew: the record stays, with revokedAt. Nothing on record: nothing written. */

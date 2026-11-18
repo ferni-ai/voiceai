@@ -27,6 +27,10 @@ export function memoryGuestConsentStore(): MemoryGuestConsentStore {
       if (next) docs.set(key(uid, hash), structuredClone(next));
       return Promise.resolve();
     },
+    async remove(uid, hash) {
+      docs.delete(key(uid, hash));
+      return Promise.resolve();
+    },
   };
   return { store, docs, state };
 }

@@ -15,6 +15,9 @@
  *
  * Kill switch: SPEAK_988_DIGITS (default on).
  *
+ * The same forms are the one reader of whether a reply names 988 or 911 (names988, names911,
+ * offersCrisisLine): what this pass turns into speech, a presence check must count as said.
+ *
  * @module services/safety/crisis-line-speech
  */
 import { TransformStream } from 'node:stream/web';
@@ -26,8 +29,11 @@ export const CRISIS_LINE_SPOKEN = 'nine eight eight';
 const SEP = String.raw`[\s-]+`;
 /** Spelled-out wrong forms: ninety-eight-eight, ninety-eighty-eight, nine-eighty-eight. */
 const SPELLED = String.raw`\b(?:ninety${SEP}eighty?|nine${SEP}eighty)${SEP}eight\b`;
-/** 988, 9-8-8 or 9 8 8, not part of a longer number, an amount or a word. */
-const DIGITS = String.raw`(?<![\w$€£#]|\d[.,])(?:988|9-8-8|9 8 8)(?![\w%]|[.,]\d)`;
+/** Digits that are not part of a longer number, an amount or a word. */
+const ALONE_BEFORE = String.raw`(?<![\w$€£#]|\d[.,])`;
+const ALONE_AFTER = String.raw`(?![\w%]|[.,]\d)`;
+/** 988, 9-8-8 or 9 8 8, standing alone. */
+const DIGITS = `${ALONE_BEFORE}(?:988|9-8-8|9 8 8)${ALONE_AFTER}`;
 const LINE = new RegExp(`${SPELLED}|${DIGITS}`, 'gi');
 const CUE = /^(?:call|calling|text|texting|dial|dialing|line|lifeline|hotline|crisis|suicide)$/i;
 
@@ -35,23 +41,64 @@ const CUE = /^(?:call|calling|text|texting|dial|dialing|line|lifeline|hotline|cr
 const LIST_SEP = String.raw`[\s,-]+`;
 /** The line already in words: "nine eight eight", "nine-eight-eight", "nine, eight, eight". */
 const SPOKEN = String.raw`\bnine${LIST_SEP}eight${LIST_SEP}eight\b`;
+/** The line in Spanish words, as a Spanish reply says it: "nueve ocho ocho". */
+const SPOKEN_ES = String.raw`\bnueve${LIST_SEP}ocho${LIST_SEP}ocho\b`;
+/** The line's site written as one word (988lifeline.org), which DIGITS reads as a longer word. */
+const SITE = String.raw`\b988lifeline\b`;
+const NAMES_988 = new RegExp(`${SPELLED}|${DIGITS}|${SPOKEN}|${SPOKEN_ES}|${SITE}`, 'i');
+/** 911 as digits (911 as main reads it; 9-1-1 and 9 1 1 standing alone), or in words. */
+const NAMES_911 = new RegExp(
+  String.raw`\b911\b|${ALONE_BEFORE}(?:9-1-1|9 1 1)${ALONE_AFTER}|\bnine${LIST_SEP}one${LIST_SEP}one\b|\bnueve${LIST_SEP}uno${LIST_SEP}uno\b`,
+  'i'
+);
 /** The Crisis Text Line's number: 741741, 741-741, 7 4 1 7 4 1, or in words. */
-const TEXT_LINE_NUMBER = String.raw`(?<![\w$])7[\s-]?4[\s-]?1[\s-]?7[\s-]?4[\s-]?1(?!\w)|\bseven${SEP}four${SEP}one${SEP}seven${SEP}four${SEP}one\b`;
-const OFFERED = new RegExp(`${SPELLED}|${DIGITS}|${SPOKEN}|${TEXT_LINE_NUMBER}`, 'i');
+const TEXT_LINE_NUMBER = new RegExp(
+  String.raw`(?<![\w$])7[\s-]?4[\s-]?1[\s-]?7[\s-]?4[\s-]?1(?!\w)|\bseven${SEP}four${SEP}one${SEP}seven${SEP}four${SEP}one\b`,
+  'i'
+);
 /** A crisis line by name: a lifeline, a crisis or suicide (hot)line, the Crisis Text Line. */
 const NAMED = /\blifeline\b|\b(?:crisis|suicide)\s+(?:text\s+)?(?:hot)?line\b/i;
 
+/** Every Unicode dash or hyphen (‐ ‑ ‒ – — ― and the minus sign −). */
+const UNICODE_DASH = /[\u2010-\u2015\u2212]/g;
+/** Every Unicode space a model writes between digits or words (no-break, thin, figure ...). */
+const UNICODE_SPACE = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
+
 /**
- * Whether text gives someone a crisis line, in any form a reply writes it:
- * 988 as digits (988, 9-8-8, 9 8 8, with or without a cue word, never "$988"
- * or part of a longer number), spelled out ("nine eight eight",
- * "ninety-eight-eight", "nine-eighty-eight"), the Crisis Text Line's number
- * (741741 in digits or words), or a line by name ("Suicide and Crisis
- * Lifeline", "crisis line", "Crisis Text Line"). For readers of a finished
- * transcript (wellbeing-tracking/after-call.ts), which keeps what was written.
+ * The text as the 988 and 911 patterns read it: a model writes "9–8–8" (en dash), "9‑8‑8"
+ * (non-breaking hyphen) or "9 8 8" with no-break spaces as readily as the ASCII forms, so every
+ * Unicode dash becomes "-" and every Unicode space " " once, here, instead of in each pattern.
+ * Presence only: the speech rewrite and the transcript keep the text as written.
+ */
+const asWritten = (text: string): string =>
+  text.replace(UNICODE_DASH, '-').replace(UNICODE_SPACE, ' ');
+
+/**
+ * The one reader of whether text names 988, in any form a reply writes it: digits (988, 9-8-8,
+ * 9 8 8, never "$988" or part of a longer number), English words ("nine eight eight",
+ * "ninety-eight-eight", "nine-eighty-eight"), Spanish words ("nueve ocho ocho"), or the site
+ * (988lifeline.org), with any Unicode dash or space between the parts. The 988 floor and the
+ * timeout check-in read presence here, so a reply that already gave the line in any of these
+ * forms never hears it twice.
+ */
+export const names988 = (text: string): boolean => NAMES_988.test(asWritten(text));
+
+/**
+ * The one reader of whether text names 911: 911, 9-1-1, 9 1 1, "nine one one" or "nueve uno
+ * uno", with any Unicode dash or space between the parts. Digit 911 reads exactly as main's
+ * `\b911\b` (the imminent script's own text is digits).
+ */
+export const names911 = (text: string): boolean => NAMES_911.test(asWritten(text));
+
+/**
+ * Whether text gives someone a crisis line, in any form a reply writes it: 988 in any form
+ * names988 reads, the Crisis Text Line's number (741741 in digits or words), or a line by name
+ * ("Suicide and Crisis Lifeline", "crisis line", "Crisis Text Line"). For readers of a finished
+ * transcript (wellbeing-tracking/after-call.ts), which keeps what was written. Only the 988 part
+ * reads Unicode dashes and spaces (names988); the 741741 and by-name parts read as main does.
  */
 export function offersCrisisLine(text: string): boolean {
-  return OFFERED.test(text) || NAMED.test(text);
+  return names988(text) || TEXT_LINE_NUMBER.test(text) || NAMED.test(text);
 }
 
 const DIGITS_ONLY = new RegExp(DIGITS);

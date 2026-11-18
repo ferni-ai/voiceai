@@ -8,10 +8,17 @@
  *
  * A plant counts only as RED: its `expectRed` row (the full title, suites and test joined by
  * " > ", matched exactly) failed with an error whose name is AssertionError and that carries an
- * assertion's expected or actual value, as a failed expect does. A file that
+ * assertion's expected or actual value, as a failed expect does, and whose top stack frame is in
+ * a test file (the named test or a test helper), never in the planted or other production code:
+ * a plant can throw an AssertionError-shaped object by hand. A file that
  * failed to load, a different row failing, a throw that is not an assertion, a timeout or a
  * pass all count against it. The baseline (the test file unplanted) must pass first, with the
  * `expectRed` row in it.
+ *
+ * A plant must break production code (a source file under src/, scripts/ or an app's or
+ * package's src/), never a test, helper, mock, vitest config or setup file, and its replacement
+ * may not name expect, assert, vi, vitest, chai, AssertionError, import or require: those would
+ * let it fake its own catch. That word check is a speed bump; the verifier reads every plant.
  *
  * The logs are public (public repo), so the runner prints only plant ids, verdicts, failing
  * row titles, error names and seconds: never an assertion message, a diff or source. vitest's
@@ -38,7 +45,10 @@
  *   node --experimental-strip-types scripts/ci/plants/run-plants.ts --root <checkout> <manifest.json>...
  * PLANT_TIMEOUT_MS (default 180000) caps each vitest process; PLANT_VITEST_CONFIG (default
  * vitest.config.unit.ts) picks its config.
- * Manifest: {"plants": [{"id", "file", "find", "replace", "test", "expectRed"}]}.
+ * Manifest: {"plants": [{"id", "file", "find", "replace", "test", "expectRed"}]}, no other key.
+ * An id is 1 to 24 of [A-Za-z0-9_-]; find and replace are at most 2,000 characters; a run takes
+ * at most 15 plants. Ids and manifest names never carry a board name (lane-2, slot-12, holder,
+ * session-a1b2).
  * Exit 0 when every plant is RED, 1 when any is not, 2 on a bad manifest, 128 + the signal's
  * number when stopped by TERM, INT or HUP.
  */
@@ -54,7 +64,7 @@ import {
   writeFileSync,
 } from 'fs';
 import { constants, tmpdir } from 'os';
-import { isAbsolute, join, normalize, relative, resolve, sep } from 'path';
+import { basename, isAbsolute, join, normalize, relative, resolve, sep } from 'path';
 import { pathToFileURL } from 'url';
 
 export type Plant = {
@@ -71,6 +81,7 @@ export type Verdict =
   | 'GREEN'
   | 'RED (other test)'
   | 'RED (not an assertion)'
+  | 'RED (thrown from the plant)'
   | 'LOAD ERROR'
   | 'TIMEOUT'
   | 'NOT PLANTED'
@@ -83,20 +94,24 @@ export type Verdict =
   | 'REFUSED (git dir)'
   | 'REFUSED (untracked)'
   | 'REFUSED (no test file)'
+  | 'REFUSED (not production code)'
+  | 'REFUSED (assertion in plant)'
   | 'REFUSED (other test files)'
   | 'REFUSED (child processes left)'
   | 'DIRTY'
   | 'SKIPPED';
 
 /**
- * One test row: its full title, its state, the name of its first error, and whether that error
- * carries an assertion's expected or actual value (an Error renamed by hand does not).
+ * One test row: its full title, its state, the name of its first error, whether that error
+ * carries an assertion's expected or actual value (an Error renamed by hand does not), and the
+ * file of its top stack frame as vitest parsed it (compared, never printed).
  */
 export type TestCase = {
   fullName: string;
   status: string;
   errorClass?: string;
   assertion?: boolean;
+  frame?: string;
 };
 /**
  * One vitest run, reduced to titles, states and error names, plus the path of each test module
@@ -197,18 +212,102 @@ export function ranExactly(realRoot: string, test: string, files: string[]): boo
   return files.every((f) => real(f) === want);
 }
 
-const FIELDS = ['id', 'file', 'find', 'replace', 'test', 'expectRed'] as const;
+const posix = (path: string) => normalize(path).split(sep).join('/');
 
-/** Throws with the plant index and field when the manifest is not the expected shape. */
+/** Tests, test helpers and mocks: files in __tests__, __mocks__, tests or e2e, or named so. */
+const TEST_INFRA = /(^|\/)(__tests__|__mocks__|tests|e2e)\/|\.(test|spec|mock)\.[cm]?[jt]sx?$/;
+export const isTestInfra = (rel: string) => TEST_INFRA.test(posix(rel));
+
+/** Where production code lives: source files under src/, scripts/, or an app's or package's src/. */
+const PRODUCTION = /^(src|scripts|(apps|packages)\/[^/]+\/src)\/.+\.(ts|tsx|js|mjs|cjs)$/;
+
+/** The setupFiles and globalSetup entries of a vitest config, read from its text. */
+export function setupFilesOf(realRoot: string, config: string): string[] {
+  let text: string;
+  try {
+    text = readFileSync(join(realRoot, config), 'utf8');
+  } catch {
+    return [];
+  }
+  const lists = text.matchAll(/(?:setupFiles|globalSetup)\s*:\s*(\[[^\]]*\]|'[^']*'|"[^"]*")/g);
+  return [...lists].flatMap((m) => [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map((q) => posix(q[1])));
+}
+
+/** A plant must break production code: never a test, helper, mock, config or setup file. */
+export function productionVerdict(file: string, test: string, setup: string[]): Verdict | null {
+  const p = posix(file);
+  const production =
+    PRODUCTION.test(p) &&
+    !isTestInfra(p) &&
+    !/(^|\/)vitest\.config[^/]*$/.test(p) &&
+    !setup.includes(p) &&
+    p !== posix(test);
+  return production ? null : 'REFUSED (not production code)';
+}
+
+/** Words that would let a plant fake its own catch or load test code. A speed bump only. */
+const PLANT_WORDS = /\b(expect|assert|vi|vitest|chai|AssertionError|import|require)\b/;
+
+/**
+ * True when an assertion's top stack frame is a test file: the named test or a test helper,
+ * inside the checkout, never the planted file. A frame in production code (where a plant can
+ * throw an AssertionError-shaped object by hand), in a dependency, outside the checkout, or no
+ * frame at all, is not.
+ */
+export function thrownFromTest(
+  realRoot: string,
+  plant: Pick<Plant, 'file' | 'test'>,
+  frame: string | undefined
+): boolean {
+  if (!frame) return false;
+  let real: string;
+  try {
+    real = realpathSync(frame.replace(/[?#].*$/, ''));
+  } catch {
+    return false;
+  }
+  const rel = relative(realRoot, real);
+  if (rel === '' || !insideRepo(rel) || posix(rel) === posix(plant.file)) return false;
+  return posix(rel) === posix(plant.test) || isTestInfra(rel);
+}
+
+const FIELDS = ['id', 'file', 'find', 'replace', 'test', 'expectRed'] as const;
+export const MAX_PLANTS = 15;
+const MAX_TEXT = 2000;
+const ID = /^[A-Za-z0-9_-]{1,24}$/;
+
+/**
+ * Coordination-board names, which a public log must not print: a lane with a one-character token
+ * (lane-2, lane_b), a numbered slot, the word holder, a session with an id that has a digit
+ * (session-a1b2). Code words that merely contain them (fast-lane, timeslot, placeholder) pass.
+ */
+const BOARD =
+  /(^|[^a-z])(lane[ _-]?[a-d0-9]([^a-z0-9]|$)|slot[ _-]?[0-9]|holders?([^a-z]|$)|session[ _-]?([0-9a-f]+[0-9][0-9a-f]*|[0-9][0-9a-f]+)([^a-z0-9]|$))/i;
+export const namesBoard = (s: string) => BOARD.test(s.replace(/([a-z0-9])([A-Z])/g, '$1-$2'));
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Throws with the plant index and field when the manifest is not the expected shape. Unknown
+ * keys are refused (prose in a spec would reach a public repo), and messages never quote one.
+ */
 export function parseManifest(json: unknown): Plant[] {
-  const plants = (json as { plants?: unknown })?.plants;
+  if (!isRecord(json) || Object.keys(json).some((k) => k !== 'plants')) {
+    throw new Error('manifest must be an object with only a "plants" key');
+  }
+  const plants = json.plants;
   if (!Array.isArray(plants) || plants.length === 0) {
     throw new Error('manifest needs a non-empty "plants" array');
   }
+  if (plants.length > MAX_PLANTS) throw new Error(`more than ${MAX_PLANTS} plants`);
   const ids = new Set<string>();
-  return plants.map((p, i) => {
+  return plants.map((p: unknown, i) => {
+    if (!isRecord(p) || Object.keys(p).some((k) => !(FIELDS as readonly string[]).includes(k))) {
+      throw new Error(`plant ${i}: must be an object with only ${FIELDS.join(', ')}`);
+    }
     for (const f of FIELDS) {
-      const v = (p as Record<string, unknown>)?.[f];
+      const v = p[f];
       if (typeof v !== 'string' || (f !== 'replace' && v.length === 0)) {
         throw new Error(
           `plant ${i}: "${f}" must be a ${f === 'replace' ? '' : 'non-empty '}string`
@@ -216,6 +315,13 @@ export function parseManifest(json: unknown): Plant[] {
       }
     }
     const plant = p as Plant;
+    if (!ID.test(plant.id)) throw new Error(`plant ${i}: "id" must match ${ID.source}`);
+    if (namesBoard(plant.id)) {
+      throw new Error(`plant ${i}: "id" names a lane, slot, session or holder`);
+    }
+    if (plant.find.length > MAX_TEXT || plant.replace.length > MAX_TEXT) {
+      throw new Error(`plant ${i}: "find" and "replace" are at most ${MAX_TEXT} characters`);
+    }
     if (ids.has(plant.id)) throw new Error(`plant ${i}: duplicate id "${plant.id}"`);
     ids.add(plant.id);
     return plant;
@@ -234,10 +340,14 @@ const isRow = (t: TestCase, title: string) => t.fullName === title;
 const failingNames = (r: TestReport): string[] =>
   r.kind === 'report' ? r.tests.filter((t) => t.status === 'failed').map((t) => t.fullName) : [];
 
-/** The verdict for one planted run. Pure: reads titles, states and error names only. */
+/**
+ * The verdict for one planted run. Reads titles, states and error names, and asks `fromTest`
+ * whether the target row's top stack frame is a test file.
+ */
 export function judge(
   report: TestReport,
-  expectRed: string
+  expectRed: string,
+  fromTest: (frame: string | undefined) => boolean
 ): Pick<Result, 'verdict' | 'errorClass'> {
   if (report.kind === 'timeout') return { verdict: 'TIMEOUT' };
   if (report.kind === 'children-left') return { verdict: 'REFUSED (child processes left)' };
@@ -248,9 +358,12 @@ export function judge(
   if (failed.length === 0) return { verdict: 'GREEN' };
   const target = failed.find((t) => isRow(t, expectRed));
   if (!target) return { verdict: 'RED (other test)' };
-  return target.errorClass === 'AssertionError' && target.assertion === true
+  if (!(target.errorClass === 'AssertionError' && target.assertion === true)) {
+    return { verdict: 'RED (not an assertion)', errorClass: target.errorClass };
+  }
+  return fromTest(target.frame)
     ? { verdict: 'RED', errorClass: 'AssertionError' }
-    : { verdict: 'RED (not an assertion)', errorClass: target.errorClass };
+    : { verdict: 'RED (thrown from the plant)', errorClass: 'AssertionError' };
 }
 
 /** A baseline is usable when it loaded, nothing failed, and the expectRed row passed. */
@@ -296,11 +409,13 @@ export function abortAll(): void {
 export async function runPlants(
   plants: Plant[],
   root: string,
-  runTest: RunTest
+  runTest: RunTest,
+  config = 'vitest.config.unit.ts'
 ): Promise<Result[]> {
   const results: Result[] = [];
   const baselines = new Map<string, TestReport>();
   const realRoot = realpathSync(root);
+  const setup = setupFilesOf(realRoot, config);
   let stopped = !clean(realRoot);
   for (const p of plants) {
     const t0 = Date.now();
@@ -313,6 +428,8 @@ export async function runPlants(
     const refused =
       pathVerdict(realRoot, p.file) ??
       trackedVerdict(realRoot, p.file) ??
+      productionVerdict(p.file, p.test, setup) ??
+      (PLANT_WORDS.test(p.replace) ? 'REFUSED (assertion in plant)' : null) ??
       pathVerdict(realRoot, p.test) ??
       (existsSync(join(realRoot, p.test)) ? null : 'REFUSED (no test file)');
     if (refused) {
@@ -375,7 +492,8 @@ export async function runPlants(
       done('REFUSED (other test files)');
       continue;
     }
-    const { verdict, errorClass } = judge(report, p.expectRed);
+    const fromTest = (frame: string | undefined) => thrownFromTest(realRoot, p, frame);
+    const { verdict, errorClass } = judge(report, p.expectRed, fromTest);
     done(verdict, { errorClass, failing: failingNames(report) });
   }
   return results;
@@ -392,6 +510,7 @@ type PlantReportJson = {
       status?: unknown;
       errorName?: unknown;
       assertion?: unknown;
+      frame?: unknown;
     }>;
   }>;
 };
@@ -416,6 +535,7 @@ export function parsePlantReport(json: PlantReportJson): TestReport {
         status: typeof t.status === 'string' ? t.status : 'unknown',
         ...(errorClass ? { errorClass } : {}),
         ...(t.assertion === true ? { assertion: true } : {}),
+        ...(typeof t.frame === 'string' ? { frame: t.frame } : {}),
       });
     }
   }
@@ -424,9 +544,11 @@ export function parsePlantReport(json: PlantReportJson): TestReport {
 
 /**
  * A vitest reporter that writes only each module's path, and each row's full title, its state,
- * its first error's name and whether that error carries expected or actual, to `out`. The
- * error name is the thrown object's own name (AssertionError for a failed expect), never parsed
- * out of a message; the expected and actual values themselves are never written.
+ * its first error's name, whether that error carries expected or actual, and the file of its
+ * top stack frame, to `out`. The error name is the thrown object's own name (AssertionError for
+ * a failed expect), never parsed out of a message; the expected and actual values themselves
+ * are never written. The frame is vitest's own parse (`stacks`, which it sets on every error
+ * before reporters run, with its internals and chai left out).
  */
 const reporterSource = (out: string) => `import { writeFileSync } from 'node:fs';
 export default class PlantReporter {
@@ -438,7 +560,9 @@ export default class PlantReporter {
         const e = t.result().errors?.[0];
         const name = e?.name;
         const assertion = !!e && typeof e === 'object' && ('expected' in e || 'actual' in e);
-        tests.push({ fullName: t.fullName, status: t.result().state, errorName: typeof name === 'string' ? name : null, assertion });
+        const top = Array.isArray(e?.stacks) ? e.stacks[0] : undefined;
+        const frame = typeof top?.file === 'string' ? top.file : null;
+        tests.push({ fullName: t.fullName, status: t.result().state, errorName: typeof name === 'string' ? name : null, assertion, frame });
       }
       report.modules.push({ file: m.moduleId, errors: m.errors().length, tests });
     }
@@ -618,6 +742,10 @@ async function main(argv = process.argv.slice(2), env = process.env): Promise<vo
   }
   let plants: Plant[] = [];
   for (const m of manifests) {
+    if (namesBoard(basename(m))) {
+      console.error('bad manifest: its file name names a lane, slot, session or holder');
+      process.exit(2);
+    }
     let json: unknown;
     try {
       json = JSON.parse(readFileSync(m, 'utf8'));
@@ -637,12 +765,13 @@ async function main(argv = process.argv.slice(2), env = process.env): Promise<vo
     console.error('no manifest given: nothing was planted');
     process.exit(2);
   }
+  if (plants.length > MAX_PLANTS) {
+    console.error(`bad manifests: more than ${MAX_PLANTS} plants in one run`);
+    process.exit(2);
+  }
   const timeoutMs = Number(env.PLANT_TIMEOUT_MS ?? 180_000);
-  const results = await runPlants(
-    plants,
-    root,
-    vitestRunner(root, env.PLANT_VITEST_CONFIG ?? 'vitest.config.unit.ts', timeoutMs)
-  );
+  const config = env.PLANT_VITEST_CONFIG ?? 'vitest.config.unit.ts';
+  const results = await runPlants(plants, root, vitestRunner(root, config, timeoutMs), config);
   const table = formatResults(results);
   console.log(table);
   if (env.GITHUB_STEP_SUMMARY)

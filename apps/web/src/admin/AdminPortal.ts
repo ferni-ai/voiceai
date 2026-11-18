@@ -9,7 +9,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { cleanupAdminEvents, initAdminEvents, setupDesignSystemHandlers } from './admin-events.js';
+import { cleanupAdminEvents, initAdminEvents } from './admin-events.js';
 import {
   ICON_BACK,
   ICON_LEAF,
@@ -19,7 +19,12 @@ import {
   ICON_WARNING,
   iconSm,
 } from './icons.js';
-import { ADMIN_SECTIONS, initialSectionId, type AdminSection } from './section-registry.js';
+import {
+  ADMIN_SECTIONS,
+  initialSectionId,
+  sectionHref,
+  type AdminSection,
+} from './section-registry.js';
 
 const log = createLogger('AdminPortal');
 
@@ -203,6 +208,9 @@ function renderNavItem(section: AdminSection): string {
 // SECTION LOADING
 // ============================================================================
 
+let sectionLoads = 0; // a newer loadSection call drops an older one's result
+let leaveActiveSection: (() => void) | undefined;
+
 async function loadSection(sectionId: string): Promise<void> {
   const section = state.sections.find((s) => s.id === sectionId);
   if (!section) {
@@ -212,21 +220,22 @@ async function loadSection(sectionId: string): Promise<void> {
 
   log.debug({ sectionId }, 'Loading section');
   state.activeSection = sectionId;
+  const load = ++sectionLoads;
+  leaveActiveSection?.();
+  leaveActiveSection = section.cleanup;
+  history.replaceState(history.state, '', sectionHref(window.location.href, sectionId));
 
-  // Update header
   const title = document.getElementById('adminSectionTitle');
   const desc = document.getElementById('adminSectionDesc');
   if (title) title.textContent = section.name;
   if (desc) desc.textContent = section.description;
 
-  // Update nav active state
   document.querySelectorAll('.admin-nav-btn').forEach((btn) => {
     const btnSection = btn.getAttribute('data-section');
     btn.classList.toggle('active', btnSection === sectionId);
     btn.setAttribute('aria-current', btnSection === sectionId ? 'page' : 'false');
   });
 
-  // Show loading state
   const content = document.getElementById('adminContent');
   if (!content) return;
 
@@ -238,26 +247,17 @@ async function loadSection(sectionId: string): Promise<void> {
   `;
 
   try {
-    // Load section content
     const html = await section.component();
-
-    // Fade out loading
     content.style.opacity = '0';
     await new Promise((resolve) => setTimeout(resolve, DURATION.FAST));
-
-    // Render content
+    if (load !== sectionLoads) return;
     content.innerHTML = html;
-
-    // Fade in content
     content.style.opacity = '1';
-
-    // Setup section-specific handlers
-    if (sectionId === 'design-system') {
-      setupDesignSystemHandlers();
-    }
-
+    await section.setup?.(content);
+    if (load !== sectionLoads) section.cleanup?.(); // left while setup ran: stop what it started
     log.debug({ sectionId }, 'Section loaded');
   } catch (error) {
+    if (load !== sectionLoads) return;
     log.error({ error, sectionId }, 'Failed to load section');
     content.innerHTML = renderError(`Failed to load ${section.name}`, error as Error);
   }
@@ -328,9 +328,9 @@ function handleKeydown(e: KeyboardEvent): void {
     }
   }
 
-  // Escape to go back to app
+  // Escape closes the top modal; it used to leave the portal mid-edit, losing changes.
   if (e.key === 'Escape') {
-    window.location.href = '/';
+    Array.from(document.querySelectorAll('.admin-modal-overlay')).pop()?.remove();
   }
 
   // Cmd/Ctrl + B to toggle sidebar
