@@ -143,4 +143,21 @@ describe('pushesUsage: which caller words make a figure a push', () => {
       false
     );
   });
+
+  it('reads a question at the end of a long turn, and a long note naming other callers', () => {
+    const chatter = 'so anyway my week was long and the dog kept barking at night '.repeat(40);
+    expect(asksAboutUsage(`${chatter}. how many people talk to you every day?`)).toBe(true);
+    expect(
+      pushesUsage(`Ask about your other callers. ${'Keep it warm and short. '.repeat(60)}`)
+    ).toBe(true);
+  });
+
+  it('a long caller turn or note with no stop never backtracks for long (security review)', () => {
+    const said = 'what people ask how often do people tell '.repeat(150);
+    const note = 'people ask you what people asked '.repeat(200);
+    const start = performance.now();
+    expect(pushesUsage('Give a specific number.', said)).toBe(false);
+    expect(pushesUsage(note, '')).toBe(false);
+    expect(performance.now() - start).toBeLessThan(100);
+  });
 });

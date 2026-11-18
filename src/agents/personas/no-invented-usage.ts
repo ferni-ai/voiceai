@@ -30,31 +30,51 @@ export const usageHonestyLine = (env: Env = process.env): string =>
 export const usageDirectorRule = (name: string, object: string): string =>
   `${name} can't see anyone else's conversations: never ask for a number or estimate of how many people talk to ${object}, or for what other callers said.`;
 
+/**
+ * Every gap between the words a pattern looks for is bounded and every input is capped, so a
+ * long caller turn can't make a failed match backtrack for seconds (an unbounded gap between
+ * two or three words is cubic in the input). Questions are short; a longer stretch isn't one.
+ */
+const GAP = String.raw`[^.?!]{0,60}`;
+const NOTE_GAP = String.raw`[^.]{0,80}`;
+/** The most of the caller's turn that is read: its end, where the question usually is. */
+const MAX_SAID_CHARS = 600;
+const MAX_NOTE_CHARS = 600;
+
 /** The caller asking how many people talk to Ferni, or what other people ask or tell him. */
 const ASKS_USAGE = new RegExp(
   [
-    String.raw`\bhow (?:many|much|often)\b[^.?!]*\b(?:people|users|folks|others|callers|teens|kids|everyone|anyone)\b[^.?!]*\b(?:you|ferni)\b`,
-    String.raw`\bhow (?:many|much|often)\b[^.?!]*\b(?:you|ferni)\b[^.?!]*\b(?:people|users|folks|callers|questions|calls)\b`,
-    String.raw`\b(?:what|which)\b[^.?!]*\b(?:people|others|callers|users|folks)\b[^.?!]*\b(?:ask|say|tell|talk|want)\w*\b[^.?!]*\b(?:you|ferni)\b`,
-    String.raw`\b(?:do|does|did)\b[^.?!]*\b(?:people|others|teens|kids|users|callers|anyone)\b[^.?!]*\b(?:ask|tell|talk to|call|use)\w* (?:you|ferni)\b`,
-    String.raw`\b(?:other|another) (?:people|callers|users|person|caller)\b[^.?!]*\b(?:you|ferni)\b`,
+    String.raw`\bhow (?:many|much|often)\b${GAP}\b(?:people|users|folks|others|callers|teens|kids|everyone|anyone)\b${GAP}\b(?:you|ferni)\b`,
+    String.raw`\bhow (?:many|much|often)\b${GAP}\b(?:you|ferni)\b${GAP}\b(?:people|users|folks|callers|questions|calls)\b`,
+    String.raw`\b(?:what|which)\b${GAP}\b(?:people|others|callers|users|folks)\b${GAP}\b(?:ask|say|tell|talk|want)\w*\b${GAP}\b(?:you|ferni)\b`,
+    String.raw`\b(?:do|does|did)\b${GAP}\b(?:people|others|teens|kids|users|callers|anyone)\b${GAP}\b(?:ask|tell|talk to|call|use)\w* (?:you|ferni)\b`,
+    String.raw`\b(?:other|another) (?:people|callers|users|person|caller)\b${GAP}\b(?:you|ferni)\b`,
   ].join('|'),
   'i'
 );
 /** A note naming other callers or Ferni's usage outright ("what people asked today"); notes call Ferni "you". */
-const NAMES_OTHERS =
-  /\b(?:other (?:callers|users)|your (?:other )?(?:callers|users)|what (?:other )?(?:people|callers|users|folks) (?:ask|asked|said|say)\b[^.]*\btoday|how many (?:people|callers|users|folks) (?:you|ferni)\b|(?:people|callers|users|folks) (?:ask|asked|tell|told|talk to|use|call) (?:you|ferni)\b[^.]*\b(?:how many|how often|every day|today|examples?)\b)/i;
+const NAMES_OTHERS = new RegExp(
+  [
+    String.raw`\bother (?:callers|users)`,
+    String.raw`\byour (?:other )?(?:callers|users)`,
+    String.raw`\bwhat (?:other )?(?:people|callers|users|folks) (?:ask|asked|said|say)\b${NOTE_GAP}\btoday`,
+    String.raw`\bhow many (?:people|callers|users|folks) (?:you|ferni)\b`,
+    String.raw`\b(?:people|callers|users|folks) (?:ask|asked|tell|told|talk to|use|call) (?:you|ferni)\b${NOTE_GAP}\b(?:how many|how often|every day|today|examples?)\b`,
+  ].join('|'),
+  'i'
+);
 /** A note asking for a figure or an answer: after a usage question, that is a push to invent. */
 const WANTS_FIGURE =
   /\b(?:estimate|number|figure|count|stats?|ballpark|examples?|specific|answer|how (?:many|often))\b/i;
 
-const asksAboutUsage = (said: string): boolean => ASKS_USAGE.test(said.replace(/’/g, "'"));
+const asksAboutUsage = (said: string): boolean =>
+  ASKS_USAGE.test(said.slice(-MAX_SAID_CHARS).replace(/’/g, "'"));
 
 /**
  * A director note that would push Ferni to count or quote other callers: one naming them,
  * or, after the caller asked about them (`said`), one asking for a figure or an answer.
  */
 export function pushesUsage(note: string, said = ''): boolean {
-  const text = note.replace(/[‘’]/g, "'");
+  const text = note.slice(0, MAX_NOTE_CHARS).replace(/[‘’]/g, "'");
   return NAMES_OTHERS.test(text) || (asksAboutUsage(said) && WANTS_FIGURE.test(text));
 }
