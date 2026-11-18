@@ -23,3 +23,17 @@ export async function adminFetch(url: string, options: RequestInit = {}): Promis
     },
   });
 }
+
+/**
+ * The admin key saved in this browser, or the dev-mode key under `vite dev`. Only the
+ * portal's access gate reads it (admin-access.ts); no admin request sends it.
+ */
+export function getStoredAdminKey(): string {
+  try {
+    const stored = localStorage.getItem('admin_key') ?? localStorage.getItem('ferni_admin_key');
+    if (stored) return stored;
+  } catch {
+    // Storage blocked: fall through to the dev-mode key
+  }
+  return import.meta.env.DEV ? 'dev-mode' : '';
+}
