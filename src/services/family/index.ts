@@ -5,7 +5,6 @@
  * @module services/family
  */
 export {
-  familyCircleFor,
   forgetFamilyCircle,
   rememberFamilyCircle,
   type FamilyCircleMember,

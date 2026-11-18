@@ -22,10 +22,15 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
   const logger = { info: spy, warn: spy, debug: spy, error: spy, child: () => logger };
   return { ...real, createLogger: () => logger };
 });
+const family = vi.hoisted(() => ({ remember: vi.fn(), forget: vi.fn() }));
+vi.mock('../../../services/family/index.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../services/family/index.js')>();
+  family.remember.mockImplementation(real.rememberFamilyCircle);
+  family.forget.mockImplementation(real.forgetFamilyCircle);
+  return { ...real, rememberFamilyCircle: family.remember, forgetFamilyCircle: family.forget };
+});
 
 const { resolveFamilyCircle } = await import('../family-circle.js');
-const { familyCircleFor, forgetFamilyCircle } =
-  await import('../../../services/family/family-circle-state.js');
 const { runSessionCleanup } = await import('../../session/event-cleanup-registry.js');
 
 const CALLER = '+15555550101';
@@ -82,7 +87,11 @@ function room(number = CALLER) {
 let n = 0;
 const nextSession = (): string => `fc-${++n}`;
 
-beforeEach(() => void (logged.length = 0));
+beforeEach(() => {
+  logged.length = 0;
+  family.remember.mockClear();
+  family.forget.mockClear();
+});
 afterEach(() => vi.unstubAllEnvs());
 
 describe('resolveFamilyCircle', () => {
@@ -95,7 +104,7 @@ describe('resolveFamilyCircle', () => {
       familyUserId: 'family_sid-test',
       displayName: 'Test Member',
     });
-    expect(familyCircleFor(sessionId)).toEqual(member);
+    expect(family.remember).toHaveBeenCalledWith(sessionId, member);
     expect(deps.lookup).toHaveBeenCalledWith(CALLER);
     expect(deps.signedAttestation.mock.calls[0]?.[1]).toBe(CALLER);
   });
@@ -113,7 +122,7 @@ describe('resolveFamilyCircle', () => {
   ])('is the public circle for %s', async (_case, found, signed) => {
     const sessionId = nextSession();
     expect(await resolveFamilyCircle(room(), sessionId, fakeDeps(found, signed), OPEN)).toBeNull();
-    expect(familyCircleFor(sessionId)).toBeNull();
+    expect(family.remember).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -191,10 +200,9 @@ describe('resolveFamilyCircle', () => {
 
   it('forgets the session when the call ends', async () => {
     const sessionId = nextSession();
-    await resolveFamilyCircle(room(), sessionId, fakeDeps(identity()), OPEN);
-    expect(familyCircleFor(sessionId)).not.toBeNull();
+    expect(await resolveFamilyCircle(room(), sessionId, fakeDeps(identity()), OPEN)).not.toBeNull();
+    expect(family.forget).not.toHaveBeenCalled();
     await runSessionCleanup(sessionId);
-    expect(familyCircleFor(sessionId)).toBeNull();
-    forgetFamilyCircle(sessionId); // a second forget is harmless
+    expect(family.forget).toHaveBeenCalledWith(sessionId);
   });
 });

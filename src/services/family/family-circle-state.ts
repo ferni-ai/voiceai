@@ -1,8 +1,9 @@
 /**
  * Who on this call is in the owner's family circle, per session. Only the
  * family circle decision (agents/voice-agent-entry/family-circle.ts) writes it,
- * after every proof held; anything that reads it treats a missing entry as the
- * public circle. In services so tools, services and agents can all read it.
+ * after every proof held, and the session's cleanup forgets it. Its reader lands
+ * with its first caller; a missing entry is the public circle. In services so
+ * tools, services and agents can all reach it.
  *
  * @module services/family/family-circle-state
  */
@@ -21,10 +22,6 @@ export function rememberFamilyCircle(sessionId: string, member: FamilyCircleMemb
   bySession.delete(sessionId);
   bySession.set(sessionId, member);
   if (bySession.size > MAX_SESSIONS) bySession.delete(bySession.keys().next().value as string);
-}
-
-export function familyCircleFor(sessionId: string): FamilyCircleMember | null {
-  return bySession.get(sessionId) ?? null;
 }
 
 export function forgetFamilyCircle(sessionId: string): void {

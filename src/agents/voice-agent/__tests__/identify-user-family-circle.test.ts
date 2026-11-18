@@ -43,9 +43,13 @@ vi.mock('../../../services/voice/voice-speaker-change.js', () => ({
   getSpeakerChangeDetector: () => ({ on: vi.fn(), start: vi.fn() }),
 }));
 vi.mock('../../../tools/domains/entertainment/spotify.js', () => ({ setStreamIntoCall: () => {} }));
+const remember = vi.hoisted(() => vi.fn());
+vi.mock('../../../services/family/index.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../services/family/index.js')>()),
+  rememberFamilyCircle: remember,
+}));
 
 const { identifyUser } = await import('../user-identification-handler.js');
-const { familyCircleFor } = await import('../../../services/family/index.js');
 
 const CALLER = '+15555550101';
 const OWNER = 'uid-owner-test';
@@ -92,6 +96,7 @@ beforeEach(() => {
   fakes.getFirebaseUserByPhone.mockReset().mockResolvedValue(null);
   fakes.lookupByPhone.mockReset().mockResolvedValue({ found: true, identity: member });
   fakes.signed.level = 'A';
+  remember.mockClear();
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -113,7 +118,11 @@ describe('identifyUser and the family circle', () => {
     expect(result.userName).toBe('Test Member');
     expect(result.verified).toBe(false);
     expect(result.identificationSource).toBe('phone');
-    expect(familyCircleFor(sessionId)?.sponsoredIdentityId).toBe('sid-test');
+    expect(remember).toHaveBeenCalledWith(sessionId, {
+      sponsoredIdentityId: 'sid-test',
+      familyUserId: 'family_sid-test',
+      displayName: 'Test Member',
+    });
   });
 
   it.each(['SETH_FAMILY_CIRCLE', 'SETH_TEAMMATE'])(
@@ -121,11 +130,11 @@ describe('identifyUser and the family circle', () => {
     async (flag) => {
       await registered();
       vi.stubEnv(flag, 'off');
-      const { result, sessionId } = await call();
+      const { result } = await call();
       expect(fakes.lookupByPhone).not.toHaveBeenCalled();
       expect(result.userId).toMatch(/^anon:/);
       expect(result.userName).toBeUndefined();
-      expect(familyCircleFor(sessionId)).toBeNull();
+      expect(remember).not.toHaveBeenCalled();
     }
   );
 
@@ -143,9 +152,9 @@ describe('identifyUser and the family circle', () => {
   it('a caller without a signed A stays anonymous', async () => {
     await registered();
     fakes.signed.level = 'B';
-    const { result, sessionId } = await call();
+    const { result } = await call();
     expect(result.userId).toMatch(/^anon:/);
     expect(result.userName).toBeUndefined();
-    expect(familyCircleFor(sessionId)).toBeNull();
+    expect(remember).not.toHaveBeenCalled();
   });
 });
