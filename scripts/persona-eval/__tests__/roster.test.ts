@@ -11,8 +11,8 @@ const BAR = readFileSync(fileURLToPath(new URL('../bar.ts', import.meta.url)), '
 describe('the persona roster the evals iterate', () => {
   it('is exactly the bundle registry, the legends included', () => {
     expect([...PERSONAS].sort()).toEqual(bundlePersonas());
-    expect(PERSONAS).toHaveLength(8);
-    expect(PERSONAS).toEqual(expect.arrayContaining(['john-bogle', 'joel-dickson']));
+    expect(PERSONAS).toHaveLength(9);
+    expect(PERSONAS).toEqual(expect.arrayContaining(['john-bogle', 'joel-dickson', 'seth']));
     expect(PERSONAS).not.toContain('peter-lynch'); // Tom, retired 2026-11-08
   });
 

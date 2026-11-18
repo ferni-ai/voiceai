@@ -9,11 +9,14 @@
  * 1. Event-level voiceId (top-level in handoff event data)
  * 2. persona.voice.voiceId (PersonaConfig format)
  * 3. persona.voiceId (HandoffPersona format)
- * 4. Registry lookup (getVoiceId from voice-registry)
+ * 4. Registry lookup (getVoiceId from voice-registry); for Seth, his gate
+ *    (getVoiceIdForPersona), since the registry never serves a consented clone
  *
  * @module handoff/voice-id-resolver
  */
 
+import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { isSeth } from '../../config/seth-teammate.js';
 import { getVoiceId } from '../../personas/voice-registry.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
@@ -164,7 +167,8 @@ export function resolveVoiceId(
   if (useRegistryFallback && personaId) {
     attemptedSources.push('registry');
     try {
-      const registryVoiceId = getVoiceId(personaId);
+      const lookup = isSeth(personaId) ? getVoiceIdForPersona : getVoiceId;
+      const registryVoiceId = lookup(personaId);
       if (registryVoiceId && typeof registryVoiceId === 'string' && registryVoiceId.trim() !== '') {
         logAttempt('registry', registryVoiceId, true);
         return {

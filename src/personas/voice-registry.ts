@@ -34,6 +34,8 @@ import {
   ALIAS_TO_CANONICAL,
   type CanonicalPersonaId,
 } from './persona-ids.js';
+import { isSeth } from '../config/seth-teammate.js';
+import { isConsentedCloneVoice } from '../services/voice/consented-clone-voice.js';
 
 // Logger instance for this module
 const logger = getLogger();
@@ -175,8 +177,12 @@ function initializeFallbacks(): void {
  *
  * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  *
+ * Never a consented clone (personas/roster), and nothing at all for Seth: this
+ * registry also serves personas a client names (POST /api/landing/tts). A clone is
+ * spoken only through its listing's gate, getVoiceIdForPersona (config/voice-ids.ts).
+ *
  * @param personaId - Canonical ID, alias, or short name
- * @returns Voice ID string
+ * @returns Voice ID string, or '' for none
  *
  * @example
  * getVoiceId('maya-santos')     // canonical
@@ -184,6 +190,11 @@ function initializeFallbacks(): void {
  * getVoiceId('spend-save')      // frontend ID
  */
 export function getVoiceId(personaId: string): string {
+  const voiceId = registeredVoiceId(personaId);
+  return isSeth(personaId) || isConsentedCloneVoice(voiceId) ? '' : voiceId;
+}
+
+function registeredVoiceId(personaId: string): string {
   // Initialize with fallbacks if not yet initialized
   if (!initialized) {
     initializeFallbacks();
