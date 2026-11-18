@@ -88,7 +88,7 @@ export function renderAccessGate(access: Exclude<AdminAccess, { kind: 'admin' }>
           ];
   return `
     <div class="admin-access-gate" role="alert" style="max-width: 28rem; margin: 20vh auto; padding: 2rem; text-align: center; color: var(--color-text-primary); background: var(--color-background-surface); border-radius: var(--radius-lg, 12px);">
-      <h1 style="font-size: var(--font-size-lg); margin: 0 0 0.75rem;">${title}</h1>
+      <h1 style="font-size: var(--text-xl); margin: 0 0 0.75rem;">${title}</h1>
       <p style="margin: 0 0 1.5rem; color: var(--color-text-secondary);">${detail}</p>
       ${canSignIn ? '<button type="button" class="admin-access-sign-in">Sign in with Google</button>' : ''}
     </div>`;
