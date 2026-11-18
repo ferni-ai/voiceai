@@ -28,7 +28,9 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('@livekit/agents', () => ({
+// The real package with llm and log stubbed: callOnBehalf names its caller through personas -> audio.
+vi.mock('@livekit/agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@livekit/agents')>()),
   llm: {
     tool: vi.fn((config) => ({
       description: config.description,
