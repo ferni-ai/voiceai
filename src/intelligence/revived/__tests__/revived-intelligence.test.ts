@@ -331,4 +331,13 @@ describe('rememberable: a forgotten number and the stored shape', () => {
   it('still drops one that holds the number', () => {
     expect(rememberable([stored('His cell is 435 555 0199')], forgetHisNumber)).toEqual([]);
   });
+
+  it('keeps one whose job id ends in a digit', () => {
+    const plain = {
+      ...stored('Talked about the garden beds'),
+      id: 'summary_session-AJ_FhDLDpE3gTF7-1763478000123_1763478000456',
+      sessionId: 'session-AJ_FhDLDpE3gTF7-1763478000123',
+    };
+    expect(rememberable([plain], forgetHisNumber)).toEqual([plain]);
+  });
 });

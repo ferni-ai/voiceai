@@ -133,7 +133,8 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
  * every other shape still counts, two numbers in one run and over-long ones included.
  * Known gaps: a trunk prefix ("020 ..." for "+44 20 ..."), and any other 7+ digit run (an order
  * number, counting aloud to eight, "2020-2019") still holds a passage under a number topic, and
- * a +1 number with a two-digit extension glued to a word ("mom-1555...12") reads as an epoch.
+ * a +1 number with a two-digit extension glued to a word ("mom-1555...12") reads as an epoch,
+ * and a number broken across two lines is two runs.
  */
 const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
 const TIME = '\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?';
@@ -144,10 +145,15 @@ const TIMES = new RegExp(
 const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
 const notAPhoneNumber = (run: string): boolean =>
   THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
-// Only an epoch in ms glued to a word: a markdown "_435 555 0199_" keeps every digit
+// Only an epoch in ms glued to a word: a markdown "_435 555 0199_" keeps every digit. It is
+// replaced by a word, so the id's last digit can't run on into what follows ("…F7-<ms> 2025-…")
 const STORED_EPOCH = /(?<=[\p{L}\p{N}][-_])1[5-9]\d{11}(?!\p{N})/gu;
+// Line by line: readers join a record's fields with newlines (call-summaries, revived), and a
+// run across two fields ("…abc123", then a date) is no number anyone said.
 const phoneNumbers = (text: string): string[] =>
-  contactNumberRuns(text.replace(STORED_EPOCH, ' '))
+  text
+    .split('\n')
+    .flatMap((line) => contactNumberRuns(line.replace(STORED_EPOCH, ' epoch ')))
     .filter((run) => !notAPhoneNumber(run))
     .map((run) => run.replace(/\D/g, ''));
 

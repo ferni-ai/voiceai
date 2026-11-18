@@ -244,6 +244,21 @@ describe('summarySnippets: a forgotten number and the stored shape', () => {
     expect(kept.map((s) => s.text)).toEqual(['User planned the garden beds']);
   });
 
+  // A job id ending in a digit left that digit beside the next field's date (about 1 in 6
+  // voice calls, the #4042 re-verifier measured); so did ids that end in digits.
+  it.each([
+    ['session-AJ_FhDLDpE3gTF7-1763478000123'],
+    ['loop_1763478000123_abc123'],
+    ['warm-1763478000123-k3j9x2'],
+    ['outreach-uid42-1763478000123'],
+  ])('keeps a summary with no number whose session id is %s', (sessionId) => {
+    const kept = summarySnippets(
+      [stored('User planned the garden beds', sessionId)],
+      ['his number']
+    );
+    expect(kept).toHaveLength(1);
+  });
+
   it('keeps an outreach call summary that holds no number', () => {
     const kept = summarySnippets(
       [stored('User planned the garden beds', 'outreach-1763478000123')],

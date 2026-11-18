@@ -150,6 +150,11 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['a voice call session id', 'session-AJ_FhDLDpE3gTFu-1763478000123'],
     ['an outreach session id', 'outreach-1763478000123'],
     ['an open loop id', 'loop_1763478000123_k2j9x1'],
+    ['an id ending in a digit beside a date', 'session-AJ_x7-1763478000123 2025-11-18'],
+    [
+      'an id ending in digits, then a date on the next line',
+      'loop_1763478000123_abc123\n2025-11-18',
+    ],
     ['a timestamp with milliseconds', '2026-11-18T15:00:00.000Z'],
     ['a date with its time', 'we met on 2026-11-18 15:00'],
     ['a span of times with milliseconds', '15:00:00.000-15:30:00.000'],
@@ -175,6 +180,8 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['as thirteen digits glued to a word by "-"', 'mom-1435555019900'],
     ['run into an epoch', 'x_17634780001234355550199'],
     ['as fourteen digits glued to a word', 'tel_15555550199123'],
+    ['as twelve digits glued to a word', 'mom-155555501991'],
+    ['broken across a line', 'his cell is 435\n555 0199'],
     ['after a space and a joiner', 'call _1555555019900'],
     ['at the start after a joiner', '-1555555019900 is his'],
   ])('a real number %s still hides', (_l, text) => {
