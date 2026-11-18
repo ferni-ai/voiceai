@@ -13,7 +13,7 @@
  * @module agents/processors/turn-processor/router-crisis-check
  */
 import { flagOn } from '../../../config/env-flag.js';
-import { crisisRiskThisCall } from '../../../services/safety/crisis-call-risk.js';
+import { crisisRiskThisCall } from '../../../services/safety/index.js';
 import type {
   AutoExecuteGate,
   AutoExecuteOutcome,
