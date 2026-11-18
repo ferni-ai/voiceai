@@ -24,6 +24,8 @@ interface ClockDoc {
 
 async function firestoreSweepClocks(): Promise<SweepClocks> {
   const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+  const { safeSet } = await import('../../utils/safe-firestore.js');
+  const { Timestamp } = await import('@google-cloud/firestore');
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
   const clocks = db.collection(ROOM_SWEEP_CLOCKS);
@@ -38,10 +40,11 @@ async function firestoreSweepClocks(): Promise<SweepClocks> {
       return running;
     },
     start: async (roomHash, aloneSince) => {
-      // expireAt is a Date so a Firestore TTL policy can delete it
-      await clocks
-        .doc(roomHash)
-        .set({ aloneSince, expireAt: new Date(aloneSince + CLOCK_KEEP_MS) });
+      // expireAt is a Timestamp (safeSet would write a Date as a string) so a TTL policy can read it
+      await safeSet(clocks.doc(roomHash), {
+        aloneSince,
+        expireAt: Timestamp.fromMillis(aloneSince + CLOCK_KEEP_MS),
+      });
     },
     clear: async (roomHash) => {
       await clocks.doc(roomHash).delete();

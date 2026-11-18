@@ -21,7 +21,8 @@ const fake = vi.hoisted(() => ({
   deleteRoom: vi.fn(async (_room: string) => undefined),
 }));
 
-vi.mock('../../../utils/firestore-utils.js', () => ({
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/firestore-utils.js')>()),
   getFirestoreDb: () => {
     if (!fake.firestoreUp) return null;
     return {
@@ -131,7 +132,8 @@ describe('POST /api/jobs/room-sweep', () => {
     const clocks = [...(fake.db.get('livekit_room_sweep_clocks') ?? new Map()).values()];
     expect(clocks).toHaveLength(1);
     expect(Object.keys(clocks[0]).sort()).toEqual(['aloneSince', 'expireAt']); // no identities
-    expect(clocks[0].expireAt).toBeInstanceOf(Date);
+    // a Timestamp, which a Firestore TTL policy reads (a Date would be written as a string)
+    expect((clocks[0].expireAt as { toMillis: () => number }).toMillis()).toBe(24 * 60 * MIN);
 
     vi.setSystemTime(MIN);
     expect((await post()).body).toMatchObject({ counts: { swept: 1 } });
