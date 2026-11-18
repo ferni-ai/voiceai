@@ -8,6 +8,7 @@ import { getDJController } from '../../audio/dj-controller.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { isSessionClosing } from '../shared/session-closing-tracker.js';
 import { onToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import { renderFallbackLine } from './fallback-line-render.js';
 import type { LiveCallBehaviorsInput } from './live-call-behaviors.js';
 import { ensureResumeBuffer, replyPaused } from './resume-buffer.js';
 import {
@@ -27,9 +28,16 @@ function musicPlaying(): boolean {
   }
 }
 
+/** The voice the session speaks in now (PersonaAwareTTS); read per render, so a handoff counts. */
+function sessionVoiceId(session: unknown): string | undefined {
+  const { tts } = session as { tts?: { getVoiceId?: () => string } | null };
+  return typeof tts?.getVoiceId === 'function' ? tts.getVoiceId() : undefined;
+}
+
 export function installNeverSilent(
   input: LiveCallBehaviorsInput,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  render: typeof renderFallbackLine = renderFallbackLine
 ): void {
   const mode = neverSilentMode(env);
   if (mode === 'off') return;
@@ -43,6 +51,10 @@ export function installNeverSilent(
     hangMs: hangMs(env),
     stayQuiet: () => isSessionClosing(sessionId) || musicPlaying(),
     replyPaused: () => replyPaused(session),
+    renderLine: async (text) => {
+      const voiceId = sessionVoiceId(session);
+      return voiceId ? render(text, voiceId, { env }) : { failure: 'no_voice' };
+    },
     // A rendering problem is not a fallback: keep NEVER_SILENT_FALLBACK a count of real ones.
     log: (fields) =>
       log.warn(

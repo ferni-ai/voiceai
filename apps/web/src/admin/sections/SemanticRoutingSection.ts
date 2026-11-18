@@ -7,13 +7,20 @@
  * - Cache hit rate
  * - Tool breakdown
  * - Match path distribution
- * - Correction rate (learning)
+ * - Correction rate: not measured (no corrections store yet)
  * - A/B test status
  */
 
 import { createLogger } from '../../utils/logger.js';
 import { adminFetch } from '../admin-fetch.js';
 import { ICONS } from '../icons.js';
+import {
+  isUnavailable,
+  NOT_MEASURED,
+  renderUnavailable,
+  unavailableReason,
+  type Unavailable,
+} from '../unavailable-state.js';
 
 const log = createLogger('SemanticRoutingSection');
 
@@ -36,23 +43,12 @@ interface SemanticRoutingMetrics {
     toolBreakdown: Record<string, number>;
     matchPathBreakdown: Record<string, number>;
   };
-  learning: {
-    totalCorrections: number;
-    correctionRate: number;
-    recentCorrections: Array<{
-      query: string;
-      predicted: string;
-      actual: string;
-      timestamp: string;
-    }>;
-  };
   abTests: {
     active: number;
     experiments: Array<{
       id: string;
       name: string;
       status: string;
-      variants: number;
     }>;
   };
   proactive: {
@@ -64,16 +60,18 @@ interface SemanticRoutingMetrics {
     avgConfidence: number;
     lastAggregation: string | null;
   };
-  // Phase 5: Adversarial Defense metrics
-  defense: {
-    totalInputs: number;
-    threatsDetected: number;
-    inputsBlocked: number;
-    blockRate: string;
-    avgRiskScore: string;
-    threatsByType: Record<string, number>;
-    threatsBySeverity: Record<string, number>;
-  };
+  // Phase 5: Adversarial Defense metrics, or why they could not be read
+  defense:
+    | Unavailable
+    | {
+        totalInputs: number;
+        threatsDetected: number;
+        inputsBlocked: number;
+        blockRate: string;
+        avgRiskScore: string;
+        threatsByType: Record<string, number>;
+        threatsBySeverity: Record<string, number>;
+      };
   hourly: Array<{ hour: number; count: number; avgLatency: number }>;
   timestamp: string;
 }
@@ -103,6 +101,8 @@ export function render(): string {
           </button>
         </div>
       </div>
+
+      <div id="semantic-routing-status"></div>
 
       <!-- Key Metrics Cards -->
       <div class="metrics-grid" role="region" aria-label="Key metrics" aria-live="polite">
@@ -135,9 +135,9 @@ export function render(): string {
         <article class="metric-card" aria-labelledby="correction-label">
           <div class="metric-icon" aria-hidden="true">${ICONS.learning}</div>
           <div class="metric-content">
-            <div class="metric-value" id="correction-rate" aria-describedby="correction-label">--%</div>
+            <div class="metric-value" id="correction-rate" aria-describedby="correction-label">${renderUnavailable(NOT_MEASURED)}</div>
             <div class="metric-label" id="correction-label">Correction Rate</div>
-            <div class="metric-subtext" id="corrections-count">-- corrections learned</div>
+            <div class="metric-subtext">no corrections store yet</div>
           </div>
         </article>
 
@@ -229,14 +229,6 @@ export function render(): string {
         <h3 id="ab-tests-heading"><span aria-hidden="true">${ICONS.beaker}</span> Active A/B Tests</h3>
         <div class="ab-tests-list" id="ab-tests-list" role="list" aria-label="Active experiments">
           <div class="empty-state">No active experiments</div>
-        </div>
-      </section>
-
-      <!-- Recent Corrections (Learning) -->
-      <section class="subsection" aria-labelledby="corrections-heading">
-        <h3 id="corrections-heading"><span aria-hidden="true">${ICONS.learning}</span> Recent Corrections (Learning Loop)</h3>
-        <div class="corrections-list" id="corrections-list" role="log" aria-label="Recent corrections" aria-live="polite">
-          <div class="empty-state">No recent corrections</div>
         </div>
       </section>
     </div>
@@ -483,49 +475,6 @@ export function render(): string {
         color: white;
       }
 
-      .corrections-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-        max-height: 200px;
-        overflow-y: auto;
-      }
-
-      .correction-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: var(--space-sm) var(--space-md);
-        background: var(--color-bg-secondary);
-        border-radius: var(--radius-md);
-        font-size: 0.875rem;
-      }
-
-      .correction-query {
-        font-style: italic;
-        color: var(--color-text-secondary);
-      }
-
-      .correction-change {
-        display: flex;
-        align-items: center;
-        gap: var(--space-xs);
-      }
-
-      .correction-predicted {
-        color: var(--color-semantic-error);
-        text-decoration: line-through;
-      }
-
-      .correction-arrow {
-        color: var(--color-text-muted);
-      }
-
-      .correction-actual {
-        color: var(--color-semantic-success);
-        font-weight: 500;
-      }
-
       .loading, .empty-state {
         color: var(--color-text-muted);
         text-align: center;
@@ -640,8 +589,7 @@ export function render(): string {
       .btn-secondary:focus-visible,
       .metric-card:focus-visible,
       .tool-item:focus-visible,
-      .ab-test-item:focus-visible,
-      .correction-item:focus-visible {
+      .ab-test-item:focus-visible {
         outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
@@ -662,7 +610,7 @@ export function render(): string {
 // DATA FETCHING
 // ============================================================================
 
-async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
+async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | Unavailable> {
   try {
     const [semanticResponse, dashboardResponse] = await Promise.all([
       adminFetch('/api/observability/semantic-routing'),
@@ -670,42 +618,18 @@ async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
     ]);
 
     // Get base metrics from semantic-routing endpoint
-    if (!semanticResponse.ok) return null;
+    if (!semanticResponse.ok) return { unavailable: unavailableReason(semanticResponse.status) };
     const baseMetrics = await semanticResponse.json();
 
-    // Merge defense data from routing-dashboard if available
-    if (dashboardResponse.ok) {
-      const dashboardData = await dashboardResponse.json();
-      if (dashboardData.defense) {
-        baseMetrics.defense = {
-          totalInputs: dashboardData.defense.totalInputs ?? 0,
-          threatsDetected: dashboardData.defense.threatsDetected ?? 0,
-          inputsBlocked: dashboardData.defense.inputsBlocked ?? 0,
-          blockRate: dashboardData.defense.blockRate ?? '0%',
-          avgRiskScore: dashboardData.defense.avgRiskScore ?? '0.000',
-          threatsByType: dashboardData.defense.threatsByType ?? {},
-          threatsBySeverity: dashboardData.defense.threatsBySeverity ?? {},
-        };
-      }
-    }
-
-    // Ensure defense object exists with defaults
-    if (!baseMetrics.defense) {
-      baseMetrics.defense = {
-        totalInputs: 0,
-        threatsDetected: 0,
-        inputsBlocked: 0,
-        blockRate: '0%',
-        avgRiskScore: '0.000',
-        threatsByType: {},
-        threatsBySeverity: {},
-      };
-    }
+    // Defense data comes from routing-dashboard; when it is missing, say why instead of zeros
+    baseMetrics.defense = dashboardResponse.ok
+      ? ((await dashboardResponse.json()).defense ?? { unavailable: NOT_MEASURED })
+      : { unavailable: unavailableReason(dashboardResponse.status) };
 
     return baseMetrics;
   } catch (error) {
     log.error({ error }, 'Failed to fetch semantic routing metrics');
-    return null;
+    return { unavailable: unavailableReason() };
   }
 }
 
@@ -714,7 +638,7 @@ async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
 // ============================================================================
 
 function updateUI(metrics: SemanticRoutingMetrics): void {
-  const { aggregate, learning, abTests, proactive, community, defense, hourly } = metrics;
+  const { aggregate, abTests, proactive, community, defense, hourly } = metrics;
 
   // Total routes
   const totalEl = document.getElementById('total-routes');
@@ -741,16 +665,6 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
   const cacheEl = document.getElementById('cache-hit-rate');
   if (cacheEl) cacheEl.textContent = `${(aggregate.cacheHitRate * 100).toFixed(1)}%`;
 
-  // Correction rate
-  const correctionRateEl = document.getElementById('correction-rate');
-  const correctionsCountEl = document.getElementById('corrections-count');
-  if (correctionRateEl) {
-    correctionRateEl.textContent = `${(learning.correctionRate * 100).toFixed(2)}%`;
-  }
-  if (correctionsCountEl) {
-    correctionsCountEl.textContent = `${learning.totalCorrections} corrections learned`;
-  }
-
   // Proactive suggestions
   const proactiveEl = document.getElementById('proactive-suggestions');
   const proactiveAcceptEl = document.getElementById('proactive-acceptance');
@@ -768,7 +682,11 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
   }
 
   // Defense metrics (Phase 5: Adversarial Robustness)
-  if (defense) {
+  if (isUnavailable(defense)) {
+    const breakdownEl = document.getElementById('threat-breakdown');
+    if (breakdownEl)
+      breakdownEl.innerHTML = renderUnavailable(`Defense metrics ${defense.unavailable}`);
+  } else {
     updateDefenseUI(defense);
   }
 
@@ -844,33 +762,8 @@ function updateUI(metrics: SemanticRoutingMetrics): void {
           <div class="ab-test-item" role="listitem">
             <div>
               <span class="ab-test-name">${escapeHtml(exp.name)}</span>
-              <span class="ab-test-variants">(${exp.variants} variants)</span>
             </div>
             <span class="ab-test-status ${exp.status}">${exp.status}</span>
-          </div>
-        `
-        )
-        .join('');
-    }
-  }
-
-  // Recent corrections
-  const correctionsEl = document.getElementById('corrections-list');
-  if (correctionsEl) {
-    if (learning.recentCorrections.length === 0) {
-      correctionsEl.innerHTML = '<div class="empty-state">No recent corrections</div>';
-    } else {
-      correctionsEl.innerHTML = learning.recentCorrections
-        .slice(0, 10)
-        .map(
-          (c) => `
-          <div class="correction-item" role="listitem">
-            <span class="correction-query">"${escapeHtml(c.query)}"</span>
-            <div class="correction-change">
-              <span class="correction-predicted">${escapeHtml(c.predicted)}</span>
-              <span class="correction-arrow">→</span>
-              <span class="correction-actual">${escapeHtml(c.actual)}</span>
-            </div>
           </div>
         `
         )
@@ -899,7 +792,7 @@ function escapeHtml(text: string): string {
 /**
  * Update defense UI elements (Phase 5: Adversarial Robustness)
  */
-function updateDefenseUI(defense: SemanticRoutingMetrics['defense']): void {
+function updateDefenseUI(defense: Exclude<SemanticRoutingMetrics['defense'], Unavailable>): void {
   // Threats blocked
   const threatsBlockedEl = document.getElementById('threats-blocked');
   const blockRateEl = document.getElementById('block-rate');
@@ -939,8 +832,9 @@ function updateDefenseUI(defense: SemanticRoutingMetrics['defense']): void {
         </div>
       `;
     } else {
-      const threatTypeHtml = threatTypes.length > 0
-        ? `
+      const threatTypeHtml =
+        threatTypes.length > 0
+          ? `
           <div class="threat-breakdown-title">Threats by Type</div>
           <div class="threat-type-grid">
             ${threatTypes
@@ -956,10 +850,11 @@ function updateDefenseUI(defense: SemanticRoutingMetrics['defense']): void {
               .join('')}
           </div>
         `
-        : '';
+          : '';
 
-      const severityHtml = severityTypes.length > 0
-        ? `
+      const severityHtml =
+        severityTypes.length > 0
+          ? `
           <div class="threat-severity-row">
             ${severityTypes
               .map(
@@ -970,7 +865,7 @@ function updateDefenseUI(defense: SemanticRoutingMetrics['defense']): void {
               .join('')}
           </div>
         `
-        : '';
+          : '';
 
       threatBreakdownEl.innerHTML = threatTypeHtml + severityHtml;
     }
@@ -1015,9 +910,14 @@ export async function init(): Promise<void> {
 
 export async function refresh(): Promise<void> {
   const metrics = await fetchSemanticMetrics();
-  if (metrics) {
-    updateUI(metrics);
+  const status = document.getElementById('semantic-routing-status');
+  if (isUnavailable(metrics)) {
+    // The cards keep their "--" placeholders; this line says why they are empty
+    if (status) status.innerHTML = renderUnavailable(`Semantic routing ${metrics.unavailable}`);
+    return;
   }
+  if (status) status.innerHTML = '';
+  updateUI(metrics);
 }
 
 export function cleanup(): void {
@@ -1026,4 +926,3 @@ export function cleanup(): void {
     refreshInterval = null;
   }
 }
-

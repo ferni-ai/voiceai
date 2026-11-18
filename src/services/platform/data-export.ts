@@ -30,6 +30,8 @@ import { EXPORT_CATEGORIES } from './export-categories.js';
 import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
 import { countUserRecords, exportUserRecords } from './user-records-export.js';
 import { formatExportCsv } from './export-csv.js';
+import { markHeldByForget } from './export-forget-marks.js';
+import type { ForgetMarks } from './export-forget-marks.js';
 
 const log = getLogger();
 
@@ -45,7 +47,7 @@ export interface ExportCategory {
   icon?: string;
 }
 
-export interface ExportData {
+export interface ExportData extends Partial<ForgetMarks> {
   exportedAt: string;
   userId: string;
   version: string;
@@ -213,7 +215,6 @@ class DataExportService {
     };
 
     try {
-      // Export each selected category
       // One budget for the whole request: a category named twice is read once, and every
       // category's output is charged to it (Records' reads are charged before they happen)
       for (const category of new Set(selectedCategories)) {
@@ -228,9 +229,10 @@ class DataExportService {
           // A limit stops the whole export: a file silently missing Records would look complete
           if (categoryError instanceof ExportLimitError) throw categoryError;
           log.warn({ error: String(categoryError), userId, category }, 'Failed to export category');
-          // Continue with other categories
         }
       }
+      // Forgotten topics are marked, never left out: this is the person's copy of what is kept
+      Object.assign(exportData, await markHeldByForget(userId, exportData.categories));
 
       log.info({ userId, categories: selectedCategories, format }, '📦 Data exported');
     } catch (error) {
@@ -238,7 +240,6 @@ class DataExportService {
       throw error;
     }
 
-    // Format output
     if (format === 'json') {
       return JSON.stringify(exportData, null, 2);
     } else {
@@ -246,9 +247,7 @@ class DataExportService {
     }
   }
 
-  /**
-   * Export a single category's data.
-   */
+  /** Export a single category's data. */
   private async exportCategory(
     userId: string,
     category: string,
