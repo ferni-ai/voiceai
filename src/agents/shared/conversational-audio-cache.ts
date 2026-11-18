@@ -309,6 +309,7 @@ export async function warmPersonaReactions(personaId: string): Promise<number> {
   const prev = reactionWarms.get(personaId);
   if (prev && Date.now() - prev.at < REACTION_RETRY_MS) return prev.done;
   const voiceId = getVoiceIdForPersona(personaId);
+  if (!voiceId) return 0; // no voice of its own (Seth with his gate closed): nothing to render
   const reactions = backchannelsFor(personaId);
   const voiced = voicedTakeTexts(reactions);
   // BACKCHANNEL_TIMING: the bag's takes in this persona's voice (none with it off).
