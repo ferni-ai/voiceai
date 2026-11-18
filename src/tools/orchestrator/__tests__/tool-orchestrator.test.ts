@@ -65,14 +65,14 @@ vi.mock('../../registry/loader.js', () => ({
   }),
 }));
 
-// Mock semantic router
+// Mock semantic router: the module tool-orchestrator.ts and tool-fetchers.ts import
 const mockSemanticMatches: Array<{
   toolId: string;
   domain: string;
   similarity: number;
   description: string;
 }> = [];
-vi.mock('../../semantic-router.js', () => ({
+vi.mock('../../semantic-router/compat.js', () => ({
   semanticRouter: {
     initialize: vi.fn().mockResolvedValue(undefined),
     findRelevantToolsAsync: vi.fn().mockImplementation(async () => mockSemanticMatches),

@@ -258,6 +258,9 @@ export const CLOCK_READ_BY: readonly string[] = ['FERNI_STATE', 'WORLD_NOW'];
  *   CRISIS_GATE_TURN_READS brings the emergency script on the turn after a cut-off crisis line,
  *   when the read of the whole turn is imminent ("said, then cut off"). That 911 leads is read
  *   (the 'emergency' floor in SHOWN_ON); its other words are not.
+ *   CRISIS_GUIDED_LINE_FLOOR brings the line a crisis guide's reply left out, after it: the
+ *   caller's 988 line, or the for-them 988 line for a friend at risk. Its 988 is read (the
+ *   '988 spoken' floor in SHOWN_ON); the lines' other words are not.
  *   `sentences` is how many; `says` is the number those sentences must carry. So a flag's
  *   sentence dropped whole, or kept with its number taken out, is seen; its other words changed
  *   is not.
@@ -269,6 +272,7 @@ export const WORDING_NOT_READ: {
   atDefaults: { scripted: 72, guided: 12, unguided: 30 },
   onlyWithFlag: {
     CRISIS_GATE_TURN_READS: { sentences: 6, says: ['911', '988'] },
+    CRISIS_GUIDED_LINE_FLOOR: { sentences: 3, says: ['988'] },
     CRISIS_SCRIPT_IMMINENT_READ: { sentences: 5, says: ['911', '988'] },
     CRISIS_SELF_HARM_911_LINE: { sentences: 1, says: ['911'] },
     CRISIS_TIMEOUT_CHECKIN: { sentences: 2, says: ['988'] },
@@ -293,6 +297,8 @@ export interface Shown {
 export const SHOWN_ON: Readonly<Record<string, Shown>> = {
   // The whole turn since the last reply heard whole: the cut-off script's words are read again.
   CRISIS_GATE_TURN_READS: { call: 'said, then cut off', raises: ['imminent', 'emergency', 1] },
+  // A crisis guide's reply names its line (crisis lead, 2026-11-17): code says 988 when the model doesn't.
+  CRISIS_GUIDED_LINE_FLOOR: { call: 'pills', raises: ['crisis', '988 spoken'] },
   CRISIS_READ_JOINED_TURN: { call: 'a line still held' },
   // A turn the patterns answer with the 988 script is still read: imminent makes it 911-first.
   CRISIS_SCRIPT_IMMINENT_READ: { call: 'plain', raises: ['imminent', 'emergency'] },
@@ -305,15 +311,20 @@ export const SHOWN_ON: Readonly<Record<string, Shown>> = {
 /**
  * Flags known to lower a reply today: the value that does it, and exactly what is lost. Each
  * must stay off by default; the test fails once it stops lowering, so the row is deleted and
- * the flag gets a SHOWN_ON row.
+ * the flag gets a SHOWN_ON row. `onEveryLive`: exactly what is lost on top of every other flag
+ * set to live, where another flag's raise is lost with it; absent, the same as `lost`.
  */
-export const LOWERS_A_REPLY: Readonly<Record<string, { value: string; lost: readonly string[] }>> =
-  {
-    // A friend-at-risk line the classifier reads as the caller's own crisis: the guidance for
-    // a worried friend (988 for them, 911 if the danger is immediate) gives way to the caller's
-    // own, which has no 911.
-    THIRD_PARTY_SELF_HARM: {
-      value: 'live',
-      lost: ['a friend at risk/crisis turn 1 :: 911 asked of the model'],
-    },
-  };
+export const LOWERS_A_REPLY: Readonly<
+  Record<string, { value: string; lost: readonly string[]; onEveryLive?: readonly string[] }>
+> = {
+  // A friend-at-risk line the classifier reads as the caller's own crisis: the guidance for
+  // a worried friend (988 for them, 911 if the danger is immediate) gives way to the caller's
+  // own, which has no 911.
+  THIRD_PARTY_SELF_HARM: {
+    value: 'live',
+    lost: ['a friend at risk/crisis turn 1 :: 911 asked of the model'],
+    // With CRISIS_GUIDED_LINE_FLOOR live, code speaks the for-them line, whose 911 this
+    // flag's re-read drops too: the caller's own line is 988 only (crisis lead, 2026-11-17).
+    onEveryLive: ['a friend at risk/crisis turn 1 :: 911 spoken, 911 asked of the model'],
+  },
+};

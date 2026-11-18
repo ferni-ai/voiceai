@@ -8,5 +8,5 @@ export const CRISIS_SCRIPT_IMMINENT_READ = {
   expires: '2027-02-11',
   issue: 'https://github.com/ferni-ai/voiceai/issues/3812',
   context:
-    'Shadow first (imminent reads per scripted turn, would-swap rate), then on after the held-out run and the owner yes; then make it the default.',
+    'Shadow first (imminent reads per scripted turn, would-swap rate), then on after the held-out run and the owner yes; then make it the default. On needs a current owner stamp on the words it can say (agents/personas/__tests__/crisis-script-words.kept.md; the flip gate in crisis-script-words.test.ts).',
 } as const satisfies FlagSpec;

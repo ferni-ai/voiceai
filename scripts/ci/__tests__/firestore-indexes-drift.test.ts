@@ -40,7 +40,7 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the activity and the waitlist indexes', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions and the activity and waitlist indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
@@ -116,7 +116,7 @@ describe('firestore index drift', () => {
     const prodTtls = prod().ttls.map((f) =>
       f.name.split('/collectionGroups/')[1].replace('/fields/', '.')
     );
-    expect(prodTtls).toHaveLength(19);
+    expect(prodTtls).toHaveLength(20);
     // Each prod policy is either already on dev or one the next dev deploy adds.
     const devTtls = new Set(
       dev().ttls.map((f) => f.name.split('/collectionGroups/')[1].replace('/fields/', '.'))

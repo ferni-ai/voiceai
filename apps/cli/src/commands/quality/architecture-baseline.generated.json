@@ -2527,7 +2527,6 @@
   "src/intelligence/context-builders/intelligence/deep-understanding.ts -> src/intelligence/silence-intelligence.ts",
   "src/intelligence/context-builders/intelligence/deep-understanding.ts -> src/intelligence/subconscious-goals.ts",
   "src/intelligence/context-builders/intelligence/deep-understanding.ts -> src/intelligence/voice-text-mismatch.ts",
-  "src/intelligence/context-builders/intelligence/sec-intelligence.ts -> src/services/finance/sec-edgar.ts",
   "src/intelligence/context-builders/memory-retrieval-builder.ts -> src/memory/retrieval/turn-memory-retrieval.ts",
   "src/intelligence/context-builders/persona-insights-cache.ts -> src/memory/redis-cache.ts",
   "src/intelligence/context-builders/personality-context.ts -> src/personality/infrastructure/adapters/emotion-detector-adapter.ts",

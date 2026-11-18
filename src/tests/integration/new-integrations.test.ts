@@ -28,7 +28,6 @@ import {
 } from '../../services/wisdom/life-expectancy.js';
 
 // Context Builders
-import { buildSECIntelligenceContext } from '../../intelligence/context-builders/intelligence/sec-intelligence.js';
 import {
   buildMortalityPerspectiveContext,
   calculateParentVisitsRemaining,
@@ -225,30 +224,6 @@ describe('Life Expectancy Service', () => {
 // ============================================================================
 // CONTEXT BUILDER TESTS
 // ============================================================================
-
-describe('SEC Intelligence Context Builder', () => {
-  it('should extract tickers from text', async () => {
-    const { extractTickers } =
-      await import('../../intelligence/context-builders/intelligence/sec-intelligence.js');
-
-    const tickers = extractTickers('I want to buy some $AAPL and Microsoft stock');
-    expect(tickers).toContain('AAPL');
-    expect(tickers).toContain('MSFT');
-  });
-
-  it('should build context for conversation with stocks', async () => {
-    const context = await buildSECIntelligenceContext(
-      'test-user',
-      'What do you think about Tesla stock?',
-      []
-    );
-
-    // May return null if API fails
-    if (context) {
-      expect(context.contextString).toBeDefined();
-    }
-  });
-});
 
 describe('Mortality Perspective Context Builder', () => {
   it('should detect mortality-relevant topics', async () => {

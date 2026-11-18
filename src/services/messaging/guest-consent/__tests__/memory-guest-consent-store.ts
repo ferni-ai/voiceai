@@ -1,6 +1,7 @@
 /**
  * An in-memory GuestConsentStore for tests: records by "{ownerUid}/{phoneHash}",
  * as the Firestore adapter keys them under bogle_users/{uid}/guest_consents.
+ * It models no accounts: the erasure rules are the Firestore adapter's.
  */
 import type { GuestConsent } from '../domain/guest-consent.js';
 import type { GuestConsentStore } from '../ports/guest-consent-store.js';
@@ -24,6 +25,10 @@ export function memoryGuestConsentStore(): MemoryGuestConsentStore {
     async update(uid, hash, change) {
       const next = change(structuredClone(docs.get(key(uid, hash)) ?? null));
       if (next) docs.set(key(uid, hash), structuredClone(next));
+      return Promise.resolve();
+    },
+    async remove(uid, hash) {
+      docs.delete(key(uid, hash));
       return Promise.resolve();
     },
   };

@@ -6,7 +6,7 @@ URL: `https://ferni-ui-dev-1031920444452.us-central1.run.app`
 
 ## What differs from prod
 
-- Data: `FIRESTORE_DATABASE=ferni-dev`, `FIRESTORE_DB_PIN=refuse`. The service account `ferni-ui-dev@` holds `roles/datastore.user` only on a condition (`resource.name == "projects/johnb-2025/databases/ferni-dev"`), so it cannot read or write the prod `(default)` database. It has no Firebase Auth admin, BigQuery or Vertex role.
+- Data: `FIRESTORE_DATABASE=ferni-dev`, `FIRESTORE_DB_PIN=refuse`. The service account `ferni-ui-dev@` holds `roles/datastore.user` only on a condition (`resource.name == "projects/johnb-2025/databases/ferni-dev"`), so it cannot read or write the prod `(default)` database. Its only other role is the custom `projects/johnb-2025/roles/ferniUiDevAuthRead`, which holds `firebaseauth.users.get` alone: every signed-in request checks that the account is not disabled or revoked (`src/services/identity/token-revocation.ts`), and without it that check fails closed, so every signed-in call answered 503 "Sign-in could not be checked" (`auth/insufficient-permission`; granted 2026-11-18, #4069). It cannot delete or change users, and it has no BigQuery or Vertex role. Users are shared with prod (one Firebase project), so this is a read of prod user records.
 - Calls: the dev LiveKit project (`LIVEKIT_URL`, `livekit-dev-*` secrets) and `AGENT_NAME=voice-agent-dev`.
 - `NODE_ENV=staging` (the data guard accepts only `production` and `staging`), `DEPLOY_ENV=dev`.
 - Left out: Twilio, APNS, Sentry, Redis, and the jobs that send (`FOLLOW_THROUGH_JOB`, `MORNING_BRIEF`, `PONDERING`, `PROACTIVE_CHANNELS`).

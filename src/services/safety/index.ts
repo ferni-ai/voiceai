@@ -32,7 +32,6 @@ export {
   EMERGENCY_FOR_THEM,
   getCrisisResponse,
   LATE_911_LINE,
-  names911,
   namesCrisisLine,
   TALK_TO_988_ES,
 } from './crisis-guard-replies.js';
@@ -45,13 +44,16 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
 // A crisis pattern holds the call's memory before capture (transcript-handler.ts).
 export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
-export { offersCrisisLine } from './crisis-line-speech.js';
+// The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
+export { names911, offersCrisisLine, says988 } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
 export { checkin } from './crisis-timeout-checkin.js';
+// CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
+export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
 export {
   resolveCrisisClassifierTimeoutMs,
@@ -161,6 +163,9 @@ import {
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
+
+/** Whether a crisis is self-harm: code outside the kernel asks this, never the type name. */
+export const isSelfHarm = (type: CrisisType | undefined): boolean => type === 'self_harm';
 
 // ============================================================================
 // FIRESTORE SETUP
