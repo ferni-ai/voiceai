@@ -74,7 +74,7 @@ describe('admin sections send the signed-in admin token', () => {
     }
   });
 
-  it('FinOps sends the token and keeps a stored admin key out of the URL', async () => {
+  it('FinOps sends the admin token and never a stored admin key', async () => {
     localStorage.setItem('admin_key', 'stored-key');
     const finops = await import('../../src/admin/sections/FinOpsSection.js');
     document.body.innerHTML = await finops.render();
@@ -85,7 +85,7 @@ describe('admin sections send the signed-in admin token', () => {
     for (const [url, init] of calls) {
       expect(url).not.toContain('admin_key');
       expect(header(init, 'Authorization')).toBe('Bearer admin-token');
-      expect(header(init, 'X-Admin-Key')).toBe('stored-key');
+      expect(header(init, 'X-Admin-Key')).toBeUndefined();
     }
   });
 
