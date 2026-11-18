@@ -400,6 +400,7 @@ export function startCrisisClassifier(
     return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
+  const readOnTurn = callTurnOf(options.call); // the TURN_RECEIPT turn read, not one it settles on
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
@@ -442,9 +443,8 @@ export function startCrisisClassifier(
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
       {
-        // The call and its TURN_RECEIPT turn, so each read joins its turn exactly (call-turn.ts).
-        sessionId: options.call ?? null,
-        turn: callTurnOf(options.call),
+        sessionId: options.call ?? null, // with `turn`, each read joins its turn exactly
+        turn: readOnTurn,
         mode,
         risk: v?.risk ?? null,
         subject: v?.subject ?? null,

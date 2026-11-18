@@ -15,9 +15,16 @@ import {
 } from '../../../services/safety/crisis-classifier.js';
 import { detectCrisis, guardFromDetection } from '../../../services/safety/crisis-guard.js';
 import { names911, names988 } from '../../../services/safety/crisis-line-speech.js';
+import {
+  GROUNDED_LIGHT_TOUCH,
+  SCREEN_GENTLE_OFFER,
+  SOFT_CRISIS_CHECK,
+  TIMEOUT_CHECKIN,
+} from '../../../services/safety/index.js';
 import { decisionFor, gatedReply } from '../../personas/crisis-gate.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { crisisKindOf } from '../../safety/crisis-event-record.js';
+import { noteGateDecision } from '../../safety/crisis-turn-note.js';
 import type { TurnReceipt } from '../turn-receipt.js';
 import { noteCrisisTurn } from '../turn-receipt-crisis.js';
 import { attachTurnReceipts } from '../turn-receipt-session.js';
@@ -41,6 +48,7 @@ const CALLER_MARK = 'marmalade lighthouse';
 const REPLY_MARK = 'zebra quartz harbor';
 const GUIDE_LINE = `riley test here by the ${CALLER_MARK}, i wish i could just disappear and never wake up`;
 const SCRIPT_LINE = `by the ${CALLER_MARK} i'm going to kill myself tonight`;
+const COLLAPSE_LINE = `my friend just collapsed by the ${CALLER_MARK} and isn't breathing`;
 const ORDINARY_LINE = `what should I cook tonight at the ${CALLER_MARK}?`;
 const MODEL_SAYS = `Try the ${REPLY_MARK} pasta.`;
 
@@ -77,41 +85,51 @@ function openCall() {
   const state = (newState: string, oldState?: string) =>
     session.emit('agent_state_changed', { oldState, newState });
 
+  /** The caller's turn ends (end of utterance). */
+  const commit = () =>
+    session.emit('metrics_collected', {
+      metrics: { type: 'eou_metrics', endOfUtteranceDelayMs: 300, lastSpeakingTimeMs: Date.now() },
+    });
+  /** The gate's reply to `said`: the held stream, unread. */
+  const ask = (said: string, env: Record<string, string>, generate: CrisisGenerateFn) => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+    ctx.addMessage({ role: 'user', content: said });
+    const model = async () => streamOf(MODEL_SAYS);
+    const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
+    return gatedReply(ctx, session, model as never, opener as never, { env, generate });
+  };
+  /** The reply reaches the history and the agent listens again: the turn's receipt. */
+  const finish = (spoken: string, cut = false) => {
+    state('speaking', 'thinking');
+    session.emit('conversation_item_added', {
+      item: llm.ChatMessage.create({ role: 'assistant', content: spoken, interrupted: cut }),
+    });
+    state('listening', 'speaking');
+  };
+
   /** One caller turn: committed, read by the pipeline if asked, replied through the gate. */
   async function turn(
     said: string,
     env: Record<string, string>,
     o: { generate?: CrisisGenerateFn; pipeline?: boolean; requests?: number; cut?: boolean } = {}
   ): Promise<string> {
-    session.emit('metrics_collected', {
-      metrics: { type: 'eou_metrics', endOfUtteranceDelayMs: 300, lastSpeakingTimeMs: Date.now() },
-    });
+    commit();
     const generate = o.generate ?? READS_CRISIS;
     if (o.pipeline) await startTurnCrisis(said, undefined, { sessionId, env, generate }).summary();
-    const ctx = llm.ChatContext.empty();
-    ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
-    ctx.addMessage({ role: 'user', content: said });
-    const model = async () => streamOf(MODEL_SAYS);
-    const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
     let spoken = '';
-    for (let i = 0; i < (o.requests ?? 1); i++) {
-      spoken = '';
-      const reply = await gatedReply(ctx, session, model as never, opener as never, {
-        env,
-        generate,
-      });
-      if (reply)
-        for await (const chunk of reply as unknown as AsyncIterable<string>) spoken += chunk;
-    }
-    state('speaking', 'thinking');
-    session.emit('conversation_item_added', {
-      item: llm.ChatMessage.create({ role: 'assistant', content: spoken, interrupted: !!o.cut }),
-    });
-    state('listening', 'speaking');
+    for (let i = 0; i < (o.requests ?? 1); i++) spoken = await read(await ask(said, env, generate));
+    finish(spoken, o.cut);
     return spoken;
   }
-  return { sessionId, turn };
+  return { sessionId, session, turn, commit, ask, finish };
 }
+
+const read = async (reply: ReadableStream<unknown> | null): Promise<string> => {
+  let spoken = '';
+  if (reply) for await (const chunk of reply as unknown as AsyncIterable<string>) spoken += chunk;
+  return spoken;
+};
 
 const records = (msg: string) =>
   logged.filter((args) => args[1] === msg).map((args) => args[0] as Record<string, unknown>);
@@ -123,6 +141,19 @@ describe('the fictional lines read as each test needs (preconditions)', () => {
     expect(decisionFor(detectCrisis(GUIDE_LINE), GUIDE_LINE).action).toBe('guide');
     expect(decisionFor(detectCrisis(SCRIPT_LINE), SCRIPT_LINE).action).toBe('replace');
     expect(decisionFor(detectCrisis(ORDINARY_LINE), ORDINARY_LINE).action).toBe('pass');
+  });
+
+  it('the 988 script names 988 only; the third-person collapse script names 911 only', () => {
+    const scriptOf = (line: string) =>
+      (decisionFor(detectCrisis(line), line) as { script?: string }).script ?? '';
+    expect([names988(scriptOf(SCRIPT_LINE)), names911(scriptOf(SCRIPT_LINE))]).toEqual([
+      true,
+      false,
+    ]);
+    expect([names988(scriptOf(COLLAPSE_LINE)), names911(scriptOf(COLLAPSE_LINE))]).toEqual([
+      false,
+      true,
+    ]);
   });
 });
 
@@ -158,18 +189,69 @@ describe('TURN_RECEIPT crisis field', () => {
 
   it('a script turn: the gate replaced the reply; its kind and the lines it named', async () => {
     const c = openCall();
-    const spoken = await c.turn(SCRIPT_LINE, PATTERNS);
-    expect(names988(spoken) || names911(spoken)).toBe(true); // the script was spoken
+    await c.turn(SCRIPT_LINE, PATTERNS);
     const field = receipts()[0]!.crisis;
     expect(field).toMatchObject({
       engine: 'gate',
       tier: 'block',
-      reply: names911(spoken) ? 'script911' : 'script988',
-      said988: names988(spoken),
-      said911: names911(spoken),
+      reply: 'script988',
+      said988: true,
+      said911: false,
       delivered: 'full',
     });
     expect(field.kind).toEqual(crisisKindOf(detectCrisis(SCRIPT_LINE))); // enums, never words
+  });
+
+  it('a third-person collapse: the 911 script, counted as 911 and never as 988', async () => {
+    const c = openCall();
+    await c.turn(COLLAPSE_LINE, PATTERNS);
+    expect(receipts()[0]!.crisis).toMatchObject({
+      engine: 'gate',
+      tier: 'block',
+      reply: 'script911',
+      said911: true,
+      said988: false,
+      delivered: 'full',
+    });
+  });
+
+  it.each([
+    [SOFT_CRISIS_CHECK, 'softCheck'],
+    [GROUNDED_LIGHT_TOUCH, 'directCheck'],
+    [SCREEN_GENTLE_OFFER, 'gentleOffer'],
+    [TIMEOUT_CHECKIN, 'checkin'],
+    ['[SAFETY] crisis guidance of its own', 'guidance'],
+  ])('check-in guidance %# gets its own reply class', (guidance, replyClass) => {
+    const c = openCall();
+    c.commit();
+    noteGateDecision(c.session, { action: 'guide', guidance }, 'pattern');
+    c.finish('Okay.');
+    expect(receipts()[0]!.crisis).toMatchObject({
+      engine: 'gate',
+      tier: 'crisis',
+      reply: replyClass,
+    });
+  });
+
+  it('a classifier read that settles after the next commit stays on its own turn', async () => {
+    const c = openCall();
+    let answer: (verdict: string) => void = () => undefined;
+    const pending = new Promise<string>((resolve) => {
+      answer = resolve;
+    });
+    c.commit();
+    const held = await c.ask(ORDINARY_LINE, LIVE, () => pending); // the reply waits on the read
+    c.finish(''); // the caller barged in: turn 1's receipt; turn 2 is open
+    answer('{"risk":"crisis","subject":"self"}');
+    await read(held);
+    await c.turn('thanks, see you', PATTERNS);
+    const reads = records('CRISIS_CLASSIFIER');
+    expect(reads.length).toBeGreaterThan(0);
+    for (const r of reads) expect(r).toMatchObject({ sessionId: c.sessionId, turn: 1 });
+    expect(receipts().map((r) => [r.turn, r.crisis.engine, r.crisis.reply])).toEqual([
+      [1, 'none', 'ordinary'],
+      [2, 'none', 'ordinary'],
+    ]);
   });
 
   it('a script cut by the caller is delivered "cut"', async () => {
