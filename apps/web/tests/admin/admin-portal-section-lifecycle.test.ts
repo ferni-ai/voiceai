@@ -34,9 +34,24 @@ function fakeSection(id: string, delayMs = 0): AdminSection {
   };
 }
 
+/** A section whose setup, like Semantic Routing's, starts its poll only after a first fetch. */
+const slow = { finishSetup: () => {}, polling: false };
+const slowSection: AdminSection = {
+  id: 'slow',
+  name: 'Section slow',
+  icon: '',
+  description: '',
+  component: async () => 'slow',
+  setup: async () => {
+    await new Promise<void>((resolve) => (slow.finishSetup = resolve));
+    slow.polling = true;
+  },
+  cleanup: () => void (slow.polling = false),
+};
+
 vi.mock('../../src/admin/section-registry.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/admin/section-registry.js')>();
-  const sections = [fakeSection('one'), fakeSection('two'), fakeSection('three')];
+  const sections = [fakeSection('one'), fakeSection('two'), fakeSection('three'), slowSection];
   return {
     ...actual,
     ADMIN_SECTIONS: sections,
@@ -96,5 +111,16 @@ describe('admin portal section lifecycle', () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(calls).not.toContain('setup:two');
     expect(shown()).toBe('three');
+  });
+  it('stops a section left while its setup ran, once the setup ends', async () => {
+    slow.polling = false;
+    await openPortal('?section=one');
+    navTo('slow');
+    await vi.waitFor(() => expect(shown()).toBe('slow'));
+    navTo('two');
+    slow.finishSetup();
+    await vi.waitFor(() => expect(shown()).toBe('two'));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(slow.polling).toBe(false);
   });
 });

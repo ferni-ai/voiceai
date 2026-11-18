@@ -248,13 +248,13 @@ async function loadSection(sectionId: string): Promise<void> {
 
   try {
     const html = await section.component();
-    // Fade out the loading state, then show the section and wire it
     content.style.opacity = '0';
     await new Promise((resolve) => setTimeout(resolve, DURATION.FAST));
     if (load !== sectionLoads) return;
     content.innerHTML = html;
     content.style.opacity = '1';
     await section.setup?.(content);
+    if (load !== sectionLoads) section.cleanup?.(); // left while setup ran: stop what it started
     log.debug({ sectionId }, 'Section loaded');
   } catch (error) {
     if (load !== sectionLoads) return;
