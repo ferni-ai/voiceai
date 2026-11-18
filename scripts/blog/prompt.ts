@@ -68,6 +68,23 @@ FACTS
 ${renderPack(sources)}${retry}`;
 }
 
+/**
+ * The prompt for one rewrite after the judge scored a draft under the bar: the
+ * original brief and facts, the draft, and the judge's note for each dimension
+ * it failed.
+ */
+export function revisePrompt(prompt: string, draft: DraftText, notes: string[]): string {
+  return `${prompt}
+
+YOUR DRAFT
+${JSON.stringify(draft)}
+
+THE JUDGE SCORED YOUR DRAFT AND IT DOES NOT PUBLISH YET. Its notes on each dimension under the bar:
+${notes.map((n) => `- ${n}`).join('\n')}
+
+Rewrite the post so each note no longer applies, and keep what already works. Fix a note by cutting, tightening or rewording: never by adding a fact, number, person, place or event that isn't in the FACTS. All the hard rules still apply. Answer in the same JSON format.`;
+}
+
 /** The model's JSON, with or without a code fence around it. */
 export function parseDraft(raw: string): DraftText {
   const json = raw
