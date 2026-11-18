@@ -25,7 +25,7 @@ import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GDPR export uses generic shapes
 type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
-import { erasureErrorCode, erasureSteps } from './erasure-step.js';
+import { erasureErrorCode, erasureSteps, restoreSignIns } from './erasure-step.js';
 import { EXPORT_CATEGORIES } from './export-categories.js';
 import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
 import { countUserRecords, exportUserRecords } from './user-records-export.js';
@@ -758,9 +758,9 @@ class DataExportService {
 
   /**
    * Delete all user data (GDPR right to erasure).
-   * Comprehensive deletion across all data stores.
+   * keepAccount: the data only (DELETE /api/export/all); the account and its sign-in stay.
    */
-  async deleteAllData(userId: string): Promise<Record<string, boolean>> {
+  async deleteAllData(userId: string, keepAccount = false): Promise<Record<string, boolean>> {
     const deletionResults: Record<string, boolean> = {};
     const step = erasureSteps(deletionResults, userId, log);
 
@@ -781,7 +781,7 @@ class DataExportService {
 
       // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed.
       const { eraseUserRecord } = await import('./erase-user-record.js');
-      await eraseUserRecord(userId);
+      const uids = await eraseUserRecord(userId, undefined, undefined, undefined, { keepAccount });
       try {
         const { getDefaultStore } = await import('../../memory/index.js');
         await getDefaultStore().deleteProfile(userId);
@@ -821,12 +821,12 @@ class DataExportService {
         const { deleteAnswerCardsForUser } = await import('../approvals/answer-cards.js');
         await deleteAnswerCardsForUser(userId);
       });
-
       // 7. Conversations are not deleted here: bogle_users/{uid}/conversations (timelines
       // included) is erased with the user record in step 2.
       // 8. Cognitive memory is not deleted here: it is an in-process Map of per-session state,
       // with nothing persisted to erase.
 
+      if (keepAccount) restoreSignIns(uids, deletionResults); // after every step above
       log.info({ userId, deletionResults }, '🗑️ User data deletion completed');
       return deletionResults;
     } catch (error) {

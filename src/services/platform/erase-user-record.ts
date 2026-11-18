@@ -118,14 +118,15 @@ async function runPhase(jobs: readonly Job[], userId: string): Promise<void> {
  * unreachable or anything survives, so callers never report an erasure that did not
  * happen. Runs in phases, each only once the one before left nothing: everything
  * else, then the linked phone profiles' key stores (tier 1, then their records), then
- * the user's own.
+ * the user's own. Returns the uids erased: the user's and each linked phone profile's.
  */
 export async function eraseUserRecord(
   userId: string,
   firestore?: Db,
   stores: readonly OwnedStore[] = ERASED_STORES,
-  keyed: readonly KeyedStore[] = KEYED_STORES
-): Promise<void> {
+  keyed: readonly KeyedStore[] = KEYED_STORES,
+  options: EraseOptions = {}
+): Promise<string[]> {
   assertErasableUserId(userId);
   // Outreach held in memory goes before and after the sweep, refused from then on (a live session)
   const { eraseUserOutreachData } = await import('../outreach/outreach-intelligence.js');
@@ -139,7 +140,7 @@ export async function eraseUserRecord(
   if (flagOn('BQ_ERASURE')) await queueBqErasure(db, [userId, ...linked]);
   // The records this erasure deletes are marked before anything goes
   if (stores.some((store) => storeLabel(store) === `${USER_RECORDS_COLLECTION}/{uid}`))
-    await markErasing(db, [userId, ...linked]);
+    await markErasing(db, [userId, ...linked], signInHeld(options));
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
@@ -173,7 +174,20 @@ export async function eraseUserRecord(
     await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
   }
   await eraseUserOutreachData(userId);
+  return [userId, ...linked];
 }
+
+export interface EraseOptions {
+  /**
+   * The data only, the account kept (DELETE /api/export/all): with DATA_ERASE_KEEPS_SIGNIN on,
+   * the sign-ins are held while the erasure runs, not refused for good, and restoreSignIns
+   * (erasure-step.ts) releases them once it has fully succeeded (#3292)
+   */
+  keepAccount?: boolean;
+}
+
+const signInHeld = (options: EraseOptions): boolean =>
+  options.keepAccount === true && flagOn('DATA_ERASE_KEEPS_SIGNIN');
 
 /**
  * Marks each record `erasing` (utils/erasing-mark.ts) before anything is deleted. A write still running for the
@@ -183,10 +197,11 @@ export async function eraseUserRecord(
  * (erasure-keys.ts). One update, which needs the record to exist: a write that read the
  * record before the mark either lands first (and is erased with the rest) or is retried
  * and finds the mark. A record that doesn't exist isn't created. Any other failure fails
- * the erasure before anything is deleted.
+ * the erasure before anything is deleted. Their tokens stop working here now: for good, or,
+ * with `held` (the account kept), until restoreSignIns.
  */
-async function markErasing(db: Db, userIds: readonly string[]): Promise<void> {
-  for (const uid of userIds) invalidateAccount(uid, 'gone'); // their tokens stop working here now
+async function markErasing(db: Db, userIds: readonly string[], held: boolean): Promise<void> {
+  for (const uid of userIds) invalidateAccount(uid, held ? 'erasing' : 'gone');
   const mark = erasingMark();
   await Promise.all(
     userIds.map(async (uid) =>

@@ -378,7 +378,9 @@ describe('GDPR Data Deletion Integration', () => {
     it('is erased, so the memories the agent keeps there go with the account', async () => {
       expect(eraseUserRecord).not.toHaveBeenCalled();
       const results = await getDataExportService().deleteAllData(testUserId);
-      expect(eraseUserRecord).toHaveBeenCalledWith(testUserId);
+      expect(eraseUserRecord).toHaveBeenCalledWith(testUserId, undefined, undefined, undefined, {
+        keepAccount: false,
+      });
       expect(results.engagement).toBe(true);
     });
 

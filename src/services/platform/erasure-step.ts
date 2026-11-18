@@ -6,6 +6,7 @@
  */
 
 import type { FallbackLogger } from '../../utils/safe-logger.js';
+import { restoreAccount } from '../identity/token-revocation.js';
 
 export type ErasureStep = (
   key: string,
@@ -36,6 +37,17 @@ export function erasureErrorCode(error: unknown): string {
 export function assertErased(results: Record<string, boolean> | undefined): void {
   const left = Object.keys(results ?? {}).filter((step) => results?.[step] === false);
   if (left.length > 0) throw new Error(`Data left behind: ${left.join(',')}`);
+}
+
+/**
+ * Last step of a data-only erasure: the sign-ins held during it (the uids eraseUserRecord
+ * returned) work again, but only when every step succeeded. One that left anything behind
+ * keeps them refused, as a failed record sweep does (it throws, so this never runs).
+ * Releases only an `erasing` hold, so an account deleted meanwhile stays refused (#3292).
+ */
+export function restoreSignIns(userIds: readonly string[], results: Record<string, boolean>): void {
+  if (Object.values(results).includes(false)) return;
+  for (const uid of userIds) restoreAccount(uid);
 }
 
 export function erasureSteps(
