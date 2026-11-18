@@ -8,6 +8,7 @@
 import { ReadableStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
+import { escalationFailsClosed } from './crisis-gate-failure.js';
 
 const log = createLogger({ module: 'CrisisGate' }); // the gate's own log lines, as before
 
@@ -76,4 +77,11 @@ export function holdUntilCleared<C, D>(
       await reader.cancel(reason).catch(() => undefined);
     },
   });
+}
+
+/** The hold for this env: CRISIS_GATE_FAIL_CLOSED's never releases a reply on a rejection. */
+export function holdFor(env: Record<string, string | undefined>): typeof holdUntilCleared {
+  if (!escalationFailsClosed(env)) return holdUntilCleared;
+  return (reply, escalation, replacement) =>
+    holdUntilCleared(reply, escalation, replacement, { failClosed: true });
 }
