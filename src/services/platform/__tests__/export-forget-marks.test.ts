@@ -179,10 +179,35 @@ describe('data export, FORGET_EVERY_READER on, production shapes', () => {
     expect(call).toMatchObject({ heldByForget: true });
   });
 
-  it('CSV says when the list could not be read', async () => {
+  it('CSV says when the list could not be read, and gives no count', async () => {
     topics.mockResolvedValue(null);
     const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
     expect(csv.split('\n')).toContain('# Forgotten topics: could not be read');
+    expect(csv).not.toContain('Records tagged heldByForget');
+  });
+
+  it('CSV counts tagged records it can only show as item counts, and points to the JSON', async () => {
+    history.getHistory.mockResolvedValue({
+      sessions: [
+        { id: 's1', summary: 'Denver offer', messages: [{ text: 'the Denver office called' }] },
+        { id: 's2', summary: 'moving to Denver' },
+        { id: 's3', summary: 'garden' },
+      ],
+    });
+    const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
+    const lines = csv.split('\n');
+    expect(lines).toContain('sessions,3 items');
+    expect(lines).toContain(
+      '# Records tagged heldByForget: 2. The JSON download shows which ones.'
+    );
+    const file = await exportJson();
+    expect(file.heldCount).toBe(2);
+  });
+
+  it('CSV with nothing tagged says 0 and sends nobody to the JSON', async () => {
+    topics.mockResolvedValue([]);
+    const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
+    expect(csv.split('\n')).toContain('# Records tagged heldByForget: 0.');
   });
 });
 

@@ -26,6 +26,8 @@ export interface ForgetMarks {
   forgottenTopics: string[] | null;
   /** Why records are tagged, for a reader of the file. */
   forgottenNote: string;
+  /** How many records are tagged: the CSV shows nested records only as counts, so it says this. */
+  heldCount: number;
 }
 
 const NOTE =
@@ -50,15 +52,16 @@ export async function markHeldByForget(
     const stored = await forgottenTopicsOrNull(userId);
     if (stored !== null) {
       const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-      if (topics.length > 0) tag(categories, (text) => isForgottenPassage(text, topics));
-      return { forgottenTopics: topics, forgottenNote: NOTE };
+      const heldCount =
+        topics.length > 0 ? tag(categories, (text) => isForgottenPassage(text, topics)) : 0;
+      return { forgottenTopics: topics, forgottenNote: NOTE, heldCount };
     }
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Forget marks failed');
   }
   // The export goes out whole either way: a mark is extra, never a reason to fail the file
   log.warn({ userId }, 'Forgotten topics unreadable: export not tagged');
-  return { forgottenTopics: null, forgottenNote: UNREAD_NOTE };
+  return { forgottenTopics: null, forgottenNote: UNREAD_NOTE, heldCount: 0 };
 }
 
 /** Every string under a value, a few levels down. */
@@ -72,17 +75,17 @@ function textOf(value: unknown, depth = 0): string {
 /**
  * Tags each record (an object in a list, at any depth) whose text is about a forgotten topic,
  * the innermost one: a conversation is tagged only when no message in it explains the match.
- * Returns whether anything under `value` was tagged.
+ * Returns how many records under `value` were tagged.
  */
-function tag(value: unknown, about: (text: string) => boolean, depth = 0): boolean {
-  if (depth > 6 || value === null || typeof value !== 'object') return false;
-  let tagged = false;
+function tag(value: unknown, about: (text: string) => boolean, depth = 0): number {
+  if (depth > 6 || value === null || typeof value !== 'object') return 0;
+  let tagged = 0;
   for (const item of Array.isArray(value) ? value : Object.values(value)) {
     const inner = tag(item, about, depth + 1);
     // Only this pass's tags count: a stored heldByForget value is data, not an explanation
-    const hit = !inner && Array.isArray(value) && isRecord(item) && about(textOf(item));
+    const hit = inner === 0 && Array.isArray(value) && isRecord(item) && about(textOf(item));
     if (hit) item.heldByForget = true;
-    tagged ||= inner || hit;
+    tagged += inner + (hit ? 1 : 0);
   }
   return tagged;
 }
@@ -95,7 +98,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function forgetMarksCsvLines(marks: Partial<ForgetMarks>): string[] {
   if (marks.forgottenTopics === undefined) return [];
   const topics = marks.forgottenTopics?.join('; ') ?? 'could not be read';
-  return [`# Forgotten topics: ${topics}`, `# ${marks.forgottenNote ?? ''}`];
+  const lines = [`# Forgotten topics: ${topics}`, `# ${marks.forgottenNote ?? ''}`];
+  if (marks.forgottenTopics === null) return lines;
+  // Nested records reach this file only as counts, so say how many are tagged and where to look
+  const n = marks.heldCount ?? 0;
+  const which = n > 0 ? ' The JSON download shows which ones.' : '';
+  return [...lines, `# Records tagged heldByForget: ${n}.${which}`];
 }
 
 /** A list's CSV columns gain heldByForget when any of its rows is tagged (the first may not be). */
