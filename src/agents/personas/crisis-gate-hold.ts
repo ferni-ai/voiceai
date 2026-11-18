@@ -6,6 +6,7 @@
  */
 
 import { ReadableStream } from 'node:stream/web';
+import type { CallTurnIds } from '../../utils/call-turn.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 
@@ -14,11 +15,12 @@ const log = createLogger({ module: 'CrisisGate' }); // the gate's own log lines,
 /**
  * Hold the model's reply until the escalation settles. No escalation: release
  * what was held and pass the rest through. An escalation: drop the reply and
- * stream the replacement instead.
+ * stream the replacement instead. `ids`: the call and turn on the CRISIS_HOLD line.
  */
 export function holdUntilCleared<C, D>(
   reply: ReadableStream<C>,
   escalation: Promise<D | null>,
+  ids: CallTurnIds,
   replacement: (decision: D) => Promise<ReadableStream<C> | null>
 ): ReadableStream<C> {
   const reader = reply.getReader();
@@ -45,7 +47,7 @@ export function holdUntilCleared<C, D>(
         if (!decision) {
           released = true;
           // How long a ready reply waited on the classifier: the latency this gate adds.
-          log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
+          log.info({ ...ids, delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
           for (const chunk of held) controller.enqueue(chunk);
           held.length = 0;
           await pump;

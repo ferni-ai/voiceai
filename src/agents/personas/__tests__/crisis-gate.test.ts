@@ -200,12 +200,16 @@ describe('startCrisisGate: the classifier', () => {
   });
 });
 
+const NO_CALL = { sessionId: null, turn: null };
+const AT_CALL = { sessionId: 'RM_riley_test_hold', turn: 4 };
+
 describe('holdUntilCleared', () => {
   it('releases the whole reply when nothing escalates', async () => {
     const out = await collect(
       holdUntilCleared(
         streamOf(['Hey', ' there'], 5) as never,
         Promise.resolve(null),
+        NO_CALL,
         async () => null
       )
     );
@@ -218,7 +222,12 @@ describe('holdUntilCleared', () => {
       clear = resolve;
     });
     const seen: unknown[] = [];
-    const held = holdUntilCleared(streamOf(['a', 'b', 'c']) as never, escalation, async () => null);
+    const held = holdUntilCleared(
+      streamOf(['a', 'b', 'c']) as never,
+      escalation,
+      NO_CALL,
+      async () => null
+    );
     const reading = (async () => {
       for await (const chunk of held as unknown as AsyncIterable<unknown>) seen.push(chunk);
     })();
@@ -233,8 +242,12 @@ describe('holdUntilCleared', () => {
 
   it('logs how long a ready reply waited on the verdict', async () => {
     logInfo.mockClear();
-    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), 60));
-    await collect(holdUntilCleared(streamOf(['Hey', ' there']) as never, late, async () => null));
+    const late = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 60);
+    });
+    await collect(
+      holdUntilCleared(streamOf(['Hey', ' there']) as never, late, NO_CALL, async () => null)
+    );
     const [fields] = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_HOLD') ?? [];
     expect((fields as { delayedMs: number }).delayedMs).toBeGreaterThanOrEqual(40);
   });
@@ -242,10 +255,15 @@ describe('holdUntilCleared', () => {
   it('logs no delay when the verdict came before the reply', async () => {
     logInfo.mockClear();
     await collect(
-      holdUntilCleared(streamOf(['Hey'], 30) as never, Promise.resolve(null), async () => null)
+      holdUntilCleared(
+        streamOf(['Hey'], 30) as never,
+        Promise.resolve(null),
+        AT_CALL,
+        async () => null
+      )
     );
     const [fields] = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_HOLD') ?? [];
-    expect(fields).toEqual({ delayedMs: 0 });
+    expect(fields).toEqual({ ...AT_CALL, delayedMs: 0 }); // the call and turn: ids, no words
   });
 
   it('drops the reply and speaks the replacement on escalation', async () => {
@@ -253,6 +271,7 @@ describe('holdUntilCleared', () => {
       holdUntilCleared(
         streamOf(['Sounds fun!', ' Tell me more'], 5) as never,
         Promise.resolve({ action: 'replace', script: 'Please call 911.' }),
+        NO_CALL,
         async (decision) => (decision.action === 'replace' ? textReply(decision.script) : null)
       )
     );
@@ -261,7 +280,12 @@ describe('holdUntilCleared', () => {
 
   it('treats a rejected escalation as no escalation', async () => {
     const out = await collect(
-      holdUntilCleared(streamOf(['ok']) as never, Promise.reject(new Error('x')), async () => null)
+      holdUntilCleared(
+        streamOf(['ok']) as never,
+        Promise.reject(new Error('x')),
+        NO_CALL,
+        async () => null
+      )
     );
     expect(out).toEqual(['ok']);
   });

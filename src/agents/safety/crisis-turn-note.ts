@@ -12,7 +12,7 @@
  *
  * @module agents/safety/crisis-turn-note
  */
-import { callTurnOf } from '../../utils/call-turn.js';
+import { callTurnOf, type CallTurnIds } from '../../utils/call-turn.js';
 import { SOFT_CRISIS_CHECK } from '../../services/safety/crisis-agreement.js';
 import {
   logCrisisOverride,
@@ -98,17 +98,23 @@ export function noteGateDecision(
   }
 }
 
-/** A reply gate's decision now and its classifier escalation once it settles (gatedReply). */
+/**
+ * A reply gate's decision now and its classifier escalation once it settles (gatedReply).
+ * Returns the call and the turn this reply answers, for its other log lines (CRISIS_HOLD).
+ */
 export function noteGateTurn(
   session: unknown,
   gate: { decision: GateDecision; escalation: Promise<GateDecision | null> | null } | null
-): void {
-  if (!gate) return;
-  const turn = callTurnOf(sessionIdOf(session)); // the turn this reply answers, not a later one
+): CallTurnIds {
+  const sessionId = sessionIdOf(session);
+  const turn = callTurnOf(sessionId); // the turn this reply answers, not a later one
+  const ids = { sessionId: sessionId ?? null, turn };
+  if (!gate) return ids;
   noteGateDecision(session, gate.decision, 'pattern', turn);
   gate.escalation
     ?.then((d) => noteGateDecision(session, d, 'classifier', turn))
     .catch(() => undefined);
+  return ids;
 }
 
 /** The turn pipeline's settled read (turn-crisis.ts), on the call's open turn. */

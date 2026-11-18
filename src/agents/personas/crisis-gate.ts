@@ -412,7 +412,7 @@ export async function gatedReply(
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = gateRequest(chatCtx, session, options);
   signalGateDecisions(session, gate);
-  noteGateTurn(session, gate); // the turn's TURN_RECEIPT and the override log, words-free
+  const ids = noteGateTurn(session, gate); // the turn's TURN_RECEIPT and override log, words-free
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   const script = (text: string): string => crisisScriptFor(text, chatCtx, risk, env);
@@ -481,7 +481,7 @@ export async function gatedReply(
   );
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
-  return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
+  return holdUntilCleared(reply ?? textReply(''), gate.escalation, ids, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;

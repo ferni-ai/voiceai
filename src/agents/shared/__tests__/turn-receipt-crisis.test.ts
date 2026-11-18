@@ -46,6 +46,7 @@ const MODEL_SAYS = `Try the ${REPLY_MARK} pasta.`;
 const PATTERNS = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const READS_CRISIS: CrisisGenerateFn = async () => '{"risk":"crisis","subject":"self"}';
+const READS_NONE: CrisisGenerateFn = async () => '{"risk":"none","subject":"self"}';
 
 let calls = 0;
 beforeEach(() => {
@@ -187,7 +188,7 @@ describe('TURN_RECEIPT crisis field', () => {
   });
 });
 
-describe('CRISIS_CLASSIFIER and the override line join their turn', () => {
+describe('CRISIS_CLASSIFIER, CRISIS_HOLD and the override line join their turn', () => {
   it('each classifier read carries the call and the turn of its receipt', async () => {
     const c = openCall();
     await c.turn('hello there', PATTERNS);
@@ -195,6 +196,15 @@ describe('CRISIS_CLASSIFIER and the override line join their turn', () => {
     const reads = records('CRISIS_CLASSIFIER');
     expect(reads.length).toBeGreaterThan(0);
     for (const read of reads) expect(read).toMatchObject({ sessionId: c.sessionId, turn: 2 });
+  });
+
+  it('a held reply released by the classifier logs CRISIS_HOLD with the call and turn', async () => {
+    const c = openCall();
+    await c.turn('hello there', PATTERNS);
+    await c.turn(ORDINARY_LINE, LIVE, { generate: READS_NONE });
+    const holds = records('CRISIS_HOLD');
+    expect(holds).toHaveLength(1);
+    expect(holds[0]).toEqual({ sessionId: c.sessionId, turn: 2, delayedMs: expect.any(Number) });
   });
 
   it('logs once per replaced turn, however many requests the turn gated', async () => {
@@ -221,9 +231,11 @@ describe('no words reach the log', () => {
     await c.turn(GUIDE_LINE, LIVE, { pipeline: true });
     await c.turn(SCRIPT_LINE, LIVE, { pipeline: true });
     await c.turn(ORDINARY_LINE, LIVE, { generate: READS_CRISIS });
+    await c.turn(ORDINARY_LINE, LIVE, { generate: READS_NONE });
     const all = JSON.stringify(logged);
     // The capture is not empty: every line this file adds was written.
-    expect(receipts().length).toBe(4);
+    expect(receipts().length).toBe(5);
+    expect(records('CRISIS_HOLD').length).toBe(1);
     expect(records('CRISIS_CLASSIFIER').length).toBeGreaterThan(0);
     expect(overrides().length).toBe(1);
     expect(all).not.toContain(CALLER_MARK);

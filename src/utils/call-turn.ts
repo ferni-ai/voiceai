@@ -1,6 +1,6 @@
 /**
  * The TURN_RECEIPT number of each live call's open turn, by session id, so a log line
- * written outside the receipt (CRISIS_CLASSIFIER, the crisis override) can be joined to
+ * written outside the receipt (CRISIS_CLASSIFIER, CRISIS_HOLD, the crisis override) can be joined to
  * its turn exactly instead of by time. The recorder (turn-receipt-session.ts) binds it;
  * a leaf module, so services can read it without importing the agents layer.
  *
@@ -9,6 +9,12 @@
 import { createSessionBindings } from './session-bindings.js';
 
 const turns = createSessionBindings<() => number>();
+
+/** A log line's join keys: the call and its turn, ids only. */
+export interface CallTurnIds {
+  sessionId: string | null;
+  turn: number | null;
+}
 
 /** The call's open turn number, read when asked. Returns the release. */
 export function bindCallTurn(sessionId: string, current: () => number): () => void {
