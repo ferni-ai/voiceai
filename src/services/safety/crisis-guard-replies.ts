@@ -23,12 +23,16 @@ export const LATE_911_LINE = "And if you're in danger right now, call 911.";
 /** Whether a reply's sentence names a line to call. */
 export const namesCrisisLine = (text: string): boolean => /\b(?:911|988)\b/.test(text);
 
-/** Whether a reply's text already tells the caller to call 911. */
-export const names911 = (text: string): boolean => /\b911\b/.test(text);
-
 /** The 988 line in Spanish, in the Spanish crisis reply's words (the timeout check-in reuses it). */
 export const TALK_TO_988_ES =
   'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';
+
+/** The Spanish crisis reply's 911 sentence (the 988 floor reuses it). */
+export const CALL_911_ES = 'Si estás en peligro ahora mismo, llama al 911.';
+
+/** The 988 line for someone the caller is worried about, in the third-party reply's words. */
+export const FOR_THEM_988 =
+  "You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.";
 
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
@@ -67,14 +71,14 @@ I'm staying right here with you. Is anyone nearby who can be with you?`;
   if (subject === 'third_party') {
     return `It sounds like you're really worried about them, and it matters that you're paying attention. You don't have to handle this alone either.
 
-You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.
+${FOR_THEM_988}
 
 What's going on with them right now?`;
   }
   if (language === 'es') {
     return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
 
-${TALK_TO_988_ES} Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
+${TALK_TO_988_ES} Hay consejeros disponibles las 24 horas. ${CALL_911_ES}
 
 Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
   }

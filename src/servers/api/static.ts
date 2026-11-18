@@ -9,8 +9,10 @@ import path from 'path';
 import zlib from 'zlib';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createFirebaseWebConfigRoute, FIREBASE_INIT_PATH } from './firebase-web-config.js';
 
 const log = createLogger({ module: 'StaticFiles' });
+const serveFirebaseWebConfig = createFirebaseWebConfigRoute();
 
 /**
  * MIME type mapping
@@ -177,6 +179,12 @@ export function handleStaticRoutes(
   pathname: string
 ): boolean {
   protectStandalonePage(res, pathname);
+
+  // Hosting serves this in prod; the dev UI is reached directly (see firebase-web-config.ts)
+  if (pathname === FIREBASE_INIT_PATH) {
+    void serveFirebaseWebConfig(res);
+    return true;
+  }
 
   // Serve index.html for root
   if (pathname === '/' || pathname === '') {

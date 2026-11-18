@@ -85,7 +85,7 @@ function textOf(ev: stt.SpeechEvent | string | undefined): string | undefined {
 /** The chain over a feed, started at mix time 49 s. */
 async function chainFor(feed: ReturnType<typeof sttFeed>, on: object = session) {
   clockAt(49_000);
-  const chained = await sttChain(on, audio, feed.base);
+  const chained = await sttChain(on, new ReadableStream<AudioFrame>(), feed.base);
   if (!chained) throw new Error('no STT stream');
   return chained.getReader();
 }
@@ -127,7 +127,6 @@ describe('sttChain group call labels', () => {
       '[unclear] see you at six',
       '[unclear] sounds good',
     ]);
-    expect(feed.base).toHaveBeenCalledWith(audio);
   });
 
   it('passes an empty or blank final through unlabelled, so the SDK still drops it', async () => {
@@ -212,7 +211,7 @@ describe('sttChain group call labels', () => {
     expect(textOf(await heard(feed, reader, final('hi Sarah'), 50_000))).toBe('[unclear] hi Sarah');
   });
 
-  it('puts the name right before the label goes on', async () => {
+  it('puts the name right on a labelled final, the label kept', async () => {
     vi.stubEnv('NAME_MISHEAR_NORMALIZE', 'on');
     hearingOnCall();
     const feed = sttFeed();
@@ -249,6 +248,7 @@ describe('sttChain group call labels', () => {
     feed.base.mockClear();
     // First-turn-fast and the name fix are off, so name-fix hands back the base stream.
     expect(await sttChain(session, audio, feed.base)).toBe(stream);
+    expect(feed.base).toHaveBeenCalledWith(audio); // the input itself, not a gated copy
   });
 
   it('no STT stream stays null', async () => {

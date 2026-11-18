@@ -21,6 +21,14 @@ describe('properNameAsSaid (#4028)', () => {
     expect(properNameAsSaid(p)).toBeNull();
   });
 
+  it.each(['NYC', 'LA', 'Washington DC'])('keeps the listed abbreviation "%s" (#4034)', (p) => {
+    expect(properNameAsSaid(p)).toBe(p);
+  });
+
+  it.each(['IBM', 'NASA'])('keeps a company said in capitals: "%s"', (p) => {
+    expect(properNameAsSaid(p)).toBe(p);
+  });
+
   it('trims what it keeps', () => {
     expect(properNameAsSaid(' Acme Labs ')).toBe('Acme Labs');
   });

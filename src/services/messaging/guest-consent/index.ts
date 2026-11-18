@@ -11,11 +11,17 @@
  */
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { firestoreGuestConsentStore } from './adapters/firestore-guest-consent-store.js';
-import * as useCases from './use-cases/guest-consent.js';
+import {
+  firestoreGuestInviteStore,
+  readOwnerName,
+} from './adapters/firestore-guest-invite-store.js';
+import type { GuestInviteAnswer } from './domain/guest-invite.js';
 import type { GuestConsentDeps } from './use-cases/guest-consent.js';
+import * as invites from './use-cases/guest-invite.js';
+import type { GuestInviteView } from './use-cases/guest-invite.js';
 
-export { GUEST_CONSENT_WORDING_VERSION } from './domain/guest-consent.js';
-export type { GuestConsentDeps } from './use-cases/guest-consent.js';
+export type { GuestInviteAnswer } from './domain/guest-invite.js';
+export type { GuestInviteView } from './use-cases/guest-invite.js';
 
 function defaultGuestConsentDeps(): GuestConsentDeps {
   return {
@@ -25,35 +31,22 @@ function defaultGuestConsentDeps(): GuestConsentDeps {
   };
 }
 
-/** True only when the guest's yes for this owner stands, for the current wording or newer. */
-export async function hasGuestConsent(
-  ownerUid: string,
-  e164: string,
-  deps: GuestConsentDeps = defaultGuestConsentDeps()
+const defaultGuestInviteDeps = (): invites.GuestInviteDeps => ({
+  invites: firestoreGuestInviteStore(),
+  consent: defaultGuestConsentDeps(),
+  ownerName: readOwnerName,
+  now: () => new Date(),
+});
+
+/** The guest's page for an invite link's token; null for an unknown, used or expired one. */
+export async function viewGuestInvite(token: unknown): Promise<GuestInviteView | null> {
+  return invites.viewGuestInvite(token, defaultGuestInviteDeps());
+}
+
+/** The guest's answer for an invite link's token, once; false for an unknown, used or expired one. */
+export async function answerGuestInvite(
+  token: unknown,
+  answer: GuestInviteAnswer
 ): Promise<boolean> {
-  return useCases.hasGuestConsent(ownerUid, e164, deps);
-}
-
-/**
- * Records the guest's yes to `wordingVersion`, said at `saidAt` (default now): a
- * revoke made after that time stands. Throws for a wording version above the
- * current one, or when it can't be keyed or saved.
- */
-export async function recordGuestConsent(
-  ownerUid: string,
-  e164: string,
-  wordingVersion: number,
-  saidAt?: Date,
-  deps: GuestConsentDeps = defaultGuestConsentDeps()
-): Promise<void> {
-  return useCases.recordGuestConsent(ownerUid, e164, wordingVersion, deps, saidAt);
-}
-
-/** Records the guest's revoke; the record stays. Throws when it can't be keyed or saved. */
-export async function revokeGuestConsent(
-  ownerUid: string,
-  e164: string,
-  deps: GuestConsentDeps = defaultGuestConsentDeps()
-): Promise<void> {
-  return useCases.revokeGuestConsent(ownerUid, e164, deps);
+  return invites.answerGuestInvite(token, answer, defaultGuestInviteDeps());
 }

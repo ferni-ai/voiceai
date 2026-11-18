@@ -440,6 +440,13 @@ describe('checkin.ending', () => {
     );
   });
 
+  it('reads 988 with the shared reader (names988): Spanish words and 9-8-8 are not doubled', async () => {
+    const spanish = '¿Estás a salvo ahora mismo? Puedes llamar al nueve ocho ocho.';
+    expect(await said('no estoy a salvo', spanish)).toBe(spanish);
+    const dashed = 'Are you safe right now? Call or text 9-8-8.';
+    expect(await said('unsafe', dashed)).toBe(dashed);
+  });
+
   it('never counts another number or the Crisis Text Line as 988', async () => {
     expect(await said('unsafe', 'Are you safe? Text 741741 or call 19880.')).toContain(
       'call or text 988 to talk'

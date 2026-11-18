@@ -309,27 +309,6 @@ clearNamedInterval('cleanup-task');
 clearAllIntervals();
 ```
 
-### Lazy Service
-
-```typescript
-import { lazyService } from '../utils/index.js';
-
-// Create a lazy-loaded service
-const expensiveService = lazyService(
-  async () => import('./expensive-service.js'),
-  {
-    name: 'expensive-service',
-    preloadDelay: 30000,  // Preload after 30s
-    debug: true,
-  }
-);
-
-// Only initializes on first access
-const service = await expensiveService();
-```
-
-**Note:** The `lazyServices` registry has moved to `src/services/lazy-registry.ts`.
-
 ### ID Generation
 
 ```typescript
@@ -497,9 +476,7 @@ utils/
 ├── background-task.ts       # Background task utilities
 ├── session-registry.ts      # Session state management
 ├── interval-manager.ts      # Managed intervals
-├── lazy-service.ts          # Lazy initialization utility
 ├── firestore-utils.ts       # Firestore helpers
-├── cleanup-patterns.ts      # Resource cleanup helpers
 ├── metrics.ts               # General metrics collection
 ├── performance-metrics.ts   # Performance tracking
 ├── cognitive-metrics.ts     # AI-specific metrics

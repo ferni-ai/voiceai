@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { flagOn, type Env } from './env-flag.js';
 
 const log = createLogger({ module: 'VoiceIds' });
 
@@ -165,6 +166,22 @@ export const RETIRED_CLONES = {
 export const RETIRED_CLONE_VOICE_IDS: ReadonlySet<string> = new Set(Object.values(RETIRED_CLONES));
 
 /**
+ * The setting that holds Seth's own cloned voice id (his consent record in
+ * personas/roster names the same setting; this file can't import the roster).
+ * The id is never in code.
+ */
+const SETH_VOICE_SETTING = 'ROSTER_VOICE_SETH';
+
+/**
+ * Seth's cloned voice id from its setting, trimmed, or null when it is unset or
+ * blank. Exported once a caller outside this file needs it (the seth-teammate
+ * gate, docs/plans/2026-11-17-seth-teammate-plan.md Task 2).
+ */
+function sethVoiceId(env: Env = process.env): string | null {
+  return env[SETH_VOICE_SETTING]?.trim() || null;
+}
+
+/**
  * Alias for backwards compatibility with cartesia-core.ts
  */
 export const DEFAULT_VOICE_IDS = VOICE_IDS;
@@ -180,6 +197,11 @@ export const DEFAULT_VOICE_IDS = VOICE_IDS;
  */
 export function getVoiceIdForPersona(personaId: string): string {
   const normalized = personaId.toLowerCase();
+
+  // Seth speaks only in his own clone, and only while SETH_TEAMMATE is on. Off or
+  // unset means no voice: '' rather than the unknown-persona fallback below,
+  // which would give him Ferni's.
+  if (normalized === 'seth') return (flagOn('SETH_TEAMMATE') && sethVoiceId()) || '';
 
   // Check environment variable override first
   // Canonical names (preferred) with fallback to legacy names
