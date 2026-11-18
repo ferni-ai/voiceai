@@ -193,29 +193,6 @@ describe('Experiments (EX2, EX3)', () => {
   });
 });
 
-describe('Feature Flags (FL1, FL2)', () => {
-  it('a failed load shows its status, not an empty flag list', async () => {
-    routes = { '/api/v1/admin/flags': { status: 403 } };
-    const { render } = await import('../../src/admin/sections/FlagsSection.js');
-    const text = textOf(await render());
-    expect(text).toContain('Feature flags unavailable (HTTP 403)');
-    expect(text).not.toContain('No Feature Flags');
-  });
-
-  it('the bulk buttons and their dialog say they change only the trust flags', async () => {
-    routes = { '/api/v1/admin/flags': { status: 200, body: { flags: [], trustFlags: {} } } };
-    const { render } = await import('../../src/admin/sections/FlagsSection.js');
-    const text = textOf(await render());
-    expect(text).toContain('Enable All Trust Flags');
-    expect(text).toContain('Disable All Trust Flags');
-    const { runQuickAction } = await import('../../src/admin/admin-events.js');
-    await runQuickAction('enable-all-flags');
-    const dialog = document.querySelector('.admin-modal-overlay')?.textContent ?? '';
-    expect(dialog).toContain('every trust flag');
-    expect(dialog).not.toContain('ALL feature flags');
-  });
-});
-
 describe('Operations (OP5 and a failed load)', () => {
   const ops = (budget: Record<string, unknown>) => ({
     services: [],

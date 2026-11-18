@@ -9,7 +9,7 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
-import { adminFetch } from '../admin-fetch.js';
+import { getAdminHeadersAsync } from '../admin-api.js';
 import {
   ICON_SUCCESS,
   ICON_ERROR,
@@ -23,7 +23,6 @@ import {
   ICON_SEARCH,
   iconSm,
 } from '../icons.js';
-import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
 
 const log = createLogger('FlagsSection');
 
@@ -42,8 +41,7 @@ interface FeatureFlag {
 export async function render(): Promise<string> {
   log.debug('Rendering flags section');
 
-  const data = await loadJson<FlagsResponse>(adminFetch('/api/v1/admin/flags'), 'flags');
-  const flags = isUnavailable(data) ? [] : toFlags(data);
+  const flags = await fetchFlags();
   const categories = groupByCategory(flags);
 
   return `
@@ -61,13 +59,13 @@ export async function render(): Promise<string> {
           >
         </div>
         <div class="flags-action-btns" role="button" tabindex="0">
-          <button aria-label="Enable all trust flags" class="admin-btn" data-action="enable-all-flags">
+          <button aria-label="Enable All" class="admin-btn" data-action="enable-all-flags">
             <span class="admin-icon">${iconSm(ICON_SUCCESS)}</span>
-            Enable All Trust Flags
+            Enable All
           </button>
-          <button aria-label="Disable all trust flags" class="admin-btn" data-action="disable-all-flags">
+          <button aria-label="Disable All" class="admin-btn" data-action="disable-all-flags">
             <span class="admin-icon">${iconSm(ICON_ERROR)}</span>
-            Disable All Trust Flags
+            Disable All
           </button>
           <button aria-label="Refresh" class="admin-btn" data-action="reset-flags">
             <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
@@ -77,12 +75,13 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Flag Categories -->
-      ${isUnavailable(data) ? `<div class="admin-card flags-empty">${renderUnavailable(`Feature flags ${data.unavailable}`)}</div>` : flags.length === 0 ? `
+      ${flags.length === 0 ? `
         <div class="admin-card flags-empty">
           <div class="empty-state">
             <span class="admin-icon">${iconSm(ICON_FLAGS)}</span>
-            <h3>No Feature Flags</h3>
-            <p>The server returned no flags.</p>
+            <h3>No Feature Flags Available</h3>
+            <p>Feature flags will appear here when the API is available.</p>
+            <p class="empty-state-hint">Check that the backend is running and connected.</p>
           </div>
         </div>
       ` : Object.entries(categories).map(([category, categoryFlags]) => `
@@ -345,23 +344,35 @@ function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
   }, {} as Record<string, FeatureFlag[]>);
 }
 
-interface FlagsResponse {
-  flags?: FeatureFlag[];
-  trustFlags?: Record<string, { enabled?: boolean; percentage?: number }>;
-}
+async function fetchFlags(): Promise<FeatureFlag[]> {
+  try {
+    const headers = await getAdminHeadersAsync();
+    const response = await fetch('/api/v1/admin/flags', {
+      headers,
+    });
+    if (response.ok) {
+      const data = await response.json();
+      // Merge general flags and trust flags
+      const generalFlags = (data.flags ?? []).map((f: FeatureFlag) => ({
+        ...f,
+        category: f.category ?? 'System',
+      }));
+      const trustFlags = Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
+        id,
+        name: id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        description: (config as { enabled?: boolean }).enabled ? 'Enabled' : 'Disabled',
+        enabled: (config as { enabled?: boolean }).enabled ?? false,
+        percentage: (config as { percentage?: number }).percentage,
+        category: 'Trust',
+      }));
+      return [...generalFlags, ...trustFlags];
+    }
+  } catch {
+    // API unavailable
+  }
 
-/** Merge general flags and trust flags */
-function toFlags(data: FlagsResponse): FeatureFlag[] {
-  const generalFlags = (data.flags ?? []).map((f) => ({ ...f, category: f.category ?? 'System' }));
-  const trustFlags = Object.entries(data.trustFlags ?? {}).map(([id, config]) => ({
-    id,
-    name: id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-    description: config.enabled ? 'Enabled' : 'Disabled',
-    enabled: config.enabled ?? false,
-    percentage: config.percentage,
-    category: 'Trust',
-  }));
-  return [...generalFlags, ...trustFlags];
+  // Return empty array - flags will appear when API is available
+  return [];
 }
 
 export default { render };

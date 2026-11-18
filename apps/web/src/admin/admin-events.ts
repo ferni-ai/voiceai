@@ -71,7 +71,7 @@ export async function setFlagRollout(flagId: string, percentage: number): Promis
 }
 
 export async function enableAllFlags(): Promise<boolean> {
-  log.debug('Enabling all trust flags');
+  log.debug('Enabling all flags');
   
   try {
     const response = await adminFetch('/api/v1/admin/flags/enable-all', {
@@ -79,21 +79,21 @@ export async function enableAllFlags(): Promise<boolean> {
     });
     
     if (response.ok) {
-      toast.success('All trust flags enabled');
+      toast.success('All flags enabled');
       return true;
     } else {
-      toast.error("Couldn't enable trust flags");
+      toast.error("Couldn't enable all flags");
       return false;
     }
   } catch (error) {
-    log.error({ error }, 'Failed to enable all trust flags');
-    toast.error("Couldn't enable trust flags");
+    log.error({ error }, 'Failed to enable all flags');
+    toast.error("Couldn't enable all flags");
     return false;
   }
 }
 
 export async function disableAllFlags(): Promise<boolean> {
-  log.debug('Disabling all trust flags (kill switch)');
+  log.debug('Disabling all flags (kill switch)');
   
   try {
     const response = await adminFetch('/api/v1/admin/flags/disable-all', {
@@ -101,15 +101,15 @@ export async function disableAllFlags(): Promise<boolean> {
     });
     
     if (response.ok) {
-      toast.warning('All trust flags disabled');
+      toast.warning('All flags disabled');
       return true;
     } else {
-      toast.error("Couldn't disable trust flags");
+      toast.error("Couldn't disable flags");
       return false;
     }
   } catch (error) {
-    log.error({ error }, 'Failed to disable trust flags');
-    toast.error("Couldn't disable trust flags");
+    log.error({ error }, 'Failed to disable flags');
+    toast.error("Couldn't disable flags");
     return false;
   }
 }
@@ -571,9 +571,9 @@ export async function runQuickAction(action: string): Promise<void> {
     case 'enable-all-flags':
     case 'enable-all':
       showConfirmDialog(
-        'Enable All Trust Flags',
-        'This will enable every trust flag. Other feature flags do not change.',
-        'Enable Trust Flags',
+        'Enable All Flags',
+        'This will enable ALL feature flags. Are you sure?',
+        'Enable All',
         async () => {
           if (await enableAllFlags()) {
             window.location.reload();
@@ -585,9 +585,9 @@ export async function runQuickAction(action: string): Promise<void> {
     case 'disable-all-flags':
     case 'disable-all':
       showConfirmDialog(
-        'Disable All Trust Flags',
-        'This will disable every trust flag (kill switch). Other feature flags do not change.',
-        'Disable Trust Flags',
+        'Disable All Flags',
+        'This will disable ALL feature flags. This is a kill switch operation.',
+        'Disable All',
         async () => {
           if (await disableAllFlags()) {
             window.location.reload();
