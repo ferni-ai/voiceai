@@ -31,6 +31,7 @@ import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
 import { watchCallResult } from './call-result-watch.js';
 import { armCallResultWatchdog } from './call-result-watchdog.js';
+import { callResultPromise } from './call-result-promise.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -306,7 +307,7 @@ export async function placeOrHold(
   request: OnBehalfCallRequest,
   place: (request: OnBehalfCallRequest) => Promise<string>,
   now = new Date()
-): Promise<{ callId?: string; held?: string; others?: string }> {
+): Promise<{ callId?: string; held?: string; others?: string; promise?: string }> {
   const name = request.resolvedContact?.name || request.contactQuery;
   const want = lastTen(request.resolvedContact?.phone);
   const all = await pendingCalls(request.userId, now);
@@ -346,7 +347,8 @@ export async function placeOrHold(
   if (!held) watchCallResult(request, callId);
   if (!held) void armCallResultWatchdog(request, callId); // CALL_RESULT_WATCHDOG: never silent
   const also = otherCallsLine(others, now, callId);
-  return { callId, held: held && held + also, others: also };
+  // How the result will reach them, said when it rings now (call-result-promise.ts).
+  return { callId, held: held && held + also, others: also, promise: callResultPromise() };
 }
 
 /**

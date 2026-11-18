@@ -461,13 +461,12 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
         const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
-        const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
+        const { callId, held, others = '', promise = '' } = await placeOrHold(request, initiateOnBehalfCall); // prettier-ignore
         if (held) return held;
         log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
-        const { callResultPromise } = await import('../../../services/outreach/call-result-promise.js'); // prettier-ignore
         const calling = `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}.`;
-        return `${calling} ${callResultPromise()}${others}`; // how the result reaches them
+        return `${calling} ${promise}${others}`; // how the result reaches them
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why
         // No agent joined, so nothing rang: no "calling now", no "I'll let you know".

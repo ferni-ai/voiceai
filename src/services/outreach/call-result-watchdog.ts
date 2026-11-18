@@ -30,9 +30,9 @@ import { createHash } from 'crypto';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, getFirestoreDb } from '../../utils/firestore-utils.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
-import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
+import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/index.js';
 
 const log = createLogger({ module: 'call-result-watchdog' });
 
@@ -42,7 +42,7 @@ const COLLECTION = 'call_result_watchdogs';
  * after a 45 s ring (call-opening-flag.ts), and the result is stored seconds after
  * it ends. Under call-result-watch's 30 min, so an owner still on the call hears it there.
  */
-export const NO_REPORT_AFTER_MS = 25 * 60 * 1000;
+const NO_REPORT_AFTER_MS = 25 * 60 * 1000;
 /** A watch found later than this (the job was down) is still settled, then dropped. */
 const LATE_AFTER_MS = 24 * 60 * 60 * 1000;
 
@@ -59,7 +59,7 @@ function logWatch(callId: string, outcome: WatchOutcome): void {
 }
 
 /** The result stored when the call never reported: how it went is not known. */
-export function noReportOutcome(callId: string, contactName: string): CallOutcome {
+function noReportOutcome(callId: string, contactName: string): CallOutcome {
   return {
     callId,
     status: 'failed',
@@ -70,11 +70,6 @@ export function noReportOutcome(callId: string, contactName: string): CallOutcom
   };
 }
 
-async function firestore(): Promise<Firestore | null> {
-  const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-  return (getFirestoreDb() as Firestore | null) ?? null;
-}
-
 /** Watch a call just placed for the owner. Never throws; a no-op with the flag off. */
 export async function armCallResultWatchdog(
   request: OnBehalfCallRequest,
@@ -83,7 +78,7 @@ export async function armCallResultWatchdog(
 ): Promise<void> {
   if (!callResultWatchdogOn() || !isMemberIdentity(request.userId?.trim())) return;
   try {
-    const db = await firestore();
+    const db = getFirestoreDb();
     if (!db) throw new Error('Firestore not available');
     const dueAt = new Date(now.getTime() + NO_REPORT_AFTER_MS).toISOString();
     const watch = cleanForFirestore({ status: 'pending', dueAt, request });
@@ -146,9 +141,9 @@ export async function sweepCallResultWatchdogs(
 ): Promise<WatchdogRun> {
   const run: WatchdogRun = { due: 0, settled: 0, failed: 0 };
   if (!callResultWatchdogOn()) return run;
-  const db = await firestore();
+  const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
-  const { claimDueItems } = await import('../scheduling/due-items.js');
+  const { claimDueItems } = await import('../scheduling/index.js');
   const claim = await claimDueItems(db, {
     collection: COLLECTION,
     dueField: 'dueAt',

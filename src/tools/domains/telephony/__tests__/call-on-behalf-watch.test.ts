@@ -20,6 +20,10 @@ vi.mock('../../../../services/global-services.js', () => ({ getGlobalServicesSyn
 vi.mock('../../../../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => null,
 }));
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../utils/firestore-utils.js')>()),
+  getFirestoreDb: () => null,
+}));
 const watchCallResult = vi.hoisted(() => vi.fn((..._args: unknown[]) => null));
 vi.mock('../../../../services/outreach/call-result-watch.js', () => ({ watchCallResult }));
 
@@ -36,7 +40,10 @@ const run = async () => {
   );
 };
 
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe('callOnBehalf starts the owner call watch', () => {
   it('a placed call: watched from the call that asked for it', async () => {
@@ -46,6 +53,16 @@ describe('callOnBehalf starts the owner call watch', () => {
     const [request, callId] = watchCallResult.mock.calls[0];
     expect(callId).toBe('onbehalf_123_abcde');
     expect(request).toMatchObject({ originalSessionId: 'sess-owner', userId: 'user-1' });
+  });
+
+  it('says how the result reaches them; flag off, the old line word for word (CALL_RESULT_WATCHDOG)', async () => {
+    registerOnBehalfCallInitiator(async () => 'onbehalf_123_abcde');
+    vi.stubEnv('CALL_RESULT_LIVE_REPORT', 'off');
+    vi.stubEnv('CALL_RESULT_TEXT', 'off');
+    const calling = "Got it! I'm calling Sam now to say happy birthday.";
+    expect(await run()).toBe(`${calling} I'll let you know how it goes once the call is complete.`);
+    vi.stubEnv('CALL_RESULT_WATCHDOG', 'on');
+    expect(await run()).toBe(`${calling} You'll see how it went in the app.`);
   });
 
   it('a call held for later: nothing watched', async () => {

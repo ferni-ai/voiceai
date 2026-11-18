@@ -93,7 +93,7 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
   };
 });
 
-const { armCallResultWatchdog, noReportOutcome, sweepCallResultWatchdogs, NO_REPORT_AFTER_MS } =
+const { armCallResultWatchdog, sweepCallResultWatchdogs } =
   await import('../call-result-watchdog.js');
 const { captureCallResult } = await import('../call-result-capture.js');
 const { resetToldClaimsForTests } = await import('../call-result-claims.js');
@@ -114,6 +114,10 @@ const watchDoc = (): Record<string, unknown> | undefined =>
 const stored = (): CallOutcome | undefined => callDoc()?.outcome as CallOutcome | undefined;
 const bodies = (): string[] => push.mock.calls.map(([p]) => p.body);
 const NO_REPORT_LINE = `I couldn't confirm how the call to ${NAME} went.`;
+/** Max call (15 min) + margin: the watch's own 25 minutes, written out. */
+const NO_REPORT_AFTER_MS = 25 * 60_000;
+/** What the sweep captures; built here to land a no-report after a real result (the race). */
+const noReportOutcome = (id: string, name: string): CallOutcome => ({ callId: id, status: 'failed', objectiveAchieved: false, outcome: `I couldn't confirm how the call to ${name} went.`, callbackRequired: false, noReport: true }); // prettier-ignore
 const told = (line: string): number => bodies().filter((b) => b.includes(line)).length;
 const outcomes = (): Array<string | undefined> => watchLog.map((l) => l.outcome).filter(Boolean);
 
