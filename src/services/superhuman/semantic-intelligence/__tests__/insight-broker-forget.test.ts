@@ -207,6 +207,21 @@ describe('the /insights route', () => {
       await handleSemanticIntelligenceRoutes(req, res, '/api/semantic-intelligence/insights')
     ).toBe(true);
     expect(JSON.parse(body).count).toBe(2);
+    expect(JSON.parse(body).pendingTotal).toBe(2); // the held one isn't counted either
     expect(body).not.toContain('Kessler');
+  });
+});
+
+describe('the pending count', () => {
+  it('leaves out a held insight', async () => {
+    forgotten(['Denver job']);
+    expect(await broker.getPendingInsightCount('u-count')).toBe(1);
+  });
+
+  it('with FORGET_EVERY_READER off, counts every insight as before', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    const read = forgotten(['Denver job']);
+    expect(await broker.getPendingInsightCount('u-count')).toBe(2);
+    expect(read).not.toHaveBeenCalled();
   });
 });

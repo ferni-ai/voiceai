@@ -267,7 +267,7 @@ export async function dismissInsight(userId: string, insightId: string): Promise
 
 /** Get pending insights count for a user. */
 export async function getPendingInsightCount(userId: string): Promise<number> {
-  const insights = await loadInsights(userId);
+  const insights = await rememberedInsights(userId, await loadInsights(userId)); // held: not counted
   return insights.filter((i) => !i.surfaced && !i.dismissed).length;
 }
 
