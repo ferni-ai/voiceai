@@ -252,7 +252,6 @@ export async function startIntelligentRouting(
   const startTime = performance.now();
 
   try {
-    // Route through intelligent cascade
     const decision = await orchestrator.route(userText, {
       userId: context.userId,
       sessionId: context.sessionId,
@@ -278,7 +277,8 @@ export async function startIntelligentRouting(
       '🧠 Intelligent routing complete'
     );
 
-    return convertToTurnRouterResult(decision, userText, context, latencyMs);
+    // Awaited: a rejecting converter falls back too (#4116). Nothing may throw after its tool runs.
+    return await convertToTurnRouterResult(decision, userText, context, latencyMs);
   } catch (error) {
     log.error({ ...errorFields(error), textLength: userText.length }, 'Intelligent routing failed');
 
