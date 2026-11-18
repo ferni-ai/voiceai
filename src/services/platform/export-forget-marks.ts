@@ -79,9 +79,10 @@ function tag(value: unknown, about: (text: string) => boolean, depth = 0): boole
   let tagged = false;
   for (const item of Array.isArray(value) ? value : Object.values(value)) {
     const inner = tag(item, about, depth + 1);
-    const record = Array.isArray(value) && isRecord(item);
-    if (record && !inner && about(textOf(item))) item.heldByForget = true;
-    tagged ||= inner || (record && item.heldByForget === true);
+    // Only this pass's tags count: a stored heldByForget value is data, not an explanation
+    const hit = !inner && Array.isArray(value) && isRecord(item) && about(textOf(item));
+    if (hit) item.heldByForget = true;
+    tagged ||= inner || hit;
   }
   return tagged;
 }

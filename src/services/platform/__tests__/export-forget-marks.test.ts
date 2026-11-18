@@ -16,6 +16,11 @@ vi.mock('../../stores/conversation-history.js', () => ({
 }));
 vi.mock('../../memory/cognitive-memory.js', () => ({ getCognitiveMemoryService: () => ({}) }));
 vi.mock('../../engagement/engagement-store.js', () => ({ getEngagementStore: async () => ({}) }));
+const records = vi.hoisted(() => vi.fn());
+vi.mock('../user-records-export.js', async (orig) => ({
+  ...(await orig<typeof import('../user-records-export.js')>()),
+  exportUserRecords: records,
+}));
 vi.mock('../../../memory/recall/forget.js', async (orig) => ({
   ...(await orig<typeof import('../../../memory/recall/forget.js')>()),
   forgottenTopicsOrNull: topics,
@@ -135,6 +140,49 @@ describe('data export, FORGET_EVERY_READER on', () => {
     expect(lines).toContain('id,summary,heldByForget');
     expect(lines).toContain('"c1","The Denver offer came in",true');
     expect(lines).toContain('"c2","Planning the garden beds",');
+  });
+});
+
+describe('data export, FORGET_EVERY_READER on, production shapes', () => {
+  it('tags inside the conversation store shape ({ sessions: [...] }) by a nested field', async () => {
+    history.getHistory.mockResolvedValue({
+      sessions: [
+        { id: 's1', meta: { topic: 'moving to Denver' } },
+        { id: 's2', meta: { topic: 'garden' } },
+      ],
+      totalSessions: 2,
+    });
+    const file = await exportJson();
+    const { sessions } = (file.categories as Record<string, { sessions: object[] }>).conversations;
+    expect(sessions[0]).toMatchObject({ heldByForget: true });
+    expect(sessions[1]).not.toHaveProperty('heldByForget');
+  });
+
+  it('tags a Records row matched only inside its data map, under its store label', async () => {
+    records.mockResolvedValue({
+      'bogle_users/{uid}/dynamic_entities': [
+        { name: 'Kessler', attributes: { note: 'met at the Denver office' } },
+        { name: 'Okafor', attributes: { note: 'book club' } },
+      ],
+    });
+    const text = await getDataExportService().exportData(UID, 'json', ['Records']);
+    const rows = Object.values(JSON.parse(text).categories.records as Record<string, object[]>)[0];
+    expect(rows[0]).toMatchObject({ name: 'Kessler', heldByForget: true });
+    expect(rows[1]).not.toHaveProperty('heldByForget');
+  });
+
+  it('a stored heldByForget on a child does not stand in for a match', async () => {
+    history.getHistory.mockResolvedValue([
+      { id: 'c', text: 'Denver', kids: [{ t: 'tea', heldByForget: true }] },
+    ]);
+    const [call] = conversations(await exportJson()) as unknown as Array<Record<string, unknown>>;
+    expect(call).toMatchObject({ heldByForget: true });
+  });
+
+  it('CSV says when the list could not be read', async () => {
+    topics.mockResolvedValue(null);
+    const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
+    expect(csv.split('\n')).toContain('# Forgotten topics: could not be read');
   });
 });
 
