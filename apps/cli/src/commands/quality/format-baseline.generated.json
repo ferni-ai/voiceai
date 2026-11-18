@@ -656,7 +656,6 @@
   "src/tools/semantic-router/defense/input-sanitizer.ts",
   "src/tools/semantic-router/domain-bridge/mappings-wellness.ts",
   "src/tools/semantic-router/index.ts",
-  "src/tools/semantic-router/integration/__tests__/semantic-routing-comprehensive.test.ts",
   "src/tools/semantic-router/integration/config.ts",
   "src/tools/semantic-router/integration/intelligent-router-integration.ts",
   "src/tools/semantic-router/learning/implicit-correction-capture.ts",
