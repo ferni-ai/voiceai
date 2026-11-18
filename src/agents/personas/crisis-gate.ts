@@ -141,7 +141,9 @@ export interface CrisisGateTurn {
 type Chunk = llm.ChatChunk | string | object;
 
 /** A failed read under CRISIS_GATE_FAIL_CLOSED always gets the timeout check-in. */
-const CHECKIN_ON = (env: Record<string, string | undefined>) => ({
+const CHECKIN_ON = (
+  env: Record<string, string | undefined>
+): Record<string, string | undefined> => ({
   ...env,
   CRISIS_TIMEOUT_CHECKIN: 'on',
 });
