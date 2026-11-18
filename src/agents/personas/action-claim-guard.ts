@@ -78,6 +78,7 @@ import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './actio
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
+import { stepUpOffered } from '../shared/phone-step-up.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -210,7 +211,8 @@ export async function withActionClaimCheck<T>(
     : undefined;
   // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
   const facts = withHouseFactsGuard(reply, chatCtx, env, who);
-  const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords);
+  const stepUp = stepUpOffered(sessionIdIn(caller), env); // PHONE_STEP_UP: a code opens calls
+  const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords, stepUp);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }
 
@@ -221,7 +223,8 @@ async function checkActionClaims<T>(
   tools: { functionTools?: Record<string, unknown> },
   env: Env,
   askedLookup?: Promise<AskedCallStatus>,
-  firstWords?: ReturnType<typeof turnHoldTimer>
+  firstWords?: ReturnType<typeof turnHoldTimer>,
+  stepUp = false
 ): Promise<T> {
   const stream = await reply;
   // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
@@ -245,7 +248,9 @@ async function checkActionClaims<T>(
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     !open.has(kind)
-      ? 'no_tool'
+      ? stepUp && (kind === 'call' || kind === 'send')
+        ? 'step_up'
+        : 'no_tool'
       : failed.has(kind)
         ? 'failed'
         : elsewhere.has(kind)

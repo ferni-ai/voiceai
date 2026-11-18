@@ -37,7 +37,11 @@ import {
   returningCallerEnabled,
 } from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { isPlacedCall, placedCallNotOwnerProofOn } from '../../services/identity/verified-caller.js';
+import { setPhoneInOwnerCheck } from '../shared/phone-step-up.js';
+import {
+  isPlacedCall,
+  placedCallNotOwnerProofOn,
+} from '../../services/identity/verified-caller.js';
 import {
   readSignedAttestation,
   readSipCaller,
@@ -308,6 +312,11 @@ export function onPlacedCallSession(sessionId: string | undefined): boolean {
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known' || onPlacedCallSession(sessionId);
 }
+
+// PHONE_STEP_UP (phone-step-up.ts): only the verified owner who phoned in may be offered a code.
+setPhoneInOwnerCheck(
+  (id) => callerRecognitionFor(id)?.status === 'known' && !onPlacedCallSession(id)
+);
 
 /** Both checks, for lower layers that are handed them (data-channel-handler.ts). */
 export const callerChecks = { verifiedOwner: sessionIsVerifiedOwner, phoneOnly: phoneOnlyIdentity };
