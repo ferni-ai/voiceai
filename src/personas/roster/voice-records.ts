@@ -1,10 +1,11 @@
 /**
- * The consented-clone records: which legends may speak as the real person, in
+ * The consented-clone records: which listings may speak as a real person, in
  * that person's cloned voice.
  *
- * Each estate gave written consent, held by the owner off the repo and attested
- * 2026-11-14 (docs/decisions/register.md). The voice ids come from one setting
- * per legend and are never written here.
+ * Each legend's estate gave written consent, attested 2026-11-14
+ * (docs/decisions/register.md). Seth gave his own for the `seth` teammate,
+ * attested 2026-11-17. The owner holds every consent off the repo. The voice
+ * ids come from one setting per listing and are never written here.
  *
  * @module personas/roster/voice-records
  */
@@ -27,11 +28,25 @@ const LEGEND_VOICE_RECORDS: readonly ConsentedCloneRecord[] = [
       covers: FULL_LEGEND_CONSENT,
     },
   },
+  {
+    kind: 'consented-clone',
+    listingId: 'seth',
+    // Also named in config/voice-ids.ts (sethVoiceId), which can't import this file.
+    voiceSetting: 'ROSTER_VOICE_SETH',
+    reservedCloneIds: [],
+    consent: {
+      person: 'Seth Ford',
+      basis: 'self',
+      heldBy: 'owner',
+      attested: '2026-11-17',
+      covers: FULL_LEGEND_CONSENT,
+    },
+  },
 ];
 
 /**
- * Every legend clone voice id that is configured. No persona speaks in one at
- * this point, and a custom agent must refuse them all.
+ * Every consented clone voice id that is configured (the legends' and Seth's).
+ * A custom agent must refuse them all.
  */
 export function configuredLegendVoiceIds(env: Env = process.env): string[] {
   return LEGEND_VOICE_RECORDS.map((r) => env[r.voiceSetting]?.trim()).filter((id): id is string =>
