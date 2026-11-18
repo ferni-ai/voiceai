@@ -316,8 +316,9 @@ describe('rememberable: a forgotten number and the stored shape', () => {
   const forgetHisNumber = (text: string) => isForgottenPassage(text, ['his number']);
   const stored = (summary: string) => ({
     ...OLDER,
-    id: 'summary_session-prev_1763478000123',
-    sessionId: 'session-stored',
+    // As the voice agent mints them (voice-agent-entry: session-<jobId>-<ms>; summarizer)
+    id: 'summary_session-AJ_FhDLDpE3gTFu-1763478000123_1763478000456',
+    sessionId: 'session-AJ_FhDLDpE3gTFu-1763478000123',
     timestamp: '2026-11-18T15:00:00.000Z',
     summary,
   });

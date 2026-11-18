@@ -146,6 +146,10 @@ describe('a forgotten "number" topic hides a raw passage holding a number', () =
 describe('a number topic and the shapes a stored record carries', () => {
   it.each([
     ['a stored summary id', 'summary_session-prev_1763478000123'],
+    ['a voice call summary id', 'summary_session-AJ_FhDLDpE3gTFu-1763478000123_1763478000456'],
+    ['a voice call session id', 'session-AJ_FhDLDpE3gTFu-1763478000123'],
+    ['an outreach session id', 'outreach-1763478000123'],
+    ['an open loop id', 'loop_1763478000123_k2j9x1'],
     ['a timestamp with milliseconds', '2026-11-18T15:00:00.000Z'],
     ['a date with its time', 'we met on 2026-11-18 15:00'],
     ['a span of times with milliseconds', '15:00:00.000-15:30:00.000'],
@@ -165,6 +169,14 @@ describe('a number topic and the shapes a stored record carries', () => {
     ['after a list of years', 'in 2019, 2020 435 555 0199'],
     ['before a time', 'his is 435-555-0199 15:00'],
     ['before a stored id', 'his cell is 435 555 0199 summary_x_1763478000123'],
+    ['as +1 and the number glued to a word', 'mom_14355550199'],
+    ['with an extension glued to a word', 'tel_4355550199123'],
+    ['as thirteen digits glued to a word by "_"', 'cell_1435555019900'],
+    ['as thirteen digits glued to a word by "-"', 'mom-1435555019900'],
+    ['run into an epoch', 'x_17634780001234355550199'],
+    ['as fourteen digits glued to a word', 'tel_15555550199123'],
+    ['after a space and a joiner', 'call _1555555019900'],
+    ['at the start after a joiner', '-1555555019900 is his'],
   ])('a real number %s still hides', (_l, text) => {
     expect(isForgottenPassage(text, ['his number'])).toBe(true);
   });
