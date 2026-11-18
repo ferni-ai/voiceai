@@ -277,7 +277,9 @@ describe('router bypasses never skip the soft check-in', () => {
       new URL('../../processors/turn-processor/router-crisis-check.ts', import.meta.url),
       'utf8'
     );
-    expect(checks).toMatch(/gate: \{\},\s+bypassAllowed: turnCrisis\.bypassAllowed,/);
+    expect(checks).toMatch(
+      /gate: \{ autoExecuteCheck: null \},\s+bypassAllowed: turnCrisis\.bypassAllowed,/
+    );
     expect(checks).toMatch(/if \(!\(await turnCrisis\.bypassAllowed\(\)\)\) return 'held';/);
     expect(checks).toMatch(
       /bypassAllowed = async \(\): Promise<boolean> => \(await check\(\)\) === 'allowed'/
