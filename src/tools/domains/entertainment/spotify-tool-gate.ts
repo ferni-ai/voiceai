@@ -20,6 +20,7 @@
  * @module tools/domains/entertainment/spotify-tool-gate
  */
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { onSpotifyAvailabilityChange } from '../../../services/identity/spotify-availability.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { toolRegistry, type ToolRegistry } from '../../registry/index.js';
 import type { ToolDefinition } from '../../registry/types.js';
@@ -87,7 +88,7 @@ let hiddenFor: SpotifyDownReason | null = null;
  * unregistered while hidden and registered again once Spotify is up. Logs once
  * per state change, never per call.
  */
-export function syncSpotifyOnlyTools(
+function syncSpotifyOnlyTools(
   defs: readonly ToolDefinition[],
   registry: Registry = toolRegistry
 ): void {
@@ -105,4 +106,10 @@ export function syncSpotifyOnlyTools(
   if (hiddenFor === reason) return;
   hiddenFor = reason;
   getLogger().info({ reason, toolCount: spotifyOnly.length }, 'SPOTIFY_TOOLS_HIDDEN');
+}
+
+/** The domain's Spotify-only tools follow the house token from now on: synced now and on each change. */
+export function followSpotifyAvailability(defs: readonly ToolDefinition[]): void {
+  onSpotifyAvailabilityChange(() => syncSpotifyOnlyTools(defs));
+  syncSpotifyOnlyTools(defs);
 }

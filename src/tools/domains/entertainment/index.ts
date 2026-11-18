@@ -20,16 +20,13 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createMusicTools } from './music.js';
 import { createSpotifyTools } from './spotify.js';
 
-// Import Apple Music tools
 import { appleMusicTools } from './apple-music-tools.js';
 
-// Import Spotify Connect multi-room tools
 import { spotifyConnectTools } from './spotify-connect.js';
 
 import { createSonosMusicTools } from './sonos-music.js';
 import { requiringEnv } from '../../registry/tool-availability.js';
-import { onSpotifyAvailabilityChange } from '../../../services/identity/spotify-auth.js';
-import { gateSpotifyOnlyTools, syncSpotifyOnlyTools } from './spotify-tool-gate.js';
+import { followSpotifyAvailability, gateSpotifyOnlyTools } from './spotify-tool-gate.js';
 const SONOS_ENV = ['SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET'];
 
 const log = getLogger();
@@ -553,10 +550,7 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   'entertainment',
   gateSpotifyOnlyTools(entertainmentTools)
 );
-
-// SPOTIFY_TOOLS_HIDE_WHEN_DOWN: the Spotify-only tools follow the house token, no polling
-onSpotifyAvailabilityChange(() => syncSpotifyOnlyTools(definitions));
-syncSpotifyOnlyTools(definitions);
+followSpotifyAvailability(definitions); // SPOTIFY_TOOLS_HIDE_WHEN_DOWN
 
 export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getSonosMusicToolDefinitions };
 

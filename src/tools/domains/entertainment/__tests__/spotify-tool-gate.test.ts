@@ -183,8 +183,8 @@ describe('flag on (SPOTIFY_TOOLS_HIDE_WHEN_DOWN=on)', () => {
     auth.startAutoRefresh();
     auth.startAutoRefresh();
     const gate = await import('../spotify-tool-gate.js');
-    gate.syncSpotifyOnlyTools(entertainment.definitions);
-    gate.syncSpotifyOnlyTools(entertainment.definitions);
+    gate.followSpotifyAvailability(entertainment.definitions);
+    gate.followSpotifyAvailability(entertainment.definitions);
     await tick();
 
     expect(hiddenLogs()).toEqual([
