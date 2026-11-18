@@ -105,3 +105,84 @@ describe("an open loop's vector copy is forgotten on any distinctive word", () =
     expect(off).toHaveLength(1);
   });
 });
+
+describe("an open loop's copy is checked against the loop's whole record", () => {
+  // The copy keeps the loop's first 100 characters (open-loops.ts saveOpenLoop).
+  const said = `${'We kept going over the move, the boxes, the lease and whether the school would work'} and then the Denver office called`;
+  const cut = said.substring(0, 100);
+  const LOOP_ID = 'loop_1700000000000_ab12cd';
+  const PATH = `bogle_users/u-fiction/open_loops/${LOOP_ID}`;
+  const record = (extra: Record<string, unknown> = {}) => ({
+    id: LOOP_ID,
+    userId: 'u-fiction',
+    type: 'intention',
+    status: 'open',
+    priority: 5,
+    content: said,
+    context: 'we talked on Sunday',
+    ...extra,
+  });
+  const withDocs = (
+    topics: string[],
+    docs: Record<string, Record<string, unknown> | undefined>
+  ) => {
+    const asked: string[][] = [];
+    const r: ForgetReads = {
+      topics: async () => topics,
+      docs: async (paths) => {
+        asked.push(paths);
+        return new Map(paths.map((p) => [p, docs[p]]));
+      },
+    };
+    return { r, asked };
+  };
+  const run = (
+    r: ForgetReads,
+    results: Parameters<typeof withoutForgotten>[1],
+    env: Record<string, string> = ON
+  ) => withoutForgotten('u-fiction', results, r, Date.now(), env);
+
+  it('a forgotten word past the 100-character cut drops the copy', async () => {
+    expect(cut).not.toContain('Denver');
+    const { r, asked } = withDocs(['Denver job'], { [PATH]: record() });
+    expect(await run(r, [loopCopy(LOOP_ID, cut)])).toEqual([]);
+    expect(asked).toEqual([[PATH]]);
+  });
+
+  it('a person named only in the record (relatedPerson) drops it', async () => {
+    const { r } = withDocs(['Kessler'], {
+      [PATH]: record({ content: 'call him tomorrow', relatedPerson: 'Kessler' }),
+    });
+    expect(await run(r, [loopCopy(LOOP_ID, 'call him tomorrow')])).toEqual([]);
+  });
+
+  it('the record\'s labels are not the caller\'s words: a topic "intention papers" keeps it', async () => {
+    const { r } = withDocs(['intention papers'], {
+      [PATH]: record({ content: 'plant the tomatoes' }),
+    });
+    expect(await run(r, [loopCopy(LOOP_ID, 'plant the tomatoes')])).toHaveLength(1);
+  });
+
+  it('a record that is gone leaves the copy to its own words', async () => {
+    const { r } = withDocs(['Denver job'], {});
+    expect(await run(r, [loopCopy(LOOP_ID, cut)])).toHaveLength(1);
+  });
+
+  it("a record that can't be read drops loop copies (fails closed), not other results", async () => {
+    const r: ForgetReads = {
+      topics: async () => ['Denver job'],
+      docs: async () => Promise.reject(new Error('down')),
+    };
+    const out = await run(r, [
+      loopCopy(LOOP_ID, cut),
+      other('journal_entry_j1', 'plant the tomatoes'),
+    ]);
+    expect(ids(out)).toEqual(['journal_entry_j1']);
+  });
+
+  it('with FORGET_EVERY_READER off, no record is read and the copy stays', async () => {
+    const { r, asked } = withDocs(['Denver job'], { [PATH]: record() });
+    expect(await run(r, [loopCopy(LOOP_ID, cut)], {})).toHaveLength(1);
+    expect(asked).toEqual([]);
+  });
+});

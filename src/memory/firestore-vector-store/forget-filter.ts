@@ -21,6 +21,9 @@
  * on any distinctive word (isForgottenPassage), as the open-loops store and
  * the insight broker read it: it quotes the caller, so "forget the Denver
  * job" drops "the offer from the Denver office". Other copies keep isForgotten.
+ * The copy holds only a loop's first 100 characters, so the loop's own record
+ * (openLoopPath) is read with the sources and matched whole; when it can't be
+ * read, loop copies are dropped.
  *
  * @module memory/firestore-vector-store/forget-filter
  */
@@ -128,6 +131,26 @@ export function openLoopWords(doc: { id: string; text: string }): string | undef
   return said?.[1] ?? doc.text;
 }
 
+/** The open-loops record an open loop's copy was made from (open-loops.ts), or undefined. */
+export function openLoopPath(userId: string, doc: { id: string }): string | undefined {
+  const at = doc.id.indexOf('_open_loop_');
+  if (at < 0) return undefined;
+  const id = doc.id.slice(at + '_open_loop_'.length);
+  return /^[\w-]+$/.test(id) ? `bogle_users/${userId}/open_loops/${id}` : undefined;
+}
+
+/** The loop's labels: never the caller's words. */
+const LOOP_LABELS = new Set(['id', 'userId', 'type', 'status']);
+
+/** Every string in a stored loop but its labels (content, context, the person, the topic...). */
+export function loopRecordText(record: Record<string, unknown>): string {
+  return Object.entries(record)
+    .filter(([k]) => !LOOP_LABELS.has(k))
+    .flatMap(([, v]) => (Array.isArray(v) ? v : [v]))
+    .filter((v): v is string => typeof v === 'string')
+    .join(' ');
+}
+
 /**
  * Leaves out results about a forgotten topic or copying a forgotten or
  * deleted source. Graph copies (fact_fact_) may come from `memories`, so
@@ -153,15 +176,20 @@ export async function withoutForgotten<
     if (loop !== undefined && isForgottenPassage(loop, topics)) return false;
     return !isForgotten(r.document.text, topics);
   });
-  const paths = [...new Set(kept.flatMap((r) => sourcePath(userId, r.document) ?? []))];
+  const loopOf = (r: T) => (byWord ? openLoopPath(userId, r.document) : undefined);
+  const read = (r: T) => [sourcePath(userId, r.document), loopOf(r)].filter((p) => p !== undefined);
+  const paths = [...new Set(kept.flatMap(read))];
   if (paths.length === 0) return kept;
   let docs: Map<string, Record<string, unknown> | undefined>;
   try {
     docs = await withinTimeout(reads.docs(paths));
   } catch {
-    return kept.filter((r) => sourcePath(userId, r.document) === undefined);
+    return kept.filter((r) => read(r).length === 0);
   }
   return kept.filter((r) => {
+    const loop = loopOf(r);
+    const record = loop === undefined ? undefined : docs.get(loop);
+    if (record && isForgottenPassage(loopRecordText(record), topics)) return false;
     const path = sourcePath(userId, r.document);
     if (!path) return true;
     const src = docs.get(path);
