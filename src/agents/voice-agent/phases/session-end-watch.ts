@@ -46,7 +46,7 @@ export interface SessionEndOptions {
   idleCheckIn?: IdleCheckIn;
 }
 
-export type IdleCheckInOutcome = 'resumed' | 'ended' | 'skipped_crisis' | 'skipped_blocked';
+type IdleCheckInOutcome = 'resumed' | 'ended' | 'skipped_crisis' | 'skipped_blocked';
 
 /** One spoken check-in before the idle end (IDLE_END_CHECKIN, idle-checkin.ts). */
 export interface IdleCheckIn {

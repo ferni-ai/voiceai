@@ -25,9 +25,9 @@ import { silenceResponseBlocked } from '../silence-response-blockers.js';
 import type { IdleCheckIn } from './session-end-watch.js';
 
 /** How long before the idle end Ferni checks in, and how long the caller then has to answer. */
-export const IDLE_CHECKIN_WINDOW_MS = 60_000;
+const IDLE_CHECKIN_WINDOW_MS = 60_000;
 
-export const IDLE_NOTE =
+const IDLE_NOTE =
   "[They've been quiet for several minutes. In one short, soft sentence, let them know you're still here if they want to keep talking, or you can pick it up another time. Don't ask if they're still there.]";
 
 const log = createLogger({ module: 'idle-checkin' });

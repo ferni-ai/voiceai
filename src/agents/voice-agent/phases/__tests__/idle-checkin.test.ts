@@ -30,12 +30,12 @@ import {
   noteCrisisRisk,
   resetCrisisCallRisk,
 } from '../../../../services/safety/crisis-call-risk.js';
-import { IDLE_CHECKIN_WINDOW_MS, IDLE_NOTE, idleCheckInFor } from '../idle-checkin.js';
+import { idleCheckInFor } from '../idle-checkin.js';
+import { NIGHT_NOTE } from '../../quiet-presence.js';
 import {
   IDLE_MS,
   waitForSessionEnd,
   type IdleCheckIn,
-  type IdleCheckInOutcome,
   type WatchedRoom,
 } from '../session-end-watch.js';
 
@@ -45,7 +45,20 @@ class FakeRoom extends EventEmitter implements WatchedRoom {
   localParticipant = { identity: 'agent-ferni' };
 }
 
+type IdleCheckInOutcome = Parameters<IdleCheckIn['onOutcome']>[0];
+
 const SECOND = 1_000;
+const SESSION_ID = 'idle-checkin-riley-test';
+const ON = { IDLE_END_CHECKIN: 'on' };
+const agentSession = { agentState: 'listening', userState: 'listening', history: { items: [] } };
+const call = {
+  sessionId: SESSION_ID,
+  userData: { callerTimezone: 'UTC' },
+  room: { remoteParticipants: new Map<string, unknown>([['riley-test', {}]]) },
+  activeSession: () => agentSession,
+};
+/** The production window: how long before the idle end it checks in, and how long they have. */
+const IDLE_CHECKIN_WINDOW_MS = idleCheckInFor(call, ON)?.windowMs ?? Number.NaN;
 const CHECK_IN_AT = IDLE_MS - IDLE_CHECKIN_WINDOW_MS;
 const AGENT = [{ identity: 'agent-ferni' }];
 const CALLER = [{ identity: 'riley-test' }];
@@ -151,16 +164,6 @@ describe('idle check-in timing (session-end-watch)', () => {
 });
 
 describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log', () => {
-  const SESSION_ID = 'idle-checkin-riley-test';
-  const ON = { IDLE_END_CHECKIN: 'on' };
-  const agentSession = { agentState: 'listening', userState: 'listening', history: { items: [] } };
-  const call = {
-    sessionId: SESSION_ID,
-    userData: { callerTimezone: 'UTC' },
-    room: { remoteParticipants: new Map<string, unknown>([['riley-test', {}]]) },
-    activeSession: () => agentSession,
-  };
-
   /** Runs main (no options) and the flagged watch side by side on the same events. */
   function sideBySide(env: Record<string, string>) {
     const main = new FakeRoom();
@@ -198,7 +201,7 @@ describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log
     expect(safeGenerateReply).not.toHaveBeenCalled();
   });
 
-  it('flag on: says IDLE_NOTE through the quiet-presence speech path, then logs IDLE_CHECKIN with no words', async () => {
+  it('flag on: says the idle note through the quiet-presence speech path, then logs IDLE_CHECKIN with no words', async () => {
     const room = new FakeRoom();
     const ended = waitForSessionEnd(room, { idleCheckIn: idleCheckInFor(call, ON) });
 
@@ -209,7 +212,7 @@ describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log
     expect(safeGenerateReply).toHaveBeenCalledWith(
       agentSession,
       expect.objectContaining({
-        instructions: IDLE_NOTE,
+        instructions: expect.stringContaining("you're still here"),
         context: 'idle-checkin',
         sessionId: SESSION_ID,
       })
@@ -219,6 +222,18 @@ describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log
     expect(await ended).toBe('idle');
     const logged = quietLog.info.mock.calls.filter((c) => c[1] === 'IDLE_CHECKIN');
     expect(logged).toEqual([[{ sessionId: SESSION_ID, outcome: 'ended' }, 'IDLE_CHECKIN']]);
+  });
+
+  it("late at night for the caller it says quiet presence's NIGHT_NOTE instead", async () => {
+    vi.setSystemTime(new Date('2026-11-18T02:00:00Z'));
+    const room = new FakeRoom();
+    void waitForSessionEnd(room, { idleCheckIn: idleCheckInFor(call, ON) });
+    await vi.advanceTimersByTimeAsync(CHECK_IN_AT);
+    expect(safeGenerateReply).toHaveBeenCalledWith(
+      agentSession,
+      expect.objectContaining({ instructions: NIGHT_NOTE })
+    );
+    room.emit('disconnected');
   });
 
   it('crisis call: no check-in, and it ends on the same tick as main', async () => {
