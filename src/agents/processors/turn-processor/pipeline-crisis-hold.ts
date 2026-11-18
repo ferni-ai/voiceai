@@ -16,9 +16,9 @@ type Env = Readonly<Record<string, string | undefined>>;
 
 export interface TurnHold {
   /** The turn's crisis read settled clean and nothing held the call; asked once per turn. */
-  kept(): Promise<boolean>;
+  kept: () => Promise<boolean>;
   /** A pipeline writer, named by `context` (its safeFireAndForget context when it waits). */
-  write<A extends unknown[]>(context: string, writer: (...args: A) => void, ...args: A): void;
+  write: <A extends unknown[]>(context: string, writer: (...args: A) => void, ...args: A) => void;
 }
 
 export function turnHold(
@@ -28,10 +28,10 @@ export function turnHold(
   env: Env = process.env
 ): TurnHold {
   let wait: Promise<boolean> | undefined;
-  const kept = (): Promise<boolean> => (wait ??= crisisTurnSettled(sessionId, words));
+  const kept = async (): Promise<boolean> => (wait ??= crisisTurnSettled(sessionId, words));
   return {
     kept,
-    write(context, writer, ...args) {
+    write: (context, writer, ...args) => {
       if (!flagOn('CRISIS_HOLD_PIPELINE_WRITERS', env)) return writer(...args);
       safeFireAndForget(
         async () => {

@@ -60,7 +60,11 @@ async function load() {
 }
 let m: Awaited<ReturnType<typeof load>>;
 
-type Profile = { userId: string; name: string; customData?: { reflectionMoments?: unknown[] } };
+interface Profile {
+  userId: string;
+  name: string;
+  customData?: { reflectionMoments?: unknown[] };
+}
 type Before = (sessionId: string) => void;
 
 const metric = (context: string) =>
