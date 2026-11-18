@@ -30,6 +30,8 @@ import '../voice-agent-entry/future-letter-register.js';
 import '../voice-agent-entry/returning-caller-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
+// A phone caller's family circle, for identifyUser (nobody is in it until this loads).
+import '../voice-agent-entry/family-circle-register.js';
 // Which sessions may hear about the texts Ferni sent them (CALL_KNOWS_RECENT_TEXTS).
 import '../voice-agent-entry/recent-texts-owner-register.js';
 // A caller's own cohort flags for code that runs after their call (config/person-flag.ts).
