@@ -11,8 +11,17 @@
  */
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { firestoreGuestConsentStore } from './adapters/firestore-guest-consent-store.js';
-import * as check from './use-cases/check-guest-consent.js';
+import {
+  firestoreGuestInviteStore,
+  readOwnerName,
+} from './adapters/firestore-guest-invite-store.js';
+import type { GuestInviteAnswer } from './domain/guest-invite.js';
 import type { GuestConsentDeps } from './use-cases/guest-consent.js';
+import * as invites from './use-cases/guest-invite.js';
+import type { GuestInviteView } from './use-cases/guest-invite.js';
+
+export type { GuestInviteAnswer } from './domain/guest-invite.js';
+export type { GuestInviteView } from './use-cases/guest-invite.js';
 
 function defaultGuestConsentDeps(): GuestConsentDeps {
   return {
@@ -22,11 +31,22 @@ function defaultGuestConsentDeps(): GuestConsentDeps {
   };
 }
 
-/** True only when the guest's yes for this owner stands, for the current wording or newer. */
-export async function hasGuestConsent(
-  ownerUid: string,
-  e164: string,
-  deps: GuestConsentDeps = defaultGuestConsentDeps()
+const defaultGuestInviteDeps = (): invites.GuestInviteDeps => ({
+  invites: firestoreGuestInviteStore(),
+  consent: defaultGuestConsentDeps(),
+  ownerName: readOwnerName,
+  now: () => new Date(),
+});
+
+/** The guest's page for an invite link's token; null for an unknown, used or expired one. */
+export async function viewGuestInvite(token: unknown): Promise<GuestInviteView | null> {
+  return invites.viewGuestInvite(token, defaultGuestInviteDeps());
+}
+
+/** The guest's answer for an invite link's token, once; false for an unknown, used or expired one. */
+export async function answerGuestInvite(
+  token: unknown,
+  answer: GuestInviteAnswer
 ): Promise<boolean> {
-  return check.hasGuestConsent(ownerUid, e164, deps);
+  return invites.answerGuestInvite(token, answer, defaultGuestInviteDeps());
 }

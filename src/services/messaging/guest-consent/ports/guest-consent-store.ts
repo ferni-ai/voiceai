@@ -25,4 +25,6 @@ export interface GuestConsentStore {
     phoneHash: string,
     change: (prev: GuestConsent | null) => GuestConsent | null
   ) => Promise<void>;
+  /** Delete the record, history and all (the guest's "forget me"). Throws when it can't. */
+  remove: (ownerUid: string, phoneHash: string) => Promise<void>;
 }

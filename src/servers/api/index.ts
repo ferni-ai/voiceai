@@ -117,6 +117,7 @@ import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.j
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
+import { handleGuestInviteRoutes } from '../../api/guest-invite-routes.js';
 import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
@@ -859,15 +860,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
+    // Feedback, reported replies (POST /api/reports), a guest's invite answers (/api/guest-invite)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
+    if (await handleGuestInviteRoutes(req, res, pathname)) return;
     if (await handleCallTelemetryRoutes(req, res, pathname)) return;
-
-    if (pathname.startsWith('/api/brand')) {
-      const handled = await handleBrandRoutes(req, res, pathname);
-      if (handled) return;
-    }
+    if (pathname.startsWith('/api/brand') && (await handleBrandRoutes(req, res, pathname))) return;
 
     // Design tokens routes (public - for dynamic theming)
     if (pathname.startsWith('/api/design-tokens')) {

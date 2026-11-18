@@ -103,6 +103,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'family_shared_context[toUserId]': `${OTHERS}: shared by family members`,
   'consent[grants.{uid}]': `${OTHERS}: a contact's own consent record`,
   'consent[asks.{uid}]': `${OTHERS}: a contact's own consent record`,
+  'guest_invites[uid]': `${OTHERS}: invites to a guest, keyed to her phone`,
 };
 
 /**

@@ -170,6 +170,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   // docs are each number's own send record, uid-free, kept like a STOP (holder-send-ledger.ts)
   { collection: 'holder_verification_sends', doc: 'uid' },
   { collection: 'call_capture_consent', doc: 'uid' }, // Help shape Ferni (call-capture-consent.ts)
+  { collection: 'guest_invites', field: 'uid' }, // invites they sent a guest (messaging/guest-consent)
 ];
 
 /**

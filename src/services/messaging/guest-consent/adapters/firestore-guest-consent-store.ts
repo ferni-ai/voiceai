@@ -61,5 +61,8 @@ export function firestoreGuestConsentStore(db: Firestore | null | undefined): Gu
         else if (next.revokedAt !== undefined) tx.delete(ref); // afterYes never sets revokedAt
       });
     },
+    async remove(ownerUid, hash) {
+      await consentRef(need(), ownerUid, hash).delete();
+    },
   };
 }
