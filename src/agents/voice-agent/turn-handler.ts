@@ -131,7 +131,7 @@ import {
 import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
 import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
 import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
-import { crisisReadTurn, momentRecorder } from './crisis-turn-memory.js';
+import { crisisReadTurn, momentRecorder, replyReadHold } from './crisis-turn-memory.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
 // NEW: Unified Intelligence System (Levels 2-5)
@@ -851,6 +851,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
     const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
+    // CRISIS_HOLD_FOLLOWS_REPLY: each writer below also holds on the reply gate's read (null: off)
+    const replyHold = replyReadHold(services.sessionId, userText);
+    const heldTurn = async (): Promise<boolean> => crisisTurn || ((await replyHold?.()) ?? false);
 
     // Get unified intelligence result (should be ready by now)
     const intelligence = await intelligencePromise;
@@ -1013,6 +1016,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         /i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText);
       if (!crisisTurn && (isGratitude || isVulnerable)) {
         fireAndForget(async () => {
+          if (await heldTurn()) return;
           await dispatchEmotionalBondDeepen(sendDataMessage, {
             trigger: isGratitude ? 'gratitude_expressed' : 'vulnerability_shared',
             intensity: isVulnerable ? 0.85 : 0.7,
@@ -2217,7 +2221,14 @@ IMPORTANT:
       },
     };
 
-    await recordAllLearningData(learningCtx);
+    if (replyHold) {
+      // Waits for the reply gate's read in the background, never holding up the handler's note
+      fireAndForget(
+        async () =>
+          void (await recordAllLearningData({ ...learningCtx, crisisTurn: await heldTurn() })),
+        'learning-trust-recording'
+      );
+    } else await recordAllLearningData(learningCtx);
 
     // ================================================================
     // 🧠 BTH v4: MICRO-MOMENT OUTCOME RECORDING
@@ -2257,7 +2268,7 @@ IMPORTANT:
         const { recordUnifiedMoment } =
           await import('../../personality/bridge/personality-bridge.js');
         // Holds every moment on a crisis turn (crisis-turn-memory.ts).
-        const record = momentRecorder(recordUnifiedMoment, crisisTurn);
+        const record = momentRecorder(recordUnifiedMoment, await heldTurn());
 
         // Detect shared moments based on emotional intensity and content
         const emotionalAnalysis = result.analysis.analysis.emotion;
@@ -2539,7 +2550,7 @@ IMPORTANT:
     // ================================================================
     fireAndForget(async () => {
       try {
-        if (crisisTurn) return; // no trust milestone of any kind on a crisis turn
+        if (await heldTurn()) return; // no trust milestone of any kind on a crisis turn
         const relMem = getRelationalMemory();
         if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
           await relMem.addMilestone(services.userId || 'anonymous', {
@@ -2604,7 +2615,10 @@ IMPORTANT:
 
       // Fire-and-forget to not block turn completion. The only semantic intelligence pass
       // for the turn: a second one (processTurnLearning) saved every loop twice.
-      fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
+      fireAndForget(
+        async () => processSemanticIntelligence({ ...semanticData, crisisTurn: await heldTurn() }),
+        'semantic-intelligence'
+      );
 
       // ================================================================
       // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling
@@ -2624,7 +2638,8 @@ IMPORTANT:
 
         fireAndForget(async () => {
           // A crisis turn's words reach no capture; no crisis read counts as one (fail closed).
-          if (crisisTurn) return void diag.info('🧠 Turn memory held', { site: 'turn-handler' });
+          if (await heldTurn())
+            return void diag.info('🧠 Turn memory held', { site: 'turn-handler' });
           const captureResult = await fastCapture({
             userId: captureUserId,
             sessionId: services.sessionId,

@@ -17,9 +17,15 @@
  * service's record and its signals, and the bond data message to the client
  * (dispatchEmotionalBondSignal).
  *
+ * CRISIS_HOLD_FOLLOWS_REPLY (off by default): the reply follows the more severe of the reply gate
+ * (personas/crisis-gate.ts) and the pipeline, so the turn handler's writers also hold on a turn only
+ * the gate read as a crisis (replyReadHold).
+ *
  * @module voice-agent/crisis-turn-memory
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import { crisisTurnSettled } from '../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetection } from '../processors/types.js';
 
@@ -28,6 +34,29 @@ const log = createLogger({ module: 'CrisisTurnMemory' });
 /** Whether the turn's crisis read replaced the reply, guided it, or gave a soft check-in. */
 export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
   return !crisis || crisis.shouldOverrideLLM || crisis.isCrisis || crisis.softCheck === true;
+}
+
+/**
+ * CRISIS_HOLD_FOLLOWS_REPLY: whether the reply gate's reads hold this turn, asked once and only by
+ * a writer that runs (never blocking the handler); null when the flag is off, as on main.
+ *
+ * Reuses the call's shared hold (utils/crisis-memory-hold.ts), which both engines feed: a pattern
+ * guide or replace and every classifier read that is not a clean none, gave no verdict or failed
+ * hold the call (services/safety/crisis-call-risk.ts). Held when the call's reads did not settle in
+ * time, no read of the turn started, or a read held the call: fail closed.
+ */
+export function replyReadHold(
+  sessionId: string | undefined,
+  words: string,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): (() => Promise<boolean>) | null {
+  if (!flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return null;
+  let held: Promise<boolean> | undefined;
+  return async () =>
+    (held ??= crisisTurnSettled(sessionId, words).then(
+      (kept) => !kept,
+      () => true
+    ));
 }
 
 /**
