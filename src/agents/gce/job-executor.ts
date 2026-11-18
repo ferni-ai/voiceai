@@ -178,7 +178,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   const closeEvent = new EventEmitter();
   let connected = false;
   let shutdown = false;
-  let liveKitEnded = false; // LiveKit terminated the job, whatever else asked it to end
+  const ending = { liveKitEnded: false, sessionFailed: false }; // for ROOM_ENDS_WITH_AGENT
   let reconnectCount = 0;
   let lastQuality: string | undefined;
 
@@ -307,7 +307,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   const onShutdown = (reason: string) => {
     shutdown = true;
-    liveKitEnded ||= reason === LIVEKIT_TERMINATION;
+    ending.liveKitEnded ||= reason === LIVEKIT_TERMINATION;
     log('Shutdown requested', { jobId, reason });
     closeEvent.emit('close', true, reason);
   };
@@ -343,6 +343,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
         await runFullVoiceAgentEntry(ctx);
       } catch (sessionError) {
         log('Session error', { jobId, error: String(sessionError) });
+        ending.sessionFailed = true;
         throw sessionError;
       } finally {
         clearTimeout(unconnectedTimeout);
@@ -397,7 +398,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     clearTimeout(sessionTimeout);
     if (emptyRoomTimer) clearTimeout(emptyRoomTimer);
     // ROOM_ENDS_WITH_AGENT, while the agent still sees who is in the room.
-    await endRoomWithAgent(ctx.room, { jobId, roomName: info.job.room?.name, liveKitEnded }, log);
+    await endRoomWithAgent(ctx.room, { jobId, roomName: info.job.room?.name, ...ending }, log);
     try {
       if (ctx.room.isConnected) {
         await ctx.room.disconnect();

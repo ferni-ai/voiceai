@@ -9,6 +9,8 @@
  *
  * The room stays when:
  * - LiveKit ended the job (a termination): LiveKit decides what happens to the room;
+ * - the session failed: the room stays as before, so a failure that LiveKit or the caller can
+ *   recover from never becomes a hang-up;
  * - the agent is no longer connected: what it sees of the room is stale;
  * - another agent is in the room: a re-dispatched or second job carries the call on;
  * - no person is left (participant-kind.ts): the empty timeout ends the room.
@@ -27,6 +29,7 @@ import { deleteRoom } from '../shared/phone-goodbye.js';
 export type RoomEnd =
   | 'off'
   | 'kept_livekit_ended'
+  | 'kept_session_failed'
   | 'kept_agent_disconnected'
   | 'kept_agent_present'
   | 'kept_no_person'
@@ -45,11 +48,14 @@ export interface EndingJob {
   roomName: string | undefined;
   /** LiveKit terminated the job. */
   liveKitEnded: boolean;
+  /** The voice session threw instead of ending. */
+  sessionFailed: boolean;
 }
 
 /** Why the room stays, or null when it should be deleted. */
 function keepReason(room: EndingRoom, job: EndingJob): RoomEnd | null {
   if (job.liveKitEnded) return 'kept_livekit_ended';
+  if (job.sessionFailed) return 'kept_session_failed';
   if (!room.isConnected) return 'kept_agent_disconnected';
   const kinds = [...room.remoteParticipants.values()].map((p) => p.kind);
   if (kinds.includes(ParticipantKind.AGENT)) return 'kept_agent_present';

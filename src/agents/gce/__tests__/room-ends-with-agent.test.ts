@@ -107,10 +107,10 @@ describe('ROOM_ENDS_WITH_AGENT on: the room ends with the agent', () => {
     ]);
   });
 
-  it('deletes the room when the session fails, and the job still fails', async () => {
+  it('keeps the room when the session fails, as before: a failure is never made a hang-up', async () => {
     on();
     expect(await endCall('AJ_throw', { people: [ParticipantKind.STANDARD], throws: true })).toEqual(
-      [ROOM]
+      []
     );
   });
 
