@@ -13,6 +13,8 @@ const h = vi.hoisted(() => ({
   verdict: '{"risk":"none","subject":"self"}' as string | Error,
   toolRuns: 0,
   handedGate: [] as boolean[],
+  /** A router that runs the tool without asking: the reply path must still refuse the bypass. */
+  ignoreHold: false,
 }));
 
 vi.mock('../../../../services/diagnostic-logger.js', () => {
@@ -44,7 +46,7 @@ vi.mock('../../../../tools/semantic-router/integration/index.js', async (importO
     h.handedGate.push(typeof context.autoExecuteAllowed === 'function');
     const { autoExecuteHeld } =
       await import('../../../../tools/semantic-router/integration/auto-execute-hold.js');
-    if (await autoExecuteHeld(context, 'semantic')) {
+    if (!h.ignoreHold && (await autoExecuteHeld(context, 'semantic'))) {
       return { attempted: true, executed: false, routeResult: ROUTE, routingPath: 'json_fallback' };
     }
     h.toolRuns += 1;
@@ -81,7 +83,8 @@ vi.mock('../turn-crisis.js', async (importOriginal) => {
 const { processTurn } = await import('../process-turn.js');
 const { hasCrisisSignal } = await import('../turn-crisis.js');
 const { detectCrisis } = await import('../../../safety/crisis-guard.js');
-const { resetCrisisClassifierCache } = await import('../../../../services/safety/crisis-classifier.js');
+const { resetCrisisClassifierCache } =
+  await import('../../../../services/safety/crisis-classifier.js');
 const { resetCrisisCallRisk } = await import('../../../../services/safety/crisis-call-risk.js');
 
 const LINE = 'text riley test that the spare key is under the blue pot';
@@ -114,6 +117,7 @@ async function turn(sessionId = 's-auto-tools'): Promise<Routing> {
 }
 
 beforeEach(() => {
+  h.ignoreHold = false;
   h.toolRuns = 0;
   h.handedGate.length = 0;
   resetCrisisClassifierCache();
@@ -131,22 +135,43 @@ describe('CRISIS_BLOCKS_AUTO_TOOLS', () => {
   describe('flag on', () => {
     beforeEach(() => vi.stubEnv('CRISIS_BLOCKS_AUTO_TOOLS', 'on'));
 
-    it('a crisis only the classifier reads: no tool runs and no direct reply', async () => {
-      h.verdict = CRISIS_READ;
-      const routing = await turn();
-      expect(h.handedGate).toEqual([true]);
-      expect(h.toolRuns).toBe(0);
-      expect(routing).toMatchObject({ bypassLLM: false, routed: false });
+    // With no call id there is no call risk, so the turn's own reads alone must hold the tool.
+    describe.each([
+      ['on a call', 's-auto-tools'],
+      ['with no call id', ''],
+    ])('%s', (_where, sessionId) => {
+      it('a crisis only the classifier reads: no tool runs and no direct reply', async () => {
+        h.verdict = CRISIS_READ;
+        const routing = await turn(sessionId);
+        expect(h.handedGate).toEqual([true]);
+        expect(h.toolRuns).toBe(0);
+        expect(routing).toMatchObject({ bypassLLM: false, routed: false });
+      });
+
+      it('a classifier read that fails: no tool runs and no direct reply', async () => {
+        h.verdict = new Error('model unavailable');
+        const routing = await turn(sessionId);
+        expect(h.toolRuns).toBe(0);
+        expect(routing).toMatchObject({ bypassLLM: false, routed: false });
+      });
+
+      it('a router that ran the tool anyway: the direct reply is still refused', async () => {
+        h.ignoreHold = true;
+        h.verdict = CRISIS_READ;
+        const routing = await turn(sessionId);
+        expect(h.toolRuns).toBe(1);
+        expect(routing).toMatchObject({ bypassLLM: false, routed: false });
+      });
+
+      it('an ordinary turn with the same route: the tool runs and replies as today', async () => {
+        h.verdict = NO_RISK;
+        const routing = await turn(sessionId);
+        expect(h.toolRuns).toBe(1);
+        expect(routing).toMatchObject({ bypassLLM: true, routed: true });
+      });
     });
 
-    it('a classifier read that fails: no tool runs and no direct reply', async () => {
-      h.verdict = new Error('model unavailable');
-      const routing = await turn();
-      expect(h.toolRuns).toBe(0);
-      expect(routing).toMatchObject({ bypassLLM: false, routed: false });
-    });
-
-    it('risk earlier on the call (a reply gate read): no tool runs and no direct reply', async () => {
+    it('risk an earlier turn noted on the call: no tool runs and no direct reply', async () => {
       h.verdict = CRISIS_READ;
       await turn('s-earlier-risk');
       h.toolRuns = 0;
@@ -155,13 +180,6 @@ describe('CRISIS_BLOCKS_AUTO_TOOLS', () => {
       const routing = await turn('s-earlier-risk');
       expect(h.toolRuns).toBe(0);
       expect(routing).toMatchObject({ bypassLLM: false });
-    });
-
-    it('an ordinary turn with the same route: the tool runs and replies as today', async () => {
-      h.verdict = NO_RISK;
-      const routing = await turn();
-      expect(h.toolRuns).toBe(1);
-      expect(routing).toMatchObject({ bypassLLM: true, routed: true });
     });
   });
 

@@ -200,7 +200,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // CRISIS_BLOCKS_AUTO_TOOLS: a router asks the turn's crisis reads before it runs a tool, and every
   // answer without the reply model asks them too (turn-crisis.ts autoToolsAllowed).
   const blocksAutoTools = flagOn('CRISIS_BLOCKS_AUTO_TOOLS');
-  const autoExecuteGate = blocksAutoTools ? { autoExecuteAllowed: turnCrisis.autoToolsAllowed } : {};
+  const autoExecuteGate = blocksAutoTools
+    ? { autoExecuteAllowed: turnCrisis.autoToolsAllowed }
+    : {};
   const routerBypassAllowed = (): Promise<boolean> =>
     blocksAutoTools ? turnCrisis.autoToolsAllowed() : turnCrisis.bypassAllowed();
 
@@ -718,11 +720,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
     // Never bypass the LLM on a crisis or soft check-in turn: the bypass result carries neither.
-    if (
-      ftisResult.bypassLLM &&
-      ftisResult.toolResult &&
-      (await routerBypassAllowed())
-    ) {
+    if (ftisResult.bypassLLM && ftisResult.toolResult && (await routerBypassAllowed())) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
