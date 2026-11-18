@@ -26,7 +26,7 @@ export interface ForgetMarks {
   forgottenTopics: string[] | null;
   /** Why records are tagged, for a reader of the file. */
   forgottenNote: string;
-  /** How many records are tagged: the CSV shows nested records only as counts, so it says this. */
+  /** How many records are tagged, for the CSV's header line (each tagged row also says so). */
   heldCount: number;
 }
 
@@ -97,17 +97,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** The CSV file's header lines for the marks; none with the flag off. */
 export function forgetMarksCsvLines(marks: Partial<ForgetMarks>): string[] {
   if (marks.forgottenTopics === undefined) return [];
-  const topics = marks.forgottenTopics?.join('; ') ?? 'could not be read';
+  // The caller's own words: a newline would end the comment line and start a bare data line
+  const topics = marks.forgottenTopics?.join('; ').replace(/[\r\n]+/g, ' ') ?? 'could not be read';
   const lines = [`# Forgotten topics: ${topics}`, `# ${marks.forgottenNote ?? ''}`];
   if (marks.forgottenTopics === null) return lines;
-  // Nested records reach this file only as counts, so say how many are tagged and where to look
-  const n = marks.heldCount ?? 0;
-  const which = n > 0 ? ' The JSON download shows which ones.' : '';
-  return [...lines, `# Records tagged heldByForget: ${n}.${which}`];
-}
-
-/** A list's CSV columns gain heldByForget when any of its rows is tagged (the first may not be). */
-export function withHeldColumn(headers: string[], rows: readonly unknown[]): string[] {
-  const held = rows.some((r) => isRecord(r) && r.heldByForget === true);
-  return held && !headers.includes('heldByForget') ? [...headers, 'heldByForget'] : headers;
+  // Each tagged record is a row with a heldByForget cell (export-csv.ts); this says how many
+  return [...lines, `# Records tagged heldByForget: ${marks.heldCount ?? 0}.`];
 }
