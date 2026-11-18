@@ -3,7 +3,8 @@
  * sent as null or as an error, never as a zero or a made-up constant.
  *
  * - Dashboard stats (DB4): when the latency/activity read fails, response time,
- *   error rate and sessions are null, not 0.
+ *   error rate and sessions are null, not 0. When it works, the values nothing measures
+ *   (error rate, conversations) are still null, not a constant 2% or sessions x10.
  * - Analytics summary (BM2): without Firestore the summary is a 503, not
  *   zeros read from empty in-memory maps.
  */
@@ -16,9 +17,11 @@ vi.mock('../auth-middleware.js', () => ({
   requireAdmin: vi.fn(async () => ({ userId: 'admin-1', isAdmin: true })),
 }));
 
+const latency = vi.hoisted(() => ({ down: true }));
 vi.mock('../../services/analytics/latency-tracker.js', () => ({
   getAverageLatency: () => {
-    throw new Error('latency store down');
+    if (latency.down) throw new Error('latency store down');
+    return 420;
   },
   getLatencySummary: () => ({ services: [] }),
 }));
@@ -89,6 +92,18 @@ describe('dashboard stats (DB4)', () => {
       activeSessions: null,
     });
     expect(json.conversations).toMatchObject({ today: null, thisWeek: null });
+  });
+
+  it('sends null, not a constant, for what nothing measures even when the reads work', async () => {
+    latency.down = false;
+    try {
+      const { handleAdminDashboardRoutes } = await import('../v1/admin/dashboard.js');
+      const { json } = await get(handleAdminDashboardRoutes, '/api/v1/admin/dashboard/stats');
+      expect(json.system).toMatchObject({ responseTime: 420, errorRate: null, activeSessions: 0 });
+      expect(json.conversations).toEqual({ today: null, thisWeek: null, trend: 'neutral' });
+    } finally {
+      latency.down = true;
+    }
   });
 });
 

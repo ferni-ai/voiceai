@@ -254,11 +254,9 @@ async function getAggregatedStats(): Promise<AggregatedStats> {
 
   return {
     agents: agentStats,
-    conversations: {
-      today: systemStats.activeSessions === null ? null : systemStats.activeSessions * 10, // Estimate from sessions
-      thisWeek: systemStats.activeSessions === null ? null : systemStats.activeSessions * 50,
-      trend: 'up',
-    },
+    // No conversation store feeds this yet (plan row 3). It was sessions x10 and x50, and
+    // always trending up: not measured, so null and no trend.
+    conversations: { today: null, thisWeek: null, trend: 'neutral' },
     evalops: evalStats,
     trust: trustStats,
     system: systemStats,
@@ -344,7 +342,7 @@ async function getSystemStats(): Promise<{
     return {
       uptime: process.uptime(),
       responseTime: avgLatency > 0 ? avgLatency : null,
-      errorRate: 0.02, // Would need to track actual errors
+      errorRate: null, // no error counter feeds this yet (plan row 5): not measured
       activeSessions,
     };
   } catch (error) {
