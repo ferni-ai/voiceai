@@ -2130,16 +2130,6 @@
       ]
     },
     {
-      "collectionGroup": "guest_invites",
-      "fieldPath": "ttlAt",
-      "ttl": true,
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" },
-        { "order": "DESCENDING", "queryScope": "COLLECTION" },
-        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
-      ]
-    },
-    {
       "collectionGroup": "oauth_link_states",
       "fieldPath": "ttlAt",
       "ttl": true,

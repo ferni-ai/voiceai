@@ -2,8 +2,10 @@
  * The GuestInviteStore on Firestore: guest_invites/{sha256(token)} in the shared
  * single-use store (stores/single-use-records.ts), as connect invites use it.
  * Taking an invite deletes it. Server-only (firestore.rules' default deny), erased
- * with the owner (ERASED_STORES), never copied to dev (copy-user.ts), and swept
- * by ttlAt (firestore.indexes.json).
+ * with the owner (ERASED_STORES), never copied to dev (copy-user.ts). Each record
+ * carries ttlAt, but no TTL policy sweeps it yet: a TTL policy deletes documents, so
+ * it goes on in prod first (with the owner's OK) and only then into
+ * firestore.indexes.json (scripts/firestore/__tests__/indexes-file.test.ts).
  *
  * @module services/messaging/guest-consent/adapters/firestore-guest-invite-store
  */
