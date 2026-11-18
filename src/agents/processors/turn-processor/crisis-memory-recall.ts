@@ -17,8 +17,8 @@
  * @module agents/processors/turn-processor/crisis-memory-recall
  */
 import { flagOn, type Env } from '../../../config/env-flag.js';
-import { REVIVED_CATEGORY } from '../../../intelligence/revived/revived-intelligence.js';
-import { crisisRiskNoted } from '../../../services/safety/crisis-call-risk.js';
+import { REVIVED_CATEGORY } from '../../../intelligence/revived/index.js';
+import { crisisRiskNoted } from '../../../services/safety/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { crisisReadTurn } from '../../voice-agent/crisis-turn-memory.js';
 import type { CrisisDetection } from '../types.js';
