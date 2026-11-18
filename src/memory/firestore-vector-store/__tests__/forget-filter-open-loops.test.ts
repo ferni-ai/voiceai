@@ -235,6 +235,18 @@ describe("an expired loop's copy is only labels", () => {
     expect(out).toEqual([]);
   });
 
+  it.each([
+    ['before the template', 'I got the Denver offer. '],
+    ['in its brackets', null],
+  ])('caller words %s: read whole', async (_l, prefix) => {
+    const copy = expired('loop_9_zz');
+    copy.document.text =
+      prefix === null
+        ? copy.document.text.replace('(intention)', '(the Denver offer)')
+        : prefix + copy.document.text;
+    expect(await forgetOn([copy], ['Denver job'])).toEqual([]);
+  });
+
   it('text after the template is read whole (a shape it does not know)', async () => {
     const copy = expired('loop_9_zz');
     copy.document.text += ' I got the offer from the Denver office.';

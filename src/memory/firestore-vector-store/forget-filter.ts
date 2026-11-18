@@ -119,16 +119,16 @@ export function sourcePath(
   return undefined;
 }
 
+/** An expired loop's whole copy, as coaching-hooks.ts writes open-loop-expiry.ts's fields. */
+const EXPIRED_COPY =
+  /^Coaching insight: Open loop \(\w+\) expired\. Context: Status: expired\. Category: \w+\.$/;
+
 /**
  * The caller's words in an open loop's copy (open-loops.ts saveOpenLoop), without the copy's own labels ("Priority", "Actionable"),
  * which would match a topic on their own; none for an expired loop's copy, which is only
  * labels (open-loop-expiry.ts); the whole text if its shape is new.
  * Undefined for any other result.
  */
-/** An expired loop's whole copy, as coaching-hooks.ts writes open-loop-expiry.ts's fields. */
-const EXPIRED_COPY =
-  /^Coaching insight: Open loop \(\w+\) expired\. Context: Status: expired\. Category: \w+\.$/;
-
 export function openLoopWords(doc: { id: string; text: string }): string | undefined {
   // The store's id is `${storeType}_${entityType}_${entityId}`: coaching_coaching_insight_open_loop_<id>
   if (!doc.id.includes('_open_loop_')) return undefined;
