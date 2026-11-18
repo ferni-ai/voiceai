@@ -50,7 +50,7 @@ export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
  * any read of the turn counts, as for the pipeline's own writers. Held when that read did not
  * start or the call's reads did not settle in time, or a read held the call: fail closed.
  */
-export function replyReadHold(
+function replyReadHold(
   sessionId: string | undefined,
   words: string,
   env: Readonly<Record<string, string | undefined>> = process.env

@@ -1,8 +1,8 @@
 /**
- * CRISIS_HOLD_FOLLOWS_REPLY: replyReadHold (crisis-turn-memory.ts) reads the call's shared crisis
+ * CRISIS_HOLD_FOLLOWS_REPLY: turnHold (crisis-turn-memory.ts) reads the call's shared crisis
  * hold (utils/crisis-memory-hold.ts) once per turn. With the reply gate live it waits for the
  * gate's own read of the turn (noteReplyGateTurn) and its escalation; the pipeline's read never
- * stands in for it. Flag off: no hold function, as on main. Every line is fictional.
+ * stands in for it. Flag off: the pipeline's read alone, as on main. Every line is fictional.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetCrisisCallRisk, trackCrisisRead } from '../../../services/safety/crisis-call-risk.js';
@@ -12,21 +12,24 @@ import {
   noteCrisisTurnRead,
   noteReplyGateTurn,
 } from '../../../utils/crisis-memory-hold.js';
-import { replyReadHold } from '../crisis-turn-memory.js';
+import type { CrisisDetection } from '../../processors/types.js';
+import { turnHold } from '../crisis-turn-memory.js';
 
 const WORDS = 'the garden had a slow week and the tomatoes are late again';
 const ON = { CRISIS_HOLD_FOLLOWS_REPLY: 'on' }; // the reply gate is live by default
 const GATE_SHADOW = { ...ON, CRISIS_GUARD_MODE: 'shadow' };
 const WAIT = { ...CRISIS_READ_WAIT };
+/** The turn pipeline read the turn clean. */
+const CLEAN = { shouldOverrideLLM: false, isCrisis: false } as CrisisDetection;
 let n = 0;
 const call = (): string => `reply-hold-unit-${++n}`;
-/** The flag-on hold function for this call's turn (replyReadHold returns null only when off). */
+/** The flag-on hold for this call's turn, its pipeline read clean. */
 const holdOf = (
   sessionId: string | undefined,
   env: Record<string, string> = ON
 ): (() => Promise<boolean>) => {
-  const hold = replyReadHold(sessionId, WORDS, env);
-  if (!hold) throw new Error('flag on gave no hold function');
+  const hold = turnHold(CLEAN, sessionId, WORDS, env);
+  if (!hold.waits) throw new Error('flag on gave a hold that does not wait');
   return hold;
 };
 const ask = (sessionId: string | undefined, env?: Record<string, string>): Promise<boolean> =>
@@ -48,10 +51,13 @@ beforeEach(() => {
 });
 afterEach(() => void Object.assign(CRISIS_READ_WAIT, WAIT));
 
-describe('replyReadHold', () => {
-  it('flag off (unset or off): no hold function, and the gate notes nothing', async () => {
-    expect(replyReadHold(call(), WORDS, {})).toBeNull();
-    expect(replyReadHold(call(), WORDS, { CRISIS_HOLD_FOLLOWS_REPLY: 'off' })).toBeNull();
+describe('turnHold', () => {
+  it("flag off (unset or off): the pipeline's read alone, and the gate notes nothing", async () => {
+    for (const env of [{}, { CRISIS_HOLD_FOLLOWS_REPLY: 'off' }]) {
+      const clean = turnHold(CLEAN, call(), WORDS, env);
+      expect([clean.waits, clean.read, await clean()]).toEqual([false, false, false]);
+      expect(await turnHold({ ...CLEAN, isCrisis: true }, call(), WORDS, env)()).toBe(true);
+    }
     const sessionId = call();
     noteReplyGateTurn(sessionId, WORDS, { escalation: null }, {});
     expect(await ask(sessionId)).toBe(true); // no gate read of the turn was noted
