@@ -10,6 +10,6 @@ export const IDLE_END_CHECKIN = {
   owner: 'voice',
   kind: 'experiment',
   expires: '2027-02-18',
-  issue: 'TBD',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/4077',
   context: 'calls that went quiet were hung up at 10 minutes with nothing said',
 } as const satisfies FlagSpec;

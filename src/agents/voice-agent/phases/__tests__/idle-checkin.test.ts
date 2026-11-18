@@ -1,37 +1,34 @@
 /**
  * IDLE_END_CHECKIN: one spoken check-in a minute before a quiet call's idle end
- * (idle-checkin.ts, session-end-watch.ts). Fake clock; speech stubbed at safeGenerateReply;
- * no network. Riley Test's call; no caller words anywhere.
+ * (idle-checkin.ts, session-end-watch.ts). Fake clock; speech stubbed at cueSay; no network. Riley Test's call; no caller words anywhere.
  */
 import { EventEmitter } from 'node:events';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { safeGenerateReply, quietLog } = vi.hoisted(() => {
-  const quietLog: Record<string, unknown> = {};
-  for (const level of ['debug', 'info', 'warn', 'error', 'trace', 'fatal'])
-    quietLog[level] = vi.fn();
-  quietLog.child = () => quietLog;
-  return {
-    safeGenerateReply: vi.fn(async () => ({ success: true, usedFallback: false })),
-    quietLog: quietLog as { info: ReturnType<typeof vi.fn> },
-  };
+const { cueSay, quietLog, logged } = vi.hoisted(() => {
+  const logged = Object.fromEntries(
+    ['debug', 'info', 'warn', 'error', 'trace', 'fatal'].map((level) => [level, vi.fn()])
+  );
+  const quietLog: Record<string, unknown> = { ...logged, child: () => quietLog };
+  return { cueSay: vi.fn(), quietLog, logged };
 });
 vi.mock('../../../../utils/safe-logger.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../utils/safe-logger.js')>()),
   createLogger: () => quietLog,
 }));
-vi.mock('../../../shared/safe-generate-reply.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../shared/safe-generate-reply.js')>()),
-  safeGenerateReply,
+vi.mock('../../../../speech/direction/index.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../speech/direction/index.js')>()),
+  cueSay,
 }));
 
+import { signalCrisisDecision } from '../../../safety/crisis-gate-signal.js';
 import {
-  noteCrisisRisk,
   resetCrisisCallRisk,
+  trackCrisisRead,
 } from '../../../../services/safety/crisis-call-risk.js';
+import { IDLE_CHECKIN_CUE } from '../../idle-checkin-cue.js';
 import { idleCheckInFor } from '../idle-checkin.js';
-import { NIGHT_NOTE } from '../../quiet-presence.js';
 import {
   IDLE_MS,
   waitForSessionEnd,
@@ -53,7 +50,7 @@ const ON = { IDLE_END_CHECKIN: 'on' };
 const agentSession = { agentState: 'listening', userState: 'listening', history: { items: [] } };
 const call = {
   sessionId: SESSION_ID,
-  userData: { callerTimezone: 'UTC' },
+  userData: {},
   room: { remoteParticipants: new Map<string, unknown>([['riley-test', {}]]) },
   activeSession: () => agentSession,
 };
@@ -178,9 +175,8 @@ describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log
 
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-11-18T15:00:00Z')); // mid-afternoon for a UTC caller
-    safeGenerateReply.mockClear();
-    quietLog.info.mockClear();
+    cueSay.mockClear();
+    for (const level of Object.values(logged)) level.mockClear();
     resetCrisisCallRisk();
   });
   afterEach(() => {
@@ -198,58 +194,84 @@ describe('idleCheckInFor: the flag, the crisis skip, the speech path and the log
     expect(await Promise.all(ends.map(state))).toEqual(['still-open', 'still-open']);
     await vi.advanceTimersByTimeAsync(SECOND);
     expect(await Promise.all(ends)).toEqual(['idle', 'idle']);
-    expect(safeGenerateReply).not.toHaveBeenCalled();
+    expect(cueSay).not.toHaveBeenCalled();
   });
 
-  it('flag on: says the idle note through the quiet-presence speech path, then logs IDLE_CHECKIN with no words', async () => {
+  it("flag on: says the idle warning's own check-in cue, then logs IDLE_CHECKIN with no words", async () => {
     const room = new FakeRoom();
     const ended = waitForSessionEnd(room, { idleCheckIn: idleCheckInFor(call, ON) });
 
     await vi.advanceTimersByTimeAsync(CHECK_IN_AT - SECOND);
-    expect(safeGenerateReply).not.toHaveBeenCalled();
+    expect(cueSay).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(SECOND);
-    expect(safeGenerateReply).toHaveBeenCalledTimes(1);
-    expect(safeGenerateReply).toHaveBeenCalledWith(
-      agentSession,
-      expect.objectContaining({
-        instructions: expect.stringContaining("you're still here"),
-        context: 'idle-checkin',
-        sessionId: SESSION_ID,
-      })
-    );
+    expect(cueSay).toHaveBeenCalledTimes(1);
+    expect(cueSay).toHaveBeenCalledWith(SESSION_ID, IDLE_CHECKIN_CUE, {
+      allowInterruptions: true,
+    });
+    expect(IDLE_CHECKIN_CUE.moment).toBe('idle_checkin');
 
     await vi.advanceTimersByTimeAsync(IDLE_CHECKIN_WINDOW_MS);
     expect(await ended).toBe('idle');
-    const logged = quietLog.info.mock.calls.filter((c) => c[1] === 'IDLE_CHECKIN');
-    expect(logged).toEqual([[{ sessionId: SESSION_ID, outcome: 'ended' }, 'IDLE_CHECKIN']]);
+    expect(logged.info.mock.calls.filter((c) => c[1] === 'IDLE_CHECKIN')).toEqual([
+      [{ sessionId: SESSION_ID, outcome: 'ended' }, 'IDLE_CHECKIN'],
+    ]);
   });
 
-  it("late at night for the caller it says quiet presence's NIGHT_NOTE instead", async () => {
-    vi.setSystemTime(new Date('2026-11-18T02:00:00Z'));
-    const room = new FakeRoom();
-    void waitForSessionEnd(room, { idleCheckIn: idleCheckInFor(call, ON) });
-    await vi.advanceTimersByTimeAsync(CHECK_IN_AT);
-    expect(safeGenerateReply).toHaveBeenCalledWith(
-      agentSession,
-      expect.objectContaining({ instructions: NIGHT_NOTE })
+  /** A call like `call`, on its own session and id, with these flags; main runs beside it. */
+  function crisisSideBySide(sessionId: string, session: object) {
+    const callHere = { ...call, sessionId, activeSession: () => session };
+    const main = new FakeRoom();
+    const flagged = new FakeRoom();
+    return {
+      rooms: [main, flagged],
+      ends: [
+        waitForSessionEnd(main),
+        waitForSessionEnd(flagged, { idleCheckIn: idleCheckInFor(callHere, ON) }),
+      ],
+    };
+  }
+
+  it('on a crisis-guided call and a call whose crisis read still holds the reply, it says nothing and ends on the same tick as main', async () => {
+    const guided = { ...agentSession };
+    signalCrisisDecision(guided, 'guide');
+    const held = { ...agentSession };
+    trackCrisisRead(
+      `${SESSION_ID}-held`,
+      'an invented line still being read',
+      new Promise<{ risk: string } | null>(() => {}) // never settles: the reply stays held
     );
-    room.emit('disconnected');
-  });
-
-  it('crisis call: no check-in, and it ends on the same tick as main', async () => {
-    noteCrisisRisk(SESSION_ID);
-    const { rooms, ends } = sideBySide(ON);
+    const calls = [
+      crisisSideBySide(`${SESSION_ID}-guided`, guided),
+      crisisSideBySide(`${SESSION_ID}-held`, held),
+    ];
 
     await vi.advanceTimersByTimeAsync(2 * 60 * SECOND);
-    for (const room of rooms) room.emit('activeSpeakersChanged', CALLER);
+    for (const room of calls.flatMap((c) => c.rooms)) room.emit('activeSpeakersChanged', CALLER);
     await vi.advanceTimersByTimeAsync(IDLE_MS - SECOND);
-    expect(await Promise.all(ends.map(state))).toEqual(['still-open', 'still-open']);
+    for (const { ends } of calls)
+      expect(await Promise.all(ends.map(state))).toEqual(['still-open', 'still-open']);
     await vi.advanceTimersByTimeAsync(SECOND);
-    expect(await Promise.all(ends)).toEqual(['idle', 'idle']);
-    expect(safeGenerateReply).not.toHaveBeenCalled();
-    const logged = quietLog.info.mock.calls.filter((c) => c[1] === 'IDLE_CHECKIN');
-    expect(logged).toEqual([
-      [{ sessionId: SESSION_ID, outcome: 'skipped_crisis' }, 'IDLE_CHECKIN'],
+    for (const { ends } of calls) expect(await Promise.all(ends)).toEqual(['idle', 'idle']);
+    expect(cueSay).not.toHaveBeenCalled();
+    expect(logged.info.mock.calls.filter((c) => c[1] === 'IDLE_CHECKIN')).toEqual([
+      [{ sessionId: `${SESSION_ID}-guided`, outcome: 'skipped_crisis' }, 'IDLE_CHECKIN'],
+      [{ sessionId: `${SESSION_ID}-held`, outcome: 'skipped_crisis' }, 'IDLE_CHECKIN'],
+    ]);
+  });
+
+  it("what it keeps holds none of the caller's words: one IDLE_CHECKIN line, the call id and the outcome", async () => {
+    const words = 'an invented last line from riley';
+    const callWithWords = { ...call, userData: { lastUserMessage: words } };
+    const room = new FakeRoom();
+    const ended = waitForSessionEnd(room, { idleCheckIn: idleCheckInFor(callWithWords, ON) });
+    await vi.advanceTimersByTimeAsync(IDLE_MS);
+    expect(await ended).toBe('idle');
+    expect(cueSay).toHaveBeenCalledWith(SESSION_ID, IDLE_CHECKIN_CUE, { allowInterruptions: true });
+
+    const lines = Object.values(logged).flatMap((level) => level.mock.calls);
+    expect(JSON.stringify(lines)).not.toContain(words);
+    expect(lines.filter((c) => c[1] === 'IDLE_CHECKIN')).toEqual([
+      [{ sessionId: SESSION_ID, outcome: 'ended' }, 'IDLE_CHECKIN'],
     ]);
   });
 });

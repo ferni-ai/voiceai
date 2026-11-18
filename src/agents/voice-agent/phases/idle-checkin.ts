@@ -7,34 +7,30 @@
  * session-state-handler.ts, so its idle check-in never runs there, and quiet presence's
  * (quiet-presence.ts) sits behind LISTEN_FIRST.
  *
- * The check-in is spoken the way quiet presence speaks (speakPresenceCheck), held back by
- * what holds back its check (real silence, silenceResponseBlocked): NIGHT_NOTE late at night
- * for the caller, IDLE_NOTE otherwise. A call with any crisis signal (callHasCrisisSignal) gets
- * no check-in and ends exactly as with the flag off. The timing is session-end-watch.ts's.
+ * The check-in is the idle warning's own line (IDLE_CHECKIN_CUE), held back by what holds back
+ * a silence response (real silence, silenceResponseBlocked). A call with any crisis signal
+ * (callHasCrisisSignal) gets no check-in and ends exactly as with the flag off. The timing is session-end-watch.ts's.
  * Each outcome logs IDLE_CHECKIN with the call id and the outcome, never words.
  *
  * @module agents/voice-agent/phases/idle-checkin
  */
-import type { voice } from '@livekit/agents';
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { cueSay } from '../../../speech/direction/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { callerTimeZoneOf, lateNightFor } from '../../personas/listen-first.js';
 import { isRealSilence, type SessionStates } from '../dead-air.js';
-import { callHasCrisisSignal, NIGHT_NOTE, speakPresenceCheck } from '../quiet-presence.js';
+import { IDLE_CHECKIN_CUE } from '../idle-checkin-cue.js';
+import { callHasCrisisSignal } from '../quiet-presence.js';
 import { silenceResponseBlocked } from '../silence-response-blockers.js';
 import type { IdleCheckIn } from './session-end-watch.js';
 
 /** How long before the idle end Ferni checks in, and how long the caller then has to answer. */
 const IDLE_CHECKIN_WINDOW_MS = 60_000;
 
-const IDLE_NOTE =
-  "[They've been quiet for several minutes. In one short, soft sentence, let them know you're still here if they want to keep talking, or you can pick it up another time. Don't ask if they're still there.]";
-
 const log = createLogger({ module: 'idle-checkin' });
 
 export interface IdleCheckInCall {
   sessionId: string;
-  userData: { callerTimezone?: string; lastUserMessage?: string; services?: unknown };
+  userData: { lastUserMessage?: string; services?: unknown };
   room?: { remoteParticipants?: Map<string, unknown> };
   /** The AgentSession of the persona on the call now (a handoff changes it). */
   activeSession: () => unknown;
@@ -51,15 +47,10 @@ export function idleCheckInFor(
     windowMs: IDLE_CHECKIN_WINDOW_MS,
     crisis: () => callHasCrisisSignal(call.activeSession(), sessionId, userData),
     speak: (callerQuietMs) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const session = call.activeSession() as voice.AgentSession<any> | null | undefined;
-      if (!session || !isRealSilence(session as unknown as SessionStates)) return false;
+      const session = call.activeSession();
+      if (!session || !isRealSilence(session as SessionStates)) return false;
       if (silenceResponseBlocked(sessionId, room, callerQuietMs / 1000, userData)) return false;
-      const lateNight = lateNightFor(new Date(), callerTimeZoneOf(userData));
-      speakPresenceCheck(session, sessionId, lateNight ? NIGHT_NOTE : IDLE_NOTE, {
-        context: 'idle-checkin',
-        label: 'idle-checkin',
-      });
+      cueSay(sessionId, IDLE_CHECKIN_CUE, { allowInterruptions: true });
       return true;
     },
     onOutcome: (outcome) => log.info({ sessionId, outcome }, 'IDLE_CHECKIN'),

@@ -288,33 +288,16 @@ export function quietPresenceFor(
       isRealSilence(session as unknown as SessionStates) &&
       !silenceResponseBlocked(sessionId, room, (Date.now() - callerLastSpokeAt()) / 1000, userData),
     speak: (instructions) =>
-      speakPresenceCheck(session, sessionId, instructions, {
-        context: 'silence-quiet-presence',
-        label: 'quiet-presence',
-      }),
+      fireAndForget(async () => {
+        await safeGenerateReply(session, {
+          instructions,
+          allowInterruptions: true,
+          context: 'silence-quiet-presence',
+          sessionId,
+          timeoutMs: 10_000,
+          priority: 'low',
+          waitForPlayout: false,
+        });
+      }, 'quiet-presence'),
   });
-}
-
-/**
- * One soft presence line in the persona's own words, interruptible and low priority, not
- * waited on: quiet presence's check, and the idle check-in (phases/idle-checkin.ts).
- */
-export function speakPresenceCheck(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  session: voice.AgentSession<any>,
-  sessionId: string,
-  instructions: string,
-  names: { context: string; label: string }
-): void {
-  fireAndForget(async () => {
-    await safeGenerateReply(session, {
-      instructions,
-      allowInterruptions: true,
-      context: names.context,
-      sessionId,
-      timeoutMs: 10_000,
-      priority: 'low',
-      waitForPlayout: false,
-    });
-  }, names.label);
 }

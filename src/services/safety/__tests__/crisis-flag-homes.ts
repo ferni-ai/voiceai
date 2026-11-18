@@ -288,6 +288,16 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'the flag on leaves the request the model gets as it came: an open call logs, a guided one is quiet',
     ],
   },
+  // One spoken check-in before a quiet multi-agent call's idle end (phases/idle-checkin.ts). It
+  // makes no reply and keeps nothing; on a call with any crisis signal, a read still holding the
+  // reply included, it says nothing and the call ends as with the flag off.
+  IDLE_END_CHECKIN: {
+    file: 'src/agents/voice-agent/phases/__tests__/idle-checkin.test.ts',
+    rows: [
+      'on a crisis-guided call and a call whose crisis read still holds the reply, it says nothing and ends on the same tick as main',
+      "what it keeps holds none of the caller's words: one IDLE_CHECKIN line, the call id and the outcome",
+    ],
+  },
 };
 
 /**

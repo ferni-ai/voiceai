@@ -60,6 +60,7 @@
         "src/agents/shared/phone-goodbye.ts",
         "src/agents/shared/tts-wrapper.ts",
         "src/agents/shared/wrap-up-window.ts",
+        "src/agents/voice-agent/phases/idle-checkin.ts",
         "src/agents/voice-agent/quiet-presence.ts",
         "src/agents/voice-agent/turn-handler.ts",
         "src/api/custom-agent/chat-routes.ts",
