@@ -56,13 +56,22 @@ describe("safe-logger never writes a consented clone's voice id", () => {
     expect(out.toLowerCase()).not.toContain(CLONE);
   });
 
-  it('leaves an ordinary voice id, and an id that only starts with the clone, alone', () => {
+  it.each<[string, string]>([
+    ['a file name built from it', `preview-${CLONE}.mp3`],
+    ['a key built from it', `voice_${CLONE}`],
+    ['a suffixed key', `${CLONE}_v2`],
+  ])('%s', (_where, value) => {
+    const out = logged((log) => log.info({ filePath: value }, 'saved'));
+    expect(out).toContain(REDACTED_LOG_VALUE);
+    expect(out).not.toContain(CLONE);
+  });
+
+  it('leaves an ordinary voice id, and a longer word that merely contains the clone, alone', () => {
     const out = logged((log) =>
-      log.info({ voiceId: 'fake-maya-id', other: `${CLONE}-2`, word: `x${CLONE}` }, 'tts ready')
+      log.info({ voiceId: 'fake-maya-id', word: `x${CLONE}x` }, 'tts ready')
     );
     expect(out).toContain('"voiceId":"fake-maya-id"');
-    expect(out).toContain(`"other":"${CLONE}-2"`);
-    expect(out).toContain(`"word":"x${CLONE}"`);
+    expect(out).toContain(`"word":"x${CLONE}x"`);
     expect(out).not.toContain(REDACTED_LOG_VALUE);
   });
 

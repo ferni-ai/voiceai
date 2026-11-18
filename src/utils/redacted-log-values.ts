@@ -6,9 +6,11 @@
  *
  * Sources are read again at most once a second (reading the environment on every line
  * cost about as much as the line itself), so a setting changed at runtime is honoured
- * within a second; the pattern is rebuilt only when the values change. A value matches whole, in any case:
- * bounded by anything but a letter, digit, `_` or `-`, so "fake-seth-id" inside
- * "fake-seth-id-2" (another id) is left alone, while " FAKE-SETH-ID " is caught. Blank
+ * within a second; the pattern is rebuilt only when the values change.
+ *
+ * A value matches in any case wherever no letter or digit touches it: " FAKE-SETH-ID ",
+ * "preview-fake-seth-id.mp3" and "voice_fake-seth-id" are caught (a file name or key built
+ * from the id is still the id), "xfake-seth-idx" is not. Over-masking is the safe side. Blank
  * values are never registered, so an empty setting can't redact everything.
  *
  * @module utils/redacted-log-values
@@ -54,7 +56,7 @@ function currentPattern(): RegExp | null {
     values.length === 0
       ? null
       : new RegExp(
-          `(?<![A-Za-z0-9_-])(?:${values.map(escapeRegExp).join('|')})(?![A-Za-z0-9_-])`,
+          `(?<![A-Za-z0-9])(?:${values.map(escapeRegExp).join('|')})(?![A-Za-z0-9])`,
           'gi'
         );
   return cachedPattern;
