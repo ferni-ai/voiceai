@@ -20,7 +20,15 @@ vi.mock('../../services/security-events.js', () => ({
   trackFailedAuth: vi.fn(async () => undefined),
 }));
 vi.mock('../trust-dashboard-routes.js', () => ({
-  handleTrustDashboardRoute: vi.fn(async () => false),
+  // Stands in for a user's own trust route: answers with the uid auth let through.
+  handleTrustDashboardRoute: vi.fn(
+    async (pathname: string, _method: string, userId: string, _q: unknown, res: ServerResponse) => {
+      if (pathname !== '/api/trust/seasonal') return false;
+      res.writeHead(200);
+      res.end(JSON.stringify({ userId }));
+      return true;
+    }
+  ),
 }));
 vi.mock('../../services/trust-systems/index.js', () => ({
   getAggregateMetrics: vi.fn(() => ({ totalEvents: 3 })),
@@ -33,8 +41,7 @@ vi.mock('../../services/trust-systems/index.js', () => ({
 }));
 
 const { handleTrustSystemsRoutes } = await import('../trust-systems-routes.js');
-const { handleSpeechMetricsRoutes, parseThresholdUpdate } =
-  await import('../speech-metrics-routes.js');
+const { handleSpeechMetricsRoutes } = await import('../speech-metrics-routes.js');
 const { getQualityThresholds } =
   await import('../../agents/integrations/speech-metrics-integration.js');
 
@@ -112,6 +119,11 @@ describe('trust analytics are admins only', () => {
   it('answers 403 to a signed-in user who is not an admin', async () => {
     expect((await trust('/api/trust/analytics/metrics', 'user')).status).toBe(403);
   });
+  it('still lets a signed-in user who is not an admin reach their own trust routes', async () => {
+    const own = await trust('/api/trust/seasonal', 'user');
+    expect(own.status).toBe(200);
+    expect(own.body).toEqual({ userId: 'uid-user' });
+  });
   it('answers an admin with the aggregates', async () => {
     const got = await trust('/api/trust/analytics/metrics', 'admin');
     expect(got.status).toBe(200);
@@ -142,7 +154,17 @@ describe('speech metrics are admins only', () => {
 
   it('refuses an admin threshold write that is unknown, not a number or out of range', async () => {
     const before = getQualityThresholds();
-    for (const body of [{ isAdmin: true }, { p99LatencyMs: '500' }, { emotionConfidence: 7 }, {}]) {
+    const bad = [
+      { isAdmin: true },
+      { p99LatencyMs: '500' },
+      { emotionConfidence: 7 },
+      { responseLatencyMs: 60_001 },
+      { p99LatencyMs: 0 },
+      {},
+      null,
+      [1],
+    ];
+    for (const body of bad) {
       expect((await speech('POST', '/api/speech-metrics/thresholds', 'admin', body)).status).toBe(
         400
       );
@@ -151,18 +173,34 @@ describe('speech metrics are admins only', () => {
   });
 });
 
-describe('parseThresholdUpdate', () => {
-  it('keeps known thresholds in range and names what it refuses', () => {
-    expect(parseThresholdUpdate({ turnPredictionAccuracy: 0.8, p99LatencyMs: 600 })).toEqual({
+describe('threshold writes, as the route answers them', () => {
+  const post = async (body: unknown) =>
+    speech('POST', '/api/speech-metrics/thresholds', 'admin', body);
+
+  it('accepts several in-range thresholds at once, including the range edges', async () => {
+    const got = await post({
       turnPredictionAccuracy: 0.8,
-      p99LatencyMs: 600,
+      responseLatencyMs: 60_000,
+      p99LatencyMs: 1,
     });
-    expect(parseThresholdUpdate({ backchannelAccuracy: 1.5 })).toBe(
-      'backchannelAccuracy must be a number from 0 to 1'
-    );
-    expect(parseThresholdUpdate({ responseLatencyMs: Number.NaN })).toMatch(/responseLatencyMs/);
-    expect(parseThresholdUpdate(JSON.parse('{"__proto__": 1}') as Record<string, unknown>)).toMatch(
-      /Unknown/
-    );
+    expect(got.status).toBe(200);
+    expect(getQualityThresholds()).toMatchObject({
+      turnPredictionAccuracy: 0.8,
+      responseLatencyMs: 60_000,
+      p99LatencyMs: 1,
+    });
+  });
+
+  it('names what it refuses', async () => {
+    expect((await post({ backchannelAccuracy: 1.5 })).body).toEqual({
+      error: 'backchannelAccuracy must be a number from 0 to 1',
+    });
+    expect((await post({ responseLatencyMs: null })).body).toEqual({
+      error: 'responseLatencyMs must be a number from 1 to 60000',
+    });
+    expect((await post(null)).body).toEqual({ error: 'Body must be a JSON object of thresholds' });
+    expect((await post(JSON.parse('{"__proto__": 1}'))).body).toEqual({
+      error: 'Unknown threshold: __proto__',
+    });
   });
 });
