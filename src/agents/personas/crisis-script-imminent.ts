@@ -62,20 +62,28 @@ export interface ScriptRead {
 const scriptReadMode = (env: Env): 'off' | 'shadow' | 'on' =>
   flagModeOf('CRISIS_SCRIPT_IMMINENT_READ', env);
 
+/** Why a scripted turn is never read: not the caller's own 988 script, or no live classifier. */
+type NotAsked =
+  | 'third_party'
+  | 'es'
+  | 'imminent_script'
+  | 'other_script'
+  | 'classifier_off'
+  | 'classifier_shadow';
+
 /**
- * Whether a scripted turn asks the classifier: the flag on or shadow, and the caller's own 988
- * script (not already imminent, not about someone else, not Spanish).
+ * Why a scripted turn doesn't ask the classifier, or null when it does: it asks on the caller's
+ * own 988 script (not already imminent, not about someone else, not Spanish).
  */
-function scriptAsks(
-  decision: { action: string },
-  detection: CrisisDetectionResult,
-  env: Env
-): boolean {
-  if (decision.action !== 'replace' || scriptReadMode(env) === 'off') return false;
-  if (detection.subject === 'third_party' || detection.language === 'es') return false;
-  const { severity, subject, language } = detection;
+function whyNotAsked(detection: CrisisDetectionResult, env: Env): NotAsked | null {
+  if (detection.subject === 'third_party') return 'third_party';
+  if (detection.language === 'es') return 'es';
+  const { severity, subject, language, suggestedResponse } = detection;
   // The same env the patterns' script was written with (detectCrisis passes the gate's env).
-  return detection.suggestedResponse === getCrisisResponse(severity, subject, language, false, env);
+  if (suggestedResponse === getCrisisResponse(severity, subject, language, false, env)) return null;
+  return suggestedResponse === getCrisisResponse(severity, subject, language, true, env)
+    ? 'imminent_script'
+    : 'other_script';
 }
 
 /**
@@ -89,7 +97,15 @@ export function scriptRead(
   at: StartCrisisClassifierOptions
 ): Promise<ScriptRead> | undefined {
   const env = at.env ?? process.env;
-  if (!scriptAsks(decision, detection, env)) return undefined;
+  const mode = scriptReadMode(env);
+  if (decision.action !== 'replace' || mode === 'off') return undefined;
+  // One wordless line per scripted turn the read never sees, so the shadow's share is measured.
+  const notAsked = (why: NotAsked): undefined => {
+    log.info({ mode, asked: false, why }, 'CRISIS_SCRIPT_READ');
+    return undefined;
+  };
+  const why = whyNotAsked(detection, env);
+  if (why) return notAsked(why);
   // Its own deadline: as long as a read can still change what is said, never less than the gate's.
   const window = timesOf(detection.suggestedResponse ?? '');
   const waitMs = Math.max(resolveCrisisClassifierTimeoutMs(env), window.holdMs + window.lateMs);
@@ -97,7 +113,7 @@ export function scriptRead(
   // Not one of the turn's reads (no scope): the turn's other readers never wait out this deadline.
   const options = { ...at, scope: undefined, env: readEnv, readBlocked: true };
   const run = startCrisisClassifier(said, options);
-  if (run?.mode !== 'live') return undefined;
+  if (run?.mode !== 'live') return notAsked(run ? 'classifier_shadow' : 'classifier_off');
   return run.verdict.then(
     (verdict): ScriptRead => {
       const read = verdict?.risk ?? 'failed';
