@@ -36,6 +36,8 @@ vi.mock('../../../../utils/crisis-memory-hold.js', async (orig) => {
 const JOY = 'I am so happy and so proud, best day ever, we finally finished the garden shed!';
 /** A crisis line the detector would also keep, as a vulnerability moment. */
 const CRISIS = 'I feel so alone, nobody knows this, I want to die and I am scared of tonight.';
+/** No crisis words: the risk on this turn is the classifier read's, landing late. */
+const QUIET = "I've never told anyone this before, but things have been really hard lately.";
 /** Past the reflection's 0.6 intensity bar. */
 const STRONG = { primary: 'joy', secondary: null, intensity: 0.9, distressLevel: 0 };
 const FLAG = 'CRISIS_HOLD_PIPELINE_WRITERS';
@@ -206,6 +208,23 @@ describe('CRISIS_HOLD_PIPELINE_WRITERS on', () => {
     expect(moments(t.profile)).toEqual([]);
     release({ risk: 'none' });
     await vi.waitFor(() => expect(moments(t.profile)).toHaveLength(1), { timeout: 5_000 });
+  }, 30_000);
+
+  it('a crisis read that lands after the turn is done: nothing kept, then or later', async () => {
+    Object.assign(m.CRISIS_READ_WAIT, { settleMs: 15_000 });
+    let release: (v: { risk: string }) => void = () => undefined;
+    const open = new Promise<{ risk: string }>((resolve) => {
+      release = resolve;
+    });
+    const t = startTurn(QUIET, (id) => void m.trackCrisisRead(id, QUIET, open));
+    await t.done;
+    await vi.waitFor(() => expect(ran('periodic-auto-save')).toBe(1));
+    expect(m.crisisMemoryHeld(t.sessionId)).toBe(false); // not held yet: the read is open
+    release({ risk: 'crisis' });
+    await vi.waitFor(() => expect(ran(SITE)).toBe(1), { timeout: 5_000 });
+    expect(m.crisisMemoryHeld(t.sessionId)).toBe(true);
+    expect(t.saved).toEqual(['{}']);
+    expect(moments(t.profile)).toEqual([]);
   }, 30_000);
 
   it('one crisis-read wait a turn, shared by every writer that holds on it', async () => {
