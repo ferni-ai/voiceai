@@ -18,15 +18,10 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   autoExecuteHeld,
   type AutoExecuteGate,
-} from '../../tools/semantic-router/integration/auto-execute-hold.js';
+} from '../../tools/semantic-router/integration/index.js';
 import type { SemanticRoutingResult } from './types.js';
 
 const log = createLogger({ module: 'ftis-routing' });
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
 
 // ============================================================================
 // TYPES
@@ -194,12 +189,9 @@ export async function runFTISRouting(
       isOpenIntent: false,
     };
 
-    // High confidence → execute directly, unless the turn holds it
-    // (ROUTER_EXEC_AFTER_CRISIS_READ)
-    if (
-      topPrediction.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD &&
-      !(await autoExecuteHeld(context, 'ftis'))
-    ) {
+    // High confidence → execute directly, unless held (ROUTER_EXEC_AFTER_CRISIS_READ)
+    const direct = topPrediction.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD;
+    if (direct && !(await autoExecuteHeld(context, 'ftis'))) {
       log.info(
         {
           domain: topPrediction.domain,

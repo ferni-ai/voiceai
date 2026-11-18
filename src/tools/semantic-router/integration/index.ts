@@ -17,6 +17,13 @@ export {
   type RoutingContext,
 } from './turn-processor-integration.js';
 
+// The turn's check before a router runs a tool on its own (ROUTER_EXEC_AFTER_CRISIS_READ)
+export {
+  autoExecuteHeld,
+  type AutoExecuteGate,
+  type AutoExecuteOutcome,
+} from './auto-execute-hold.js';
+
 // Re-export HolisticContextSummary for downstream consumers
 export type { HolisticContextSummary } from '../types.js';
 

@@ -385,24 +385,11 @@ export async function startSemanticRouting(
       };
     }
 
-    // For auto-execute, run the tool directly
-    if (routeResult.action.type === 'execute' && routeResult.matches.length > 0) {
+    // Auto-execute runs the tool directly, unless held (ROUTER_EXEC_AFTER_CRISIS_READ)
+    const autoExecute = routeResult.action.type === 'execute' && routeResult.matches.length > 0;
+    if (autoExecute && !(await autoExecuteHeld(context, 'semantic'))) {
       const topMatch = routeResult.matches[0];
-      // ROUTER_EXEC_AFTER_CRISIS_READ: a held tool is left to the reply model
-      if (await autoExecuteHeld(context, 'semantic')) {
-        return {
-          attempted: true,
-          routeResult,
-          executed: false,
-          analyticsEventId,
-          routingPath: 'json_fallback',
-          sotaResult,
-          sotaStrategy: sotaResult?.strategy.strategy,
-          holisticContext: routeResult.holisticContext,
-        };
-      }
       try {
-        // Execute the tool using the router
         const executeResult = await executeMatchedTool(topMatch, context);
         const totalLatencyMs = Math.round(performance.now() - startTime);
 
@@ -417,7 +404,6 @@ export async function startSemanticRouting(
             false // TODO: track cache hits
           );
 
-          // Record outcome to advanced analytics
           recordRoutingOutcome(analyticsEventId, {
             toolExecuted: topMatch.toolId,
             executionSuccess: true,

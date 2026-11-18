@@ -141,7 +141,7 @@ import { enrichEmotionWithVoice } from './voice-biomarker.js';
 import { recordTeamHuddleObservation } from './team-huddle-helpers.js';
 import { buildContextInjections } from './context-injections.js';
 import { isFtisEnabled } from '../../../config/tool-config.js';
-import { flagOn } from '../../../config/env-flag.js';
+import { routerCrisisChecks } from './router-crisis-check.js';
 
 /**
  * Process a complete user turn
@@ -197,16 +197,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
   const turnCrisis = startTurnCrisis(userText, userData, { sessionId: services.sessionId });
   const crisisResult = turnCrisis.patterns;
-  // ROUTER_EXEC_AFTER_CRISIS_READ: a router asks the turn's crisis reads before it runs a tool,
-  // and every answer without the reply model asks them too (turn-crisis.ts autoToolsCheck).
-  const blocksAutoTools = flagOn('ROUTER_EXEC_AFTER_CRISIS_READ');
-  const autoExecuteGate = blocksAutoTools
-    ? { autoExecuteCheck: turnCrisis.autoToolsCheck }
-    : {};
-  const routerBypassAllowed = (): Promise<boolean> =>
-    blocksAutoTools
-      ? turnCrisis.autoToolsCheck().then((outcome) => outcome === 'allowed')
-      : turnCrisis.bypassAllowed();
+  const routerChecks = routerCrisisChecks(turnCrisis, services.sessionId, userText);
 
   if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {
@@ -683,7 +674,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       personaId: ctx.persona.id,
       userLocation: userLocationData,
       lastAgentMessage,
-      ...autoExecuteGate,
+      ...routerChecks.gate,
     });
     diag.debug('🧠 FTIS routing started', { mode: 'ftis' });
   } else if (!ctx.contextOnly && isRoutingEnabled()) {
@@ -702,7 +693,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       conversationHistory,
       recentTools: toolExecData?.recentlyUsedTools || [],
       crisisTurn: hasCrisisSignal(crisisResult),
-      ...autoExecuteGate,
+      ...routerChecks.gate,
     };
 
     if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(routingUserId)) {
@@ -722,7 +713,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
     // Never bypass the LLM on a crisis or soft check-in turn: the bypass result carries neither.
-    if (ftisResult.bypassLLM && ftisResult.toolResult && (await routerBypassAllowed())) {
+    if (ftisResult.bypassLLM && ftisResult.toolResult && (await routerChecks.bypassAllowed())) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
@@ -788,7 +779,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (semanticRoutingPromise) {
     const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: !(await routerBypassAllowed()), // a crisis or a soft check-in
+      crisisDetected: !(await routerChecks.bypassAllowed()), // a crisis or a soft check-in
       crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,
@@ -1398,7 +1389,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     const routingLatencyMs = routingTimer.stop();
 
     semanticRouting = applyRoutingResult(routingResult, {
-      crisisDetected: blocksAutoTools ? !(await routerBypassAllowed()) : crisisResult.isCrisis,
+      crisisDetected: await routerChecks.blocksDirectReply(),
       latencyMs: routingLatencyMs,
     });
 

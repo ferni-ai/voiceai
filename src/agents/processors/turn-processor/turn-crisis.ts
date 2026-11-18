@@ -25,11 +25,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import {
-  crisisRiskThisCall,
-  noteCrisisRisk,
-  notePatternRisk,
-} from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisRisk, notePatternRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   afterCheckLoneRead,
   noteConfirmedRisk,
@@ -81,7 +77,6 @@ import {
 } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
-import type { AutoExecuteOutcome } from '../../../tools/semantic-router/integration/auto-execute-hold.js';
 import { noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
@@ -109,13 +104,8 @@ export interface TurnCrisis {
    * soft check-in, which only the normal reply path carries.
    */
   bypassAllowed(): Promise<boolean>;
-  /**
-   * ROUTER_EXEC_AFTER_CRISIS_READ: whether a router may run a tool on its own, or answer without
-   * the reply model. 'allowed' only when bypassAllowed holds and no crisis risk is noted on this
-   * call (crisisRiskThisCall, where the reply gate's reads land); 'failed' when the live
-   * classifier gave no verdict or a read throws; 'held' otherwise.
-   */
-  autoToolsCheck(): Promise<AutoExecuteOutcome>;
+  /** A live classifier read with no verdict (timeout, error, refusal): failed, never a none. */
+  classifierReadFailed(): Promise<boolean>;
 }
 
 /** What startTurnCrisis reads from the session's user data. */
@@ -376,27 +366,15 @@ export function startTurnCrisis(
     // K1e: the call's outreach waits on this read, up to a first and a second classifier read.
     return first ? trackAbuseRead(call, told, 2 * resolveCrisisClassifierTimeoutMs(env)) : told;
   };
-  const bypassAllowed = (): Promise<boolean> =>
-    settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis));
-  // A live read that gave no verdict (timeout, error, refusal) is a failed read, never a none.
-  const readFailed = async (): Promise<boolean> =>
-    classifier?.mode === 'live' && (await classifier.verdict) === null;
   return {
     patterns,
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
     summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
-    bypassAllowed,
-    autoToolsCheck: async (): Promise<AutoExecuteOutcome> => {
-      try {
-        if (await readFailed()) return 'failed';
-        if (!(await bypassAllowed())) return 'held';
-        return call && crisisRiskThisCall(call, userText) ? 'held' : 'allowed';
-      } catch {
-        return 'failed';
-      }
-    },
+    bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
+    classifierReadFailed: async () =>
+      classifier?.mode === 'live' && (await classifier.verdict) === null,
   };
 }
 
