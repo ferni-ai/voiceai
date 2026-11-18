@@ -18,6 +18,7 @@ import { watchCallLoop } from '../shared/loop-watch.js';
 import { watchTimeToFirstWord } from '../shared/time-to-first-word.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
 import { emptyRoomGraceMs } from './empty-room-grace.js';
+import { endRoomWithAgent } from './room-ends-with-agent.js';
 // Work that runs after each call ends (extraction, person model): registered once per process.
 import '../after-call-register.js';
 // The one journal store, for the tools that write it during a call (CALL_JOURNAL).
@@ -117,6 +118,9 @@ const activeJobIds = new Set<string>();
 // Running jobs' contexts, so a LiveKit termination can end the session.
 const runningContexts = new Map<string, JobContext>();
 
+/** The shutdown reason when LiveKit terminates a job (livekit-connection.ts). */
+export const LIVEKIT_TERMINATION = 'livekit_termination';
+
 /** Ends a running job's session (LiveKit terminated it). False if it isn't running here. */
 export function shutdownJob(jobId: string, reason: string): boolean {
   const ctx = runningContexts.get(jobId);
@@ -174,6 +178,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   const closeEvent = new EventEmitter();
   let connected = false;
   let shutdown = false;
+  let liveKitEnded = false; // LiveKit terminated the job, whatever else asked it to end
   let reconnectCount = 0;
   let lastQuality: string | undefined;
 
@@ -302,6 +307,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   const onShutdown = (reason: string) => {
     shutdown = true;
+    liveKitEnded ||= reason === LIVEKIT_TERMINATION;
     log('Shutdown requested', { jobId, reason });
     closeEvent.emit('close', true, reason);
   };
@@ -390,6 +396,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     runningContexts.delete(jobId);
     clearTimeout(sessionTimeout);
     if (emptyRoomTimer) clearTimeout(emptyRoomTimer);
+    // ROOM_ENDS_WITH_AGENT, while the agent still sees who is in the room.
+    await endRoomWithAgent(ctx.room, { jobId, roomName: info.job.room?.name, liveKitEnded }, log);
     try {
       if (ctx.room.isConnected) {
         await ctx.room.disconnect();
