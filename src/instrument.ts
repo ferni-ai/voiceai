@@ -6,6 +6,7 @@
  */
 
 import './utils/log-redaction-install.js';
+import './personas/roster/index.js'; // and no consented clone's voice id
 import { initErrorReporting } from './utils/error-reporting.js';
 
 await initErrorReporting();

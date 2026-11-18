@@ -197,13 +197,13 @@ export async function initAuth(): Promise<AuthState> {
  * expires. A local 55-min clock started when the token was READ (not issued)
  * sent expired tokens for ~40 min of every hour (prod 401s, 2026-10-12).
  */
-export async function getAuthToken(): Promise<string | null> {
+export async function getAuthToken(forceRefresh = false): Promise<string | null> {
   if (!currentUser) {
     return null;
   }
 
   try {
-    return await currentUser.getIdToken();
+    return await currentUser.getIdToken(forceRefresh);
   } catch (error) {
     log.error('Failed to get auth token:', error);
     return null;
