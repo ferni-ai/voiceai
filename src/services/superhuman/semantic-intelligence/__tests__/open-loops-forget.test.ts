@@ -2,8 +2,8 @@
  * Open loops never show a topic the caller asked Ferni to forget (#3995). Every reader goes
  * through the store's three getters (the web panels, Story So Far, the semantic context and
  * the call's note), so these run the real getters, the real Story So Far read and the real
- * forget filter over stored loop shapes. Only Firestore and the forgotten list are faked.
- * Names and numbers are fictional.
+ * forget check (FORGET_EVERY_READER on; off reads every loop) over stored loop shapes. Only
+ * Firestore and the forgotten list are faked. Names and numbers are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +12,7 @@ import {
   forgetTopic,
   type ForgetStore,
 } from '../../../../memory/recall/forget.js';
+import { resetForgetTopicsSource } from '../../../../memory/recall/forget-topics-source.js';
 
 type Doc = Record<string, unknown>;
 const stored: Doc[] = [];
@@ -77,11 +78,16 @@ const forgotten = (topics: string[] | null) =>
 const ids = (xs: Array<{ id: string }>) => xs.map((x) => x.id);
 
 beforeEach(() => {
+  vi.stubEnv('FORGET_EVERY_READER', 'on');
+  resetForgetTopicsSource();
   stored.length = 0;
   stored.push(DENVER, GARDEN);
   loops.clearLoopCache();
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
 describe('the open-loop getters leave forgotten topics out', () => {
   it('nothing forgotten: every loop is read', async () => {
@@ -131,11 +137,36 @@ describe('the open-loop getters leave forgotten topics out', () => {
     expect(ids(await loops.getAllOpenLoops('u-later'))).toEqual(['a']);
   });
 
-  it('a list that cannot be read shows nothing (fails closed)', async () => {
+  it('a list never read shows nothing (fails closed)', async () => {
     vi.spyOn(firestoreForgetStore, 'topics').mockRejectedValue(new Error('unavailable'));
     expect(await loops.getAllOpenLoops('u-fiction')).toEqual([]);
     expect(await loops.getLoopsReadyForFollowUp('u-fiction')).toEqual([]);
   });
+
+  it('a read that fails later uses the last list read: the panel stays, the topic stays out', async () => {
+    const read = forgotten(['Denver job']);
+    expect(ids(await loops.getAllOpenLoops('u-fiction'))).toEqual(['c']);
+    read.mockRejectedValue(new Error('unavailable'));
+    const later = Date.now() + 60_000; // past the shared read's cache
+    vi.spyOn(Date, 'now').mockReturnValue(later);
+    expect(ids(await loops.getAllOpenLoops('u-fiction'))).toEqual(['c']);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('with FORGET_EVERY_READER off (prod today)', () => {
+  it.each([[undefined], ['off']])(
+    'FORGET_EVERY_READER=%s reads every loop, as before',
+    async (v) => {
+      if (v === undefined) vi.stubEnv('FORGET_EVERY_READER', undefined);
+      else vi.stubEnv('FORGET_EVERY_READER', v);
+      const read = forgotten(['Denver job']);
+      expect(ids(await loops.getAllOpenLoops('u-fiction'))).toEqual(['a', 'c']);
+      read.mockRejectedValue(new Error('unavailable'));
+      expect(ids(await loops.getLoopsReadyForFollowUp('u-fiction'))).toEqual(['a', 'c']);
+      expect(read).not.toHaveBeenCalled();
+    }
+  );
 });
 
 describe('every reader through the getters', () => {
