@@ -26,7 +26,7 @@ export interface ForgetMarks {
   forgottenTopics: string[] | null;
   /** Why records are tagged, for a reader of the file. */
   forgottenNote: string;
-  /** How many records are tagged: the CSV shows nested records only as counts, so it says this. */
+  /** How many records are tagged, for the CSV's header line (each tagged row also says so). */
   heldCount: number;
 }
 

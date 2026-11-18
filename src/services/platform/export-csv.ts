@@ -19,13 +19,13 @@
  * @module services/platform/export-csv
  */
 
+import { forgetMarksCsvLines, type ForgetMarks } from './export-forget-marks.js';
+
 /** Columns per table; a row's fields past these share the OTHER_FIELDS cell. */
 const MAX_COLUMNS = 100;
 const OTHER_FIELDS = '_otherFields';
 /** What a spreadsheet would run as a formula. */
 const FORMULA_START = /^[=+\-@\t\r]/;
-
-import { forgetMarksCsvLines, type ForgetMarks } from './export-forget-marks.js';
 
 /** What the CSV reads from an export: the envelope, its forget marks and its categories. */
 export interface CsvExport extends Partial<ForgetMarks> {
