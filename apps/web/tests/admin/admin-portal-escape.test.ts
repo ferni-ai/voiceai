@@ -46,6 +46,13 @@ describe('Escape in the admin portal', () => {
     await initAdminPortal();
     await vi.waitFor(() => expect(document.getElementById('field')).not.toBeNull());
     const address = window.location.href;
+    // jsdom cannot navigate: an attempt is raised as a "navigation" jsdomError on its virtual
+    // console (vitest's own console never sees it, so a console spy would pass regardless).
+    // Listening from the first press catches leaving while closing a modal, too.
+    const navigation: string[] = [];
+    jsdomConsole().on('jsdomError', (e) => {
+      if (/navigation/i.test(e.message)) navigation.push(e.message);
+    });
 
     openModal('first');
     openModal('second');
@@ -56,13 +63,8 @@ describe('Escape in the admin portal', () => {
     escape();
     expect(document.getElementById('first')).toBeNull();
 
-    // jsdom cannot navigate: an attempt is raised as a "navigation" jsdomError on its virtual
-    // console (vitest's own console never sees it, so a console spy would pass regardless).
-    const navigation: string[] = [];
-    jsdomConsole().on('jsdomError', (e) => {
-      if (/navigation/i.test(e.message)) navigation.push(e.message);
-    });
     escape();
+    await new Promise((resolve) => setTimeout(resolve, 0)); // a deferred navigation counts too
     expect(navigation).toEqual([]);
     expect(window.location.href).toBe(address);
     expect((document.getElementById('field') as HTMLInputElement | null)?.value).toBe('unsaved');
