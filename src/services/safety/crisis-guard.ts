@@ -444,18 +444,18 @@ You are their lifeline right now. Be fully present.`;
 
 // PRE-RESPONSE GUARD
 
+/**
+ * The crisis script replaced a reply (crisis-turn-note.ts): once per replaced call turn. Ids,
+ * the reader and the kind's enums only. guardFromDetection is a test the gate and the turn
+ * pipeline ask several times a turn, so it no longer logs this: prod logged 13 for 7 replaces.
+ */
+export function logCrisisOverride(at: Record<string, string | number | null>): void {
+  log.warn(at, '🚨 CRISIS DETECTED - Overriding response');
+}
+
 /** The pre-response decision for an already computed detection. */
 export function guardFromDetection(crisis: CrisisDetectionResult): CrisisGuardResult {
   if (replacesReply(crisis)) {
-    // Severe crisis - override with crisis response
-    log.warn(
-      {
-        severity: crisis.severity,
-        indicators: crisis.indicators,
-      },
-      '🚨 CRISIS DETECTED - Overriding response'
-    );
-
     return {
       shouldBlock: true,
       reason: `Crisis detected (severity: ${crisis.severity.toFixed(2)})`,

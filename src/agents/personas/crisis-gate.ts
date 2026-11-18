@@ -95,6 +95,7 @@ import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import type { ReplyLane } from '../model-provider/lane-request.js';
 import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
+import { noteGateTurn } from '../safety/crisis-turn-note.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -411,6 +412,7 @@ export async function gatedReply(
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = gateRequest(chatCtx, session, options);
   signalGateDecisions(session, gate);
+  noteGateTurn(session, gate); // the turn's TURN_RECEIPT and the override log, words-free
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   const script = (text: string): string => crisisScriptFor(text, chatCtx, risk, env);

@@ -76,6 +76,7 @@ import {
   type CrisisDetectionResult,
 } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
+import { notePipelineRead } from '../../safety/crisis-turn-note.js';
 import type { CrisisDetection } from '../types.js';
 import { noteCrisisTurnRead } from '../../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -361,6 +362,8 @@ export function startTurnCrisis(
     // ABUSE_DISCLOSURE_PATTERNS: someone hurting the caller is a safety turn, after every read,
     // the minor's read included; its guidance yields to the minor's (turn-handler.ts).
     const told = withAbuseRead(minor, input, abuseRisk, classifier, env);
+    // The turn's TURN_RECEIPT: what the pipeline read, words-free (crisis-turn-note.ts).
+    if (first) void told.then((s) => notePipelineRead(call, s)).catch(() => undefined);
     // K1e: the call's outreach waits on this read, up to a first and a second classifier read.
     return first ? trackAbuseRead(call, told, 2 * resolveCrisisClassifierTimeoutMs(env)) : told;
   };

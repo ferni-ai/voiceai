@@ -36,6 +36,7 @@ import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
+import { callTurnOf } from '../../utils/call-turn.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -441,6 +442,9 @@ export function startCrisisClassifier(
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
       {
+        // The call and its TURN_RECEIPT turn, so each read joins its turn exactly (call-turn.ts).
+        sessionId: options.call ?? null,
+        turn: callTurnOf(options.call),
         mode,
         risk: v?.risk ?? null,
         subject: v?.subject ?? null,
