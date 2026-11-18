@@ -20,7 +20,7 @@ import {
   renderUnavailable,
   unavailableReason,
   type Unavailable,
-} from '../unavailable-state.js';
+} from '../../utils/unavailable-state.js';
 
 const log = createLogger('SemanticRoutingSection');
 
