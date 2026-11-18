@@ -89,6 +89,20 @@ describe("an open loop's vector copy is forgotten on any distinctive word", () =
     expect(await forgetOn([copy], ['Denver job'])).toEqual([]);
   });
 
+  // A copy is known by its id, not its text (the bot verifier's N6 at 81554e5158)
+  it('a loop copy whose text never says "Open loop" is still dropped on any word', async () => {
+    const copy = loopCopy('l9', 'x');
+    copy.document.text = 'Coaching insight: the offer from the Denver office. Category: follow_up.';
+    expect(await forgetOn([copy], ['Denver job'])).toEqual([]);
+  });
+
+  it('a result that only quotes "Open loop (...)" keeps the all-words rule', async () => {
+    const text =
+      'Coaching insight: Open loop (intention): the offer from the Denver office. Context: Priority: 5, Status: open.';
+    const out = await forgetOn([other('journal_entry_j2', text)], ['Denver job']);
+    expect(ids(out)).toEqual(['journal_entry_j2']);
+  });
+
   it("a topic still matching every word drops the copy with the flag off (main's rule)", async () => {
     const out = await forgetOn([loopCopy('l7', 'the Denver job offer')], ['Denver job'], {});
     expect(out).toEqual([]);
