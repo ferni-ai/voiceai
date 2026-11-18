@@ -39,7 +39,7 @@ const sleep = (ms: number): Promise<void> =>
 /** The gate's read of the turn: its classifier read (tracked) and the escalation over it. */
 function gateRead(sessionId: string, verdict: Promise<{ risk: string }>): void {
   trackCrisisRead(sessionId, WORDS, verdict);
-  noteReplyGateTurn(sessionId, WORDS, verdict, ON);
+  noteReplyGateTurn(sessionId, WORDS, { escalation: verdict }, ON);
 }
 
 beforeEach(() => {
@@ -53,7 +53,7 @@ describe('replyReadHold', () => {
     expect(replyReadHold(call(), WORDS, {})).toBeNull();
     expect(replyReadHold(call(), WORDS, { CRISIS_HOLD_FOLLOWS_REPLY: 'off' })).toBeNull();
     const sessionId = call();
-    noteReplyGateTurn(sessionId, WORDS, null, {});
+    noteReplyGateTurn(sessionId, WORDS, { escalation: null }, {});
     expect(await ask(sessionId)).toBe(true); // no gate read of the turn was noted
   });
 
@@ -91,14 +91,10 @@ describe('replyReadHold', () => {
   it("waits for the gate's escalation itself, as when its classifier read starts later: held", async () => {
     const sessionId = call();
     let finish: () => void = () => undefined;
-    noteReplyGateTurn(
-      sessionId,
-      WORDS,
-      new Promise<void>((resolve) => {
-        finish = resolve;
-      }),
-      ON
-    );
+    const escalation = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    noteReplyGateTurn(sessionId, WORDS, { escalation }, ON);
     const held = ask(sessionId);
     setTimeout(() => {
       holdForCrisis(sessionId); // the gate's deferred read found risk on the call

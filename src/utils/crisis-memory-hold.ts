@@ -97,19 +97,20 @@ export function noteCrisisTurnRead(sessionId: string | undefined, words: string)
 /**
  * CRISIS_HOLD_FOLLOWS_REPLY: the reply gate read these caller words. Its escalation, when it has
  * one, runs as one of the call's reads until it settles, so replyGateTurnSettled waits for it.
- * Flag off: nothing noted, so no other reader waits longer than on main.
+ * Flag off: nothing noted, so no other reader waits longer than on main. Returns the gate's turn.
  */
-export function noteReplyGateTurn(
+export function noteReplyGateTurn<G extends { escalation: Promise<unknown> | null }>(
   sessionId: string | undefined,
   words: string,
-  escalation: Promise<unknown> | null,
+  gate: G,
   env: Readonly<Record<string, string | undefined>> = process.env
-): void {
-  if (!sessionId || !flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return;
+): G {
+  if (!sessionId || !flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return gate;
   remember(gateSeen, sessionId, words);
-  if (!escalation) return;
+  if (!gate.escalation) return gate;
   const { end } = beginCrisisRead(sessionId, words);
-  escalation.then(end, end);
+  gate.escalation.then(end, end);
+  return gate;
 }
 
 /** A classifier read of these words starts: running until `end()`, which its reader calls. */

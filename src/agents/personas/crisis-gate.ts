@@ -264,11 +264,7 @@ export function startCrisisGate(
   const wait = decision.action === 'pass' && !gentle && !reask ? options.readAfter?.() : null;
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
   const scripted = scriptRead(said, detection, decision, at); // CRISIS_SCRIPT_IMMINENT_READ
-  // CRISIS_HOLD_FOLLOWS_REPLY: the turn's memory writers wait for this read (crisis-memory-hold.ts)
-  const noted = (gate: CrisisGateTurn): CrisisGateTurn => {
-    noteReplyGateTurn(call, latest, gate.escalation, env);
-    return gate;
-  };
+  const noted = (g: CrisisGateTurn): CrisisGateTurn => noteReplyGateTurn(call, latest, g, env);
   if (!verdictRead) return noted({ decision, escalation: null, reask, read: scripted });
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.

@@ -19,7 +19,7 @@
  *
  * CRISIS_HOLD_FOLLOWS_REPLY (off by default): the reply follows the more severe of the reply gate
  * (personas/crisis-gate.ts) and the pipeline, so the turn handler's writers also hold on a turn only
- * the gate read as a crisis (replyReadHold).
+ * the gate read as a crisis (replyReadHold, through turnHold and its two writers).
  *
  * @module voice-agent/crisis-turn-memory
  */
@@ -27,6 +27,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { crisisTurnSettled, replyGateTurnSettled } from '../../utils/crisis-memory-hold.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetection } from '../processors/types.js';
 
@@ -62,6 +63,54 @@ export function replyReadHold(
       (kept) => !kept,
       () => true
     ));
+}
+
+/** A turn's memory hold (turnHold). Calling it says whether the turn's writers hold. */
+export interface TurnHold {
+  (): Promise<boolean>;
+  /** The turn pipeline's own read (crisisReadTurn), for a writer that decides synchronously. */
+  readonly read: boolean;
+  /** CRISIS_HOLD_FOLLOWS_REPLY is on: calling it also waits for the reply gate's read. */
+  readonly waits: boolean;
+}
+
+/** The turn's memory hold: its pipeline read, and with the flag on the reply gate's (replyReadHold). */
+export function turnHold(
+  crisis: CrisisDetection | undefined,
+  sessionId: string | undefined,
+  words: string,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): TurnHold {
+  const read = crisisReadTurn(crisis);
+  const reply = replyReadHold(sessionId, words, env);
+  const held = async (): Promise<boolean> => read || ((await reply?.()) ?? false);
+  return Object.assign(held, { read, waits: reply !== null });
+}
+
+type TurnWriter<T> = (data: T) => Promise<unknown>;
+
+/**
+ * Runs a writer that takes the turn's crisis read as `crisisTurn`, as `fireAndForget(name)`. A hold
+ * that waits sets `crisisTurn` from the reply gate's read too, inside the writer's own task.
+ */
+export function writeInBackground<T extends { crisisTurn: boolean }>(
+  hold: TurnHold,
+  data: T,
+  write: TurnWriter<T>,
+  name: string
+): void {
+  fireAndForget(async () => write(hold.waits ? { ...data, crisisTurn: await hold() } : data), name);
+}
+
+/** writeInBackground, except that a hold that does not wait awaits the writer in place, as on main. */
+export async function writeInPlace<T extends { crisisTurn: boolean }>(
+  hold: TurnHold,
+  data: T,
+  write: TurnWriter<T>,
+  name: string
+): Promise<void> {
+  if (hold.waits) return writeInBackground(hold, data, write, name);
+  await write(data);
 }
 
 /**

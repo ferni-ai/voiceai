@@ -17,7 +17,7 @@ import { llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
-import { CRISIS_READ_WAIT } from '../../../utils/crisis-memory-hold.js';
+import { CRISIS_READ_WAIT, crisisMemoryHeld } from '../../../utils/crisis-memory-hold.js';
 import {
   getFireAndForgetMetrics,
   resetFireAndForgetMetrics,
@@ -283,6 +283,59 @@ describe('flag on: fail closed while the gate has no verdict', () => {
     expect(t.bond).toBe(0);
     expect(t.captures).toBe(0);
     expect(t.semantic).toEqual([true]);
+  });
+});
+
+/**
+ * The reply gate's whole answer for one line, its classifier answering `gateRead` at once, and
+ * whether the call's memory is held after it.
+ */
+async function gateAnswer(line: string, gateRead: string, flag: 'on' | 'off') {
+  resetCrisisClassifierCache();
+  resetCrisisCallRisk();
+  const sessionId = `hold-follows-reply-gate-${++n}`;
+  const chat = llm.ChatContext.empty();
+  chat.addMessage({ role: 'user', content: line });
+  const gate = startCrisisGate(
+    chat,
+    { services: { sessionId } },
+    {
+      env: { ...GATE, CRISIS_HOLD_FOLLOWS_REPLY: flag },
+      generate: async () => {
+        if (gateRead === FAILS) throw new Error('classifier unavailable');
+        return gateRead;
+      },
+    }
+  );
+  const answer = { ...gate, escalation: await gate?.escalation };
+  return { answer, held: crisisMemoryHeld(sessionId) };
+}
+
+// The census rows (crisis-flag-homes.ts MEMORY_ONLY): reply unchanged, nothing kept.
+describe('flag on, a crisis-guided turn and a held turn (the gate read fails)', () => {
+  it('on a crisis-guided turn and a held turn, the reply gate decides as with the flag off', async () => {
+    for (const [line, read] of [
+      [LINE, CRISIS],
+      [PATTERN_CRISIS, CRISIS],
+      [LINE, FAILS],
+    ] as const) {
+      const off = await gateAnswer(line, read, 'off');
+      const action = off.answer.escalation?.action ?? off.answer.decision?.action;
+      expect(read === FAILS ? off.held : action !== 'pass', `${read}: guided, or held`).toBe(true);
+      expect(await gateAnswer(line, read, 'on'), read).toEqual(off);
+    }
+  });
+
+  it("what the handler keeps holds none of the caller's words, on a guided turn and a held turn", async () => {
+    for (const read of [CRISIS, FAILS]) {
+      resetCrisisClassifierCache();
+      resetCrisisCallRisk();
+      resetFireAndForgetMetrics();
+      Object.assign(state, { writes: [], semanticReads: [], captures: 0 });
+      const t = await turn(LINE, read, 'on');
+      expect(t.realClient).toBe(0);
+      expect([t.writes, t.bond, t.captures, t.semantic], read).toEqual([[], 0, 0, [true]]);
+    }
   });
 });
 
