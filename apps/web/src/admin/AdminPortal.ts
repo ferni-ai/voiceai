@@ -10,15 +10,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { cleanupAdminEvents, initAdminEvents } from './admin-events.js';
-import {
-  ICON_BACK,
-  ICON_LEAF,
-  ICON_MENU,
-  ICON_REFRESH,
-  ICON_SETTINGS,
-  ICON_WARNING,
-  iconSm,
-} from './icons.js';
+import { ICON_BACK, ICON_LEAF, ICON_MENU, ICON_REFRESH, ICON_WARNING, iconSm } from './icons.js';
 import {
   ADMIN_SECTIONS,
   initialSectionId,
@@ -134,9 +126,6 @@ function renderPortal(): string {
           <div class="admin-header-actions" role="button" tabindex="0">
             <button class="admin-btn admin-btn--icon" data-action="refresh" aria-label="Refresh">
               <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
-            </button>
-            <button class="admin-btn admin-btn--icon" data-action="settings" aria-label="Settings">
-              <span class="admin-icon">${iconSm(ICON_SETTINGS)}</span>
             </button>
             <a href="/" class="admin-btn admin-btn--secondary">
               <span class="admin-icon">${iconSm(ICON_BACK)}</span>
@@ -294,13 +283,13 @@ function attachEventListeners(): void {
 function handleClick(e: Event): void {
   const target = e.target as HTMLElement;
 
-  // Nav button click
-  const navBtn = target.closest('.admin-nav-btn');
-  if (navBtn) {
-    const sectionId = navBtn.getAttribute('data-section');
-    if (sectionId) {
-      void loadSection(sectionId);
-    }
+  // Nav button, or an in-section link to another section (data-navigate="<id>")
+  const navTarget = target.closest('.admin-nav-btn, [data-navigate]');
+  if (navTarget) {
+    e.preventDefault();
+    const sectionId =
+      navTarget.getAttribute('data-section') ?? navTarget.getAttribute('data-navigate');
+    if (sectionId) void loadSection(sectionId);
     return;
   }
 
@@ -344,9 +333,6 @@ function handleAction(action: string): void {
   switch (action) {
     case 'refresh':
       void loadSection(state.activeSection);
-      break;
-    case 'settings':
-      log.debug('Settings clicked');
       break;
     default:
       log.debug({ action }, 'Unknown action');
@@ -414,8 +400,9 @@ function injectAdminPortalStyles(): void {
       --admin-accent-hover: #5a7a50;
     }
     
-    /* Hide the landing page when admin is active */
-    body:has(#adminPortal) > *:not(#app):not(script):not(style):not(link) {
+    /* Hide the landing page when admin is active; the portal's modals and toasts are body children too */
+    body:has(#adminPortal) > *:not(#app, script, style, link, .admin-modal-overlay, .moments-container,
+      .ferni-toast-region, .ferni-toast-live) {
       display: none !important;
     }
 
