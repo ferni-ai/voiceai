@@ -30,6 +30,9 @@ export const names911 = (text: string): boolean => /\b911\b/.test(text);
 export const TALK_TO_988_ES =
   'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';
 
+/** The Spanish safety question (the timeout check-in asks it; the voice keys Spanish on it). */
+export const SAFETY_QUESTION_ES = '¿Estás a salvo ahora mismo?';
+
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
  * them, so the reply leads with 911 for them and stays with the caller. No 988: it isn't the

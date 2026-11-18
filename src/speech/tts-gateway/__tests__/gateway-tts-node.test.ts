@@ -117,6 +117,44 @@ describe('Gateway TTS Node', () => {
     vi.clearAllMocks();
   });
 
+  describe('Reply language (#4062)', () => {
+    const speak = async (language: () => 'en' | 'es', text: string, overlap = false) => {
+      const node = createGatewayTTSNode({
+        voiceId: 'test-voice',
+        sessionId: `${language()}-session`,
+        enableStreamingOverlap: overlap,
+        language,
+      });
+      return collectFrames(await node(createTextStream(text)));
+    };
+
+    it.each([
+      ['phrase overlap', true],
+      ['whole reply', false],
+    ])('%s: Spanish asks the provider for es, English passes no language', async (_id, overlap) => {
+      await speak(() => 'es', 'Estoy aquí contigo.', overlap);
+      expect(vi.mocked(mockProvider.synthesize).mock.calls[0]).toEqual([
+        expect.stringContaining('Estoy aquí contigo'),
+        'test-voice',
+        expect.any(Object),
+        'es',
+      ]);
+
+      vi.mocked(mockProvider.synthesize).mockClear();
+      await speak(() => 'en', 'I am right here with you.', overlap);
+      expect(vi.mocked(mockProvider.synthesize).mock.calls[0]).toHaveLength(3);
+    });
+
+    it('a Spanish reply never gets the English audio cached for the same words', async () => {
+      await speak(() => 'en', 'Hola.');
+      vi.mocked(mockProvider.synthesize).mockClear();
+      await speak(() => 'en', 'Hola.');
+      expect(mockProvider.synthesize).not.toHaveBeenCalled();
+      await speak(() => 'es', 'Hola.');
+      expect(mockProvider.synthesize).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Basic Flow', () => {
     it('should mark first audio when non-streaming frames are emitted', async () => {
       const sessionId = 'non-streaming-first-audio-session';
