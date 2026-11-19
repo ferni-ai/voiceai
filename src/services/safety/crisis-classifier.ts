@@ -32,6 +32,7 @@ import {
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
+import { companionForRead } from './crisis-companion-own-line.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
@@ -429,8 +430,11 @@ export function startCrisisClassifier(
 
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
+  // CRISIS_COMPANION_EXCLUDES_OWN_LINE: what the model is shown; the keys above keep the input.
+  const companion = companionForRead(input.companion, options.call, env);
+  const shown = companion === input.companion ? input : { ...input, companion };
   const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+    classifyCrisis(shown, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
