@@ -331,8 +331,13 @@ async function controls(walk: Walk, root: string): Promise<Control[]> {
       document.querySelectorAll('[data-walk]').forEach((el) => el.removeAttribute('data-walk'));
       const scope = document.querySelector(rootSel);
       for (const el of scope?.querySelectorAll<HTMLElement>(selector) ?? []) {
+        // The tab already shown has nothing to do: it is walked once another tab is chosen
+        const current =
+          el.getAttribute('role') === 'tab' && el.getAttribute('aria-selected') === 'true';
         const disabled =
-          (el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true';
+          current ||
+          (el as HTMLButtonElement).disabled ||
+          el.getAttribute('aria-disabled') === 'true';
         if (disabled || !el.checkVisibility({ visibilityProperty: true, opacityProperty: true }))
           continue;
         const base = (el.getAttribute('aria-label') || el.innerText || el.title || el.tagName)
