@@ -10,10 +10,13 @@ name: Crisis Sweep
 # `needs:` failed, so the check to require is "Crisis Sweep Verdict", which is
 # green only when the sweep passed or had a reason to skip. labeled/unlabeled
 # re-run it, so adding or removing the approval label takes effect. Any other
-# label runs nothing, in a group of its own: opening a PR with a label fires
-# opened and labeled a second apart, and a shared group cancelled one of them,
-# leaving its fail-closed Verdict red on a head that passed (#4198). It runs in
-# the merge queue too, against main and every PR in the group.
+# label runs the whole check in a group of its own: opening a PR with a label
+# fires opened and labeled a second apart, and a shared group cancelled one of
+# them, leaving its fail-closed Verdict red on a head that passed (#4198). It
+# must not skip instead: a skipped Verdict counts as passing, and as the newest
+# run of that name it would stand in for a red one. The event carries the PR's
+# current labels, so the label run's Verdict is the head's real result. It runs
+# in the merge queue too, against main and every PR in the group.
 on:
   pull_request:
     branches: [main]
@@ -30,8 +33,6 @@ env:
 jobs:
   changes:
     name: Detect Crisis Scoring Changes
-    # A label the sweep doesn't read runs nothing (see concurrency above).
-    if: (github.event.action != 'labeled' && github.event.action != 'unlabeled') || github.event.label.name == 'crisis:lowering-approved'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -165,7 +166,7 @@ jobs:
   crisis-sweep-verdict:
     name: Crisis Sweep Verdict
     needs: [changes, sweep]
-    if: always() && ((github.event.action != 'labeled' && github.event.action != 'unlabeled') || github.event.label.name == 'crisis:lowering-approved')
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

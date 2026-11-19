@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import {
   ALLOWED,
+  LABEL_SKIP_ALLOWED,
   PR_ONLY_CANCEL,
   concurrency,
+  labelSkips,
   problems,
   pullRequestTypes,
   scan,
@@ -90,6 +92,24 @@ describe('workflow-concurrency', () => {
     expect(problems('x.yml', wf('  pull_request_target:\n    types: [labeled]', good))).toEqual([]);
     const noCancel = 'concurrency:\n  group: g-${{ github.event.pull_request.number }}\n';
     expect(problems('pr-flow.yml', wf(on, noCancel))).toEqual([]);
+  });
+
+  // A skipped job's check passes; as the newest run of its name it hides a red one.
+  it('flags a job that skips on a label event in a label-triggered workflow', () => {
+    const on = '  pull_request:\n    types: [opened, labeled]';
+    const conc = `concurrency:\n  group: \${{ (github.event.label.name != 'x' && github.run_id) || github.event.pull_request.number }}\n  cancel-in-progress: ${PR_ONLY_CANCEL}\n`;
+    const jobs =
+      "  a:\n    if: always()\n    runs-on: x\n  verdict:\n    if: >-\n      always() &&\n      github.event.label.name == 'x'\n    runs-on: x\n  b:\n    if: github.event.action != 'labeled'\n    runs-on: x\n";
+    const text = `name: X\n\non:\n${on}\n${conc}\njobs:\n${jobs}`;
+    expect(labelSkips(text)).toEqual(['verdict', 'b']);
+    const found = problems('x.yml', text);
+    expect(found).toHaveLength(2);
+    expect(found[0]).toMatch(/job verdict skips on a label event/);
+    // Not label-triggered, or allowlisted: no problem.
+    expect(problems('x.yml', text.replace('opened, labeled', 'opened'))).toEqual([]);
+    expect(problems('staging.yml', text)).toEqual([]);
+    for (const reason of Object.values(LABEL_SKIP_ALLOWED))
+      expect(reason.length).toBeGreaterThan(20);
   });
 
   it('skips allowlisted workflows, and every entry names a reason', () => {

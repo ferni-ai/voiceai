@@ -4,11 +4,13 @@
  * cancelled Crisis Sweep run's fail-closed Verdict stayed red on a head the other run
  * passed, and a cancelled PR Flow check blocked auto-merge. Each needed a manual rerun.
  *
- * Now a label the workflow doesn't read runs nothing, in a group of its own, so it can
- * neither cancel the PR's run nor be cancelled by it. A label it does read still joins
- * the PR's group and re-runs the check, as does a push or a reopen: those change the
- * result, so the older run is superseded. The verdict itself is unchanged and fails
- * closed for a cancelled or failed run (crisis-sweep-jobs.test.ts).
+ * Now a label the workflow doesn't read runs the whole check in a group of its own, so
+ * it can neither cancel the PR's run nor be cancelled by it. It never skips: a skipped
+ * job's check counts as passing, and as the newest run of that name it would stand in
+ * for a red Verdict (the gate would fail open). A label it does read still joins the
+ * PR's group, as do a push and a reopen: those change the result, so the older run is
+ * superseded. The verdict fails closed for a cancelled or failed run
+ * (crisis-sweep-jobs.test.ts).
  */
 import { describe, expect, it } from 'vitest';
 import { allNeeds, concurrencyGroup, running } from './workflow-jobs.js';
@@ -47,12 +49,28 @@ describe.each(CASES)('$workflow label runs', ({ workflow, reads, check, pr }) =>
     for (const id of whole) expect(ran.has(id), id).toBe(true);
   });
 
-  it('a label it does not read neither cancels the opened run nor reports a check', () => {
+  it('a label it does not read runs the whole check without cancelling the opened run', () => {
     for (const a of ['labeled', 'unlabeled']) {
       for (const name of ['hold', 'ci:full-tests', '']) {
         const ev = label(a, name);
         expect(concurrencyGroup(workflow, 'pull_request', ev), `${a} ${name}`).not.toBe(opened);
-        expect(running(workflow, 'pull_request', { ...pr, ...ev }).size, `${a} ${name}`).toBe(0);
+        const ran = running(workflow, 'pull_request', { ...pr, ...ev });
+        for (const id of whole) expect(ran.has(id), `${a} ${name} ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('no event skips the check, whatever the jobs it needs did', () => {
+    const events = ['opened', 'synchronize', 'reopened', 'edited', 'ready_for_review'].map(action);
+    for (const a of ['labeled', 'unlabeled']) {
+      for (const name of [reads, 'hold', '']) events.push(label(a, name));
+    }
+    const needs = allNeeds(workflow, check);
+    for (const ev of events) {
+      for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
+        const outcome = Object.fromEntries(needs.map((n) => [`needs.${n}.result`, result]));
+        const ran = running(workflow, 'pull_request', { ...pr, ...ev, ...outcome });
+        expect(ran.has(check), `${JSON.stringify(ev)} needs ${result}`).toBe(true);
       }
     }
   });

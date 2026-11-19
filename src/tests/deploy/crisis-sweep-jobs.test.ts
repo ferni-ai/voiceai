@@ -51,8 +51,8 @@ describe('crisis-sweep verdict job', () => {
     const job = jobs(WORKFLOW).find((j) => j.id === VERDICT);
     expect(job?.checks).toEqual(['Crisis Sweep Verdict']);
     expect(job?.needs.sort()).toEqual(['changes', 'sweep']);
-    // always(), except for a label the sweep doesn't read (label-run-dedupe.test.ts).
-    expect(job?.if).toMatch(/^always\(\) && \(/);
+    // Never skipped, on any event (label-run-dedupe.test.ts): a skipped Verdict passes.
+    expect(job?.if).toBe('always()');
   });
 
   it('runs on pull requests and in the merge queue, even when detection failed or was cancelled', () => {
