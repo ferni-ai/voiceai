@@ -35,6 +35,7 @@ import {
   createGeminiCrisisGenerate,
   normalizeInput,
   resolveCrisisClassifierTimeoutMs,
+  turnReadsOf,
   turnVerdicts,
   type CrisisClassifierInput,
   type CrisisGenerateFn,
@@ -47,6 +48,7 @@ import {
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
+import { resolveIndependentAgreement, riskReaders } from './crisis-independent-agreement.js';
 
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
@@ -141,15 +143,36 @@ function noteKept(lone: LoneRead, env: Env): void {
   const { call, input } = lone;
   if (!call) return;
   entry(call, Date.now()).alarms.add(turnOf(input.latest));
-  void agreed(call, input)
+  void agreed(call, input, env)
     .then((yes) => yes && noteConfirmedRisk(call, env))
     .catch(() => undefined);
 }
 
 /** Two or more reads of this turn agree on risk. */
-async function agreed(call: string, input: CrisisClassifierInput): Promise<boolean> {
-  const verdicts = await turnVerdicts(call, input);
-  return verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2;
+async function agreed(call: string, input: CrisisClassifierInput, env: Env): Promise<boolean> {
+  return readsAgreeOnRisk(call, input, await turnVerdicts(call, input), env);
+}
+
+/**
+ * Reads of this turn (`verdicts`, its turnVerdicts) agree on risk: two of them read risk. With
+ * CRISIS_INDEPENDENT_AGREEMENT on, two independent readers did (crisis-independent-agreement.ts);
+ * a failed count is agreement, so the call is never eased on an error.
+ */
+export async function readsAgreeOnRisk(
+  scope: string,
+  input: CrisisClassifierInput,
+  verdicts: ReadonlyArray<CrisisVerdict | null>,
+  env: Env = process.env
+): Promise<boolean> {
+  if (!resolveIndependentAgreement(env)) {
+    return verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2;
+  }
+  try {
+    const { strict, loose } = turnReadsOf(scope, input);
+    return (await riskReaders([...strict, ...loose])) >= 2;
+  } catch {
+    return true;
+  }
 }
 
 /** A classifier-escalated turn, as the reply gate and the turn pipeline see it. */
@@ -198,7 +221,7 @@ async function ineligible(args: LoneRead, call: string): Promise<string | null> 
     return 'earlier_pattern';
   }
   // Reads of this turn that agree on risk confirm the call, whichever path noted them first.
-  if (await agreed(call, input)) {
+  if (await agreed(call, input, env)) {
     kept.confirmed = true;
     return 'confirmed';
   }

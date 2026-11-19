@@ -366,3 +366,37 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that change what the classifier is shown or how its reads count, on turns
+ * the reply grid can't build: the grid's classifier answers each call the same whatever it is
+ * shown or asked, so SHOWN_ON cannot see these flags. The grid still sets each of them on every
+ * call it places and fails if any reply moves or lowers. This home is open only to a flag whose
+ * named rows drive the real reads (startCrisisClassifier, through the reply gate and turn
+ * pipeline where the flag acts there) with a stand-in model that reads its input and prompt,
+ * flag off then on, and show both what the flag lowers and that a true risk line still reads at
+ * its level with the flag on.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for TEXT_SHOWN_ON. What a row asserts is a reviewer's check.
+ */
+export const CLASSIFIER_READ_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // #4208: one alarm, read twice by one prompt, confirmed itself; every later turn stayed locked.
+  CRISIS_INDEPENDENT_AGREEMENT: [
+    {
+      file: 'src/agents/personas/__tests__/crisis-gate-independent-agreement.test.ts',
+      rows: [
+        'off: one alarm both paths read confirms the call, and every later turn stays locked',
+        'on: the alarm turn keeps its script, and the next turn is eased',
+        'risk said late keeps crisis guidance with the flag on, and confirms the call',
+        'a plan only the classifier reads keeps the 911 script with the flag on',
+        'a line the patterns read keeps the script with no after-check',
+        'the same prompt asked twice for the alarm turn counts once',
+        'two different prompts agreeing on risk still confirm the call',
+        'the patterns still confirm the call',
+        'one read with no second prompt does not mark the call agreed',
+        'two independent reads agreeing do mark it: a later split read keeps the script',
+      ],
+    },
+  ],
+};
