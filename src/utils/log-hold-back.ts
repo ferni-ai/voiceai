@@ -80,8 +80,16 @@ function moveBack(text: string, cut: number, floor: number): number {
   return cutOutsideLogValues(text, wordStart(text, moved, floor)); // last: never splits a value
 }
 
-/** Where to cut `text`, and whether the cut is forced (no clean place within reach). */
-function findCut(text: string): { cut: number; forced: boolean } {
+interface Cut {
+  cut: number;
+  /** No clean place within reach, and the line is too long to hold: it is cut anyway. */
+  forced: boolean;
+  /** No clean place within reach, so the line is held whole. */
+  stuck?: boolean;
+}
+
+/** Where to cut `text`. */
+function findCut(text: string): Cut {
   if (text.endsWith('\n')) return { cut: text.length, forced: false };
   const lineStart = text.lastIndexOf('\n') + 1;
   const lineLength = text.length - lineStart;
@@ -92,7 +100,7 @@ function findCut(text: string): { cut: number; forced: boolean } {
     if (next === cut) return { cut, forced: false };
     cut = next;
   }
-  if (lineLength <= HOLD_HARD) return { cut: lineStart, forced: false }; // fail closed: hold it
+  if (lineLength <= HOLD_HARD) return { cut: lineStart, forced: false, stuck: true }; // fail closed
   const cut = cutOutsideLogValues(text, floor);
   return cut > lineStart ? { cut, forced: true } : { cut: lineStart, forced: false };
 }
@@ -101,14 +109,20 @@ function findCut(text: string): { cut: number; forced: boolean } {
 export interface HoldBack {
   /** True while a force-cut line is unfinished: its digits are masked until its newline. */
   readonly masking: boolean;
-  /** Everything not yet written (held text plus the new write), split at the cut. */
-  split(text: string): { now: string; held: string };
+  /** Everything not yet written (the held text, then the new write), split at the cut. */
+  split(held: string, added: string): { now: string; held: string };
   /** Held text the timer writes out early, masked if its line was force-cut. */
   release(held: string): string;
 }
 
 export function createHoldBack(): HoldBack {
   let masking = false;
+  /**
+   * After a search found no clean place to cut, the held line is not searched again until it
+   * is this long (another HOLD_LIMIT chars) or a newline comes. Holding is always safe, and
+   * the skip keeps small writes from paying for a search, or a copy of the held text, each.
+   */
+  let searchAt = 0;
   /** `part` with the digits up to its first newline masked if a forced cut is on that line. */
   const maskRestOfLine = (part: string): string => {
     if (!masking) return part;
@@ -120,8 +134,13 @@ export function createHoldBack(): HoldBack {
     get masking() {
       return masking;
     },
-    split(text) {
-      const { cut, forced } = findCut(text);
+    split(held, added) {
+      if (held.length + added.length < searchAt && !added.includes('\n')) {
+        return { now: '', held: held + added };
+      }
+      const text = held + added;
+      const { cut, forced, stuck } = findCut(text);
+      searchAt = stuck ? text.length - cut + HOLD_LIMIT : 0;
       let now = maskRestOfLine(text.slice(0, cut));
       if (forced) {
         const lineStart = now.lastIndexOf('\n') + 1;
@@ -131,6 +150,9 @@ export function createHoldBack(): HoldBack {
       }
       return { now, held: text.slice(cut) };
     },
-    release: (held) => maskRestOfLine(held),
+    release(held) {
+      searchAt = 0;
+      return maskRestOfLine(held);
+    },
   };
 }
