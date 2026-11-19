@@ -5,6 +5,7 @@
  * @module voice-agent/silence-response-blockers
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
@@ -72,7 +73,10 @@ export function silenceResponseBlocked(
   // This prevents speaking to an empty room when participant wait times out
   // but session continues anyway. The silence handler would generate audio
   // that nobody can hear, causing "no response from Ferni" issues.
-  const hasParticipants = room?.remoteParticipants?.size ? room.remoteParticipants.size > 0 : true;
+  // SILENCE_EMPTY_ROOM_HOLD=on (#4152): an empty map is an empty room. Off, as before, this never
+  // held: the old read (`size ? size > 0 : true`) took size 0 as falsy and allowed.
+  const size = room?.remoteParticipants?.size;
+  const hasParticipants = size === undefined || size > 0 || !flagOn('SILENCE_EMPTY_ROOM_HOLD');
   const noParticipants = room && !hasParticipants;
 
   if (toolsActive) {

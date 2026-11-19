@@ -98,3 +98,19 @@ describe('/token agent dispatch reporting', () => {
     expect(body['agent_dispatched']).toBe(true);
   });
 });
+
+describe('/token on a development server without LiveKit (#3870)', () => {
+  it('answers 503 and neither mints a token nor creates a room', async () => {
+    createRoomWithAgent.mockReset();
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('LIVEKIT_URL', '');
+    try {
+      const { status, body } = await requestToken();
+      expect(status).toBe(503);
+      expect(body['error']).toBe("Calls aren't set up on this server.");
+      expect(createRoomWithAgent).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
