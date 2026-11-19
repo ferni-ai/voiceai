@@ -102,11 +102,9 @@ export async function handleTrustSystemsRoutes(
     return true; // Rate limited
   }
 
-  // Analytics routes require admin auth, others require user auth
+  // Analytics routes aggregate every user's trust data: admins only. The rest are the caller's own.
   const isAnalyticsRoute = pathname.startsWith('/api/trust/analytics');
-
-  // Require authentication
-  const auth = await requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res, { allowDevMode: true, requireAdmin: isAnalyticsRoute });
   if (!auth) {
     return true; // 401 already sent
   }

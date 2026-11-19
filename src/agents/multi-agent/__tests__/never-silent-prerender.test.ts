@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createNeverSilentGuard,
   FALLBACK_LINES,
+  type LineRender,
   measureClip,
   MIN_VOICED_MS,
   type NeverSilentSession,
@@ -62,24 +63,28 @@ const tone = (ms: number, amplitude = 8000): Frame[] => [
   ),
 ];
 
-function setup(lines: () => Frame[]) {
+function setup(lines: () => Frame[] | LineRender) {
   const said: Array<{ text: string; audio: boolean }> = [];
   const logs: Array<Record<string, unknown>> = [];
   const session = {
     agentState: 'listening',
     userState: 'listening',
     output: { audio: {}, audioEnabled: true },
-    tts: {
-      synthesize: async function* () {
-        for (const f of lines()) yield { frame: f };
-      },
-    },
     say(text: string, opts?: { audio?: unknown }) {
       said.push({ text, audio: Boolean(opts?.audio) });
     },
     interrupt() {},
   } as NeverSilentSession & { agentState: string };
-  const guard = createNeverSilentGuard({ session, mode: 'on', log: (f) => logs.push(f) });
+  const renderLine = vi.fn(async (): Promise<LineRender> => {
+    const out = lines();
+    return Array.isArray(out) ? { frames: out } : out;
+  });
+  const guard = createNeverSilentGuard({
+    session,
+    mode: 'on',
+    renderLine,
+    log: (f) => logs.push(f),
+  });
   const state = (s: string) => {
     session.agentState = s;
     guard.onAgentState({ newState: s });
@@ -94,7 +99,7 @@ function setup(lines: () => Frame[]) {
     state('thinking');
     state('listening');
   };
-  return { said, logs, failTurnAfterFirstReply };
+  return { said, logs, renderLine, failTurnAfterFirstReply };
 }
 
 describe('measureClip', () => {
@@ -141,9 +146,38 @@ describe('never silent: pre-rendered line', () => {
     const h = setup(errorBodyFrames);
     await h.failTurnAfterFirstReply();
     expect(h.logs.filter((l) => 'prerenderRejected' in l)).toHaveLength(FALLBACK_LINES.length);
-    expect(h.logs[0]).toMatchObject({ prerenderRejected: FALLBACK_LINES[0], ms: 23 });
+    expect(h.logs[0]).toMatchObject({ prerenderRejected: 0, ms: 23 });
     expect(h.said).toEqual([{ text: FALLBACK_LINES[0], audio: false }]);
     expect(h.logs.at(-1)).toMatchObject({ reason: 'abandoned', prerendered: false });
+  });
+
+  it('a failed render is logged by reason and status class, the rest are not tried, live TTS speaks', async () => {
+    const h = setup(() => ({ failure: 'http_status', statusClass: '4xx' }));
+    await h.failTurnAfterFirstReply();
+    expect(h.renderLine).toHaveBeenCalledTimes(1);
+    expect(h.logs[0]).toEqual({ prerenderFailed: 'http_status', line: 0, statusClass: '4xx' });
+    expect(h.said).toEqual([{ text: FALLBACK_LINES[0], audio: false }]);
+  });
+
+  it('a render that throws is logged as such, never with its message', async () => {
+    const h = setup(() => {
+      throw new Error(`boom: ${FALLBACK_LINES[0]}`);
+    });
+    await h.failTurnAfterFirstReply();
+    expect(h.logs[0]).toEqual({ prerenderFailed: 'threw', line: 0 });
+    expect(h.said).toEqual([{ text: FALLBACK_LINES[0], audio: false }]);
+  });
+
+  const notAudio: LineRender = { failure: 'not_audio' };
+  it.each([
+    ['rejected', errorBodyFrames],
+    ['failed', () => notAudio],
+  ])('the logs of a %s render carry no words', async (_, lines) => {
+    const h = setup(lines);
+    await h.failTurnAfterFirstReply();
+    expect(h.logs.length).toBeGreaterThan(1);
+    const text = JSON.stringify(h.logs);
+    for (const line of FALLBACK_LINES) expect(text).not.toContain(line);
   });
 
   it('a silent rendering is dropped too', async () => {

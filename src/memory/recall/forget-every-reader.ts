@@ -25,6 +25,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { foldedWords } from '../domain/forget-tokens.js';
+import { isForgottenPassage } from '../domain/forgotten.js';
 import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
@@ -81,10 +82,14 @@ export function aboutForgotten(text: string, topics: readonly string[]): boolean
   });
 }
 
-function checkFor(userId: string, stored: string[] | null): ForgottenCheck {
+function checkFor(
+  userId: string,
+  stored: string[] | null,
+  match: (text: string, topics: readonly string[]) => boolean = aboutForgotten
+): ForgottenCheck {
   if (stored === null) return () => true; // no source at all: fail closed
   const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-  return (text) => aboutForgotten(text, topics);
+  return (text) => match(text, topics);
 }
 
 /**
@@ -99,6 +104,37 @@ export async function forgottenCheck(
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
   return checkFor(userId, await topicsWithin(userId, reader));
+}
+
+/**
+ * forgottenCheck for a store of the caller's own words (open loops, proactive
+ * insights, #3995): any distinctive word of a topic counts (isForgottenPassage,
+ * as episode quotes and call summaries read), so "forget the Denver job" holds
+ * "the offer from the Denver office". Same flag, read and fallback.
+ */
+export async function forgottenPassageCheck(
+  userId: string | null | undefined,
+  reader = 'passage',
+  env: Env = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
+  return checkFor(userId, await topicsWithin(userId, reader), isForgottenPassage);
+}
+
+/**
+ * forgottenPassageCheck without the last-known fallback, for a reader that
+ * fails closed when the read is late or failed (revived intelligence, whose
+ * earlier calls' summaries must not come back on an old list: #2623). Null
+ * then, and when the flag is off or there is no member.
+ */
+export async function forgottenPassageWithin(
+  userId: string | null | undefined,
+  reader = 'passage-fresh',
+  env: Env = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
+  const stored = await topicsFreshWithin(userId, reader);
+  return stored === null ? null : checkFor(userId, stored, isForgottenPassage);
 }
 
 /**

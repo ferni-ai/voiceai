@@ -18,9 +18,11 @@
  * reads, crisis-lane-flags.ts) acts outside these readers. The guard at the bottom makes each of
  * those either be shown at the reply itself (SHOWN_ON, checked by the seventh reader,
  * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
- * changes a reply nor keeps the caller's words (MEMORY_ONLY), name tests that show a flag acting
- * only on a rejected gate escalation never lowers the reply (GATE_FAILURE_SHOWN_ON), or sit on a
- * list that may only shrink (NOT_YET_COVERED). These lists are in crisis-flag-homes.ts.
+ * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
+ * (NOT_YET_COVERED). A flag acting on a text channel, on the turn's tool routing, or only on a
+ * rejected gate escalation, which neither reader sees, names rows that show it there
+ * (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON). All of these lists are in
+ * crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
@@ -58,6 +60,7 @@ import {
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
   TEXT_SHOWN_ON,
+  TURN_ROUTING_SHOWN_ON,
 } from './crisis-flag-homes.js';
 import {
   CRISIS_FLAGS,
@@ -396,6 +399,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
         name in MEMORY_ONLY && 'MEMORY_ONLY',
         name in TEXT_SHOWN_ON && 'TEXT_SHOWN_ON',
+        name in TURN_ROUTING_SHOWN_ON && 'TURN_ROUTING_SHOWN_ON',
         name in GATE_FAILURE_SHOWN_ON && 'GATE_FAILURE_SHOWN_ON',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
@@ -421,6 +425,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
 
   it.each([
     ['TEXT_SHOWN_ON', TEXT_SHOWN_ON],
+    ['TURN_ROUTING_SHOWN_ON', TURN_ROUTING_SHOWN_ON],
     ['GATE_FAILURE_SHOWN_ON', GATE_FAILURE_SHOWN_ON],
   ] as const)('finds each %s row in the test file it names', (_home, home) => {
     const missing = Object.entries(home).flatMap(([name, rows]) =>

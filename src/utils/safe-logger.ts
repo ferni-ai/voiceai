@@ -33,6 +33,7 @@ import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
 import { redactErrorValue } from './error-text.js';
+import { redactLogValues } from './redacted-log-values.js';
 import { isFullLoggingEnabled } from './reply-for-log.js';
 import { redactUrlField } from './url-redaction.js';
 
@@ -238,6 +239,8 @@ function appLogger(): pino.Logger {
       {
         level: process.env.LOG_LEVEL || 'info',
         serializers: { error: redactErrorValue, err: redactErrorValue },
+        // The whole line, bindings and message included: a consented clone's voice id never leaves
+        hooks: { streamWrite: redactLogValues },
       },
       appStream()
     )
