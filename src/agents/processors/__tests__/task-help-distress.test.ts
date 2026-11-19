@@ -208,6 +208,22 @@ describe('flag on', () => {
     expect(taskHelpDistressCapped({ text, emotion, crisisSignal: true }, on)).toBe(false);
   });
 
+  it('distress read from somewhere else than "help" keeps the full reading', () => {
+    // Today no vocabulary word but a help word scores distress or a negative valence; these
+    // rows hold if the vocabulary or the detector ever changes.
+    const on = { [FLAG]: 'on' };
+    const distressed = { valence: 'neutral', distressLevel: 1 } as const;
+    const capped = (
+      text: string,
+      emotion: { valence: 'neutral' | 'negative'; distressLevel: number }
+    ) => taskHelpDistressCapped({ text, emotion, crisisSignal: false }, on);
+    expect(capped('help me plan dinner for Sam', distressed)).toBe(true);
+    expect(capped('help me plan dinner for Sam', { ...distressed, valence: 'negative' })).toBe(
+      false
+    );
+    expect(capped('can you plan dinner for Sam', distressed)).toBe(false); // no help word
+  });
+
   it('a capitalized name may follow "for" once; nothing else may', () => {
     const emotion = new EmotionDetector().detect('help me plan dinner for Sam');
     const capped = (text: string) =>

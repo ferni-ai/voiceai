@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const h = await vi.hoisted(async () => {
   const { createWriteRecorder } = await import('../../../../tests/helpers/write-recorder.js');
-  return { rec: createWriteRecorder(), finalCrisis: false };
+  return { rec: createWriteRecorder(), finalCrisis: false, softCheck: false };
 });
 
 vi.mock('../../../../utils/firestore-utils.js', async (orig) => ({
@@ -43,6 +43,7 @@ vi.mock('../turn-crisis.js', async (orig) => {
     const turn = real.startTurnCrisis(...args);
     const summary = async () => {
       const read = await turn.summary();
+      if (h.softCheck) return { ...read, softCheck: true }; // a soft check-in, no crisis signal
       return h.finalCrisis ? { ...read, isCrisis: true, severity: 0.9 } : read;
     };
     return new Proxy(turn, {
@@ -132,6 +133,7 @@ async function turn(flag: 'on' | 'off', finalCrisis: boolean) {
 afterEach(() => {
   vi.unstubAllEnvs();
   h.finalCrisis = false;
+  h.softCheck = false;
 });
 
 describe('processTurn: the task-help cap comes off when the final summary reads a crisis', () => {
@@ -154,6 +156,16 @@ describe('processTurn: the task-help cap comes off when the final summary reads 
 
   it("flag on, the final summary reads a crisis: main's concern, topic and mood", async () => {
     expect(await turn('on', true)).toEqual({
+      capped: false,
+      concern: 'crisis',
+      topicWeight: 'heavy',
+      mood: SHIFTED,
+    });
+  });
+
+  it("flag on, the final summary asks for a soft check-in: main's concern, topic and mood", async () => {
+    h.softCheck = true;
+    expect(await turn('on', false)).toEqual({
       capped: false,
       concern: 'crisis',
       topicWeight: 'heavy',
