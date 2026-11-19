@@ -36,7 +36,7 @@ vi.mock('../../../agents/personas/crisis-gate.js', async (real) => {
 
 const { startCrisisGate } = await import('../../../agents/personas/crisis-gate.js');
 const { buildAgentChatPrompt, handleAgentChat } = await import('../chat-routes.js');
-type ChatTurn = import('../chat-routes.js').ChatTurn;
+type ChatTurn = import('../../typed-history.js').ChatTurn;
 
 const captain = {
   id: 'agent-1',

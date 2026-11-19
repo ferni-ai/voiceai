@@ -28,6 +28,7 @@
 
 import { derivedHold, likelyMinor, statesUnder18 } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { trimTwinFirst } from '../../utils/twin-crisis-scope.js';
 import { resolveCrisisAdjudicatorMode } from './crisis-adjudicator.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
 import {
@@ -114,17 +115,13 @@ const turnOf = (latest: string): string =>
 
 function entry(call: string, now: number): CallRisk {
   for (const [id, kept] of ledger) if (now - kept.at > TTL_MS) ledger.delete(id);
-  let kept = ledger.get(call);
-  if (!kept) {
-    if (ledger.size >= MAX_CALLS) {
-      const oldest = ledger.keys().next().value;
-      if (oldest !== undefined) ledger.delete(oldest);
-    }
-    kept = { at: now, confirmed: false, alarms: new Set() };
-  }
+  const kept = ledger.get(call) ?? { at: now, confirmed: false, alarms: new Set<string>() };
   ledger.delete(call);
   kept.at = now;
   ledger.set(call, kept);
+  // Over the cap the oldest twin scopes go first; a twin scope never costs a call its entry.
+  const trim = { max: MAX_CALLS, inserted: call, droppable: () => true, capTwins: true };
+  trimTwinFirst(ledger, { ...trim, store: 'ledger' });
   return kept;
 }
 
