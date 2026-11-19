@@ -1,0 +1,277 @@
+/**
+ * Every twin route acts only on the signed-in caller's own twin (#3871). Two synthetic
+ * users, Riley and Jordan, sign in by token. Jordan asks each route for Riley's twin, its
+ * memories, its journal and its Chronicle, and is refused, with no model asked. Afterwards
+ * the database holds exactly what it held before. Riley's own requests through the same
+ * routes succeed, so a refusal can't come from a broken setup.
+ *
+ * The real routers, auth middleware, agent store, journal store and journal service run on
+ * one in-memory database. Token checks, rate limits, the model and the crisis read (covered
+ * in journal-twin-crisis.test.ts and chat-routes-crisis.test.ts) are faked.
+ */
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+type Doc = Record<string, unknown>;
+
+const h = vi.hoisted(() => ({
+  docs: new Map<string, Record<string, unknown>>(),
+  callLLM: vi.fn<(prompt: string, opts?: unknown) => Promise<string | null>>(),
+}));
+
+/** A path-keyed Firestore with just what the agent and journal stores use. */
+const db = (() => {
+  const snap = (path: string) => {
+    const data = h.docs.get(path);
+    return {
+      id: path.split('/').pop() ?? '',
+      ref: ref(path),
+      exists: data !== undefined,
+      data: () => (data ? structuredClone(data) : undefined),
+    };
+  };
+  function ref(path: string) {
+    return {
+      id: path.split('/').pop() ?? '',
+      path,
+      collection: (name: string) => collection(`${path}/${name}`),
+      get: async () => snap(path),
+      set: async (data: Doc, opts?: { merge?: boolean }) => {
+        const base = opts?.merge ? (h.docs.get(path) ?? {}) : {};
+        h.docs.set(path, structuredClone({ ...base, ...data }));
+      },
+      update: async (data: Doc) => {
+        if (!h.docs.has(path)) throw new Error(`no document at ${path}`);
+        h.docs.set(path, structuredClone({ ...h.docs.get(path), ...data }));
+      },
+      delete: async () => {
+        h.docs.delete(path);
+      },
+    };
+  }
+  type Filter = [string, string, unknown];
+  function query(path: string, filters: Filter[], limit?: number) {
+    return {
+      where: (field: string, op: string, value: unknown) =>
+        query(path, [...filters, [field, op, value]], limit),
+      orderBy: () => query(path, filters, limit),
+      limit: (n: number) => query(path, filters, n),
+      get: async () => {
+        const docs = [...h.docs.keys()]
+          .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+          .filter((p) => filters.every(([f, op, v]) => op === '==' && h.docs.get(p)?.[f] === v))
+          .slice(0, limit)
+          .map(snap);
+        return {
+          empty: docs.length === 0,
+          size: docs.length,
+          docs,
+          forEach: docs.forEach.bind(docs),
+        };
+      },
+    };
+  }
+  function collection(path: string) {
+    return { doc: (id: string) => ref(`${path}/${id}`), ...query(path, []) };
+  }
+  return { collection, doc: ref };
+})();
+
+vi.mock('../../utils/firebase-admin-app.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getAdminFirestore: () => db,
+}));
+vi.mock('../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getFirestoreDb: () => db,
+}));
+vi.mock('../../services/superhuman/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getFirestoreDb: () => db,
+}));
+// "tok-<name>" verifies as uid-<name>
+vi.mock('../../services/identity/firebase-auth.js', () => ({
+  verifyFirebaseToken: vi.fn(async (token: string) =>
+    token.startsWith('tok-') ? { uid: `uid-${token.slice(4)}`, claims: {} } : null
+  ),
+  isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object',
+  claimsFirebaseIssuer: () => true,
+}));
+vi.mock('../auth-middleware.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../auth-middleware.js')>()),
+  rateLimit: () => false,
+}));
+vi.mock('../../services/llm-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  callLLM: h.callLLM,
+}));
+vi.mock('../../agents/personas/crisis-gate-text.js', () => ({
+  readTypedMessageForCrisis: vi.fn(async (message: string) => ({ action: 'pass', message })),
+}));
+
+const { handleCustomAgentRoutes } = await import('../custom-agent/index.js');
+const { handleJournalRoutes } = await import('../journal-routes.js');
+const { addMemoryToAgent, createCustomAgent } =
+  await import('../../services/custom-agent/custom-agent-persistence-service.js');
+
+let server: Server;
+let base = '';
+
+beforeAll(async () => {
+  server = createServer((req: IncomingMessage, res: ServerResponse) => {
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    const route = url.pathname.startsWith('/api/custom-agents')
+      ? handleCustomAgentRoutes(req, res, url.pathname, url)
+      : handleJournalRoutes(req, res, url.pathname);
+    void route.then((handled) => {
+      if (!handled && !res.headersSent) res.writeHead(404).end();
+    });
+  });
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+afterAll(async () => {
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+  });
+});
+
+async function call(who: string, method: string, path: string, body?: unknown) {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: { authorization: `Bearer tok-${who}`, 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await res.text();
+  return { status: res.status, body: (text ? JSON.parse(text) : {}) as Doc };
+}
+
+/**
+ * Every document but the auth middleware's sign-in audit records (security_events, ids
+ * hashed), which each signed-in request adds whoever it is from.
+ */
+const userData = () =>
+  [...h.docs]
+    .filter(([path]) => !path.startsWith('security_events/'))
+    .sort(([a], [b]) => a.localeCompare(b));
+
+let twinId = '';
+let memoryId = '';
+
+beforeEach(async () => {
+  h.docs.clear();
+  h.callLLM.mockReset().mockResolvedValue('We kept walking by the lake, remember?');
+  const twin = await createCustomAgent('uid-riley', {
+    name: 'Riley Test',
+    description: 'Riley Test at twenty',
+    type: 'twin',
+  });
+  twinId = twin.id;
+  const withStory = await addMemoryToAgent('uid-riley', twinId, 'stories', {
+    content: 'The summer we walked by the lake.',
+  });
+  memoryId = withStory?.memories.stories[0]?.id ?? '';
+  expect(memoryId, "Riley's story was saved").not.toBe('');
+  await addMemoryToAgent('uid-riley', twinId, 'journalEntries', {
+    content: 'Walked by the lake again this morning.',
+  });
+});
+
+/** Each twin route, as [label, method, path, body]. */
+const routes = (): Array<[string, string, string, unknown]> => [
+  ['the twin', 'GET', `/api/custom-agents/${twinId}`, undefined],
+  ['its memories', 'GET', `/api/custom-agents/${twinId}/memories`, undefined],
+  ['its journal entries', 'GET', `/api/custom-agents/${twinId}/journal/entries`, undefined],
+  ['a change to the twin', 'PUT', `/api/custom-agents/${twinId}`, { name: 'Changed' }],
+  ['a chat with the twin', 'POST', `/api/custom-agents/${twinId}/chat`, { message: 'hi' }],
+  [
+    'a memory added',
+    'POST',
+    `/api/custom-agents/${twinId}/memories`,
+    { type: 'story', content: 'x' },
+  ],
+  ['a memory deleted', 'DELETE', `/api/custom-agents/${twinId}/memories/${memoryId}`, undefined],
+  ['the twin deleted', 'DELETE', `/api/custom-agents/${twinId}`, undefined],
+  [
+    'a twin reply',
+    'POST',
+    '/api/journal/twin-response',
+    { userMessage: 'Do you remember the lake?', agentId: twinId },
+  ],
+  ['the Chronicle', 'GET', '/api/journal/chronicle?userId=uid-riley', undefined],
+];
+// The ids exist only once beforeEach runs, so the rows are named by label.
+const LABELS = routes().map(([label]) => label);
+
+describe("another user can't reach Riley's twin", () => {
+  it.each(LABELS)('%s is refused', async (label) => {
+    const route = routes().find(([l]) => l === label);
+    if (!route) throw new Error(`no route named ${label}`);
+    const [, method, path, body] = route;
+    const before = structuredClone(userData());
+
+    const { status } = await call('jordan', method, path, body);
+
+    expect([400, 403, 404], label).toContain(status);
+    expect(h.callLLM, label).not.toHaveBeenCalled();
+    expect(userData(), label).toEqual(before);
+    expect(before.length, 'Riley has a twin with memories to protect').toBeGreaterThan(0);
+  });
+
+  it("Jordan's own list doesn't show Riley's twin", async () => {
+    const { status, body } = await call('jordan', 'GET', '/api/custom-agents');
+    expect(status).toBe(200);
+    expect(body).toEqual([]);
+  });
+});
+
+describe('Riley reaches the same routes', () => {
+  it('reads the twin, its memories and its journal entries', async () => {
+    const twin = await call('riley', 'GET', `/api/custom-agents/${twinId}`);
+    expect(twin.status).toBe(200);
+    expect(twin.body.name).toBe('Riley Test');
+
+    const memories = await call('riley', 'GET', `/api/custom-agents/${twinId}/memories`);
+    expect(memories.status).toBe(200);
+    expect(JSON.stringify(memories.body)).toContain('The summer we walked by the lake.');
+
+    const journal = await call('riley', 'GET', `/api/custom-agents/${twinId}/journal/entries`);
+    expect(journal.status).toBe(200);
+    expect(JSON.stringify(journal.body)).toContain('Walked by the lake again this morning.');
+
+    const list = await call('riley', 'GET', '/api/custom-agents');
+    expect((list.body as unknown as Doc[]).map((a) => a.id)).toEqual([twinId]);
+  });
+
+  it('chats with the twin and gets a twin reply, each from one model call', async () => {
+    const chat = await call('riley', 'POST', `/api/custom-agents/${twinId}/chat`, {
+      message: 'hi',
+    });
+    expect(chat.status).toBe(200);
+
+    const reply = await call('riley', 'POST', '/api/journal/twin-response', {
+      userMessage: 'Do you remember the lake?',
+      agentId: twinId,
+    });
+    expect(reply.status).toBe(200);
+    expect(h.callLLM).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads the Chronicle, then changes and deletes', async () => {
+    expect((await call('riley', 'GET', '/api/journal/chronicle?userId=uid-riley')).status).toBe(
+      200
+    );
+    const put = await call('riley', 'PUT', `/api/custom-agents/${twinId}`, { name: 'Changed' });
+    expect(put.status).toBe(200);
+    expect(
+      (await call('riley', 'DELETE', `/api/custom-agents/${twinId}/memories/${memoryId}`)).status
+    ).toBe(204);
+    expect((await call('riley', 'DELETE', `/api/custom-agents/${twinId}`)).status).toBeLessThan(
+      300
+    );
+    expect([...h.docs.keys()].filter((p) => p.includes(twinId))).toEqual([]);
+  });
+});
