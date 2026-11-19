@@ -109,6 +109,17 @@ describe('a failed data-only erasure', () => {
     }
   );
 
+  it('is not cleared by a later success while one that overlapped the failure still runs', async () => {
+    const { check, hold, release } = revocationCheck();
+    const overlapping = hold('u-1');
+    release(hold('u-1'), 'failed');
+    release(hold('u-1'), 'erased'); // begun after the failure, but another erasure still runs
+    release(overlapping, 'erased'); // the last to end, but begun before the failure
+    expect(await check(token('u-1'), lookup, T0)).toBe('gone');
+    release(hold('u-1'), 'erased');
+    expect(await check(token('u-1'), lookup, T0)).toBe('ok');
+  });
+
   it('marks only its own account', async () => {
     const { check, hold, release } = revocationCheck();
     release(hold('u-1'), 'failed');
