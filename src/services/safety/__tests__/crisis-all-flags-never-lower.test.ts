@@ -57,6 +57,7 @@ import {
   type MemoryOnlyRow,
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
+  READ_CACHE_SHOWN_ON,
   TEXT_SHOWN_ON,
   TURN_ROUTING_SHOWN_ON,
 } from './crisis-flag-homes.js';
@@ -397,6 +398,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
         name in MEMORY_ONLY && 'MEMORY_ONLY',
         name in TEXT_SHOWN_ON && 'TEXT_SHOWN_ON',
+        name in READ_CACHE_SHOWN_ON && 'READ_CACHE_SHOWN_ON',
         name in TURN_ROUTING_SHOWN_ON && 'TURN_ROUTING_SHOWN_ON',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
@@ -422,6 +424,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
 
   it.each([
     ['TEXT_SHOWN_ON', TEXT_SHOWN_ON],
+    ['READ_CACHE_SHOWN_ON', READ_CACHE_SHOWN_ON],
     ['TURN_ROUTING_SHOWN_ON', TURN_ROUTING_SHOWN_ON],
   ] as const)('finds each %s row in the test file it names', (_home, home) => {
     const missing = Object.entries(home).flatMap(([name, rows]) =>

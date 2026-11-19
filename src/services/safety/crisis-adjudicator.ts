@@ -26,6 +26,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { CrisisGenerateFn, CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
+import { perCallReads, SharedRuns } from './crisis-read-room.js';
 
 const log = createLogger({ module: 'CrisisAdjudicator' });
 
@@ -254,7 +255,9 @@ let defaultGenerate: CrisisGenerateFn | null = null;
 /** A turn's preemptive and final requests share one adjudication. In memory only. */
 const RECENT_TTL_MS = 30_000;
 const RECENT_MAX = 32;
-const recent = new Map<string, { at: number; run: CrisisAdjudicatorRun }>();
+const recent = new SharedRuns<CrisisAdjudicatorRun>(RECENT_TTL_MS, RECENT_MAX);
+/** A run that never read the transcript: not shared with the flag on (#4005). */
+const FAILED: ReadonlySet<AdjudicatorWhy> = new Set(['timeout', 'error', 'unparsed']);
 
 /** For tests: forget shared runs. */
 export function resetCrisisAdjudicatorCache(): void {
@@ -283,8 +286,10 @@ export function startCrisisAdjudicator(
   if (mode === 'off' || !adjudicatorEligible(options.pattern, options.verdicts)) return null;
   const startedAt = Date.now();
   const key = JSON.stringify([options.scope ?? '', mode, normalizeTranscript(lines)]);
-  for (const [k, v] of recent) if (startedAt - v.at > RECENT_TTL_MS) recent.delete(k);
-  const shared = recent.get(key)?.run;
+  // CRISIS_CLASSIFIER_RUN_PER_CALL: shared within one call only, a failed run never shared.
+  const on = perCallReads(env);
+  const cacheable = !on || !!options.scope;
+  const shared = cacheable ? recent.get(key, startedAt)?.run : undefined;
   if (shared) return shared;
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiAdjudicatorGenerate());
@@ -297,11 +302,9 @@ export function startCrisisAdjudicator(
     }
   );
   const run: CrisisAdjudicatorRun = { mode, result };
-  if (recent.size >= RECENT_MAX) {
-    const oldest = recent.keys().next().value;
-    if (oldest !== undefined) recent.delete(oldest);
-  }
-  recent.set(key, { at: startedAt, run });
+  if (cacheable) recent.set(key, run, { scope: options.scope ?? '', on, now: startedAt });
+  const drop = () => recent.drop(key, run);
+  if (on) result.then((r) => FAILED.has(r.why) && drop(), drop);
   return run;
 }
 
