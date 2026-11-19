@@ -21,6 +21,7 @@
 import type { DocumentReference, Firestore } from '@google-cloud/firestore';
 import { flagOn } from '../../config/env-flag.js';
 import { crisisRiskNoted, onCrisisRiskNoted } from '../safety/index.js';
+import { safeSet } from '../../utils/safe-firestore.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CrisisDialHold' });
@@ -125,7 +126,7 @@ onCrisisRiskNoted((sessionId) => {
 
 /**
  * The dial job: a claimed deferral with no originating call is not dialed. It goes back to
- * pending, never deleted; past the job's late window it is marked missed, as any call is.
+ * pending, never deleted; past the job's late window it is marked missed, like every late call.
  */
 export async function keptForNoOrigin(
   db: Firestore,
@@ -134,7 +135,7 @@ export async function keptForNoOrigin(
 ): Promise<boolean> {
   if (!holdOn(env) || item.data.kind !== 'on_behalf' || originOf(item.data)) return false;
   const doc = db.collection('bogle_users').doc(item.userId).collection(COLLECTION).doc(item.id);
-  await doc.set({ ...item.data, status: 'pending' });
+  await safeSet(doc, { ...item.data, status: 'pending' });
   log.info({ outcome: 'no_origin_call' }, 'CRISIS_DIAL_HOLD');
   return true;
 }
