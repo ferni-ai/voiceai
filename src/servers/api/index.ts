@@ -1,7 +1,6 @@
 /** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
-import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
-import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import './first-imports.js'; // log redaction, dotenv and prod-data guard, error reporting
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';
@@ -24,7 +23,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
-import { limitApiRequest } from '../../api/global-rate-limit.js';
+import { limitServerRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { bindBodyLimitResponse } from '../../api/bounded-body.js';
@@ -118,6 +117,7 @@ import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.j
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
+import { handleGuestInviteRoutes } from '../../api/guest-invite-routes.js';
 import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
@@ -251,20 +251,12 @@ import { handleRitualsRoutes } from '../../api/routes/rituals.js';
 import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
+import { decideCallsAtStartup } from './call-availability.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 
-// Validate configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
-
-if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  log.error(
-    'Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
-  );
-  process.exit(1);
-}
+if (!decideCallsAtStartup()) process.exit(1);
 
 const server = http.createServer((req, res) =>
   respondOnRejection(res, handleRequest(bindBodyLimitResponse(req, res), res))
@@ -312,10 +304,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     return;
   }
 
-  if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    // Global limit: per signed-in person (verified uid), else per IP, in its own bucket
-    if (limitApiRequest(req, res)) return;
-  }
+  // Global limits: per signed-in person (verified uid), else per IP; /api/ and the
+  // token/demo/Plaid routes outside it each have their own bucket
+  if (limitServerRequest(req, res, pathname)) return;
 
   // ============================================================================
   // LOCAL ROUTES (TypeScript modules)
@@ -861,15 +852,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
+    // Feedback, reported replies (POST /api/reports), a guest's invite answers (/api/guest-invite)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
+    if (await handleGuestInviteRoutes(req, res, pathname)) return;
     if (await handleCallTelemetryRoutes(req, res, pathname)) return;
-
-    if (pathname.startsWith('/api/brand')) {
-      const handled = await handleBrandRoutes(req, res, pathname);
-      if (handled) return;
-    }
+    if (pathname.startsWith('/api/brand') && (await handleBrandRoutes(req, res, pathname))) return;
 
     // Design tokens routes (public - for dynamic theming)
     if (pathname.startsWith('/api/design-tokens')) {

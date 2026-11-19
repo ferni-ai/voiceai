@@ -106,6 +106,7 @@ describe('financial health is only claimed when a budget / goals exist', () => {
       incomingInsights: [],
       teamStatus,
       proactiveDiscoveries: [],
+      proactiveNotes: [],
     });
     expect(text).toContain('Budget: none set');
     expect(text).not.toContain('0% used');

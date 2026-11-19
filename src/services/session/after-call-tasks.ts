@@ -17,8 +17,8 @@
  */
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { memoryHeld } from '../../utils/minor-care.js';
-import { sexualReadsSettled } from '../../utils/sexual-topic-hold.js';
+import { heldReadsSettled, memoryHeld, userHeld } from '../../utils/minor-care.js';
+import { noteSessionEnded } from '../../utils/write-hold.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
 
@@ -107,10 +107,17 @@ async function runOne(
 
 /**
  * Starts every registered task for this call and returns without waiting. A read of the last
- * turn still running (SEXUAL_TOPIC_BOUNDARY) is waited for first, counted as a pending task.
+ * turn still running (SEXUAL_TOPIC_BOUNDARY, crisis) is waited for first, as a pending task.
  */
 export function runAfterCallTasks(ctx: AfterCallContext): void {
-  const reading = sexualReadsSettled(ctx.sessionId);
+  // A crisis call's owner stays held for its grace (write-hold.ts). It must never stop the tasks.
+  try {
+    noteSessionEnded(ctx.sessionId, ctx.userId);
+  } catch (error) {
+    const kind = error instanceof Error ? error.name : typeof error;
+    log.warn({ errorKind: kind }, 'Write-hold call end not noted');
+  }
+  const reading = heldReadsSettled(ctx.sessionId);
   if (!reading) return startAfterCallTasks(ctx);
   const askedAt = Date.now();
   const p = reading.then(() => startAfterCallTasks(ctx, Date.now() - askedAt));
@@ -125,8 +132,9 @@ export function runAfterCallTasks(ctx: AfterCallContext): void {
 function startAfterCallTasks(ctx: AfterCallContext, afterReadMs?: number): void {
   const late = afterReadMs !== undefined ? { afterReadMs } : {};
   // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept;
-  // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic.
-  if (memoryHeld(ctx.sessionId)) {
+  // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic; nor after a crisis read.
+  // A caller held on another call (userHeld) is held here too.
+  if (memoryHeld(ctx.sessionId) || userHeld(ctx.userId)) {
     log.info({ sessionId: ctx.sessionId, skipped: tasks.size, ...late }, 'After-call tasks held');
     return;
   }

@@ -16,7 +16,7 @@
  */
 
 import { ReadableStream } from 'node:stream/web';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import {
   getVoiceIdForPersona,
   CARTESIA_MODEL,
@@ -181,13 +181,16 @@ async function generateGreetingAudio(text: string, voiceId: string): Promise<Arr
     });
 
     if (!response.ok) {
-      log.debug({ status: response.status, text }, 'Cartesia greeting generation failed');
+      log.debug(
+        { status: response.status, text: replyForLog(text) },
+        'Cartesia greeting generation failed'
+      );
       return null;
     }
 
     return await response.arrayBuffer();
   } catch (error) {
-    log.debug({ error: String(error), text }, 'Cartesia API call failed');
+    log.debug({ error: String(error), text: replyForLog(text) }, 'Cartesia API call failed');
     return null;
   }
 }

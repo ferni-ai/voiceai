@@ -138,7 +138,7 @@ describe('each request answers for itself, a crisis-guided re-ask included', () 
     CRISIS_GROUNDED_RELEASE: 'off',
   };
   // The classifier reads crisis on words the patterns pass: the first reply is held and re-asked
-  // with crisis guidance (crisis-gate.ts holdUntilCleared), on a reminder built again.
+  // with crisis guidance (crisis-gate-hold.ts holdUntilCleared), on a reminder built again.
   const generate = vi.fn(async () => '{"risk":"crisis","subject":"self"}');
 
   async function askedTwice(failing: number[]): Promise<Array<[boolean, string[]]>> {

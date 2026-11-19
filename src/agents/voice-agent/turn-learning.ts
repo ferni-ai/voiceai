@@ -80,7 +80,7 @@ export interface LearningContext {
   /** Whether a story was told in the previous turn */
   wasStoryTold?: boolean;
   /** The crisis read guided, replaced or soft-checked this turn (crisis-turn-memory.ts) */
-  crisisTurn?: boolean;
+  crisisTurn: boolean;
 }
 
 export interface LearningResult {
@@ -107,12 +107,12 @@ export async function recordTurnTrustData(ctx: LearningContext): Promise<boolean
   if (!ctx.userId) {
     return false;
   }
-
   try {
     await recordTrustSystemsData({
       userId: ctx.userId,
       userText: ctx.userText,
       result: ctx.turnResult,
+      crisisTurn: ctx.crisisTurn,
     });
     return true;
   } catch {
@@ -355,7 +355,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
           i.content.includes('meaningful')
       );
 
-    if (isHighEmotionTurn && ctx.turnCount % 3 === 0 && !ctx.crisisTurn) {
+    if (isHighEmotionTurn && ctx.turnCount % 3 === 0 && ctx.crisisTurn === false) {
       void recordSharedMoment(ctx.userId, {
         type: 'callback_moment',
         content: ctx.emotionalResult.primary || 'connection',
@@ -495,7 +495,7 @@ function detectCapabilityEngagement(userText: string): {
 async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
   const logger = log();
 
-  if (!ctx.userId) return;
+  if (!ctx.userId || ctx.crisisTurn !== false) return; // a crisis turn keeps no caller line
 
   const lower = ctx.userText.toLowerCase();
 
@@ -552,7 +552,7 @@ async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
 async function detectImplicitPreferences(ctx: LearningContext): Promise<void> {
   const logger = log();
 
-  if (!ctx.userId) return;
+  if (!ctx.userId || ctx.crisisTurn !== false) return; // a crisis turn keeps no caller phrase
 
   const lower = ctx.userText.toLowerCase();
 

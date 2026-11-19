@@ -32,8 +32,6 @@ import {
   processPersonality,
   type PersonalityContext,
 } from '../turn-personality.js';
-import { buildFerniPersonalityContext } from '../../../intelligence/context-builders/personas/ferni-personality.js';
-import type { ContextBuilderInput } from '../../../intelligence/context-builders/index.js';
 
 function turn(sessionId: string): PersonalityContext {
   return {
@@ -46,17 +44,6 @@ function turn(sessionId: string): PersonalityContext {
     emotionalResult: { primary: 'neutral', intensity: 0.2, distressLevel: 0 },
     injections: [],
   };
-}
-
-function builderInput(userText: string, turnCount: number): ContextBuilderInput {
-  return {
-    userText,
-    analysis: {},
-    services: { sessionId: 's' },
-    userData: { turnCount },
-    userProfile: null,
-    persona: { id: 'ferni' },
-  } as unknown as ContextBuilderInput;
 }
 
 afterEach(() => {
@@ -79,19 +66,5 @@ describe('scripted self-disclosure', () => {
     const result = await processPersonality(turn('on'));
     expect(result.shouldInject).toBe(false);
     expect(result.injectionContent ?? '').not.toContain('PERSONALITY EXPRESSION');
-  });
-
-  it("drops the ferni-personality builder's volunteered backstory but keeps its responses", async () => {
-    // Turn 0 always carries the essence ("40% of interactions should include a LOVABLE MOMENT").
-    const first = await buildFerniPersonalityContext(builderInput('hey', 0));
-    expect(first.map((i) => i.source)).not.toContain('ferni_essence');
-    expect(first.some((i) => i.content.includes('LOVABLE MOMENT'))).toBe(false);
-    // Distress still slows him down.
-    const heavy = await buildFerniPersonalityContext(builderInput("I'm struggling and anxious", 3));
-    expect(heavy.map((i) => i.source)).toContain('ferni_depth_mode');
-
-    process.env.PERSONALITY_EXPRESSIONS = 'on';
-    const old = await buildFerniPersonalityContext(builderInput('hey', 0));
-    expect(old.map((i) => i.source)).not.toContain('ferni_essence');
   });
 });

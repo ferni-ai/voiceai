@@ -242,4 +242,63 @@ export const DECISIONS: readonly DomainDecision[] = [
     target: 'one scheduler; every trigger submits an Intent that messaging/policy decide() gates (ddd.md 2.7)',
     fingerprints: [{ name: 'second owner', pattern: /\bschedule\w*Outreach\b/, in: 'declarations' }],
   },
+  // The assistant core (docs/plans/2026-11-16-assistant-core.md, #3958): each kind of thing Ferni
+  // holds for someone has one owner. The audits found commitments, goals and calendar events
+  // declared three times each; these rows stop a fourth while the phases fold the copies in.
+  {
+    id: 'task-store',
+    question: 'Who saves a task or todo for the user?',
+    owner: { module: 'src/tools/domains/productivity/tasks.ts', fn: 'createTask', provisional: true, until: '#3958' },
+    entry: null,
+    ownerPaths: ['src/tools/domains/productivity/tasks.ts'],
+    target: 'a tasks store behind a port, bogle_users/{uid}/tasks (assistant-core P1)',
+    fingerprints: [{ name: 'second owner', pattern: /(?:create|add|save)Task/, in: 'declarations' }],
+  },
+  {
+    id: 'reminder-store',
+    question: 'Who puts a reminder on the schedule?',
+    owner: { module: 'src/services/scheduling/reminder-scheduler.ts', fn: 'createReminder', provisional: true, until: '#3958' },
+    entry: null,
+    ownerPaths: ['src/services/scheduling/reminder-scheduler.ts'],
+    target: 'one reminder writer the deliver-reminders job reads; every "later" tool calls it (assistant-core P2)',
+    fingerprints: [{ name: 'second owner', pattern: /(?:create|schedule|set|save)\w*Reminder/, in: 'declarations' }],
+  },
+  {
+    id: 'commitment-store',
+    question: "Who records a commitment the user made?",
+    owner: { module: 'src/services/superhuman/commitment-keeper.ts', fn: 'saveCommitment', provisional: true, until: '#3958' },
+    entry: 'src/services/superhuman/index.ts',
+    ownerPaths: ['src/services/superhuman/commitment-keeper.ts', 'src/services/superhuman/commitment-store.ts'],
+    target: 'one commitment writer and one tool set (COMMITMENT_SINGLE_WRITER, assistant-core)',
+    fingerprints: [{ name: 'second owner', pattern: /(?:save|record|create|track|add)\w*Commitment/, in: 'declarations' }],
+  },
+  {
+    id: 'calendar-event',
+    question: "Who puts an event on the user's calendar?",
+    owner: { module: 'src/services/calendar/unified-calendar-store.ts', fn: 'createEvent', provisional: true, until: '#3958' },
+    entry: 'src/services/calendar/index.ts',
+    ownerPaths: ['src/services/calendar/'],
+    target: 'the calendar context writes to the connected provider; appointments are events (assistant-core P3)',
+    fingerprints: [{ name: 'second owner', pattern: /(?:create|add|insert)\w*Event/, onlyIn: /calendar/i, in: 'declarations' }],
+  },
+  {
+    id: 'goal-store',
+    question: 'Who saves a goal or milestone the user is working toward?',
+    owner: { module: 'src/tools/domains/life-planning/goal-management.ts', fn: 'createGoal', provisional: true, until: '#3958' },
+    entry: null,
+    ownerPaths: ['src/tools/domains/life-planning/goal-management.ts'],
+    target: 'goals with real actions; a project is a goal with a task checklist (assistant-core P4)',
+    fingerprints: [{ name: 'second owner', pattern: /(?:create|add|set|save)\w*Goal/, in: 'declarations' }],
+  },
+  {
+    id: 'routine-store',
+    question: 'Who saves a routine or automation to run later?',
+    owner: { module: 'src/services/stores/workflow-store.ts', fn: 'createWorkflow', provisional: true, until: '#3958' },
+    entry: null,
+    ownerPaths: ['src/services/stores/workflow-store.ts', 'src/services/workflows/'],
+    target: 'one routines tool domain; time-of-day runs through scheduled_actions (assistant-core P5)',
+    fingerprints: [
+      { name: 'second owner', pattern: /(?:create|add|save)\w*(?:Routine|Workflow|Automation)/, in: 'declarations' },
+    ],
+  },
 ];

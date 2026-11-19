@@ -29,6 +29,32 @@ import { handleCorsPreflightIfNeeded } from './helpers.js';
 
 const log = getLogger().child({ module: 'SpeechMetricsRoutes' });
 
+type ThresholdKey = keyof ReturnType<typeof getQualityThresholds>;
+/** Each threshold's allowed range: accuracies and confidence are ratios, latencies are ms. */
+const THRESHOLD_RANGES: Record<ThresholdKey, readonly [number, number]> = {
+  turnPredictionAccuracy: [0, 1],
+  backchannelAccuracy: [0, 1],
+  emotionConfidence: [0, 1],
+  responseLatencyMs: [1, 60_000],
+  p99LatencyMs: [1, 60_000],
+};
+
+/** The thresholds a POST may change, or why it was refused (unknown key, not a number, out of range). */
+function parseThresholdUpdate(body: unknown): Partial<Record<ThresholdKey, number>> | string {
+  if (typeof body !== 'object' || body === null || Array.isArray(body))
+    return 'Body must be a JSON object of thresholds';
+  const update: Partial<Record<ThresholdKey, number>> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (!Object.hasOwn(THRESHOLD_RANGES, key)) return `Unknown threshold: ${key.slice(0, 40)}`;
+    const [min, max] = THRESHOLD_RANGES[key as ThresholdKey];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      return `${key} must be a number from ${min} to ${max}`;
+    update[key as ThresholdKey] = value;
+  }
+  if (Object.keys(update).length === 0) return 'No thresholds given';
+  return update;
+}
+
 // ============================================================================
 // HTTP HANDLER (for ui-server.js)
 // ============================================================================
@@ -47,12 +73,12 @@ export async function handleSpeechMetricsRoutes(
   }
 
   // Apply rate limiting (generous for dashboard)
-  if (rateLimit(req, res, { maxRequests: 200, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 200, windowMs: 60000, keyPrefix: 'speech-metrics' })) {
     return true;
   }
 
-  // Require authentication (allow dev mode for local testing)
-  const auth = await requireAuth(req, res, { allowDevMode: true });
+  // Pipeline-wide metrics and alert thresholds: admins only (the admin portal is the only caller).
+  const auth = await requireAuth(req, res, { allowDevMode: true, requireAdmin: true });
   if (!auth) {
     return true; // 401 already sent
   }
@@ -266,16 +292,12 @@ export async function handleSpeechMetricsRoutes(
       }
 
       if (method === 'POST') {
-        const body = await readBody();
-        setQualityThresholds(
-          body as Partial<{
-            turnPredictionAccuracy: number;
-            backchannelAccuracy: number;
-            responseLatencyMs: number;
-            emotionConfidence: number;
-            p99LatencyMs: number;
-          }>
-        );
+        const update = parseThresholdUpdate(await readBody());
+        if (typeof update === 'string') {
+          sendJson(400, { error: update });
+          return true;
+        }
+        setQualityThresholds(update);
         const thresholds = getQualityThresholds();
         sendJson(200, {
           success: true,
@@ -300,91 +322,3 @@ export async function handleSpeechMetricsRoutes(
     return true;
   }
 }
-
-// ============================================================================
-// EXPRESS MIDDLEWARE (for future Express migration)
-// ============================================================================
-
-/**
- * Express router for speech metrics
- * Use with: app.use('/api/speech-metrics', speechMetricsRouter)
- */
-interface ExpressRequest {
-  params: Record<string, string>;
-}
-
-interface ExpressResponse {
-  json: (data: unknown) => void;
-  status: (code: number) => ExpressResponse;
-}
-
-export function createSpeechMetricsRouter(router: {
-  get: (path: string, handler: (req: ExpressRequest, res: ExpressResponse) => void) => void;
-}): void {
-  // Dashboard - full data
-  router.get('/dashboard', (_req: ExpressRequest, res: ExpressResponse) => {
-    const data = getDashboardData();
-    res.json({
-      success: true,
-      data: {
-        timestamp: Date.now(),
-        ...data,
-      },
-    });
-  });
-
-  // Global metrics snapshot
-  router.get('/global', (_req: ExpressRequest, res: ExpressResponse) => {
-    const snapshot = getGlobalMetricsSnapshot();
-    res.json({ success: true, data: snapshot });
-  });
-
-  // Active sessions
-  router.get('/sessions', (_req: ExpressRequest, res: ExpressResponse) => {
-    const { activeSessions } = getDashboardData();
-    res.json({
-      success: true,
-      data: {
-        count: activeSessions.length,
-        sessions: activeSessions,
-      },
-    });
-  });
-
-  // All persona metrics
-  router.get('/personas', (_req: ExpressRequest, res: ExpressResponse) => {
-    const personas = getAllPersonaMetrics();
-    res.json({
-      success: true,
-      data: { count: personas.length, personas },
-    });
-  });
-
-  // Single persona metrics
-  router.get('/persona/:id', (req: ExpressRequest, res: ExpressResponse) => {
-    const { id } = req.params;
-    const metrics = getPersonaMetrics(id);
-
-    if (!metrics) {
-      res.status(404).json({
-        success: false,
-        error: `No metrics found for persona: ${id}`,
-      });
-      return;
-    }
-
-    res.json({ success: true, data: metrics });
-  });
-
-  // Health check
-  router.get('/health', (_req: ExpressRequest, res: ExpressResponse) => {
-    const { global } = getDashboardData();
-    res.json({
-      success: true,
-      status: 'healthy',
-      uptimeSec: global.uptimeSec,
-    });
-  });
-}
-
-export default handleSpeechMetricsRoutes;

@@ -84,7 +84,7 @@ export async function handleAdminAgentsRoutes(
   }
 
   // Rate limiting
-  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'admin-agents' })) {
     return true;
   }
 

@@ -54,14 +54,17 @@ export function toCrossTeamInsight(raw: TeamInsight): CrossTeamInsight {
     message: raw.summary || raw.content || '',
     priority: PRIORITY_BY_SERVER[raw.priority] ?? 'low',
     timestamp: new Date(raw.createdAt || Date.now()),
-    acknowledged: false,
+    acknowledged: raw.toasted ?? false,
   };
 }
 
-/** POST /api/team-insights/acknowledge/:id, so a shown insight is consumed server side. */
-export async function acknowledgeTeamInsight(insightId: string): Promise<boolean> {
-  const res = await apiPost(`/api/team-insights/acknowledge/${encodeURIComponent(insightId)}`);
-  if (!res.ok) log.warn('Failed to acknowledge team insight', { insightId, status: res.status, error: res.error });
+/**
+ * POST /api/team-insights/toasted/:id once a toast showed the insight, so it is not toasted
+ * again. The server decides whether it also leaves the team panel (issue 3945).
+ */
+export async function markTeamInsightToasted(insightId: string): Promise<boolean> {
+  const res = await apiPost(`/api/team-insights/toasted/${encodeURIComponent(insightId)}`);
+  if (!res.ok) log.warn('Failed to mark team insight toasted', { insightId, status: res.status, error: res.error });
   return res.ok;
 }
 

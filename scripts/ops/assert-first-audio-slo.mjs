@@ -15,12 +15,17 @@
  * Neither given, or the metric is missing: exit 1 with the reason.
  */
 
-import { evaluateFirstAudioFromEval, metricsSource, readEvalJson } from './voice-eval-metrics.mjs';
+import {
+  agentObsHeaders,
+  evaluateFirstAudioFromEval,
+  metricsSource,
+  readEvalJson,
+} from './voice-eval-metrics.mjs';
 
 const MAX_MS = Number(process.env.FIRST_AUDIO_MAX_MS || process.env.MAX_MS || 3000);
 
 async function fetchObservability(url) {
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: agentObsHeaders(process.env) });
   if (!res.ok) {
     throw new Error(`Observability HTTP ${res.status}`);
   }

@@ -223,7 +223,7 @@ function createEmptyRhythm(userId: string): UserRhythm {
 /**
  * Get or create rhythm data for user
  */
-export function getRhythm(userId: string): UserRhythm {
+function getRhythm(userId: string): UserRhythm {
   let rhythm = rhythmCache.get(userId);
   if (!rhythm) {
     rhythm = createEmptyRhythm(userId);

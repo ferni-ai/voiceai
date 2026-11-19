@@ -39,7 +39,7 @@ export async function handleConciergeRoutes(
 
   try {
     // Rate limiting
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'concierge' })) {
       return true;
     }
 

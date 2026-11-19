@@ -12,8 +12,9 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { finopsFetch } from '../admin-fetch.js';
+import { adminFetch } from '../admin-fetch.js';
 import { ICONS } from '../icons.js';
+import { finopsGet, finopsLoadFailure } from './finops-load.js';
 
 const log = createLogger('FinOpsSection');
 
@@ -109,34 +110,25 @@ let isLoading = false;
 // API
 // ============================================================================
 
-async function fetchSnapshot(): Promise<FinOpsSnapshot> {
-  const response = await finopsFetch('/api/finops/snapshot');
-  if (!response.ok) throw new Error('Failed to fetch FinOps data');
-  return response.json();
-}
-
-async function fetchThresholds(): Promise<Thresholds> {
-  const response = await finopsFetch('/api/finops/thresholds');
-  if (!response.ok) throw new Error('Failed to fetch thresholds');
-  return response.json();
-}
+const fetchSnapshot = async () => finopsGet<FinOpsSnapshot>('/api/finops/snapshot');
+const fetchThresholds = async () => finopsGet<Thresholds>('/api/finops/thresholds');
 
 async function _updateThreshold(key: string, value: number): Promise<void> {
-  await finopsFetch('/api/finops/thresholds', {
+  await adminFetch('/api/finops/thresholds', {
     method: 'PUT',
     body: JSON.stringify({ [key]: value }),
   });
 }
 
 async function setMRR(mrr: number): Promise<void> {
-  await finopsFetch('/api/finops/revenue', {
+  await adminFetch('/api/finops/revenue', {
     method: 'PUT',
     body: JSON.stringify({ mrr }),
   });
 }
 
 async function setCash(amount: number): Promise<void> {
-  await finopsFetch('/api/finops/cash', {
+  await adminFetch('/api/finops/cash', {
     method: 'PUT',
     body: JSON.stringify({ amount }),
   });
@@ -147,7 +139,7 @@ async function syncMRRFromStripe(): Promise<{
   subscriptionCount: number;
   success: boolean;
 }> {
-  const response = await finopsFetch('/api/finops/sync-mrr', {
+  const response = await adminFetch('/api/finops/sync-mrr', {
     method: 'POST',
   });
   return response.json();
@@ -158,7 +150,7 @@ async function setLTVCACConfig(cac?: number, churnRate?: number): Promise<void> 
   if (cac !== undefined) body.cac = cac;
   if (churnRate !== undefined) body.churnRate = churnRate / 100; // Convert % to decimal
 
-  await finopsFetch('/api/finops/ltv-cac', {
+  await adminFetch('/api/finops/ltv-cac', {
     method: 'PUT',
     body: JSON.stringify(body),
   });
@@ -1103,6 +1095,8 @@ async function refreshData(): Promise<void> {
     updateUI();
   } catch (error) {
     log.error({ error }, 'Failed to refresh FinOps data');
+    const loadingText = document.querySelector('#finops-loading p');
+    if (loadingText) loadingText.textContent = finopsLoadFailure(error);
   } finally {
     isLoading = false;
   }

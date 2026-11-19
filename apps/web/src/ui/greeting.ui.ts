@@ -7,6 +7,7 @@
 
 import { isNoStreaksOn } from '../config/no-streaks.js';
 import { t } from '../i18n/index.js';
+import { dayPart } from '../i18n/time-of-day.js';
 
 // ============================================================================
 // TYPES
@@ -55,9 +56,11 @@ export function getPersonalizedGreeting(): string {
  * Get time-based greeting.
  */
 function getTimeGreeting(hour: number): string {
-  if (hour >= 5 && hour < 12) return t('greetings.goodMorning');
-  if (hour >= 12 && hour < 17) return t('greetings.goodAfternoon');
-  if (hour >= 17 && hour < 21) return t('greetings.goodEvening');
+  // Same hours as the menu header (i18n/time-of-day.ts), so they never disagree
+  const part = dayPart(hour);
+  if (part === 'morning') return t('greetings.goodMorning');
+  if (part === 'afternoon') return t('greetings.goodAfternoon');
+  if (part === 'evening') return t('greetings.goodEvening');
   return t('greetings.workingLate');
 }
 

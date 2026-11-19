@@ -94,7 +94,7 @@ export interface KeyMoment {
 /**
  * Story that Jack has shared with this user
  */
-export interface SharedStory {
+interface SharedStory {
   storyId: string;
   theme: string;
   sharedAt: Date;

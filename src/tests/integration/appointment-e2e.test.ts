@@ -27,7 +27,7 @@ import {
   getTwilioWebhookService,
   type TwilioCallStatus,
   type TwilioSMSStatus,
-} from '../../services/twilio-webhooks.js';
+} from '../../services/external-apis/twilio-webhooks.js';
 
 // ============================================================================
 // TWILIO WEBHOOK TESTS

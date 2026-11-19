@@ -61,7 +61,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
           PR: ${{ github.event.pull_request.number }}
-          PATHS: '^(src/(agents|memory|intelligence|personas|services/safety|speech/tts-gateway/director|tools/retrieval|tools/semantic-router)/|src/config/(gemini-config|model-provider-config|realtime-model|thinking-defaults|vertex-flag)\.ts$|src/utils/(text-utils|phrase-match|safety-whole-word|embedding-api-error)\.ts$|scripts/(eval-gate|memory-eval)/|scripts/tool-retrieval/router-examples\.ts$|evals/|\.github/workflows/eval-gate\.yml$)'
+          PATHS: '^(src/(agents|memory|intelligence|personas|services/safety|services/superhuman|services/trust|services/trust-systems|services/better-than-human-validation|speech/tts-gateway/director|tools/retrieval|tools/semantic-router)/|src/config/(gemini-config|model-provider-config|realtime-model|thinking-defaults|vertex-flag)\.ts$|src/utils/(text-utils|phrase-match|safety-whole-word|embedding-api-error|commitment-filters)\.ts$|scripts/(eval-gate|memory-eval)/|scripts/tool-retrieval/router-examples\.ts$|evals/|\.github/workflows/eval-gate\.yml$)'
         run: |
           run=true
           if [ "$EVENT" = pull_request ] &&
@@ -93,6 +93,15 @@ jobs:
       - name: Compare with evals/baselines/offline.json
         if: steps.paths.outputs.run == 'true'
         run: pnpm tsx scripts/eval-gate/offline.ts
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: silent
+
+      # The "better than human" benchmark's own counts. Its nightly workflow
+      # (bth-benchmarks.yml) compares with nothing and cannot fail; this step can.
+      - name: Compare with evals/baselines/bth.json
+        if: steps.paths.outputs.run == 'true'
+        run: pnpm tsx scripts/eval-gate/bth.ts
         env:
           NODE_ENV: test
           LOG_LEVEL: silent

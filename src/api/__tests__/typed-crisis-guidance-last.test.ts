@@ -60,6 +60,7 @@ vi.mock('../../services/custom-agent/custom-agent-persistence-service.js', () =>
 const { startCrisisGate } = await import('../../agents/personas/crisis-gate.js');
 const { buildAgentChatPrompt, handleAgentChat } = await import('../custom-agent/chat-routes.js');
 const { handleJournalRoutes } = await import('../journal-routes.js');
+const { smsMemberReply } = await import('../../services/outreach/sms-reply/sms-reply.js');
 
 // Lower tier: the gate guides the model rather than replacing its reply.
 const GUIDE = 'some nights lately i wish i could just not wake up';
@@ -194,10 +195,71 @@ describe.each(['true', 'false'])('custom-agent chat (CUSTOM_AGENT_CHAT_HONESTY=%
   });
 });
 
+describe('SMS reply (SMS_REPLY on)', () => {
+  const thread: Turn[] = [
+    { from: 'person', text: 'long week at work' },
+    { from: 'agent', text: 'that sounds draining. what made it so long?' },
+  ];
+  it.each([
+    ['a first text', [] as Turn[]],
+    ['a later text in the thread', thread],
+  ])(
+    "%s at the lower tier: the real read's guidance ends the model's prompt, once",
+    async (_, earlier) => {
+      // SMS_REPLY answers only with the crisis screen on and the minor-care shared hold ready.
+      for (const flag of ['SMS_REPLY', 'SMS_CRISIS_SCREEN', 'MINOR_CARE', 'MINOR_CARE_SHARED_HOLD'])
+        vi.stubEnv(flag, 'on');
+      const guidance = voiceGuidance(GUIDE, earlier);
+      const generate = vi.fn(async (_system: string, _contents: string) => 'a reply');
+      const reads = {
+        refusal: async () => null,
+        lastCrisisAt: async () => undefined,
+        recall: async () => ({ note: null, count: 0 }),
+        identity: async () => 'You are Ferni.',
+        generate,
+      };
+      const route = { routeDecision: { agentId: 'ferni' }, earlierTexts: async () => earlier };
+      const userId = `uid-sms-guide-${earlier.length}`; // the reply rate is per member
+      const ask = { userId, phone: '+15555550199', text: GUIDE, held: false, skip: false };
+      await smsMemberReply(route as never, ask, reads as never);
+      expect(generate).toHaveBeenCalledTimes(1);
+      const contents = generate.mock.calls[0]?.[1] ?? '';
+      expect(count(contents, guidance)).toBe(1);
+      expect(contents.endsWith(guidance)).toBe(true);
+    }
+  );
+
+  it.each(['SMS_CRISIS_SCREEN', 'MINOR_CARE_SHARED_HOLD'])(
+    'with %s not on: no model reply is written and none is sent',
+    async (off) => {
+      for (const flag of ['SMS_REPLY', 'SMS_CRISIS_SCREEN', 'MINOR_CARE', 'MINOR_CARE_SHARED_HOLD'])
+        vi.stubEnv(flag, flag === off ? 'off' : 'on');
+      const generate = vi.fn(async (_system: string, _contents: string) => 'a reply');
+      const reads = {
+        refusal: async () => null,
+        lastCrisisAt: async () => undefined,
+        recall: async () => ({ note: null, count: 0 }),
+        identity: async () => 'You are Ferni.',
+        generate,
+      };
+      const route = { routeDecision: { agentId: 'ferni' }, earlierTexts: async () => [] };
+      const ask = {
+        userId: `uid-sms-off-${off}`,
+        phone: '+15555550198',
+        text: GUIDE,
+        held: false,
+        skip: false,
+      };
+      await expect(smsMemberReply(route as never, ask, reads as never)).resolves.toBeNull();
+      expect(generate).not.toHaveBeenCalled();
+    }
+  );
+});
+
 // Every production caller of the typed crisis read must thread its guidance into the model's
 // prompt; a new caller fails here until a case above proves it does.
 describe('the typed crisis read has no other callers', () => {
-  it('only the custom-agent chat and the journal twin call readTypedMessageForCrisis', () => {
+  it('only the custom-agent chat, the journal twin and the SMS reply call readTypedMessageForCrisis', () => {
     const callers: string[] = [];
     const walk = (dir: string): void => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -214,6 +276,7 @@ describe('the typed crisis read has no other callers', () => {
       'src/agents/personas/crisis-gate-text.ts',
       'src/api/custom-agent/chat-routes.ts',
       'src/api/journal-twin-route.ts',
+      'src/services/outreach/sms-reply/sms-reply.ts',
     ]);
   });
 });

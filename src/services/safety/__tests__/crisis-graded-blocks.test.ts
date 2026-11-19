@@ -6,6 +6,68 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
+/**
+ * The work of every reader on the graded path, by name: its calls and the characters it was
+ * handed. A string argument counts its length and an options object its strings (detectCrisis's
+ * recentMessages). A top-level array is the one Array.some passes along, which no reader reads.
+ * The real readers still run.
+ */
+const work = vi.hoisted(() => {
+  type Reader = (...args: unknown[]) => unknown;
+  const seen = new Map<string, { calls: number; chars: number }>();
+  const size = (a: unknown): number =>
+    typeof a === 'string'
+      ? a.length
+      : a && typeof a === 'object'
+        ? Object.values(a).reduce((n: number, x) => n + size(x), 0)
+        : 0;
+  const handed = (args: unknown[]): number =>
+    args.reduce((n: number, a) => n + (Array.isArray(a) ? 0 : size(a)), 0);
+  const counted =
+    (name: string, read: Reader): Reader =>
+    (...args) => {
+      const w = seen.get(name) ?? { calls: 0, chars: 0 };
+      seen.set(name, { calls: w.calls + 1, chars: w.chars + handed(args) });
+      return read(...args);
+    };
+  /** The module with `names` wrapped, so every importer (gradeTurn) calls the counted reader. */
+  const wrap = <M extends object>(real: M, names: Array<keyof M & string>): M => ({
+    ...real,
+    ...Object.fromEntries(names.map((n) => [n, counted(n, real[n] as Reader)])),
+  });
+  return { seen, wrap };
+});
+vi.mock('../crisis-graded-blocks.js', async (importOriginal) =>
+  work.wrap(await importOriginal<typeof import('../crisis-graded-blocks.js')>(), [
+    'unreadable',
+    'foldedLine',
+    'namesSomeoneElse',
+    'downOrMeans',
+    'statesTimeOrDecision',
+    'mayBeUnder18',
+    'mayDiscloseAbuse',
+    'asksAnythingSafety',
+  ])
+);
+vi.mock('../abuse-disclosure.js', async (importOriginal) =>
+  work.wrap(await importOriginal<typeof import('../abuse-disclosure.js')>(), ['abuseDisclosure'])
+);
+vi.mock('../crisis-lone-imminent.js', async (importOriginal) =>
+  work.wrap(await importOriginal<typeof import('../crisis-lone-imminent.js')>(), [
+    'asksAboutSafety',
+  ])
+);
+vi.mock('../crisis-guard.js', async (importOriginal) =>
+  work.wrap(await importOriginal<typeof import('../crisis-guard.js')>(), ['detectCrisis'])
+);
+vi.mock('../../../utils/minor-care.js', async (importOriginal) =>
+  work.wrap(await importOriginal<typeof import('../../../utils/minor-care.js')>(), [
+    'statesUnder18',
+    'ageSignal',
+    'derivedHold',
+  ])
+);
+
 import type { CrisisVerdict } from '../crisis-classifier.js';
 import {
   BLOCK_REASONS,
@@ -641,13 +703,63 @@ describe('CRISIS_GRADED_RESPONSE fail-closed rows', () => {
     expect(gradeTurn(turn({ companion: long.slice(0, 600) }))).toEqual({ would: 'L2' });
   });
 
-  it('a grade stays cheap on a long call with a long Ferni line', () => {
+  // The grade stays cheap because its readers get the latest and 40 earlier caller lines, and
+  // only R0 reads a Ferni line over 600 characters (once). This used to time the grade (under
+  // 20 ms), and the wall clock failed it under load (#3676), so it pins the WORK instead: every
+  // reader on the graded path, its calls and the characters it was handed. A reader called again,
+  // handed more lines or the long Ferni line, or a new pass over the call changes a count.
+  // Known limit: the same calls made slower (a busy-wait, a slower regex on the same text) change
+  // no count. Only the backstop below sees that, and only at roughly 100x or more.
+  it('a grade stays cheap on a long call with a long Ferni line: every reader is pinned', () => {
     const earlier = Array.from({ length: 300 }, (_, i) => `Line ${i} about the garden.`);
     const companion = `Is anyone ${'there with you and '.repeat(500)}`;
-    const t0 = performance.now();
-    gradeTurn(turn({ earlier, companion }));
-    expect(performance.now() - t0).toBeLessThan(20);
+    expect(companion.length).toBeGreaterThan(600);
+    const graded = (c: string) => {
+      const input = turn({ earlier, companion: c, call: 'cheap-grade' });
+      work.seen.clear();
+      gradeTurn(input);
+      return Object.fromEntries(work.seen);
+    };
+    const window = [QUIET, ...earlier.slice(-40)];
+    const [W, L, C] = [window.join('').length, QUIET.length, 'cheap-grade'.length];
+    const read = (calls: number, chars: number) => ({ calls, chars });
+    const perLine = {
+      namesSomeoneElse: read(1, L),
+      foldedLine: read(1, L),
+      downOrMeans: read(41, W),
+      statesTimeOrDecision: read(41, W),
+      ageSignal: read(1, C),
+      derivedHold: read(1, C),
+      abuseDisclosure: read(41, W),
+      mayDiscloseAbuse: read(41, W),
+    };
+    expect(graded(companion)).toEqual({
+      ...perLine,
+      unreadable: read(42, W + companion.length),
+      statesUnder18: read(41, W),
+      mayBeUnder18: read(41, W),
+    });
+    // A short Ferni line is read by the R5 and R7 readers too, so the pin above can see one.
+    expect(graded(FERNI)).toEqual({
+      ...perLine,
+      unreadable: read(42, W + FERNI.length),
+      statesUnder18: read(41, W + 41 * FERNI.length),
+      mayBeUnder18: read(41, W + 41 * FERNI.length),
+      asksAboutSafety: read(1, FERNI.length),
+      asksAnythingSafety: read(1, FERNI.length),
+    });
   });
+
+  // A catch for cost that grows with call length, and nothing more: main grades this in a few
+  // milliseconds, so 2 s holds on a loaded runner. It is not a speed check on the readers; the same
+  // calls made slower trip it only at roughly 100x (more on a fast runner).
+  it('a 10,000-line call with a 95k-char Ferni line grades in under 2 s (call-length backstop)', () => {
+    const earlier = Array.from({ length: 10_000 }, (_, i) => `Line ${i} about the garden.`);
+    const companion = `Is anyone ${'there with you and '.repeat(5_000)}`;
+    const at = performance.now();
+    gradeTurn(turn({ earlier, companion }));
+    expect(performance.now() - at).toBeLessThan(2_000);
+  }, 30_000);
 
   it.each(MUST_NOT_FIRE)('must not fire, a lone classifier read: %s grades L2', (_label, lines) => {
     resetMinorCare();

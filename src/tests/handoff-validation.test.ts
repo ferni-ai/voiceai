@@ -32,9 +32,9 @@ import {
 
 describe('Persona ID System', () => {
   describe('Canonical IDs', () => {
-    it('should have exactly 8 canonical personas', () => {
-      // 6 Ferni team + 2 standalone (joel-dickson, john-bogle)
-      expect(ALL_CANONICAL_IDS).toHaveLength(8);
+    it('should have exactly 9 canonical personas', () => {
+      // 6 Ferni team + 2 standalone (joel-dickson, john-bogle) + seth (behind SETH_TEAMMATE)
+      expect(ALL_CANONICAL_IDS).toHaveLength(9);
     });
 
     it('should include all expected personas', () => {
@@ -176,8 +176,10 @@ describe('Persona ID System', () => {
 });
 
 describe('Voice Registry Integration', () => {
-  it('should return voice IDs for all canonical IDs', () => {
-    for (const canonical of ALL_CANONICAL_IDS) {
+  it('should return voice IDs for all canonical IDs but seth', () => {
+    // Seth's consented clone is never in the registry; only his gate serves it (seth-voice-paths.test.ts)
+    expect(getVoiceId('seth')).toBe('');
+    for (const canonical of ALL_CANONICAL_IDS.filter((id) => id !== 'seth')) {
       const voiceId = getVoiceId(canonical);
       expect(voiceId).toBeDefined();
       expect(typeof voiceId).toBe('string');

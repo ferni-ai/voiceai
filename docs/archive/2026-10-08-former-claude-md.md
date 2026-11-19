@@ -307,14 +307,8 @@ Quick diagnostics from outside the container:
 # Full diagnostic dashboard
 pnpm ops:diagnose
 
-# Check voice agent health
-curl http://34.134.186.63:8080/health/ready
-
-# Check call quality metrics
-curl http://34.134.186.63:8080/api/observability | jq '.callQuality'
-
-# Check crash analytics
-curl http://34.134.186.63:8080/api/crash-analytics
+# The health-server curls that were here named the retired GCE VM.
+# Current commands: docs/runbooks/DISCONNECT-DEBUGGING.md (Quick Commands).
 
 # View recent logs
 pnpm ops:logs
@@ -406,7 +400,7 @@ ferni deploy gce --dry-run
 | Setting    | Value               | Notes              |
 | ---------- | ------------------- | ------------------ |
 | Instance   | `voiceai-agent-gce` | GCE VM name        |
-| IP         | `34.134.186.63`     | Static external IP |
+| IP         | (retired)           | Static external IP |
 | Zone       | `us-central1-a`     | -                  |
 | Blue Port  | `8080`              | Primary slot       |
 | Green Port | `8081`              | Secondary slot     |

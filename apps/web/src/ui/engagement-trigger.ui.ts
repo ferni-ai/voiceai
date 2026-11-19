@@ -3,6 +3,8 @@
  *
  * Adds a subtle engagement trigger button near the controls.
  * Shows notification badges when rituals are due or predictions ready.
+ * The first button opens "What I'm Noticing" (InsightsView); its badge counts
+ * rituals due today and clears once the panel has been opened.
  *
  * Brand-aligned: minimalist, unobtrusive, zen aesthetic.
  */
@@ -34,6 +36,24 @@ export interface EngagementBadgeState {
   predictionsReady: number;
   streakAtRisk: boolean;
   insightsNew: number;
+}
+
+/** "YYYY-MM-DD:count": how many due rituals the person had seen today when they last opened the panel */
+export const RITUALS_SEEN_KEY = 'ferni:rituals-badge-seen';
+
+function todayKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+}
+
+/** Due rituals already seen today (0 on a new day or when nothing is stored). */
+function seenRitualsToday(): number {
+  try {
+    const [day, count] = (localStorage.getItem(RITUALS_SEEN_KEY) ?? '').split(':');
+    return day === todayKey() ? Number(count) || 0 : 0;
+  } catch {
+    return 0; // storage blocked: show the badge as before
+  }
 }
 
 // ============================================================================
@@ -81,7 +101,7 @@ class EngagementTriggerUI {
     this.container = document.createElement('div');
     this.container.className = 'engagement-triggers';
     this.container.innerHTML = `
-      <button class="engagement-trigger-btn" id="engagementTriggerBtn" aria-label="${t('accessibility.openDailyPractice')}" title="${t('titles.dailyPractice')}">
+      <button class="engagement-trigger-btn" id="engagementTriggerBtn" aria-label="${t('accessibility.openWhatImNoticing')}" title="${t('insights.whatNoticing')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 6v6l4 2"/>
@@ -113,6 +133,7 @@ class EngagementTriggerUI {
     const insightsBtn = document.getElementById('insightsTriggerBtn');
 
     engagementBtn?.addEventListener('click', () => {
+      this.markRitualsSeen();
       this.callbacks.onEngagementClick?.();
       this.animateButtonPress(engagementBtn);
     });
@@ -156,6 +177,19 @@ class EngagementTriggerUI {
   }
 
   /**
+   * The person opened the panel: today's due rituals are seen, so the dot goes
+   * until more come due. It used to stay on after every open (audit item 10).
+   */
+  private markRitualsSeen(): void {
+    try {
+      localStorage.setItem(RITUALS_SEEN_KEY, `${todayKey()}:${this.badgeState.ritualsdue}`);
+    } catch (e) {
+      log.debug('Could not remember the seen badge', e);
+    }
+    this.renderBadges();
+  }
+
+  /**
    * Render badge indicators
    */
   private renderBadges(): void {
@@ -165,7 +199,7 @@ class EngagementTriggerUI {
 
     if (engagementBadge) {
       const count = this.badgeState.ritualsdue;
-      if (count > 0) {
+      if (count > seenRitualsToday()) {
         engagementBadge.textContent = count.toString();
         engagementBadge.classList.add('engagement-trigger-btn__badge--visible');
         // "Streak at risk" urgency is streak guilt; never shown under VITE_NO_STREAKS.

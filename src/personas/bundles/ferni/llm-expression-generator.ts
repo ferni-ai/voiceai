@@ -20,7 +20,7 @@
  */
 
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
-import { createLogger } from '../../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { TEMP_CREATIVE, MAX_TOKENS_LONG } from '../../../config/gemini-config.js';
 
@@ -418,7 +418,7 @@ async function callGeminiForExpressions(
           usedCount: 0,
         });
       } else {
-        log.debug({ content: item.content }, 'Filtered invalid LLM expression');
+        log.debug({ content: replyForLog(item.content) }, 'Filtered invalid LLM expression');
       }
     }
 

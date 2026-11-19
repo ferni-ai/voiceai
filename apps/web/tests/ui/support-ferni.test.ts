@@ -107,6 +107,8 @@ function findBillingButton(): HTMLElement | null {
 describe('Support Ferni UI', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    // A build with payments set up (without a key a seed never reaches the server)
+    vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_seed');
     document.body.innerHTML = '';
     // These tests cover the modal itself, which exists only while the server has a paywall on.
     // Imported here, not at the top: some tests reset modules, and the modal reads this instance.

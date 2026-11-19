@@ -288,45 +288,6 @@ export function recordThinkingTime(
 }
 
 // ============================================================================
-// TANGENT TRACKING
-// ============================================================================
-
-/**
- * Record tangent decision
- */
-export function recordTangentDecision(
-  sessionId: string,
-  personaId: string,
-  shouldTangent: boolean,
-  theme: string | undefined,
-  blockReason: 'cooldown' | 'momentum' | 'relationship' | 'none'
-): void {
-  const metrics = getOrCreateMetrics(sessionId, personaId);
-  const tg = metrics.tangents;
-
-  tg.totalDecisions++;
-
-  if (shouldTangent && theme) {
-    tg.tangentsSuggested++;
-    tg.tangentsByTheme[theme] = (tg.tangentsByTheme[theme] || 0) + 1;
-  }
-
-  switch (blockReason) {
-    case 'cooldown':
-      tg.cooldownBlocks++;
-      break;
-    case 'momentum':
-      tg.momentumBlocks++;
-      break;
-    case 'relationship':
-      tg.relationshipBlocks++;
-      break;
-  }
-
-  log.debug({ sessionId, shouldTangent, theme, blockReason }, 'Tangent decision recorded');
-}
-
-// ============================================================================
 // SELF-AWARENESS TRACKING
 // ============================================================================
 

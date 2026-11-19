@@ -67,7 +67,6 @@ async function validateImports(): Promise<void> {
       typeof integration.initializeIntelligence === 'function' &&
         typeof integration.getUnifiedIntelligence === 'function' &&
         typeof integration.cleanupIntelligenceSession === 'function' &&
-        typeof integration.processTurnLearning === 'function' &&
         typeof integration.markProactiveInsightSurfaced === 'function',
       'All core functions exported'
     );
@@ -147,12 +146,6 @@ async function validateTurnHandlerIntegration(): Promise<void> {
       'Turn handler imports getUnifiedIntelligence',
       turnHandler.includes('getUnifiedIntelligence'),
       'Intelligence function imported'
-    );
-
-    check(
-      'Turn handler imports processTurnLearning',
-      turnHandler.includes('processTurnLearning'),
-      'Learning function imported'
     );
 
     check(

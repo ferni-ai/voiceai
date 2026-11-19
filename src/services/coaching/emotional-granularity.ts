@@ -31,14 +31,14 @@ export type EmotionCategory =
   | 'disgust'
   | 'mixed';
 
-export interface EmotionWord {
+interface EmotionWord {
   word: string;
   category: EmotionCategory;
   intensity: 'low' | 'medium' | 'high';
   nuance: string; // What makes this different from similar words
 }
 
-export interface GranularityProfile {
+interface GranularityProfile {
   userId: string;
 
   // Vocabulary tracking
@@ -361,7 +361,7 @@ function updateGranularityScore(profile: GranularityProfile): void {
 /**
  * Record that user accepted vocabulary expansion
  */
-export function recordExpansionAccepted(userId: string): void {
+function recordExpansionAccepted(userId: string): void {
   const profile = getOrCreateProfile(userId);
   profile.expansionsAccepted++;
   profile.granularityScore = Math.min(100, profile.granularityScore + 2);
@@ -371,7 +371,7 @@ export function recordExpansionAccepted(userId: string): void {
 /**
  * Record expansion opportunity
  */
-export function recordExpansionOffered(userId: string): void {
+function recordExpansionOffered(userId: string): void {
   const profile = getOrCreateProfile(userId);
   profile.expansionOpportunities++;
 }
@@ -383,7 +383,7 @@ export function recordExpansionOffered(userId: string): void {
 /**
  * Get vocabulary suggestions for an emotion category
  */
-export function getVocabularySuggestions(
+function getVocabularySuggestions(
   category: EmotionCategory,
   intensity?: 'low' | 'medium' | 'high'
 ): EmotionWord[] {
@@ -399,7 +399,7 @@ export function getVocabularySuggestions(
 /**
  * Get a teaching moment about an emotion word
  */
-export function getEmotionTeaching(word: string): string | null {
+function getEmotionTeaching(word: string): string | null {
   for (const category of Object.values(EMOTION_VOCABULARY)) {
     const emotion = category.find((e) => e.word === word);
     if (emotion) {
@@ -442,11 +442,11 @@ export function buildGranularityContext(userId: string): string | null {
 // STATS
 // ============================================================================
 
-export function getGranularityScore(userId: string): number {
+function getGranularityScore(userId: string): number {
   return getOrCreateProfile(userId).granularityScore;
 }
 
-export function getTopEmotionWords(
+function getTopEmotionWords(
   userId: string,
   limit = 5
 ): Array<{ word: string; count: number }> {
@@ -461,7 +461,7 @@ export function getTopEmotionWords(
 // PERSISTENCE
 // ============================================================================
 
-export function exportGranularityProfile(userId: string): GranularityProfile | null {
+function exportGranularityProfile(userId: string): GranularityProfile | null {
   const profile = granularityProfiles.get(userId);
   if (!profile) return null;
 
@@ -472,26 +472,9 @@ export function exportGranularityProfile(userId: string): GranularityProfile | n
   };
 }
 
-export function importGranularityProfile(profile: GranularityProfile): void {
+function importGranularityProfile(profile: GranularityProfile): void {
   profile.lastUpdated = new Date(profile.lastUpdated);
   profile.emotionWordsUsed = new Map(Object.entries(profile.emotionWordsUsed));
   granularityProfiles.set(profile.userId, profile);
   log.debug({ userId: profile.userId }, 'Imported granularity profile');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectVagueExpression,
-  recordExpansionAccepted,
-  recordExpansionOffered,
-  getVocabularySuggestions,
-  getEmotionTeaching,
-  buildGranularityContext,
-  getGranularityScore,
-  getTopEmotionWords,
-  exportGranularityProfile,
-  importGranularityProfile,
-};

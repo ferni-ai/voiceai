@@ -172,7 +172,7 @@ import { getTTSProvider } from './providers/index.js';
 import { createTTSCache, getTTSCache } from '../../services/tts/index.js';
 import { parseSSML, getSSMLProcessor } from './ssml/index.js';
 import { createSessionSink } from './sinks/index.js';
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import type { TTSRequest, TTSResult, IAudioSink, SSMLProsodyConfig } from './types.js';
 
 const log = createLogger({ module: 'TTSGateway' });
@@ -340,7 +340,7 @@ export function speakToSession(
 
   if (!cleanText.trim()) {
     log.debug(
-      { originalText: truncateForLog(text, 50) },
+      { originalText: replyForLog(text) },
       'TTS Gateway: Empty text after SSML strip, skipping'
     );
     return;
@@ -350,8 +350,8 @@ export function speakToSession(
 
   log.debug(
     {
-      originalText: truncateForLog(text, 50),
-      cleanText: truncateForLog(cleanText, 50),
+      originalText: replyForLog(text),
+      cleanText: replyForLog(cleanText),
       voiceId: options.voiceId,
       hadSSML: result.hadSSML,
     },
@@ -363,8 +363,8 @@ export function speakToSession(
     process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
   if (debugTTS) {
     process.stderr.write(`\n🔊 [TTS PIPELINE] ${new Date().toISOString()}\n`);
-    process.stderr.write(`  📝 Input: "${truncateForLog(text, 100)}"\n`);
-    process.stderr.write(`  🧹 Clean: "${truncateForLog(cleanText, 100)}"\n`);
+    process.stderr.write(`  📝 Input: ${replyForLog(text)}\n`);
+    process.stderr.write(`  🧹 Clean: ${replyForLog(cleanText)}\n`);
     process.stderr.write(`  🎙️ Voice: ${options.voiceId}\n`);
     process.stderr.write(`  ⏱️ SSML parse: ${Date.now() - startTime}ms\n`);
   }
@@ -416,8 +416,8 @@ export function createStreamingPipeline(
         if (result.hadSSML) {
           log.debug(
             {
-              input: truncateForLog(chunk, 50),
-              output: truncateForLog(result.cleanText, 50),
+              input: replyForLog(chunk),
+              output: replyForLog(result.cleanText),
               config: result.prosody,
             },
             '🔧 TTS Gateway Stream: Stripped SSML'

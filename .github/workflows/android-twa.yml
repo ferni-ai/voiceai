@@ -81,7 +81,7 @@ jobs:
           aab=app/build/outputs/bundle/release/app-release.aab
           test -s "$aab" || { echo "::error::$aab was not produced"; exit 1; }
           unzip -p "$aab" base/manifest/AndroidManifest.xml > /dev/null
-          if jarsigner -verify "$aab" 2>&1 | grep -q 'jar is unsigned'; then
+          if jarsigner -verify "$aab" 2>&1 | grep 'jar is unsigned' > /dev/null; then
             echo "Bundle is unsigned, as it must be here."
           else
             echo "::error::The build job must produce an unsigned bundle"; exit 1
@@ -141,7 +141,7 @@ jobs:
             -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD -keypass:env ANDROID_UPLOAD_KEY_PASSWORD \
             -sigalg SHA256withRSA -digestalg SHA-256 \
             bundle/app-release.aab "$KEY_ALIAS" > /dev/null
-          jarsigner -verify bundle/app-release.aab | grep -q 'jar verified'
+          jarsigner -verify bundle/app-release.aab | grep 'jar verified' > /dev/null
           keytool -printcert -jarfile bundle/app-release.aab | grep -E 'SHA256:' | sed 's/^/Upload key /'
           echo "- signed with the upload key" >> "$GITHUB_STEP_SUMMARY"
 
@@ -180,9 +180,9 @@ jobs:
           # Newer apksigner prefixes the line ("Signer (minSdkVersion=...): certificate
           # SHA-256 digest: <hex>"), so take the 64 hex digits, not a field.
           signed="$("$apksigner" verify --print-certs bundle/ferni-universal.apk \
-            | sed -n 's/.*SHA-256 digest: *\([0-9a-fA-F]\{64\}\).*/\1/p' | head -1 | tr 'a-f' 'A-F')"
+            | sed -n 's/.*SHA-256 digest: *\([0-9a-fA-F]\{64\}\).*/\1/p' | sed -n 1p | tr 'a-f' 'A-F')"
           listed="$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ' :' | tr ',' '\n' | tr 'a-f' 'A-F')"
-          if [ -z "$signed" ] || ! printf '%s\n' "$listed" | grep -qx "$signed"; then
+          if [ -z "$signed" ] || ! grep -qx "$signed" <<<"$listed"; then
             echo "::error::The APK's certificate ($signed) is not in vars.ANDROID_CERT_SHA256, so assetlinks.json won't list it and the app would open with a browser bar. Add the upload key's SHA-256 (scripts/android/make-upload-key.sh prints it)."
             exit 1
           fi

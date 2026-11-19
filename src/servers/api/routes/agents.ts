@@ -318,7 +318,7 @@ export async function handleAgentRoutes(
 
   // Save team order
   if (pathname === '/api/team/order' && req.method === 'POST') {
-    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000, keyPrefix: 'team-order' })) {
       return true;
     }
 
@@ -389,7 +389,7 @@ export async function handleAgentRoutes(
 
   // Enable/disable agent
   if (pathname.match(/^\/api\/agents\/[^/]+\/enable$/) && req.method === 'POST') {
-    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000, keyPrefix: 'agent-enable' })) {
       return true;
     }
 

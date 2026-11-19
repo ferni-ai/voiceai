@@ -6,9 +6,8 @@
  */
 
 import { TIMING } from '../config/index.js';
-import { appState, setMessage } from '../state/app.state.js';
+import { setMessage } from '../state/app.state.js';
 import type { MessageType } from '../types/events.js';
-import type { PersonaConfig } from '../types/persona.js';
 import { getElementById, setText } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { hideStatusWhisper, whisperStatus } from './avatar-feedback.ui.js';
@@ -39,24 +38,10 @@ export function initMessageUI(): void {
       helper: getElementById('helperText'),
     };
 
-    // Set up state subscriptions
-    setupSubscriptions();
-
     log.debug('Message UI initialized (using whisper toast)');
   } catch (error) {
     log.error('Failed to initialize Message UI:', error);
   }
-}
-
-// ============================================================================
-// STATE SUBSCRIPTIONS
-// ============================================================================
-
-function setupSubscriptions(): void {
-  // Active persona changes - update helper text only
-  appState.subscribe('activePersona', (persona) => {
-    updateHelperText(persona);
-  });
 }
 
 // ============================================================================
@@ -105,14 +90,9 @@ export function clearMessage(): void {
 // ============================================================================
 // HELPER TEXT
 // ============================================================================
-
-/**
- * Update the helper text.
- */
-export function updateHelperText(persona: PersonaConfig): void {
-  if (!elements) return;
-  setText(elements.helper, persona.helperText);
-}
+// The helper line holds the welcome greeting and status words. It no longer
+// follows the persona: every persona's helperText repeated its subtitle, so a
+// teammate's role showed a third time under the button (audit item 15).
 
 /**
  * Set custom helper text.

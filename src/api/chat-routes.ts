@@ -111,7 +111,7 @@ function buildSystemPrompt(
     nayan: `You are Nayan, a wisdom and meaning guide. You help users reflect on life's big questions and find purpose. You're thoughtful and philosophical.`,
   };
 
-  const basePrompt = personaPrompts[personaId] || personaPrompts.ferni;
+  const basePrompt = personaPrompts[Object.hasOwn(personaPrompts, personaId) ? personaId : 'ferni'];
 
   const toolInstructions = `
 When you need to take an action or retrieve information, call a function. Do not write JSON or function names in your reply.
@@ -402,7 +402,7 @@ export async function handleChatRoutes(
     return true;
   }
 
-  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'chat' })) {
     return true;
   }
 

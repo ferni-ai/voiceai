@@ -80,7 +80,7 @@ function parseBody(body: string): { claimToken?: string; bodyUid?: string } {
 
 /** Handle POST /demo-claim. Always answers the request. Rate limit: 10/min. */
 export async function handleDemoClaim(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000, keyPrefix: 'demo-claim' })) {
     return true;
   }
   let body = '';

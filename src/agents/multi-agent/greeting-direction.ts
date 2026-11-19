@@ -82,15 +82,21 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean; firstCall?: boolean; unplaced?: boolean } = {},
+  last: {
+    topic?: string;
+    tender?: boolean;
+    firstCall?: boolean;
+    unplaced?: boolean;
+    locales?: readonly string[];
+  } = {},
   introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
   const base = last.firstCall
-    ? stranger.easyStrangerDirection(stranger.STRANGER_GREETING_DIRECTION, env)
+    ? stranger.easyStrangerDirection(stranger.STRANGER_GREETING_DIRECTION, env, last.locales)
     : last.unplaced
-      ? stranger.easyStrangerDirection(stranger.UNPLACED_GREETING_DIRECTION, env)
+      ? stranger.easyStrangerDirection(stranger.UNPLACED_GREETING_DIRECTION, env, last.locales)
       : playful && !careful
         ? PLAYFUL_GREETING_DIRECTION
         : GREETING_DIRECTION;
@@ -312,6 +318,8 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
 
 export interface GreetingUserData {
   callerTimezone?: string;
+  /** The call's language tags (metadata-parser.ts callLocales): STRANGER_GREETING_EASY is English-only. */
+  callerLocales?: readonly string[];
   userName?: string;
   userId?: string;
   isReturningUser?: unknown;
@@ -415,6 +423,7 @@ export async function directedGreeting(
           tender: careful,
           firstCall,
           unplaced,
+          locales: userData?.callerLocales,
         },
         introAs
       )) +

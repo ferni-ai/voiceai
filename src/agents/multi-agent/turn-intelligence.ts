@@ -31,10 +31,11 @@ import {
 } from '../../intelligence/revived/revived-intelligence.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
-import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { forgottenInProcess, forgottenPassageWithin } from '../../memory/index.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
+import { noteTurnPathAttached } from '../shared/turn-path-capture.js';
 import { backgroundTurnVoice } from './background-voice-emotion.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
@@ -88,11 +89,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       lastConversationSummary: profile?.lastConversationSummary,
       store: deps.revivedStore ?? firestoreRevivedStore,
       // Earlier calls' words never bring back what they asked Ferni to forget,
-      // before this call or during it.
-      forgotten: async () => {
-        const topics = userId ? await forgottenTopicsOrNull(userId) : null;
-        return topics && ((text: string) => isForgottenPassage(text, topics));
-      },
+      // before this call or during it. The shared passage check, fresh reads
+      // only: null (no FORGET_EVERY_READER, no member, or a late or failed
+      // read, never an old list) means nothing from earlier calls.
+      forgotten: async () => forgottenPassageWithin(userId, 'revived-intelligence'),
+      // Per turn, sync: only what was forgotten in this process since the load.
       forgottenNow: () => {
         const topics = userId ? forgottenInProcess(userId) : [];
         return (text: string) => isForgottenPassage(text, topics);
@@ -461,6 +462,7 @@ export function attachTurnContextPusher(
   options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
 ): () => Promise<void> {
   const { env = process.env, userData } = options;
+  if (session.on) noteTurnPathAttached(session); // the turn path captures this call's lines
   const deferral = deferralForSession(hook, session, env, userData);
   const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');

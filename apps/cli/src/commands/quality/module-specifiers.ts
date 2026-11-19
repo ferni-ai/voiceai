@@ -111,9 +111,21 @@ export function findSites(file: string, text: string, allStrings = false): Site[
   return sites;
 }
 
+/** A specifier's explicit extension, and the TypeScript files vitest tries in its place. */
+const EXPLICIT = /\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|json)$/;
+const TS_TWINS: Readonly<Record<string, readonly string[]>> = {
+  js: ['ts', 'tsx'],
+  jsx: ['tsx'],
+  mjs: ['mts'],
+  cjs: ['cts'],
+};
+
 /**
- * The file a relative specifier names, or null. Resolves like the architecture gate
- * (.js → .ts/.tsx, folder → index), then real .js/.mjs/.cjs/.json files.
+ * The file a relative specifier names, or null, the way vitest resolves a mock string.
+ * With an explicit extension: that file or its TypeScript twin (.js → .ts/.tsx), never
+ * `<base>/index.ts`, so a '../x.js' that only x/index.ts would satisfy is stale (vitest
+ * mocks a path nothing imports). With none: like the architecture gate (folder → index),
+ * then real .js/.mjs/.cjs/.json files. The architecture gate's own resolveSpec is unchanged.
  */
 export function resolveModule(
   from: string,
@@ -122,6 +134,12 @@ export function resolveModule(
 ): string | null {
   if (!spec.startsWith('./') && !spec.startsWith('../') && spec !== '.' && spec !== '..')
     return null;
+  const ext = EXPLICIT.exec(spec)?.[1];
+  if (ext) {
+    const path = specPath(from, spec);
+    const base = path.slice(0, -(ext.length + 1));
+    return [path, ...(TS_TWINS[ext] ?? []).map((t) => `${base}.${t}`)].find(isFile) ?? null;
+  }
   const hit = resolveSpec('.', from, spec, isFile);
   if (hit) return hit;
   const path = specPath(from, spec);

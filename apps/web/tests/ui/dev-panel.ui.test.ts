@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { ICONS, type IconName } from '../../src/ui/dev-panel/icons.js';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -743,6 +744,117 @@ describe('Dev Panel - Dashboard Links', () => {
 
       expect(mockWindowOpen).toHaveBeenCalledWith(`/${dashboard}`, '_blank');
     });
+  });
+});
+
+describe('Dev Panel - Rendered Dashboard Links', () => {
+  // [href, label, title, icon] for every link the panel had before the agent flags link,
+  // copied from its markup at f8101ff99c (apps/web/src/ui/dev-panel.ui.ts, ~2219-2305).
+  const previousLinks: ReadonlyArray<readonly [string, string, string, IconName]> = [
+    ['/analytics-dashboard.html', 'Analytics', 'Analytics Dashboard', 'trendingUp'],
+    ['/metrics-dashboard.html', 'Metrics', 'Metrics Dashboard', 'barChart'],
+    ['/ux-dashboard.html', 'UX', 'UX Dashboard', 'colorPalette'],
+    ['/error-dashboard.html', 'Errors', 'Error Dashboard', 'alertTriangle'],
+    ['/llm-dashboard.html', 'LLM', 'LLM Dashboard', 'robot'],
+    ['/voice-presence-dashboard.html', 'Voice', 'Voice Presence Dashboard', 'micFilled'],
+    ['/persona-dashboard.html', 'Personas', 'Persona Dashboard', 'drama'],
+    ['/cognitive-dashboard.html', 'Cognitive', 'Cognitive Dashboard', 'brain'],
+    ['/connection-dashboard.html', 'Connection', 'Connection Dashboard', 'signalStrength'],
+    ['/memory-dashboard.html', 'Memory', 'Memory Dashboard', 'save'],
+    ['/cost-dashboard.html', 'Costs', 'Cost Dashboard', 'coins'],
+    ['/dora-dashboard.html', 'DORA', 'DORA Metrics', 'rocket'],
+    ['/handoff-dashboard.html', 'Handoffs', 'Handoff Dashboard', 'handshake'],
+    ['/outreach-dashboard.html', 'Outreach', 'Outreach Dashboard', 'upload'],
+    ['/tools-dashboard.html', 'Tools', 'Tools Dashboard', 'wrench'],
+    ['/experiments-dashboard.html', 'Experiments', 'Experiments', 'flask'],
+    ['/feature-flags.html', 'Feature Flags', 'Feature Flags', 'flag'],
+    ['/admin.html', 'Admin', 'Admin Panel', 'cog'],
+    ['/observability-hub.html', 'Observability', 'Observability Hub', 'eye'],
+    ['/animation-playground.html', 'Animations', 'Animation Playground', 'movie'],
+  ];
+  const AGENT_FLAGS_HREF = '/admin?section=agent-flags';
+
+  /** The icon's markup as the DOM serialises it, to compare with a rendered link's svg. */
+  function iconMarkup(name: IconName): string | undefined {
+    const holder = document.createElement('span');
+    holder.innerHTML = ICONS[name];
+    return holder.querySelector('svg')?.outerHTML;
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    document.querySelectorAll('.dev-panel').forEach((el) => el.remove());
+  });
+
+  async function renderedLinks(): Promise<HTMLAnchorElement[]> {
+    const { showPanel } = await import('../../src/ui/dev-panel.ui.js');
+    showPanel();
+    return Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('.dev-panel a.dev-dashboard-link')
+    );
+  }
+
+  it('links to the dev agent flags page, right after Feature Flags', async () => {
+    const links = await renderedLinks();
+    const hrefs = links.map((a) => a.getAttribute('href'));
+
+    const flagsAt = hrefs.indexOf('/feature-flags.html');
+    expect(flagsAt).toBeGreaterThanOrEqual(0);
+    expect(hrefs[flagsAt + 1]).toBe(AGENT_FLAGS_HREF);
+
+    const agentFlags = links[flagsAt + 1];
+    expect(agentFlags.textContent?.trim()).toBe('Agent flags (dev)');
+    expect(agentFlags.getAttribute('title')).toBe(
+      "Switch the dev voice agent's flags (admin portal)"
+    );
+    expect(agentFlags.getAttribute('target')).toBe('_blank');
+    expect(agentFlags.querySelector('svg')?.outerHTML).toBe(iconMarkup('flag'));
+  });
+
+  // The admin portal runs only at the path /admin (app.ts routes on it); /admin.html is the
+  // static Admin Hub, which ignores ?section=.
+  it('opens the agent-flags section of the admin portal at /admin', async () => {
+    const links = await renderedLinks();
+    const link = links.find((a) => a.textContent?.includes('Agent flags (dev)'));
+    expect(link).toBeDefined();
+    const url = new URL(link?.getAttribute('href') ?? '', 'https://dev.example.test');
+    expect(url.pathname).toBe('/admin');
+    expect(url.searchParams.get('section')).toBe('agent-flags');
+  });
+
+  it('still renders every link it had before, in order, with its label, title and icon', async () => {
+    const links = await renderedLinks();
+    const before = links.filter((a) => a.getAttribute('href') !== AGENT_FLAGS_HREF);
+
+    expect(before.map((a) => a.getAttribute('href'))).toEqual(previousLinks.map(([h]) => h));
+    before.forEach((a, i) => {
+      const [, label, title, icon] = previousLinks[i];
+      expect(a.textContent?.trim()).toBe(label);
+      expect(a.getAttribute('title')).toBe(title);
+      expect(a.getAttribute('target')).toBe('_blank');
+      expect(a.querySelector('svg')?.outerHTML).toBe(iconMarkup(icon));
+    });
+  });
+
+  it('escapes the href, title and label it renders', async () => {
+    const { renderDashboardLinks } = await import('../../src/ui/dev-panel/dashboard-links.js');
+    document.body.innerHTML = renderDashboardLinks([
+      { href: '/x?a=1&b="2"', icon: 'flag', label: '<b>bold</b>', title: 'say "hi" <now>' },
+    ]);
+    const a = document.querySelector('a');
+    expect(a?.getAttribute('href')).toBe('/x?a=1&b="2"');
+    expect(a?.getAttribute('title')).toBe('say "hi" <now>');
+    expect(a?.textContent?.trim()).toBe('<b>bold</b>');
+    expect(a?.querySelector('b')).toBeNull();
+  });
+
+  it('still renders the EvalOps and BTH Analytics buttons', async () => {
+    await renderedLinks();
+    expect(document.querySelector('button[data-action="open-evalops"]')).not.toBeNull();
+    expect(document.querySelector('button[data-action="open-bth-analytics"]')).not.toBeNull();
   });
 });
 

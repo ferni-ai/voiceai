@@ -34,10 +34,11 @@
  *   return response; // ← response is the wrapper, not { users: User[] }
  */
 
-import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
+import { getAuthToken, getFirebaseUid } from '../services/firebase-auth.service.js';
+import { ensureAuthReady } from './api-helpers.js';
 import { dedupeInFlight, fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 import { createLogger } from './logger.js';
-import { API_REQUEST_TIMEOUT_MS, AUTH_READY_TIMEOUT_MS } from './request-deadline.js';
+import { API_REQUEST_TIMEOUT_MS } from './request-deadline.js';
 import { IDENTITY_KEYS } from '../config/storage-keys.js';
 import { getLocale } from '../i18n/index.js';
 
@@ -73,37 +74,7 @@ export interface ApiResponse<T> {
   offline?: boolean;
 }
 
-// Track if we've ensured auth is ready
-let authReadyPromise: Promise<void> | null = null;
-
-/**
- * Ensure Firebase Auth is initialized before making API calls.
- * This prevents race conditions where API calls happen before auth is ready.
- * Includes a timeout to prevent hanging if Firebase doesn't respond.
- */
-async function ensureAuthReady(): Promise<void> {
-  if (!authReadyPromise) {
-    const authWithTimeout = Promise.race([
-      initAuth()
-        .then(() => {
-          // Auth is now ready
-        })
-        .catch(() => {
-          // Auth failed to initialize - continue without it
-          // API calls will use X-User-Id fallback
-        }),
-      new Promise<void>((resolve) => {
-        setTimeout(() => {
-          log.warn('Auth init timed out after 5s - continuing without auth');
-          resolve();
-        }, AUTH_READY_TIMEOUT_MS);
-      }),
-    ]);
-
-    authReadyPromise = authWithTimeout;
-  }
-  return authReadyPromise;
-}
+export { getSignedInUid } from './api-helpers.js';
 
 /**
  * Get the current user ID.
@@ -362,6 +333,10 @@ export async function apiPost<T = unknown>(
 /**
  * Make an authenticated PUT request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * The body is sent as given, with no `userId` added: every PUT route acts on
+ * the verified caller, and strict edits (a family member's details) refuse any
+ * key they don't edit, so an injected id turned each save into a 400.
  */
 export async function apiPut<T = unknown>(
   path: string,
@@ -384,11 +359,6 @@ export async function apiPut<T = unknown>(
   try {
     const url = new URL(path, window.location.origin);
 
-    // Always include userId in body if not already present
-    const userId = getUserId();
-    const bodyWithUser =
-      body && typeof body === 'object' ? { userId, ...(body as Record<string, unknown>) } : body;
-
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(true);
 
@@ -398,7 +368,7 @@ export async function apiPut<T = unknown>(
       {
         method: 'PUT',
         headers,
-        body: JSON.stringify(bodyWithUser),
+        body: JSON.stringify(body),
       },
       { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
     );

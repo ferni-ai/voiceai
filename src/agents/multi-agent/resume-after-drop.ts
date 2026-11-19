@@ -13,6 +13,16 @@
  * Nothing records the room or job id against a conversation, so this is the
  * most reliable signal the store has when a session starts.
  *
+ * A held caller (MINOR_CARE, the sexual-topic hold) gets nothing back: no turns are read, and
+ * the call starts fresh. The caller card's gate: unreadable or late means held.
+ *
+ * So does a call whose kept caller lines read as risk (crisis-guard, any signal). Its crisis
+ * state died with the call, so the new one would start as an everyday call and could quote
+ * the line back. A risk read that fails counts as risk.
+ *
+ * A turn read that comes back full (MAX_TURNS_READ) may have stopped short of the newest
+ * turns, where a crisis is likeliest, so that call resumes nothing either.
+ *
  * @module agents/multi-agent/resume-after-drop
  */
 
@@ -24,9 +34,13 @@ import {
 } from '../../services/memory/realtime-memory.js';
 import { directedText } from '../../speech/direction/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { withoutDashes } from '../../utils/text-utils.js';
 import { calmGreeting, directedGreeting } from './greeting-direction.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { openingNotice } from '../shared/ai-notice.js';
+import { detectCrisis } from '../safety/crisis-guard.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
 
@@ -36,10 +50,35 @@ export const RESUME_WINDOW_MS = 2 * 60_000;
 export const RESTORED_TURNS = 12;
 /** Pods' clocks differ a little: a last turn this far "in the future" still counts. */
 const CLOCK_SKEW_MS = 30_000;
-/** Turns read from the dropped call (the store reads oldest first). */
+/** Turns read from a call (the store reads oldest first); a full read resumes nothing. */
 const MAX_TURNS_READ = 200;
 /** How long the greeting waits for the lookup before greeting cold. */
 const LOOKUP_WAIT_MS = 1500;
+/** How long the hold read may take; late means held (the caller card's CARD_BUDGET_MS). */
+const HOLD_READ_MS = 400;
+
+/** A held caller's kept turns are never read back into a call; unreadable or late means held. */
+const callerHeld = async (userId: string): Promise<boolean> =>
+  userHeld(userId) || sharedHeldStrict(userId, process.env, HOLD_READ_MS);
+
+/**
+ * Whether any of the caller's kept lines reads as risk: any crisis-guard signal, each line read
+ * with the lines before it, as the call itself read them. A read that fails counts as risk.
+ */
+function callerLinesReadAsRisk(
+  turns: ReadonlyArray<Pick<ConversationTurn, 'role' | 'content'>>
+): boolean {
+  const said = turns.filter((t) => t.role === 'user').map((t) => t.content);
+  try {
+    return said.some((line, i) => {
+      const read = detectCrisis(line, undefined, { recentMessages: said.slice(0, i) });
+      return read.isCrisis || read.severity > 0 || read.indicators.length > 0;
+    });
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Risk read of kept turns failed, resuming nothing');
+    return true;
+  }
+}
 
 export function resumeAfterDropMode(
   env: Record<string, string | undefined> = process.env
@@ -60,16 +99,18 @@ export async function findDroppedCall(
   currentConversationId: string | undefined,
   now: number = Date.now()
 ): Promise<DroppedCall | undefined> {
+  if (await callerHeld(userId)) return undefined; // held: nothing read
   const recent = await getRecentConversations(userId, 2);
   const previous = recent.find((c) => c.id !== currentConversationId);
   if (!previous || previous.endedAt) return undefined;
-  const turns = (await getConversationTurns(userId, previous.id, MAX_TURNS_READ)).filter((t) =>
-    t.content?.trim()
-  );
+  const read = await getConversationTurns(userId, previous.id, MAX_TURNS_READ);
+  if (read.length >= MAX_TURNS_READ) return undefined; // full: the newest turns may be unread
+  const turns = read.filter((t) => t.content?.trim());
   const last = turns.at(-1);
   if (!last) return undefined;
   const ageMs = now - new Date(last.timestamp).getTime();
   if (!(ageMs <= RESUME_WINDOW_MS) || ageMs < -CLOCK_SKEW_MS) return undefined;
+  if (callerLinesReadAsRisk(turns)) return undefined; // read as risk: nothing resumed
   return {
     conversationId: previous.id,
     turns: turns.slice(-RESTORED_TURNS),
@@ -86,7 +127,7 @@ export function startResumeLookup(
   userId: string | undefined,
   currentConversationId: string | undefined
 ): void {
-  if (!resumeAfterDropMode() || !isMemberIdentity(userId)) return;
+  if (!resumeAfterDropMode() || !isMemberIdentity(userId) || memoryHeld(sessionId)) return;
   const lookup = findDroppedCall(userId, currentConversationId).catch((error: unknown) => {
     log.warn({ error: String(error), sessionId }, 'Dropped-call lookup failed, greeting cold');
     return undefined;
@@ -109,12 +150,7 @@ async function takeDroppedCall(sessionId: string): Promise<DroppedCall | undefin
 
 /** Text as it can be spoken: no markup, no em dashes, no ellipses. */
 function speakable(text: string): string {
-  return calmGreeting(
-    text
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s*[—–]\s*/g, ', ')
-      .replace(/…/g, '.')
-  )
+  return calmGreeting(withoutDashes(text.replace(/<[^>]+>/g, '')).replace(/…/g, '.'))
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -184,7 +220,9 @@ export async function restoreMovedTurns(
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
   const from = getProactiveSessionContext(sessionId)?.movedFrom;
   if (!from) return { moved: false, turns: 0 };
-  if (!from.conversationId) return { moved: true, turns: 0 }; // memory held: start fresh
+  if (!from.conversationId) return { moved: true, turns: 0 }; // no app conversation was started
+  // Either call held: start fresh, nothing read
+  if (memoryHeld(sessionId) || (await callerHeld(from.userId))) return { moved: true, turns: 0 };
   // A failed read is still a moved call: thrown, the caller would read it as a drop
   const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ).catch(
     (error: unknown) => {
@@ -196,11 +234,14 @@ export async function restoreMovedTurns(
   const late = new Promise<ConversationTurn[]>((resolve) => {
     timer = setTimeout(() => resolve([]), LOOKUP_WAIT_MS);
   });
-  const all = (await Promise.race([read, late])).filter((t) => t.content?.trim());
+  const got = await Promise.race([read, late]);
   clearTimeout(timer);
+  if (got.length >= MAX_TURNS_READ) return { moved: true, turns: 0 }; // full: newest may be unread
+  const all = got.filter((t) => t.content?.trim());
   const last = all.at(-1);
   const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
-  const turns = fresh ? all.slice(-MOVED_TURNS) : [];
+  if (fresh && callerLinesReadAsRisk(all)) return { moved: true, turns: 0 }; // read as risk
+  const turns = fresh && !memoryHeld(sessionId) ? all.slice(-MOVED_TURNS) : []; // held while read
   if (agent && turns.length) await restoreTurns(agent, turns, MOVED_NOTE);
   log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE moved call');
   return { moved: true, turns: turns.length };
@@ -261,7 +302,9 @@ async function firstLine(
   });
   if (moved) lookups.delete(sessionId);
   const call = await takeDroppedCall(sessionId);
-  if (!call || !agent.agent) return directedGreeting(sessionId, agent.personaId, userData);
+  // A hold set while the lookup ran: nothing goes back in
+  if (!call || !agent.agent || memoryHeld(sessionId))
+    return directedGreeting(sessionId, agent.personaId, userData);
   try {
     await restoreDroppedTurns(agent.agent, call);
   } catch (error) {
