@@ -67,14 +67,14 @@ const NAMES_OTHERS = new RegExp(
 const WANTS_FIGURE =
   /\b(?:estimate|number|figure|count|stats?|ballpark|examples?|specific|answer|how (?:many|often))\b/i;
 
-const asksAboutUsage = (said: string): boolean =>
-  ASKS_USAGE.test(said.slice(-MAX_SAID_CHARS).replace(/’/g, "'"));
+// No pattern holds an apostrophe, so a curly one ("what’re") reads the same as a straight one.
+const asksAboutUsage = (said: string): boolean => ASKS_USAGE.test(said.slice(-MAX_SAID_CHARS));
 
 /**
  * A director note that would push Ferni to count or quote other callers: one naming them,
  * or, after the caller asked about them (`said`), one asking for a figure or an answer.
  */
 export function pushesUsage(note: string, said = ''): boolean {
-  const text = note.slice(0, MAX_NOTE_CHARS).replace(/[‘’]/g, "'");
+  const text = note.slice(0, MAX_NOTE_CHARS);
   return NAMES_OTHERS.test(text) || (asksAboutUsage(said) && WANTS_FIGURE.test(text));
 }

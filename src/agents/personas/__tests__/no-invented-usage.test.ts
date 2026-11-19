@@ -10,6 +10,7 @@ import { STORY_HONESTY, withHonesty } from '../ai-honesty.js';
 import { FERNI_CAST } from '../director-cast.js';
 import { guardRuleFor, guardViolation } from '../director-guard.js';
 import { parseNotes, type Line } from '../director-notes.js';
+import { houseFactsLine } from '../house-facts.js';
 import { INTERNALS_HONESTY } from '../no-invented-internals.js';
 import { pushesUsage, usageHonestyLine } from '../no-invented-usage.js';
 
@@ -31,10 +32,12 @@ describe('the prompt (withHonesty, as prompt-loader.ts builds it)', () => {
     expect(withHonesty(RULE, ON)).toBe(`${RULE.trimEnd()}\n\n${USAGE_HONESTY}`);
   });
 
-  it('keeps its place among the other honesty lines: story, internals, usage', () => {
-    const env = { AI_HONESTY_STORY: 'on', NO_INVENTED_INTERNALS: 'on', ...ON };
+  it('keeps its place among the other honesty lines: story, internals, usage, house facts', () => {
+    const env = { AI_HONESTY_STORY: 'on', NO_INVENTED_INTERNALS: 'on', HOUSE_FACTS: 'on', ...ON };
+    const houseFacts = houseFactsLine(env);
+    expect(houseFacts).not.toBe('');
     expect(withHonesty(RULE, env)).toBe(
-      [RULE.trimEnd(), STORY_HONESTY, INTERNALS_HONESTY, USAGE_HONESTY].join('\n\n')
+      [RULE.trimEnd(), STORY_HONESTY, INTERNALS_HONESTY, USAGE_HONESTY, houseFacts].join('\n\n')
     );
     // The others, without it, are as they were.
     expect(withHonesty(RULE, { AI_HONESTY_STORY: 'on', NO_INVENTED_INTERNALS: 'on' })).toBe(
@@ -80,10 +83,14 @@ describe('the director', () => {
       expect([note, guardViolation(note, asked, ON)]).toEqual([note, 'usage_invention']);
       expect([note, guardViolation(note, asked, {})]).toEqual([note, undefined]);
     }
-    // Naming other callers outright needs no question before it.
-    expect(guardViolation('Tell them what your other callers worry about.', '', ON)).toBe(
-      'usage_invention'
-    );
+    // Naming other callers outright needs no question before it, with or without "your".
+    for (const note of [
+      'Tell them what your other callers worry about.',
+      'Ask about other callers.',
+      'Mention what other users bring up.',
+    ]) {
+      expect([note, guardViolation(note, '', ON)]).toEqual([note, 'usage_invention']);
+    }
   });
 
   it('keeps ordinary coaching, about the caller or after their question', () => {
@@ -125,6 +132,8 @@ describe('pushesUsage: which caller words make a figure a push', () => {
       'do teens ask you this kind of stuff?',
       'how many users do you have?',
       'do other callers talk to you about this?',
+      // A curly apostrophe, as speech-to-text gives it, inside the only pattern that reads this.
+      'what’d people ask you today?',
     ]) {
       expect([said, asksAboutUsage(said)]).toEqual([said, true]);
     }
