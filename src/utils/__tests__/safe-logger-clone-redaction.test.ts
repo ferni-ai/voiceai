@@ -99,6 +99,13 @@ describe('redactLogValues', () => {
     expect(redactLogValues('{"msg":"anything at all"}')).toBe('{"msg":"anything at all"}');
   });
 
+  it('replaces a longer value whole when a shorter one is its start', () => {
+    configured = ['fake-seth', 'fake-seth-id'];
+    expect(redactLogValues('voice fake-seth-id ready')).toBe(`voice ${REDACTED_LOG_VALUE} ready`);
+    configured = ['fake-seth-id', 'fake-seth'];
+    expect(redactLogValues('voice fake-seth-id ready')).toBe(`voice ${REDACTED_LOG_VALUE} ready`);
+  });
+
   it('treats a value as text, not as a pattern', () => {
     configured = ['a.c'];
     expect(redactLogValues('abc a.c')).toBe(`abc ${REDACTED_LOG_VALUE}`);
