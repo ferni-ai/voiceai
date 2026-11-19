@@ -403,21 +403,29 @@ async function checkLink(walk: Walk, where: string, c: Control, fallback: string
   }
 }
 
-/** Open a section from the nav and wait for it to finish loading. */
+/**
+ * Open a section from the nav and wait for it to finish loading. It gets a second click, after
+ * closing anything the last section left open: in CI one open failed once and the retry took 4s.
+ * Each failed try logs its step, since CI keeps no trace.
+ */
 async function openSection(walk: Walk, id: string, name: string): Promise<boolean> {
-  try {
-    await walk.page.locator(`.admin-nav-btn[data-section="${id}"]`).click({ timeout: 10_000 });
-    await expect(walk.page.locator('#adminSectionTitle')).toHaveText(name);
-    await expect(walk.page).toHaveURL(new RegExp(`[?&]section=${id}\\b`));
-    await expect(walk.page.locator('#adminContent .admin-loading')).toHaveCount(0, {
-      timeout: 10_000,
-    });
-  } catch {
-    walk.findings.add(`section did not open: ${id}`);
-    return false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      if (attempt > 1) await closeModals(walk);
+      await walk.page.locator(`.admin-nav-btn[data-section="${id}"]`).click({ timeout: 10_000 });
+      await expect(walk.page.locator('#adminSectionTitle')).toHaveText(name);
+      await expect(walk.page).toHaveURL(new RegExp(`[?&]section=${id}\\b`));
+      await expect(walk.page.locator('#adminContent .admin-loading')).toHaveCount(0, {
+        timeout: 10_000,
+      });
+      await settle(walk);
+      return true;
+    } catch (e) {
+      console.log(`open ${id}, try ${attempt}: ${String(e).split('\n')[0]}`);
+    }
   }
-  await settle(walk);
-  return true;
+  walk.findings.add(`section did not open: ${id}`);
+  return false;
 }
 
 const MODAL = '.admin-modal-overlay:visible';
