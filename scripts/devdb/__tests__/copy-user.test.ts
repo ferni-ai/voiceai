@@ -420,6 +420,7 @@ const THIRD_PARTY = [
   'visual_memories',
   'tool_executions',
   'semantic_intelligence',
+  'guest_consents',
 ];
 
 describe('other people stay in prod', () => {
@@ -442,7 +443,8 @@ describe('other people stay in prod', () => {
     'ferni_actions[userId]',
     'concierge_requests[userId]',
     'feature_checkins[userId]',
-  ])('copies no %s store (attendees, people reached, businesses called)', (label) => {
+    'guest_invites[uid]',
+  ])('copies no %s store (attendees, people reached, businesses called, guests)', (label) => {
     expect(COPIED_STORES.map(storeLabel)).not.toContain(label);
     expect(Object.keys(EXCLUDED_STORES)).toContain(label);
   });

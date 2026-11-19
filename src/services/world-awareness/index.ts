@@ -774,7 +774,7 @@ export function getWorldSnapshot(userId: string): WorldSnapshot {
 /**
  * Update user's interests (e.g., when they mention a favorite team)
  */
-export function updateUserInterests(userId: string, interests: Partial<UserInterests>): void {
+function updateUserInterests(userId: string, interests: Partial<UserInterests>): void {
   const cache = userCaches.get(userId);
   if (!cache) {
     // Create new cache with these interests
@@ -841,7 +841,7 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
  * Get a natural conversation starter based on world context.
  * Returns something Ferni can weave naturally into greeting.
  */
-export function getConversationStarter(userId: string): string | null {
+function getConversationStarter(userId: string): string | null {
   const snapshot = getWorldSnapshot(userId);
 
   // Priority 1: Today's holiday
@@ -879,7 +879,7 @@ export function getConversationStarter(userId: string): string | null {
 /**
  * Check if user has mentioned a sports team we should track
  */
-export function detectTeamMention(text: string): string | null {
+function detectTeamMention(text: string): string | null {
   const teamPatterns = [
     // NFL
     { pattern: /\b(eagles|philadelphia eagles)\b/i, team: 'Eagles' },

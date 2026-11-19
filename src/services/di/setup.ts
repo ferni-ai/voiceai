@@ -378,12 +378,6 @@ async function registerMemoryServices(): Promise<void> {
     return getLearnedMemoriesService();
   });
 
-  // Proactive Memory Surfacing - surfaces relevant memories
-  container.registerSingleton(Tokens.ProactiveMemorySurfacing, async () => {
-    const { getProactiveMemorySurfacing } = await import('../memory/proactive-memory-surfacing.js');
-    return getProactiveMemorySurfacing();
-  });
-
   getLogger().info('Registered memory services');
 }
 
@@ -499,14 +493,6 @@ export async function resolveUnifiedMemory() {
 export async function resolveLearnedMemories() {
   const container = getContainer();
   return container.resolve(Tokens.LearnedMemories);
-}
-
-/**
- * Resolve ProactiveMemorySurfacing from container
- */
-export async function resolveProactiveMemorySurfacing() {
-  const container = getContainer();
-  return container.resolve(Tokens.ProactiveMemorySurfacing);
 }
 
 /**

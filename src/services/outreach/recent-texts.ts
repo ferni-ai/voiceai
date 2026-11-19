@@ -19,6 +19,7 @@
  */
 import { forgottenWithin, type ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { withoutDashes } from '../../utils/text-utils.js';
 import { CHECKINS, checkinDb, type StoredCheckin, type TextKind } from './checkin-replies.js';
 import { firestoreTextStore, recordUserId, redactNumbers, type TextStore } from './guarded-text.js';
 
@@ -64,9 +65,7 @@ export interface RecentTextsStore extends Pick<TextStore, 'forUser'> {
  * dashes or ellipses the voice text rules ban (speech-markup-notes.ts).
  */
 export function textSnippet(body: string): string {
-  const clean = (redactNumbers(body) ?? '')
-    .replace(/\[number\]/g, 'a number')
-    .replace(/\s*[\u2014\u2013]\s*/g, ', ')
+  const clean = withoutDashes((redactNumbers(body) ?? '').replace(/\[number\]/g, 'a number'))
     .replace(/\u2026|\.{2,}/g, '.')
     .replace(/"/g, "'")
     .replace(/\s+/g, ' ')

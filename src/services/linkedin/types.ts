@@ -125,16 +125,3 @@ export interface LinkedInUserData {
   connectionUpdates: ConnectionUpdate[];
   lastSync: Date;
 }
-
-// ============================================================================
-// INSIGHT TYPES
-// ============================================================================
-
-export interface LinkedInInsight {
-  type: 'milestone' | 'opportunity' | 'connection' | 'career_tip';
-  title: string;
-  message: string;
-  priority: 'high' | 'normal' | 'low';
-  actionable?: boolean;
-  metadata?: Record<string, unknown>;
-}

@@ -7,6 +7,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ReadableStream } from 'node:stream/web';
 import { setImmediate as tick } from 'node:timers/promises';
 
@@ -92,7 +94,7 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { CRISIS_EVENT_RETENTION_MS, recordCrisisEvent } from '../../../services/safety/index.js';
+import { recordCrisisEvent } from '../../../services/safety/index.js';
 import { bindSessionUser, heldAfter, resetMinorCare } from '../../../utils/minor-care.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
 import { resetCrisisEventRecords } from '../crisis-event-record.js';
@@ -104,7 +106,6 @@ const SAID = 'I want to kill myself tonight';
 const FIELDS = [
   'createdAt',
   'crisisType',
-  'expireAt',
   'personaId',
   'reader',
   'resourcesProvided',
@@ -183,6 +184,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * The call's words (and the 988 line it heard) found in a record. The date is left out:
+ * its milliseconds can read "988" (main's daily run at 06:56:52.988Z failed on that, #3280).
+ */
+const callWordsIn = (doc: Record<string, unknown>): string[] => {
+  const { createdAt: _createdAt, ...fields } = doc;
+  const text = JSON.stringify(fields).toLowerCase();
+  return ['kill', 'myself', 'tonight', 'die', '988'].filter((word) => text.includes(word));
+};
+
 describe('CRISIS_EVENT_RECORD on', () => {
   it('a crisis call gives exactly one record, with no words and no alert', async () => {
     const session = call();
@@ -204,18 +215,28 @@ describe('CRISIS_EVENT_RECORD on', () => {
       reader: 'pattern',
       resourcesProvided: true,
     });
-    // The timestamps are Dates, and their milliseconds can read "988" (main's daily run at
-    // 06:56:52.988Z failed on that). Every other field is checked for the call's words.
-    const { createdAt, expireAt, ...fields } = doc as Record<string, unknown>;
-    expect(createdAt).toBeInstanceOf(Date);
-    expect(expireAt).toBeInstanceOf(Date);
-    const text = JSON.stringify(fields).toLowerCase();
-    for (const word of ['kill', 'myself', 'tonight', 'die', '988'])
-      expect(text).not.toContain(word);
+    expect(doc.createdAt).toBeInstanceOf(Date);
+    expect(callWordsIn(doc)).toEqual([]);
     expect(slack.crisis).not.toHaveBeenCalled();
     expect(slack.notify).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     noWords(logged);
+  });
+
+  it('a clock at .988 seconds is not the 988 line in the record (#3280)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-09T06:56:52.988Z') });
+    try {
+      await speak(call());
+      await settle();
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(added).toHaveLength(1);
+    const doc = added[0]?.doc ?? {};
+    // The dates do carry the clock's .988, so the words check below is the one that copes with it.
+    expect(doc.createdAt).toEqual(new Date('2026-11-09T06:56:52.988Z'));
+    expect(JSON.stringify(doc)).toContain('988');
+    expect(callWordsIn(doc)).toEqual([]);
   });
 
   it.each([
@@ -228,13 +249,25 @@ describe('CRISIS_EVENT_RECORD on', () => {
     expect(added[0]!.doc).toMatchObject({ crisisType, severity });
   });
 
-  it('keeps it 90 days: expireAt is createdAt plus the retention', async () => {
+  it('is kept permanently: the record has no expiry field for a TTL policy to read', async () => {
     await speak(call());
     await settle();
-    const { createdAt, expireAt } = added[0]!.doc as { createdAt: Date; expireAt: Date };
-    expect(expireAt).toBeInstanceOf(Date);
-    expect(expireAt.getTime() - createdAt.getTime()).toBe(CRISIS_EVENT_RETENTION_MS);
-    expect(CRISIS_EVENT_RETENTION_MS).toBe(90 * 24 * 60 * 60 * 1000);
+    const { doc } = added[0]!;
+    expect(doc).not.toHaveProperty('expireAt');
+    // createdAt is the only date: an expiry under another name (deleteAt, ttlAt) fails here too
+    const dates = Object.entries(doc).filter(([, value]) => value instanceof Date);
+    expect(dates.map(([name]) => name)).toEqual(['createdAt']);
+  });
+
+  it('no TTL policy is declared for crisis_events (records written earlier still carry expireAt)', () => {
+    const { fieldOverrides } = JSON.parse(
+      readFileSync(join(__dirname, '../../../../firestore.indexes.json'), 'utf8')
+    ) as { fieldOverrides: Array<{ collectionGroup: string; ttl?: boolean }> };
+    // The file does declare TTL policies, so an empty answer below is not a misread file
+    expect(fieldOverrides.filter((o) => o.ttl).length).toBeGreaterThan(0);
+    expect(fieldOverrides.filter((o) => o.collectionGroup === 'crisis_events' && o.ttl)).toEqual(
+      []
+    );
   });
 
   it('records the classifier as the reader when it escalates to the script', async () => {

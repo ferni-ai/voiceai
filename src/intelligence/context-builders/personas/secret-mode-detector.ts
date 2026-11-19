@@ -413,18 +413,6 @@ async function buildSecretModeContext(input: ContextBuilderInput): Promise<Conte
 }
 
 // ============================================================================
-// CLEANUP
-// ============================================================================
-
-export function cleanupSecretModeState(sessionId: string): void {
-  stateCache.delete(sessionId);
-}
-
-export function getActiveSecretMode(sessionId: string): string | null {
-  return getSecretModeState(sessionId).activeMode;
-}
-
-// ============================================================================
 // REGISTER
 // ============================================================================
 

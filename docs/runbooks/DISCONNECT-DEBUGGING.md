@@ -20,7 +20,7 @@ AGENT_URL=http://localhost:8080
 # Check overall health
 curl $AGENT_URL/health/ready
 
-# Check crash analytics
+# Check crash analytics (admin only: an admin's Firebase ID token)
 curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/crash-analytics | jq
 
 # Check call quality (disconnect rates, etc)

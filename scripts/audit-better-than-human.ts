@@ -341,62 +341,6 @@ const CAPABILITIES: CapabilityAudit[] = [
 ];
 
 // ============================================================================
-// CONTEXT BUILDER AUDIT
-// ============================================================================
-
-async function auditContextBuilders(): Promise<AuditResult[]> {
-  const results: AuditResult[] = [];
-
-  const criticalBuilders = [
-    'commitment-follow-up',
-    'prediction-surfacing',
-    'crisis',
-    'voice-mismatch-critical',
-    'unified-memory-orchestrator',
-  ];
-
-  for (const builderName of criticalBuilders) {
-    try {
-      // Check if builder is in the loader manifest
-      const { BUILDER_MANIFEST } = await import(
-        '../src/intelligence/context-builders/core/loader.js'
-      );
-
-      let found = false;
-      for (const [_category, builders] of Object.entries(BUILDER_MANIFEST)) {
-        if ((builders as string[]).includes(builderName)) {
-          found = true;
-          break;
-        }
-      }
-
-      if (found) {
-        results.push({
-          name: `Context Builder: ${builderName}`,
-          status: 'pass',
-          details: 'Registered in BUILDER_MANIFEST',
-        });
-      } else {
-        results.push({
-          name: `Context Builder: ${builderName}`,
-          status: 'fail',
-          details: 'Not found in BUILDER_MANIFEST',
-          recommendation: `Add "${builderName}" to BUILDER_MANIFEST in loader.ts`,
-        });
-      }
-    } catch (error) {
-      results.push({
-        name: `Context Builder: ${builderName}`,
-        status: 'fail',
-        details: `Failed to check: ${error}`,
-      });
-    }
-  }
-
-  return results;
-}
-
-// ============================================================================
 // DATA LAYER HOOKS AUDIT
 // ============================================================================
 
@@ -460,18 +404,6 @@ async function runAudit(): Promise<void> {
     const result = await cap.test();
     allResults.push(result);
 
-    const icon = result.status === 'pass' ? '✅' : result.status === 'warn' ? '⚠️' : '❌';
-    console.log(`${icon} ${result.name}: ${result.details}`);
-    if (result.recommendation) {
-      console.log(`   💡 ${result.recommendation}`);
-    }
-  }
-
-  // 2. Context builder audit
-  console.log('\n📋 CONTEXT BUILDERS\n');
-  const builderResults = await auditContextBuilders();
-  allResults.push(...builderResults);
-  for (const result of builderResults) {
     const icon = result.status === 'pass' ? '✅' : result.status === 'warn' ? '⚠️' : '❌';
     console.log(`${icon} ${result.name}: ${result.details}`);
     if (result.recommendation) {

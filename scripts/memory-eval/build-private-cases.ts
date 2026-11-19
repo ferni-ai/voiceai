@@ -13,16 +13,19 @@
  * reach Vertex AI (real-data.ts). Writes nothing if any history gets no
  * usable reply or no case survives.
  *
- *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/build-private-cases.ts \
+ *   MEMORY_EVAL_ALLOWED_UIDS=<uid> GOOGLE_CLOUD_PROJECT=johnb-2025 \
+ *     pnpm tsx scripts/memory-eval/build-private-cases.ts --uid <uid> --name <first name> \
  *     [--histories 4] [--calls 4] [--out ~/Documents/ferni-private-bench]
+ *
+ * MEMORY_EVAL_ALLOWED_UIDS (comma-separated, set outside the repo) lists the
+ * callers who agreed to their calls being used this way (../lib/allowed-uid.mjs).
  */
 import { mkdirSync, chmodSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { getFirestoreDb } from '../../src/utils/firestore-utils.js';
-import { callLLM } from '../../src/services/llm-utils.js';
 import { callerZone, localDay } from './longmem-lib.js';
 import { assertVertexOnly, isInside, writePrivate } from './real-data.js';
+import { assertAllowedUid } from '../lib/allowed-uid.mjs';
 import {
   caseFile,
   generationPrompt,
@@ -33,8 +36,6 @@ import {
   type StoredCall,
 } from './private-cases-lib.js';
 
-/** Callers who agreed to their calls being used this way (Seth, 2026-10-11). */
-const ALLOWED: Record<string, string> = { vdSfkCCXaiXpnVCvgKxHMYrNFr72: 'Seth' };
 /** A call this short says too little to ask about. */
 const MIN_USER_TURNS = 8;
 
@@ -46,6 +47,7 @@ function millis(v: unknown): number {
 }
 
 async function loadCalls(uid: string): Promise<StoredCall[]> {
+  const { getFirestoreDb } = await import('../../src/utils/firestore-utils.js');
   const db = getFirestoreDb();
   if (!db) throw new Error('no Firestore');
   const convs = await db.collection('bogle_users').doc(uid).collection('conversations').get();
@@ -73,9 +75,10 @@ async function main(): Promise<void> {
     return i >= 0 ? argv[i + 1] : undefined;
   };
   // Every argument is checked before any call is read.
-  const uid = flag('--uid') ?? 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
-  const name = ALLOWED[uid];
-  if (!name) throw new Error(`${uid} has not agreed to this; add them to ALLOWED first`);
+  const uid = assertAllowedUid(flag('--uid'));
+  const name = flag('--name');
+  if (!name)
+    throw new Error("--name is required: the caller's first name, as the questions use it");
   const root = resolve(import.meta.dirname, '../..');
   const out = resolve(flag('--out') ?? join(homedir(), 'Documents', 'ferni-private-bench'));
   if (isInside(out, root)) throw new Error(`refusing to write real calls inside the repo: ${out}`);
@@ -86,6 +89,8 @@ async function main(): Promise<void> {
   const zone = callerZone();
   const runDate = localDay(Date.now(), zone);
 
+  // Loaded only after the checks, so a refused run starts no client and logs nothing else.
+  const { callLLM } = await import('../../src/services/llm-utils.js');
   const calls = await loadCalls(uid);
   const histories = groupIntoHistories(calls, perHistory, maxHistories, runDate, name, zone);
   const cases = new Map<string, GeneratedCase[]>();
@@ -125,6 +130,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(String(error));
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

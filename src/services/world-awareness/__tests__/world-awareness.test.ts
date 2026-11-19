@@ -40,9 +40,6 @@ vi.mock('../../../tools/domains/information/sports.js', () => ({
 import {
   warmWorldCache,
   getWorldSnapshot,
-  updateUserInterests,
-  getConversationStarter,
-  detectTeamMention,
   clearUserCache,
   type UserInterests,
   type WorldSnapshot,
@@ -130,88 +127,6 @@ describe('WorldAwareness', () => {
     });
   });
 
-  describe('updateUserInterests', () => {
-    it('should update interests for existing user', async () => {
-      await warmWorldCache(testUserId, { location: 'Chicago' });
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 50);
-      });
-
-      updateUserInterests(testUserId, {
-        favoriteTeams: ['Bulls', 'Bears'],
-      });
-
-      const snapshot = getWorldSnapshot(testUserId);
-      expect(snapshot).toBeDefined();
-    });
-
-    it('should create cache for new user', () => {
-      const newUserId = 'new-user-' + Date.now();
-      updateUserInterests(newUserId, {
-        location: 'Miami',
-        favoriteTeams: ['Heat'],
-      });
-
-      const snapshot = getWorldSnapshot(newUserId);
-      expect(snapshot).toBeDefined();
-
-      clearUserCache(newUserId);
-    });
-  });
-
-  describe('getConversationStarter', () => {
-    it('should return null for unknown user', () => {
-      const starter = getConversationStarter('unknown-user');
-
-      expect(starter).toBeNull();
-    });
-
-    it('should return string or null', async () => {
-      await warmWorldCache(testUserId, { location: 'Boston' });
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 150);
-      });
-
-      const starter = getConversationStarter(testUserId);
-
-      if (starter !== null) {
-        expect(typeof starter).toBe('string');
-        expect(starter.length).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  describe('detectTeamMention', () => {
-    it('should detect team mentions', () => {
-      const team = detectTeamMention('Did you see the Lakers game last night?');
-
-      expect(team).toBeDefined();
-      expect(team?.toLowerCase()).toContain('laker');
-    });
-
-    it('should detect multiple team patterns', () => {
-      const tests = [
-        { text: 'The Yankees are playing tonight', pattern: 'yankee' },
-        { text: 'Go Cubs!', pattern: 'cub' },
-        { text: 'How about them Cowboys', pattern: 'cowboy' },
-        { text: 'The Celtics won again', pattern: 'celtic' },
-      ];
-
-      for (const { text, pattern } of tests) {
-        const team = detectTeamMention(text);
-        if (team) {
-          expect(team.toLowerCase()).toContain(pattern);
-        }
-      }
-    });
-
-    it('should return null for non-team text', () => {
-      const team = detectTeamMention('The weather is nice today');
-
-      expect(team).toBeNull();
-    });
-  });
-
   describe('clearUserCache', () => {
     it('should clear cache for user', async () => {
       await warmWorldCache(testUserId, { location: 'Seattle' });
@@ -265,22 +180,6 @@ describe('WorldAwareness', () => {
       const hasSeasonWord = seasonWords.some((word) => seasonal.toLowerCase().includes(word));
 
       expect(hasSeasonWord).toBe(true);
-    });
-  });
-
-  describe('User interests', () => {
-    it('should support all interest types', () => {
-      const interests: UserInterests = {
-        favoriteTeams: ['Lakers', 'Dodgers'],
-        industries: ['Technology', 'Finance'],
-        topics: ['AI', 'Climate'],
-        location: 'Los Angeles',
-        timezone: 'America/Los_Angeles',
-      };
-
-      expect(() => {
-        updateUserInterests(testUserId, interests);
-      }).not.toThrow();
     });
   });
 });

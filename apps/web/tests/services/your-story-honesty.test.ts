@@ -9,7 +9,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const apiGet = vi.fn();
-vi.mock('../../src/utils/api.js', () => ({ apiGet: (...args: unknown[]) => apiGet(...args) }));
+// The header's count and days come from the one relationship record (sessions together)
+let sessions = { conversations: 3, days: 2 };
+const progress = () => ({
+  ok: true,
+  status: 200,
+  data: {
+    stage: 'first-meeting',
+    metrics: {
+      totalConversations: sessions.conversations,
+      daysSinceFirstMeeting: sessions.days,
+      currentStreak: 0,
+      longestStreak: 0,
+    },
+  },
+});
+vi.mock('../../src/utils/api.js', () => ({
+  apiGet: (...args: unknown[]) =>
+    args[0] === '/api/relationship/progress' ? Promise.resolve(progress()) : apiGet(...args),
+}));
 
 const dashboard = { showLoading: vi.fn(), show: vi.fn(), showStatus: vi.fn() };
 const fetchVisualizationData = vi.fn();
@@ -47,6 +65,7 @@ describe('Your Story honesty', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     demoEnabled = false;
+    sessions = { conversations: 3, days: 2 };
     localStorage.setItem('ferni_user_id', 'user-1');
     fetchVisualizationData.mockResolvedValue({});
     hasAnyVisualizationData.mockReturnValue(false);
@@ -91,6 +110,7 @@ describe('Your Story honesty', () => {
   });
 
   it('with no story on the server, shows the empty state even if the browser could read something', async () => {
+    sessions = { conversations: 0, days: 0 };
     fetchVisualizationData.mockResolvedValue({ openLoops: { loops: [], totalOpen: 1 } });
     hasAnyVisualizationData.mockReturnValue(true);
     apiGet.mockResolvedValue({
@@ -106,6 +126,7 @@ describe('Your Story honesty', () => {
   });
 
   it('a new user with an empty story sees the empty state, not demo data', async () => {
+    sessions = { conversations: 0, days: 0 };
     apiGet.mockResolvedValue({
       ok: true,
       status: 200,

@@ -533,7 +533,9 @@ npm run site:build
 npm run site:dev
 # Open http://localhost:3334
 
-# Deploy to Firebase
+# design.ferni.ai is the Eleventy portal in apps/website/design-system-portal,
+# not this site. A merge to main that changes the portal deploys it
+# (.github/workflows/deploy-design-system-site.yml); by hand, from the root:
 npm run deploy:design-system
 ```
 

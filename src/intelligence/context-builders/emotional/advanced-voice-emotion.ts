@@ -48,7 +48,7 @@ const sessionEmotionalArcs = new Map<string, EmotionalArc>();
  *
  * Priority: 25 (early - informs how to approach the conversation)
  */
-export const advancedVoiceEmotionBuilder: ContextBuilder = {
+const advancedVoiceEmotionBuilder: ContextBuilder = {
   name: 'advanced-voice-emotion',
   description: 'Injects superhuman emotional intelligence from Hume AI voice analysis',
   priority: 25,
@@ -286,5 +286,3 @@ export function clearEmotionalArc(sessionId: string): void {
 
 // Register on module load
 registerContextBuilder(advancedVoiceEmotionBuilder);
-
-export default advancedVoiceEmotionBuilder;

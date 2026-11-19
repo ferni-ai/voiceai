@@ -7,10 +7,15 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../utils/safe-logger.js', () => {
+vi.mock('../../../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('../../../tests/helpers/real-reply-for-log.js');
   const log: Record<string, unknown> = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() };
   log.child = () => log;
-  return { createLogger: () => log, getLogger: () => log };
+  return {
+    createLogger: () => log,
+    getLogger: () => log,
+    ...(await realReplyForLog()),
+  };
 });
 
 import { NO_TOPIC, prepareBriefing, type BriefInput, type BriefTurn } from '../handoff-brief.js';

@@ -45,7 +45,7 @@ Plus the hygiene and flag work that makes both trustworthy: stop saving persona 
 ### Non-goals (this plan)
 - No new memory store, and no new writer for people, dates or calls. The card reads what exists.
 - No `PersonModel` (call sheet) read path. That is lane M6, owned by the person-model owner. See 4.3 for how the card and M6 meet.
-- No flip of `ACTIVITY_LEDGER`, `MEMORY_FACTS`, a planned dual-write flag, or `PERSONA_BRIEFING_*`. Those have no producers or readers yet, or wait on `#3044`.
+- No flip of `MEMORY_FACTS`, a planned dual-write flag, or `PERSONA_BRIEFING_*`. Those have no producers or readers yet, or wait on `#3044`. The activity ledger and its `ACTIVITY_LEDGER` flag were dropped on 2026-11-11, never flipped and with no producer or reader (section 11).
 - Phase 2 (one timeline, promises in both directions) is design only, section 11.
 - No change to what the caller can ask for or to any consent flow.
 
@@ -408,7 +408,7 @@ Design (consistent with `2026-10-27-recall-ledger.md`):
 - Promises in both directions: `owner: 'ferni'` is what Ferni said it would do (call back, find out, remind); `owner: 'user'` is what the person told Ferni they would do (the commitments the check-in already asks about). The hello's check-in and the card read one list with `owner`, so "you said you'd call your sister" and "I said I'd find that out" use the same machinery, the same forgotten-topic and sensitivity guards, and the same opener claim.
 - Producers write through `recordActivity`: the dates writer (`dates/after-call.ts`), follow-through rows, the three commitment schemas, deferred calls and on-behalf calls (already planned in the ledger doc). Readers swap in behind the card's ports (`UpcomingDatesReader`, `RecentCallsReader`, plus a new `OpenPromisesReader`) with no change to `render.ts`; that is why the card has ports now.
 - Migration: dual-read behind a flag until the ledger set equals the legacy set for the owner for a week; then delete the legacy readers with grep proof in the same PR. Exit criteria: the card and the hello arbiter read only the ledger; `callStatus` reads the ledger; `buildPendingCallResultsContext`'s delivered-flag path is deleted.
-- Precondition: the ledger has zero producers and zero readers outside its own file today (`ACTIVITY_LEDGER` is off, no `activity` subcollection exists). Do not flip it until the first producer lands with its reader (recall-ledger lane 2). Phase 2 is planned after A2-1 to A3-1 have run on the owner for two weeks.
+- Update 2026-11-11: the activity ledger was dropped (store, flag and `recordActivity`), since it never had a producer or a reader and `ACTIVITY_LEDGER` was never flipped. A future producer of dates or promises writes to the facts store or the episodes instead; read "the ledger" above as that store, not a separate one. Phase 2 is planned after A2-1 to A3-1 have run on the owner for two weeks.
 - Owner: the person-model owner (memory lanes) with this plan's author as reader of the card ports. Open: whether `OpenPromisesReader` ships in the card before the ledger (default: no, it waits).
 
 ## 12. Open questions, each with a default

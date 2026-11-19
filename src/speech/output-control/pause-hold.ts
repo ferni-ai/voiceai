@@ -169,6 +169,8 @@ interface SessionEvents {
 interface Gate {
   /** Resolves when the reply's first audio may play. */
   wait: () => Promise<void>;
+  /** This turn's reply is held: ink hesitated and Ferni has not spoken since. */
+  holding: () => boolean;
 }
 
 const gates = new Map<string, Gate>();
@@ -187,6 +189,15 @@ export function onPauseHoldReleased(listener: PauseHoldListener): () => void {
 export async function waitForPauseHold(sessionId: string | undefined): Promise<void> {
   if (!sessionId) return;
   await gates.get(sessionId)?.wait();
+}
+
+/**
+ * Whether the session's hold has this turn's reply waiting out the caller's pause: armed at a
+ * hesitant commit, cleared once Ferni speaks. False when no hold is installed. An opening clip
+ * reads this (turn-opening-sound.ts): a held reply's "Mm" would land in the very pause it waits out.
+ */
+export function pauseHoldHolding(sessionId: string): boolean {
+  return gates.get(sessionId)?.holding() ?? false;
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -349,7 +360,10 @@ export function attachPauseHold(
     if (state === 'speaking') st.armed = null;
     else if (state === 'thinking' && st.turnOpen) onCommit(st, cfg, sessionId);
   };
-  const gate: Gate = { wait: async () => holdFirstAudio(st, cfg, sessionId) };
+  const gate: Gate = {
+    wait: async () => holdFirstAudio(st, cfg, sessionId),
+    holding: () => st.armed !== null,
+  };
   gates.set(sessionId, gate);
   const handlers: Array<[string, (ev: unknown) => void]> = [
     ['user_input_transcribed', onTranscript],

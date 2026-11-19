@@ -36,6 +36,8 @@ export interface TrustRecordingContext {
   userText: string;
   /** Turn processing result with emotional data */
   result: TurnResult;
+  /** The crisis read replaced, guided or soft-checked this turn (crisisReadTurn, crisis-turn-memory.ts) */
+  crisisTurn: boolean;
 }
 
 export interface TurnResult {
@@ -68,7 +70,7 @@ export interface TurnResult {
  * - Phase 28: Topic data and emotion data for insights
  */
 export async function recordTrustSystemsData(ctx: TrustRecordingContext): Promise<void> {
-  const { userId, userText, result } = ctx;
+  const { userId, userText, result, crisisTurn } = ctx;
   const logger = log();
 
   try {
@@ -92,8 +94,9 @@ export async function recordTrustSystemsData(ctx: TrustRecordingContext): Promis
       });
     }
 
-    // Phase 14: Detect life events mentioned in conversation
-    const lifeEvents = detectLifeEvents(userId, userText);
+    // Phase 14: Detect life events mentioned in conversation. Never on a crisis turn: a birthday
+    // named on that line gets no saved event, no follow-up check-in and no stored caller line.
+    const lifeEvents = crisisTurn ? [] : detectLifeEvents(userId, userText);
     for (const detection of lifeEvents) {
       if (detection.detected && detection.event && detection.confidence > 0.6) {
         saveEvent({

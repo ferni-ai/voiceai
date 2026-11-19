@@ -60,12 +60,6 @@
     "reason": "Records whether the verified token's Firebase Auth sign_in_provider enum is 'anonymous' (#2236/#2250); compares the provider, not a user id."
   },
   {
-    "file": "intelligence/context-builders/awareness/world-awareness.ts",
-    "count": 1,
-    "category": "cache",
-    "reason": "Notes a sports team in the in-process world cache for this call's id; nothing is written to Firestore, and a unique anon:/onbehalf: id only touches its own entry."
-  },
-  {
     "file": "services/identity/firebase-auth.ts",
     "count": 1,
     "category": "enum",

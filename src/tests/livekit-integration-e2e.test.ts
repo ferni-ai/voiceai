@@ -164,54 +164,6 @@ describe('Intelligence Context Builders', () => {
       expect(Object.keys(module).length).toBeGreaterThan(0);
     });
   });
-
-  // TODO: Skipped - imports from 'emotional/emotional.js' which has been moved/deleted
-  describe.skip('Emotional Context', () => {
-    it('should have emotional context builder', async () => {
-      const module = await import('../intelligence/context-builders/emotional/emotional.js');
-
-      expect(module).toBeDefined();
-      expect(Object.keys(module).length).toBeGreaterThan(0);
-    });
-  });
-
-  // TODO: Skipped - imports from 'cognitive.js' which has been moved/deleted
-  describe.skip('Cognitive Context', () => {
-    it('should have cognitive context builder', async () => {
-      const module = await import('../intelligence/context-builders/cognitive.js');
-
-      expect(module).toBeDefined();
-      expect(Object.keys(module).length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Trust Context', () => {
-    it('should have trust context builder', async () => {
-      const module = await import('../intelligence/context-builders/relationship/trust-context.js');
-
-      expect(module).toBeDefined();
-      expect(Object.keys(module).length).toBeGreaterThan(0);
-    });
-  });
-
-  // TODO: Skipped - imports from 'engagement-context.js' which has been moved/deleted
-  describe.skip('Engagement Context', () => {
-    it('should have engagement context builder', async () => {
-      const module = await import('../intelligence/context-builders/engagement-context.js');
-
-      expect(module).toBeDefined();
-      expect(Object.keys(module).length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Persona Identity', () => {
-    it('should have persona identity context builder', async () => {
-      const module = await import('../intelligence/context-builders/personas/persona-identity.js');
-
-      expect(module).toBeDefined();
-      expect(Object.keys(module).length).toBeGreaterThan(0);
-    });
-  });
 });
 
 // ============================================================================

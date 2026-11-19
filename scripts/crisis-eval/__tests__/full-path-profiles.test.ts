@@ -134,6 +134,8 @@ const RESOLVERS: Readonly<Record<string, Resolve>> = {
     onOff(flagOn('CRISIS_SAME_CALL_NOTE_FADES' as FlagName, env)),
   CRISIS_SIGHT_NEEDS_CUE: (env) => onOff(flagOn('CRISIS_SIGHT_NEEDS_CUE' as FlagName, env)),
   CRISIS_MEANS_IN_HAND: (env) => resolveMeansInHandMode(env),
+  // scriptReadMode (crisis-script-imminent.ts) is private; its whole read of the flag is this call.
+  CRISIS_SCRIPT_IMMINENT_READ: (env) => flagModeOf('CRISIS_SCRIPT_IMMINENT_READ' as FlagName, env),
   SAFETY_WHOLE_WORD_SITES: (env) => resolveSafetyWholeWordSites(env),
   EARLY_WARNING_WORD_BOUNDARY: (env) => onOff(resolveEarlyWarningWordBoundary(env)),
   EARLY_WARNING_STT_FORMS: (env) => resolveEarlyWarningSttForms(env),

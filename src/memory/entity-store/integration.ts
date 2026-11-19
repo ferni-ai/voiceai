@@ -13,12 +13,7 @@ import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, hasEntityStore } from './storage.js';
 import { extractFacts, extractTopics } from './capture-extraction.js';
 import { getFirestoreDatabase } from '../../config/environment.js';
-import type {
-  PersonCaptureInput,
-  CaptureContext,
-  CaptureResult,
-  MentionType,
-} from './types.js';
+import type { PersonCaptureInput, CaptureContext, CaptureResult, MentionType } from './types.js';
 
 const log = createLogger({ module: 'entity-store:integration' });
 
@@ -54,8 +49,11 @@ export async function initializeEntityStore(): Promise<void> {
     // The EntityStore that proactive surfacing reads needs its own init (was never called).
     await (await import('./store.js')).getEntityStore().initialize();
     initialized = true;
+    // Attempts overlap (load-time + retry): a failure before or after this must not unset ready.
+    initializationError = null;
     log.info('Entity store initialized');
   } catch (error) {
+    if (initialized) return; // an overlapping attempt already succeeded
     initializationError = String(error);
     log.warn(
       { error: initializationError },

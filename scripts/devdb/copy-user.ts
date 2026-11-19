@@ -103,6 +103,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'family_shared_context[toUserId]': `${OTHERS}: shared by family members`,
   'consent[grants.{uid}]': `${OTHERS}: a contact's own consent record`,
   'consent[asks.{uid}]': `${OTHERS}: a contact's own consent record`,
+  'guest_invites[uid]': `${OTHERS}: invites to a guest, keyed to her phone`,
 };
 
 /**
@@ -145,6 +146,8 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   milestone_outreach: SCHEDULING,
   goals_outreach: SCHEDULING,
   proactive_outreach_log: SCHEDULING,
+  item_mentions:
+    'a derived ledger of when a todo was mentioned (store, ref, time; no text); without it dev only lists an item once more',
   family_checkin_schedules: SCHEDULING,
   meeting_followup_tasks: SCHEDULING,
   family_checkin_calls: `${OTHERS}: family members' phones`,
@@ -173,6 +176,8 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   visual_memories: `${OTHERS}: OCR of uploaded images (screenshots, cards, letters)`,
   tool_executions: `${OTHERS}: tool arguments and results (recipients, messages)`,
   semantic_intelligence: `${OTHERS}: execution_records keeps the raw args of the last 100 tool calls`,
+  // A guest's yes to being called into the person's calls (messaging/guest-consent)
+  guest_consents: `${OTHERS}: guests' consent to be called in, keyed by their phone's hash`,
 };
 
 /**

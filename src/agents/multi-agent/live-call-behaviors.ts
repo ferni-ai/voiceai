@@ -55,6 +55,7 @@ import {
   sessionTurnDetector,
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
+import { stripTurnLabel } from '../group-conversation/turn-label.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
@@ -105,6 +106,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       .catch((error: unknown) => log.warn({ error: String(error) }, 'LK_PATCH_CHECK failed'));
   }
 
+  const unlabel = (t: string): string => stripTurnLabel(session, t); // GROUP_CALL turn labels
   // Stop Ferni within ~a second of a clear interruption (barge-in-fastpath.ts);
   // LiveKit's barge-in model still handles backchannels and short overlaps.
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
@@ -126,6 +128,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
       },
       softPause,
+      unlabel,
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
     setBargeInFastPath(session, bargeIn);
@@ -215,13 +218,15 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // the model already waits through unfinished thoughts (turn-detector-sole.ts).
   const sole = holdsStandDown(session);
   if (!sole) {
-    if (installUnfinishedTurnHold(session)) reportUnfinishedTurnHolds(session, sessionId);
+    const held = installUnfinishedTurnHold(session, process.env, unlabel);
+    if (held) reportUnfinishedTurnHolds(session, sessionId);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
       session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
       endpointingDelays().minEndpointingDelay,
       process.env,
-      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
+      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR'),
+      unlabel
     );
     if (detach) cleanupFunctions.push(detach);
   }
@@ -368,6 +373,7 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
     const { forgetLaughs, noteTurnOpened } = await import('../personas/laugh-ledger.js');
+    const { pauseHoldHolding } = await import('../../speech/output-control/index.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
     cleanupFunctions.push(() => forgetLaughs(sessionId));
     const earlyWaitMs = earlyOpeningWaitMs();
@@ -401,6 +407,9 @@ export async function startTurnSounds(input: TurnSoundsInput) {
                 clipMs: (text) =>
                   (getCachedAudioForPersona(text, input.personaId())?.byteLength ?? 0) / 48,
                 holdReply: (ms) => holdReplyAudio(sessionId, ms),
+                // PAUSE_HOLD: no "Mm" into the pause a held reply is waiting out.
+                replyHeld: () => pauseHoldHolding(sessionId),
+                sessionId,
               }
         )
       );
@@ -438,7 +447,7 @@ export async function startTurnSounds(input: TurnSoundsInput) {
 export function jobRoom(): LiveRoom | undefined {
   try {
     const ctx = getJobContext();
-    const name = ctx.room.name;
+    const { name } = ctx.room;
     // The sid is LiveKit's, from the job it assigned: no client sets it.
     return name ? { name, sid: ctx.job.room?.sid || undefined } : undefined;
   } catch {

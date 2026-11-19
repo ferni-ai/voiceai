@@ -415,6 +415,19 @@ describe('renderPersonModel: the 3,000-character cap', () => {
     const huge = 'word '.repeat(700);
     expect(render(model({ changed: { value: [huge], prov: built() } }))).toBe('');
   });
+
+  it('maxChars tightens the cap the same way (the in-call reader), and never loosens it', () => {
+    const full = render(sized(40));
+    expect(full.length).toBeGreaterThan(1500);
+    const tight = renderPersonModel(sized(40), { now: NOW, forgottenTopics: [], maxChars: 1500 });
+    expect(tight.length).toBeLessThanOrEqual(1500);
+    const present = HEADINGS.filter((h) => tight.includes(h));
+    expect(present.length).toBeGreaterThan(0);
+    expect(present).toEqual(HEADINGS.slice(0, present.length));
+    expect(tight.endsWith(RULE)).toBe(true);
+    const loose = renderPersonModel(sized(70), { now: NOW, forgottenTopics: [], maxChars: 99_999 });
+    expect(loose).toBe(render(sized(70)));
+  });
 });
 
 describe('renderPersonModel: privacy fixture (design 6.4)', () => {

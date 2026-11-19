@@ -23,8 +23,9 @@ test('going offline shows a reachable notice; coming back clears it', async ({ p
   await expect(banner.getByRole('button')).toBeVisible();
 
   await context.setOffline(false);
-  await expect(banner).not.toHaveClass(/visible/, { timeout: 15_000 });
-  expect(await banner.evaluate((el) => el.inert), 'hidden again, and out of reach').toBe(true);
+  // Online, the notice is not in the page at all: no "You're offline" alert for
+  // screen readers, nothing in the tab order
+  await expect(banner, 'removed once the connection is back').toHaveCount(0, { timeout: 15_000 });
   // Requests that failed while offline are expected; nothing should have crashed
   expect(problems.take().filter((p) => p.startsWith('pageerror'))).toEqual([]);
 });

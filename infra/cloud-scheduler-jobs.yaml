@@ -119,14 +119,6 @@ data:
     # HEALTH & MONITORING JOBS
     # ==========================================================================
     
-    - name: voice-agent-health-check
-      description: "Health check voice agent (external monitoring)"
-      schedule: "*/5 * * * *"  # Every 5 minutes
-      timezone: "America/Los_Angeles"
-      uri: "http://34.134.186.63:8080/health/ready"
-      httpMethod: GET
-      attemptDeadline: "30s"
-      
     - name: worker-health-check
       description: "Health check async workers"
       schedule: "*/5 * * * *"  # Every 5 minutes

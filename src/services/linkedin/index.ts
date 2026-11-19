@@ -19,13 +19,12 @@
 
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
-import { readProfileTokenField, writeProfileTokenField } from '../identity/profile-token-field.js';
+import { sealTokens } from '../../utils/token-at-rest.js';
+import { writeProfileTokenField } from '../identity/profile-token-field.js';
 
 import type {
   CareerMilestone,
   ConnectionUpdate,
-  LinkedInInsight,
   LinkedInPosition,
   LinkedInProfile,
   LinkedInTokens,
@@ -36,8 +35,6 @@ import type {
 export type {
   CareerMilestone,
   ConnectionUpdate,
-  LinkedInInsight,
-  LinkedInPosition,
   LinkedInProfile,
   LinkedInTokens,
   LinkedInUserData,
@@ -87,29 +84,6 @@ async function persistTokens(userId: string, data: LinkedInUserData): Promise<vo
   }
 }
 
-/**
- * Load LinkedIn tokens from persistent storage (sealed, or legacy plaintext)
- */
-async function loadTokens(userId: string): Promise<LinkedInTokens | null> {
-  try {
-    const persisted = openTokens<PersistedLinkedInTokens>(
-      await readProfileTokenField(userId, PROFILE_FIELD),
-      PROFILE_FIELD
-    );
-    if (!persisted) return null;
-
-    return {
-      accessToken: persisted.accessToken,
-      refreshToken: persisted.refreshToken,
-      expiresAt: new Date(persisted.expiresAt),
-      scope: persisted.scope,
-    };
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to load LinkedIn tokens');
-    return null;
-  }
-}
-
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -123,44 +97,6 @@ export function hasLinkedInConnected(userId: string): boolean {
     return true;
   }
   return false;
-}
-
-/**
- * Initialize LinkedIn connection from persisted tokens
- */
-export async function initializeLinkedIn(userId: string): Promise<boolean> {
-  const existing = userLinkedIn.get(userId);
-  if (existing && existing.tokens.expiresAt > new Date()) {
-    return true;
-  }
-
-  const tokens = await loadTokens(userId);
-  if (!tokens) return false;
-
-  // Check if tokens are still valid
-  if (tokens.expiresAt <= new Date()) {
-    // Try to refresh
-    const refreshed = await refreshLinkedInToken(userId, tokens);
-    if (!refreshed) return false;
-  }
-
-  // Create user data structure
-  userLinkedIn.set(userId, {
-    userId,
-    tokens,
-    profile: null,
-    positions: [],
-    education: [],
-    certifications: [],
-    upcomingMilestones: [],
-    connectionUpdates: [],
-    lastSync: new Date(0),
-  });
-
-  // Trigger background sync
-  void syncLinkedInData(userId);
-
-  return true;
 }
 
 /**
@@ -475,64 +411,6 @@ export function getLinkedInProfile(userId: string): LinkedInProfile | null {
  */
 export function getUpcomingMilestones(userId: string): CareerMilestone[] {
   return userLinkedIn.get(userId)?.upcomingMilestones || [];
-}
-
-/**
- * Get current position
- */
-export function getCurrentPosition(userId: string): LinkedInPosition | null {
-  const positions = userLinkedIn.get(userId)?.positions || [];
-  return positions.find((p) => p.isCurrent) || null;
-}
-
-/**
- * Generate LinkedIn insight for context injection
- */
-export function generateLinkedInInsight(userId: string): LinkedInInsight | null {
-  const userData = userLinkedIn.get(userId);
-  if (!userData) return null;
-
-  // Check for upcoming milestones
-  const upcomingMilestones = userData.upcomingMilestones;
-  const soonMilestone = upcomingMilestones.find((m) => {
-    const daysUntil = Math.ceil((m.date.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-    return daysUntil >= 0 && daysUntil <= 7;
-  });
-
-  if (soonMilestone) {
-    const daysUntil = Math.ceil(
-      (soonMilestone.date.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
-    );
-    return {
-      type: 'milestone',
-      title: soonMilestone.title,
-      message:
-        daysUntil === 0
-          ? `Today is their ${soonMilestone.description}! Consider acknowledging this milestone.`
-          : `In ${daysUntil} day${daysUntil > 1 ? 's' : ''}: ${soonMilestone.description}. Worth mentioning if work comes up.`,
-      priority: daysUntil <= 1 ? 'high' : 'normal',
-      actionable: true,
-      metadata: soonMilestone.metadata,
-    };
-  }
-
-  // Check for connection updates
-  const recentUpdates = userData.connectionUpdates.filter((u) => {
-    const daysSince = Math.floor((Date.now() - u.date.getTime()) / (24 * 60 * 60 * 1000));
-    return daysSince <= 7;
-  });
-
-  if (recentUpdates.length > 0) {
-    const update = recentUpdates[0];
-    return {
-      type: 'connection',
-      title: 'Connection Update',
-      message: `${update.connectionName}: ${update.details}`,
-      priority: 'low',
-    };
-  }
-
-  return null;
 }
 
 /**

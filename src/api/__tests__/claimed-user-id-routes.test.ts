@@ -18,7 +18,11 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 const data = vi.hoisted(() => ({
   calendarConfigured: vi.fn(async () => false),
-  teamBriefing: vi.fn(async () => ({ incomingInsights: [], proactiveDiscoveries: [] })),
+  teamBriefing: vi.fn(async () => ({
+    incomingInsights: [],
+    proactiveDiscoveries: [],
+    proactiveNotes: [],
+  })),
   emotionalHistory: vi.fn(async () => undefined),
   voiceMemory: vi.fn(async () => null),
   installations: vi.fn(() => []),

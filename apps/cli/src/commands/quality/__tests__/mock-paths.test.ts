@@ -66,6 +66,26 @@ describe('staleMocks', () => {
     expect(staleMocks(files, read, () => false)).toEqual({});
   });
 
+  it("flags a '.js' string that only an index.ts satisfies (vitest has no such fallback)", () => {
+    const t = 'src/tools/orchestrator/__tests__/o.test.ts';
+    const files = ['src/tools/semantic-router/index.ts', 'src/tools/semantic-router/compat.ts', t];
+    const text = [
+      "vi.mock('../../semantic-router.js');",
+      "vi.mock('../../semantic-router/compat.js');",
+      "vi.mock('../../semantic-router');",
+      '',
+    ].join('\n');
+    expect(
+      staleMocks(
+        files,
+        () => text,
+        (f) => files.includes(f)
+      )
+    ).toEqual({
+      [t]: ['../../semantic-router.js'],
+    });
+  });
+
   it('counts only the vi.mock string when a test also has a stale plain import', () => {
     const both = 'src/x/__tests__/both.test.ts';
     repo({ [both]: "import { y } from '../nowhere.js';\nvi.mock('../gone.js');\n" });

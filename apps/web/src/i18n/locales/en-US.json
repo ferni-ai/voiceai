@@ -1823,6 +1823,7 @@
     "okay": "Okay",
     "oneWordSong": "One Word Song",
     "openDailyPractice": "Open daily practice",
+    "openWhatImNoticing": "Open What I'm Noticing",
     "openInsights": "Open Insights",
     "openPredictions": "Open predictions",
     "openSettings": "Open settings",
@@ -10704,6 +10705,18 @@
     "shareProgress": {
       "one": "{celebrated}/{count} milestone",
       "other": "{celebrated}/{count} milestones"
+    }
+  },
+  "relationshipFacts": {
+    "loading": "Gathering our story.",
+    "unavailable": "I can't reach our story right now.",
+    "days": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "conversations": {
+      "one": "{count} conversation",
+      "other": "{count} conversations"
     }
   },
   "progressIndicator": {

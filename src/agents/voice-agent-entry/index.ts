@@ -65,7 +65,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { applyCallOrigin, finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona, callerSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
@@ -377,14 +377,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // The browser's zone, else (once the profile loads) only a verified owner's (phone-parity.ts).
     void settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
     if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
-    // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
-    if (userData && typeof metadata.city === 'string' && metadata.city) {
-      userData.userLocation = {
-        city: metadata.city,
-        regionCode: typeof metadata.regionCode === 'string' ? metadata.regionCode : undefined,
-        countryCode: typeof metadata.countryCode === 'string' ? metadata.countryCode : undefined,
-      };
-    }
+    // Where the call is from (token → dispatch metadata), both paths: tools read the city, the hello the languages.
+    if (userData) applyCallOrigin(userData, metadata);
     stopPeriodicSync = initResult.stopPeriodicSync ?? undefined;
 
     if (stopPeriodicSync) {

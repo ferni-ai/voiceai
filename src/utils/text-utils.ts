@@ -52,6 +52,14 @@ export function containsSSML(text: string): boolean {
 }
 
 /**
+ * The text with no em or en dashes: each one, with the spaces around it, becomes ", ".
+ * What Ferni writes or says carries none (the voice text rules, speech-markup-notes.ts).
+ */
+export function withoutDashes(text: string): string {
+  return text.replace(/\s*[—–]\s*/g, ', ');
+}
+
+/**
  * Normalize text for comparison (lowercase, remove punctuation, etc.)
  */
 export function normalizeForComparison(text: string): string {
@@ -211,6 +219,7 @@ export function looksLikeName(word: string): boolean {
 export default {
   stripSSML,
   containsSSML,
+  withoutDashes,
   normalizeForComparison,
   looksLikeName,
 };

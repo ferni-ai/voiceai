@@ -217,13 +217,6 @@ export function clearSessionCallbackCount(userId: string, sessionId: string): vo
   sessionCallbackCounts.delete(sessionKey);
 }
 
-/**
- * Clear all session callback counts (for testing)
- */
-export function clearAllSessionCallbackCounts(): void {
-  sessionCallbackCounts.clear();
-}
-
 // ============================================================================
 // REGISTER BUILDER
 // ============================================================================
@@ -234,5 +227,3 @@ registerContextBuilder({
   priority: 65, // After topic analysis (55), before personality (70)
   build: buildCallbackOpportunitiesContext,
 });
-
-export { buildCallbackOpportunitiesContext };

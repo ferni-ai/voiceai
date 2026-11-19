@@ -138,7 +138,7 @@ export function callStatusOf(
  * where that call stands; completed calls are left out (they may be asked
  * about). One read, and only when a statement names a call. Never throws.
  */
-export async function ferniCallsFor(
+async function ferniCallsFor(
   userId: string,
   statements: readonly string[],
   now = Date.now(),
@@ -183,7 +183,7 @@ export async function requestedCallStatus(
 }
 
 /** What the model is told about a call it might otherwise ask how it went. */
-export function callStatusNote(call: FerniCall): string {
+function callStatusNote(call: FerniCall): string {
   if (call.state === 'held') {
     return `Ferni was asked to make this call and it has not happened yet: it is set for ${call.when ?? 'later'} their time. Do not ask how it went or talk as if it happened; at most say when it is set.`;
   }

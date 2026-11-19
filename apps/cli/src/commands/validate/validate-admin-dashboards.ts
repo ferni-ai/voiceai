@@ -38,7 +38,7 @@ const ADMIN_ENDPOINTS: AdminEndpoint[] = [
   // Business Metrics Section
   { section: 'Business Metrics', endpoint: '/api/analytics/summary', requiresAuth: true, description: 'Analytics summary' },
   { section: 'Business Metrics', endpoint: '/api/analytics/concurrent', requiresAuth: true, description: 'Concurrent users' },
-  { section: 'Business Metrics', endpoint: '/api/subscription/metrics', requiresAuth: false, description: 'Subscription metrics' },
+  { section: 'Business Metrics', endpoint: '/api/subscription/metrics', requiresAuth: true, description: 'Subscription metrics' },
 
   // Semantic Routing Section
   { section: 'Semantic Routing', endpoint: '/api/observability/semantic-routing', requiresAuth: true, description: 'Routing metrics' },

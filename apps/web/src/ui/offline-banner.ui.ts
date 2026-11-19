@@ -197,7 +197,6 @@ function createBanner(): void {
 
   bannerElement = document.createElement('div');
   bannerElement.className = 'offline-banner';
-  bannerElement.inert = true; // off-screen until offline: out of the tab order and the a11y tree
   bannerElement.setAttribute('role', 'alert');
   bannerElement.setAttribute('aria-live', 'polite');
 
@@ -211,7 +210,8 @@ function createBanner(): void {
   const retryBtn = bannerElement.querySelector('.offline-banner__retry');
   retryBtn?.addEventListener('click', retryConnection);
 
-  document.body.appendChild(bannerElement);
+  // Appended only while offline (showBanner): mounted all the time, even inert,
+  // the page carried a "You're offline" alert for every visitor who was online.
 }
 
 /** A reload would hang up a call that is still up or still reconnecting. */
@@ -247,11 +247,11 @@ function showBanner(): void {
   }
 
   isVisible = true;
+  document.body.appendChild(bannerElement);
 
   // Force reflow for animation
-  bannerElement.offsetHeight;
+  void bannerElement.offsetHeight;
 
-  bannerElement.inert = false;
   bannerElement.classList.add('visible');
   log.debug('Offline banner shown');
 }
@@ -266,7 +266,7 @@ function hideBanner(): void {
   }
 
   isVisible = false;
-  bannerElement.inert = true;
+  bannerElement.remove();
   bannerElement.classList.remove('visible');
   log.debug('Offline banner hidden');
 }

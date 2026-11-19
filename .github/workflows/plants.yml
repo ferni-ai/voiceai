@@ -1,0 +1,147 @@
+name: Planted Bugs
+
+# Does each test a PR names catch the bug it claims to? A PR commits plant specs as
+# .plants/<topic>.json; this plants each bug its added or changed specs list, one at a time,
+# and fails unless the named test row fails on an assertion. Runner: always main's copy of
+# scripts/ci/plants/run-plants.ts. Docs: docs/ci/ci-inventory.md. Not a required check and
+# not run in the merge queue: Lead Verified will read its result on the verified head.
+# The log is public: it shows the head, spec hashes and the runner's table, nothing else (no
+# spec or test text, no vitest output, no artifacts, no PR comments).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    # Matched against the whole PR's diff, so every push of a PR that carries a spec runs.
+    paths: ['.plants/**']
+
+concurrency:
+  group: plants-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  plants:
+    name: Planted Bugs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The head, not the merge commit: the check is attached to the head SHA, so that is what
+      # it must judge. No token in .git/config, since the PR's own test code runs here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      # Fail closed, before anything of the PR runs: a PR that changes what judges it (this
+      # workflow, the runner or its self-test spec, a dependency file, a vitest or ts config) is not
+      # judged by it. git only. The job fails with a "not trusted" annotation, never success.
+      - name: Trusted inputs
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          for d in 50 500 5000; do
+            git fetch -q --no-tags --depth="$d" origin +refs/heads/main:refs/plants/main "$HEAD_SHA"
+            if mb=$(git merge-base refs/plants/main "$HEAD_SHA"); then break; fi
+          done
+          [ -n "${mb:-}" ] || { echo "::error title=not trusted::no merge base with main"; exit 1; }
+          git diff --no-renames --name-only "$mb" "$HEAD_SHA" >"$RUNNER_TEMP/changed.txt"
+          trust='^((.*/)?(package\.json|\.npmrc|\.pnpmrc|vitest[^/]*\.config\.[^/]*|tsconfig[^/]*\.json)|pnpm-lock\.yaml|pnpm-workspace\.yaml|patches/.*|scripts/ci/plants/run-plants\.ts|\.github/workflows/plants\.yml|\.plants/plants-runner-self\.json)$'
+          n=$(grep -cE "$trust" "$RUNNER_TEMP/changed.txt" || true)
+          if [ "$n" != 0 ]; then
+            echo "::error title=not trusted::not trusted: harness or dependency change, needs a human ($n file(s))"
+            exit 1
+          fi
+
+      # A PR can't weaken the runner that judges it. The runner imports only Node builtins,
+      # so it runs from outside the checkout and never dirties the tree.
+      - name: Main's runner, outside the checkout
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          mkdir -p "$RUNNER_TEMP/plants"
+          git show FETCH_HEAD:scripts/ci/plants/run-plants.ts >"$RUNNER_TEMP/plants/run-plants.ts"
+          echo '{"type":"module"}' >"$RUNNER_TEMP/plants/package.json"
+
+      # Only the specs this PR adds or changes: specs stay on main after merge, and a PR is
+      # never judged on another PR's plants.
+      - name: This PR's spec files
+        id: specs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/plants"
+          gh api --paginate "repos/$REPO/pulls/$PR/files" \
+            --jq '.[] | select(.status != "removed") | .filename' >"$dir/files.txt"
+          awk '/^\.plants\//' "$dir/files.txt" >"$dir/specs.txt"
+          # A plant runs on this PR's test harness; flag a PR that also changes it.
+          awk '/(^|\/)vitest\.config|^src\/tests\/|__mocks__\/|^src\/config\/__tests__\/generate-lists-setup/' \
+            "$dir/files.txt" >"$dir/harness.txt"
+          # Board names, as the runner refuses them (fast-lane or timeslot pass).
+          words='(^|[^a-z])(lane[_-]?[a-d0-9]([^a-z0-9]|$)|slot[_-]?[0-9]|holders?([^a-z]|$)|session[_-]?([0-9a-f]+[0-9][0-9a-f]*|[0-9][0-9a-f]+)([^a-z0-9]|$))'
+          bad=0
+          {
+            echo "head=$HEAD_SHA"
+            while IFS= read -r f; do
+              if [[ "$f" =~ ^\.plants/[a-z0-9][a-z0-9-]{2,59}\.json$ && ! "$f" =~ $words ]]; then
+                echo "spec $(sha256sum "$f" | cut -c1-64) $f"
+              else
+                echo "misnamed: a file under .plants/ is not .plants/<topic>.json (topic: a-z, 0-9, -; no board name such as lane-2 or slot-12)"
+                bad=1
+              fi
+            done <"$dir/specs.txt"
+            # A count, not the names: a PR's file names are its author's text.
+            n=$(wc -l <"$dir/harness.txt" | tr -d ' ')
+            if [ "$n" != 0 ]; then
+              echo "warning: this PR also changes $n test-harness file(s) its plants run on"
+            fi
+          } >"$dir/summary.txt"
+          cat "$dir/summary.txt"
+          { echo '```'; cat "$dir/summary.txt"; echo '```'; } >>"$GITHUB_STEP_SUMMARY"
+          echo "count=$(wc -l <"$dir/specs.txt" | tr -d ' ')" >>"$GITHUB_OUTPUT"
+          [ "$bad" = 0 ]
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        if: steps.specs.outputs.count != '0'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.specs.outputs.count != '0'
+        with:
+          node-version: '22'
+
+      # Saved by ci.yml's setup job on main; a pull_request run can restore its base branch's caches.
+      - name: Restore node_modules cache
+        id: nm-cache
+        if: steps.specs.outputs.count != '0'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          fail-on-cache-miss: false
+
+      # As the unit shards do on a miss; then undo any tracked file the install rewrote.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.specs.outputs.count != '0' && steps.nm-cache.outputs.cache-hit != 'true'
+        run: |
+          pnpm install --no-frozen-lockfile
+          git checkout -- .
+
+      - name: Tree must be clean before planting
+        if: steps.specs.outputs.count != '0'
+        run: test -z "$(git status --porcelain)"
+
+      - name: Plant
+        if: steps.specs.outputs.count != '0'
+        env:
+          PLANT_TIMEOUT_MS: '120000'
+        run: |
+          xargs -a "$RUNNER_TEMP/plants/specs.txt" -d '\n' \
+            node --experimental-strip-types "$RUNNER_TEMP/plants/run-plants.ts" --root "$GITHUB_WORKSPACE"

@@ -7,10 +7,9 @@
  * - Self-questioning refinement (ProMem pattern)
  * - Three-layer memory (STM, Working, Long-Term)
  *
- * Three paths:
+ * Two paths:
  * 1. L1: STM Buffer (in-memory) - Session context, O(1) access
  * 2. L2: Fast Capture (< 50ms) + Firestore - Working memory
- * 3. L3: Deep Extraction → Spanner Graph - Long-term relationships
  *
  * @see docs/architecture/DYNAMIC-MEMORY-ARCHITECTURE.md
  */
@@ -80,19 +79,6 @@ export {
   type PromotedEmotionalArc,
   type PromotedTopicPattern,
 } from './stm-promotion.js';
-
-// L2 → L3: Firestore → Spanner background sync
-export {
-  runSyncCycle,
-  startSyncService,
-  stopSyncService,
-  getSyncStats,
-  isSyncServiceRunning,
-  configureSyncService,
-  type SyncConfig,
-  type SyncResult,
-  type SyncStats,
-} from './firestore-spanner-sync.js';
 
 // Observability metrics
 export {

@@ -51,18 +51,7 @@ const whoopCircuitBreaker = getCircuitBreaker('whoop-api', {
 });
 
 // Import types from dedicated types module
-export type {
-  ActivityData,
-  BiometricEvent,
-  BiometricInsight,
-  BiometricPlatform,
-  BiometricSnapshot,
-  ConversationAwareness,
-  HRVData,
-  RecoveryData,
-  SleepData,
-  StressLevel,
-} from './types.js';
+export type { ActivityData, BiometricEvent, BiometricPlatform, BiometricSnapshot, ConversationAwareness, HRVData, RecoveryData, SleepData, StressLevel } from './types.js';
 
 import type {
   ActivityData,
@@ -1185,7 +1174,7 @@ export function subscribeToEvents(
 /**
  * Check if user has biometrics connected
  */
-export function hasBiometricsConnected(userId: string): boolean {
+function hasBiometricsConnected(userId: string): boolean {
   return userBiometrics.has(userId);
 }
 
@@ -1231,7 +1220,7 @@ export function disconnectBiometrics(userId: string): void {
  * Generate insight for context injection
  * "Better than Human" - notice what humans wouldn't
  */
-export function generateBiometricInsight(userId: string): BiometricInsight | null {
+function generateBiometricInsight(userId: string): BiometricInsight | null {
   const snapshot = getCurrentBiometrics(userId);
   return generateInsightFromSnapshot(snapshot);
 }
@@ -1239,7 +1228,7 @@ export function generateBiometricInsight(userId: string): BiometricInsight | nul
 /**
  * Generate superhuman moment - something no human friend would notice
  */
-export function generateSuperhumanMoment(userId: string): string | null {
+function generateSuperhumanMoment(userId: string): string | null {
   const snapshot = getCurrentBiometrics(userId);
   return generateSuperhumanMomentFromSnapshot(snapshot);
 }
