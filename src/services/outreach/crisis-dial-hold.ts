@@ -10,7 +10,10 @@
  * - A deferral remembers its originating call (request.originalSessionId). When that call notes
  *   risk, its pending deferrals are cancelled with the status a user cancel gives ('cancelled'),
  *   off the reply path, retried once. Nothing names the crisis or the line.
- * - A deferral of a call that already noted risk is refused.
+ * - A deferral of a call that already noted risk is refused, and so is one whose call noted it
+ *   while the deferral was being written (settleDeferral cancels the written doc).
+ * - Remembered calls older than a risk note lives (6 h) are let go; when CALL_ROOM calls are still
+ *   remembered, a new deferral is refused rather than one left unwatched.
  * - The dial job never dials a deferral with no originating call; it stays pending.
  *
  * Proactive calls ring the owner, not someone else, and carry no call id: never held here. The
@@ -31,11 +34,26 @@ type Env = Record<string, string | undefined>;
 const holdOn = (env: Env): boolean => flagOn('CRISIS_DIAL_HOLD', env);
 
 const COLLECTION = 'deferred_calls';
-/** Calls whose deferrals this agent wrote, at most this many (the oldest leaves first). */
+/** Calls whose deferrals this agent watches, at most this many: past it, a deferral is refused. */
 const CALL_ROOM = 1024;
+/** How long a call can still note risk (crisis-call-risk.ts keeps a note this long). */
+const CALL_TTL_MS = 6 * 60 * 60 * 1000;
 
-/** Originating call → the requester whose deferrals it made. */
-const deferredOn = new Map<string, string>();
+/** Originating call → the requester whose deferrals it made, oldest first. */
+const deferredOn = new Map<string, { userId: string; at: number }>();
+
+/** Watch `origin`'s deferrals: false when CALL_ROOM calls within the TTL are already watched. */
+function remember(origin: string, userId: string): boolean {
+  const now = Date.now();
+  deferredOn.delete(origin);
+  for (const [call, { at }] of deferredOn) {
+    if (now - at <= CALL_TTL_MS) break;
+    deferredOn.delete(call);
+  }
+  if (deferredOn.size >= CALL_ROOM) return false;
+  deferredOn.set(origin, { userId, at: now });
+  return true;
+}
 
 /** The parts of a deferral, written or stored, this module reads. */
 interface HeldCall {
@@ -69,9 +87,10 @@ export function watchDeferral(userId: string, call: HeldCall, env: Env = process
     log.info({ outcome: 'crisis_hold_at_dial', at: 'defer' }, 'CRISIS_DIAL_HOLD');
     throw new DialHeld();
   }
-  deferredOn.delete(origin);
-  deferredOn.set(origin, userId);
-  if (deferredOn.size > CALL_ROOM) deferredOn.delete(deferredOn.keys().next().value as string);
+  if (!remember(origin, userId)) {
+    log.warn({ outcome: 'crisis_hold_room_full', watched: deferredOn.size }, 'CRISIS_DIAL_HOLD');
+    throw new DialHeld();
+  }
 }
 
 /** One pending deferral, cancelled only while still pending: a call already taken is not. */
@@ -86,6 +105,29 @@ async function cancelIfPending(
     tx.update(ref, { status: 'cancelled', cancelledAt: at });
     return true;
   });
+}
+
+/**
+ * After a deferral is written: risk its call noted while the write was landing found no doc to
+ * cancel then. The written doc is cancelled (retried once) and the deferral refused.
+ */
+export async function settleDeferral(
+  db: Firestore,
+  userId: string,
+  id: string,
+  call: HeldCall,
+  env: Env = process.env
+): Promise<void> {
+  const origin = originOf(call);
+  if (!holdOn(env) || !origin || !crisisRiskNoted(origin)) return;
+  const ref = db.collection('bogle_users').doc(userId).collection(COLLECTION).doc(id);
+  const at = new Date().toISOString();
+  await cancelIfPending(db, ref, at).catch(async () => {
+    log.warn({ outcome: 'cancel_failed', attempt: 1, at: 'written' }, 'CRISIS_DIAL_HOLD');
+    return cancelIfPending(db, ref, at);
+  });
+  log.info({ outcome: 'crisis_hold_at_dial', at: 'written' }, 'CRISIS_DIAL_HOLD');
+  throw new DialHeld();
 }
 
 async function cancelOnce(userId: string, origin: string, now: Date): Promise<number> {
@@ -118,7 +160,7 @@ async function cancelDeferralsOf(userId: string, origin: string, attempt = 1): P
 
 // Risk noted on a call that deferred a call here: its deferrals are cancelled, never awaited.
 onCrisisRiskNoted((sessionId) => {
-  const userId = deferredOn.get(sessionId);
+  const userId = deferredOn.get(sessionId)?.userId;
   if (!userId) return; // remembered only with the flag on (watchDeferral)
   deferredOn.delete(sessionId);
   void cancelDeferralsOf(userId, sessionId);

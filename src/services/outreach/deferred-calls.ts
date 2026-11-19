@@ -30,7 +30,7 @@ import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-c
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
 import { watchCallResult } from './call-result-watch.js';
-import { keptForNoOrigin, watchDeferral } from './crisis-dial-hold.js';
+import { keptForNoOrigin, settleDeferral, watchDeferral } from './crisis-dial-hold.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -167,6 +167,7 @@ export async function deferCall(
         ...(quietAllDay && { quietAllDay }),
       })
     );
+  await settleDeferral(db, userId, id, held); // CRISIS_DIAL_HOLD: risk noted mid-write
   recent.set(id, deferral);
   if (recent.size > 100) recent.delete(recent.keys().next().value as string);
   log.info(

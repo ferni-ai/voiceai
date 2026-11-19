@@ -21,12 +21,25 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
 let rows: Row[] = [];
 /** Fails this many store reads of a user's pending calls before answering. */
 let failReads = 0;
+/** Each deferral write lands this many ms after it starts (0: at once). */
+let slowWriteMs = 0;
+/** Each cancel transaction lands this many ms after it starts (0: at once). */
+let slowTxMs = 0;
+/** Runs once the cancel's query has read, before its transaction: what lands in between. */
+let afterQuery: (() => void) | undefined;
 /** The fake, plus where() on a user's own collection (the cancel's query). */
 const db = () => {
   const base = fakeFirestore(rows);
   const userDoc = base.collection().doc;
   return {
     ...base,
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) => {
+      if (slowTxMs)
+        await new Promise((resolve) => {
+          setTimeout(resolve, slowTxMs);
+        });
+      return base.runTransaction(fn);
+    },
     collection: () => ({
       doc: (uid: string) => {
         const user = userDoc(uid);
@@ -34,11 +47,25 @@ const db = () => {
           ...user,
           collection: (c: string) => ({
             ...user.collection(c),
+            doc: (id: string) => {
+              const doc = user.collection(c).doc(id);
+              const write = doc.set;
+              doc.set = async (data: Record<string, unknown>) => {
+                if (slowWriteMs)
+                  await new Promise((resolve) => {
+                    setTimeout(resolve, slowWriteMs);
+                  });
+                return write(data);
+              };
+              return doc;
+            },
             where: (f: string, op: string, v: unknown) => ({
               get: async () => {
                 if (failReads > 0 && failReads--) throw new Error('UNAVAILABLE');
                 const snap = await base.collectionGroup(c).where(f, op, v).get();
-                return { docs: snap.docs.filter((d) => d.ref.parent.parent.id === uid) };
+                const docs = snap.docs.filter((d) => d.ref.parent.parent.id === uid);
+                afterQuery?.();
+                return { docs };
               },
             }),
           }),
@@ -117,6 +144,9 @@ const ON = () => vi.stubEnv('CRISIS_DIAL_HOLD', 'on');
 beforeEach(() => {
   rows = [];
   failReads = 0;
+  slowWriteMs = 0;
+  slowTxMs = 0;
+  afterQuery = undefined;
   logged.length = 0;
   resetCrisisCallRisk();
   initiateCall.mockClear();
@@ -285,5 +315,116 @@ describe('CRISIS_DIAL_HOLD: a background call (call-executor)', () => {
     noteCrisisRisk(call);
     await running;
     expect(makeCall).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table', () => {
+  /** Risk noted on `call` this many ms after its deferral starts. */
+  const noteAfter = async (call: string, ms: number) =>
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        noteCrisisRisk(call);
+        resolve();
+      }, ms);
+    });
+  const dialsAfterDue = async () => {
+    vi.setSystemTime(AFTER);
+    await executeDueDeferredCalls();
+    return initiateCall.mock.calls.length;
+  };
+
+  it.each([0, 5, 20, 35])(
+    'risk noted %i ms into a 40 ms deferral write: refused, its doc cancelled, 0 dials',
+    async (ms) => {
+      ON();
+      slowWriteMs = 40;
+      slowTxMs = 5;
+      const call = `call-${++n}`;
+      const deferring = defer(call);
+      const noted = noteAfter(call, ms);
+      const refused = await deferring.catch((e: Error) => e.message);
+      expect([refused, onlyDeferral().status]).toEqual(['Call not placed', 'cancelled']); // cancelled before refused
+      await noted;
+      await settled();
+      expect(await dialsAfterDue()).toBe(0);
+      expect(lines('crisis_hold_at_dial')).toContainEqual({
+        outcome: 'crisis_hold_at_dial',
+        at: 'written',
+      });
+    }
+  );
+
+  it.each([45, 80])(
+    'risk noted %i ms in, after the write landed: the risk cancels it, 0 dials',
+    async (ms) => {
+      ON();
+      slowWriteMs = 40;
+      const call = `call-${++n}`;
+      await defer(call);
+      await noteAfter(call, ms - 40);
+      await settled();
+      expect(onlyDeferral().status).toBe('cancelled');
+      expect(await dialsAfterDue()).toBe(0);
+    }
+  );
+
+  it('the control: the same 40 ms write and no risk dials once', async () => {
+    ON();
+    slowWriteMs = 40;
+    await defer(`call-${++n}`);
+    expect(await dialsAfterDue()).toBe(1);
+  });
+
+  it('claimed by the dial job between the cancel read and its write: stays claimed, not cancelled', async () => {
+    ON();
+    const call = `call-${++n}`;
+    await defer(call);
+    afterQuery = () => {
+      afterQuery = undefined;
+      onlyDeferral().status = 'placing'; // the dial job's claim lands here
+    };
+    noteCrisisRisk(call);
+    await settled();
+    expect(onlyDeferral().status).toBe('placing');
+    expect(Object.keys(onlyDeferral())).not.toContain('cancelledAt');
+    expect(lines('crisis_hold_at_dial')).toEqual([
+      { outcome: 'crisis_hold_at_dial', at: 'deferred', cancelled: 0 },
+    ]);
+  });
+
+  it('claimed and ringing when the risk lands: the dial job keeps it, nothing marks it cancelled', async () => {
+    ON();
+    const call = `call-${++n}`;
+    await defer(call);
+    let whileRinging: unknown;
+    initiateCall.mockImplementationOnce(async () => {
+      noteCrisisRisk(call);
+      await settled();
+      whileRinging = onlyDeferral().status;
+      return 'call_rang';
+    });
+    expect(await dialsAfterDue()).toBe(1);
+    expect(whileRinging).toBe('placing');
+    expect(onlyDeferral().status).toBe('placed');
+  });
+
+  // Last in the file: it fills the module's table. It runs 7 h past the other rows, so their calls
+  // are let go first, and ends with one call watched.
+  it('1024 calls watched: a new deferral is refused, none is dropped; past 6 h they are let go', async () => {
+    ON();
+    const start = new Date(NOW.getTime() + 7 * 3600_000);
+    vi.setSystemTime(start);
+    // eslint-disable-next-line no-await-in-loop -- in order, so call-room-0 is the oldest
+    for (let i = 0; i < 1024; i++) await defer(`call-room-${i}`);
+    await expect(defer('call-room-new')).rejects.toThrow('Call not placed');
+    expect(deferred()).toHaveLength(1024);
+    expect(lines('crisis_hold_room_full')).toEqual([
+      { outcome: 'crisis_hold_room_full', watched: 1024 },
+    ]);
+    noteCrisisRisk('call-room-0'); // the oldest is still watched
+    await settled();
+    expect(deferred()[0]?.data.status).toBe('cancelled');
+    vi.setSystemTime(new Date(start.getTime() + 6 * 3600_000 + 60_000));
+    await expect(defer('call-room-late')).resolves.toBeDefined();
   });
 });
