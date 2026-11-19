@@ -110,18 +110,16 @@ const opener = {
 const HELD = 'Sounds good.';
 const REPLACEMENT = 'Checking in with you.';
 
-async function replyTo(text: string, options: Parameters<typeof gatedReply>[4]) {
+async function replyTo(
+  text: string,
+  options: Parameters<typeof gatedReply>[4],
+  session: Parameters<typeof gatedReply>[1] = { userData: undefined }
+) {
   const model = vi.fn(async (_ctx: llm.ChatContext) =>
     streamOf([model.mock.calls.length === 1 ? HELD : REPLACEMENT])
   );
   const out = await collect(
-    (await gatedReply(
-      request(text),
-      { userData: undefined },
-      model as never,
-      opener as never,
-      options
-    )) as never
+    (await gatedReply(request(text), session, model as never, opener as never, options)) as never
   );
   const lastAsked = model.mock.calls.map(
     ([ctx]) => (ctx.items.at(-1) as llm.ChatMessage).textContent ?? ''
@@ -232,12 +230,14 @@ describe('an escalation that settles', () => {
 });
 
 describe('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed', () => {
-  it.each([
-    ['imminent', IMMINENT, 'replace'],
-    ['crisis', CRISIS, 'guide'],
-  ])(
-    '(a) an easing step throws after a %s read: the decision stands, no held chunk goes out',
-    async (_read, classifier, action) => {
+  it('(a) an easing step throws after an imminent or a crisis read: the decision stands, no held chunk goes out', async () => {
+    for (const [classifier, action] of [
+      [IMMINENT, 'replace'],
+      [CRISIS, 'guide'],
+    ] as const) {
+      resetCrisisClassifierCache();
+      logged.length = 0;
+      ease.reject = undefined;
       // Pre: the decision the same read gives with no throw.
       const settled = startCrisisGate(request(MISSED), undefined, {
         env: FAIL_CLOSED,
@@ -266,7 +266,7 @@ describe('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed', () =>
       expect(rejected.out.length).toBeGreaterThan(0);
       expect(JSON.stringify(logged)).not.toContain('sentinel-6d1f');
     }
-  );
+  });
 
   it('(b) a rejection before any verdict: the check-in with 988, no held chunk goes out', async () => {
     const error = new RangeError(SENTINEL);
@@ -303,6 +303,49 @@ describe('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed', () =>
     });
     expect(turn.out).toEqual([`~${HELD}`]); // a failed read with no safety words, as on a timeout
     expect(turn.asked).toBe(1);
+  });
+
+  it('the forced check-in stays on its turn: a later failed read, on the same call or another, gets none, and no env is written', async () => {
+    // A failed read (a null verdict, not a rejection): CRISIS_TIMEOUT_CHECKIN decides it.
+    const down: CrisisGenerateFn = async () => {
+      throw new Error('provider down');
+    };
+    const before = process.env.CRISIS_TIMEOUT_CHECKIN;
+    expect(before).toBeUndefined(); // pre: the check-in is off for every turn but the forced one
+    // Both shapes the gate gets: an env object shared by every call, and process.env itself.
+    for (const shared of ['env object', 'process.env'] as const) {
+      const env = shared === 'env object' ? { ...FAIL_CLOSED } : undefined;
+      if (!env) for (const [key, value] of Object.entries(FAIL_CLOSED)) vi.stubEnv(key, value);
+      try {
+        resetCrisisClassifierCache();
+        const callA = { userData: { services: { sessionId: `a-${shared}` } } };
+        const callB = { userData: { services: { sessionId: `b-${shared}` } } };
+        // Call A, turn 1: its read rejects only once call B's turn is under way.
+        let rejectA: (error: unknown) => void = () => undefined;
+        const readA = new Promise<never>((_resolve, reject) => (rejectA = reject));
+        const failing = replyTo(UNSAFE, { env, ...models(NONE), readAfter: () => readA }, callA);
+        const other = replyTo(UNSAFE, { env, ...models(NONE), generate: down }, callB);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        rejectA(new RangeError(SENTINEL));
+        const [a, b] = await Promise.all([failing, other]);
+        expect(a.out.join(' '), shared).toContain('Are you safe right now?'); // the forced check-in
+        expect(b.out, shared).toEqual([`~${HELD}`]); // call B: main's timeout path
+        // After it: call A's next turn and call B's, each a failed read on the same words.
+        for (const [session, label] of [
+          [callA, 'call A, turn 2'],
+          [callB, 'call B, turn 2'],
+        ] as const) {
+          resetCrisisClassifierCache();
+          const turn = await replyTo(UNSAFE, { env, ...models(NONE), generate: down }, session);
+          expect(turn.out, `${shared}: ${label}`).toEqual([`~${HELD}`]);
+          expect(turn.asked, `${shared}: ${label}`).toBe(1);
+        }
+        if (env) expect(env).toEqual(FAIL_CLOSED); // nothing written into the caller's env
+        expect(process.env.CRISIS_TIMEOUT_CHECKIN, shared).toBe(before); // nor into process.env
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    }
   });
 });
 
