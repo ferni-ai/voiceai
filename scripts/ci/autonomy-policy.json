@@ -263,7 +263,8 @@
         "CRISIS_QUIET_DAYS",
         "getCrisisResources",
         "getGroundingExercise",
-        "lastFerniLine"
+        "lastFerniLine",
+        "phoneStepUpNote"
       ],
       "unscreened": []
     },
