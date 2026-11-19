@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { z } from 'zod';
 import {
+  finopsAmount,
   finopsSettings,
   FinOpsSettingsUnavailableError,
   ThresholdsPatchSchema,
@@ -18,7 +19,7 @@ import {
 } from '../services/observability/finops-settings/index.js';
 import { parseBody, sendJSON } from './helpers.js';
 
-const amount = z.number().nonnegative();
+const asObject = { error: 'Send a JSON object' };
 
 /** A settings route: its body as a patch (or why not), and the answer it gives. */
 interface SettingsRoute {
@@ -40,24 +41,29 @@ function settingsRoute<T>(
   };
 }
 
+const lifetime = 'Customer lifetime must be a number of months above 0';
+
 const ROUTES: Record<string, SettingsRoute> = {
   '/api/finops/revenue': settingsRoute(
-    z.object({ mrr: amount }),
+    z.object({ mrr: finopsAmount('MRR') }, asObject),
     (b) => ({ monthlyRevenue: b.mrr }),
     (s) => ({ mrr: s.monthlyRevenue })
   ),
   '/api/finops/cash': settingsRoute(
-    z.object({ amount }),
+    z.object({ amount: finopsAmount('Cash reserve') }, asObject),
     (b) => ({ cashReserve: b.amount }),
     (s) => ({ amount: s.cashReserve })
   ),
   '/api/finops/ltv-cac': settingsRoute(
     z
-      .object({
-        cac: amount.optional(),
-        lifetimeMonths: z.number().positive().optional(),
-        churnRate: amount.max(1).optional(),
-      })
+      .object(
+        {
+          cac: finopsAmount('CAC').optional(),
+          lifetimeMonths: z.number({ error: lifetime }).positive({ error: lifetime }).optional(),
+          churnRate: finopsAmount('Churn').max(1, { error: 'Churn must be 1 or less (0.05 is 5%)' }).optional(), // prettier-ignore
+        },
+        asObject
+      )
       .refine((b) => Object.values(b).some((v) => v !== undefined), 'Enter CAC or churn'),
     (b) => ({
       customerAcquisitionCost: b.cac,

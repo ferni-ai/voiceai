@@ -3,7 +3,7 @@
  * non-negative number reads as its default, a fresh read is reused for the TTL and the
  * store is asked again after it, and a store that throws is FinOpsSettingsUnavailableError.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_FINOPS_SETTINGS,
   parseFinOpsSettings,
@@ -76,5 +76,63 @@ describe('createFinOpsSettingsService', () => {
     const service = createFinOpsSettingsService(countingStore(null, true).store);
     await expect(service.load()).rejects.toEqual(new FinOpsSettingsUnavailableError('offline'));
     await expect(service.save({ monthlyRevenue: 1 }, 'uid')).rejects.toMatchObject({ reason: 'offline' }); // prettier-ignore
+  });
+
+  describe('a store that never answers', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+    const hung: FinOpsSettingsStore = {
+      read: async () => new Promise(() => undefined),
+      merge: async () => new Promise(() => undefined),
+    };
+
+    it.each([
+      ['load', (s: ReturnType<typeof createFinOpsSettingsService>) => s.load()],
+      [
+        'save',
+        (s: ReturnType<typeof createFinOpsSettingsService>) => s.save({ cashReserve: 1 }, 'uid'),
+      ],
+    ])('%s gives up after 5 s with FinOpsSettingsUnavailableError', async (_name, run) => {
+      vi.useFakeTimers();
+      const outcome = run(createFinOpsSettingsService(hung)).then(
+        () => 'resolved',
+        (error: unknown) => error
+      );
+      await vi.advanceTimersByTimeAsync(4_999);
+      let settled = false;
+      void outcome.then(() => (settled = true));
+      await Promise.resolve();
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await outcome).toEqual(
+        new FinOpsSettingsUnavailableError('Firestore did not answer within 5s')
+      );
+    });
+  });
+
+  it('a save whose read-back fails still answers the saved values over the last read', async () => {
+    let reads = 0;
+    const store: FinOpsSettingsStore = {
+      async read() {
+        reads += 1;
+        if (reads > 1) throw new Error('offline');
+        return { ...DEFAULT_FINOPS_SETTINGS, monthlyRevenue: 300, customerAcquisitionCost: 40 };
+      },
+      merge: async () => undefined,
+    };
+    const service = createFinOpsSettingsService(store, { ttlMs: 0 });
+    await service.load();
+    const saved = await service.save(
+      {
+        churnRateMonthly: 0.02,
+        customerAcquisitionCost: undefined,
+        thresholds: { maxMonthlyBurn: 9 },
+      },
+      'uid-a'
+    );
+    expect(saved).toMatchObject({ monthlyRevenue: 300, customerAcquisitionCost: 40, churnRateMonthly: 0.02, updatedBy: 'uid-a' }); // prettier-ignore
+    expect(saved.thresholds).toEqual({ ...DEFAULT_FINOPS_SETTINGS.thresholds, maxMonthlyBurn: 9 });
+    expect(service.current()).toEqual(saved);
   });
 });

@@ -215,28 +215,28 @@ export async function handleFinOpsRoutes(
       return true;
     }
 
-    // POST /api/finops/sync-mrr - Trigger MRR sync from Stripe
+    // POST /api/finops/sync-mrr - Trigger MRR sync from Stripe. Without Stripe there is
+    // no MRR to sync: 503 and nothing saved, never a made-up 0.
     if (pathname === '/api/finops/sync-mrr' && req.method === 'POST') {
+      const stripe = await import('../services/stripe-subscription.js');
+      if (!stripe.isStripeConfigured()) {
+        sendJSON(res, { success: false, error: 'MRR not synced', reason: 'Stripe is not configured' }, 503); // prettier-ignore
+        return true;
+      }
       try {
-        const { syncMRRToFinOps } = await import('../services/stripe-subscription.js');
-        const result = await syncMRRToFinOps();
+        const result = await stripe.syncMRRToFinOps();
         sendJSON(res, {
           success: true,
           ...result,
           message: `Synced MRR from ${result.subscriptionCount} subscriptions`,
         });
       } catch (err) {
-        const down = err instanceof FinOpsSettingsUnavailableError;
         log.error({ error: String(err) }, 'MRR sync from Stripe failed');
-        sendJSON(
-          res,
-          {
-            success: false,
-            error: String(err),
-            message: down ? 'Synced MRR could not be saved' : 'Failed to sync MRR - check Stripe configuration', // prettier-ignore
-          },
-          down ? 503 : 500
-        );
+        if (err instanceof FinOpsSettingsUnavailableError) {
+          sendJSON(res, { success: false, error: 'Synced MRR could not be saved', reason: err.reason }, 503); // prettier-ignore
+        } else {
+          sendJSON(res, { success: false, error: 'MRR sync from Stripe failed', reason: String(err) }, 500); // prettier-ignore
+        }
       }
       return true;
     }

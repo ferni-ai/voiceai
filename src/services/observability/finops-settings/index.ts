@@ -11,6 +11,7 @@ import { firestoreFinOpsSettingsStore } from './adapters/firestore-finops-settin
 import { createFinOpsSettingsService } from './use-cases/finops-settings-service.js';
 
 export {
+  finopsAmount,
   ThresholdsPatchSchema,
   type FinOpsSettingsPatch,
   type FinOpsThresholds,

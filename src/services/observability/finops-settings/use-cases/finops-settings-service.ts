@@ -8,6 +8,7 @@
  */
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
+  applyFinOpsPatch,
   DEFAULT_FINOPS_SETTINGS,
   type FinOpsSettingsPatch,
   type SavedFinOpsSettings,
@@ -28,7 +29,9 @@ export class FinOpsSettingsUnavailableError extends Error {
 }
 
 const unavailable = (error: unknown): FinOpsSettingsUnavailableError =>
-  new FinOpsSettingsUnavailableError(error instanceof Error ? error.message : String(error));
+  error instanceof FinOpsSettingsUnavailableError
+    ? error
+    : new FinOpsSettingsUnavailableError(error instanceof Error ? error.message : String(error));
 
 export interface FinOpsSettingsService {
   /** The settings last read or saved (the defaults before the first read). */
@@ -39,21 +42,45 @@ export interface FinOpsSettingsService {
   save: (patch: FinOpsSettingsPatch, updatedBy: string) => Promise<SavedFinOpsSettings>;
 }
 
+/** How long one store call may take before it counts as unavailable, by default. */
+const FINOPS_SETTINGS_DEADLINE_MS = 5_000;
+
+/**
+ * `call`, or FinOpsSettingsUnavailableError after `ms`. The Admin SDK retries UNAVAILABLE
+ * for about 40 s and the server drops the socket at 30 s, so without a deadline a down
+ * store reached the browser as a dropped connection instead of a 503.
+ */
+async function withDeadline<T>(call: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new FinOpsSettingsUnavailableError(`Firestore did not answer within ${ms / 1000}s`)), ms); // prettier-ignore
+  });
+  try {
+    return await Promise.race([call, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function createFinOpsSettingsService(
   store: FinOpsSettingsStore,
-  { now = Date.now, ttlMs = FINOPS_SETTINGS_TTL_MS }: { now?: () => number; ttlMs?: number } = {}
+  {
+    now = Date.now,
+    ttlMs = FINOPS_SETTINGS_TTL_MS,
+    deadlineMs = FINOPS_SETTINGS_DEADLINE_MS,
+  }: { now?: () => number; ttlMs?: number; deadlineMs?: number } = {}
 ): FinOpsSettingsService {
   let cached: SavedFinOpsSettings = DEFAULT_FINOPS_SETTINGS;
   let readAt: number | null = null;
 
-  async function readThrough(action: 'read' | 'save'): Promise<SavedFinOpsSettings> {
+  async function readThrough(): Promise<SavedFinOpsSettings> {
     try {
-      cached = (await store.read()) ?? DEFAULT_FINOPS_SETTINGS;
+      cached = (await withDeadline(store.read(), deadlineMs)) ?? DEFAULT_FINOPS_SETTINGS;
       readAt = now();
       return cached;
     } catch (error) {
       readAt = null;
-      log.error({ error: String(error), action }, 'FinOps settings store unavailable');
+      log.error({ error: String(error) }, 'FinOps settings store unavailable');
       throw unavailable(error);
     }
   }
@@ -62,18 +89,26 @@ export function createFinOpsSettingsService(
     current: () => cached,
     async load() {
       if (readAt !== null && now() - readAt < ttlMs) return cached;
-      return readThrough('read');
+      return readThrough();
     },
     async save(patch, updatedBy) {
+      const meta = { updatedAt: new Date(now()).toISOString(), updatedBy };
       try {
-        await store.merge(patch, { updatedAt: new Date(now()).toISOString(), updatedBy });
+        await withDeadline(store.merge(patch, meta), deadlineMs);
       } catch (error) {
         readAt = null;
         log.error({ error: String(error), updatedBy }, 'FinOps settings save failed');
         throw unavailable(error);
       }
       log.info({ fields: Object.keys(patch), updatedBy }, 'FinOps settings saved');
-      return readThrough('save');
+      try {
+        return await readThrough();
+      } catch (error) {
+        // The write landed: answer it over the last values read, and reread next time
+        log.warn({ error: String(error), updatedBy }, 'FinOps settings saved but not read back');
+        cached = applyFinOpsPatch(cached, patch, meta);
+        return cached;
+      }
     },
   };
 }

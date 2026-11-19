@@ -149,19 +149,25 @@ describe('FinOps settings persist through the routes', () => {
     expect(thresholds.body).toMatchObject({ maxMonthlyBurn: 900, minGrossMargin: 0.3 });
   });
 
+  // The UI shows `error` as the reason, so each one says what to fix in words
   it.each([
-    ['/api/finops/revenue', {}],
-    ['/api/finops/revenue', { mrr: -5 }],
-    ['/api/finops/cash', { amount: 'lots' }],
-    ['/api/finops/ltv-cac', {}],
-    ['/api/finops/ltv-cac', { churnRate: 3 }],
-    ['/api/finops/thresholds', { notAThreshold: 1 }],
-    ['/api/finops/revenue', '{not json'],
-  ])('400 and nothing written: PUT %s %j', async (path, body) => {
+    ['/api/finops/revenue', {}, 'MRR must be a number of 0 or more'],
+    ['/api/finops/revenue', { mrr: -5 }, 'MRR must be a number of 0 or more'],
+    ['/api/finops/revenue', 'null', 'Send a JSON object'],
+    ['/api/finops/cash', { amount: 'lots' }, 'Cash reserve must be a number of 0 or more'],
+    ['/api/finops/ltv-cac', {}, 'Enter CAC or churn'],
+    ['/api/finops/ltv-cac', { churnRate: 3 }, 'Churn must be 1 or less (0.05 is 5%)'],
+    ['/api/finops/ltv-cac', { lifetimeMonths: 0 }, 'Customer lifetime must be a number of months above 0'], // prettier-ignore
+    ['/api/finops/thresholds', { notAThreshold: 1 }, 'Not a threshold: notAThreshold'],
+    // .strict(): a known key does not carry an unknown one in with it
+    ['/api/finops/thresholds', { maxMonthlyBurn: 5, bogus: 1 }, 'Not a threshold: bogus'],
+    ['/api/finops/thresholds', { maxMonthlyBurn: -1 }, 'maxMonthlyBurn must be a number of 0 or more'], // prettier-ignore
+    ['/api/finops/revenue', '{not json', 'Send a JSON body'],
+  ])('400 and nothing written: PUT %s %j', async (path, body, error) => {
     const got = await call(await instance(), 'PUT', path, body);
-    expect(got.status).toBe(400);
-    expect(typeof got.body.error).toBe('string');
+    expect(got).toMatchObject({ status: 400, body: { error } });
     expect(fs.writes).toBe(0);
+    expect(saved()).toBeUndefined();
   });
 
   it('503 with the reason when the store is down, for a save and for a read', async () => {
@@ -197,6 +203,19 @@ describe('Sync from Stripe saves through the settings store', () => {
 
     const other = await instance();
     expect((await call(other, 'GET', '/api/finops/snapshot')).body.monthlyRecurringRevenue).toBe(22); // prettier-ignore
+    vi.unstubAllEnvs();
+  });
+
+  it('without Stripe configured: 503 with the reason and nothing saved, never an MRR of 0', async () => {
+    for (const k of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']) vi.stubEnv(k, '');
+    const api = await instance();
+    await call(api, 'PUT', '/api/finops/revenue', { mrr: 500 });
+    const writes = fs.writes;
+    const sync = await call(api, 'POST', '/api/finops/sync-mrr');
+    expect(sync).toMatchObject({ status: 503, body: { reason: 'Stripe is not configured' } });
+    expect(sync.body.success).toBe(false);
+    expect(fs.writes).toBe(writes);
+    expect(saved()?.monthlyRevenue).toBe(500);
     vi.unstubAllEnvs();
   });
 });

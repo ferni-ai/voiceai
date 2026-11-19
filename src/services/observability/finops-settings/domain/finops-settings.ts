@@ -63,16 +63,18 @@ export const DEFAULT_FINOPS_SETTINGS: SavedFinOpsSettings = {
   updatedBy: null,
 };
 
-const amount = z.number().nonnegative();
+/** A non-negative number, refused in words the admin page can show as the reason. */
+export const finopsAmount = (what: string): z.ZodNumber =>
+  z.number({ error: `${what} must be a number of 0 or more` }).nonnegative({ error: `${what} must be a number of 0 or more` }); // prettier-ignore
 
 /** A thresholds update: known keys only, each a non-negative number. */
 export const ThresholdsPatchSchema = z
-  .object(
+  .strictObject(
     Object.fromEntries(
-      Object.keys(DEFAULT_FINOPS_THRESHOLDS).map((k) => [k, amount.optional()])
-    ) as Record<keyof FinOpsThresholds, z.ZodOptional<typeof amount>>
+      Object.keys(DEFAULT_FINOPS_THRESHOLDS).map((k) => [k, finopsAmount(k).optional()])
+    ) as Record<keyof FinOpsThresholds, z.ZodOptional<z.ZodNumber>>,
+    { error: (iss) => (iss.code === 'unrecognized_keys' ? `Not a threshold: ${iss.keys.join(', ')}` : 'Send a JSON object') } // prettier-ignore
   )
-  .strict()
   .refine((t) => Object.values(t).some((v) => v !== undefined), 'Enter at least one threshold');
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -103,5 +105,23 @@ export function parseFinOpsSettings(data: unknown): SavedFinOpsSettings {
     thresholds,
     updatedAt: typeof d.updatedAt === 'string' ? d.updatedAt : null,
     updatedBy: typeof d.updatedBy === 'string' ? d.updatedBy : null,
+  };
+}
+
+const defined = <T extends object>(o: T): Partial<T> =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
+/** `patch` applied over `base` as the store's merge applies it (undefined fields left out). */
+export function applyFinOpsPatch(
+  base: SavedFinOpsSettings,
+  patch: FinOpsSettingsPatch,
+  meta: { updatedAt: string; updatedBy: string }
+): SavedFinOpsSettings {
+  const { thresholds, ...rest } = patch;
+  return {
+    ...base,
+    ...defined(rest),
+    thresholds: { ...base.thresholds, ...defined(thresholds ?? {}) },
+    ...meta,
   };
 }
