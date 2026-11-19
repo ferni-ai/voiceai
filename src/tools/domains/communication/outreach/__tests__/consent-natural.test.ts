@@ -30,9 +30,11 @@ vi.mock('../../../../../utils/consent-port.js', () => ({
 import {
   noteCrisisRisk,
   resetCrisisCallRisk,
+  trackCrisisRead,
 } from '../../../../../services/safety/crisis-call-risk.js';
 import { VAD_START_LAG_MS } from '../../../../../config/vad-timing.js';
 import { setConsentAsk, type ConsentAsk } from '../consent-judge.js';
+import { CRISIS_READ_WAIT_MS, HELD_REPLY, PENDING_REPLY } from '../consent-send.js';
 import { setReadBackAsk } from '../consent-readback.js';
 import { pendingFor, PLANNED } from '../outreach-confirm.js';
 import {
@@ -153,8 +155,8 @@ describe('1. spoken, not stored: only words begun after the read-back started pl
 
   it("a yes whose VAD fired just after the read-back started, but begun before it, isn't heard", async () => {
     // LiveKit stamps user_state_changed when the VAD fires (createdAt = arrival), up to
-    // VAD_START_LAG_MS after the words began: a stamp within that of the read-back start
-    // could have begun before it, so it is never counted (fail closed).
+    // VAD_START_LAG_MS (~500 ms, a slow CPU's margin included) after the words began: a stamp
+    // within that of the read-back start could have begun before it, so it is never counted.
     const firedAfter = async (ms: number) => {
       natural(true);
       const call = await readBack(undefined, false);
@@ -165,7 +167,7 @@ describe('1. spoken, not stored: only words begun after the read-back started pl
       call.owner('Yes.');
       return placed(call);
     };
-    expect(await firedAfter(VAD_START_LAG_MS - 40)).toBe(0);
+    expect(await firedAfter(460)).toBe(0);
     sends.length = 0;
     expect(await firedAfter(VAD_START_LAG_MS + 300)).toBe(1); // began after the read-back: heard
   });
@@ -600,6 +602,118 @@ describe("7. the call's crisis state: risk the safety kernel noted on this call 
     expect(await settle(false)).toBe(1);
     sends.length = 0;
     expect(await settle(true)).toBe(0);
+  });
+
+  /** A crisis read of `words` in flight on the call, settled `risk` (none: clean) after `ms`. */
+  const readInFlight = (sessionId: string, words: string, risk: string, ms: number): void => {
+    const read = new Promise<{ risk: string }>((resolve) => {
+      setTimeout(() => resolve({ risk }), ms);
+    });
+    void trackCrisisRead(sessionId, words, read);
+  };
+  /** "Yes, call him." to a read-back, then the model sends it while a crisis read of `words` (the
+   * yes turn's own, or an earlier turn's) is in flight. */
+  async function sendWhileRead(words: string, risk: string, ms: number) {
+    const call = liveCall();
+    call.speaks();
+    call.owner('It was a long week.');
+    await call.call('c1');
+    call.speaks();
+    call.ferni(READ_BACK);
+    call.owner('Yes, call him.');
+    readInFlight(call.sessionId, words, risk, ms);
+    return { call, reply: await call.call('c2') };
+  }
+  const WORDS = [
+    ['the yes turn', 'Yes, call him.'],
+    ['an earlier turn', 'It was a long week.'],
+  ];
+
+  it.each(WORDS)(
+    '%s read in flight finds risk: nothing placed, and the call is held',
+    async (_, words) => {
+      const { call, reply } = await sendWhileRead(words, 'high', 100);
+      expect(reply).toBe(HELD_REPLY);
+      expect(await call.call('c3')).toBe(HELD_REPLY);
+      expect(sends.length).toBe(0);
+    }
+  );
+
+  it.each(WORDS)('%s read in flight settles clean: it places', async (_, words) => {
+    expect((await sendWhileRead(words, 'none', 100)).reply).toBe('Calling Dad now.');
+    expect(sends.length).toBe(1);
+  });
+
+  it('a read still in flight at the bound holds this attempt only; one after it settles clean places', async () => {
+    const { call, reply } = await sendWhileRead(
+      'Yes, call him.',
+      'none',
+      CRISIS_READ_WAIT_MS + 200
+    );
+    expect(reply).toBe(PENDING_REPLY);
+    expect(sends.length).toBe(0);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 300);
+    });
+    expect(await call.call('c3')).toContain('NOT SENT YET. Read this'); // not latched: read back
+    call.speaks();
+    call.ferni(READ_BACK);
+    call.owner('Yes, call him.');
+    expect(await call.call('c4')).toBe('Calling Dad now.');
+    expect(sends.length).toBe(1);
+  });
+
+  it('with OUTREACH_SERVER_CONFIRM, risk noted while a sibling tool prepares: nothing is placed', async () => {
+    // makePhoneCall for "Pops" isn't the stored read-back's kin until its number resolves to
+    // Dad's, after prepare: the send then runs with no check but the one at the send.
+    const sibling = async (during: (call: LiveCall) => void, answered: boolean) => {
+      vi.stubEnv('OUTREACH_SERVER_CONFIRM', 'on');
+      const hook: { during?: () => Promise<void> } = {}; // set once the read-back is stored
+      const call = liveCall('callOnBehalf', 'a call', {
+        duringPrepare: async () => hook.during?.(),
+      });
+      call.speaks();
+      await call.call('c1');
+      call.speaks();
+      call.ferni(READ_BACK);
+      await tick(); // Ferni's read-back is classified as one
+      if (answered) call.owner('Yes, call him.');
+      hook.during = async () => {
+        during(call);
+        await tick();
+      };
+      await call.callOther('makePhoneCall', 'c2', { contactQuery: 'Pops' });
+      return sends.length;
+    };
+    const yes = (call: LiveCall): void => call.owner('Yes, call him.');
+    const risk = (call: LiveCall): void => noteCrisisRisk(call.sessionId);
+    expect(await sibling(() => {}, true)).toBe(1); // the late path does send
+    sends.length = 0;
+    expect(await sibling(risk, true)).toBe(0);
+    expect(await sibling(yes, false)).toBe(1); // a yes landing during prepare sends
+    sends.length = 0;
+    const yesAndRisk = (call: LiveCall): void => {
+      yes(call);
+      risk(call);
+    };
+    expect(await sibling(yesAndRisk, false)).toBe(0);
+  });
+
+  it("no call id to read the call's crisis state by: held (main places it)", async () => {
+    const noId = async (on: boolean) => {
+      natural(on);
+      const call = liveCall('callOnBehalf', 'a call', { noId: true });
+      call.speaks();
+      const first = await call.call('c1');
+      call.speaks();
+      call.ferni(READ_BACK);
+      call.owner('Yes, call him.');
+      await call.call('c2');
+      return { first, sent: sends.length };
+    };
+    expect((await noId(false)).sent).toBe(1);
+    sends.length = 0;
+    expect(await noId(true)).toEqual({ first: HELD_REPLY, sent: 0 });
   });
 
   it('X8: a crisis line before any window, then a call asked for: never read back, offered or placed', async () => {

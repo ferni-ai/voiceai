@@ -32,7 +32,7 @@ import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread } from './confirm-thread.js';
-import { callHeld, hold, HELD_REPLY, sendOnYes } from './consent-send.js';
+import { hold, HELD_REPLY, outboundHold, sendOnYes } from './consent-send.js';
 import { consentClassifierOn, consentNaturalOn } from './consent-judge.js';
 import {
   cancel,
@@ -159,7 +159,7 @@ export interface SessionLog {
   ferniStarts?: number;
   ownerStart?: number;
   startedAt?: number[];
-  /** CALL_CONSENT_NATURAL: outbound is held for the call; the call's id (consent-send callHeld). */
+  /** CALL_CONSENT_NATURAL: outbound is held for the call; the call's id (consent-send outboundHold). */
   crisisHeld?: boolean;
   liveId?: string;
 }
@@ -429,7 +429,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
-        if (consentNaturalOn() && callHeld(entry, opts, ctx.sessionId)) return HELD_REPLY;
+        if (consentNaturalOn() && outboundHold(entry, opts, ctx.sessionId)) return HELD_REPLY;
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);

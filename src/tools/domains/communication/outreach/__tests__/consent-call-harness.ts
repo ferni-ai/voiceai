@@ -33,12 +33,22 @@ const def = (id: string): ToolDefinition => ({
     return tool as never;
   },
 });
-const spec = (what: string): ConfirmSpec => ({
-  prepare: async (args) => ({
-    args: { ...args, phoneNumber: DAD },
-    readBack: `${what} to Dad at 555-123-0002, right now`,
-  }),
+const spec = (what: string, duringPrepare?: () => Promise<void>): ConfirmSpec => ({
+  prepare: async (args) => {
+    await duringPrepare?.();
+    return {
+      args: { ...args, phoneNumber: DAD },
+      readBack: `${what} to Dad at 555-123-0002, right now`,
+    };
+  },
 });
+
+/** How a test call is set up: `duringPrepare` runs while the tool prepares its read-back; `noId`:
+ * the call's id is never registered, so no tool can find it. */
+export interface CallSetup {
+  duringPrepare?: () => Promise<void>;
+  noId?: boolean;
+}
 
 interface Gated {
   execute: (a: unknown, o: unknown) => Promise<unknown>;
@@ -66,13 +76,18 @@ export interface LiveCall {
   callOther: (toolId: string, callId: string, args?: Record<string, unknown>) => Promise<string>;
 }
 
-export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
+export function liveCall(
+  toolId = 'callOnBehalf',
+  what = 'a call',
+  setup: CallSetup = {}
+): LiveCall {
   const session = { agentState: 'listening' };
   const sessionId = `call-${Math.random().toString(36).slice(2)}`;
-  noteLiveSession(session, sessionId); // as the live call does: a tool reads the id from its run
+  // As the live call does: a tool reads the id from its run.
+  if (!setup.noId) noteLiveSession(session, sessionId);
   const on = outreachConfirmListeners(session, () => true);
   const gated = (id: string, kind: string): Gated =>
-    withOutreachConfirmation(def(id), spec(kind)).create({
+    withOutreachConfirmation(def(id), spec(kind, setup.duringPrepare)).create({
       userId: 'owner-1',
       agentId: 'ferni',
       agentDisplayName: 'Ferni',

@@ -16,5 +16,8 @@ export const VAD_MIN_SPEECH_MS = 50;
 /** The VAD's 32 ms update window, plus the 200 ms past which Silero logs an inference as slow. */
 const VAD_INFERENCE_BOUND_MS = 32 + 200;
 
-/** The longest a start of speech is assumed to land after the words began. */
-export const VAD_START_LAG_MS = VAD_MIN_SPEECH_MS + VAD_INFERENCE_BOUND_MS;
+/** Room for a slow CPU past that: asking again is the safe side of a late stamp. */
+const VAD_SLOW_CPU_MARGIN_MS = 220;
+
+/** The longest a start of speech is assumed to land after the words began (~500 ms). */
+export const VAD_START_LAG_MS = VAD_MIN_SPEECH_MS + VAD_INFERENCE_BOUND_MS + VAD_SLOW_CPU_MARGIN_MS;

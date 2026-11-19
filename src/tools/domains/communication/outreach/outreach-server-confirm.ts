@@ -19,7 +19,7 @@ import {
 } from './confirm-thread.js';
 import { messageAskLine } from './consent-action.js';
 import { consentNaturalOn } from './consent-judge.js';
-import { argsOnYes, callHeld } from './consent-send.js';
+import { argsOnYes, heldBeforeSend, isHeldReply } from './consent-send.js';
 import { heardMessage } from './consent-window.js';
 import {
   alreadyPlacedReply,
@@ -58,17 +58,22 @@ export interface ConfirmGate {
 }
 
 /** Take the stored action, so nothing can send it twice, and send it as read back, with the
- * message the owner confirmed when it was read back to them (argsOnYes, CALL_CONSENT_NATURAL). */
+ * message the owner confirmed when it was read back to them (argsOnYes, CALL_CONSENT_NATURAL),
+ * unless heldBeforeSend holds it; `underway` runs just before it is sent. */
 async function sendTaken(
   gate: ConfirmGate,
   entry: SessionLog,
   pending: PendingAction,
-  send: (args: Record<string, unknown>) => Promise<unknown>
+  send: (args: Record<string, unknown>) => Promise<unknown>,
+  underway?: () => void
 ): Promise<unknown> {
   const args = argsOnYes(pending);
   entry.pending = undefined;
   clearTimeout(entry.settle);
   entry.settle = undefined;
+  const held = consentNaturalOn() ? await heldBeforeSend(entry, pending) : undefined;
+  if (held !== undefined) return held;
+  underway?.();
   const { server } = pending;
   const sent = server && { ...server, expiresAt: Date.now() + gate.windowMs };
   entry.sent = sent || undefined;
@@ -96,7 +101,6 @@ export function settleThenSend(gate: ConfirmGate, session: object, entry: Sessio
     entry.settle = undefined;
     // A later final ("Call Bob instead"), another tool's output, a no or expiry voids it.
     if (entry.pending !== pending) return;
-    if (consentNaturalOn() && callHeld(entry)) return; // crisis risk since the yes
     if (confirmationState(pending, entry.events, Date.now()) !== 'confirmed') return;
     if (!gate.ownerKnown(session) || isSyntheticUserId(pending.userId)) {
       log.warn(
@@ -105,14 +109,17 @@ export function settleThenSend(gate: ConfirmGate, session: object, entry: Sessio
       );
       return;
     }
-    log.info({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: caller said yes, sending');
-    entry.note?.(underwayNote(server.toolId, server.readBack));
+    const underway = (): void => {
+      log.info({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: caller said yes, sending');
+      entry.note?.(underwayNote(server.toolId, server.readBack));
+    };
     const failed = (why: unknown): void => {
       log.warn({ toolId: server.toolId }, 'OUTREACH_SERVER_CONFIRM: the send failed');
       entry.note?.(failedNote(server.toolId, server.readBack, why));
     };
-    void sendTaken(gate, entry, pending, server.send).then((result) => {
-      if (outcomeOf(result) === 'failed') failed(result);
+    void sendTaken(gate, entry, pending, server.send, underway).then((result) => {
+      if (isHeldReply(result)) entry.note?.(String(result));
+      else if (outcomeOf(result) === 'failed') failed(result);
       else entry.note?.(resultNote(server.toolId, result));
     }, failed);
   }, SERVER_CONFIRM_SETTLE_MS);
