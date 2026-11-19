@@ -1,14 +1,17 @@
 /**
  * CRISIS_HOLD_FOLLOWS_REPLY: turnHold (crisis-turn-memory.ts) reads the call's shared crisis
  * hold (utils/crisis-memory-hold.ts) once per turn. With the reply gate live it waits for the
- * gate's own read of the turn (noteReplyGateTurn) and its escalation; the pipeline's read never
- * stands in for it. Flag off: the pipeline's read alone, as on main. Every line is fictional.
+ * gate's own read of THIS caller turn (noteReplyGateTurn, under the pusher's name for the turn,
+ * noteCallerTurn) and its escalation; neither the pipeline's read nor an earlier turn's read
+ * stands in for it, however its words overlap. Flag off: the pipeline's read alone, as on main.
+ * Every line is fictional.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetCrisisCallRisk, trackCrisisRead } from '../../../services/safety/crisis-call-risk.js';
 import {
   CRISIS_READ_WAIT,
   holdForCrisis,
+  noteCallerTurn,
   noteCrisisTurnRead,
   noteReplyGateTurn,
 } from '../../../utils/crisis-memory-hold.js';
@@ -22,13 +25,25 @@ const WAIT = { ...CRISIS_READ_WAIT };
 /** The turn pipeline read the turn clean. */
 const CLEAN = { shouldOverrideLLM: false, isCrisis: false } as CrisisDetection;
 let n = 0;
-const call = (): string => `reply-hold-unit-${++n}`;
+/** The call, and the turn being asked about: the pusher names it `${sessionId}:now`. */
+const call = (): string => {
+  const sessionId = `reply-hold-unit-${++n}`;
+  noteCallerTurn(sessionId, `${sessionId}:now`);
+  return sessionId;
+};
+/** The handler's context for this call's turn (turn-handler.ts), named as the pusher named it. */
+const turnOf = (sessionId: string | undefined, words = WORDS) => ({
+  services: { sessionId },
+  userText: words,
+  userData: { callerTurnKey: `${sessionId}:now` },
+});
 /** The flag-on hold for this call's turn, its pipeline read clean. */
 const holdOf = (
   sessionId: string | undefined,
-  env: Record<string, string> = ON
+  env: Record<string, string> = ON,
+  words = WORDS
 ): (() => Promise<boolean>) => {
-  const hold = turnHold(CLEAN, sessionId, WORDS, env);
+  const hold = turnHold(CLEAN, turnOf(sessionId, words), env);
   if (!hold.waits) throw new Error('flag on gave a hold that does not wait');
   return hold;
 };
@@ -40,9 +55,9 @@ const sleep = (ms: number): Promise<void> =>
   });
 
 /** The gate's read of the turn: its classifier read (tracked) and the escalation over it. */
-function gateRead(sessionId: string, verdict: Promise<{ risk: string }>): void {
-  trackCrisisRead(sessionId, WORDS, verdict);
-  noteReplyGateTurn(sessionId, WORDS, { escalation: verdict }, ON);
+function gateRead(sessionId: string, verdict: Promise<{ risk: string }>, words = WORDS): void {
+  trackCrisisRead(sessionId, words, verdict);
+  noteReplyGateTurn(sessionId, words, { escalation: verdict }, ON);
 }
 
 beforeEach(() => {
@@ -51,12 +66,81 @@ beforeEach(() => {
 });
 afterEach(() => void Object.assign(CRISIS_READ_WAIT, WAIT));
 
+/**
+ * The lane-28 shapes (#4090): an EARLIER caller turn of the call was read clean by the gate,
+ * then this turn's gate read lands only after the writers ask (and finds a crisis). On the old
+ * head the earlier read's words matched this turn's by substring, so it stood in for this turn's
+ * read and every writer kept the turn. Now only this turn's own read counts: held.
+ */
+describe('turnHold: an earlier turn never stands in for this turn', () => {
+  const NOW = "no i don't know, it took a while, thank you lol honestly nothing feels worth it";
+  const fillers = (k: number) => Array.from({ length: k }, (_, i) => `the bus ran late again ${i}`);
+  it.each([
+    ['no', ['no']],
+    ['ok inside took', ['ok']],
+    ["i don't know", ["i don't know"]],
+    ['thank you', ['thank you']],
+    ['earlier contains now', [`${NOW} and the cat agrees`]],
+    ['now contains earlier', ['honestly']],
+    ['an exact repeat', [NOW]],
+    ["'no' 15 turns back", ['no', ...fillers(14)]],
+    ["'no' 16 turns back", ['no', ...fillers(15)]],
+    ['an unrelated earlier turn (control)', ['the garden is fine']],
+  ])('%s: held until this turn is read, then held by its crisis', async (_shape, earlier) => {
+    const sessionId = `reply-hold-unit-${++n}`;
+    earlier.forEach((said, i) => {
+      noteCallerTurn(sessionId, `${sessionId}:${i}`);
+      gateRead(sessionId, Promise.resolve({ risk: 'none' }), said);
+    });
+    await sleep(0);
+    noteCallerTurn(sessionId, `${sessionId}:now`);
+    const held = holdOf(sessionId, ON, NOW)(); // a writer asks before the gate reads this turn
+    await sleep(150);
+    let finish: () => void = () => undefined;
+    const escalation = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    noteReplyGateTurn(sessionId, NOW, { escalation }, ON);
+    setTimeout(() => {
+      holdForCrisis(sessionId); // this turn's own gate read found a crisis
+      finish();
+    }, 30);
+    expect(await held).toBe(true);
+  });
+
+  it("a fragment of this same turn (a preflight read) does not stand in for the turn's words", async () => {
+    const sessionId = call();
+    gateRead(sessionId, Promise.resolve({ risk: 'none' }), 'the garden had a slow week');
+    const held = ask(sessionId);
+    await sleep(150);
+    gateRead(
+      sessionId,
+      Promise.resolve({ risk: 'crisis' }).then((v) => {
+        holdForCrisis(sessionId);
+        return v;
+      })
+    );
+    expect(await held).toBe(true);
+  });
+
+  it('this turn read clean after an overlapping earlier turn: not held (the hold still lets turns record)', async () => {
+    const sessionId = `reply-hold-unit-${++n}`;
+    noteCallerTurn(sessionId, `${sessionId}:0`);
+    gateRead(sessionId, Promise.resolve({ risk: 'none' }), 'no');
+    noteCallerTurn(sessionId, `${sessionId}:now`);
+    const kept = ask(sessionId);
+    await sleep(150);
+    gateRead(sessionId, Promise.resolve({ risk: 'none' }));
+    expect(await kept).toBe(false);
+  });
+});
+
 describe('turnHold', () => {
   it("flag off (unset or off): the pipeline's read alone, and the gate notes nothing", async () => {
     for (const env of [{}, { CRISIS_HOLD_FOLLOWS_REPLY: 'off' }]) {
-      const clean = turnHold(CLEAN, call(), WORDS, env);
+      const clean = turnHold(CLEAN, turnOf(call()), env);
       expect([clean.waits, clean.read, await clean()]).toEqual([false, false, false]);
-      expect(await turnHold({ ...CLEAN, isCrisis: true }, call(), WORDS, env)()).toBe(true);
+      expect(await turnHold({ ...CLEAN, isCrisis: true }, turnOf(call()), env)()).toBe(true);
     }
     const sessionId = call();
     noteReplyGateTurn(sessionId, WORDS, { escalation: null }, {});
@@ -136,6 +220,17 @@ describe('turnHold', () => {
   it('no read of the turn ever started, or no session: held (fail closed)', async () => {
     expect(await ask(call())).toBe(true);
     expect(await ask(undefined)).toBe(true);
+  });
+
+  it('the pusher named no turn: the gate read counts for none, and a turn with no name is held', async () => {
+    const unnamed = `reply-hold-unit-${++n}`; // noteCallerTurn never ran for this call
+    gateRead(unnamed, Promise.resolve({ risk: 'none' }));
+    expect(await ask(unnamed)).toBe(true);
+    const sessionId = call();
+    gateRead(sessionId, Promise.resolve({ risk: 'none' }));
+    const nameless = { services: { sessionId }, userText: WORDS, userData: {} };
+    expect(await turnHold(CLEAN, nameless, ON)()).toBe(true);
+    expect(await ask(sessionId)).toBe(false); // the same read, asked by its own named turn
   });
 
   it("with the gate in shadow (no gate read), the pipeline's clean read counts, as today", async () => {

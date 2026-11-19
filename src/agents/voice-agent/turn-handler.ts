@@ -850,7 +850,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Record turn latency for future adaptive calculations
       completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
-    const hold = turnHold(result.crisis, services.sessionId, userText); // crisis-turn-memory.ts
+    const hold = turnHold(result.crisis, ctx); // crisis-turn-memory.ts
 
     // Get unified intelligence result (should be ready by now)
     const intelligence = await intelligencePromise;

@@ -15,7 +15,6 @@
  * @module agents/multi-agent/turn-intelligence
  */
 
-import { randomUUID } from 'node:crypto';
 import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
@@ -37,6 +36,7 @@ import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { CALLER_TURN_KEY, callerTurnFor, type WithCallerTurn } from '../shared/caller-turn-count.js';
 import { noteTurnPathAttached } from '../shared/turn-path-capture.js';
 import { backgroundTurnVoice } from './background-voice-emotion.js';
+import { callerTurnBuilder } from './caller-turn-builder.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
@@ -105,7 +105,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
     const userText = newMessage.textContent?.trim();
     if (!userText) return;
     // Counted before any await; the pusher names each caller turn, so a turn's segments count once.
-    const callerTurn = callerTurnFor(sessionId, newMessage.extra?.[CALLER_TURN_KEY] as string | undefined);
+    const callerTurnKey = newMessage.extra?.[CALLER_TURN_KEY] as string | undefined;
+    const callerTurn = callerTurnFor(sessionId, callerTurnKey);
 
     const start = Date.now();
     try {
@@ -145,7 +146,7 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
         services: deps.services,
         userData: {
           turnCount: userData.turnCount,
-          ...({ callerTurn } satisfies WithCallerTurn), // read by callerTurnOf (shared/caller-turn-count.ts)
+          ...({ callerTurn, callerTurnKey } satisfies WithCallerTurn), // shared/caller-turn-count.ts
           extensibilitySessionPrompt: state?.extensibility?.sessionPrompt,
           pauseBeforeMs,
           speechRateWPM: getAverageSpeechRate(deps.services.sessionId),
@@ -349,11 +350,13 @@ interface ContextAgent {
  * question. Appended at the end, it was dropped as stale 122 times in 112 turns
  * (some turns pushed twice): the per-turn context reached no reply.
  */
-export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent) {
+export function createTurnContextPusher(
+  hook: UserTurnHook,
+  agent: ContextAgent,
+  turn = callerTurnBuilder() // the caller turn being built: its words and its name
+) {
   let pending: string | null = null;
   let pushedId: string | null = null;
-  let turnText = '';
-  let turnKey = ''; // names the caller turn turnText is building (caller-turn-count.ts)
   let run = 0;
   let agentListening = true;
   let userSpeaking = false;
@@ -404,10 +407,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     /** A final transcript segment; segments of one turn accumulate. */
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
-      if (turnText === '') turnKey = randomUUID(); // the first final of a new caller turn
-      turnText = `${turnText} ${transcript.trim()}`.trim();
-      const forText = turnText;
-      const forKey = turnKey;
+      const { text: forText, key: forKey } = turn.add(transcript);
       const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
@@ -433,7 +433,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     },
 
     async onAgentState(newState: string | undefined): Promise<void> {
-      if (newState === 'thinking' || newState === 'speaking') turnText = ''; // the turn ended
+      if (newState === 'thinking' || newState === 'speaking') turn.end(); // the turn ended
       agentListening = newState === 'listening';
       await tryPush();
     },
@@ -464,11 +464,13 @@ export function attachTurnContextPusher(
   const { env = process.env, userData } = options;
   if (session.on) noteTurnPathAttached(session); // the turn path captures this call's lines
   const deferral = deferralForSession(hook, session, env, userData);
-  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
+  const turn = callerTurnBuilder((userData as UserData | undefined)?.services?.sessionId, env);
+  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent, turn);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {
     const evt = event as { transcript?: string; isFinal?: boolean };
-    if (!evt.isFinal || !evt.transcript?.trim()) return;
+    if (!evt.transcript?.trim()) return;
+    if (!evt.isFinal) return turn.heard();
     deferral?.onFinalTranscript(evt.transcript);
     noteUserTurn(session);
     pusher.onFinalTranscript(evt.transcript).catch(failed);

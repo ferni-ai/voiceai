@@ -25,8 +25,13 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { crisisTurnSettled, replyGateTurnSettled } from '../../utils/crisis-memory-hold.js';
+import {
+  CRISIS_READ_WAIT,
+  readsSettledClean,
+  replyGateTurnSettled,
+} from '../../utils/crisis-memory-hold.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
+import { callerTurnKeyOf } from '../shared/caller-turn-count.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetection } from '../processors/types.js';
@@ -38,6 +43,23 @@ export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
   return !crisis || crisis.shouldOverrideLLM || crisis.isCrisis || crisis.softCheck === true;
 }
 
+/** The caller turn whose memory is held: the turn handler's context (turn-handler.ts). */
+export interface CallerTurn {
+  services: { sessionId?: string };
+  userText: string;
+  /** Carries the pusher's name for the turn (callerTurnKeyOf, shared/caller-turn-count.ts). */
+  userData: object;
+}
+
+/** Whether this turn's reads settled with nothing holding the call (crisis-memory-hold.ts). */
+function turnKept({ services, userText, userData }: CallerTurn, gate: boolean): Promise<boolean> {
+  const { sessionId } = services;
+  if (gate) return replyGateTurnSettled(sessionId, callerTurnKeyOf(userData), userText);
+  return sessionId
+    ? readsSettledClean(sessionId, CRISIS_READ_WAIT.settleMs)
+    : Promise.resolve(false);
+}
+
 /**
  * CRISIS_HOLD_FOLLOWS_REPLY: whether the reply gate's reads hold this turn, asked once and only by
  * a writer that runs (never blocking the handler); null when the flag is off, as on main.
@@ -45,21 +67,21 @@ export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
  * Reuses the call's shared hold (utils/crisis-memory-hold.ts), which both engines feed: a pattern
  * guide or replace and every classifier read that is not a clean none, gave no verdict or failed
  * hold the call (services/safety/crisis-call-risk.ts). With the gate live (every voice reply runs
- * it: gatedReply), it waits for the gate's own read of the turn and its escalation
- * (noteReplyGateTurn): the pipeline's read never stands in for it. With the gate off or in shadow,
- * any read of the turn counts, as for the pipeline's own writers. Held when that read did not
- * start or the call's reads did not settle in time, or a read held the call: fail closed.
+ * it: gatedReply), it waits for the gate's own read of THIS caller turn, named by the pusher's key
+ * and its exact words, and that read's escalation (noteReplyGateTurn): neither the pipeline's read
+ * nor an earlier turn's stands in for it. With the gate off or in shadow, the turn's only read is
+ * the handler's own pipeline read, already started: the call's reads settle. Held when no such
+ * read started or the reads did not settle in time, or a read held the call: fail closed.
  */
 function replyReadHold(
-  sessionId: string | undefined,
-  words: string,
+  turn: CallerTurn,
   env: Readonly<Record<string, string | undefined>> = process.env
 ): (() => Promise<boolean>) | null {
   if (!flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return null;
-  const settled = resolveCrisisGuardMode(env) === 'live' ? replyGateTurnSettled : crisisTurnSettled;
+  const gateLive = resolveCrisisGuardMode(env) === 'live';
   let held: Promise<boolean> | undefined;
   return async () =>
-    (held ??= settled(sessionId, words).then(
+    (held ??= turnKept(turn, gateLive).then(
       (kept) => !kept,
       () => true
     ));
@@ -77,12 +99,11 @@ export interface TurnHold {
 /** The turn's memory hold: its pipeline read, and with the flag on the reply gate's (replyReadHold). */
 export function turnHold(
   crisis: CrisisDetection | undefined,
-  sessionId: string | undefined,
-  words: string,
+  turn: CallerTurn,
   env: Readonly<Record<string, string | undefined>> = process.env
 ): TurnHold {
   const read = crisisReadTurn(crisis);
-  const reply = replyReadHold(sessionId, words, env);
+  const reply = replyReadHold(turn, env);
   const held = async (): Promise<boolean> => read || ((await reply?.()) ?? false);
   return Object.assign(held, { read, waits: reply !== null });
 }

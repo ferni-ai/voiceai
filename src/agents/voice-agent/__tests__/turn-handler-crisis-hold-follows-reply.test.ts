@@ -8,13 +8,15 @@
  * crisis and guides the reply: a gate-only crisis, as on a turn whose classifier read the pipeline
  * did not wait for. Flag off, the handler records the turn as on main. Flag on, every writer that
  * consults the hold (bond message, learning, unified moments, trust milestone, semantic
- * intelligence, fast capture) waits for the call's reads and holds.
+ * intelligence, fast capture) waits for the gate's read of THIS caller turn and holds. Each turn
+ * is named as the live turn context pusher names it (multi-agent/caller-turn-builder.ts), so an
+ * earlier turn's read never stands in for it, however its words overlap (lane 28, #4090).
  *
  * Only the stores are stubbed; every classifier read goes through an injected model call, and
  * the real model client refuses. All lines fictional.
  */
 import { llm } from '@livekit/agents';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
 import { CRISIS_READ_WAIT, crisisMemoryHeld } from '../../../utils/crisis-memory-hold.js';
@@ -22,6 +24,7 @@ import {
   getFireAndForgetMetrics,
   resetFireAndForgetMetrics,
 } from '../../../utils/safe-fire-and-forget.js';
+import { callerTurnBuilder } from '../../multi-agent/caller-turn-builder.js';
 import { startCrisisGate } from '../../personas/crisis-gate.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 
@@ -126,6 +129,16 @@ const LINE =
 /** A line the patterns guide: a crisis the pipeline reads itself. */
 const PATTERN_CRISIS = 'haha im standing on the bridge and im going to jump';
 
+/** What the handler records for LINE on a turn nothing holds (flag off, ordinary). */
+const RECORDED = [
+  'correction',
+  'milestone:expressed-gratitude',
+  'moment:crisis_support',
+  'moment:laughter',
+  'preference',
+  'shared-moment',
+];
+
 const WRITERS = [
   'unified-personality-recording',
   'bth-v4-relational-memory',
@@ -135,6 +148,13 @@ const WRITERS = [
 
 let n = 0;
 const WAIT = { ...CRISIS_READ_WAIT };
+
+// LIMIT (a), lane 28: the first handler turn ran cold (imports, ~925 ms) while the gate's
+// classifier, started first, waited on it, and under load timed out. One warm turn first.
+beforeAll(async () => {
+  await turn(LINE, NO_RISK, 'off');
+  vi.unstubAllEnvs();
+}, 30_000);
 
 beforeEach(() => {
   resetCrisisClassifierCache();
@@ -148,26 +168,70 @@ afterEach(() => {
   Object.assign(CRISIS_READ_WAIT, WAIT);
 });
 
+interface TurnShape {
+  /** 'late': the gate reads the line only after the handler's writers have asked. */
+  gateStarts?: 'first' | 'late';
+  /** Earlier caller turns of the same call, each read clean by the gate (and so recorded). */
+  earlier?: readonly string[];
+  /** A preflight fragment of this turn the gate read clean first, under this turn's name. */
+  fragment?: string;
+}
+
+const gateEnv = (flag: 'on' | 'off') => ({ ...GATE, CRISIS_HOLD_FOLLOWS_REPLY: flag });
+
 /**
  * One turn: the reply gate starts its read of the line (its model call answers `gateRead` once
  * released), the handler runs it with the pipeline's read, then the gate's read is released.
- * `gateStarts: 'late'`: the gate reads the line only after the handler's writers have asked.
+ * Every turn of the call is named by the pusher's real builder (caller-turn-builder.ts), which
+ * notes each name for the call, and the handler gets the name as the hook hands it (userData).
  * Returns the pipeline's level, the gate's final action and every write the handler made.
  */
 async function turn(
   line: string,
   gateRead: string | null,
   flag: 'on' | 'off',
-  gateStarts: 'first' | 'late' = 'first'
+  { gateStarts = 'first', earlier = [], fragment }: TurnShape = {}
 ) {
   vi.stubEnv('CRISIS_HOLD_FOLLOWS_REPLY', flag);
   const sessionId = `hold-follows-reply-${++n}`;
   Object.assign(state, { sessionId, pipelineEnv: PATTERNS_ONLY });
+  const names = callerTurnBuilder(sessionId, { CRISIS_HOLD_FOLLOWS_REPLY: flag });
+  const chat = llm.ChatContext.empty();
+  const clean = async () => NO_RISK;
+  for (const said of earlier) {
+    names.add(said);
+    chat.addMessage({ role: 'user', content: said });
+    const read = startCrisisGate(
+      chat.copy(),
+      { services: { sessionId } },
+      {
+        env: gateEnv(flag),
+        generate: clean,
+      }
+    );
+    await read?.escalation;
+    chat.addMessage({ role: 'assistant', content: 'Mm, I hear you.' });
+    names.end(); // Ferni replied: the turn ended
+  }
+  names.heard(); // the turn's first interim (or preflight) segment
+  if (fragment) {
+    const preflight = chat.copy();
+    preflight.addMessage({ role: 'user', content: fragment });
+    const read = startCrisisGate(
+      preflight,
+      { services: { sessionId } },
+      {
+        env: gateEnv(flag),
+        generate: clean,
+      }
+    );
+    await read?.escalation;
+  }
+  const { key } = names.add(line);
   let release: () => void = () => undefined;
   const released = new Promise<void>((resolve) => {
     release = resolve;
   });
-  const chat = llm.ChatContext.empty();
   chat.addMessage({ role: 'user', content: line });
   const startGate = (): ReturnType<typeof startCrisisGate> =>
     gateRead === null
@@ -176,7 +240,7 @@ async function turn(
           chat,
           { services: { sessionId } },
           {
-            env: { ...GATE, CRISIS_HOLD_FOLLOWS_REPLY: flag },
+            env: gateEnv(flag),
             generate: async () => {
               await released;
               if (gateRead === NEVER) {
@@ -197,7 +261,7 @@ async function turn(
     contextOnly: true,
     persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
     services: { sessionId, userId: 'user-riley-test' },
-    userData: { turnCount: 6 },
+    userData: { turnCount: 6, callerTurnKey: key }, // as the hook hands it (turn-intelligence.ts)
     sendDataMessage: async (type: string, data?: Record<string, unknown>) =>
       void messages.push({ type, data }),
   } as unknown as Ctx);
@@ -261,7 +325,7 @@ describe('a gate-only crisis: the pipeline reads the turn as ordinary, the gate 
 
 describe('the gate reads the turn only after the pipeline read settled clean and the writers asked', () => {
   it('flag on: held, the pipeline read never standing in for the gate', async () => {
-    const t = await turn(LINE, CRISIS, 'on', 'late');
+    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late' });
     expect(t.realClient).toBe(0);
     expect(t.pipeline).toBe('pass');
     expect(t.gate).toBe('guide');
@@ -269,6 +333,59 @@ describe('the gate reads the turn only after the pipeline read settled clean and
     expect(t.bond).toBe(0);
     expect(t.captures).toBe(0);
     expect(t.semantic).toEqual([true]);
+  });
+});
+
+/** Earlier turns with no word of this turn's line in them. */
+const FILLERS = (k: number) => Array.from({ length: k }, (_, i) => `the bus ran late again ${i}`);
+
+const resetCall = () => {
+  resetCrisisClassifierCache();
+  resetCrisisCallRisk();
+  resetFireAndForgetMetrics();
+  Object.assign(state, { writes: [], semanticReads: [], captures: 0 });
+};
+
+/**
+ * Lane 28 (#4090): the gate reads this turn only after the writers asked, and finds a crisis.
+ * On the old head an earlier turn's gate read whose words overlapped this turn's (substring)
+ * stood in for it, and every writer kept the turn. Now only the read of this caller turn counts.
+ */
+describe('flag on: an earlier turn of the call never stands in for the gate read of this one', () => {
+  it.each([
+    ["an earlier 'no' (inside this turn's words)", ['no']],
+    ["an earlier 'thank you', 'lol' and 'honestly'", ['thank you', 'lol', 'honestly']],
+    ['an exact repeat of this turn, read clean earlier', [LINE]],
+    ["'no' 15 turns back", ['no', ...FILLERS(14)]],
+    ['an earlier turn that contains this one', [`${LINE} and the cat agrees`]],
+    ['an earlier turn this one contains', ['lol thank you for listening']],
+    ['an unrelated earlier turn (control)', FILLERS(1)],
+  ])('%s: the late gate read holds every writer', async (_shape, earlier) => {
+    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late', earlier });
+    expect(t.realClient).toBe(0);
+    expect([t.pipeline, t.gate]).toEqual(['pass', 'guide']);
+    // no correction, preference, gratitude milestone, crisis_support moment, laughter or shared moment
+    expect(t.writes).toEqual([]);
+    expect([t.bond, t.captures, t.semantic]).toEqual([0, 0, [true]]);
+  });
+
+  it('a fragment of this turn the gate read clean first (a preflight) does not stand in for it', async () => {
+    const fragment = 'lol thank you for listening';
+    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late', fragment });
+    expect([t.pipeline, t.gate]).toEqual(['pass', 'guide']);
+    expect(t.writes).toEqual([]);
+    expect([t.bond, t.captures, t.semantic]).toEqual([0, 0, [true]]);
+  });
+
+  it('a clean turn after an overlapping earlier turn records exactly what flag off records', async () => {
+    const shape = { gateStarts: 'late', earlier: ['no'] } as const;
+    const off = await turn(LINE, NO_RISK, 'off', shape);
+    resetCall();
+    const on = await turn(LINE, NO_RISK, 'on', shape);
+    expect([off.gate, on.gate]).toEqual(['pass', 'pass']);
+    expect(off.writes).toEqual(RECORDED);
+    expect(on.writes).toEqual(RECORDED);
+    expect([on.bond, on.captures, on.semantic]).toEqual([1, 1, [false]]);
   });
 });
 

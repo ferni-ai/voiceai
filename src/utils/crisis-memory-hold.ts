@@ -36,8 +36,15 @@ export const CRISIS_READ_WAIT = { startMs: 5000, settleMs: 10_000 };
 const held = new Map<string, number>();
 /** sessionId -> the turns a crisis read started for (crisisTurnKey). */
 const seen = new Map<string, string[]>();
-/** sessionId -> the turns the reply gate read (personas/crisis-gate.ts), CRISIS_HOLD_FOLLOWS_REPLY. */
-const gateSeen = new Map<string, string[]>();
+/** CRISIS_HOLD_FOLLOWS_REPLY: sessionId -> the caller turn being spoken now (noteCallerTurn). */
+const callerTurns = new Map<string, string>();
+/** A reply gate read: the caller turn it started in and the words it read (crisisTurnKey). */
+interface GateRead {
+  callerTurn: string;
+  words: string;
+}
+/** sessionId -> the reply gate's reads (personas/crisis-gate.ts), CRISIS_HOLD_FOLLOWS_REPLY. */
+const gateReads = new Map<string, GateRead[]>();
 /** sessionId -> its reads still running. */
 const reads = new Map<string, Set<Promise<void>>>();
 
@@ -82,8 +89,8 @@ export function crisisReadingSessions(): string[] {
   return [...reads].filter(([, running]) => running.size > 0).map(([id]) => id);
 }
 
-function remember(of: Map<string, string[]>, sessionId: string, words: string): void {
-  const turns = (of.get(sessionId) ?? []).concat(crisisTurnKey(words)).slice(-TURNS_KEPT);
+function remember<T>(of: Map<string, T[]>, sessionId: string, item: T): void {
+  const turns = (of.get(sessionId) ?? []).concat(item).slice(-TURNS_KEPT);
   of.delete(sessionId);
   of.set(sessionId, turns);
   trim(of);
@@ -91,13 +98,34 @@ function remember(of: Map<string, string[]>, sessionId: string, words: string): 
 
 /** A crisis read of these caller words started on this call (the turn's pattern read). */
 export function noteCrisisTurnRead(sessionId: string | undefined, words: string): void {
-  if (sessionId) remember(seen, sessionId, words);
+  if (sessionId) remember(seen, sessionId, crisisTurnKey(words));
 }
 
 /**
- * CRISIS_HOLD_FOLLOWS_REPLY: the reply gate read these caller words. Its escalation, when it has
- * one, runs as one of the call's reads until it settles, so replyGateTurnSettled waits for it.
- * Flag off: nothing noted, so no other reader waits longer than on main. Returns the gate's turn.
+ * CRISIS_HOLD_FOLLOWS_REPLY: the caller is now speaking the turn named `callerTurn`, the key the
+ * turn context pusher gives each caller turn (multi-agent/caller-turn-builder.ts, CALLER_TURN_KEY).
+ */
+export function noteCallerTurn(sessionId: string, callerTurn: string): void {
+  callerTurns.delete(sessionId);
+  callerTurns.set(sessionId, callerTurn);
+  trim(callerTurns);
+}
+
+/** CRISIS_HOLD_FOLLOWS_REPLY on: the pusher's onTurnKey, noting each new caller turn of the call. */
+export function callerTurnNoter(
+  sessionId: string | undefined,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): ((callerTurn: string) => void) | undefined {
+  if (!sessionId || !flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return undefined;
+  return (callerTurn) => noteCallerTurn(sessionId, callerTurn);
+}
+
+/**
+ * CRISIS_HOLD_FOLLOWS_REPLY: the reply gate read these caller words, in the caller turn being
+ * spoken now (noteCallerTurn); none named, the read counts for no turn. Its escalation, when it
+ * has one, runs as one of the call's reads until it settles, registered here with the note, so a
+ * writer that finds the note also waits for it (replyGateTurnSettled). Flag off: nothing noted,
+ * so no other reader waits longer than on main. Returns the gate's turn.
  */
 export function noteReplyGateTurn<G extends { escalation: Promise<unknown> | null }>(
   sessionId: string | undefined,
@@ -106,7 +134,8 @@ export function noteReplyGateTurn<G extends { escalation: Promise<unknown> | nul
   env: Readonly<Record<string, string | undefined>> = process.env
 ): G {
   if (!sessionId || !flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return gate;
-  remember(gateSeen, sessionId, words);
+  const callerTurn = callerTurns.get(sessionId);
+  if (callerTurn) remember(gateReads, sessionId, { callerTurn, words: crisisTurnKey(words) });
   if (!gate.escalation) return gate;
   const { end } = beginCrisisRead(sessionId, words);
   gate.escalation.then(end, end);
@@ -138,8 +167,8 @@ export function crisisReadsSettled(sessionId: string | undefined): Promise<void>
   return running?.size ? Promise.all(running).then(() => undefined) : null;
 }
 
-const readOf = (of: Map<string, string[]>, sessionId: string, turn: string): boolean =>
-  !!turn && !!of.get(sessionId)?.some((t) => t === turn || t.includes(turn) || turn.includes(t));
+const readOf = (sessionId: string, turn: string): boolean =>
+  !!turn && !!seen.get(sessionId)?.some((t) => t === turn || t.includes(turn) || turn.includes(t));
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => {
@@ -174,34 +203,46 @@ export async function crisisTurnSettled(
   words: string,
   wait = CRISIS_READ_WAIT
 ): Promise<boolean> {
-  return turnSettled(seen, sessionId, words, wait);
+  if (!sessionId) return false;
+  const turn = crisisTurnKey(words);
+  return turnSettled(sessionId, () => readOf(sessionId, turn), wait);
 }
 
 /**
- * crisisTurnSettled for the reply gate's read of the turn alone (noteReplyGateTurn): another
- * engine's read never stands in for it. False when the gate read none within `startMs`.
+ * crisisTurnSettled for the reply gate's read of this caller turn alone (noteReplyGateTurn): a
+ * read counts only when it started in this turn (`callerTurn`) and read exactly these words, so
+ * neither an earlier turn's read nor another engine's stands in for it. False when the gate read
+ * none within `startMs`, or with no turn named.
  */
 export async function replyGateTurnSettled(
   sessionId: string | undefined,
+  callerTurn: string | undefined,
   words: string,
   wait = CRISIS_READ_WAIT
 ): Promise<boolean> {
-  return turnSettled(gateSeen, sessionId, words, wait);
+  if (!sessionId) return false;
+  if (!callerTurn) return unread(sessionId, 'no caller turn named');
+  const turn = crisisTurnKey(words);
+  const read = (r: GateRead): boolean => r.callerTurn === callerTurn && r.words === turn;
+  return turnSettled(sessionId, () => !!turn && !!gateReads.get(sessionId)?.some(read), wait);
 }
 
+/** Once `readStarted`, the call's reads settle and none held it; false past `startMs`. */
 async function turnSettled(
-  of: Map<string, string[]>,
-  sessionId: string | undefined,
-  words: string,
+  sessionId: string,
+  readStarted: () => boolean,
   wait: typeof CRISIS_READ_WAIT
 ): Promise<boolean> {
-  if (!sessionId) return false;
-  const turn = crisisTurnKey(words);
-  for (let waited = 0; !readOf(of, sessionId, turn); waited += POLL_MS) {
+  for (let waited = 0; !readStarted(); waited += POLL_MS) {
     if (waited >= wait.startMs) return unread(sessionId, 'no crisis read of the turn');
     await sleep(POLL_MS);
   }
-  if (!(await crisisReadsDone(sessionId, wait.settleMs))) return false;
+  return readsSettledClean(sessionId, wait.settleMs);
+}
+
+/** The call's running crisis reads settled within `settleMs` and none held the call. */
+export async function readsSettledClean(sessionId: string, settleMs: number): Promise<boolean> {
+  if (!(await crisisReadsDone(sessionId, settleMs))) return false;
   return !crisisMemoryHeld(sessionId) || unread(sessionId, 'a crisis read held the call');
 }
 
@@ -214,6 +255,7 @@ function unread(sessionId: string, why: string): false {
 export function resetCrisisMemoryHold(): void {
   held.clear();
   seen.clear();
-  gateSeen.clear();
+  callerTurns.clear();
+  gateReads.clear();
   reads.clear();
 }
