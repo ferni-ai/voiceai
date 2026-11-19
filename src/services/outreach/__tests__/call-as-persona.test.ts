@@ -80,13 +80,21 @@ vi.stubEnv('SIP_TRUNK_ID', 'ST_test');
 
 const { createCallOnBehalfTool } =
   await import('../../../tools/domains/telephony/call-on-behalf.js');
-const { dispatchVerifySecrets, verifyOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
+const {
+  dispatchVerifySecrets,
+  verifyOnBehalfDispatch,
+  parseOnBehalfDispatch,
+  onBehalfRequestFromDispatch,
+  onBehalfDispatchFor,
+} = await import('../on-behalf-dispatch.js');
 const { parseJobMetadata, setupCallTypeContexts } =
   await import('../../../agents/voice-agent-entry/metadata-parser.js');
 const { getOutboundCallContext, outboundCallContextBuilder, AI_DISCLOSURE_RULE } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 const { outboundOpener, partiesOf } = await import('../opening-line.js');
 const { voicemailMessage } = await import('../../../agents/shared/line-screen.js');
+const { outboundCallerAwareness, outboundPartiesFor } =
+  await import('../../../agents/shared/outbound-opener.js');
 const { getVoiceIdForPersona } = await import('../../../config/voice-ids.js');
 const { buildCallScript, personalScript } =
   await import('../../../tools/domains/telephony/scripts/index.js');
@@ -171,6 +179,10 @@ describe('CALL_AS_PERSONA: the persona asked places the call', () => {
       /^Hi David, it's Alex, Riley(?: Test)?'s AI friend\./
     );
     expect(beginOnBehalfCall).toHaveBeenCalledTimes(1);
+    // The caller-awareness block the live session adds to the prompt (outboundPartiesFor)
+    const awareness = outboundCallerAwareness(outboundPartiesFor('sess-alex'));
+    expect(awareness).toMatch(/You are Alex, Riley(?: Test)?'s friend\. /);
+    expect(awareness).not.toMatch(/You are Ferni/);
 
     const prompt = await promptOf('sess-alex');
     expect(prompt).toContain("You are Alex, Riley Test's friend.");
@@ -206,6 +218,18 @@ describe('CALL_AS_PERSONA: the persona asked places the call', () => {
       expect(opener).toMatch(/^Hi David, it's Ferni,/);
     }
   );
+
+  it("a retry of Alex's missed call is placed by Alex too", async () => {
+    const { raw } = await ownerAsks('alex-chen');
+    // call-retry.ts rebuilds the request from the dispatch, then builds the retry's dispatch
+    const call = parseOnBehalfDispatch(JSON.parse(raw) as Record<string, unknown>);
+    if (!call) throw new Error('the dispatch did not parse');
+    const request = onBehalfRequestFromDispatch(call);
+    const retry = onBehalfDispatchFor('retry_call-1', { ...request, retryOf: 'call-1' });
+
+    expect(request.callingPersonaId).toBe('alex-chen');
+    expect(retry.persona_id).toBe('alex-chen');
+  });
 
   it('an unknown persona_id in a signed dispatch is read as Ferni', async () => {
     const { raw } = await ownerAsks('alex-chen');
