@@ -26,7 +26,7 @@ export function hold(entry: SessionLog): void {
   if (entry.pending) dropConfirmThread(entry.pending);
   entry.pending = undefined;
   entry.closed = undefined;
-  if (first) log.info('CALL_CONSENT_NATURAL: crisis line heard, outbound held for the call');
+  if (first) log.info('CALL_CONSENT_NATURAL: outbound held for the rest of the call');
 }
 
 /** What a confirmed action runs with: with CALL_CONSENT_NATURAL, the message the owner confirmed
