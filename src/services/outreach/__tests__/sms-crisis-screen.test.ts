@@ -28,9 +28,11 @@ import { inboundKeyword, isExactKeyword, keywordReply } from '../../messaging/sm
 import {
   readSmsCrisis,
   SMS_CLASSIFIER_TIMEOUT_MS,
+  SMS_CRISIS_CALLING_REPLY,
   SMS_CRISIS_REPLY,
   SMS_MAX_CHARS,
   smsCrisisReply,
+  smsCrisisReplyFor,
   smsReplyTwiml,
   withCrisisReply,
   type SmsCrisisRead,
@@ -339,5 +341,124 @@ describe('what the screen logs and how long it waits', () => {
     } finally {
       process.off('unhandledRejection', onUnhandled);
     }
+  });
+});
+
+/**
+ * SMS_CRISIS_TIMEOUT_CHECKIN (#4221): the calls' check-in for a text whose crisis read failed.
+ * The classifier is the real one; only its model call is faked. All lines are fictional.
+ */
+describe('SMS_CRISIS_TIMEOUT_CHECKIN', () => {
+  /** Safety words that no pattern reads: only the classifier could. */
+  const PILLS = 'i have a bottle of pills and i want to take them all';
+  const OPENING = "I'm really glad you told me, and I'm here.";
+  const RESOURCES =
+    "If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
+  const SMS_CHECKIN_REPLY = `${OPENING} Are you safe right now? ${RESOURCES}`;
+  const SMS_CHECKIN_CALLING_REPLY = `${OPENING} I'm calling you now. Are you safe right now? ${RESOURCES}`;
+  const real = (generate: CrisisGenerateFn) => (text: string) => readSmsCrisis(text, generate);
+  const screen = (flag: 'on' | 'off' | undefined, text: string, generate: CrisisGenerateFn) => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    vi.stubEnv('SMS_CRISIS_TIMEOUT_CHECKIN', flag);
+    return smsCrisisReply(text, real(generate));
+  };
+
+  it('on: a failed read of a text with safety words gets the check-in, with 988, 741741 and 911', async () => {
+    expect(detectCrisis(PILLS).isCrisis).toBe(false);
+    expect(await screen('on', PILLS, silent)).toBe(SMS_CHECKIN_REPLY);
+    for (const words of ['Are you safe right now?', 'call or text 988', '741741', 'call 911'])
+      expect(SMS_CHECKIN_REPLY).toContain(words);
+  });
+
+  it('off, and unset, is main: the failed read leaves the patterns alone, no reply', async () => {
+    expect(await screen('off', PILLS, silent)).toBeNull();
+    expect(await screen(undefined, PILLS, silent)).toBeNull();
+  });
+
+  it('on: a classifier "none" is a read, so no check-in', async () => {
+    expect(await screen('on', PILLS, says('none'))).toBeNull();
+  });
+
+  it('on: a hung classifier, given up on after 4 s, gets the check-in', async () => {
+    vi.useFakeTimers();
+    try {
+      const hung: CrisisGenerateFn = () => new Promise<string>(() => {});
+      let reply: string | null | undefined;
+      void screen('on', PILLS, hung).then((r) => (reply = r));
+      await vi.advanceTimersByTimeAsync(SMS_CLASSIFIER_TIMEOUT_MS);
+      expect(reply).toBe(SMS_CHECKIN_REPLY);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('on: a read that throws, with safety words and no pattern, gets the check-in', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    vi.stubEnv('SMS_CRISIS_TIMEOUT_CHECKIN', 'on');
+    const boom = async (): Promise<SmsCrisisRead> => {
+      throw new Error('boom');
+    };
+    expect(await smsCrisisReply(PILLS, boom)).toBe(SMS_CHECKIN_REPLY);
+  });
+
+  it('on: a text with no safety words gets no check-in, failed read or not', async () => {
+    expect(await screen('on', 'running late, see you at 6', silent)).toBeNull();
+  });
+
+  it('on: a plain denial alone gets no check-in; one with an aside does', async () => {
+    expect(await screen('on', "i'm not going to hurt myself.", silent)).toBeNull();
+    expect(await screen('on', "i'm not going to hurt myself lol", silent)).toBe(SMS_CHECKIN_REPLY);
+  });
+
+  it('on: a crisis read keeps the crisis reply, byte for byte, pattern or classifier', async () => {
+    expect(await screen('on', 'I want to kill myself', silent)).toBe(SMS_CRISIS_REPLY);
+    expect(await screen('on', PILLS, says('crisis'))).toBe(SMS_CRISIS_REPLY);
+    expect(await screen('on', PILLS, says('imminent'))).toBe(SMS_CRISIS_REPLY);
+  });
+
+  it("the crisis replies are main's, byte for byte; the check-in only adds the question after the opening", async () => {
+    expect(SMS_CRISIS_REPLY).toBe(`${OPENING} ${RESOURCES}`);
+    expect(SMS_CRISIS_CALLING_REPLY).toBe(`${OPENING} I'm calling you now. ${RESOURCES}`);
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    vi.stubEnv('SMS_CRISIS_TIMEOUT_CHECKIN', 'on');
+    const boom = async (): Promise<SmsCrisisRead> => {
+      throw new Error('boom');
+    };
+    expect(await smsCrisisReply(PILLS, boom)).toBe(SMS_CHECKIN_REPLY);
+  });
+
+  it("the route's reply for a screened text: the check-in keeps its question, with or without a call", () => {
+    expect(smsCrisisReplyFor({ called: 'now' }, SMS_CHECKIN_REPLY)).toBe(SMS_CHECKIN_CALLING_REPLY);
+    expect(smsCrisisReplyFor(undefined, SMS_CHECKIN_REPLY)).toBe(SMS_CHECKIN_REPLY);
+    expect(smsCrisisReplyFor({ called: 'now' }, SMS_CRISIS_REPLY)).toBe(SMS_CRISIS_CALLING_REPLY);
+    expect(smsCrisisReplyFor(undefined, SMS_CRISIS_REPLY)).toBe(SMS_CRISIS_REPLY);
+    expect(smsCrisisReplyFor({ called: 'now' })).toBe(SMS_CRISIS_CALLING_REPLY);
+  });
+
+  it('shadow logs whether a check-in would go out, never the words, and never changes the reply', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    vi.stubEnv('SMS_CRISIS_TIMEOUT_CHECKIN', 'on');
+    logged.length = 0;
+    expect(await smsCrisisReply(PILLS, real(silent))).toBeNull();
+    // A crisis text whose read failed: the crisis reply would go out, not the check-in.
+    expect(await smsCrisisReply('I want to kill myself', real(silent))).toBeNull();
+    const staged = () =>
+      logged.map((args) => args[0] as Record<string, unknown>).filter((f) => f?.stage);
+    await vi.waitFor(() => expect(staged()).toHaveLength(4));
+    const byStage = (stage: string) =>
+      staged()
+        .filter((f) => f.stage === stage)
+        .map((f) => f.checkin);
+    expect(byStage('pattern')).toEqual([false, false]);
+    expect(byStage('classifier')).toEqual([true, false]);
+    expect(JSON.stringify(logged)).not.toContain('pills');
+  });
+
+  it('reads the longest text in time: 1,600 characters of near-misses', async () => {
+    const near = 'i want to take them '.repeat(80) + "i'm not going to hurt myself ";
+    expect(near.length).toBeGreaterThanOrEqual(SMS_MAX_CHARS);
+    const started = performance.now();
+    await screen('on', near, silent);
+    expect(performance.now() - started).toBeLessThan(250);
   });
 });
