@@ -18,6 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 import { isValidAccent, type EnglishAccent } from '../config/voice-accents.js';
 import { getLocalizedVoiceId } from '../services/voice/cartesia-voice-localization.js';
+import { isConsentedCloneVoice } from '../services/voice/consented-clone-voice.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
@@ -57,7 +58,8 @@ interface AccentChangeRequest {
 interface AccentChangeResponse {
   success: boolean;
   accent: EnglishAccent;
-  voiceId: string;
+  /** Left out when the voice is a consented clone or there is none. */
+  voiceId?: string;
   isLocalized: boolean;
   message: string;
 }
@@ -69,6 +71,19 @@ interface AccentChangeResponse {
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
+}
+
+/**
+ * A consented clone's id never reaches the client or becomes a pending voice
+ * change (the persona id comes from the client), and neither does an empty one.
+ */
+function keepsOwnVoice(voiceId: string): boolean {
+  return !voiceId || isConsentedCloneVoice(voiceId);
+}
+
+/** The reply when the voice stays as it is: not localized, and no voice id. */
+function notLocalized(accent: EnglishAccent): AccentChangeResponse {
+  return { success: true, accent, isLocalized: false, message: 'This voice keeps its own accent.' };
 }
 
 // ============================================================================
@@ -131,6 +146,12 @@ export async function handleSessionAccentRoutes(
     try {
       // Get the localized voice ID for this persona + accent
       const localizationResult = await getLocalizedVoiceId(personaId, body.accent);
+
+      if (keepsOwnVoice(localizationResult.voiceId)) {
+        log.info({ sessionId, accent: body.accent, personaId }, 'Accent change: voice kept');
+        sendJson(res, 200, notLocalized(body.accent));
+        return true;
+      }
 
       // Store for the voice agent to pick up on next utterance
       setSessionAccent(sessionId, body.accent, personaId, localizationResult.voiceId);

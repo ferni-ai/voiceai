@@ -28,7 +28,13 @@ export {
   detectCrisis as scoreCrisisLanguage,
   IN_DANGER_NOW,
 } from './crisis-guard.js';
-export { EMERGENCY_FOR_THEM, TALK_TO_988_ES } from './crisis-guard-replies.js';
+export {
+  EMERGENCY_FOR_THEM,
+  getCrisisResponse,
+  LATE_911_LINE,
+  namesCrisisLine,
+  TALK_TO_988_ES,
+} from './crisis-guard-replies.js';
 export { SELF_HARM_911_LINE } from './crisis-script-lines.js';
 // assessSafety's escalate-only phrase floor, read after the guard (crisis-coaching-floor.ts).
 export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-floor.js';
@@ -36,14 +42,32 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
-export { offersCrisisLine } from './crisis-line-speech.js';
+// A crisis pattern holds the call's memory before capture (transcript-handler.ts).
+export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
+// The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
+export { names911, offersCrisisLine, says988 } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
 export { checkin } from './crisis-timeout-checkin.js';
-export { resolveCrisisClassifierTimeoutMs } from './crisis-classifier.js';
+// CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
+export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
+// A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
+export {
+  resolveCrisisClassifierTimeoutMs,
+  startCrisisClassifier,
+  type CrisisClassifierInput,
+  type StartCrisisClassifierOptions,
+} from './crisis-classifier.js';
+// CRISIS_GATE_TURN_READS: the turn's other reads and the line cap (agents/personas/crisis-gate-turn-reads.ts).
+export {
+  MAX_EARLIER_MESSAGES,
+  turnVerdicts,
+  verdictOutcome,
+  type CrisisVerdict,
+} from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
 export { noteSpokenLifeline, shadowGrade, shadowPipelineGrade } from './crisis-graded-shadow.js';
@@ -139,6 +163,9 @@ import {
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
+
+/** Whether a crisis is self-harm: code outside the kernel asks this, never the type name. */
+export const isSelfHarm = (type: CrisisType | undefined): boolean => type === 'self_harm';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -294,13 +321,11 @@ export function performSafetyCheck(
 /** Which reader made the gate's replace decision (crisis-gate.ts). */
 export type CrisisReader = 'pattern' | 'classifier';
 
-/** How long a crisis event is kept: a TTL policy on expireAt deletes it after this. */
-export const CRISIS_EVENT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
-
 /**
  * One crisis_events document (CRISIS_EVENT_RECORD, agents/safety/crisis-event-record.ts):
- * ids, fixed enums and times, never the caller's words. Erased and exported with the
- * account (user-stores.ts, user-records-export.ts).
+ * ids, fixed enums and a time, never the caller's words. Kept permanently: it carries no
+ * expiry field, so no TTL policy can delete it (Seth, 2026-11-13). Erased and exported with
+ * the account (user-stores.ts, user-records-export.ts).
  */
 export interface StoredCrisisEvent {
   userId: string;
@@ -312,8 +337,6 @@ export interface StoredCrisisEvent {
   /** The script spoken names 988 or 911 */
   resourcesProvided: boolean;
   createdAt: Date;
-  /** The TTL field, a Date (stored as a Timestamp): createdAt + CRISIS_EVENT_RETENTION_MS */
-  expireAt: Date;
 }
 
 /**
@@ -322,12 +345,10 @@ export interface StoredCrisisEvent {
  * logged with ids and an error code only.
  */
 export async function recordCrisisEvent(
-  event: Omit<StoredCrisisEvent, 'createdAt' | 'expireAt'>,
+  event: Omit<StoredCrisisEvent, 'createdAt'>,
   firestore?: Firestore
 ): Promise<void> {
   const { userId, sessionId, personaId, crisisType, severity, reader, resourcesProvided } = event;
-  const createdAt = new Date();
-  const expireAt = new Date(createdAt.getTime() + CRISIS_EVENT_RETENTION_MS);
   const stored: StoredCrisisEvent = {
     userId,
     sessionId,
@@ -336,8 +357,7 @@ export async function recordCrisisEvent(
     severity,
     reader,
     resourcesProvided,
-    createdAt,
-    expireAt,
+    createdAt: new Date(),
   };
   const db = firestore ?? getFirestoreInstance();
   try {

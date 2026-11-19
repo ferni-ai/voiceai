@@ -243,7 +243,9 @@ export async function handleOutreachWebhookRoutes(
         const reminded = async () => withHeldMinorAiReminder(reply, await heldMinor);
         twiml = (await afterScreen('aiReminder', true, reminded)) ?? reply;
       }
-      const used = signed && (await recordSignedInbound(body, text, !!crisis));
+      // SMS_REPLY: the reply's own crisis read counts too (no START or YES from that text).
+      const read = !!crisis || result?.crisis === true;
+      const used = signed && (await recordSignedInbound(body, text, read));
       // SMS_REPLY_UNVERIFIED: a stranger's text that no crisis read or record answered.
       if (signed && !used && !crisis && result?.unverified) {
         const from = String(body.From ?? '');

@@ -63,6 +63,9 @@ const N = `(?:${[...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)].join('|')})`;
 const re = (source: string, flags = 'i'): RegExp => new RegExp(source, flags);
 const NAMES = new Set<string>([...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)]);
 
+/** A line that is only a name: "Nayan?", "maya please", "Peter, you there?". */
+const BARE_NAME = re(`^\\W*${N}\\W*(?:please|you there)?\\W*$`);
+
 /** Asking for a teammate, or planning to go to one; never in the past tense. */
 const ASKS_FOR = [
   re(`\\b(?:talk|talking|speak|speaking|chat|chatting)\\s+(?:to|with|w/|2)\\s+${N}\\b`),
@@ -74,7 +77,7 @@ const ASKS_FOR = [
   re(`\\b(?:can i have|i need|i want|gimme|give me|go with|have)\\s+${N}\\b`),
   re(`\\b(?:ask|asking)\\s+${N}\\b`),
   re(`\\b(?:is|can)\\s+${N}\\s+(?:there|around|available|free|join|help)\\b`),
-  re(`^\\W*${N}\\W*(?:please|you there)?\\W*$`),
+  BARE_NAME,
 ];
 
 /**
@@ -284,4 +287,34 @@ export function namesTeammateOnCall(text: string, turns: readonly CallTurn[]): b
     ];
     return !theirs.some((p) => p.test(text));
   });
+}
+
+/** The asks that hold inside one clause of a line (a bare name holds only for the whole line). */
+const ASKS_IN_A_CLAUSE = ASKS_FOR.filter((p) => p !== BARE_NAME);
+
+/** A teammate's name said to them ("hey Jordan, …", "…, thanks Maya"), Ferni's own excepted. */
+function namesATeammateTo(clause: string): boolean {
+  return [VOCATIVE_START, VOCATIVE_END].some((p) => {
+    const said = p.exec(clause)?.[0].match(re(`\\b${N}\\b`))?.[0];
+    return said !== undefined && firstName(said.toLowerCase()) !== 'ferni';
+  });
+}
+
+/**
+ * True when a live caller line asks for a teammate ("can I talk to Maya", "is Peter around?",
+ * "go back to Ferni", a bare "Nayan?") or says a teammate's name to them ("hey Jordan, can you
+ * help me plan"), in a clause with no sign of someone in their life who shares the name ("my
+ * friend Alex", "I talked to Maya", "Jordan's wedding"). Ferni's own name said to him ("hey
+ * Ferni, long day") is not an ask. Life news does not clear it: "I got laid off, can I talk to
+ * Peter" still asks for Peter. The fast lane reads it: a handoff needs the main model's tool choice.
+ */
+export function asksForTeammate(text: string): boolean {
+  const line = text.trim();
+  // The whole line, not its clauses: splitting "Ferni, I finally finished it" leaves a bare
+  // "Ferni", and "Maya, I had a rough day" loses the comma that marks the name said to her.
+  if (BARE_NAME.test(line)) return true;
+  if (!knowsThem(line) && namesATeammateTo(line)) return true;
+  return clauses(line).some(
+    (c) => !knowsThem(c) && (ASKS_IN_A_CLAUSE.some((p) => p.test(c)) || namesATeammateTo(c))
+  );
 }

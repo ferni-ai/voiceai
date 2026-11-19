@@ -9,6 +9,8 @@
  * @module services/outreach/morning-brief/compose
  */
 
+import { withoutDashes } from '../../../utils/text-utils.js';
+
 export const MAX_CHARS = 320;
 /** How many of each list to try before shortening to fit. */
 const FIRST_TRY = { today: 4, due: 3, open: 3 } as const;
@@ -66,8 +68,7 @@ function withoutContacts(text: string): string {
 
 /** One item, safe for the brief: no dashes, ellipses, emoji or contact details, at most ITEM_CHARS. */
 export function cleanItem(raw: string): string {
-  const s = withoutContacts(raw)
-    .replace(/\s*[—–]\s*/g, ', ')
+  const s = withoutDashes(withoutContacts(raw))
     .replace(/…|\.{2,}/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()

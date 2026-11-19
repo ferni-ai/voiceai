@@ -250,7 +250,7 @@ describe('a profile zone reaches a call only through phone-parity.ts', () => {
     'agents/voice-agent-entry/phone-parity.ts': 'the guard itself',
     'tools/domains/telephony/call-on-behalf.ts': "the sponsor's zone, for a call they asked for",
     'tools/domains/proactive/outreach/service.ts':
-      'delivery to the account; its schedule_reminder is in proactiveOutreachTools, which nothing loads',
+      'delivery to the account: the zone its scheduled texts, emails and calls go out in',
     'tools/domains/family/leave-message-tool.ts':
       "the sponsor's own reminder's delivery zone; the time is parsed without it",
     'services/outreach/user-contact.ts': "the account's contact info, stored with delivery to it",

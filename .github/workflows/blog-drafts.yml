@@ -138,12 +138,20 @@ jobs:
           service_account: ferni-ci-blog@johnb-2025.iam.gserviceaccount.com
 
       # Exits 1 when the draft still fails the brand gate after one retry.
+      # With the BLOG_REVISE repo variable set to `on` (unset means off), the
+      # judge scores the clean draft and a failing one is rewritten once with
+      # its notes (draft.ts); the judge key reaches this step only then.
       - name: Draft the post
         id: draft
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           GOOGLE_CLOUD_PROJECT: johnb-2025
           GOOGLE_CLOUD_LOCATION: global
+          # The repetition rule in the brand gate (brand-gate.ts), off unless the variable is "on".
+          BLOG_REPEAT_GATE: ${{ vars.BLOG_REPEAT_GATE == 'on' && 'on' || 'off' }}
+          BLOG_REVISE: ${{ vars.BLOG_REVISE == 'on' && 'on' || 'off' }}
+          ANTHROPIC_API_KEY: ${{ vars.BLOG_REVISE == 'on' && secrets.ANTHROPIC_API_KEY || '' }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.BLOG_REVISE == 'on' && secrets.ANTHROPIC_WORKSPACE_ID || '' }}
         run: |
           META="$RUNNER_TEMP/draft-meta.json"
           pnpm tsx scripts/blog/draft-post.ts --type "$TYPE" --meta-out "$META"
@@ -196,6 +204,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
         run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::The ANTHROPIC_API_KEY repo secret is not set, so the editorial judge can't run and no post can publish."
+          fi
           pnpm tsx scripts/blog/judge-post.ts "$DRAFT" --meta "$RUNNER_TEMP/draft-meta.json" \
             --out "$RUNNER_TEMP/judge.md"
 
@@ -217,7 +228,7 @@ jobs:
           set -euo pipefail
           META="$RUNNER_TEMP/draft-meta.json"
           file=${DRAFT#"$GITHUB_WORKSPACE/"}
-          title=$(sed -n 's/^title: //p' "$DRAFT" | head -1 | jq -r .)
+          title=$(sed -n 's/^title: //p' "$DRAFT" | sed -n 1p | jq -r .)
           day=$(date -u +%F)
           branch="blog/draft-$TYPE-$day"
           if gh api "repos/$REPO/git/ref/heads/$branch" > /dev/null 2>&1; then

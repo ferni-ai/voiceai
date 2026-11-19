@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { voice } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
+import { labelTurn, stripTurnLabel } from '../../group-conversation/turn-label.js';
 import { finishedTurnMinDelayMs, installFinishedTurnEndpointing } from '../unfinished-turn.js';
 
 describe('finishedTurnMinDelayMs', () => {
@@ -28,6 +29,10 @@ describe('finishedTurnMinDelayMs', () => {
   });
 });
 
+/** A solo call's transcripts, and no one listening for floor changes. */
+const asSaid = (transcript: string): string => transcript;
+const noted = (): void => undefined;
+
 function fakeSession() {
   const events = new EventEmitter();
   const floors: number[] = [];
@@ -44,14 +49,14 @@ function fakeSession() {
 describe('installFinishedTurnEndpointing', () => {
   it('is off unless ENDPOINT_FAST_FINISHED=on', () => {
     const { session, floors, say } = fakeSession();
-    expect(installFinishedTurnEndpointing(session, 300, {})).toBeNull();
+    expect(installFinishedTurnEndpointing(session, 300, {}, noted, asSaid)).toBeNull();
     say('Should I push back on my manager?');
     expect(floors).toEqual([]);
   });
 
   it('follows the latest words: fast on a finished sentence, back when they go on', () => {
     const { session, floors, say } = fakeSession();
-    installFinishedTurnEndpointing(session, 300, { ENDPOINT_FAST_FINISHED: 'on' });
+    installFinishedTurnEndpointing(session, 300, { ENDPOINT_FAST_FINISHED: 'on' }, noted, asSaid);
     say('My manager moved the deadline', false);
     say('My manager moved the deadline up to Friday.');
     say('and I', false);
@@ -61,20 +66,49 @@ describe('installFinishedTurnEndpointing', () => {
 
   it('honours ENDPOINT_FINISHED_MIN_MS', () => {
     const { session, floors, say } = fakeSession();
-    installFinishedTurnEndpointing(session, 300, {
-      ENDPOINT_FAST_FINISHED: 'on',
-      ENDPOINT_FINISHED_MIN_MS: '200',
-    });
+    installFinishedTurnEndpointing(
+      session,
+      300,
+      { ENDPOINT_FAST_FINISHED: 'on', ENDPOINT_FINISHED_MIN_MS: '200' },
+      noted,
+      asSaid
+    );
     say('Should I push back on my manager?');
     expect(floors).toEqual([200]);
   });
 
   it('never changes the floor while Ferni is speaking', () => {
     const { session, floors, say } = fakeSession();
-    installFinishedTurnEndpointing(session, 300, { ENDPOINT_FAST_FINISHED: 'on' });
+    installFinishedTurnEndpointing(session, 300, { ENDPOINT_FAST_FINISHED: 'on' }, noted, asSaid);
     session.agentState = 'speaking';
     say('Wait, hold on, that is not what I meant.');
     expect(floors).toEqual([]);
+  });
+
+  it('a group call turn gets the floor its words get, not its label', () => {
+    const solo = fakeSession();
+    installFinishedTurnEndpointing(
+      solo.session,
+      300,
+      { ENDPOINT_FAST_FINISHED: 'on' },
+      noted,
+      asSaid
+    );
+    solo.say('Yeah, sure.');
+    const call = {};
+    const group = fakeSession();
+    installFinishedTurnEndpointing(
+      group.session,
+      300,
+      { ENDPOINT_FAST_FINISHED: 'on' },
+      () => undefined,
+      (transcript) => stripTurnLabel(call, transcript)
+    );
+    group.say(labelTurn(call, 'unclear', 'Yeah, sure.'));
+    expect(group.floors).toEqual(solo.floors); // both keep the base floor: two words
+    expect(solo.floors).toEqual([]);
+    group.say(labelTurn(call, 'unclear', 'Should I push back?'));
+    expect(group.floors).toEqual([150]);
   });
 
   it("moves LiveKit's own endpointing floor through the public session API", () => {
@@ -90,7 +124,9 @@ describe('installFinishedTurnEndpointing', () => {
     installFinishedTurnEndpointing(
       session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
       300,
-      { ENDPOINT_FAST_FINISHED: 'on' }
+      { ENDPOINT_FAST_FINISHED: 'on' },
+      noted,
+      asSaid
     );
     (session as unknown as EventEmitter).emit('user_input_transcribed', {
       transcript: 'Should I push back on him?',

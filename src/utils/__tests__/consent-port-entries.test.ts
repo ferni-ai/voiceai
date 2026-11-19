@@ -8,7 +8,7 @@
  * workers and the tool service are checked in their source. Each deployed
  * Dockerfile entry must be one of these, or listed as sending nothing.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +18,6 @@ vi.mock('../../services/outreach/forget-follow-ups-adapter.js', () => ({
 }));
 vi.mock('../../memory/dynamic/async-events-config.js', () => ({ configureAsyncEvents: vi.fn() }));
 vi.mock('../../memory/dynamic/index.js', () => ({
-  configureSyncService: vi.fn(),
   startDeepExtractionWorker: vi.fn(),
 }));
 vi.mock('../../memory/knowledge-graph/index.js', () => ({
@@ -41,6 +40,7 @@ vi.mock('../../agents/shared/session-closing-tracker.js', () => ({
 
 import { startProcessRuntime } from '../../agents/gce/process-runtime.js';
 import { installUiServerPorts } from '../../services/outreach/ui-server-ports.js';
+import { deployedEntries } from '../../tests/helpers/deployed-entries.js';
 import { registerMessagingConsent } from '../../services/messaging/consent.js';
 import {
   consentBlocks,
@@ -131,16 +131,7 @@ describe('the consent check is registered in every process that sends', () => {
       'dist/services/context-service/server.js',
       'token-server.js',
     ];
-    const dockerfiles = [
-      ...readdirSync(join(ROOT, 'docker')).map((f) => `docker/${f}`),
-      ...readdirSync(ROOT).filter((f) => f.startsWith('Dockerfile')),
-    ].filter((f) => /Dockerfile/.test(f));
-    const entries = dockerfiles.flatMap((f) =>
-      [...read(f).matchAll(/^CMD \[(.*)\]$/gm)].map((m) => {
-        const args = JSON.parse(`[${m[1]}]`) as string[];
-        return args.find((a) => /\.(js|ts)$/.test(a)) ?? '';
-      })
-    );
+    const entries = deployedEntries();
     expect(entries.length).toBeGreaterThan(0);
     for (const entry of entries) expect([...checked, ...sendsNothing], entry).toContain(entry);
   });

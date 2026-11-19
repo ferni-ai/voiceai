@@ -29,12 +29,3 @@ export {
   getMemoryAdapter,
   resetMemoryAdapter,
 } from './memory-adapter.js';
-
-export {
-  SpannerAdapter,
-  getSpannerAdapter,
-  resetSpannerAdapter,
-  type SpannerAdapterConfig,
-  type GraphQuery,
-  type GraphMemoryResult,
-} from './spanner-adapter.js';

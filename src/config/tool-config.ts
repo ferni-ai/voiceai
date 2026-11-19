@@ -28,7 +28,7 @@ import { countMenuPinned, isMenuPinnedTool } from './menu-tools-pinned.js';
 import { isPrivacyTool, PRIVACY_TOOLS } from './privacy-tools.js';
 import {
   isLeanAlwaysOnTool,
-  LEAN_ALWAYS_ON_TOOLS,
+  leanAlwaysOnTools,
   sameTurnToolsEnabled,
 } from './same-turn-tools-config.js';
 import { isVoiceTicTacToeTool } from './voice-tictactoe.js';
@@ -411,7 +411,7 @@ export function isEssentialTool(toolName: string): boolean {
  * Get the essential tools list
  */
 export function getEssentialTools(): readonly string[] {
-  if (sameTurnToolsEnabled()) return Object.keys(LEAN_ALWAYS_ON_TOOLS);
+  if (sameTurnToolsEnabled()) return Object.keys(leanAlwaysOnTools());
   return getToolConfig().essentialTools;
 }
 

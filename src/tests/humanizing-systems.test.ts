@@ -87,6 +87,25 @@ function createMockTextEmotion(overrides: Partial<EmotionResult> = {}): EmotionR
   };
 }
 
+/**
+ * Calls `draw` once per point of an even grid over [0, 1), with Math.random
+ * returning that point for every call inside the draw. Each outcome then shows
+ * up in proportion to its probability, the same on every run.
+ */
+function overRandomGrid<T>(draw: () => T, points = 1000): T[] {
+  const random = vi.spyOn(Math, 'random');
+  try {
+    const outcomes: T[] = [];
+    for (let i = 0; i < points; i++) {
+      random.mockReturnValue((i + 0.5) / points);
+      outcomes.push(draw());
+    }
+    return outcomes;
+  } finally {
+    random.mockRestore();
+  }
+}
+
 function createMockPersona(overrides: Partial<PersonaConfig> = {}): PersonaConfig {
   return {
     id: 'ferni',
@@ -291,22 +310,21 @@ describe('Spontaneous Vulnerability', () => {
         relationshipStage: 'friend',
         userEmotion: 'neutral',
         userEmotionIntensity: 0.5,
-        recentShareCount: 5, // Already shared a lot
+        recentShareCount: 0,
         conversationFlow: 'flowing' as const,
         timeOfDay: 'afternoon' as const,
       };
+      const sharesAt = (recentShareCount: number) =>
+        overRandomGrid(() =>
+          selectSpontaneousShare('ferni', { ...context, recentShareCount }, [])
+        ).filter(Boolean).length;
 
-      // With high share count, should rarely select
-      let shareCount = 0;
-      for (let i = 0; i < 20; i++) {
-        if (selectSpontaneousShare('ferni', context, [])) {
-          shareCount++;
-        }
-      }
+      const neverShared = sharesAt(0);
+      const sharedOften = sharesAt(5); // Already shared a lot
 
-      // Should be relatively low due to recentShareCount (probabilistic, allow some variance)
-      // Increased tolerance from 12 to 16 due to random variance in CI
-      expect(shareCount).toBeLessThanOrEqual(16);
+      // Same draws and context; only the share count differs.
+      expect(neverShared).toBeGreaterThan(0);
+      expect(sharedOften).toBeLessThan(neverShared);
     });
 
     it('should return persona-specific content', () => {
@@ -399,20 +417,16 @@ describe('Persona Mood States', () => {
         recentConversationCount: 0,
       };
 
-      // Sample moods
-      const moodCounts: Record<string, number> = {};
-      for (let i = 0; i < 100; i++) {
-        const mood = selectPersonaMood(persona, nightContext);
-        moodCounts[mood.state] = (moodCounts[mood.state] || 0) + 1;
-      }
+      // Night moods (tired, philosophical, nostalgic) should be more common at night than
+      // in the afternoon, over the same draws
+      const nightMoodsAt = (context: Parameters<typeof selectPersonaMood>[1]) =>
+        overRandomGrid(() => selectPersonaMood(persona, context).state).filter((state) =>
+          ['tired_but_present', 'philosophical', 'nostalgic'].includes(state)
+        ).length;
 
-      // Night moods (tired, philosophical, nostalgic) should be more common
-      const nightMoods =
-        (moodCounts.tired_but_present || 0) +
-        (moodCounts.philosophical || 0) +
-        (moodCounts.nostalgic || 0);
-
-      expect(nightMoods).toBeGreaterThan(30);
+      expect(nightMoodsAt(nightContext)).toBeGreaterThan(
+        nightMoodsAt({ ...nightContext, timeOfDay: 'afternoon' })
+      );
     });
 
     it('should bias toward playful on weekends', () => {
@@ -431,18 +445,13 @@ describe('Persona Mood States', () => {
         isWeekend: false,
       };
 
-      // Sample moods
-      let weekendPlayful = 0;
-      let weekdayPlayful = 0;
+      const playfulAt = (context: typeof weekendContext) =>
+        overRandomGrid(() => selectPersonaMood(persona, context).state).filter(
+          (state) => state === 'playful'
+        ).length;
 
-      for (let i = 0; i < 100; i++) {
-        if (selectPersonaMood(persona, weekendContext).state === 'playful') weekendPlayful++;
-        if (selectPersonaMood(persona, weekdayContext).state === 'playful') weekdayPlayful++;
-      }
-
-      // Allow some variance in probabilistic tests - weekends should generally be more playful
-      // but random sampling may occasionally produce opposite results
-      expect(weekendPlayful + weekdayPlayful).toBeGreaterThan(0); // At least some playful moods
+      // Same draws for both days
+      expect(playfulAt(weekendContext)).toBeGreaterThan(playfulAt(weekdayContext));
     });
 
     it('should include mood-specific phrases', () => {

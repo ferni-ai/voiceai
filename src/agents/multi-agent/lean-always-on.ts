@@ -13,7 +13,7 @@
  *
  * @module agents/multi-agent/lean-always-on
  */
-import { LEAN_ALWAYS_ON_TOOLS } from '../../config/same-turn-tools-config.js';
+import { leanAlwaysOnTools } from '../../config/same-turn-tools-config.js';
 import { isEssentialTool } from '../../config/tool-config.js';
 import { toolRegistry } from '../../tools/registry/index.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
@@ -31,10 +31,11 @@ export async function withLeanAlwaysOnTools<T>(
   ctx: ToolContext
 ): Promise<Record<string, T>> {
   const kept = Object.fromEntries(Object.entries(tools).filter(([name]) => isEssentialTool(name)));
-  const missing = Object.keys(LEAN_ALWAYS_ON_TOOLS).filter((name) => !(name in kept));
+  const always = leanAlwaysOnTools(); // with the task tools while TASK_TOOLS_ALWAYS_ON is on
+  const missing = Object.keys(always).filter((name) => !(name in kept));
   if (missing.length === 0) return kept;
   try {
-    const domains = new Set(missing.map((name) => LEAN_ALWAYS_ON_TOOLS[name] as ToolDomain));
+    const domains = new Set(missing.map((name) => always[name] as ToolDomain));
     await loadToolDomainsLazy([...domains]);
     const built = toolRegistry.buildToolSet({ optional: missing }, ctx).tools;
     return { ...kept, ...(built as Record<string, T>) };

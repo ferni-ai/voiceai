@@ -216,8 +216,12 @@ const mockLogger = {
   child: vi.fn(() => mockLogger),
 };
 
-// Mock safe-logger globally - must export ALL functions used across codebase
-vi.mock('../utils/safe-logger.js', () => {
+// Mock safe-logger globally - must export ALL functions used across codebase.
+// replyForLog, repliesForLog and isFullLoggingEnabled are the REAL ones: with no
+// FIRESTORE_DATABASE set a test sees the prod answer, a length (guarded by
+// utils/__tests__/reply-for-log-setup-mock.test.ts).
+vi.mock('../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('./helpers/real-reply-for-log.js');
   const createMockLogger = () => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -238,9 +242,7 @@ vi.mock('../utils/safe-logger.js', () => {
       }
       return error;
     }),
-    isFullLoggingEnabled: vi.fn(() => false),
-    replyForLog: vi.fn((value: unknown) => (typeof value === 'string' ? value : '')),
-    repliesForLog: vi.fn((values: unknown) => (Array.isArray(values) ? values : [])),
+    ...(await realReplyForLog()),
     setErrorLogSink: vi.fn(),
     truncateForLog: vi.fn((value: unknown, maxLength?: number) =>
       typeof value === 'string' && maxLength ? value.slice(0, maxLength) : value

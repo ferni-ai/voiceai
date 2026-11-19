@@ -15,6 +15,11 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import {
+  getTranslatedStageName,
+  getTranslatedStageTagline,
+  relationshipStageService,
+} from './relationship-stage.service.js';
 import type { YourStoryData } from '../ui/visualizations/index.js';
 import {
   toEmotionalArcs,
@@ -111,10 +116,18 @@ export async function fetchYourStory(): Promise<YourStoryResult> {
   try {
     log.debug({ userId }, 'Fetching Your Story data');
 
-    const response = await apiGet<ApiStoryResponse>('/api/your-story/full');
+    // The header's days, count and stage are the one relationship record every surface shows
+    const [response] = await Promise.all([
+      apiGet<ApiStoryResponse>('/api/your-story/full'),
+      relationshipStageService.loadFromBackend(),
+    ]);
 
     if (!response.ok || !response.data?.success) {
       log.warn({ error: response.error }, 'Your Story API error');
+      return { status: 'error' };
+    }
+    if (relationshipStageService.factsStatus() !== 'known') {
+      log.warn('Relationship record unavailable: no header numbers to show');
       return { status: 'error' };
     }
 
@@ -135,22 +148,24 @@ export async function fetchYourStory(): Promise<YourStoryResult> {
  * Transform API response into YourStoryData format for visualizations.
  */
 function transformApiResponse(api: ApiStoryResponse['data'], userId: string): YourStoryData {
+  const metrics = relationshipStageService.getMetrics();
+  const stage = relationshipStageService.getStage();
   return {
     userId,
     timestamp: api.lastUpdated || new Date().toISOString(),
 
     // Analytics (header stats)
+    // Days, count and stage: the server's sessions-together record (relationshipStageService),
+    // the same numbers as the journey card and What I'm Noticing, not the story's own header
     analytics: {
-      daysTogether: api.header.daysTogether,
-      conversations: api.header.totalConversations,
+      daysTogether: metrics.daysSinceFirstMeeting,
+      conversations: metrics.totalConversations,
       streak: api.header.currentStreak,
     },
-
-    // Relationship stage
     stage: {
-      name: api.relationship.stageLabel,
-      progress: api.relationship.progress / 100, // API returns 0-100, UI expects 0-1
-      tagline: api.relationship.tagline,
+      name: getTranslatedStageName(stage),
+      progress: relationshipStageService.getProgressToNextStage().progress,
+      tagline: getTranslatedStageTagline(stage),
     },
 
     // The milestones the server says were reached (it dropped them all before)

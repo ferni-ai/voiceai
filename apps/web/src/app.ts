@@ -932,8 +932,8 @@ class VoiceAIApp {
       await initAdminDashboard();
     } else {
       // New unified Admin Portal
-      const { initAdminPortal } = await import('./admin/index.js');
-      await initAdminPortal();
+      const { openAdminPortal } = await import('./admin/index.js');
+      await openAdminPortal();
     }
 
     this.isInitialized = true;
@@ -1479,9 +1479,7 @@ class VoiceAIApp {
       const { initHumanizationBridge } = await import('./services/humanization-bridge.service.js');
       const { initProactiveOutreachUI } = await import('./ui/proactive-outreach.ui.js');
       const { initTeamInsightsUI } = await import('./ui/team-insights.ui.js');
-      const { initCrossTeamNotifications } =
-        await import('./services/cross-team-notifications.service.js');
-      const { initVoiceEvents } = await import('./services/voice-events.service.js');
+      const { startPerPersonStreams } = await import('./app/per-person-streams.js');
 
       initFerniEQ();
       initHumanizationBridge();
@@ -1493,12 +1491,8 @@ class VoiceAIApp {
       const { initVisualSystems } = await import('./app/visual-systems.js');
       initVisualSystems(appState.get('activePersona').id);
 
-      // Initialize cross-team notifications with userId if available
-      const userId = appState.get('deviceId');
-      if (userId) {
-        initCrossTeamNotifications(userId);
-        initVoiceEvents(userId);
-      }
+      // Insights and voice events wait for sign-in and use the authed uid, never the device id
+      startPerPersonStreams().catch((error) => log.warn('Per-person streams did not start', error));
 
       // Set up gentle check-in handler for significant concern detection
       this.addTrackedListener(document, 'ferni:gentle-checkin', ((e: CustomEvent) => {

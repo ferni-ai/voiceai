@@ -7,7 +7,6 @@ vi.mock('../../../memory/dynamic/async-events-config.js', () => ({
   configureAsyncEvents: track('configureAsyncEvents'),
 }));
 vi.mock('../../../memory/dynamic/index.js', () => ({
-  configureSyncService: track('configureSyncService'),
   startDeepExtractionWorker: track('startDeepExtractionWorker'),
 }));
 vi.mock('../../../memory/knowledge-graph/index.js', () => ({
@@ -48,7 +47,6 @@ describe('startProcessRuntime', () => {
       'configureAsyncEvents',
       'startDeepExtractionWorker',
       'initializeKnowledgeCapture',
-      'configureSyncService',
       'startOrphanCleanup',
       'startRegistryOrphanCleanup',
       'startClosingTrackerCleanup',

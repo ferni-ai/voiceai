@@ -384,12 +384,12 @@ function getApiCategories(): ApiCategory[] {
       name: 'Admin',
       icon: ICON_LOCK,
       endpoints: [
-        { method: 'GET', path: '/api/v1/admin/flags', description: 'List all feature flags', auth: 'admin' },
+        { method: 'GET', path: '/api/v1/admin/flags', description: 'List the trust flags', auth: 'admin' },
         { method: 'GET', path: '/api/v1/admin/flags/:id', description: 'Get specific flag', auth: 'admin' },
         { method: 'PUT', path: '/api/v1/admin/flags/:id', description: 'Update flag', auth: 'admin' },
         { method: 'POST', path: '/api/v1/admin/flags/:id/toggle', description: 'Toggle flag', auth: 'admin' },
-        { method: 'POST', path: '/api/v1/admin/flags/enable-all', description: 'Enable all flags', auth: 'admin' },
-        { method: 'POST', path: '/api/v1/admin/flags/disable-all', description: 'Kill switch - disable all', auth: 'admin' },
+        { method: 'POST', path: '/api/v1/admin/flags/enable-all', description: 'Enable every trust flag (100% rollout)', auth: 'admin' },
+        { method: 'POST', path: '/api/v1/admin/flags/disable-all', description: 'Kill switch: disable every trust flag (0% rollout)', auth: 'admin' },
       ],
     },
     {

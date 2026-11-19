@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isKnownDevDatabase } from '../../../config/firestore-database.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
 import { getKeywordWord, getKeywordWeight } from '../types.js';
 import { getEmbedding } from '../embedding-providers.js';
@@ -74,6 +75,16 @@ interface LearnedRetrieverConfig {
 // ============================================================================
 // LEARNED RETRIEVER CLASS
 // ============================================================================
+
+/**
+ * What a log line keeps of the caller's words: the length everywhere, the words
+ * themselves only on dev's Firestore database (the dev agent and PR previews).
+ */
+function queryForLog(query: string): { queryLength: number; query?: string } {
+  return isKnownDevDatabase()
+    ? { queryLength: query.length, query }
+    : { queryLength: query.length };
+}
 
 export class LearnedRetriever {
   private profiles = new Map<string, LearnedToolProfile>();
@@ -156,7 +167,7 @@ export class LearnedRetriever {
    * Add a correction to improve routing
    */
   async addCorrection(query: string, predictedTool: string, actualTool: string): Promise<void> {
-    log.info({ query, predictedTool, actualTool }, 'Processing correction');
+    log.info({ ...queryForLog(query), predictedTool, actualTool }, 'Processing correction');
 
     // Get query embedding
     const embedding = await getEmbedding(query);
@@ -386,7 +397,7 @@ export class LearnedRetriever {
     const allEmbeddings = profile.exampleEmbeddings.map((ex) => ex.embedding);
     profile.centroidEmbedding = this.computeCentroid(allEmbeddings);
 
-    log.debug({ toolId: profile.toolId, query }, 'Added example to profile');
+    log.debug({ toolId: profile.toolId, ...queryForLog(query) }, 'Added example to profile');
   }
 
   private tokenize(text: string): string[] {

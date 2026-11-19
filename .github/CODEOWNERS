@@ -6,6 +6,9 @@
 /.github/workflows/   @sethdford
 /.github/actions/     @sethdford
 /scripts/ci/          @sethdford
+# The Planted Bugs check and its runner, by name (the lines above cover them today).
+/.github/workflows/plants.yml @sethdford
+/scripts/ci/plants/           @sethdford
 
 # Quality gates. They fail only on what a PR adds, measured against its merge base
 # (merge-base.ts below); these files decide what counts as a violation, so a change to
@@ -65,6 +68,7 @@
 /src/agents/multi-agent/early-goodbye-call.ts @sethdford
 /src/agents/multi-agent/family-table.ts @sethdford
 /src/agents/multi-agent/handoff-failed-say-so.ts @sethdford
+/src/agents/multi-agent/recall-note.ts @sethdford
 /src/agents/multi-agent/turn-intelligence.ts @sethdford
 /src/agents/personas/action-claim-guard.ts @sethdford
 /src/agents/personas/action-claims.ts @sethdford
@@ -117,6 +121,9 @@
 /src/services/outreach/decision-engine.ts @sethdford
 /src/services/outreach/session-integration.ts @sethdford
 /src/services/outreach/trigger-publisher.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply-reads.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply-text.ts @sethdford
 /src/services/principal-alignment/human-referral.ts @sethdford
 /src/services/principal-alignment/index.ts @sethdford
 /src/services/principal-alignment/referral-resources.ts @sethdford
@@ -149,6 +156,7 @@
 /src/tools/domains/proactive/outreach/owner-message-content.ts @sethdford
 /src/agents/multi-agent/caller-card/index.ts @sethdford
 /src/agents/multi-agent/caller-card/wiring.ts @sethdford
+/src/agents/multi-agent/call-sheet/wiring.ts @sethdford
 /src/agents/multi-agent/greeting-date.ts @sethdford
 /src/memory/recall/proactive-budget.ts @sethdford
 /src/memory/recall/opener-claim.ts @sethdford
@@ -164,6 +172,7 @@
 /src/agents/multi-agent/agent-setup.ts @sethdford
 /src/agents/multi-agent/first-turn-defer.ts @sethdford
 /src/agents/multi-agent/prediction-check-in.ts @sethdford
+/src/agents/multi-agent/resume-after-drop.ts @sethdford
 /src/agents/personas/ferni-state.ts @sethdford
 /src/agents/personas/friend-repair.ts @sethdford
 /src/agents/personas/life-ledger.ts @sethdford
@@ -177,6 +186,8 @@
 /src/agents/shared/call-timeline.ts @sethdford
 /src/agents/shared/final-transcript-observer.ts @sethdford
 /src/agents/shared/tool-executors/memory-executor.ts @sethdford
+/src/agents/shared/turn-path-capture.ts @sethdford
+/src/agents/shared/turn-receipt-lane.ts @sethdford
 /src/agents/voice-agent-entry/caller-recognition.ts @sethdford
 /src/agents/voice-agent-entry/handler-setup.ts @sethdford
 /src/agents/voice-agent-entry/user-input-transcribed.ts @sethdford
@@ -184,6 +195,7 @@
 /src/agents/voice-agent/audio-processor.ts @sethdford
 /src/agents/voice-agent/cleanup-handler.ts @sethdford
 /src/agents/voice-agent/daily-checkin-handler.ts @sethdford
+/src/agents/voice-agent/echo-window.ts @sethdford
 /src/agents/voice-agent/periodic-sync-handler.ts @sethdford
 /src/agents/voice-agent/session-init-handler.ts @sethdford
 /src/agents/voice-agent/transcript-handler.ts @sethdford
@@ -239,6 +251,7 @@
 /src/services/superhuman/emotional-first-aid.ts @sethdford
 /src/services/superhuman/inside-joke-memory.ts @sethdford
 /src/services/superhuman/relationship-network.ts @sethdford
+/src/services/superhuman/semantic-intelligence/advice-outcome-patterns.ts @sethdford
 /src/services/superhuman/semantic-intelligence/integration.ts @sethdford
 /src/services/superhuman/user-corrections.ts @sethdford
 /src/services/superhuman/wins.ts @sethdford
@@ -260,6 +273,7 @@
 /src/tools/domains/telephony/owner-contact.ts @sethdford
 /src/tools/handoff/transfer-aliases.ts @sethdford
 /src/utils/phrase-match.ts @sethdford
+/src/utils/write-hold.ts @sethdford
 /scripts/crisis-eval/** @sethdford
 /apps/**/*crisis* @sethdford
 /apps/**/*Crisis* @sethdford
