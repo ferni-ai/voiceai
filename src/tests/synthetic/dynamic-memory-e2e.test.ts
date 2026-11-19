@@ -677,55 +677,6 @@ describe('Deep Extraction Worker', () => {
 });
 
 // ============================================================================
-// CONTEXT BUILDER INTEGRATION TESTS
-// ============================================================================
-
-describe('Dynamic Memory Context Builder', () => {
-  // Mock Firestore for context builder tests
-  const mockFirestoreData: {
-    entities: Array<Record<string, unknown>>;
-    facts: Array<Record<string, unknown>>;
-    relationships: Array<Record<string, unknown>>;
-  } = {
-    entities: [],
-    facts: [],
-    relationships: [],
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockFirestoreData.entities = [];
-    mockFirestoreData.facts = [];
-    mockFirestoreData.relationships = [];
-  });
-
-  describe('Configuration', () => {
-    it('should allow configuration', async () => {
-      const { configureDynamicMemory } =
-        await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
-
-      // Should not throw
-      configureDynamicMemory({
-        maxEntities: 5,
-        maxFactsPerEntity: 3,
-      });
-    });
-  });
-
-  describe('Builder Registration', () => {
-    it('should export builder with correct structure', async () => {
-      const { dynamicMemoryContextBuilder } =
-        await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
-
-      expect(dynamicMemoryContextBuilder).toBeDefined();
-      expect(dynamicMemoryContextBuilder.name).toBe('dynamic-memory');
-      expect(dynamicMemoryContextBuilder.priority).toBe(75);
-      expect(typeof dynamicMemoryContextBuilder.build).toBe('function');
-    });
-  });
-});
-
-// ============================================================================
 // FULL E2E ROUND-TRIP TESTS
 // ============================================================================
 
@@ -1158,72 +1109,6 @@ describe('STM Promotion Service', () => {
       expect(typeof promotion.promoteSessionToFirestore).toBe('function');
       expect(typeof promotion.onSessionEnd).toBe('function');
       expect(typeof promotion.configurePromotion).toBe('function');
-    });
-  });
-});
-
-// ============================================================================
-// FIRESTORE-SPANNER SYNC TESTS
-// ============================================================================
-
-describe('Firestore-Spanner Sync Service', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('Service Lifecycle', () => {
-    it('should export sync service functions', async () => {
-      const sync = await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      expect(typeof sync.startSyncService).toBe('function');
-      expect(typeof sync.stopSyncService).toBe('function');
-      expect(typeof sync.runSyncCycle).toBe('function');
-      expect(typeof sync.getSyncStats).toBe('function');
-      expect(typeof sync.isSyncServiceRunning).toBe('function');
-      expect(typeof sync.configureSyncService).toBe('function');
-    });
-
-    it('should allow configuration of sync parameters', async () => {
-      const { configureSyncService } =
-        await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      // Should not throw
-      expect(() => {
-        configureSyncService({
-          minAgeMs: 12 * 60 * 60 * 1000, // 12 hours
-          minImportanceScore: 0.6,
-          batchSize: 25,
-          enabled: true,
-        });
-      }).not.toThrow();
-    });
-
-    it('should track sync statistics', async () => {
-      const { getSyncStats } = await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      const stats = getSyncStats();
-
-      expect(stats).toHaveProperty('totalEntitiesSynced');
-      expect(stats).toHaveProperty('totalFactsSynced');
-      expect(stats).toHaveProperty('totalRelationshipsSynced');
-      expect(stats).toHaveProperty('totalSyncRuns');
-      expect(stats).toHaveProperty('failedSyncs');
-    });
-  });
-
-  describe('Sync Cycle', () => {
-    it('should handle missing Firestore gracefully', async () => {
-      const { runSyncCycle, configureSyncService } =
-        await import('../../memory/dynamic/firestore-spanner-sync.js');
-
-      // Disable for test
-      configureSyncService({ enabled: false });
-
-      const result = await runSyncCycle();
-
-      expect(result.entitiesSynced).toBe(0);
-      expect(result.factsSynced).toBe(0);
-      expect(result.relationshipsSynced).toBe(0);
     });
   });
 });

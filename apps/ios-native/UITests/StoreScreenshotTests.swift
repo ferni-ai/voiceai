@@ -12,7 +12,7 @@ final class StoreScreenshotTests: XCTestCase {
             _ = app.wait(for: .runningForeground, timeout: 1)
             Thread.sleep(forTimeInterval: 3)
             attachScreenshot("\(n + 1)-\(screen)")
-            app.terminate()
+            app.quit()
         }
     }
 }

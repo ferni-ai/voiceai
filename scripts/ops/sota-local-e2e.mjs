@@ -21,6 +21,8 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { agentObsHeaders } from './voice-eval-metrics.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
 
@@ -227,11 +229,6 @@ async function proveAsyncOutreach() {
 }
 
 async function proveRememberReachOutIntegration() {
-  const humanSignal = await runNode(resolve(ROOT, 'scripts/ops/assert-human-signal-roundtrip.mjs'));
-  record('unit:human-signal-roundtrip', humanSignal.code === 0, {
-    note: JSON.stringify(parseLastJsonObject(humanSignal.stdout) || { raw: humanSignal.stdout.trim().slice(0, 160) }),
-  });
-
   const deliveryIntent = await runNode(resolve(ROOT, 'scripts/ops/assert-outreach-delivery-intent.mjs'));
   record('unit:outreach-delivery-intent', deliveryIntent.code === 0, {
     note: JSON.stringify(parseLastJsonObject(deliveryIntent.stdout) || { raw: deliveryIntent.stdout.trim().slice(0, 160) }),
@@ -257,7 +254,7 @@ async function proveInstrumentationUnit() {
   // Seed live agent in-process samples so SLOs are proven (not skipped)
   const seed = await fetchJson('http://localhost:8080/api/observability/sota-seed', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...agentObsHeaders(process.env) },
     body: '{}',
   });
   record('live:sota-seed', seed.status === 200 && seed.body?.ok === true, {

@@ -26,7 +26,7 @@ const log = createLogger({ module: 'HumanizationOrchestrator' });
 // TYPES
 // ============================================================================
 
-export interface HumanizationInput {
+interface HumanizationInput {
   /** The unified analysis result */
   analysis: UnifiedAnalysisResult;
 
@@ -52,7 +52,7 @@ export interface HumanizationInput {
 /**
  * Active listening cue - shows we're present
  */
-export interface ActiveListeningCue {
+interface ActiveListeningCue {
   /** Type of listening cue */
   type: 'reflection' | 'validation' | 'clarification' | 'encouragement';
 
@@ -66,7 +66,7 @@ export interface ActiveListeningCue {
 /**
  * Emotional mirror - matching their state
  */
-export interface EmotionalMirror {
+interface EmotionalMirror {
   /** The emotional state to mirror */
   emotion: string;
 
@@ -81,7 +81,7 @@ export interface EmotionalMirror {
  * Spontaneous element - makes us feel alive
  * Only used when NOT in high-emotion mode
  */
-export interface SpontaneousElement {
+interface SpontaneousElement {
   /** Type of spontaneous element */
   type: 'thought' | 'callback' | 'observation' | 'humor' | 'vulnerability';
 
@@ -122,7 +122,7 @@ export interface HumanizationResult {
 // HUMANIZATION ORCHESTRATOR CLASS
 // ============================================================================
 
-export class HumanizationOrchestrator {
+class HumanizationOrchestrator {
   private static instance: HumanizationOrchestrator | null = null;
 
   static getInstance(): HumanizationOrchestrator {

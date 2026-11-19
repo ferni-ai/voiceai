@@ -60,7 +60,7 @@ curl -s http://localhost:3004/ | head -c 100
 curl -s http://localhost:3001/health && echo "" && curl -s http://localhost:3002/health && echo "" && curl -s http://localhost:3004/ | head -c 100
 ```
 
-The voice agent does not expose a local HTTP port by default; it connects to LiveKit. For agent health when deployed, see `http://34.134.186.63:8080/health` (GCE) or your dev agent URL.
+The voice agent connects to LiveKit. Run locally (`pnpm dev`), it also serves a health server on port 8080 (or `$PORT`): `curl http://localhost:8080/health`. Deployed on LiveKit Cloud it exposes no agent HTTP port; check it with `pnpm ops:logs`.
 
 ---
 

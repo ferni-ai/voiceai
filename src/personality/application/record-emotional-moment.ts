@@ -40,6 +40,11 @@ export interface RecordEmotionalMomentInput {
   acknowledgmentQuality?: 'positive' | 'neutral' | 'negative';
   /** Mentioned people */
   mentionedPeople?: string[];
+  /**
+   * False for a crisis or vulnerability moment (CRISIS_WORDS_NEVER_RESURFACE): its deposit and
+   * pattern evidence keep no words. Unset keeps them, as before.
+   */
+  keepWords?: boolean;
 }
 
 /**
@@ -130,6 +135,8 @@ export class RecordEmotionalMoment {
     let vulnerabilityDetected = false;
     let isFirstTimeVulnerability = false;
 
+    const keepWords = input.keepWords !== false;
+
     if (vulnerabilityResult.isVulnerable) {
       vulnerabilityDetected = true;
       isFirstTimeVulnerability = vulnerabilityResult.isFirstTime;
@@ -137,9 +144,9 @@ export class RecordEmotionalMoment {
       profile.recordVulnerability({
         level: vulnerabilityResult.level,
         category: vulnerabilityResult.category,
-        summary: this.generateSummary(input.message, vulnerabilityResult.category),
-        content: input.message,
-        keywords: vulnerabilityResult.keywords,
+        summary: keepWords ? this.generateSummary(input.message, vulnerabilityResult.category) : '',
+        content: keepWords ? input.message : '',
+        keywords: keepWords ? vulnerabilityResult.keywords : [],
         isFirstTime: vulnerabilityResult.isFirstTime,
         firstTimeMarkers: vulnerabilityResult.firstTimeMarkers,
         acknowledgment: vulnerabilityResult.suggestedAcknowledgment,
@@ -151,7 +158,7 @@ export class RecordEmotionalMoment {
     if (input.topics && input.topics.length > 0) {
       const patternEvidence = {
         timestamp: new Date(),
-        context: input.message,
+        context: keepWords ? input.message : '',
         emotion: detectedState.primary,
         granular: detectedState.granular ?? undefined,
         intensity: detectedState.intensity,

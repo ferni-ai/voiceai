@@ -590,23 +590,3 @@ export async function getHandoffTriggersForPersona(personaId: string): Promise<s
 
   return [];
 }
-
-/**
- * Get all handoff triggers mapped to persona IDs.
- * Useful for the handoff detection system.
- */
-export async function getAllHandoffTriggers(): Promise<Map<string, string[]>> {
-  const result = await discoverAndLoadBundles();
-  const triggerMap = new Map<string, string[]>();
-
-  for (const bundle of result.bundles) {
-    const { manifest } = bundle;
-    const triggers = manifest.team?.handoff_triggers;
-
-    if (triggers && triggers.length > 0) {
-      triggerMap.set(manifest.identity.id, triggers);
-    }
-  }
-
-  return triggerMap;
-}

@@ -70,8 +70,10 @@ import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forg
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
-import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { crisisTurnSettled, heldAfter, memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
+import { holdOnCrisisPattern } from '../../services/safety/index.js';
+import { turnSettledToolCheck } from '../processors/turn-processor/router-crisis-check.js';
 import { ownerWriteId, wordsNeverLogged } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
@@ -115,13 +117,10 @@ import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
-import {
-  coordinatedSay,
-  getAdaptiveEchoWindow,
-  recordEchoDetected,
-} from '../../speech/coordination/index.js';
+import { coordinatedSay } from '../../speech/coordination/index.js';
+import { getEchoPreventionCooldownMs, recordEchoDetectionForLearning } from './echo-window.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
 import { updateToolsAfterReplyStarts } from './deferred-tool-update.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
@@ -134,6 +133,7 @@ import {
 import { getUserResponseGapMs } from './user-response-gap.js';
 import { handleRejectedTranscript, installSpeechTracker } from './rejected-transcript-policy.js';
 import { flagOn } from '../../config/env-flag.js';
+import { transcriptCaptureSkipped } from '../shared/turn-path-capture.js';
 
 // ============================================================================
 // TYPES
@@ -178,68 +178,6 @@ export interface TranscriptHandlerContext {
   };
   /** Function to send data messages to frontend */
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
-}
-
-/**
- * ECHO PREVENTION COOLDOWN
- *
- * After the agent finishes speaking, there's a delay before the microphone
- * stops picking up echo and the speech-to-text finishes processing. During
- * this window, we should NOT use cached responses to prevent the agent from
- * responding to its own echo (e.g., Ferni says "how are you?" → mic picks up
- * echo → transcribes "how are you" → matches cached response → says "I'm doing
- * well, thanks for asking!").
- *
- * With REQUIRE_FIX_VOICE=true, uses the adaptive echo window from
- * SpeechCoordinator; otherwise the fixed 2000ms below.
- *
- * Legacy 2 seconds accounts for:
- * - Audio buffer flush (~200-500ms)
- * - Speech-to-text processing (~500-1000ms)
- * - Network latency buffer (~200ms)
- */
-const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
-
-/**
- * Get adaptive echo prevention window.
- * Uses learned timing from SpeechCoordinator when available.
- *
- * CRITICAL FIX: Now content-aware! Pass userTranscript to enable
- * intelligent detection of legitimate requests vs echoes.
- *
- * @param lastUtteranceDurationMs - Duration of last agent utterance
- * @param userTranscript - The user's transcript for content-aware detection
- */
-export function getEchoPreventionCooldownMs(
-  lastUtteranceDurationMs?: number,
-  userTranscript?: string
-): number {
-  // The adaptive window used to be loaded with a bare require(), which throws
-  // under ESM, so every call has run on the fixed 2000ms default. Turning the
-  // adaptive window on changes call timing, so it waits behind its own flag.
-  if (!isAdaptiveEchoWindowEnabled()) return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
-  try {
-    return getAdaptiveEchoWindow(lastUtteranceDurationMs, userTranscript);
-  } catch {
-    return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
-  }
-}
-
-function isAdaptiveEchoWindowEnabled(): boolean {
-  return process.env.REQUIRE_FIX_VOICE === 'true';
-}
-
-/**
- * Record echo detection for adaptive learning.
- * Call this when we detect what appears to be agent echo being picked up.
- */
-export function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
-  if (!isAdaptiveEchoWindowEnabled()) return;
-  try {
-    recordEchoDetected(sessionId, delayMs);
-  } catch {
-    // Learning is best-effort
-  }
 }
 
 export interface TranscriptEvent {
@@ -1074,7 +1012,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       if (cached) {
         diag.state('⚡ CACHE BYPASS - Speaking cached response immediately', {
           intent: cached.intent,
-          response: cached.response.slice(0, 50),
+          response: replyForLog(cached.response),
         });
 
         // Say the cached response immediately (with SSML if available) via coordinated speech
@@ -1197,7 +1135,7 @@ function processResponseAnticipation(sessionId: string, event: TranscriptEvent):
           anticipator.markCacheHit(anticipation.intent);
           diag.state('⚡ CACHE HIT - Cached response ready', {
             intent: anticipation.intent,
-            response: cached.response.slice(0, 50),
+            response: replyForLog(cached.response),
             confidence: anticipation.confidence,
           });
         }
@@ -1264,11 +1202,11 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
-  // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
+  // Held: nothing below stores words (MINOR_CARE, a crisis pattern, SEXUAL_TOPIC_BOUNDARY's read)
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
-  // SEXUAL_TOPIC_BOUNDARY=on: this turn's read first (bounded; this isn't the reply path).
+  holdOnCrisisPattern(sessionId, event.transcript);
   await readCallerTurn({ sessionId, userId, text: event.transcript, asked });
-  const held = heldAfter(sessionId, event.transcript, { userId, asked });
+  const held = heldAfter(sessionId, event.transcript, { userId, asked }) || userHeld(userId);
   const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
 
   // ===============================================
@@ -1312,13 +1250,11 @@ async function processFinalTranscript(
   // Check if early classification already handled this turn (prevents double execution)
   const alreadyHandled = (userData as Record<string, unknown>).ftisHandledThisTurn === true;
   if (alreadyHandled) {
-    // Clear the flag for next turn
-    delete (userData as Record<string, unknown>).ftisHandledThisTurn;
+    delete (userData as Record<string, unknown>).ftisHandledThisTurn; // cleared for the next turn
     diag.state('🧠 FTIS: Skipping - already handled by early classification');
     // Continue with memory capture, etc. but skip FTIS routing
   }
 
-  // Only run FTIS if not already handled
   if (!alreadyHandled) {
     try {
       const { runFTISRouting, buildToolResponseInstructions } =
@@ -1334,6 +1270,7 @@ async function processFinalTranscript(
           userLocation: userData.userLocation as
             | { city?: string; regionCode?: string; countryCode?: string }
             | undefined,
+          autoExecuteCheck: turnSettledToolCheck(sessionId, event.transcript),
         });
 
         diag.state('🧠 FTIS routing completed', {
@@ -1410,40 +1347,45 @@ async function processFinalTranscript(
 
   // ===============================================
   // 🧠 DYNAMIC MEMORY CAPTURE: LLM-powered extraction
-  // Uses temporal decoupling: fast capture (< 50ms) + async deep extraction
-  // Extracts entities, relationships, emotions, dates, topics
-  // Deep LLM extraction runs in background worker
+  // Fast capture (< 50ms) + async deep extraction of entities, relationships, emotions, dates,
+  // topics; it waits for its turn's crisis read (crisis-memory-hold.ts)
   // ===============================================
-  try {
-    if (!memoryUserId) {
-      diag.debug('Skipping memory capture - no userId');
-    } else {
-      const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
-      const captureResult = await fastCapture({
-        userId: memoryUserId,
-        sessionId,
-        turnNumber: 0, // Transcript handler doesn't track turn numbers
-        transcript: event.transcript,
-        personaId: userData.personaId,
-      });
-
-      // 🧠 CRITICAL: Record to STM buffer for session context
-      recordTurn(sessionId, memoryUserId, captureResult, event.transcript, 0);
-
-      // Log capture results for debugging
-      if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
-        diag.state('🧠 Dynamic memory: Fast capture complete', {
-          entityCount: captureResult.mentionedEntities.length,
-          topicHints: captureResult.topicHints,
-          asyncJobId: captureResult.asyncJobId,
-          captureTimeMs: captureResult.captureTimeMs,
+  safeFireAndForget(
+    async () => {
+      if (
+        !memoryUserId ||
+        transcriptCaptureSkipped(session) ||
+        !(await crisisTurnSettled(sessionId, event.transcript))
+      ) {
+        diag.debug(
+          'Skipping memory capture - no userId, the turn path captures this line, or no settled crisis read'
+        );
+      } else {
+        const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
+        const captureResult = await fastCapture({
+          userId: memoryUserId,
+          sessionId,
+          turnNumber: 0, // Transcript handler doesn't track turn numbers
+          transcript: event.transcript,
+          personaId: userData.personaId,
         });
+
+        // 🧠 CRITICAL: Record to STM buffer for session context
+        recordTurn(sessionId, memoryUserId, captureResult, event.transcript, 0);
+
+        // Log capture results for debugging
+        if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+          diag.state('🧠 Dynamic memory: Fast capture complete', {
+            entityCount: captureResult.mentionedEntities.length,
+            topicHints: captureResult.topicHints,
+            asyncJobId: captureResult.asyncJobId,
+            captureTimeMs: captureResult.captureTimeMs,
+          });
+        }
       }
-    }
-  } catch (captureError) {
-    // Non-fatal - memory capture is enhancement, not critical
-    diag.warn('Memory capture error', { error: String(captureError) });
-  }
+    },
+    { context: 'transcript-memory-capture' } // the read wait delays nothing after it
+  );
 
   // ===============================================
   // 👂 PHASE 17: ACTIVE LISTENING - FINAL CAPTURE
@@ -2004,8 +1946,8 @@ function processDailyCheckInTranscript(
   sessionId: string,
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>
 ): void {
-  // A user ID, and MINOR_CARE=on: not a held caller under 18 (it records their emotional weather)
-  if (!userData.userId || memoryHeld(sessionId)) {
+  // A user ID, not held on this call or another (it records their emotional weather)
+  if (!userData.userId || memoryHeld(sessionId) || userHeld(userData.userId)) {
     return;
   }
 

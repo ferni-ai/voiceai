@@ -17,6 +17,8 @@ import { createInsight } from './insight-broker.js';
 import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.js';
 
 import { expireStoredLoop, isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
+import { sameLoop } from './open-loop-text.js';
+import { rememberedLoops } from './remembered-loops.js';
 const log = createLogger({ module: 'open-loops' });
 
 // ============================================================================
@@ -107,9 +109,7 @@ const loopCache = new Map<string, OpenLoop[]>();
 // CORE FUNCTIONS
 // ============================================================================
 
-/**
- * Create a new open loop.
- */
+/** Create a new open loop, or return the open one with the same words. */
 export async function createOpenLoop(
   userId: string,
   loop: {
@@ -124,6 +124,10 @@ export async function createOpenLoop(
     emotionAtCreation?: string;
   }
 ): Promise<OpenLoop> {
+  const cached = await loadOpenLoops(userId); // one open loop per wording (open-loop-text.ts)
+  const open = cached.filter((l) => l.status === 'open' && isLoopLive(l));
+  const same = sameLoop(open, loop);
+  if (same) return same;
   const now = new Date();
   const id = `loop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -148,13 +152,10 @@ export async function createOpenLoop(
     emotionAtCreation: loop.emotionAtCreation,
   };
 
-  // Save
-  await saveOpenLoop(userId, openLoop);
-
-  // Update cache
-  const cached = loopCache.get(userId) ?? [];
+  // Cached before the save yields, so a concurrent call with the same words finds it
   cached.push(openLoop);
   loopCache.set(userId, cached);
+  await saveOpenLoop(userId, openLoop);
 
   // Create proactive insight for follow-up
   await createFollowUpInsight(userId, openLoop);
@@ -168,7 +169,7 @@ export async function createOpenLoop(
  * Get open loops that are ready for follow-up.
  */
 export async function getLoopsReadyForFollowUp(userId: string): Promise<OpenLoop[]> {
-  const loops = await loadOpenLoops(userId);
+  const loops = await rememberedLoops(userId, await loadOpenLoops(userId));
   const now = new Date();
 
   return loops
@@ -237,11 +238,9 @@ export async function dismissLoop(userId: string, loopId: string): Promise<void>
   }
 }
 
-/**
- * Get all open loops for a user.
- */
+/** Get all open loops for a user, less any the caller asked Ferni to forget. */
 export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
-  const loops = await loadOpenLoops(userId);
+  const loops = await rememberedLoops(userId, await loadOpenLoops(userId));
   return loops.filter((l) => isLoopLive(l)); // past followUpBefore is never surfaced
 }
 
@@ -249,7 +248,7 @@ export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
  * Get open loops by type.
  */
 export async function getLoopsByType(userId: string, type: OpenLoopType): Promise<OpenLoop[]> {
-  const loops = await loadOpenLoops(userId);
+  const loops = await rememberedLoops(userId, await loadOpenLoops(userId));
   return loops.filter((l) => l.type === type && isLoopLive(l));
 }
 
@@ -502,7 +501,6 @@ function generateFollowUpText(loop: OpenLoop): string | null {
 // ============================================================================
 
 async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
-  // Check cache
   const cached = loopCache.get(userId);
   if (cached) return cached;
 
@@ -537,7 +535,8 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
     // Close loops well past their window (followUpBefore + grace) instead of carrying them
     const expired = loops.filter((l) => shouldExpireLoop(l));
     for (const loop of expired) void expireStoredLoop(userId, loop, onCoachingInsightChange);
-    const kept = loops.filter((l) => !expired.includes(l));
+    // A concurrent load may have cached (and added to) the list first: keep that one
+    const kept = loopCache.get(userId) ?? loops.filter((l) => !expired.includes(l));
     loopCache.set(userId, kept);
     return kept;
   } catch (error) {

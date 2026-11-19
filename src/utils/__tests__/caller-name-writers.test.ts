@@ -23,7 +23,6 @@ vi.mock('@livekit/agents', () => ({
 
 import { statedName } from '../../agents/personas/name-correction.js';
 import { extractNameFromMessage } from '../../conversation/superhuman/nicknames.js';
-import { extractSmallDetails as smallDetails } from '../../intelligence/conversation-quality/small-details.js';
 import { extractSmallDetails as trackingDetails } from '../../intelligence/tracking/conversation-quality.js';
 import { parseTranscript } from '../../services/concierge/parser/transcript-parser.js';
 import nameSync from '../../services/data-layer/name-sync.js';
@@ -37,8 +36,6 @@ const userNames = (details: Array<{ type: string; value: string }>): string[] =>
 const WRITERS: Record<string, (line: string) => string | null> = {
   'tracking/conversation-quality (turn path -> profile.name)': (l) =>
     userNames(trackingDetails(l))[0] ?? null,
-  'conversation-quality/small-details (-> realtime-persistence)': (l) =>
-    userNames(smallDetails(l))[0] ?? null,
   'superhuman/nicknames': (l) => extractNameFromMessage(l)?.firstName ?? null,
   'data-layer/name-sync': (l) => nameSync.extractNameFromContent(l),
   'personas/name-correction': (l) => statedName(l),

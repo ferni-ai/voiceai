@@ -225,7 +225,8 @@ describe('PronunciationMemoryService', () => {
 describe('COMMON_DIFFICULT_NAMES', () => {
   it('should include Ferni team personas', () => {
     expect(COMMON_DIFFICULT_NAMES.ferni).toBe('Fur-nee');
-    expect(COMMON_DIFFICULT_NAMES.nayan).toBe('Nuh-yahn');
+    // Nuh-yahn was a stale spelling of a teammate name (it is NY-un); no entry.
+    expect(COMMON_DIFFICULT_NAMES.nayan).toBeUndefined();
   });
 
   it('should include Irish names', () => {

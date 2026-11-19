@@ -11,7 +11,7 @@
  */
 
 import { configureAsyncEvents } from '../../memory/dynamic/async-events-config.js';
-import { configureSyncService, startDeepExtractionWorker } from '../../memory/dynamic/index.js';
+import { startDeepExtractionWorker } from '../../memory/dynamic/index.js';
 import { initializeKnowledgeCapture } from '../../memory/knowledge-graph/index.js';
 import { memoryAsyncEvents } from '../../services/async-events/index.js';
 import { registerMessagingConsent } from '../../services/messaging/consent.js';
@@ -55,10 +55,6 @@ export function startProcessRuntime(log: LogFn): { stop(): void } {
         error: String(err),
       })
     );
-
-  // No Spanner instance exists (gcloud instances list empty, 2026-10). Keep L2 Firestore.
-  configureSyncService({ enabled: false });
-  log('ℹ️ Spanner L3 removed — Firestore L2 only');
 
   // Orphan cleanups keep per-session maps bounded when a session dies without cleanup:
   // OpenAI health monitors (10 min), session registries (15 min, 2 h TTL),

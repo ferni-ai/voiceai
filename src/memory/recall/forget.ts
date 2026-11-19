@@ -55,6 +55,7 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
 import {
   addForgottenTopic,
+  bumpForgetGeneration,
   firestoreForgottenStore,
   forgetGenerationSeen,
   noteUnstoredForget,
@@ -64,6 +65,8 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
 export { isForgotten, factText };
+/** For a write outside this module that hides memory (api/routes/known-action-store.ts). */
+export { bumpForgetGeneration };
 export { parseTopics } from '../adapters/firestore/forgotten-store.js';
 
 const log = createLogger({ module: 'forget' });
@@ -299,9 +302,10 @@ export async function forgottenTopics(
 /**
  * Take forgotten dynamic facts out of the indexes recall searches: the memory
  * tool's (now, not at the next re-index, user-memory-indexer.ts;
- * recallFromMemory also checks by id meanwhile) and the graph sync's copy
- * (spanner-graph insertFact), read by per-turn memory search. Call after the
- * facts are marked forgotten with syncedToSpanner: false.
+ * recallFromMemory also checks by id meanwhile) and the semantic memory
+ * index, read by per-turn memory search. The graph sync that copied facts
+ * into that index has been removed; this still removes any copy it left.
+ * Call after the facts are marked forgotten with syncedToSpanner: false.
  */
 export async function removeIndexCopies(userId: string, factIds: string[]): Promise<void> {
   if (factIds.length === 0) return;
@@ -349,6 +353,7 @@ export async function closeWorldFacts(
     for (const id of ids.slice(i, i + 400)) batch.update(col.doc(id), closed);
     await batch.commit();
   }
+  if (ids.length > 0) await bumpForgetGeneration(db, userId);
 }
 
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
@@ -375,8 +380,9 @@ export const firestoreForgetStore: ForgetStore = {
     for (let i = 0; i < refs.length; i += 400) {
       const batch = db.batch();
       for (const r of refs.slice(i, i + 400)) {
-        // A fact already copied to the graph store is picked up by the next
-        // sync again (firestore-spanner-sync.ts), which removes the copy.
+        // syncedToSpanner: false was the mark that sent a fact back through the
+        // graph sync, which removed its copy. That sync has been removed and
+        // nothing picks the mark up now; mayHaveGraphCopy still reads the field.
         const resync =
           r.collection === 'dynamic_facts'
             ? { syncedToSpanner: false, ...withoutDerivedCopies() }
@@ -391,6 +397,8 @@ export const firestoreForgetStore: ForgetStore = {
       userId,
       refs.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
     );
+    // Hidden by id or by a dispute as well as by topic: what was built from them is stale.
+    if (refs.length > 0) await bumpForgetGeneration(db, userId);
   },
   async deleteFacts(userId, refs) {
     const db = getFirestoreDb();

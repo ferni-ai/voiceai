@@ -353,7 +353,7 @@ export async function retrieveContext(
 /**
  * Quick semantic search (for simple queries)
  */
-export async function semanticSearch(
+async function semanticSearch(
   userId: string,
   query: string,
   topK = 5
@@ -572,13 +572,6 @@ export function getRetrievalCacheStats(): { size: number; maxSize: number; ttlMs
   return getRetrievalCache().getStats();
 }
 
-// ============================================================================
-// RE-EXPORTS
-// ============================================================================
-
-// Memory interfaces (for consumers that need RetrievedMemory type)
-export type { RetrievedMemory } from '../interfaces/index.js';
-
 // Advanced retrieval functions
 export {
   retrieveMemories,
@@ -621,7 +614,6 @@ export {
   searchAnchors,
   searchSessionSummaries,
   searchFacts,
-  indexMemory,
   indexMemoriesBatch,
   removeIndexedMemory,
   toSemanticMatches,

@@ -95,7 +95,7 @@ const MAX_TURN_HISTORY = 100;
 /**
  * Record metrics for a builder execution
  */
-export function recordBuilderMetrics(
+function recordBuilderMetrics(
   name: string,
   durationMs: number,
   injectionCount: number,
@@ -139,7 +139,7 @@ export function recordBuilderMetrics(
 /**
  * Record metrics for an entire turn
  */
-export function recordTurnMetrics(
+function recordTurnMetrics(
   sessionId: string,
   turnNumber: number,
   builderResults: Array<{

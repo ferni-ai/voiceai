@@ -440,7 +440,7 @@ async function runConversationTests(conversations: SyntheticConversation[]): Pro
 
   // Import extractors
   const { extractSmallDetails } =
-    await import('../../../intelligence/conversation-quality/small-details.js');
+    await import('../../../intelligence/tracking/conversation-quality.js');
   const { getHistoryTracker } = await import('../../../memory/index.js');
   const { stripSSML } = await import('../../../utils/text-utils.js');
 

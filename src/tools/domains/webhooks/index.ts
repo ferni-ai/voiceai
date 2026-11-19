@@ -18,6 +18,7 @@ import { z } from 'zod';
 import {
   executeWebhook,
   findWebhookByTrigger,
+  getWebhook,
   getWebhookStats,
   listWebhooks,
   type WebhookConfig,
@@ -25,6 +26,8 @@ import {
 import { createLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
+import { PLAN_ONLY } from '../communication/outreach/outreach-confirm.js';
+import { WEBHOOK_PLANNED, type PlannedWebhook } from './webhook-confirm.js';
 
 const log = createLogger({ module: 'webhook-tools' });
 
@@ -58,7 +61,8 @@ The phrase parameter should be the user's intent or webhook name.`,
         phrase: z.string().describe('The webhook name or trigger phrase from the user'),
         transcript: z.string().optional().describe('The full user transcript for context'),
       }),
-      execute: async ({ phrase, transcript }) => {
+      execute: async (args) => {
+        const { phrase, transcript } = args;
         const userId = ctx.userId;
 
         if (!userId) {
@@ -66,8 +70,11 @@ The phrase parameter should be the user's intent or webhook name.`,
         }
 
         try {
-          // Find webhook matching the phrase
-          const webhook = await findWebhookByTrigger(userId, phrase);
+          // The owner's yes is to the webhook read back (webhook-confirm.ts), not a new match.
+          const planned = (args as { [WEBHOOK_PLANNED]?: string })[WEBHOOK_PLANNED];
+          const webhook = planned
+            ? ((await getWebhook(userId, planned)).data ?? null)
+            : await findWebhookByTrigger(userId, phrase);
 
           if (!webhook) {
             log.debug({ userId, phrase }, 'No webhook found for phrase');
@@ -76,6 +83,11 @@ The phrase parameter should be the user's intent or webhook name.`,
 
           if (!webhook.enabled) {
             return `Your "${webhook.name}" webhook is currently disabled. Enable it in settings to use it.`;
+          }
+
+          // The confirm gate's planning pass: name the webhook to read back, run nothing.
+          if ((args as { [PLAN_ONLY]?: boolean })[PLAN_ONLY]) {
+            return { id: webhook.id, name: webhook.name } satisfies PlannedWebhook;
           }
 
           // Execute the webhook

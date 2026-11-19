@@ -40,5 +40,18 @@ await import('./services/outreach/phone-hash-key-boot.js');
 // Error reporting (Sentry), before the worker loads; a no-op without SENTRY_DSN.
 await import('./instrument.js');
 
+// Dev only, FLAG_SNAPSHOT on: report the flag values this worker booted with. After Sentry, so
+// firebase-admin loads after it. Neither the import nor the write is awaited, and a failure in
+// either is a warning, so it never fails boot (safe-logger is already loaded above).
+const { createLogger } = await import('./utils/safe-logger.js');
+void import('./config/agent-flags/boot-snapshot.js')
+  .then((m) => m.writeFlagSnapshotOnBoot())
+  .catch((err: unknown) =>
+    createLogger({ module: 'agent-flag-snapshot' }).warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      'Flag snapshot module failed to load; boot continues'
+    )
+  );
+
 // GCE-optimized worker with clean architecture
 await import('./agents/gce-voice-worker.js');

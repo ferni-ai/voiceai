@@ -109,6 +109,9 @@ export type TtlAllowList = Record<string, string | null>;
  * - The 3 without one: dev-first rollouts. Declaring them would switch them on in prod at
  *   the next index deploy, which needs Seth's OK. Move each into the file (and out of
  *   here) once prod has the policy.
+ * - 3 more without one (from the 2026-11-12 listing): live on ferni-dev, not declared.
+ *   Prod has none of them, and declaring them would make the next index deploy add them
+ *   there, which deletes data.
  * A ferni-dev index deploy offers these for deletion: answer no, and never pass --force.
  */
 export const UNDECLARABLE_TTLS: Record<string, TtlAllowList> = {
@@ -126,6 +129,12 @@ export const UNDECLARABLE_TTLS: Record<string, TtlAllowList> = {
     '_rate_limits.expiresAt': null,
     'intelligence_queue.expireAt': null,
     'security_events.expireAt': null,
+    // live on ferni-dev, not declared; see the prod check
+    'background_results.expireAt': null,
+    // live on ferni-dev, not declared; see the prod check
+    'call_memories.expireAt': null,
+    // live on ferni-dev, not declared; see the prod check
+    'on_behalf_calls.expireAt': null,
   },
 };
 

@@ -9,7 +9,8 @@
  * - any classifier read that was not none, or gave no verdict;
  * - a soft check-in;
  * - reads still in flight, which count as risk until they finish.
- * A call with risk noted is never dropped before its 6 hours are up.
+ * A call with risk noted is never dropped before its 6 hours are up. Every
+ * note also holds the call's memory (utils/crisis-memory-hold.ts).
  *
  * CRISIS_GROUNDED_RELEASE (crisis-grounded-release.ts) also asks a narrower
  * question: is there risk on this call that no grounded release explained?
@@ -18,6 +19,12 @@
  * @module CrisisCallRisk
  */
 
+import {
+  beginCrisisRead,
+  crisisTurnKey,
+  holdForCrisis,
+  resetCrisisMemoryHold,
+} from '../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { abuseOnlyRead } from './abuse-disclosure.js';
 import { noteAbuseRead } from './abuse-outreach-hold.js';
@@ -52,12 +59,7 @@ const notesOf = (sessionId: string): RiskNotes => {
   return kept;
 };
 
-const turnOf = (latest: string): string =>
-  latest
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
+const turnOf = crisisTurnKey;
 
 /** The turn key noteCrisisRisk takes for these caller words (as trackCrisisRead keys them). */
 export const crisisTurnOf = turnOf;
@@ -141,6 +143,7 @@ function noteRisk(
   self: boolean
 ): void {
   if (!sessionId) return;
+  holdForCrisis(sessionId); // the call keeps nothing from now on (crisis-memory-hold.ts)
   for (const [id, at] of risky) {
     if (now - at > TTL_MS) {
       risky.delete(id);
@@ -177,6 +180,7 @@ export function trackCrisisRead<T extends { risk: string } | null>(
   const reads = pending.get(sessionId) ?? new Map<string, number>();
   reads.set(turn, (reads.get(turn) ?? 0) + 1);
   pending.set(sessionId, reads);
+  const reading = beginCrisisRead(sessionId, latest);
   for (const listener of readListeners) {
     try {
       listener(sessionId, latest);
@@ -190,6 +194,7 @@ export function trackCrisisRead<T extends { risk: string } | null>(
     else reads.delete(turn);
     if (reads.size === 0 && pending.get(sessionId) === reads) pending.delete(sessionId);
     if (risk) noteCrisisRisk(sessionId, Date.now(), turn);
+    reading.end(); // after the risk note, so a capture waiting on it sees the hold
   };
   read.then(
     (v) => settle(v?.risk !== 'none'),
@@ -274,4 +279,5 @@ export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
   notes.clear();
+  resetCrisisMemoryHold();
 }

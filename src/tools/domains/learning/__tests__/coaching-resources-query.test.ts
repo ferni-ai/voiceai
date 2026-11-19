@@ -9,6 +9,20 @@ const generateContent = vi.fn(async () => ({ text: '', candidates: [] }));
 vi.mock('../../../../config/gemini-config.js', () => ({
   getGeminiClient: async () => ({ models: { generateContent } }),
 }));
+// Google Books and YouTube get the topic too. Stand-ins that find nothing keep
+// the real hosts out and let the request fall through to grounded search; they
+// record what each format asked them.
+const searchBooks = vi.fn(async (_query: string, _options?: unknown) => ({
+  found: false,
+  books: [],
+}));
+vi.mock('../../../../services/books/google-books.js', () => ({ searchBooks }));
+const searchVideos = vi.fn(async (_query: string, _options?: unknown) => ({
+  found: false,
+  videos: [],
+}));
+const getVideoDetails = vi.fn(async (_videoId: string) => ({ found: false }));
+vi.mock('../../../../services/video/youtube-search.js', () => ({ searchVideos, getVideoDetails }));
 
 const { runFindCoachingResources } = await import('../coaching-resources-tool.js');
 
@@ -17,7 +31,12 @@ const userData = {
   services: { userProfile: { familyMembers: [{ name: 'Mindy' }, { name: 'José' }] } },
 };
 
-beforeEach(() => generateContent.mockClear());
+beforeEach(() => {
+  generateContent.mockClear();
+  searchBooks.mockClear();
+  searchVideos.mockClear();
+  getVideoDetails.mockClear();
+});
 
 describe('the search query', () => {
   it.each([
@@ -48,5 +67,11 @@ describe('the search query', () => {
       expect(sent).toMatch(exact);
       expect(sent).not.toMatch(/jake|mindy|mayo|tampa|seth|ferni|jose|josé|march|2026|123/i);
     }
+    // A book asks Google Books once and a video asks YouTube search once, each
+    // with the scrubbed topic alone; the other formats ask neither. No video was
+    // found, so no video's details are read.
+    expect(searchBooks.mock.calls.map(([q]) => q)).toEqual(format === 'book' ? [expected] : []);
+    expect(searchVideos.mock.calls.map(([q]) => q)).toEqual(format === 'video' ? [expected] : []);
+    expect(getVideoDetails).not.toHaveBeenCalled();
   });
 });

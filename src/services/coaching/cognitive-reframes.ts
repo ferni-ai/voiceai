@@ -35,7 +35,7 @@ export type DistortionType =
   | 'disqualifying_positive' // Dismissing good things
   | 'labeling'; // I AM this, not I DID this
 
-export interface CognitiveReframe {
+interface CognitiveReframe {
   id: string;
   distortionType: DistortionType;
   originalThought: string;
@@ -44,13 +44,13 @@ export interface CognitiveReframe {
   helpful: boolean | null;
 }
 
-export interface ReframeOption {
+interface ReframeOption {
   reframe: string;
   technique: string;
   rationale: string;
 }
 
-export interface ReframeProfile {
+interface ReframeProfile {
   userId: string;
   reframes: CognitiveReframe[];
   distortionFrequency: Map<DistortionType, number>;
@@ -342,7 +342,7 @@ const REFRAME_TECHNIQUES: Record<DistortionType, Array<{ technique: string; temp
 /**
  * Generate multiple reframe options for a thought
  */
-export function generateReframes(
+function generateReframes(
   userId: string,
   originalThought: string,
   distortionType: DistortionType
@@ -424,7 +424,7 @@ function getReframRationale(technique: string): string {
 /**
  * Record whether a reframe was helpful
  */
-export function recordReframeFeedback(
+function recordReframeFeedback(
   userId: string,
   reframeId: string,
   helpful: boolean,
@@ -449,9 +449,7 @@ export function recordReframeFeedback(
 /**
  * Get most common distortions for a user
  */
-export function getCommonDistortions(
-  userId: string
-): Array<{ type: DistortionType; count: number }> {
+function getCommonDistortions(userId: string): Array<{ type: DistortionType; count: number }> {
   const profile = reframeProfiles.get(userId);
   if (!profile) return [];
 

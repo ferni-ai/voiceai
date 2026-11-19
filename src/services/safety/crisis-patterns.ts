@@ -5,6 +5,7 @@
  */
 
 import { ROPE_READY } from './crisis-means-in-hand.js';
+import { explicitModifier } from './crisis-modifiers.js';
 import { FAREWELL_PASSIVE_PATTERNS } from './crisis-patterns-farewell.js';
 import { THIRD_PERSON_REPORTED } from './crisis-third-person.js';
 
@@ -227,6 +228,18 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'self_harm',
   },
 ];
+
+/**
+ * Whether an imminent pattern after index `from` reads plainly (no negation, past, joke,
+ * condition or someone else). The read stops at its first plain match, which must never hide a
+ * later 911: "i want to die. i just took all my pills" is imminent.
+ */
+export function laterImminent(text: string, from: number): boolean {
+  return EXPLICIT_CRISIS_PATTERNS.slice(from).some(({ re, imminent }) => {
+    const match = imminent ? re.exec(text) : null;
+    return !!match && !explicitModifier(text, match.index, match.index + match[0].length, true);
+  });
+}
 
 /**
  * Passive suicidal ideation, coded language and behavioral warning signs.

@@ -100,6 +100,14 @@ export function recordRoutingPrediction(
 }
 
 /**
+ * Drop a session's pending prediction, so a tool run on the next turn is not paired
+ * with it. Call on a turn that must not feed learning (a crisis turn).
+ */
+export function forgetRoutingPrediction(sessionId: string): void {
+  pendingPredictions.delete(sessionId);
+}
+
+/**
  * Record the actual tool that was executed.
  * Call this from the tool dispatcher after a tool completes.
  *

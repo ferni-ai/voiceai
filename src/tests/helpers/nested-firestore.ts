@@ -25,18 +25,34 @@ function matches(value: unknown, op: Op, target: unknown): boolean {
   return cmp(value, target) <= 0;
 }
 
+// Named at module level so a test outside src/tests (which tsc type-checks with declarations on)
+// can import this helper.
+interface Query {
+  where: (field: string, op: Op, value: unknown) => Query;
+  orderBy: (field: string, dir?: 'asc' | 'desc') => Query;
+  limit: (n: number) => Query;
+  startAfter: (path: string) => Query;
+  get: () => Promise<{
+    docs: Array<{ id: string; ref: DocRef; data: () => Data }>;
+    size: number;
+    empty: boolean;
+  }>;
+}
+interface CollectionRef extends Query {
+  doc: (id: string) => DocRef;
+}
+interface DocRef {
+  id: string;
+  path: string;
+  parent: { id: string; parent: DocRef | null };
+  collection: (name: string) => CollectionRef;
+  get: () => Promise<{ id: string; exists: boolean; data: () => Data | undefined }>;
+  set: (data: Data, opts?: { merge?: boolean }) => Promise<void>;
+  update: (patch: Data) => Promise<void>;
+}
+
 export function createNestedFirestore() {
   const store = new Map<string, Data>();
-
-  interface DocRef {
-    id: string;
-    path: string;
-    parent: { id: string; parent: DocRef | null };
-    collection: (name: string) => ReturnType<typeof collectionRef>;
-    get: () => Promise<{ id: string; exists: boolean; data: () => Data | undefined }>;
-    set: (data: Data, opts?: { merge?: boolean }) => Promise<void>;
-    update: (patch: Data) => Promise<void>;
-  }
 
   const write = (path: string, patch: Data) => {
     const current = store.get(path);
@@ -71,7 +87,7 @@ export function createNestedFirestore() {
     order?: [string, 'asc' | 'desc'],
     max = Infinity,
     after?: string
-  ) {
+  ): Query {
     return {
       where: (f: string, op: Op, v: unknown) =>
         query(inScope, [...filters, [f, op, v]], order, max, after),
@@ -103,7 +119,7 @@ export function createNestedFirestore() {
     };
   }
 
-  function collectionRef(path: string) {
+  function collectionRef(path: string): CollectionRef {
     const depth = path.split('/').length + 1;
     return {
       ...query((p) => p.startsWith(`${path}/`) && p.split('/').length === depth),

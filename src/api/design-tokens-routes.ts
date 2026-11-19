@@ -63,7 +63,7 @@ export async function handleDesignTokensRoutes(
   }
 
   // Rate limiting (generous for design tokens)
-  if (rateLimit(req, res, { maxRequests: 200, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 200, windowMs: 60000, keyPrefix: 'design-tokens' })) {
     return true;
   }
 

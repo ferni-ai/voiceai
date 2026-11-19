@@ -125,8 +125,7 @@ src/
 │
 └── tests/
     ├── cross-persona-insights.test.ts
-    ├── cross-persona-integration.test.ts
-    └── superhuman-firestore.integration.test.ts
+    └── cross-persona-integration.test.ts
 
 apps/web/src/
 ├── services/
@@ -597,14 +596,10 @@ pnpm vitest run src/tests/cross-persona
 pnpm vitest run src/tests/cross-persona-integration.test.ts
 ```
 
-### Integration Tests (Firestore)
+### Safety Tests (emotional first aid)
 
 ```bash
-# Start emulator
-firebase emulators:start --only firestore
-
-# Run with emulator
-FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run superhuman-firestore
+pnpm vitest run --config vitest.config.unit.ts src/services/superhuman/__tests__/safety-critical.test.ts
 ```
 
 ### Test Coverage
@@ -613,7 +608,6 @@ FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run superhuman-firestore
 |------|-------|----------|
 | Cross-Persona Insights | 33 | Core insight flow |
 | Integration Tests | 30 | Builder integration, E2E |
-| Firestore Integration | 22 | Superhuman services |
 
 ---
 

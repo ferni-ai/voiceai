@@ -18,7 +18,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getActionTracker } from '../services/action-tracker/tracker.js';
 import type { ActionType, FerniAction } from '../services/action-tracker/types.js';
-import { loadUserCommitments, type Commitment } from '../services/superhuman/commitment-keeper.js';
+import { loadActiveCommitmentsOrThrow } from '../services/superhuman/index.js';
+import { loadFerniPromises, tallyPromises } from '../services/trust-systems/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from './helpers.js';
@@ -65,12 +66,12 @@ export interface CareMoment {
 export interface StoryActionsResponse {
   /** Recent care moments */
   recentCare: CareMoment[];
-  /** Superhuman context */
+  /** Ferni's promises, tallied as Trust & Growth does (promiseProgress); null: unreadable */
   commitmentProgress: {
     kept: number;
     pending: number;
     total: number;
-  };
+  } | null;
   /** Total actions taken */
   totalActions: number;
   /** Summary stats for dashboard visualization */
@@ -78,7 +79,8 @@ export interface StoryActionsResponse {
     callsMade: number;
     messagesSent: number;
     remindersKept: number;
-    commitmentsFulfilled: number;
+    /** Ferni's promises kept; null when they couldn't be read (never a made-up 0). */
+    commitmentsFulfilled: number | null;
   };
 }
 
@@ -91,9 +93,9 @@ export interface StorySummaryResponse {
   messagesSent: number;
   remindersKept: number;
   calendarEventsCreated: number;
-  /** Commitment stats */
-  commitmentsFulfilled: number;
-  commitmentsTracking: number;
+  /** Ferni's promises kept, and the user's own active commitments; null = couldn't read */
+  commitmentsFulfilled: number | null;
+  commitmentsTracking: number | null;
   /** Time range */
   since: string;
   /** Total relationship depth indicators */
@@ -242,6 +244,22 @@ function actionToCareMoment(action: FerniAction): CareMoment {
 // ============================================================================
 
 /**
+ * Ferni's promises (ferni_commitments) in Trust & Growth's tally. This used to count the
+ * user's own commitments, loaded active only, so it read "0 of N kept". Null: unreadable.
+ */
+async function promiseProgress(
+  userId: string
+): Promise<StoryActionsResponse['commitmentProgress']> {
+  try {
+    const { kept, resolved, open } = tallyPromises(await loadFerniPromises(userId));
+    return { kept, pending: open, total: resolved };
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Promises unreadable for story');
+    return null;
+  }
+}
+
+/**
  * GET /api/story/actions
  *
  * Returns recent care moments with narrative framing.
@@ -261,30 +279,18 @@ async function handleGetActions(
 
     // Get user actions
     const filter: { limit: number; since?: Date } = { limit };
-    if (since) {
-      filter.since = new Date(since);
-    }
+    if (since) filter.since = new Date(since);
 
     const actions = await tracker.getUserActions(userId, filter);
 
     // Convert to care moments
     const recentCare = actions.map(actionToCareMoment);
 
-    // Get action stats for summary
-    const stats = await tracker.getStats(userId);
-
-    // Get commitment stats
-    let commitmentProgress = { kept: 0, pending: 0, total: 0 };
-    let commitmentsFulfilled = 0;
-    try {
-      const commitments = await loadUserCommitments(userId);
-      const kept = commitments.filter((c: Commitment) => c.status === 'completed').length;
-      const pending = commitments.filter((c: Commitment) => c.status === 'active').length;
-      commitmentProgress = { kept, pending, total: commitments.length };
-      commitmentsFulfilled = kept;
-    } catch (error) {
-      log.debug({ error: String(error), userId }, 'Failed to load commitments for story');
-    }
+    // Action stats for the summary, and Ferni's promises
+    const [stats, commitmentProgress] = await Promise.all([
+      tracker.getStats(userId),
+      promiseProgress(userId),
+    ]);
 
     const response: StoryActionsResponse = {
       recentCare,
@@ -295,7 +301,7 @@ async function handleGetActions(
         callsMade: stats.byType.call || 0,
         messagesSent: (stats.byType.text || 0) + (stats.byType.email || 0),
         remindersKept: stats.byType.reminder || 0,
-        commitmentsFulfilled,
+        commitmentsFulfilled: commitmentProgress?.kept ?? null,
       },
     };
 
@@ -319,19 +325,17 @@ async function handleGetSummary(
   try {
     const tracker = getActionTracker();
 
-    // Get stats from action tracker
-    const stats = await tracker.getStats(userId);
-
-    // Get commitment stats
-    let commitmentsFulfilled = 0;
-    let commitmentsTracking = 0;
-    try {
-      const commitments = await loadUserCommitments(userId);
-      commitmentsFulfilled = commitments.filter((c: Commitment) => c.status === 'completed').length;
-      commitmentsTracking = commitments.filter((c: Commitment) => c.status === 'active').length;
-    } catch (error) {
-      log.debug({ error: String(error), userId }, 'Failed to load commitments for summary');
-    }
+    const [stats, promises, tracking] = await Promise.all([
+      tracker.getStats(userId),
+      promiseProgress(userId),
+      loadActiveCommitmentsOrThrow(userId).then(
+        (active) => active.length,
+        (error: unknown) => {
+          log.warn({ error: String(error), userId }, 'Active commitments unreadable for summary');
+          return null;
+        }
+      ),
+    ]);
 
     // Calculate 30-day window
     const since = new Date();
@@ -342,8 +346,8 @@ async function handleGetSummary(
       messagesSent: (stats.byType.text || 0) + (stats.byType.email || 0),
       remindersKept: stats.byType.reminder || 0,
       calendarEventsCreated: stats.byType.calendar || 0,
-      commitmentsFulfilled,
-      commitmentsTracking,
+      commitmentsFulfilled: promises?.kept ?? null,
+      commitmentsTracking: tracking,
       since: since.toISOString(),
     };
 
@@ -446,7 +450,7 @@ export async function handleStoryRoutes(
   }
 
   // Apply rate limiting
-  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'story' })) {
     return true;
   }
 

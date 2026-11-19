@@ -32,9 +32,9 @@ const SPECS: Record<string, Spec> = {
     'developer',
     "What's New",
     [300, 900],
-    `A "what's new" post for developers building on Ferni, covering the merged pull requests in the facts.
-Group related changes under a few plain headings. For each change, say what changed and why it matters to a developer, and link its PR as [#N](url).
-Leave out changes a developer wouldn't notice (CI, refactors, docs) unless they explain something bigger.
+    `A "what's new" post for developers building on Ferni: on its SDK, API, CLI or developer portal.
+Pick the ONE change in the facts that matters most to them, or two that are really the same story. Say what changed, why we changed it, and what a developer can try or must change now. Link each pull request you write about as [#N](url), and no others.
+This is not a changelog: no list of pull requests, no "In #N, we..." paragraphs, no dates.
 Merged is not the same as live in production: say "merged" or "landed", never "now available".`,
   ],
   'building-in-public': [
@@ -66,10 +66,14 @@ We can't tell from here what's live for everyone, so phrase it as "we've been bu
   'team-letter': [
     'consumer',
     'Letters from the Team',
-    [500, 1000],
+    [350, 750],
     `A letter written in the voice of the character named in the facts, to the people who talk to them.
-Use only that character's life details from their biography; never invent a new relative, place or event. Write it in first person, warm and specific, about one idea they care about.
-The character is a character: the letter must not claim they are a real person or that they have met real people who use Ferni.`,
+Write about ONE idea they care about, shown through one small moment from their life. Open inside that moment, not with who they are: no list of their habits, family or history.
+The moment must be one their biography already tells. Retell it in their voice, and add nothing to it: no new event, person, place, line of dialogue, or how it turned out.
+Write the way they talk: first person, contractions, warm and specific, in their own words rather than lines or catchphrases from the facts.
+Stay in character: a letter never mentions product news, releases, speeds or how Ferni is built, and never says they are a character (a note above the letter already does).
+End by inviting the reader to talk to them on Ferni, naming one specific thing to bring to that conversation.
+Never claim they are a real person or that they have met real people who use Ferni.`,
     'letters-from-the-team',
   ],
 };

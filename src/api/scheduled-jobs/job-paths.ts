@@ -7,9 +7,6 @@
 
 /** Every job route in index.ts; auth is checked only for these, so unknown paths still 404. */
 export const JOB_PATHS: ReadonlySet<string> = new Set([
-  '/api/jobs/process-background-tasks',
-  '/api/jobs/check-scheduled',
-  '/api/jobs/cleanup-sessions',
   '/api/jobs/cleanup-old-tasks',
   '/api/jobs/aggregate-community-insights',
   '/api/jobs/rollup-persona-metrics',

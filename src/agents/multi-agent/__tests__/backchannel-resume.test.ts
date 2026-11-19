@@ -64,7 +64,7 @@ describe('backchannel while a reply is paused (patched)', () => {
       const a = pausedActivity('listening');
       await run.call(a, { newTranscript: said });
       expect(a.logger.info, said).toHaveBeenCalledWith(
-        expect.objectContaining({ user_input: said }),
+        expect.objectContaining({ user_input_len: said.length }),
         'BACKCHANNEL_NOT_A_TURN'
       );
       expect(a.createSpeechTask, said).not.toHaveBeenCalled();

@@ -7,6 +7,7 @@
 
 import type { llm } from '@livekit/agents';
 import type { AdjudicatorLine } from '../../services/safety/crisis-adjudicator.js';
+import { MAX_EARLIER_MESSAGES } from '../../services/safety/index.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isAcknowledgementOnly } from '../voice-agent/agent-reply-recorder.js';
 import { minorHarmScript } from '../../services/safety/minor-abuse-disclosure.js'; // MINOR_ABUSE_DISCLOSURE
@@ -16,13 +17,36 @@ interface MessageView {
   type?: string;
   role?: string;
   textContent?: string;
+  interrupted?: boolean;
+  /** ms; a caller message's is when they started speaking (LiveKit agent_activity). */
+  createdAt?: number;
+  /** seconds; when Ferni's reply stopped playing. */
+  metrics?: { stoppedSpeakingAt?: number };
+}
+
+/**
+ * A reply of Ferni's the caller's next words did not answer: cut off, or still playing when
+ * they started (a paused and resumed reply sits between the halves of their turn).
+ */
+function spokenOver(reply: MessageView, nextCallerAt: number | undefined): boolean {
+  if (reply.interrupted) return true;
+  const stopped = reply.metrics?.stoppedSpeakingAt;
+  return stopped !== undefined && nextCallerAt !== undefined && nextCallerAt < stopped * 1000;
 }
 
 /**
  * The caller's words this reply answers, their earlier messages (oldest
  * first), and what Ferni said just before: the line those words answer.
+ *
+ * `sinceCompleted` (CRISIS_GATE_TURN_READS): the words run back to Ferni's last completed reply,
+ * across any reply the caller spoke over, so a turn split by a paused reply is read whole. At
+ * most the classifier's line cap, newest kept (the latest line always); older lines are earlier
+ * context, and Ferni's line those words answered is then unknown.
  */
-export function callerWords(chatCtx: llm.ChatContext): {
+export function callerWords(
+  chatCtx: llm.ChatContext,
+  { sinceCompleted = false }: { sinceCompleted?: boolean } = {}
+): {
   latest: string;
   earlier: string[];
   companion?: string;
@@ -34,10 +58,16 @@ export function callerWords(chatCtx: llm.ChatContext): {
   const ferni: string[] = [];
   let companion: string | undefined;
   let answering = true;
+  let firstCallerAt: number | undefined; // the earliest of the words being answered so far
+  let joined = false; // a spoken-over reply was read through
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i] as MessageView;
     if (item.type !== 'message') continue;
     if (item.role === 'assistant') {
+      if (sinceCompleted && answering && latest.length && spokenOver(item, firstCallerAt)) {
+        joined = true;
+        continue;
+      }
       const line = item.textContent?.trim() || undefined;
       if (answering) companion = line;
       if (line && said.length === 0 && !isAcknowledgementOnly(line)) ferni.unshift(line);
@@ -46,6 +76,8 @@ export function callerWords(chatCtx: llm.ChatContext): {
     }
     const text = item.textContent?.trim();
     if (item.role !== 'user' || !text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
+    if (answering && joined && latest.length >= MAX_EARLIER_MESSAGES) answering = false;
+    if (answering) firstCallerAt = item.createdAt;
     (answering ? latest : said).unshift(text);
   }
   return { latest: latest.join(' '), earlier: said, companion, ferni };

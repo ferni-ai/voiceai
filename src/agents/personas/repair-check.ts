@@ -248,7 +248,10 @@ export function repairNoteFor(
   const started = performance.now();
   const { prompt, turns, earlier, said, previous } = linesOf(chatCtx);
   if (!said || ALREADY_CHECKED.test(previous)) return '';
-  if (callerVenting(said) || detectCrisis(said, undefined, { recentMessages: earlier }).isCrisis)
+  if (
+    callerVenting(said) ||
+    detectCrisis(said, undefined, { recentMessages: earlier, env }).isCrisis
+  )
     return '';
   const cue =
     mishearCue(said, { prompt, turns, names: knownNames(session) }, previous) ??

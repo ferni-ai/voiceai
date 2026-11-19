@@ -6,15 +6,25 @@
 
 ## Quick Commands
 
-```bash
-# Check overall health
-curl http://34.134.186.63:8080/health/ready
+The agent runs on LiveKit Cloud, which doesn't expose the agent's health server.
+The health-server address this guide used to name belonged to the retired GCE VM.
+The `curl` lines below are for an agent you run yourself (`pnpm dev` serves the
+health server on port 8080). In production, use the log commands.
 
-# Check crash analytics
-curl http://34.134.186.63:8080/api/crash-analytics | jq
+Every health-server route except `/`, `/health`, `/health/ready`, `/health/warmup`
+and `/api/warmup` answers only an admin: send an admin's Firebase ID token.
+
+```bash
+AGENT_URL=http://localhost:8080
+
+# Check overall health
+curl $AGENT_URL/health/ready
+
+# Check crash analytics (admin only: an admin's Firebase ID token)
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/crash-analytics | jq
 
 # Check call quality (disconnect rates, etc)
-curl http://34.134.186.63:8080/api/observability | jq '.callQuality'
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/observability | jq '.callQuality'
 
 # View recent logs
 pnpm ops:logs
@@ -96,7 +106,7 @@ pnpm ops:zombies:fix
 **Diagnosis:**
 ```bash
 # Check TTS/LLM health
-curl http://34.134.186.63:8080/api/observability/llm | jq
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/observability/llm | jq
 
 # Check prewarm logs
 pnpm ops:logs | grep -i "PREWARM"
@@ -117,10 +127,10 @@ pnpm ops:logs | grep -i "Entry waited"
 **Diagnosis:**
 ```bash
 # Check memory usage
-curl http://34.134.186.63:8080/api/observability | jq '.system.memoryMb'
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/observability | jq '.system.memoryMb'
 
 # Check error rates
-curl http://34.134.186.63:8080/api/observability | jq '.errors'
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/observability | jq '.errors'
 ```
 
 ---
@@ -178,7 +188,7 @@ LiveKit worker connection is dead. Container passes health checks but cannot rec
 ### Via /api/observability
 
 ```bash
-curl http://34.134.186.63:8080/api/observability | jq '{
+curl -H "Authorization: Bearer $ADMIN_ID_TOKEN" $AGENT_URL/api/observability | jq '{
   callQuality: .callQuality.qualityScore,
   disconnectRate: .callQuality.disconnectRate,
   connectionSuccessRate: .callQuality.connectionSuccessRate,

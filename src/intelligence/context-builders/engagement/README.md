@@ -8,13 +8,6 @@ This folder contains builders that make conversations engaging and fun - games, 
 
 | Builder | Purpose |
 |---------|---------|
-| `engagement.ts` | General engagement patterns |
-| `engagement-context.ts` | Current engagement state |
-| `game-context.ts` | Games and playful interactions |
-| `music.ts` | Music playback integration |
-| `music-emotion-offers.ts` | Emotion-based music suggestions |
-| `daily-rituals.ts` | Morning Sky Check, Habit Heartbeat, etc. |
-| `storytelling.ts` | Narrative and storytelling patterns |
 | `referral-prompt.ts` | Natural referral opportunities |
 
 ## Daily Rituals

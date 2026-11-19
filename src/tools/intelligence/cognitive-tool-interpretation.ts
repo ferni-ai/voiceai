@@ -235,7 +235,7 @@ export function interpretToolResult(
 /**
  * Get domain-specific interpretation guidance
  */
-export function getDomainInterpretation(personaId: string, domain: string): string | null {
+function getDomainInterpretation(personaId: string, domain: string): string | null {
   const profile = getCognitiveProfile(personaId);
   if (!profile) return null;
 
@@ -284,7 +284,7 @@ export function formatToolResultWithCognition(
  * HUMANIZATION FIX: Removed "Let me see/think/sit with this" - too robotic.
  * Keep conversational sounds that feel natural, not meta-commentary about processing.
  */
-export function getToolProcessingSound(personaId: string): string {
+function getToolProcessingSound(personaId: string): string {
   const profile = getCognitiveProfile(personaId);
   if (!profile) return 'Hmm';
 

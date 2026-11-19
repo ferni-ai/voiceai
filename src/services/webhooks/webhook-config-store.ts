@@ -22,6 +22,7 @@ import type {
   WebhookStats,
 } from './types.js';
 import { openWebhookDoc, sealedRecord, WEBHOOK_SEALING_REFUSED } from './webhook-sealing.js';
+import { phraseMatchesTrigger } from './webhook-trigger-match.js';
 
 export { WEBHOOK_SEALING_REFUSED } from './webhook-sealing.js';
 
@@ -334,19 +335,10 @@ export async function findWebhookByTrigger(
 ): Promise<WebhookConfig | null> {
   await loadUserWebhooks(userId);
 
-  const cache = getUserWebhookCache(userId);
-  const normalizedPhrase = phrase.toLowerCase().trim();
-
-  for (const webhook of cache.values()) {
+  for (const webhook of getUserWebhookCache(userId).values()) {
     if (!webhook.enabled) continue;
-
-    for (const trigger of webhook.voiceTriggers) {
-      if (normalizedPhrase.includes(trigger) || trigger.includes(normalizedPhrase)) {
-        return webhook;
-      }
-    }
+    if (webhook.voiceTriggers.some((t) => phraseMatchesTrigger(phrase, t))) return webhook;
   }
-
   return null;
 }
 

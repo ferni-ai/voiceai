@@ -494,5 +494,3 @@ export function formatVoiceIntelligenceForPrompt(intelligence: VoiceEmotionIntel
 
   return sections.join('\n');
 }
-
-export default analyzeVoiceEmotionIntelligence;

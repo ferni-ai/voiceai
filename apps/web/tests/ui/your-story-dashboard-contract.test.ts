@@ -3,7 +3,9 @@
  * transform, and the REAL dashboard with every visualization component.
  *
  * Only auth and the persisted-data stores the server reads are mocked, so
- * each section is exactly what the server builds from that data.
+ * each section is exactly what the server builds from that data. The care
+ * block ("What I've Done for You") loads /api/story/actions itself; its fetch
+ * is the one stand-in, answered with a fictional payload.
  *
  * Before: six sections didn't match what their components read, and most
  * were canned on the server (hardcoded chapters, a hero's-journey "recovery
@@ -14,6 +16,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
+
+import { t } from '../../src/i18n/index.js';
 
 vi.mock('../../../../src/api/auth-middleware.js', () => ({
   requireAuth: vi.fn(async () => ({ userId: 'u1', isAdmin: false })),
@@ -45,6 +49,20 @@ vi.mock('../../../../src/intelligence/context-builders/relationship/arc/storage.
           lastSessionDate: Date.now() - 60 * 60 * 1000,
         }
       : null,
+}));
+// The stored calls (sessions together): the one relationship record every surface shows.
+// The header's count and days come from here, through GET /api/relationship/progress.
+vi.mock('../../../../src/services/stores/sessions-together.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getSessionsTogether: async () => ({
+    count: store.conversations,
+    days: [],
+    firstAt: store.conversations > 0 ? new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) : undefined,
+    inProgress: { count: 0, days: [] },
+  }),
+}));
+vi.mock('../../../../src/services/engagement/engagement-store.js', () => ({
+  getEngagementStore: async () => ({ getProfile: async () => ({}) }),
 }));
 vi.mock('../../../../src/services/superhuman/capacity-guardian.js', () => ({
   loadEnergyHistory: async () => store.energy,
@@ -86,10 +104,44 @@ vi.mock('../../../../src/services/predictive-insights/index.js', () => ({
   runPredictiveAnalysis: async () => [],
 }));
 
+vi.mock('../../src/services/firebase-auth.service.js', () => ({
+  initAuth: vi.fn(async () => ({})),
+  getAuthToken: vi.fn(async () => 'id-token'),
+  getFirebaseUid: vi.fn(() => 'u1'),
+  signOut: vi.fn(async () => undefined),
+}));
+
 const apiGet = vi.fn();
 vi.mock('../../src/utils/api.js', () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
 
 const { handleYourStoryRoutes } = await import('../../../../src/api/your-story-routes.js');
+const { handleGetRelationshipProgress } = await import('../../../../src/api/routes/relationship.js');
+
+/** GET /api/relationship/progress from the real handler, as the web client receives it. */
+async function relationshipRecord(): Promise<{ ok: boolean; status: number; data: unknown }> {
+  let payload = '';
+  let status = 0;
+  const path = '/api/relationship/progress';
+  await handleGetRelationshipProgress(
+    { method: 'GET', url: path, headers: { 'x-firebase-uid': 'u1' } } as unknown as IncomingMessage,
+    {
+      writeHead: (code: number) => (status = code),
+      setHeader: vi.fn(),
+      end: (chunk?: string) => (payload = chunk ?? ''),
+    } as unknown as ServerResponse,
+    new URL(path, 'http://x')
+  );
+  return { ok: status === 200, status, data: JSON.parse(payload) };
+}
+
+/** The web client's GETs, each answered by its real handler's output. */
+function serve(storyBody: unknown): void {
+  apiGet.mockImplementation(async (path: string) =>
+    path === '/api/relationship/progress'
+      ? relationshipRecord()
+      : { ok: true, status: 200, data: storyBody }
+  );
+}
 const { fetchYourStory } = await import('../../src/services/your-story.service.js');
 const { getYourStoryUI } = await import('../../src/ui/your-story-dashboard.ui.js');
 const viz = await import('../../src/ui/visualizations/index.js');
@@ -131,7 +183,7 @@ async function renderStory(): Promise<{
     new URL(path, 'http://x')
   );
   const body = JSON.parse(payload) as { data: Record<string, unknown> };
-  apiGet.mockResolvedValue({ ok: true, status: 200, data: body });
+  serve(body);
 
   const errors = vi.spyOn(console, 'error');
   const result = await fetchYourStory();
@@ -165,12 +217,14 @@ describe('Your Story header, real persisted conversation count', () => {
   it('a user with 7 saved conversations gets a 7-conversation header and a non-empty story', async () => {
     const { story } = await renderStory();
 
-    expect(story.header).toMatchObject({ totalConversations: 7, daysTogether: 21 });
+    expect(story.header).toMatchObject({ totalConversations: 7 });
     // No per-day record is persisted, so no streak is claimed.
     expect(story.header).toMatchObject({ currentStreak: null, longestStreak: null });
+    // The shown days and count are the relationship record's (sessions together), the same
+    // numbers the journey card and What I'm Noticing show: 20 calendar days since the first
     const stats = document.querySelector('.your-story__stats')!.textContent!;
     expect(stats).toContain('7');
-    expect(stats).toContain('21');
+    expect(stats).toContain('20');
     expect(stats).not.toMatch(/streak/i);
   });
 
@@ -198,7 +252,7 @@ describe('Your Story header, real persisted conversation count', () => {
       path,
       new URL(path, 'http://x')
     );
-    apiGet.mockResolvedValue({ ok: true, status: 200, data: JSON.parse(payload) });
+    serve(JSON.parse(payload));
     expect((JSON.parse(payload) as { data: { header: unknown } }).data.header).toMatchObject({
       totalConversations: 0,
     });
@@ -224,10 +278,12 @@ describe('Your Story dashboard, real server output', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('empty story: renders without a single render error and with no invented section', async () => {
-    const { story, renderErrors } = await renderStory();
+    const { story, web, renderErrors } = await renderStory();
 
     expect(renderErrors).toEqual([]);
     // The server sends nothing it doesn't have...
+    expect(story.energy, 'energy').toBeNull();
+    expect(web.energyRings, 'energyRings').toBeUndefined();
     for (const key of ['moodCalendar', 'emotionalArc', 'yourWorld', 'openLoops', 'prediction']) {
       expect(story[key], key).toBeNull();
     }
@@ -237,7 +293,9 @@ describe('Your Story dashboard, real server output', () => {
     expect(story.lifeChapters).toEqual([]);
     // ...and the dashboard shows no frame for any of it.
     expect(document.querySelector('.your-story__section')).not.toBeNull();
-    for (const id of [...SIX, 'viz-growth-radar']) expect(frame(id)).toBeNull();
+    for (const id of [...SIX, 'viz-growth-radar', 'viz-energy-rings']) {
+      expect(frame(id), id).toBeNull();
+    }
     expect(document.querySelector('.your-story')!.textContent).not.toMatch(
       /mostly calm|Focus area: growth|Your Journey|undefined|NaN/
     );
@@ -470,5 +528,87 @@ describe('Your Story dashboard, real server output', () => {
         expect(el.textContent, `${name}@${type}`).not.toMatch(/undefined|NaN|\[object Object\]/);
       }
     }
+  });
+});
+
+describe('Your Story care block ("What I\'ve Done for You"), a successful /api/story/actions', () => {
+  /** A fictional answer, in the shape /api/story/actions sends. */
+  const ACTIONS = {
+    recentCare: [
+      {
+        id: 'm1',
+        type: 'called_for_you',
+        narrative: 'Called the bakery to move your cake pickup to Saturday',
+        timestamp: iso(NOW - 2 * 60 * 60 * 1000),
+        persona: 'ferni',
+        target: 'the bakery',
+        success: true,
+      },
+      {
+        id: 'm2',
+        type: 'kept_commitment',
+        narrative: 'Checked in about the pottery class, like I said I would',
+        timestamp: iso(NOW - 3 * DAY),
+        persona: 'ferni',
+        success: true,
+      },
+    ],
+    summary: { callsMade: 3, messagesSent: 5, remindersKept: 2, commitmentsFulfilled: 4 },
+    commitmentProgress: { kept: 4, pending: 1, total: 5 },
+    totalActions: 14,
+  };
+
+  beforeEach(() => {
+    localStorage.setItem('ferni_user_id', 'u1');
+    apiGet.mockReset();
+    Object.assign(store, {
+      conversations: 5,
+      energy: [],
+      moods: [],
+      chapters: [],
+      arcs: [],
+      people: [],
+      opportunities: [],
+      loops: [],
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).startsWith('/api/story/actions')
+          ? new Response(JSON.stringify(ACTIONS), { status: 200 })
+          : new Response('{}', { status: 404 })
+      )
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('shows the counts, labels and care moments the server sent, nothing else', async () => {
+    await renderStory();
+    const care = () => frame('viz-actions-taken');
+    await vi.waitFor(() => expect(care()?.querySelector('.viz-stat-card')).not.toBeNull());
+
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url))).toContain(
+      '/api/story/actions?limit=10'
+    );
+    const stats = [...care()!.querySelectorAll('.viz-stat-card')].map((card) => [
+      card.querySelector('.viz-stat-card__value')?.textContent,
+      card.querySelector('.viz-stat-card__label')?.textContent,
+    ]);
+    expect(stats).toEqual([
+      ['3', t('visualizations.actionsTaken.callsMade')],
+      ['5', t('visualizations.actionsTaken.messagesSent')],
+      ['2', t('visualizations.actionsTaken.reminders')],
+      ['4', t('ferniKnows.commitments')],
+    ]);
+    const text = care()!.textContent!;
+    expect(text).toContain(t('visualizations.actionsTaken.keptProgress', { kept: 4, total: 5 }));
+    expect(text).toContain('Called the bakery to move your cake pickup to Saturday');
+    expect(text).toContain('Checked in about the pottery class, like I said I would');
+    expect(text).not.toContain(t('yourStory.care.loading'));
+    expect(text).not.toContain(t('yourStory.actionsError.message'));
+    expect(text).not.toMatch(/undefined|NaN|\[object Object\]/);
   });
 });

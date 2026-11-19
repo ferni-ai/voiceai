@@ -19,7 +19,6 @@ Contains scripts that run outside the main application:
 |------|---------|
 | `generate-landing-content.ts` | Pre-generate AI content for landing page |
 | `backfill-memory-highlights.ts` | Backfill memory highlight scores |
-| `query-threads.ts` | Query conversation threads for debugging |
 
 ## Landing Content Generation
 

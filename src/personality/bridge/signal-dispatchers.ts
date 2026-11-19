@@ -17,6 +17,7 @@ import type { VulnerabilityDeposit } from '../domain/model/vulnerability-deposit
 import type { GrowthMilestone } from '../domain/model/growth-milestone.js';
 import type { EmotionalPattern } from '../domain/model/emotional-pattern.js';
 import type { AnticipatedEmotion } from '../domain/model/value-objects/anticipated-emotion.js';
+import type { SharedMomentType } from '../../intelligence/relationship/index.js';
 
 // Import canonical dispatchers from emotion-event-dispatcher
 import {
@@ -356,25 +357,28 @@ export async function dispatchPatternSurfacingSignal(
  * Uses the canonical dispatchEmotionalBondDeepen which sends 'emotional_bond_deepen'
  * signal type when a significant emotional moment strengthens the relationship.
  *
+ * The signal goes to every participant in the room, so it carries the moment's type
+ * label only, never message text. The avatar reads signalType and intensity.
+ *
  * @param sendDataMessage - Function to send data to frontend
- * @param trigger - What triggered the bond deepening
+ * @param momentType - The moment's type label (e.g. 'crisis_support')
  * @param intensity - Signal intensity (0-1)
  */
 export async function dispatchEmotionalBondSignal(
   sendDataMessage: SendDataMessageFn,
-  trigger: string,
+  momentType: SharedMomentType,
   intensity = 0.7
 ): Promise<void> {
   try {
     // Use the canonical dispatcher
     await dispatchEmotionalBondDeepen(sendDataMessage, {
-      trigger,
+      trigger: momentType,
       intensity,
-      relationshipContext: trigger,
+      relationshipContext: momentType,
     });
 
     log.debug(
-      { trigger, intensity },
+      { momentType, intensity },
       '💕 Dispatched emotional bond signal (emotional_bond_deepen)'
     );
   } catch (error) {

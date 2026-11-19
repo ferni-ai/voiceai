@@ -231,22 +231,6 @@ async function buildTeamAvailabilityContext(
   return injections;
 }
 
-// ============================================================================
-// EXPORTS FOR HANDOFF SYSTEM
-// ============================================================================
-
-/**
- * Get list of unlocked team member IDs for a user.
- * Used by handoff tools to filter available targets.
- */
-export function getUnlockedTeamMemberIds(
-  userProfile: import('../../../types/user-profile.js').UserProfile | null,
-  tier: 'free' | 'friend' | 'partner' = 'free'
-): TeamMemberId[] {
-  const state = getTeamUnlockState(userProfile, tier);
-  return state.unlockedMembers;
-}
-
 /**
  * Check if a specific team member is available for handoff.
  *
@@ -285,5 +269,3 @@ registerContextBuilder({
   priority: 80, // High priority - should run early so other builders can use this info
   build: buildTeamAvailabilityContext,
 });
-
-export { buildTeamAvailabilityContext };

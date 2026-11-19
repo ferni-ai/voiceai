@@ -19,6 +19,7 @@ import { DEMO_DEVICE_ID_PREFIX } from '../../../utils/synthetic-user.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { refuseCallWithoutLiveKit } from '../call-availability.js';
 import { refuseUnadmitted } from '../../../api/admission.js';
 import { demoPersonaFor, personaForCaller } from './token-persona-owner.js';
 import { callLaunchFor, launchPersona } from './call-launch-param.js';
@@ -139,18 +140,16 @@ async function getDemoStatus(ip: string): Promise<{
   };
 }
 
-/**
- * Handle token routes
- */
 export async function handleTokenRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  if (refuseCallWithoutLiveKit(res, pathname)) return true;
   // LiveKit URL endpoint - rate limit: 100/min (simple read-only endpoint)
   if (pathname === '/token-url') {
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'token-url' })) {
       return true;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -160,7 +159,7 @@ export async function handleTokenRoutes(
 
   // Demo status endpoint - rate limit: 60/min (prevent status polling abuse)
   if (pathname === '/demo-status') {
-    if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+    if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'demo-status' })) {
       return true;
     }
     const ip = getClientIp(req);

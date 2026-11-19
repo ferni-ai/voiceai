@@ -65,6 +65,11 @@
       "count": 1
     }
   },
+  "src/agents/personas/speech-markup-notes.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
   "src/agents/processors/live-superhuman-injections.ts": {
     "no-useless-assignment": {
       "count": 1
@@ -78,11 +83,6 @@
   "src/agents/processors/turn-processor/process-turn.ts": {
     "ferni/no-env-flag-compare": {
       "count": 6
-    }
-  },
-  "src/agents/shared/call-farewell.ts": {
-    "no-useless-assignment": {
-      "count": 1
     }
   },
   "src/agents/shared/conversational-audio-cache.ts": {
@@ -101,6 +101,11 @@
     },
     "no-useless-assignment": {
       "count": 2
+    }
+  },
+  "src/agents/shared/goodbye-phrases.ts": {
+    "no-useless-assignment": {
+      "count": 1
     }
   },
   "src/agents/shared/handoff/coordinator-adapter.ts": {
@@ -128,9 +133,19 @@
       "count": 2
     }
   },
+  "src/agents/shared/reaction-clips.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
   "src/agents/shared/tts-wrapper.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    }
+  },
+  "src/agents/shared/warm-greeting.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 4
     }
   },
   "src/agents/voice-agent-entry/constants.ts": {
@@ -161,6 +176,11 @@
       "count": 1
     }
   },
+  "src/agents/voice-agent/echo-window.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
   "src/agents/voice-agent/phases/performance-init.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -181,7 +201,7 @@
   },
   "src/agents/voice-agent/transcript-handler.ts": {
     "ferni/no-env-flag-compare": {
-      "count": 2
+      "count": 1
     }
   },
   "src/agents/voice-agent/turn-voice-emotion.ts": {
@@ -215,12 +235,38 @@
     }
   },
   "src/audio/ambient-music.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 15
+    },
     "no-useless-assignment": {
       "count": 1
     }
   },
+  "src/audio/dj-speech-engine.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 11
+    }
+  },
   "src/audio/intelligent-music-transitions.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 15
+    },
     "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "src/audio/music-humanization.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
+  "src/audio/music-memory-integration.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 3
+    }
+  },
+  "src/audio/session-sounds.ts": {
+    "ferni/no-spoken-ellipsis": {
       "count": 2
     }
   },
@@ -259,9 +305,9 @@
       "count": 1
     }
   },
-  "src/conversation/cognitive-questions.ts": {
-    "no-useless-assignment": {
-      "count": 1
+  "src/conversation/active-listening/clarification.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
     }
   },
   "src/conversation/conversational-repair.ts": {
@@ -279,9 +325,19 @@
       "count": 1
     }
   },
+  "src/conversation/humanization/catching-yourself.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
   "src/conversation/humanization/index.ts": {
     "no-useless-assignment": {
       "count": 1
+    }
+  },
+  "src/conversation/humanization/vocal-fatigue.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 7
     }
   },
   "src/conversation/predictive-anticipation/index.ts": {
@@ -299,9 +355,24 @@
       "count": 1
     }
   },
+  "src/conversation/superhuman/content-loader.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 4
+    }
+  },
+  "src/conversation/superhuman/dynamic-presence.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
   "src/conversation/superhuman/late-night-warmth.ts": {
     "no-useless-assignment": {
       "count": 2
+    }
+  },
+  "src/conversation/superhuman/meta-relationship.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
     }
   },
   "src/diagnostics/memory-pipeline-diagnostics.ts": {
@@ -319,16 +390,6 @@
       "count": 1
     }
   },
-  "src/intelligence/context-builders/awareness/revelation-awareness.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/intelligence/context-builders/awareness/situational-awareness.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "src/intelligence/context-builders/behavioral/awareness.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1
@@ -339,22 +400,9 @@
       "count": 2
     }
   },
-  "src/intelligence/context-builders/index.ts": {
-    "ferni/no-env-flag-compare": {
-      "count": 1
-    },
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/intelligence/context-builders/memory/memory-enhancement.ts": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/intelligence/context-builders/personas/persona-quirks.ts": {
-    "no-useless-assignment": {
-      "count": 2
+  "src/intelligence/context-builders/personas/spontaneous-vulnerability.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 5
     }
   },
   "src/intelligence/deep-understanding/persistence.ts": {
@@ -365,6 +413,16 @@
   "src/intelligence/deep-understanding/silence.ts": {
     "no-useless-assignment": {
       "count": 2
+    }
+  },
+  "src/intelligence/human-behaviors/voice-prosody.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
+  "src/intelligence/tracking/conversation-quality.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 9
     }
   },
   "src/intelligence/tracking/financial-journey.ts": {
@@ -402,8 +460,33 @@
       "count": 1
     }
   },
+  "src/personas/alive-entrances.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 13
+    }
+  },
+  "src/personas/base-identity.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
+  "src/personas/behaviors.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 12
+    }
+  },
   "src/personas/bundles/adapter.ts": {
     "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/personas/bundles/ferni/dynamic-personality.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
+  "src/personas/bundles/ferni/llm-expression-generator.ts": {
+    "ferni/no-spoken-ellipsis": {
       "count": 1
     }
   },
@@ -422,14 +505,42 @@
       "count": 2
     }
   },
+  "src/personas/cognitive-differentiation.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 12
+    }
+  },
+  "src/personas/easter-eggs.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 3
+    }
+  },
+  "src/personas/greetings.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 11
+    }
+  },
   "src/personas/meaningful-silence.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 20
+    },
     "no-useless-assignment": {
       "count": 1
+    }
+  },
+  "src/personas/meaningful-silence/content.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 12
     }
   },
   "src/personas/shared/memory-personality-bridge.ts": {
     "no-useless-assignment": {
       "count": 2
+    }
+  },
+  "src/personas/shared/realtime-noticing.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 4
     }
   },
   "src/personas/shared/shared-personality-integration.ts": {
@@ -454,11 +565,6 @@
   },
   "src/servers/api/routes/twilio-call-status.ts": {
     "ferni/no-env-flag-compare": {
-      "count": 1
-    }
-  },
-  "src/servers/api/services/demo-sessions.ts": {
-    "no-useless-assignment": {
       "count": 1
     }
   },
@@ -530,9 +636,24 @@
       "count": 1
     }
   },
+  "src/services/dj-service.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 6
+    }
+  },
+  "src/services/engagement/team-engagement.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 4
+    }
+  },
   "src/services/games/game-sounds.ts": {
     "no-useless-assignment": {
       "count": 1
+    }
+  },
+  "src/services/games/music-games.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 3
     }
   },
   "src/services/games/new-music-games.ts": {
@@ -618,6 +739,26 @@
       "count": 1
     }
   },
+  "src/services/personal-journey/chapter-detector.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
+  "src/services/personal-journey/community-wisdom.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 5
+    }
+  },
+  "src/services/personal-journey/rhythm-awareness.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
+  "src/services/personal-journey/seasonal-memory.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
   "src/services/platform/erase-user-record.ts": {
     "preserve-caught-error": {
       "count": 1
@@ -688,9 +829,9 @@
       "count": 1
     }
   },
-  "src/services/superhuman/insight-generation/generators/cross-domain-correlation.ts": {
-    "no-useless-assignment": {
-      "count": 1
+  "src/services/superhuman/silence-interpreter.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
     }
   },
   "src/services/trust-systems/memory-consolidation.ts": {
@@ -719,8 +860,31 @@
     }
   },
   "src/speech/adaptive-ssml/active-presence.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    },
     "no-useless-assignment": {
       "count": 1
+    }
+  },
+  "src/speech/adaptive-ssml/superhuman-voice/anticipatory-comfort.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 3
+    }
+  },
+  "src/speech/adaptive-ssml/superhuman-voice/emotion-transitions.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 5
+    }
+  },
+  "src/speech/adaptive-ssml/superhuman-voice/silence-presence.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
+  "src/speech/anticipation/emotion-predictor.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 3
     }
   },
   "src/speech/backchanneling/decision-engine.ts": {
@@ -738,14 +902,44 @@
       "count": 2
     }
   },
+  "src/speech/graceful-interrupt/index.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
   "src/speech/output-control/enhanced-turn-prediction.ts": {
     "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "src/speech/persona-phrases/superhuman-voice.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 27
+    }
+  },
+  "src/speech/sesame-inspired/anticipatory-prosody.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 5
+    }
+  },
+  "src/speech/sesame-inspired/micro-reactions.ts": {
+    "ferni/no-spoken-ellipsis": {
       "count": 1
     }
   },
   "src/speech/tts-gateway/index.ts": {
     "ferni/no-env-flag-compare": {
       "count": 2
+    }
+  },
+  "src/speech/tts/cartesia-expressiveness.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 11
+    }
+  },
+  "src/speech/voice-quality/music-reactions.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 5
     }
   },
   "src/startup.ts": {
@@ -798,6 +992,21 @@
       "count": 1
     }
   },
+  "src/tools/domains/engagement/analytics-games.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/entertainment/index.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 2
+    }
+  },
+  "src/tools/domains/entertainment/music.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    }
+  },
   "src/tools/domains/entertainment/spotify.ts": {
     "no-useless-assignment": {
       "count": 1
@@ -816,6 +1025,11 @@
   "src/tools/domains/grief/index.ts": {
     "no-useless-assignment": {
       "count": 5
+    }
+  },
+  "src/tools/domains/habits/habit-voice-tools.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
     }
   },
   "src/tools/domains/habits/habits.ts": {
@@ -844,6 +1058,9 @@
     }
   },
   "src/tools/domains/life-planning/milestone-proactive.ts": {
+    "ferni/no-spoken-ellipsis": {
+      "count": 1
+    },
     "no-useless-assignment": {
       "count": 1
     }
@@ -1006,11 +1223,6 @@
   },
   "src/tools/versioning.ts": {
     "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "src/utils/safe-logger.ts": {
-    "ferni/no-env-flag-compare": {
       "count": 1
     }
   },

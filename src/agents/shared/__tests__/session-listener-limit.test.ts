@@ -46,7 +46,7 @@ describe('limitSessionListeners', () => {
   });
 });
 
-describe('every AgentSession gets the limit', () => {
+describe('every AgentSession gets the limit and the listener guard', () => {
   function tsFiles(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
@@ -62,11 +62,18 @@ describe('every AgentSession gets the limit', () => {
       .filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l))
       .join('\n');
 
+  const builders = (): string[] => tsFiles(SRC).filter((f) => /new\s+voice\.AgentSession\s*[<(]/.test(code(f)));
+
   it('each file that constructs an AgentSession calls limitSessionListeners', () => {
-    const builders = tsFiles(SRC).filter((f) => /new\s+voice\.AgentSession\s*[<(]/.test(code(f)));
     // The multi-agent path (production) and the single-agent path.
-    expect(builders.length).toBeGreaterThanOrEqual(2);
-    const missing = builders.filter((f) => !/limitSessionListeners\(session\)/.test(code(f)));
+    expect(builders().length).toBeGreaterThanOrEqual(2);
+    const missing = builders().filter((f) => !/limitSessionListeners\(session\)/.test(code(f)));
+    expect(missing).toEqual([]);
+  });
+
+  it('each file that constructs an AgentSession calls isolateSessionListeners (#3991)', () => {
+    expect(builders().length).toBeGreaterThanOrEqual(2);
+    const missing = builders().filter((f) => !/isolateSessionListeners\(session\)/.test(code(f)));
     expect(missing).toEqual([]);
   });
 });

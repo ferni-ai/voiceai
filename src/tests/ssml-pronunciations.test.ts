@@ -442,10 +442,10 @@ describe('SSML Pronunciation Dictionary', () => {
       );
     });
 
-    it('should pronounce Nayan correctly', () => {
-      expect(containsTextIgnoringSsml(tagTextWithSsml('Nayan offers wisdom'), 'Nuh-yahn')).toBe(
-        true
-      );
+    it('leaves Nayan unrewritten (the stale Nuh-yahn spelling is gone)', () => {
+      const out = tagTextWithSsml('Nayan offers wisdom');
+      expect(containsTextIgnoringSsml(out, 'Nuh-yahn')).toBe(false);
+      expect(containsTextIgnoringSsml(out, 'Nayan')).toBe(true);
     });
 
     it('should pronounce Maya correctly', () => {

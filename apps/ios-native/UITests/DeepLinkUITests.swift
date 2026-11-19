@@ -6,7 +6,10 @@ final class DeepLinkUITests: XCTestCase {
     func testTheHealthLinkOpensFerniWithANote() {
         let app = XCUIApplication.ferni(.home)
         XCTAssertTrue(Screen.home.ready(in: app).waitForExistence(timeout: 20))
-        app.open(URL(string: "ferniapp://healthkit/authorize")!)
+        // Through the system, like a tap on the web's link: it reaches the
+        // running app. `app.open(_:)` relaunches Ferni instead, and that
+        // relaunch hung on CI (run 42386078903, #3334).
+        XCUIDevice.shared.system.open(URL(string: "ferniapp://healthkit/authorize")!)
         let note = app.alerts["Health sharing isn't in the iPhone app yet."]
         XCTAssertTrue(note.waitForExistence(timeout: 5))
         note.buttons["OK"].tap()

@@ -89,10 +89,10 @@ vi.mock('../../services/identity/sponsored-identity.js', () => ({
 // ============================================================================
 
 const SPONSOR = {
-  id: 'sponsor-seth-123',
-  name: 'Seth',
+  id: 'sponsor-sam-123',
+  name: 'Sam Rivera',
   phone: '+15551234567',
-  email: 'seth@example.com',
+  email: 'sam.rivera@example.com',
   voiceSketch: {
     fundamentalFrequency: { mean: 120, std: 15 },
     spectralCentroid: { mean: 2000, std: 300 },

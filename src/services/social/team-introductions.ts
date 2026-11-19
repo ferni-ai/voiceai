@@ -20,7 +20,7 @@ function introductionsDoc(db: Firestore, userId: string) {
 }
 
 /** The teammates already introduced to this person */
-export async function getIntroducedTeammates(
+async function getIntroducedTeammates(
   userId: string,
   db: Firestore | null = getFirestoreDb()
 ): Promise<Set<string>> {
