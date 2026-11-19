@@ -9,6 +9,8 @@
  *
  * @module CrisisThirdPerson
  */
+import { spanishReadersOn } from '../../utils/fold-spanish.js';
+import { closeWentDownEs, emergencyEs } from './crisis-third-person-es.js';
 
 /** Who someone is to the caller, one or more of them: "my brother", "my grandparents", "the twins". */
 const KIN = String.raw`(?:best )?(?:friend|sister|brother|mom|mother|mum|dad|father|son|daughter|kid|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|classmate|student|grandma|grandmother|grandpa|grandfather|aunt|uncle|niece|nephew|neighbou?r|stepmom|stepdad|parent|teen|teenager|grandparent|grandkid|grandchild|baby|toddler|newborn|infant|child|twin)s?|children|grandchildren|babies|little one`;
@@ -220,9 +222,15 @@ const readsIn = (text: string, read: (said: string, masked: string) => boolean):
     const masked = mask(said);
     return read(masked, masked) || (STILL_EMERGENCY.test(masked) && read(said, masked));
   });
-export const thirdPartyEmergency = (text: string): boolean => readsIn(text, reads);
+/* The Spanish readers (#4060, spanishReadersOn), each read only where the English one finds nothing. */
+export const thirdPartyEmergency = (text: string): boolean =>
+  readsIn(text, reads) || (spanishReadersOn() && emergencyEs(text));
 /** Someone close went down, read the same way (CLOSE_WENT_DOWN): crisis-guard.ts keeps the caller's own read beside it. */
-export const someoneCloseWentDown = (text: string): boolean => readsIn(text, closeWentDownIn);
+export const someoneCloseWentDown = (text: string): boolean =>
+  readsIn(text, closeWentDownIn) || (spanishReadersOn() && closeWentDownEs(text));
+/** Spanish words read someone down (CRISIS_SPANISH_READERS): the reply is in Spanish. */
+export const downInSpanish = (text: string): boolean =>
+  spanishReadersOn() && (emergencyEs(text) || closeWentDownEs(text));
 /** What a caller says about their own safety, said or denied: "suicidal", "kill myself", "hopeless". */
 const OWN_SAFETY = String.raw`suicid\w*|(?:kill|hurt|harm|cut)(?:ting|ing)? myself|cutting|end(?:ing)? (?:it|my life)|(?:want|wanna|wanted) to die|(?:could|gonna|going to) die|be here anymore|hopeless|a burden|anything stupid|do this anymore|unalive`;
 /** Up to six words from "I" to it, none of them someone else: "I'm not suicidal", never "I think he could die". */

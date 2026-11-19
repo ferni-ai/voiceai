@@ -8,7 +8,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import { LATE_911_LINE, TALK_TO_988_ES } from '../../../services/safety/crisis-guard-replies.js';
+import {
+  FOR_THEM_911_ES,
+  FOR_THEM_911_HELP_ES,
+  LATE_911_LINE,
+  TALK_TO_988_ES,
+} from '../../../services/safety/crisis-guard-replies.js';
 import { SELF_HARM_911_LINE } from '../../../services/safety/crisis-script-lines.js';
 import { SAFETY_WORDING } from '../phrase-loops-safety.generated.js';
 
@@ -44,6 +49,16 @@ const IMPORTED = [
     name: 'LATE_911_LINE',
     from: '../../services/safety/index.js',
     line: LATE_911_LINE,
+  },
+  {
+    name: 'FOR_THEM_911_ES',
+    from: '../../services/safety/index.js',
+    line: FOR_THEM_911_ES,
+  },
+  {
+    name: 'FOR_THEM_911_HELP_ES',
+    from: '../../services/safety/index.js',
+    line: FOR_THEM_911_HELP_ES,
   },
 ] as const;
 
