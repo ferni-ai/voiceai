@@ -54,6 +54,20 @@ describe('i18n keys', () => {
     expect(keys.filter((key) => !hasKey(key))).toEqual([]);
   });
 
+  it('static text in index.html matches its en-US value', () => {
+    // index.html pre-paints the sign-in gate before the app loads, then the app
+    // swaps in en-US. Different text reflows the gate and the avatar jumps
+    // (first-paint.spec.ts), and the pre-paint shows copy that is no longer true.
+    const html = readFileSync(join(SRC, '..', 'index.html'), 'utf8');
+    const squash = (text: string): string => text.replace(/\s+/g, ' ').trim();
+    const pairs = [...html.matchAll(/data-i18n="([^"]+)"[^>]*>([^<]*)</g)]
+      .map((m) => ({ key: m[1] as string, text: squash(m[2] as string) }))
+      .filter(({ text }) => text !== '');
+    expect(pairs.length).toBeGreaterThan(5);
+    const drift = pairs.filter(({ key, text }) => squash(String(valueOf(EN_US, key))) !== text);
+    expect(drift).toEqual([]);
+  });
+
   it('interpolates params into the fallback text', () => {
     expect(t('test.missing.key', { seeds: 5 }, "You'll both get {seeds} seeds")).toBe("You'll both get 5 seeds");
   });
