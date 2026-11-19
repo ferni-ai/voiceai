@@ -189,7 +189,7 @@ describe('a line with no clean place to cut is held, not cut through a number', 
         len += field.length + 1;
       }
       const line = `{${fields.join(',')}}`;
-      for (const size of [512, 1000, 4096, 4097, 8192]) {
+      for (const size of [64, 512, 1000, 4096, 4097, 8192]) {
         const s = sink();
         for (let i = 0; i < line.length; i += size) s.target.write(line.slice(i, i + size));
         s.target.write('\n');

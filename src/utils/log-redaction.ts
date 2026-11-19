@@ -398,7 +398,7 @@ export function redactWrites(target: unknown): void {
       const redacted = redactText(text);
       return write.call(this, redacted === text ? chunk : asChunk(redacted), ...rest);
     }
-    const { now, held } = hold.split(pending + text);
+    const { now, held } = hold.split(pending, text);
     pending = held;
     if (timer) clearTimeout(timer);
     timer = pending === '' ? undefined : setTimeout(flush, HOLD_MS).unref();
