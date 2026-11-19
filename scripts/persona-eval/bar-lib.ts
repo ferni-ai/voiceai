@@ -762,3 +762,26 @@ export function zoneAtLocalHour(
   };
   return zones.reduce((best, z) => (off(z) < off(best) ? z : best));
 }
+
+/**
+ * `--now`: every `new Date()` with no argument (and `Date()`) reads `at` until the
+ * returned restore runs, so the time notes the turn path writes from the clock
+ * (world-now's "Right now") are the same on every run. Date.now() stays real, so
+ * timeouts, retries and the Vertex token cache still see time pass. Throws on a
+ * value that is not a date.
+ */
+export function fixedClock(at: string): { at: Date; restore: () => void } {
+  const Real = globalThis.Date;
+  const fixed = new Real(at).getTime();
+  if (Number.isNaN(fixed)) throw new Error(`--now: not a date: ${at}`);
+  function Fixed(...args: unknown[]): unknown {
+    // Date() called without `new` returns a string, as the real one does.
+    if (new.target === undefined) return new Real(fixed).toString();
+    return Reflect.construct(Real, args.length ? args : [fixed], new.target);
+  }
+  // Date.now, Date.UTC, Date.parse and instanceof all stay the real Date's.
+  Fixed.prototype = Real.prototype;
+  Object.setPrototypeOf(Fixed, Real);
+  globalThis.Date = Fixed as unknown as DateConstructor;
+  return { at: new Real(fixed), restore: () => void (globalThis.Date = Real) };
+}

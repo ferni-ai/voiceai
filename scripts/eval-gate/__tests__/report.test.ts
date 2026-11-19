@@ -149,6 +149,11 @@ describe('the workflow lets a failed entry fail its job', () => {
     "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository",
     // model step: the change can move at least one suite.
     "steps.decide.outputs.suites != ''",
+    // model step, with the persona suite: skipped only when persona is the one suite selected
+    // (model.ts measures every suite but persona).
+    "steps.decide.outputs.suites != '' && steps.decide.outputs.suites != 'persona'",
+    // persona step: the comma list names persona (no other suite name contains it).
+    "contains(steps.decide.outputs.suites, 'persona')",
   ];
 
   it('runs on pull requests and in the merge queue', () => {

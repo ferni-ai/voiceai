@@ -9,6 +9,7 @@ import { compare, failed, readBaseline } from '../gate-lib.js';
 import {
   BASELINE,
   FLAGS,
+  GATE_NOW,
   PROTECTIONS,
   baselineFrom,
   metricsOf,
@@ -182,6 +183,16 @@ describe('a bar run that produced nothing fails', () => {
       MINOR_CARE: 'test-b',
     });
     expect(seen[0].args.join(' ')).not.toMatch(/CRISIS|MINOR|--set/);
+  });
+
+  it('pins the clock every run reads and sets no caller zone, so each run sends the same request', () => {
+    const seen: Seen[] = [];
+    expect(() => runBar(tmp(), spawned(0, null, seen), ENV)).toThrow(/wrote no/);
+    const { args } = seen[0];
+    expect(args[args.indexOf('--now') + 1]).toBe(GATE_NOW);
+    expect(new Date(GATE_NOW).toISOString()).toBe('2026-11-12T17:00:00.000Z');
+    // The baseline was measured with no zone; a zone changes the time note, so it needs a re-baseline.
+    expect(args).not.toContain('--caller-zone');
   });
 });
 

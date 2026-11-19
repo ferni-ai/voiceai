@@ -43,6 +43,13 @@ const JUDGE = 'gemini-3.5-flash';
 const CHILD_TIMEOUT_MS = 12 * 60_000;
 /** Failed calls (empty replies, unparsable judgments) a run may add before it reads as an outage. */
 const COUNT_FLOOR = 5;
+/**
+ * The instant every gate run's clock reads (bar --now), so the time note in the request is the
+ * same on every run: a weekday afternoon in New York with no US holiday. No caller zone is set,
+ * as in the runs the baseline was measured on; adding one changes the request, so it needs a
+ * new baseline.
+ */
+export const GATE_NOW = '2026-11-12T17:00:00Z';
 const UPDATE = 'GOOGLE_CLOUD_PROJECT=<project> CRISIS_MEANS_IN_HAND=<prod> MINOR_CARE=<prod> pnpm tsx scripts/eval-gate/persona.ts --write-baseline --runs 5'; // prettier-ignore
 
 /**
@@ -151,7 +158,7 @@ type Spawn = (cmd: string, args: string[], opts: object) => SpawnSyncReturns<Buf
 
 /** One bar run in a child process; a failed, killed or silent child throws. */
 export function runBar(out: string, spawn: Spawn = spawnSync, env = process.env): BarResult {
-  const args = ['--arm', ARM, '--flags', FLAGS, '--out', out, '--runs', '1', '--judges', JUDGE];
+  const args = ['--arm', ARM, '--flags', FLAGS, '--out', out, '--runs', '1', '--judges', JUDGE, '--now', GATE_NOW]; // prettier-ignore
   const child = spawn(process.execPath, ['--import', 'tsx', BAR, ...args], {
     stdio: 'inherit',
     timeout: CHILD_TIMEOUT_MS,

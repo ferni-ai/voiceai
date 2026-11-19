@@ -2,9 +2,29 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { SUITES, suitesFor } from '../suites.mjs';
+import { posix } from 'node:path';
+import { PERSONA_IMPORTS_EXCUSED, SUITES, suitesFor } from '../suites.mjs';
 
 const cli = fileURLToPath(new URL('../suites.mjs', import.meta.url));
+const repo = fileURLToPath(new URL('../../../', import.meta.url));
+
+/** The files that put the per-turn notes into the persona gate's request. */
+const NOTE_BUILDERS = [
+  'src/agents/personas/turn-request.ts',
+  'src/agents/personas/turn-notes-guarded.ts',
+];
+
+/** Repo paths of the relative value imports (and re-exports) in `src`, a file at `file`. */
+function valueImportsIn(src, file) {
+  const specs = [
+    ...src.matchAll(/^(?:import|export)\s+(?!type\b)[\w\s{},*$]*?\bfrom\s+'([^']+)'/gm),
+  ].map((m) => m[1]);
+  return specs
+    .filter((s) => s.startsWith('.'))
+    .map((s) => posix.normalize(posix.join(posix.dirname(file), s)).replace(/\.js$/, '.ts'));
+}
+
+const valueImportsOf = (file) => valueImportsIn(readFileSync(`${repo}${file}`, 'utf8'), file);
 const baselines = ['model', 'persona'].map((b) =>
   fileURLToPath(new URL(`../../../evals/baselines/${b}.json`, import.meta.url))
 );
@@ -61,6 +81,39 @@ describe('suitesFor', () => {
     // Persona tools the gate does not run, and the multi-turn fixture (not gated yet).
     expect(suitesFor(['scripts/persona-eval/ai-honesty-probe.ts'])).toEqual([]);
     expect(suitesFor(['scripts/persona-eval/fixtures/bar-conversations.json'])).toEqual([]);
+  });
+
+  it('runs the persona suite for every turn note the two note builders import', () => {
+    const imports = NOTE_BUILDERS.flatMap(valueImportsOf);
+    expect(imports.length).toBeGreaterThan(40);
+    expect(imports).toContain('src/agents/shared/world-now.ts');
+    const unselected = imports.filter(
+      (f) => !suitesFor([f]).includes('persona') && !(f in PERSONA_IMPORTS_EXCUSED)
+    );
+    expect(unselected).toEqual([]);
+  });
+
+  it('excuses only imports the note builders still have, and none the path list selects', () => {
+    const imports = new Set(NOTE_BUILDERS.flatMap(valueImportsOf));
+    for (const f of Object.keys(PERSONA_IMPORTS_EXCUSED)) {
+      expect(imports.has(f), f).toBe(true);
+      expect(suitesFor([f]), f).not.toContain('persona');
+    }
+  });
+
+  it('reads multi-line and re-exported value imports, and skips type-only ones', () => {
+    const src = [
+      "import type { a } from './typed.js';",
+      "import {\n  b,\n  c,\n} from '../shared/multi.js';",
+      "import * as d from './star.js';",
+      "export { e } from '../../tools/re.js';",
+      "import { f } from '@livekit/agents';",
+    ].join('\n');
+    expect(valueImportsIn(src, 'src/agents/personas/x.ts')).toEqual([
+      'src/agents/shared/multi.ts',
+      'src/agents/personas/star.ts',
+      'src/tools/re.ts',
+    ]);
   });
 
   it('runs every suite for the gate itself, shared config, or an unknown change set', () => {

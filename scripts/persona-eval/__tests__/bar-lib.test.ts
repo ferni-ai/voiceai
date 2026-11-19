@@ -11,6 +11,7 @@ import {
   copyStats,
   endsOnQuestion,
   exclaims,
+  fixedClock,
   humannessOf,
   hourIn,
   humannessRate,
@@ -712,5 +713,28 @@ describe('replicated runs, two judges', () => {
       combineMetric('tells: question', cells([['noise'], ['noise']])),
     ];
     expect(barVerdict(metrics, 2, 2).pass).toBe(false);
+  });
+});
+
+describe('fixedClock (--now)', () => {
+  it('pins every no-argument Date, leaves dated ones and Date.now() real, and restores', () => {
+    const Real = Date;
+    const before = Date.now();
+    const { at, restore } = fixedClock('2026-11-11T17:00:00Z');
+    try {
+      expect(new Date().toISOString()).toBe('2026-11-11T17:00:00.000Z');
+      expect(at.toISOString()).toBe('2026-11-11T17:00:00.000Z');
+      expect(Date()).toBe(new Real('2026-11-11T17:00:00Z').toString());
+      expect(new Date(0).toISOString()).toBe('1970-01-01T00:00:00.000Z');
+      expect(new Date() instanceof Real).toBe(true);
+      expect(Date.UTC(2026, 0, 1)).toBe(Real.UTC(2026, 0, 1));
+      expect(Date.now()).toBeGreaterThanOrEqual(before);
+    } finally {
+      restore();
+    }
+    expect(Date).toBe(Real);
+    expect(new Date().toISOString()).not.toBe('2026-11-11T17:00:00.000Z');
+    expect(() => fixedClock('not a date')).toThrow('--now: not a date');
+    expect(Date).toBe(Real);
   });
 });
