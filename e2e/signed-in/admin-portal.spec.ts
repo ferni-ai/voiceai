@@ -32,8 +32,6 @@ const KNOWN_DEAD: Record<string, string> = {
   'dead control: api-docs > Send': 'W15',
   'link leads nowhere (401): api-docs > Feature Flags API -> /api/v1/admin/flags': 'W15',
   'link leads nowhere (401): api-docs > Trust API -> /api/trust-journey/summary': 'W15',
-  // no soul stats route (HL4, HL5)
-  'http 404 with no reason shown: human-listening: GET /api/v1/admin/soul/stats': 'W12b',
 };
 
 /** console.error lines that are not a portal fault, each with why. */
