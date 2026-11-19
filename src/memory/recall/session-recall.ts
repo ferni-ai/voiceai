@@ -20,7 +20,7 @@ import { insideJokesEnabled } from './inside-jokes-recall.js';
 import { jokeExpired, lineKey } from '../operations/inside-jokes.js';
 import { STOPWORDS, isForgotten } from '../domain/forgotten.js';
 // The shared forget matcher, re-exported for its existing importers.
-export { forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
+export { forgetTokens, isForgotten, isForgottenPassage, storedTopic } from '../domain/forgotten.js';
 import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words.js';
 export { rareWordsEnabled } from './rare-words.js';
 

@@ -44,6 +44,9 @@
  * across two writes is still seen whole, and bytes are decoded with a streaming decoder
  * so a multibyte character split across writes is not mangled.
  *
+ * The text pass also replaces a consented clone's voice id (redacted-log-values.ts, as the
+ * app logger does), so the SDK, console and raw writes can't print one either.
+ *
  * What this does not cover: a child process with inherited stdio writes to the fd
  * directly, so it has to install this itself (the per-call job child imports
  * instrument.ts first; the voice worker, tool service, persona service, outreach
@@ -74,6 +77,7 @@ import {
   validWeak,
   WEAK,
 } from './log-object-redaction.js';
+import { redactLogValues } from './redacted-log-values.js';
 import { onSdkLogger } from './sdk-logger-slot.js';
 
 const MAX_DIGITS = 15;
@@ -368,6 +372,8 @@ function callbackOf(rest: unknown[]): (() => void) | undefined {
   return typeof cb === 'function' ? (cb as () => void) : undefined;
 }
 
+const redactText = (text: string): string => redactPhoneNumbers(redactLogValues(text));
+
 /** Wraps `target.write` so every chunk is redacted first. Idempotent per target. */
 export function redactWrites(target: unknown): void {
   const t = target as Marked | null | undefined;
@@ -383,7 +389,7 @@ export function redactWrites(target: unknown): void {
     if (pending === '') return;
     const text = pending;
     pending = '';
-    write.call(t, redactionOff() ? text : redactPhoneNumbers(text));
+    write.call(t, redactionOff() ? text : redactText(text));
   };
   flushers.add(flush);
   if (!exitHooked) {
@@ -400,7 +406,7 @@ export function redactWrites(target: unknown): void {
     const asChunk = (s: string): unknown =>
       typeof chunk === 'string' ? s : Buffer.from(s, 'utf8');
     if (pending === '' && wholeLines(chunk, text)) {
-      const redacted = redactPhoneNumbers(text);
+      const redacted = redactText(text);
       return write.call(this, redacted === text ? chunk : asChunk(redacted), ...rest);
     }
     const all = pending + text;
@@ -413,7 +419,7 @@ export function redactWrites(target: unknown): void {
       if (cb) process.nextTick(cb);
       return true;
     }
-    return write.call(this, asChunk(redactPhoneNumbers(all.slice(0, cut))), ...rest);
+    return write.call(this, asChunk(redactText(all.slice(0, cut))), ...rest);
   };
   t[REDACTING] = true;
 }
