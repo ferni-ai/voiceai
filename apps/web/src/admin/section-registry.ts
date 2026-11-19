@@ -175,6 +175,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: 'Infrastructure health & metrics',
     badge: 'NEW',
     component: async () => (await import('./sections/OperationsSection.js')).render(),
+    setup: async (root) => (await import('./sections/OperationsSection.js')).setupEvents(root),
   },
   {
     id: 'diagnostics',
