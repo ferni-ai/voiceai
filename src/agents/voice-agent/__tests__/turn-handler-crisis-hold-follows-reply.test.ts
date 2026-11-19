@@ -175,6 +175,8 @@ interface TurnShape {
   earlier?: readonly string[];
   /** A preflight fragment of this turn the gate read clean first, under this turn's name. */
   fragment?: string;
+  /** How long the gate's classifier takes once released: longer than the writers' poll. */
+  readTakesMs?: number;
 }
 
 const gateEnv = (flag: 'on' | 'off') => ({ ...GATE, CRISIS_HOLD_FOLLOWS_REPLY: flag });
@@ -190,7 +192,7 @@ async function turn(
   line: string,
   gateRead: string | null,
   flag: 'on' | 'off',
-  { gateStarts = 'first', earlier = [], fragment }: TurnShape = {}
+  { gateStarts = 'first', earlier = [], fragment, readTakesMs = 0 }: TurnShape = {}
 ) {
   vi.stubEnv('CRISIS_HOLD_FOLLOWS_REPLY', flag);
   const sessionId = `hold-follows-reply-${++n}`;
@@ -243,6 +245,9 @@ async function turn(
             env: gateEnv(flag),
             generate: async () => {
               await released;
+              await new Promise((resolve) => {
+                setTimeout(resolve, readTakesMs);
+              });
               if (gateRead === NEVER) {
                 return new Promise<string>(() => {
                   // past the wait, as a classifier that never answers
@@ -361,7 +366,7 @@ describe('flag on: an earlier turn of the call never stands in for the gate read
     ['an earlier turn this one contains', ['lol thank you for listening']],
     ['an unrelated earlier turn (control)', FILLERS(1)],
   ])('%s: the late gate read holds every writer', async (_shape, earlier) => {
-    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late', earlier });
+    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late', earlier, readTakesMs: 250 });
     expect(t.realClient).toBe(0);
     expect([t.pipeline, t.gate]).toEqual(['pass', 'guide']);
     // no correction, preference, gratitude milestone, crisis_support moment, laughter or shared moment
@@ -371,7 +376,7 @@ describe('flag on: an earlier turn of the call never stands in for the gate read
 
   it('a fragment of this turn the gate read clean first (a preflight) does not stand in for it', async () => {
     const fragment = 'lol thank you for listening';
-    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late', fragment });
+    const t = await turn(LINE, CRISIS, 'on', { gateStarts: 'late', fragment, readTakesMs: 250 });
     expect([t.pipeline, t.gate]).toEqual(['pass', 'guide']);
     expect(t.writes).toEqual([]);
     expect([t.bond, t.captures, t.semantic]).toEqual([0, 0, [true]]);

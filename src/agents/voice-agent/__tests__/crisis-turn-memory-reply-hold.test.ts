@@ -105,9 +105,9 @@ describe('turnHold: an earlier turn never stands in for this turn', () => {
     });
     noteReplyGateTurn(sessionId, NOW, { escalation }, ON);
     setTimeout(() => {
-      holdForCrisis(sessionId); // this turn's own gate read found a crisis
+      holdForCrisis(sessionId); // this turn's own gate read found a crisis, two polls later
       finish();
-    }, 30);
+    }, 250);
     expect(await held).toBe(true);
   });
 
@@ -229,6 +229,8 @@ describe('turnHold', () => {
     const unnamed = `reply-hold-unit-${++n}`; // no turn was ever named for this call
     gateRead(unnamed, Promise.resolve({ risk: 'none' }));
     expect(await ask(unnamed)).toBe(true);
+    const unnamedTurn = { services: { sessionId: unnamed }, userText: WORDS, userData: {} };
+    expect(await turnHold(CLEAN, unnamedTurn, ON)()).toBe(true); // no name on either side
     const sessionId = call();
     gateRead(sessionId, Promise.resolve({ risk: 'none' }));
     const nameless = { services: { sessionId }, userText: WORDS, userData: {} };
