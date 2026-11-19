@@ -1,7 +1,7 @@
 import type { FlagSpec } from '../flag-spec.js';
 
 // on: while the house Spotify token is revoked or none is configured, the Spotify-only tools (spotifyAdvanced, callMusic, spotifyStatus, and the Spotify Connect room tools) are unregistered, so no call is offered them, and a call that already holds one hears the not-connected line; they come back when a new token is stored. One SPOTIFY_TOOLS_HIDDEN line per state change, reason only. The iTunes-preview music tools stay (tools/domains/entertainment/spotify-tool-gate.ts). Off: offered as before.
-export const SPOTIFY_TOOLS_HIDE_WHEN_DOWN = {
+export const MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN = {
   default: 'off',
   owner: 'tools',
   kind: 'experiment',

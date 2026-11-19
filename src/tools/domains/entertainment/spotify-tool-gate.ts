@@ -1,6 +1,6 @@
 /**
  * Spotify-only tools leave the toolset while the house Spotify is down
- * (SPOTIFY_TOOLS_HIDE_WHEN_DOWN).
+ * (MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN).
  *
  * The house refresh token has been revoked since 2026-10-22, yet the tools
  * that only work through Spotify (Connect rooms, device transfer, in-call
@@ -40,7 +40,7 @@ const SPOTIFY_ONLY_TOOL_IDS: ReadonlySet<string> = new Set([
 ]);
 
 function hideSpotifyToolsWhenDownOn(env: Env = process.env): boolean {
-  return flagOn('SPOTIFY_TOOLS_HIDE_WHEN_DOWN', env);
+  return flagOn('MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN', env);
 }
 
 /** Why the Spotify-only tools are hidden, or null to offer them (flag off, or Spotify up). */

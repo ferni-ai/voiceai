@@ -1,5 +1,5 @@
 /**
- * SPOTIFY_TOOLS_HIDE_WHEN_DOWN: the house Spotify token has been revoked since
+ * MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN: the house Spotify token has been revoked since
  * 2026-10-22 and the startup validation failed on every worker start, yet the
  * Spotify-only tools stayed in the toolset. These tests drive the real startup
  * path: importing the entertainment domain starts spotify-auth's validation,
@@ -12,12 +12,13 @@ import { capToolsToLimit, isEssentialTool } from '../../../../config/tool-config
 import type { ToolRegistry } from '../../../registry/index.js';
 import type { ToolContext } from '../../../registry/types.js';
 
-type TokenReply = 'revoked' | 'valid';
+/** What Spotify's token endpoint does: revoke, answer, fail with a 5xx, or never connect. */
+type TokenReply = 'revoked' | 'valid' | 'unavailable' | 'offline';
 
 const world = vi.hoisted(() => {
   let release: () => void = () => undefined;
   return {
-    tokenReply: 'revoked' as 'revoked' | 'valid',
+    tokenReply: 'revoked' as 'revoked' | 'valid' | 'unavailable' | 'offline',
     released: Promise.resolve(),
     hold(): void {
       this.released = new Promise<void>((resolve) => {
@@ -83,6 +84,8 @@ async function spotifyStub(input: unknown): Promise<Response> {
   world.spotifyCalls.push(url);
   await world.released;
   if (url.startsWith('https://accounts.spotify.com/api/token')) {
+    if (world.tokenReply === 'offline') throw new TypeError('fetch failed');
+    if (world.tokenReply === 'unavailable') return json(503, { error: 'server_error' });
     return world.tokenReply === 'revoked'
       ? json(400, { error: 'invalid_grant', error_description: 'Refresh token revoked' })
       : json(200, { access_token: 'a1', expires_in: 3600, token_type: 'Bearer' });
@@ -148,8 +151,8 @@ afterEach(async () => {
   vi.unstubAllEnvs();
 });
 
-describe('flag on (SPOTIFY_TOOLS_HIDE_WHEN_DOWN=on)', () => {
-  beforeEach(() => vi.stubEnv('SPOTIFY_TOOLS_HIDE_WHEN_DOWN', 'on'));
+describe('flag on (MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN=on)', () => {
+  beforeEach(() => vi.stubEnv('MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN', 'on'));
 
   it('a revoked token found by the startup validation takes every Spotify-only tool out of the registry', async () => {
     const { auth, entertainment, registry } = await startWorker('revoked');
@@ -174,6 +177,23 @@ describe('flag on (SPOTIFY_TOOLS_HIDE_WHEN_DOWN=on)', () => {
     expect(present(registry, SPOTIFY_ONLY)).toEqual(SPOTIFY_ONLY);
     expect(hiddenLogs()).toEqual([]);
   });
+
+  it.each(['unavailable', 'offline'] as const)(
+    'a refresh that fails without a revocation (%s) hides nothing, since it may recover',
+    async (tokenReply) => {
+      const { auth, registry } = await startWorker(tokenReply);
+      world.release();
+      await vi.waitFor(() =>
+        expect(world.spotifyCalls[0]).toMatch(/^https:\/\/accounts\.spotify\.com\/api\/token/)
+      );
+      await tick();
+      await tick();
+
+      expect(auth.isSpotifyRefreshRevoked()).toBe(false);
+      expect(present(registry, SPOTIFY_ONLY)).toEqual(SPOTIFY_ONLY);
+      expect(hiddenLogs()).toEqual([]);
+    }
+  );
 
   it('logs the revocation once, words-free, however many starts and syncs follow', async () => {
     const { auth, entertainment } = await startWorker('revoked');
@@ -273,6 +293,8 @@ describe('flag on (SPOTIFY_TOOLS_HIDE_WHEN_DOWN=on)', () => {
 });
 
 describe('flag off (default)', () => {
+  beforeEach(() => vi.stubEnv('MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN', 'off')); // not the runner's env
+
   it('a revoked token leaves every tool registered, as on main, and logs nothing new', async () => {
     const { auth, entertainment, registry } = await startWorker('revoked');
     world.release();

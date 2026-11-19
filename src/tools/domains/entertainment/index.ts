@@ -550,7 +550,7 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   'entertainment',
   gateSpotifyOnlyTools(entertainmentTools)
 );
-followSpotifyAvailability(definitions); // SPOTIFY_TOOLS_HIDE_WHEN_DOWN
+followSpotifyAvailability(definitions); // MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN
 
 export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getSonosMusicToolDefinitions };
 
