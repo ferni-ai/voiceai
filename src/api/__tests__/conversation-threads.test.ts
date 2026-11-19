@@ -175,6 +175,27 @@ describe('Conversation Threads API', () => {
       expect(handled).toBe(true);
     });
 
+    // #3631: a prototype member name is an unknown persona, never Object.prototype or a function.
+    it.each([
+      ['maya', 'Maya'],
+      ['no-such-persona', 'Ferni'],
+      ['__proto__', 'Ferni'],
+      ['constructor', 'Ferni'],
+      ['toString', 'Ferni'],
+      ['hasOwnProperty', 'Ferni'],
+    ])('names the thread persona for personaId %s as %s', async (personaId, name) => {
+      const { handleConversationThreadsRoutes } = await import('../routes/conversation-threads.js');
+      const { readBody } = await import('../helpers.js');
+      vi.mocked(readBody).mockResolvedValue({ topic: 'Weekend plans', personaId });
+      const res = createMockResponse();
+      const url = '/api/conversations/threads?userId=test-user';
+      const req = createMockRequest({ method: 'POST', url });
+      const path = '/api/conversations/threads';
+      await handleConversationThreadsRoutes(req, res, path, new URL(`http://localhost${url}`));
+      expect(res._statusCode).toBe(200);
+      expect(JSON.parse(res._data).thread.personaName).toBe(name);
+    });
+
     it('should require topic field', async () => {
       const { handleConversationThreadsRoutes } = await import('../routes/conversation-threads.js');
       const { readBody } = await import('../helpers.js');

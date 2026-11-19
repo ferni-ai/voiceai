@@ -251,7 +251,7 @@ function getPersonaName(personaId: string): string {
     jordan: 'Jordan',
     nayan: 'Nayan',
   };
-  return names[personaId] || 'Ferni';
+  return Object.hasOwn(names, personaId) ? names[personaId] : 'Ferni'; // own keys only (#3631)
 }
 
 // ============================================================================

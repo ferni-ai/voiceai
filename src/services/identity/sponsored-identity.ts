@@ -139,8 +139,8 @@ export interface PhoneLookupResult {
 // FIRESTORE
 // ============================================================================
 
-const COLLECTION_NAME = 'sponsored_identities';
-const PHONE_INDEX_COLLECTION = 'sponsored_identity_phone_index';
+export const COLLECTION_NAME = 'sponsored_identities';
+export const PHONE_INDEX_COLLECTION = 'sponsored_identity_phone_index';
 
 let firestoreInstance: Firestore | null = null;
 let initAttempted = false;
@@ -737,7 +737,7 @@ async function deletePhoneIndex(phoneNumber: string): Promise<void> {
 /**
  * Convert Firestore document to SponsoredIdentity.
  */
-function docToIdentity(doc: DocumentSnapshot): SponsoredIdentity {
+export function docToIdentity(doc: DocumentSnapshot): SponsoredIdentity {
   const data = doc.data()!;
   const id = doc.id;
   return {

@@ -251,22 +251,14 @@ import { handleRitualsRoutes } from '../../api/routes/rituals.js';
 import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
+import { decideCallsAtStartup } from './call-availability.js';
 import { uiServerListenHost } from './listen-host.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 const HOST = uiServerListenHost();
 
-// Validate configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
-
-if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  log.error(
-    'Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
-  );
-  process.exit(1);
-}
+if (!decideCallsAtStartup()) process.exit(1);
 
 const server = http.createServer((req, res) =>
   respondOnRejection(res, handleRequest(bindBodyLimitResponse(req, res), res))
