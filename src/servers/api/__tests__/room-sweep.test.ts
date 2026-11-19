@@ -9,7 +9,6 @@ import { createHash } from 'node:crypto';
 import { ParticipantInfo_Kind as Kind, ParticipantInfo_State as State } from '@livekit/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { roomSweepEnabled, sweepGraceMs, sweepRooms, type SweepClocks } from '../room-sweep.js';
-import { getRoomName as getGroupRoomName } from '../../../services/group-coaching/livekit.js';
 
 /** The participant fields the sweep reads (a LiveKit ParticipantInfo). */
 interface SweepParticipant {
@@ -32,6 +31,37 @@ function memoryClocks(): SweepClocks & { docs: Map<string, number> } {
   };
 }
 const quiet = { info: () => undefined, warn: () => undefined };
+
+/** The rooms createGroupRoom creates, caught at the RoomServiceClient. */
+const created = vi.hoisted(() => [] as Array<{ name: string; metadata?: string }>);
+vi.mock('livekit-server-sdk', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('livekit-server-sdk')>()),
+  RoomServiceClient: class {
+    async createRoom(opts: { name: string; metadata?: string }) {
+      created.push(opts);
+    }
+  },
+}));
+
+/** The metadata group coaching's real createGroupRoom puts on its room. */
+async function realGroupRoomMetadata(): Promise<string | undefined> {
+  vi.stubEnv('LIVEKIT_URL', 'wss://livekit.test');
+  vi.stubEnv('LIVEKIT_API_KEY', 'test-key');
+  vi.stubEnv('LIVEKIT_API_SECRET', 'test-secret');
+  vi.resetModules();
+  const { createGroupRoom } = await import('../../../services/group-coaching/livekit.js');
+  const session = {
+    id: 'session-riley-test',
+    type: 'circle',
+    hostUserId: 'riley-test',
+    config: { maxParticipants: 4 },
+  };
+  expect(await createGroupRoom(session as Parameters<typeof createGroupRoom>[0])).toMatchObject({
+    success: true,
+  });
+  vi.unstubAllEnvs();
+  return created.at(-1)?.metadata;
+}
 
 const MIN = 60_000;
 const GRACE = 5 * MIN;
@@ -174,14 +204,37 @@ describe('kept', () => {
     expect(s.deleted).toEqual([]);
   });
 
-  it('a group coaching room, which has no agent by design, is never read or swept', async () => {
+  it.each([undefined, '', 'not json', '{"is_group_session":"true"}'])(
+    'a room only NAMED like a group room (metadata %j) is swept normally',
+    async (metadata) => {
+      const deleted: string[] = [];
+      const clocks = memoryClocks();
+      const pass = async (now: number) =>
+        sweepRooms({
+          rooms: {
+            listRooms: async () => [{ name: 'group_riley-test', metadata }],
+            listParticipants: async () => [person],
+          },
+          deleteRoom: async (name) => void deleted.push(name),
+          clocks,
+          graceMs: GRACE,
+          now: () => now,
+          log: quiet,
+        });
+      await pass(0);
+      expect(await pass(GRACE)).toEqual({ swept: 1 });
+      expect(deleted).toEqual(['group_riley-test']);
+    }
+  );
+
+  it('a real group coaching room (createGroupRoom metadata) is never read or swept', async () => {
+    const metadata = await realGroupRoomMetadata();
     const listParticipants = vi.fn(async () => [person]);
     const deleteRoom = vi.fn();
     const clocks = memoryClocks();
-    const group = getGroupRoomName('session-riley-test');
     const pass = async (now: number) =>
       sweepRooms({
-        rooms: { listRooms: async () => [{ name: group }], listParticipants },
+        rooms: { listRooms: async () => [{ name: 'room-riley-test', metadata }], listParticipants },
         deleteRoom,
         clocks,
         graceMs: GRACE,
@@ -192,6 +245,24 @@ describe('kept', () => {
     expect(await pass(60 * MIN)).toEqual({ no_agent_by_design: 1 });
     expect(listParticipants).not.toHaveBeenCalled();
     expect(deleteRoom).not.toHaveBeenCalled();
+    expect(clocks.docs.size).toBe(0);
+  });
+
+  it('a no-agent-by-design room clears a clock it already has', async () => {
+    const clocks = memoryClocks();
+    clocks.docs.set(roomHash(ROOM), 0);
+    const counts = await sweepRooms({
+      rooms: {
+        listRooms: async () => [{ name: ROOM, metadata: await realGroupRoomMetadata() }],
+        listParticipants: async () => [person],
+      },
+      deleteRoom: async () => undefined,
+      clocks,
+      graceMs: GRACE,
+      now: () => 60 * MIN,
+      log: quiet,
+    });
+    expect(counts).toEqual({ no_agent_by_design: 1 });
     expect(clocks.docs.size).toBe(0);
   });
 

@@ -17,8 +17,9 @@
  * left gives a re-dispatch the whole grace period to join. A SIP leg still
  * dialing or ringing doesn't count as a person, so an outbound room waiting on
  * its agent is never swept. A room with no person (empty, or egress/recorder
- * only) is left to LiveKit's own timeouts, and a room meant to have no agent
- * (NO_AGENT_ROOM_PREFIXES) is never read.
+ * only) is left to LiveKit's own timeouts, and a room the server marked as
+ * meant to have no agent (noAgentByDesign, read from room metadata the client
+ * can't set) is never read.
  *
  * The clocks live in SweepClocks, not in memory: the server scales to zero and
  * each pass may land on a different instance. They are keyed by a hash of the
@@ -36,13 +37,6 @@ const defaultLog = createLogger({ module: 'room-sweep' });
 
 /** How long a room is alone before it is deleted, unless ROOM_SWEEP_GRACE_MINUTES says otherwise. */
 const DEFAULT_GRACE_MINUTES = 5;
-
-/**
- * Rooms meant to hold people with no agent, by name prefix. Group coaching sessions
- * (services/group-coaching/livekit.ts getRoomName) get no agent dispatch; Ferni joins only
- * on a host's request, with a plain token, so it shows as a person, not an agent.
- */
-const NO_AGENT_ROOM_PREFIXES = ['group_'];
 
 /** Why a room was kept, or that it was swept. */
 type SweepReason =
@@ -62,9 +56,15 @@ interface SweepParticipant {
   attributes?: Record<string, string>;
 }
 
+/** The fields of a LiveKit room the sweep reads. */
+interface SweepRoom {
+  name: string;
+  metadata?: string;
+}
+
 /** The RoomServiceClient reads the sweep needs. */
 interface SweepRooms {
-  listRooms: () => Promise<Array<{ name: string }>>;
+  listRooms: () => Promise<SweepRoom[]>;
   listParticipants: (room: string) => Promise<SweepParticipant[]>;
 }
 
@@ -109,6 +109,22 @@ function roomHash(room: string): string {
   return createHash('sha256').update(room).digest('hex').slice(0, 12);
 }
 
+/**
+ * A room meant to hold people with no agent, by the metadata the server set when it created it.
+ * Never by name: /token lets the client choose a room name. Group coaching sessions
+ * (services/group-coaching/livekit.ts createGroupRoom, is_group_session) get no agent dispatch;
+ * Ferni joins only on a host's request, with a plain token, so it shows as a person.
+ */
+function noAgentByDesign(metadata: string | undefined): boolean {
+  try {
+    return (
+      (JSON.parse(metadata ?? '{}') as { is_group_session?: unknown }).is_group_session === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** What a room's participants say: agent there, a person alone, a phone still ringing, or nobody. */
 function roomState(
   people: SweepParticipant[]
@@ -128,14 +144,15 @@ function roomState(
 }
 
 async function sweepRoom(
-  room: string,
+  { name: room, metadata }: SweepRoom,
   since: number | undefined,
   at: number,
   deps: RoomSweepDeps
 ): Promise<SweepReason> {
   const hash = roomHash(room);
-  if (NO_AGENT_ROOM_PREFIXES.some((prefix) => room.startsWith(prefix))) return 'no_agent_by_design';
-  const state = roomState(await deps.rooms.listParticipants(room));
+  const state = noAgentByDesign(metadata)
+    ? 'no_agent_by_design'
+    : roomState(await deps.rooms.listParticipants(room));
   if (state !== 'alone') {
     if (since !== undefined) await deps.clocks.clear(hash);
     return state;
@@ -162,13 +179,10 @@ export async function sweepRooms(deps: RoomSweepDeps): Promise<SweepCounts> {
   const add = (reason: SweepReason): void => {
     counts[reason] = (counts[reason] ?? 0) + 1;
   };
-  let names: string[];
+  let rooms: SweepRoom[];
   let clocks: Map<string, number>;
   try {
-    [names, clocks] = await Promise.all([
-      deps.rooms.listRooms().then((rooms) => rooms.map((r) => r.name)),
-      deps.clocks.list(),
-    ]);
+    [rooms, clocks] = await Promise.all([deps.rooms.listRooms(), deps.clocks.list()]);
   } catch {
     add('read_failed');
     log.warn({ counts }, 'ROOM_SWEEP');
@@ -176,13 +190,15 @@ export async function sweepRooms(deps: RoomSweepDeps): Promise<SweepCounts> {
   }
   const at = (deps.now ?? Date.now)();
   const reasons = await Promise.all(
-    names.map(async (room) =>
-      sweepRoom(room, clocks.get(roomHash(room)), at, deps).catch((): SweepReason => 'read_failed')
+    rooms.map(async (room) =>
+      sweepRoom(room, clocks.get(roomHash(room.name)), at, deps).catch(
+        (): SweepReason => 'read_failed'
+      )
     )
   );
   reasons.forEach(add);
   // A clock whose room is gone would restart a reused name part-way through its grace period.
-  const listed = new Set(names.map(roomHash));
+  const listed = new Set(rooms.map((room) => roomHash(room.name)));
   const gone = [...clocks.keys()].filter((hash) => !listed.has(hash));
   await Promise.all(gone.map(async (hash) => deps.clocks.clear(hash).catch(() => undefined)));
   const acted = (counts.swept ?? 0) + (counts.delete_failed ?? 0) + (counts.read_failed ?? 0);
