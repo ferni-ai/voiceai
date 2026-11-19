@@ -20,7 +20,7 @@ import {
 } from '../../tools/handoff/handoff-factory.js';
 import { checkHandoffUnlocked } from '../../tools/handoff/handoff-unlock-check.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import { sethTeammateOpen } from '../seth-teammate.js';
+import { sethOwnerUid, sethTeammateOpen } from '../seth-teammate.js';
 
 const partner = { id: 'u1', subscription: { tier: 'partner' } } as unknown as UserProfile;
 const newcomer = { id: 'u1', totalConversations: 0 } as unknown as UserProfile;
@@ -48,6 +48,15 @@ describe('sethTeammateOpen', () => {
     expect(sethTeammateOpen({ SETH_TEAMMATE: 'on', ROSTER_VOICE_SETH: '  ' })).toBe(false);
     expect(sethTeammateOpen({ ROSTER_VOICE_SETH: 'fake-seth-id' })).toBe(false);
     expect(sethTeammateOpen({ SETH_TEAMMATE: 'on', ROSTER_VOICE_SETH: 'fake-seth-id' })).toBe(true);
+  });
+});
+
+describe('sethOwnerUid', () => {
+  it('is the trimmed SETH_OWNER_UID, or null when unset or blank', () => {
+    expect(sethOwnerUid({})).toBeNull();
+    expect(sethOwnerUid({ SETH_OWNER_UID: '' })).toBeNull();
+    expect(sethOwnerUid({ SETH_OWNER_UID: '   ' })).toBeNull();
+    expect(sethOwnerUid({ SETH_OWNER_UID: ' uid-owner-test ' })).toBe('uid-owner-test');
   });
 });
 

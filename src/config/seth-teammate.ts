@@ -28,3 +28,12 @@ export function sethTeammateOpen(env: Env = process.env): boolean {
 export function listedNow(id: string, env: Env = process.env): boolean {
   return !isSeth(id) || sethTeammateOpen(env);
 }
+
+/**
+ * The account of the person whose family circle the seth teammate serves, from
+ * SETH_OWNER_UID, trimmed, or null when unset or blank. The one reader of that
+ * setting: everything else asks here.
+ */
+export function sethOwnerUid(env: Env = process.env): string | null {
+  return env.SETH_OWNER_UID?.trim() || null;
+}

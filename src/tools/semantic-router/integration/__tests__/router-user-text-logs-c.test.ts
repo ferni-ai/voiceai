@@ -89,6 +89,7 @@ const routingContext = {
   personaId: 'ferni',
   conversationHistory: [],
   recentTools: [],
+  autoExecuteCheck: null,
 };
 
 function expectNoSentinel(value: unknown) {

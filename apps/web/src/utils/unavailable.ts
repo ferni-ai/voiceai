@@ -9,7 +9,7 @@
  * @module UnavailableState
  */
 
-import { createLogger } from '../utils/logger.js';
+import { createLogger } from './logger.js';
 
 const log = createLogger('UnavailableState');
 
