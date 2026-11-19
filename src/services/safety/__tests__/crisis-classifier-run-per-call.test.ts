@@ -205,6 +205,16 @@ describe('CRISIS_CLASSIFIER_RUN_PER_CALL: turn reads (agreement gate, confirmed-
     expect(await turnVerdicts('call-never-seen', LINE)).toEqual([null]);
   });
 
+  it('more pushed-out twin turns than can be named: no call gets a missing read', async () => {
+    await read(ON, answering(CRISIS), 'call-a');
+    const twins = 1100;
+    for (let i = 0; i < twins; i++) await read(ON, answering(CRISIS), `twin-crisis:t${i}`);
+    expect(await turnVerdicts('call-a', LINE)).toEqual([{ risk: 'crisis', subject: 'self' }]);
+    expect(await turnVerdicts('call-never-seen', LINE)).toEqual([]);
+    // Twins still fail closed among themselves: a twin never seen gets the missing read.
+    expect(await turnVerdicts('twin-crisis:never-seen', LINE)).toEqual([null]);
+  });
+
   it("a call's own reads past the cap mark it missing a read", async () => {
     for (let i = 0; i < 33; i++)
       await read(ON, answering(CRISIS), 'call-a', { ...LINE, latest: `invented line ${i}` });

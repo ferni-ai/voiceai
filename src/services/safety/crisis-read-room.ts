@@ -7,6 +7,7 @@
  * entries. Calls make room among calls only past CALL_ROOM. A call whose turn reads were pushed
  * out is noted for LOST_MS, and turnVerdicts adds a missing read for it, which every consumer
  * escalates (fail closed): a pushed-out imminent read must never leave a lone crisis read to ease.
+ * Calls and twins are noted apart, so twin volume never marks a call missing a read.
  */
 import { flagOn } from '../../config/env-flag.js';
 
@@ -19,17 +20,20 @@ const LOST_MS = 30_000;
 /** Entries of calls (not twins) a cache holds before it pushes out a call's oldest. */
 const CALL_ROOM = 1024;
 
-/** Scope → when its turn reads were pushed out. EVERY_CALL: too many to name, all fail closed. */
-const lost = new Map<string, number>();
-const EVERY_CALL = '\u0000every call'; // no call id or twin scope starts with NUL
+/** Scope → when its turn reads were pushed out, calls and twins apart. EVERY: too many to name,
+ * so every scope of that kind fails closed. */
+const lost = { call: new Map<string, number>(), twin: new Map<string, number>() };
+const EVERY = '\u0000every scope'; // no call id or twin scope starts with NUL
 
 export const perCallReads = (env?: Env): boolean => flagOn('CRISIS_CLASSIFIER_RUN_PER_CALL', env);
 
 const isTwin = (scope: string): boolean => scope.startsWith(TWIN_SCOPE_PREFIX);
+const lostOf = (scope: string): Map<string, number> => (isTwin(scope) ? lost.twin : lost.call);
 
 function noteLost(scope: string, now: number): void {
-  for (const [s, at] of lost) if (now - at > LOST_MS) lost.delete(s);
-  lost.set(lost.size >= CALL_ROOM ? EVERY_CALL : scope, now);
+  const table = lostOf(scope);
+  for (const [s, at] of table) if (now - at > LOST_MS) table.delete(s);
+  table.set(table.size >= CALL_ROOM ? EVERY : scope, now);
 }
 
 /**
@@ -122,11 +126,13 @@ export function noteReadsDropped(scope: string, on: boolean, now: number): void 
 
 /** Whether `scope`'s turn reads were pushed out within LOST_MS: a read is missing. */
 export function readsLost(scope: string, now = Date.now()): boolean {
-  const since = (key: string) => now - (lost.get(key) ?? -Infinity) <= LOST_MS;
-  return since(EVERY_CALL) || since(scope);
+  const table = lostOf(scope);
+  const since = (key: string) => now - (table.get(key) ?? -Infinity) <= LOST_MS;
+  return since(EVERY) || since(scope);
 }
 
 /** For tests: forget lost scopes (resetCrisisClassifierCache). */
 export function resetLostReads(): void {
-  lost.clear();
+  lost.call.clear();
+  lost.twin.clear();
 }

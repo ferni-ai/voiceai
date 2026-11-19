@@ -416,7 +416,7 @@ export function startCrisisClassifier(
 
   const startedAt = Date.now();
   // CRISIS_CLASSIFIER_RUN_PER_CALL (#4005): runs shared within one call only, never with no call
-  // id, a failed run never shared, and a run joined only while it has time left to answer.
+  // id, a failed run never reused, and a run joined only while it has time left to answer.
   const on = perCallReads(env);
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.

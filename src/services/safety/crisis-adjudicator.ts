@@ -286,7 +286,7 @@ export function startCrisisAdjudicator(
   if (mode === 'off' || !adjudicatorEligible(options.pattern, options.verdicts)) return null;
   const startedAt = Date.now();
   const key = JSON.stringify([options.scope ?? '', mode, normalizeTranscript(lines)]);
-  // CRISIS_CLASSIFIER_RUN_PER_CALL: shared within one call only, a failed run never shared.
+  // CRISIS_CLASSIFIER_RUN_PER_CALL: shared within one call only, a failed run never reused.
   const on = perCallReads(env);
   const cacheable = !on || !!options.scope;
   const shared = cacheable ? recent.get(key, startedAt)?.run : undefined;
