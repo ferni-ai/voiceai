@@ -51,6 +51,7 @@ describe('Active Learning Integration', () => {
         personaId: 'ferni',
         conversationHistory: [],
         recentTools: [],
+        autoExecuteCheck: null,
       };
 
       // Start tracking
@@ -76,6 +77,7 @@ describe('Active Learning Integration', () => {
         personaId: 'ferni',
         conversationHistory: [],
         recentTools: [],
+        autoExecuteCheck: null,
       };
 
       const turnId = startTurnTracking(context, 'what time is it', 'en');
@@ -144,6 +146,7 @@ describe('Active Learning Integration', () => {
         personaId: 'ferni',
         conversationHistory: [],
         recentTools: [],
+        autoExecuteCheck: null,
       };
 
       const turnId = startTurnTracking(context, 'check my calendar', 'en');
@@ -161,6 +164,7 @@ describe('Active Learning Integration', () => {
         personaId: 'ferni',
         conversationHistory: [],
         recentTools: [],
+        autoExecuteCheck: null,
       };
 
       const turnId = startTurnTracking(context, 'play something relaxing', 'en');
@@ -237,6 +241,7 @@ describe('Active Learning Integration', () => {
         personaId: 'ferni',
         conversationHistory: [],
         recentTools: [],
+        autoExecuteCheck: null,
       };
 
       startTurnTracking(context, 'hello', 'en');
@@ -259,6 +264,7 @@ describe('Active Learning Integration', () => {
           personaId: 'ferni',
           conversationHistory: [],
           recentTools: [],
+          autoExecuteCheck: null,
         };
         startTurnTracking(context, 'test', 'en');
       }

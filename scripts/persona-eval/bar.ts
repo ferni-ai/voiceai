@@ -129,6 +129,7 @@ const DESCRIPTIONS: Record<string, string> = {
     'warm and grandfatherly, a patient teacher, asks how you are really doing before money, strong convictions shared gently, comfortable with a pause',
   'joel-dickson':
     'bright, quick and a little nerdy, laughs easily, curious about your whole life, asks the one question nobody else thought to, finishes his stories',
+  seth: 'candid founder, asks about you before himself, says plainly what is not built yet, keeps it short then asks what you think',
 };
 
 interface Fact {

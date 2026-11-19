@@ -5,7 +5,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALL_CANONICAL_IDS } from '../../../../personas/persona-ids.js';
 
 const createRoomWithAgent = vi.fn();
@@ -143,9 +143,33 @@ describe.each(['/token', '/demo-token'] as const)(
       expect(dispatchedPersona()).toBe('ferni');
     });
 
-    it.each([...ALL_CANONICAL_IDS])('built-in persona %s passes through unchanged', async (id) => {
-      await request(path, id);
-      expect(dispatchedPersona()).toBe(id);
+    // Seth is a built-in persona behind his own gate: his case is the next test.
+    it.each(ALL_CANONICAL_IDS.filter((id) => id !== 'seth'))(
+      'built-in persona %s passes through unchanged',
+      async (id) => {
+        await request(path, id);
+        expect(dispatchedPersona()).toBe(id);
+      }
+    );
+
+    describe('seth, behind SETH_TEAMMATE', () => {
+      afterEach(() => vi.unstubAllEnvs());
+      const gate = (open: boolean): void => {
+        vi.stubEnv('SETH_TEAMMATE', open ? 'on' : 'off');
+        vi.stubEnv('ROSTER_VOICE_SETH', open ? 'fake-seth-id' : '');
+      };
+
+      it('starts on Ferni while his gate is closed', async () => {
+        gate(false);
+        expect(await request(path, 'seth')).toBe(200);
+        expect(dispatchedPersona()).toBe('ferni');
+      });
+
+      it('passes through unchanged while his gate is open', async () => {
+        gate(true);
+        await request(path, 'seth');
+        expect(dispatchedPersona()).toBe('seth');
+      });
     });
 
     it.each(['wellness-coach', 'generic-advisor'])(
