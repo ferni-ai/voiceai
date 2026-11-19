@@ -74,11 +74,13 @@ export function reviewSummary(review: {
       : `${r.status} (no verdict)`;
   const outcome = revised
     ? 'rewritten once with its notes, and the rewrite is kept'
-    : after
-      ? 'rewritten once with its notes, but the rewrite scored no better, so the first draft stands'
-      : before.status === 'fail' && before.verdict
-        ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
-        : 'kept as drafted';
+    : after && !after.verdict
+      ? "rewritten once with its notes, but the judge couldn't score the rewrite, so the first draft stands"
+      : after
+        ? 'rewritten once with its notes, but the rewrite scored no better, so the first draft stands'
+        : before.status === 'fail' && before.verdict
+          ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
+          : 'kept as drafted';
   const rewrite = after ? `; judge on the rewrite: ${scores(after)}` : '';
   return `Judge before revision: ${scores(before)}${rewrite}; ${outcome}`;
 }

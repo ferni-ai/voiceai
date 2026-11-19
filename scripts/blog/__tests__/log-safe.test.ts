@@ -308,6 +308,13 @@ describe('reviewSummary', () => {
     );
   });
 
+  it("says when the judge couldn't score the rewrite", () => {
+    const after: JudgeResult = { status: 'error', model: 'judge', failures: ['overloaded'] };
+    expect(reviewSummary({ before: judged('fail', 3), after, revised: false })).toMatch(
+      /judge on the rewrite: error \(no verdict\); rewritten once with its notes, but the judge couldn't score the rewrite, so the first draft stands$/
+    );
+  });
+
   it('says when the judge passed the draft and nothing was rewritten', () => {
     expect(reviewSummary({ before: judged('pass', 4), revised: false })).toBe(
       'Judge before revision: pass (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 4); kept as drafted'

@@ -223,8 +223,11 @@ describe('rewriteIsBetter', () => {
   };
   const none: JudgeResult = { status: 'error', model: 'judge', failures: ['no verdict'] };
 
-  it('never keeps a rewrite the judge gave no verdict on', () => {
+  it('never keeps a rewrite the judge gave no verdict on, or an error with scores', () => {
     expect(rewriteIsBetter(judged(3, 3, 4, 3, 3, 3), none)).toBe(false);
+    expect(
+      rewriteIsBetter(judged(3, 3, 4, 3, 3, 3), { ...judged(4, 3, 4, 3, 3, 3), status: 'error' })
+    ).toBe(false);
   });
 
   it('keeps a rewrite that passes over a draft that failed, even if one score fell', () => {

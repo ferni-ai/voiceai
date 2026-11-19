@@ -683,10 +683,9 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
   it('on and the judge passes it: no rewrite', async () => {
     const { prompts, model } = twoAnswers(REWRITE);
     const { d, writes } = deps(model);
-    const result = await draftPost(
-      { type: 'building-in-public' },
-      { ...d, review: async () => verdict(4) }
-    );
+    const review = vi.fn(async () => verdict(4));
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(review).toHaveBeenCalledOnce();
     expect(prompts).toHaveLength(1);
     expect(result.review).toMatchObject({ revised: false, before: { status: 'pass' } });
     expect(matter(writes[0].content).data.title).toBe('First draft');
@@ -696,10 +695,9 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
     const { prompts, model } = twoAnswers(REWRITE);
     const { d, writes } = deps(model);
     const none: JudgeResult = { status: 'error', model: 'judge', failures: ['no verdict'] };
-    const result = await draftPost(
-      { type: 'building-in-public' },
-      { ...d, review: async () => none }
-    );
+    const review = vi.fn(async () => none);
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(review).toHaveBeenCalledOnce();
     expect(prompts).toHaveLength(1);
     expect(result.review?.revised).toBe(false);
     expect(matter(writes[0].content).data.title).toBe('First draft');
@@ -708,10 +706,10 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
   it('on and the rewrite fails the brand gate: the first draft stands', async () => {
     const { prompts, model } = twoAnswers(`${REWRITE} It is fast \u2014 really fast.`);
     const { d, writes } = deps(model);
-    const result = await draftPost(
-      { type: 'building-in-public' },
-      { ...d, review: async () => verdict(3) }
-    );
+    const review = vi.fn(async () => verdict(3));
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(review).toHaveBeenCalledOnce();
+    expect(result.review?.after).toBeUndefined();
     expect(prompts).toHaveLength(2);
     expect(result.status).toBe('written');
     expect(result.review?.revised).toBe(false);

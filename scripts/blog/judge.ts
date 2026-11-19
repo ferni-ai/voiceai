@@ -160,7 +160,7 @@ export function editorNotes(result: JudgeResult): string[] {
 export function rewriteIsBetter(before: JudgeResult, after: JudgeResult): boolean {
   const was = before.verdict;
   const now = after.verdict;
-  if (!now) return false;
+  if (!now || after.status === 'error') return false;
   if (!was) return true;
   if (after.status === 'pass' && before.status !== 'pass') return true;
   // Both fail: keep the rewrite only if no dimension dropped and at least one
