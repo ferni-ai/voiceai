@@ -10349,6 +10349,7 @@
         "other": "Ich habe die Perspektiven aus {count} Tagebucheinträgen, die ich mit dir teilen möchte."
       }
     },
+    "appNote": "Das ist dein früheres Ich, geschrieben aus deinen Tagebucheinträgen und deinem Profil. Sag Hallo, wenn du so weit bist.",
     "error": "Das ist nicht durchgegangen. Das liegt an mir, nicht an dir. Schick es gern noch einmal."
   },
   "mood": {

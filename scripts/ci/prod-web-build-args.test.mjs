@@ -70,6 +70,10 @@ const KNOWN_UNBUILT = {
   VITE_SANCTUARY_CHAT: 'unwired',
   VITE_SEEDS: 'unwired',
   VITE_SPEAKER_CUES: 'unwired',
+  // Talk to Twin's app-note opening (#3866): off in prod until the server's
+  // TWIN_CONVERSATION_V2 promotes, and the two are wired into the build together. One
+  // browser can turn it on with localStorage.
+  VITE_TWIN_CONVERSATION_V2: 'unwired',
   // Only read when import.meta.env.DEV; the e2e walks set it for their emulator build.
   VITE_USE_FIREBASE_EMULATORS: 'dev-only',
   // Only an override: with no build value, push-notifications.service.ts fetches the key

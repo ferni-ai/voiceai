@@ -4,6 +4,8 @@
  * Fictional profile.
  */
 
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/utils/api.js', () => ({ apiPost: vi.fn(), apiGet: vi.fn() }));
@@ -22,30 +24,40 @@ vi.mock('../../src/services/custom-agent.service.js', () => ({
 }));
 
 const { openTalkToTwin, closeTalkToTwin } = await import('../../src/ui/talk-to-twin.ui.js');
-const { TWIN_CONVERSATION_V2_STORAGE_KEY } =
+const { TWIN_CONVERSATION_V2_STORAGE_KEY, isTwinConversationV2On } =
   await import('../../src/config/twin-conversation-v2-flag.js');
+const { apiPost } = await import('../../src/utils/api.js');
 const { t } = await import('../../src/i18n/index.js');
 
 // The modal is a module singleton and setup.ts empties the body before each test, so keep
-// the message list from the first open and read inside it.
-let messages: Element | null = null;
+// the panel from the first open and read inside it.
+let overlay: Element | null = null;
+
+async function openPanel(): Promise<Element> {
+  await openTalkToTwin('twin-1');
+  overlay ??= document.querySelector('.talk-twin-overlay');
+  if (!overlay) throw new Error('the twin panel did not open');
+  return overlay;
+}
+
+/** The panel's messages of one role, as drawn. */
+function drawn(panel: Element, role: string): string[] {
+  return [...panel.querySelectorAll(`#twin-messages .twin-message--${role}`)].map(
+    (el) => el.textContent?.trim() ?? ''
+  );
+}
 
 /** The opening messages, by role, as the panel draws them. */
 async function opening(): Promise<{ twin: string[]; notice: string[] }> {
-  await openTalkToTwin('twin-1');
-  messages ??= document.querySelector('#twin-messages');
-  if (!messages) throw new Error('the twin panel did not open');
-  const texts = (role: string) =>
-    [...(messages?.querySelectorAll(`.twin-message--${role}`) ?? [])].map(
-      (el) => el.textContent?.trim() ?? ''
-    );
-  const drawn = { twin: texts('twin'), notice: texts('notice') };
+  const panel = await openPanel();
+  const shown = { twin: drawn(panel, 'twin'), notice: drawn(panel, 'notice') };
   closeTalkToTwin();
-  return drawn;
+  return shown;
 }
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
   localStorage.removeItem(TWIN_CONVERSATION_V2_STORAGE_KEY);
 });
 
@@ -74,5 +86,88 @@ describe('Talk to your past self: the opening', () => {
     vi.stubEnv('VITE_TWIN_CONVERSATION_V2', 'true');
     localStorage.setItem(TWIN_CONVERSATION_V2_STORAGE_KEY, 'false');
     expect((await opening()).twin).toHaveLength(1);
+  });
+
+  it('flag on: the app note never reaches the model; the history holds only real turns', async () => {
+    vi.stubEnv('VITE_TWIN_CONVERSATION_V2', 'true');
+    const post = vi.mocked(apiPost);
+    post.mockReset();
+    post
+      .mockResolvedValueOnce({ ok: true, status: 200, data: { response: 'reply one' } })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: { response: 'reply two' } });
+    const panel = await openPanel();
+    const input = panel.querySelector<HTMLTextAreaElement>('#twin-input');
+    const send = panel.querySelector<HTMLElement>('#twin-send');
+    if (!input || !send) throw new Error('no input or send button');
+    const say = async (text: string, reply: string) => {
+      input.value = text;
+      send.click();
+      await vi.waitFor(() => expect(drawn(panel, 'twin').join('\n')).toContain(reply));
+    };
+    await say('hi there', 'reply one');
+    await say('how was the lake?', 'reply two');
+    closeTalkToTwin();
+
+    const bodies = post.mock.calls
+      .filter(([url]) => url === '/api/journal/twin-response')
+      .map(([, body]) => body as { history: unknown });
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) expect(JSON.stringify(body)).not.toContain(t('talkToTwin.appNote'));
+    expect(bodies[0]?.history).toEqual([]);
+    expect(bodies[1]?.history).toEqual([
+      { from: 'person', text: 'hi there' },
+      { from: 'agent', text: 'reply one' },
+    ]);
+  });
+});
+
+describe('isTwinConversationV2On: only the exact values turn it on', () => {
+  it.each(['false', '1', 'TRUE', 'yes', ' true', ''])('build value %j keeps it off', (value) => {
+    vi.stubEnv('VITE_TWIN_CONVERSATION_V2', value);
+    expect(isTwinConversationV2On()).toBe(false);
+  });
+
+  it.each(['TRUE', '1', 'yes', 'on', ''])(
+    'browser value %j is no override: the build default stands',
+    (value) => {
+      localStorage.setItem(TWIN_CONVERSATION_V2_STORAGE_KEY, value);
+      vi.stubEnv('VITE_TWIN_CONVERSATION_V2', 'true');
+      expect(isTwinConversationV2On()).toBe(true);
+      vi.stubEnv('VITE_TWIN_CONVERSATION_V2', '');
+      expect(isTwinConversationV2On()).toBe(false);
+    }
+  );
+
+  it('storage that throws falls back to the build default', () => {
+    vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('storage blocked');
+    });
+    vi.stubEnv('VITE_TWIN_CONVERSATION_V2', '');
+    expect(isTwinConversationV2On()).toBe(false);
+    vi.stubEnv('VITE_TWIN_CONVERSATION_V2', 'true');
+    expect(isTwinConversationV2On()).toBe(true);
+    expect(localStorage.getItem).toHaveBeenCalled();
+  });
+});
+
+describe('the app note in every language the twin panel speaks', () => {
+  it('every locale with the twin strings has its own app note', () => {
+    const dir = join(__dirname, '../../src/i18n/locales');
+    const notes = readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => {
+        const twin = (
+          JSON.parse(readFileSync(join(dir, file), 'utf8')) as {
+            talkToTwin?: Record<string, unknown>;
+          }
+        ).talkToTwin;
+        return { file, twin };
+      })
+      .filter(({ twin }) => twin !== undefined);
+    expect(notes.length).toBeGreaterThan(1);
+    for (const { file, twin } of notes) {
+      expect(typeof twin?.appNote, file).toBe('string');
+      expect(String(twin?.appNote).trim(), file).not.toBe('');
+    }
   });
 });
