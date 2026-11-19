@@ -36,7 +36,7 @@ export const CRISIS_READ_WAIT = { startMs: 5000, settleMs: 10_000 };
 const held = new Map<string, number>();
 /** sessionId -> the turns a crisis read started for (crisisTurnKey). */
 const seen = new Map<string, string[]>();
-/** CRISIS_HOLD_FOLLOWS_REPLY: sessionId -> the caller turn being spoken now (noteCallerTurn). */
+/** CRISIS_HOLD_FOLLOWS_REPLY: sessionId -> the caller turn being spoken now (callerTurnNoter). */
 const callerTurns = new Map<string, string>();
 /** A reply gate read: the caller turn it started in and the words it read (crisisTurnKey). */
 interface GateRead {
@@ -102,27 +102,25 @@ export function noteCrisisTurnRead(sessionId: string | undefined, words: string)
 }
 
 /**
- * CRISIS_HOLD_FOLLOWS_REPLY: the caller is now speaking the turn named `callerTurn`, the key the
- * turn context pusher gives each caller turn (multi-agent/caller-turn-builder.ts, CALLER_TURN_KEY).
+ * CRISIS_HOLD_FOLLOWS_REPLY on: notes that the caller is now speaking the turn named `callerTurn`,
+ * the key the turn context pusher gives each caller turn (multi-agent/caller-turn-builder.ts,
+ * CALLER_TURN_KEY). Undefined when off or with no call: nothing noted.
  */
-export function noteCallerTurn(sessionId: string, callerTurn: string): void {
-  callerTurns.delete(sessionId);
-  callerTurns.set(sessionId, callerTurn);
-  trim(callerTurns);
-}
-
-/** CRISIS_HOLD_FOLLOWS_REPLY on: the pusher's onTurnKey, noting each new caller turn of the call. */
 export function callerTurnNoter(
   sessionId: string | undefined,
   env: Readonly<Record<string, string | undefined>> = process.env
 ): ((callerTurn: string) => void) | undefined {
   if (!sessionId || !flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return undefined;
-  return (callerTurn) => noteCallerTurn(sessionId, callerTurn);
+  return (callerTurn) => {
+    callerTurns.delete(sessionId);
+    callerTurns.set(sessionId, callerTurn);
+    trim(callerTurns);
+  };
 }
 
 /**
  * CRISIS_HOLD_FOLLOWS_REPLY: the reply gate read these caller words, in the caller turn being
- * spoken now (noteCallerTurn); none named, the read counts for no turn. Its escalation, when it
+ * spoken now (callerTurnNoter); none named, the read counts for no turn. Its escalation, when it
  * has one, runs as one of the call's reads until it settles, registered here with the note, so a
  * writer that finds the note also waits for it (replyGateTurnSettled). Flag off: nothing noted,
  * so no other reader waits longer than on main. Returns the gate's turn.

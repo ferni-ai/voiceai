@@ -2,7 +2,7 @@
  * The caller turn the pusher builds (caller-turn-builder.ts), and the live path that ties the
  * reply gate's read to it under CRISIS_HOLD_FOLLOWS_REPLY: session transcript events ->
  * attachTurnContextPusher -> createTurnIntelligenceHook (the handler's userData.callerTurnKey),
- * and the same name -> utils/crisis-memory-hold.ts noteCallerTurn -> the real startCrisisGate's
+ * and the same name -> utils/crisis-memory-hold.ts callerTurnNoter -> the real startCrisisGate's
  * note (noteReplyGateTurn) -> replyGateTurnSettled. Only the turn handler is a spy. All lines
  * fictional.
  */
