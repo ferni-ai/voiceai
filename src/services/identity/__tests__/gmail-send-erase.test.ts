@@ -166,7 +166,7 @@ describe('account erasure when Google or Firestore fails', () => {
       expect(JSON.stringify(entry)).not.toMatch(/user-5|refresh/);
     }
     expect(eraseUserRecord).toHaveBeenCalledWith('user-5', undefined, undefined, undefined, {
-      keepAccount: false,
+      signIns: undefined, // account deletion: no hold, the sign-in ends for good
     });
   });
 

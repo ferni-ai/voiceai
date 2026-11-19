@@ -5,8 +5,9 @@
  *
  * With DATA_ERASE_KEEPS_SIGNIN on, a data-only erasure (deleteAllData(uid, true)) holds the
  * sign-in while it runs and restores it only once every step, the record sweep included,
- * has finished; a failed erasure and an account deletion keep it refused. Real erasure
- * and token check; Firestore is an in-memory fake, the other steps are stubs.
+ * has finished; an account deletion keeps it refused, and so does a failed erasure, until
+ * a retry fully succeeds. Real erasure and token check; Firestore is an in-memory fake,
+ * the other steps are stubs.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,7 +15,7 @@ const control = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   beforeDelete: async (_path: string): Promise<void> => {},
   lastStep: async (): Promise<void> => {},
-  wellbeingFails: false,
+  wellbeingFailures: 0,
   linked: [] as string[],
 }));
 
@@ -81,7 +82,10 @@ vi.mock('../../../memory/index.js', () => ({
 }));
 vi.mock('../../wellbeing-tracking/persistence.js', () => ({
   deleteWellbeingData: async () => {
-    if (control.wellbeingFails) throw new Error('unavailable');
+    if (control.wellbeingFailures > 0) {
+      control.wellbeingFailures -= 1;
+      throw new Error('unavailable');
+    }
   },
 }));
 vi.mock('../../trust-systems/index.js', () => ({ deleteTrustProfiles: vi.fn() }));
@@ -135,13 +139,15 @@ beforeEach(() => {
   control.docs.clear();
   control.beforeDelete = async () => {};
   control.lastStep = async () => {};
-  control.wellbeingFails = false;
+  control.wellbeingFailures = 0;
   control.linked = [];
   vi.stubEnv('BQ_ERASURE', 'off');
 });
 afterEach(() => vi.unstubAllEnvs());
 
 describe('flag off: as before', () => {
+  beforeEach(() => vi.stubEnv('DATA_ERASE_KEEPS_SIGNIN', 'off'));
+
   it('a data-only erasure leaves the sign-in refused on this instance (401)', async () => {
     const uid = nextUid();
     seed(uid);
@@ -202,7 +208,7 @@ describe('DATA_ERASE_KEEPS_SIGNIN on', () => {
   it('a later step that leaves data behind keeps the sign-in refused', async () => {
     const uid = nextUid();
     seed(uid);
-    control.wellbeingFails = true;
+    control.wellbeingFailures = 1;
     const results = await erase(uid, true);
     expect(results.wellbeing).toBe(false);
     expect(await statusFor(uid)).toBe(401);
@@ -236,9 +242,104 @@ describe('DATA_ERASE_KEEPS_SIGNIN on', () => {
     const phone = `phone:+1555000${String(n).padStart(4, '0')}`;
     seed(uid, phone);
     control.linked = [phone];
-    control.wellbeingFails = true;
+    control.wellbeingFailures = 1;
     await erase(uid, true);
     expect(await statusFor(phone)).toBe(401);
     expect(await statusFor(uid)).toBe(401);
+  });
+
+  it('P1: a later step fails (401), then a retry that fully succeeds signs back in (200)', async () => {
+    const uid = nextUid();
+    const phone = `phone:+1555000${String(n).padStart(4, '0')}`;
+    seed(uid, phone);
+    control.linked = [phone];
+    control.wellbeingFailures = 1;
+    expect((await erase(uid, true)).wellbeing).toBe(false);
+    expect(await statusFor(uid)).toBe(401);
+    const retry = await erase(uid, true);
+    expect(Object.values(retry)).not.toContain(false);
+    expect(remnants(uid)).toEqual([]);
+    expect(await statusFor(uid)).toBe(200);
+    expect(await statusFor(phone)).toBe(200);
+  });
+
+  it('P2: the record sweep throws (401), then a retry that fully succeeds signs back in (200)', async () => {
+    const uid = nextUid();
+    seed(uid);
+    control.beforeDelete = async (path) => {
+      if (path === `users/${uid}`) throw new Error('unavailable');
+    };
+    await expect(erase(uid, true)).rejects.toThrow('User record not fully erased');
+    expect(await statusFor(uid)).toBe(401);
+    control.beforeDelete = async () => {};
+    await erase(uid, true);
+    expect(remnants(uid)).toEqual([]);
+    expect(await statusFor(uid)).toBe(200);
+  });
+
+  it('a retry that fails again keeps the sign-in refused', async () => {
+    const uid = nextUid();
+    seed(uid);
+    control.wellbeingFailures = 2;
+    await erase(uid, true);
+    await erase(uid, true);
+    expect(await statusFor(uid)).toBe(401);
+  });
+});
+
+describe('DATA_ERASE_KEEPS_SIGNIN on: two data-only erasures at once, one fails', () => {
+  beforeEach(() => vi.stubEnv('DATA_ERASE_KEEPS_SIGNIN', 'on'));
+
+  /** Both erasures parked at their last step; each ends when its gate opens, in arrival order */
+  async function twoAtOnce(uid: string, failing: 0 | 1) {
+    const gates: Array<() => void> = [];
+    let arrived = 0;
+    control.lastStep = async () => {
+      const mine = arrived;
+      arrived += 1;
+      await new Promise<void>((open) => {
+        gates.push(open);
+      });
+      if (mine === failing) throw new Error('unavailable'); // answer_cards: false
+    };
+    const ended: boolean[] = [];
+    const running = [erase(uid, true), erase(uid, true)].map(async (p) => {
+      ended.push(!Object.values(await p).includes(false));
+    });
+    await vi.waitFor(() => expect(gates).toHaveLength(2));
+    const end = async (k: number) => {
+      gates[k]();
+      await vi.waitFor(() => expect(ended).toHaveLength(k + 1));
+      return statusFor(uid);
+    };
+    const done = async () => {
+      await Promise.all(running);
+      control.lastStep = async () => {}; // the retry runs straight through
+    };
+    return { end, done, ended };
+  }
+
+  it('the success ends first: refused after both, until a retry fully succeeds', async () => {
+    const uid = nextUid();
+    seed(uid);
+    const run = await twoAtOnce(uid, 1);
+    expect(await run.end(0)).toBe(401); // the other still holds it
+    expect(await run.end(1)).toBe(401); // it failed
+    await run.done();
+    expect(run.ended).toEqual([true, false]);
+    await erase(uid, true);
+    expect(await statusFor(uid)).toBe(200);
+  });
+
+  it('the failure ends first: the success that overlapped it does not clear it; a retry does', async () => {
+    const uid = nextUid();
+    seed(uid);
+    const run = await twoAtOnce(uid, 0);
+    expect(await run.end(0)).toBe(401);
+    expect(await run.end(1)).toBe(401);
+    await run.done();
+    expect(run.ended).toEqual([false, true]);
+    await erase(uid, true);
+    expect(await statusFor(uid)).toBe(200);
   });
 });

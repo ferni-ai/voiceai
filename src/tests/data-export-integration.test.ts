@@ -379,7 +379,7 @@ describe('GDPR Data Deletion Integration', () => {
       expect(eraseUserRecord).not.toHaveBeenCalled();
       const results = await getDataExportService().deleteAllData(testUserId);
       expect(eraseUserRecord).toHaveBeenCalledWith(testUserId, undefined, undefined, undefined, {
-        keepAccount: false,
+        signIns: undefined, // account deletion: no hold, the sign-in ends for good
       });
       expect(results.engagement).toBe(true);
     });

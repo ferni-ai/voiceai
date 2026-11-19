@@ -139,7 +139,7 @@ describe('eraseUserRecord', () => {
     it('off: erasure completes even when the queue store would throw', async () => {
       const { db, raw } = seedTwoUsers();
       const tx = failingQueue(raw);
-      await expect(eraseUserRecord('u-1', db, STORES, [])).resolves.toEqual(['u-1']); // the uids erased
+      await expect(eraseUserRecord('u-1', db, STORES, [])).resolves.toBeUndefined();
       expect(tx).not.toHaveBeenCalled();
       expect(await findUserRecordRemnants(db, 'u-1', STORES)).toEqual([]);
     });

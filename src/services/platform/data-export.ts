@@ -25,7 +25,8 @@ import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GDPR export uses generic shapes
 type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
-import { erasureErrorCode, erasureSteps, restoreSignIns } from './erasure-step.js';
+import { erasureErrorCode, erasureSteps } from './erasure-step.js';
+import { erasureOutcome, signInHold } from './erasure-sign-in-hold.js';
 import { EXPORT_CATEGORIES } from './export-categories.js';
 import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
 import { countUserRecords, exportUserRecords } from './user-records-export.js';
@@ -763,7 +764,7 @@ class DataExportService {
   async deleteAllData(userId: string, keepAccount = false): Promise<Record<string, boolean>> {
     const deletionResults: Record<string, boolean> = {};
     const step = erasureSteps(deletionResults, userId, log);
-
+    const signIns = keepAccount ? signInHold() : undefined; // released once, however it ends
     try {
       // 0. Google grants first, while their tokens can be read: revoke, or queue the revoke when
       // Google is down. Not caught: a failed read must stop the erasure (unknown token state).
@@ -781,7 +782,7 @@ class DataExportService {
 
       // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed.
       const { eraseUserRecord } = await import('./erase-user-record.js');
-      const uids = await eraseUserRecord(userId, undefined, undefined, undefined, { keepAccount });
+      await eraseUserRecord(userId, undefined, undefined, undefined, { signIns });
       try {
         const { getDefaultStore } = await import('../../memory/index.js');
         await getDefaultStore().deleteProfile(userId);
@@ -812,8 +813,7 @@ class DataExportService {
       // 6. Delete productivity data
       await step('productivity', 'Failed to delete productivity data', async () => {
         const { getProductivityStore } = await import('../stores/productivity-store.js');
-        const store = getProductivityStore();
-        await store.clearUserData(userId);
+        await getProductivityStore().clearUserData(userId);
       });
 
       // 6b. Delete answer cards (/a/:id)
@@ -825,11 +825,11 @@ class DataExportService {
       // included) is erased with the user record in step 2.
       // 8. Cognitive memory is not deleted here: it is an in-process Map of per-session state,
       // with nothing persisted to erase.
-
-      if (keepAccount) restoreSignIns(uids, deletionResults); // after every step above
+      signIns?.release(erasureOutcome(deletionResults)); // after every step above
       log.info({ userId, deletionResults }, '🗑️ User data deletion completed');
       return deletionResults;
     } catch (error) {
+      signIns?.release('failed');
       log.error(
         { error: erasureErrorCode(error), userId, deletionResults },
         'Failed to delete all user data'
