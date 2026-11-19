@@ -38,6 +38,32 @@ export const ENV_FLAG_COMPARE = [
     "Read env flags with flagOn/flagModeOf (src/config/env-flag.ts), not a raw === 'on'|'true' check.",
 }));
 
+/**
+ * A hard-coded spoken line (SSML: it carries a <break>, <speed>, <emotion> or <volume> tag) whose
+ * words hold an ellipsis. The voice text rules (src/agents/personas/speech-markup-notes.ts) ban
+ * them because the voice says them unevenly; "So... what brings you here?" reached TTS in a
+ * first-time greeting (#2063). Only words outside tags count. Exported for its test
+ * (src/config/__tests__/spoken-ellipsis-lint.test.ts).
+ */
+const SSML_TAG = '<(break|speed|emotion|volume)\\b';
+const SPOKEN_DOTS = '(^|>)[^<]*(\\.\\.\\.|…)';
+export const SPOKEN_ELLIPSIS = [
+  `Literal[value=/${SSML_TAG}/][value=/${SPOKEN_DOTS}/]`,
+  `TemplateLiteral:has(TemplateElement[value.raw=/${SSML_TAG}/]) > TemplateElement[value.raw=/${SPOKEN_DOTS}/]`,
+].map((selector) => ({
+  selector,
+  message:
+    'No ellipsis in spoken words (speech-markup-notes.ts): end the sentence, or pause with a <break> and a comma.',
+}));
+
+/** The repo's own lint rules: each is no-restricted-syntax under its own id, one plugin object. */
+const FERNI_PLUGIN = {
+  rules: {
+    'no-env-flag-compare': builtinRules.get('no-restricted-syntax'),
+    'no-spoken-ellipsis': builtinRules.get('no-restricted-syntax'),
+  },
+};
+
 export default [
   // ============================================================================
   // GLOBAL IGNORES
@@ -593,9 +619,23 @@ export default [
   {
     files: ['src/**/*.ts'],
     ignores: ['src/config/env-flag.ts', '**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/tests/**'],
-    plugins: { ferni: { rules: { 'no-env-flag-compare': builtinRules.get('no-restricted-syntax') } } },
+    plugins: { ferni: FERNI_PLUGIN },
     rules: {
       'ferni/no-env-flag-compare': ['error', ...ENV_FLAG_COMPARE],
+    },
+  },
+
+  // ============================================================================
+  // NO ELLIPSIS IN HARD-CODED SPOKEN LINES (#2063)
+  // The sites that existed when the rule landed are in eslint-suppressions.json: a new one fails,
+  // and a fixed one is pruned with `npx eslint --prune-suppressions <file>`.
+  // ============================================================================
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/tests/**'],
+    plugins: { ferni: FERNI_PLUGIN },
+    rules: {
+      'ferni/no-spoken-ellipsis': ['error', ...SPOKEN_ELLIPSIS],
     },
   },
 
