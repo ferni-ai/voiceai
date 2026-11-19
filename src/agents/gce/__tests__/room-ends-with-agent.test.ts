@@ -7,10 +7,32 @@
  * These run the real job (runJobInProcess) on a real Room: the session is stubbed to leave
  * people in the room and end the call, and deleteRoom (the LiveKit server call) is recorded.
  */
+import type { EventEmitter } from 'node:events';
+
+import { ServerMessage } from '@livekit/protocol';
 import { ParticipantKind } from '@livekit/rtc-node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const deleted = vi.hoisted(() => ({ rooms: [] as string[], fail: false }));
+const sockets = vi.hoisted(() => [] as EventEmitter[]);
+
+// LiveKit's worker socket, so a termination can come in as LiveKit sends it (livekit-connection.ts).
+vi.mock('ws', async () => {
+  const { EventEmitter: Emitter } = await import('node:events');
+  class FakeWebSocket extends Emitter {
+    static OPEN = 1;
+    readyState = 1;
+    constructor() {
+      super();
+      sockets.push(this);
+    }
+    send(): void {}
+    ping(): void {}
+    close(): void {}
+    terminate(): void {}
+  }
+  return { WebSocket: FakeWebSocket };
+});
 
 vi.mock('../../voice-agent-entry/index.js', () => ({ runFullVoiceAgentEntry: vi.fn() }));
 vi.mock('../../shared/phone-goodbye.js', async (importOriginal) => ({
@@ -24,6 +46,7 @@ vi.mock('../../shared/phone-goodbye.js', async (importOriginal) => ({
 const { runFullVoiceAgentEntry } = await import('../../voice-agent-entry/index.js');
 const { LIVEKIT_TERMINATION, runJobInProcess, shutdownJob } = await import('../job-executor.js');
 const { drainJobRunner } = await import('../job-runner.js');
+const conn = await import('../livekit-connection.js');
 
 const ROOM = 'eval-room-1403';
 const info = (jobId: string) =>
@@ -121,6 +144,26 @@ describe('ROOM_ENDS_WITH_AGENT on: the room ends with the agent', () => {
     ).toEqual([]);
   });
 
+  it("keeps the room when LiveKit's own termination message ends the job (livekit-connection.ts)", async () => {
+    on();
+    const config = { url: 'http://localhost:7880', apiKey: 'devkey', agentName: 't' };
+    conn.initLiveKitConnection({ ...config, apiSecret: 'x'.repeat(32) }, () => undefined);
+    void conn.connectToLiveKit();
+    const ws = await vi.waitFor(() => sockets[0] ?? Promise.reject(new Error('no socket yet')));
+    ws.emit('open');
+
+    const { call } = startCall('AJ_lk_msg', { people: [ParticipantKind.STANDARD] });
+    await vi.waitFor(() => expect(runFullVoiceAgentEntry).toHaveBeenCalled());
+    await pause(20); // the job is now waiting for its call to end
+    const termination = new ServerMessage({
+      message: { case: 'termination', value: { jobId: 'AJ_lk_msg' } },
+    });
+    ws.emit('message', Buffer.from(termination.toBinary()));
+    await call; // the termination ended the job
+    expect(deleted.rooms).toEqual([]);
+    conn.closeConnection();
+  });
+
   it('keeps the room when LiveKit ended the job, even if the session also asked to end', async () => {
     on();
     const reason = [LIVEKIT_TERMINATION, 'empty_room'];
@@ -171,6 +214,7 @@ describe('ROOM_ENDS_WITH_AGENT on: the room ends with the agent', () => {
 
 describe('ROOM_ENDS_WITH_AGENT off (the default)', () => {
   it('only disconnects the agent, as before: the room is left to LiveKit', async () => {
+    vi.stubEnv('ROOM_ENDS_WITH_AGENT', 'off');
     expect(await endCall('AJ_off', { people: [ParticipantKind.STANDARD] })).toEqual([]);
   });
 });
