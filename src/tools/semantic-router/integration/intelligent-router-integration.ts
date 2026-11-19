@@ -27,6 +27,7 @@ import {
 import { routeUserInput, createSemanticRouter } from '../router.js';
 import type { SemanticRouterResult } from '../types.js';
 import type { TurnRouterResult, RoutingContext } from './turn-processor-integration.js';
+import { autoExecuteHeld } from './auto-execute-hold.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'intelligent-router-integration' });
@@ -252,7 +253,6 @@ export async function startIntelligentRouting(
   const startTime = performance.now();
 
   try {
-    // Route through intelligent cascade
     const decision = await orchestrator.route(userText, {
       userId: context.userId,
       sessionId: context.sessionId,
@@ -278,7 +278,8 @@ export async function startIntelligentRouting(
       '🧠 Intelligent routing complete'
     );
 
-    return convertToTurnRouterResult(decision, userText, context, latencyMs);
+    // Awaited: a rejecting converter falls back too (#4116). Nothing may throw after its tool runs.
+    return await convertToTurnRouterResult(decision, userText, context, latencyMs);
   } catch (error) {
     log.error({ ...errorFields(error), textLength: userText.length }, 'Intelligent routing failed');
 
@@ -297,12 +298,13 @@ async function convertToTurnRouterResult(
   context: RoutingContext,
   latencyMs: number
 ): Promise<TurnRouterResult & { intelligentDecision?: RoutingDecision }> {
+  const held = () => autoExecuteHeld(context, 'intelligent'); // ROUTER_EXEC_AFTER_CRISIS_READ
   // Handle plan action
   if (decision.action === 'plan' && decision.plan) {
     // For now, execute first step of plan
     // TODO: Full plan execution with state management
     const firstStep = decision.plan.steps[0];
-    if (firstStep) {
+    if (firstStep && !(await held())) {
       log.info(
         {
           planSteps: decision.plan.steps.length,
@@ -310,8 +312,6 @@ async function convertToTurnRouterResult(
         },
         '📋 Executing first step of plan'
       );
-
-      // Execute first step
       const result = await executeToolForResult(firstStep.toolId, firstStep.args, context);
 
       return {
@@ -326,7 +326,7 @@ async function convertToTurnRouterResult(
   }
 
   // Handle execute action
-  if (decision.action === 'execute' && decision.toolId) {
+  if (decision.action === 'execute' && decision.toolId && !(await held())) {
     const result = await executeToolForResult(decision.toolId, decision.args, context);
 
     return {

@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkPost, type GateIssue } from '../brand-gate.js';
+import { checkPost, repeatedRuns, type GateIssue } from '../brand-gate.js';
 import { forbiddenTerms } from '../brand-terms.js';
 
 const root = path.resolve(__dirname, '../../..');
@@ -104,5 +104,131 @@ describe('the brand gate', () => {
     expect(
       rules(checkPost(post(CLEAN), { terms: consumer, words: { min: 500, max: 900 } }))
     ).toEqual(['length']);
+  });
+});
+
+describe('the repetition rule (BLOG_REPEAT_GATE)', () => {
+  const LINE = 'We would rather tell you we are not sure.';
+  const repeats = (md: string) => checkPost(md, { terms: consumer, sourceText, repeats: true });
+  const said = (md: string) => repeats(md).map((i) => i.message);
+
+  it('is off unless asked for: a post that repeats itself passes as before', () => {
+    const md = post(`${CLEAN} ${LINE} We fixed it. ${LINE}`);
+    expect(check(md)).toEqual([]);
+    expect(checkPost(md, { terms: consumer, sourceText, repeats: false })).toEqual([]);
+  });
+
+  it('passes a clean post with the rule on', () => {
+    expect(repeats(post(CLEAN))).toEqual([]);
+  });
+
+  it('fails a line said twice, quoting the whole repeated stretch once', () => {
+    expect(said(post(`${CLEAN} ${LINE} We fixed it. ${LINE}`))).toEqual([
+      'said twice in the post: "we would rather tell you we are not sure". Say it once.',
+    ]);
+  });
+
+  it('ignores repeats shorter than six words, and the case and apostrophes of a repeat', () => {
+    expect(repeats(post(`${CLEAN} We do not know yet. Later, we do not know yet.`))).toEqual([]);
+    expect(
+      said(post(`${CLEAN} We don't know what comes next. Still, We don’t know what comes next.`))
+    ).toEqual(['said twice in the post: "we don\'t know what comes next". Say it once.']);
+  });
+
+  it('fails a line said straight back, and a line said three times only once', () => {
+    expect(
+      said(post(`${CLEAN} We would rather tell you so. We would rather tell you so.`))
+    ).toEqual(['said twice in the post: "we would rather tell you so". Say it once.']);
+    expect(said(post(`${CLEAN} ${LINE} ${LINE}`))).toEqual([
+      'said twice in the post: "we would rather tell you we are not sure". Say it once.',
+    ]);
+    expect(said(post(`${CLEAN} ${LINE} Yes. ${LINE} Yes. ${LINE}`))).toEqual([
+      'said twice in the post: "we would rather tell you we are not sure yes". Say it once.',
+    ]);
+  });
+
+  it('reports two different lines said twice, even when they share words', () => {
+    const one = 'Ferni listens when the house goes quiet at night.';
+    const two = 'When the house goes quiet at night we sleep.';
+    expect(said(post(`${CLEAN} ${one} ${one} ${two} ${two}`))).toEqual([
+      'said twice in the post: "ferni listens when the house goes quiet at night". Say it once.',
+      'said twice in the post: "when the house goes quiet at night we sleep". Say it once.',
+    ]);
+  });
+
+  it('matches a third copy against the earlier copy it repeats longest', () => {
+    const body = `${CLEAN} We keep your notes safe and private always. Then: we keep your notes safe and loud. Finally, we keep your notes safe and private always.`;
+    expect(said(post(body))).toContain(
+      'said twice in the post: "we keep your notes safe and private always". Say it once.'
+    );
+  });
+
+  it('counts numbers as words, so lines that differ only in a number are not repeats', () => {
+    const md = post(
+      `${CLEAN} It costs 5 dollars a month for everyone. Later it costs 9 dollars a month for everyone.`
+    );
+    expect(repeats(md)).toEqual([]);
+  });
+
+  it('reads accented words whole and a left quote as an apostrophe', () => {
+    expect(
+      said(
+        post(
+          `${CLEAN} Our café résumé was naïve and über short. So: our café résumé was naïve and über short.`
+        )
+      )
+    ).toEqual(['said twice in the post: "our café résumé was naïve and über short". Say it once.']);
+    expect(
+      said(post(`${CLEAN} We don‘t know what comes next. Still, we don't know what comes next.`))
+    ).toHaveLength(1);
+  });
+
+  it('ignores repeats inside code and link targets', () => {
+    const code = '```ts\nconst answer = await ferni.recall(user, topic);\n```';
+    expect(repeats(post(`${CLEAN}\n\n${code}\n\n${code}`))).toEqual([]);
+  });
+
+  it('fails an excerpt said again in the body, once however often it appears', () => {
+    const echo = 'Saying we do not know beats making something up, every time.';
+    const md = post(`${CLEAN} ${echo} We mean it. ${echo}`);
+    expect(said(md)).toEqual([
+      'the excerpt is repeated in the body: "saying we do not know beats making something up". Say it in new words or leave it out of the body.',
+      'said twice in the post: "saying we do not know beats making something up every time". Say it once.',
+    ]);
+  });
+
+  it('ignores a URL in the excerpt that the body spells out in words', () => {
+    const md = post(`${CLEAN} See ferni ai one two three four five six now.`, {
+      excerpt: '"See https://ferni.ai/one/two/three/four/five/six now."',
+    });
+    expect(repeats(md)).toEqual([]);
+  });
+
+  it('reports at most six repeats, the excerpt first', () => {
+    const lines = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'].map(
+      (w) => `The ${w} team kept the notes nearby.`
+    );
+    const echo = 'Saying we do not know beats making something up.';
+    const body = `${CLEAN} ${echo} ${lines.join(' ')} Then again. ${lines.join(' Then. ')}`;
+    const messages = said(post(body));
+    expect(messages).toHaveLength(6);
+    expect(messages[0]).toMatch(/^the excerpt is repeated in the body/);
+  });
+});
+
+describe('repeatedRuns', () => {
+  const w = (s: string) => s.split(' ');
+
+  it('takes the longest match and does not report its tail again', () => {
+    expect(repeatedRuns(w('a b c d e f g h x a b c d e f g h'))).toEqual(['a b c d e f g h']);
+  });
+
+  it('does not count a stretch that overlaps its own earlier copy', () => {
+    expect(repeatedRuns(w('la la la la la la la'))).toEqual([]);
+  });
+
+  it('finds stretches of one text that appear in another', () => {
+    expect(repeatedRuns(w('x a b c d e f y'), w('a b c d e f'))).toEqual(['a b c d e f']);
+    expect(repeatedRuns(w('x a b c d e y'), w('a b c d e'))).toEqual([]);
   });
 });

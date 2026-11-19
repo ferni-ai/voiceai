@@ -16,11 +16,12 @@ import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
 
 /**
  * Personas that can do cameos (everyone except Ferni, who is the host,
- * standalone personas like Joel, and Financial Legends who have their own system)
+ * standalone personas like Joel, Financial Legends who have their own system,
+ * and Seth, who speaks only behind his own gate)
  */
 export type CameoPersonaId = Exclude<
   CanonicalPersonaId,
-  'ferni' | 'jack-b' | 'generic-advisor' | 'joel-dickson' | 'john-bogle'
+  'ferni' | 'jack-b' | 'generic-advisor' | 'joel-dickson' | 'john-bogle' | 'seth'
 >;
 
 /**

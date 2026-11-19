@@ -1,7 +1,7 @@
 /**
  * Whether the person may be handed to this persona: Ferni always; a core teammate once
  * unlocked (relationship, subscription, or BYPASS_TEAM_UNLOCKS); a marketplace agent once
- * the whole team is unlocked.
+ * the whole team is unlocked; Seth only while his gate is open (config/seth-teammate.ts).
  *
  * One check for every way a handoff starts. The LLM's handoff tools ran it inline
  * (executor.ts); a tap on the team bar in a multi-agent call (the production path) went
@@ -14,6 +14,7 @@ import {
   isTeamMemberUnlocked,
 } from '../../intelligence/context-builders/team/team-availability.js';
 import { isCoach } from '../../personas/persona-ids.js';
+import { isSeth, sethTeammateOpen } from '../../config/seth-teammate.js';
 import {
   getCanonicalPersonaId,
   getPersonaDisplayName,
@@ -50,6 +51,9 @@ export function checkHandoffUnlocked(
     return { open: false, error: 'Unknown persona' };
   }
   if (isCoach(target)) return { open: true, target };
+  // Closed, Seth is no one: a technical refusal, never said to the caller.
+  if (isSeth(target))
+    return sethTeammateOpen() ? { open: true, target } : { open: false, error: 'Unknown persona' };
   const name = getPersonaDisplayName(target);
 
   if (isCoreTeamMember(target)) {

@@ -10,6 +10,9 @@
  * @module services/superhuman/commitment-follow-up
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import { targetDateAhead } from '../../utils/calendar-days.js';
+import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -241,6 +244,17 @@ export const firestoreCommitmentStore: CommitmentStore = {
 };
 
 /**
+ * CHECKIN_WAITS_FOR_DUE: a plan whose day hasn't come where the caller is (target date today
+ * or later) is not asked about, nor stamped as followed up, which would hold back the real ask
+ * (#3858). Calls only: dueForPush keeps its own timing.
+ */
+function dueByNow(all: OpenCommitment[], userId: string, now: number): OpenCommitment[] {
+  if (!flagOn('CHECKIN_WAITS_FOR_DUE')) return all;
+  const zone = userTimeZone({ userId });
+  return all.filter((c) => c.targetDate === undefined || !targetDateAhead(c.targetDate, now, zone));
+}
+
+/**
  * The commitments to bring up on this call, recorded as followed up so the
  * next call and the between-call push don't ask again straight away. Never throws.
  */
@@ -270,7 +284,7 @@ export async function loadCallCheckIns(
           now
         )
       : new Map();
-    const picked = pickForCall(all, now).map((c) =>
+    const picked = pickForCall(dueByNow(all, userId, now), now).map((c) =>
       said.has(c.statement) ? { ...c, callNote: said.get(c.statement) } : c
     );
     // Recorded in the background: the greeting is waiting on this.
