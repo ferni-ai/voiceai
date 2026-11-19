@@ -23,11 +23,17 @@ interface Scenario {
   crisis: Record<string, unknown> | null;
 }
 
-const state = vi.hoisted(() => ({ scenario: undefined as unknown }));
+const state = vi.hoisted(() => ({ scenario: undefined as unknown, searches: 0 }));
 
-const CONTEXT = { category: 'context', priority: 50, content: '[CONTEXT] They are making dinner.' };
+/** Live guidance: no stored memory (caller-memory-categories.ts). */
+const CONTEXT = {
+  category: 'guidance',
+  priority: 50,
+  content: '[CONTEXT] They are making dinner.',
+};
 const MEMORY = "[RELEVANT MEMORIES]\n- Riley Test's dog Biscuit died in March.";
 const BISCUIT = 'Biscuit';
+const MEMORY_2 = '[RELEVANT MEMORIES]\n- Riley Test plays the cello on Sundays.';
 
 vi.mock('../../processors/index.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -46,6 +52,7 @@ vi.mock('../../processors/index.js', async (importOriginal) => ({
 vi.mock('../../../intelligence/context-builders/memory-retrieval-builder.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   buildMemoryRetrievalContext: vi.fn(async () => ({
+    searches: ++state.searches,
     injections: (state.scenario as Scenario).memories.map((content) => ({
       category: 'memory',
       content,
@@ -88,6 +95,7 @@ beforeEach(() => {
   resetCrisisCallRisk();
   resetCrisisClassifierCache();
   Object.assign(counts, { fetch: 0, generate: 0, adjudicate: 0, grounded: 0 });
+  state.searches = 0;
   vi.stubGlobal('fetch', async () => {
     counts.fetch++;
     throw new Error('no network in this test');
@@ -105,11 +113,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** Classifier stubs: `read` answers every line, or throws. */
-function models(read: 'none' | 'crisis' | 'throws') {
+/** Classifier stubs: `read` answers every line, throws, or answers after the 40 ms cap. */
+function models(read: Read) {
   const generate: CrisisGenerateFn = async (_prompt, content) => {
     counts.generate++;
     if (read === 'throws') throw new Error('provider down');
+    if (read === 'late')
+      await new Promise<void>((done) => {
+        setTimeout(done, 400);
+      });
     const risky = read === 'crisis' && String(content).includes(CLASSIFIER_ONLY);
     return JSON.stringify({ risk: risky ? 'crisis' : 'none', subject: 'self' });
   };
@@ -130,12 +142,17 @@ const textOf = (ctx: llm.ChatContext): string =>
 const isNote = (item: unknown): boolean =>
   ((item as llm.ChatMessage).textContent ?? '').startsWith(TURN_CONTEXT_HEADER);
 
+type Read = 'none' | 'crisis' | 'throws' | 'late';
+
 interface CallOptions {
+  /** Turn 1's line (default: an ordinary one) and its recalled memories (default: MEMORY). */
+  line1?: string;
+  memories?: string[];
   /** Turn 1's crisis field (default: an ordinary read); null: none. */
   turn1Crisis?: Record<string, unknown> | null;
   /** Crisis risk noted on the call before turn 1, or between turn 1 and the line asked. */
   risk?: 'before' | 'after';
-  read?: 'none' | 'crisis' | 'throws';
+  read?: Read;
 }
 
 /**
@@ -152,7 +169,7 @@ async function call(
   const sessionId = `s-crisis-memory-${++calls}`;
   if (opts.risk === 'before') noteCrisisRisk(sessionId);
   state.scenario = {
-    memories: [MEMORY],
+    memories: opts.memories ?? [MEMORY],
     crisis: opts.turn1Crisis === undefined ? ORDINARY_READ : opts.turn1Crisis,
   } satisfies Scenario;
 
@@ -178,7 +195,9 @@ async function call(
       userData: { turnCount: 3 },
     } as never);
   };
-  await createTurnContextPusher(hook as never, agent as never).onFinalTranscript(LINE_1);
+  await createTurnContextPusher(hook as never, agent as never).onFinalTranscript(
+    opts.line1 ?? LINE_1
+  );
   // From here the flag reaches the gate only through the env it is handed (production hands it
   // none, so process.env), so a gate that drops that env is seen.
   vi.stubEnv('CRISIS_NO_MEMORY_RECALL', undefined);
@@ -245,13 +264,29 @@ describe('CRISIS_NO_MEMORY_RECALL through the real turn note and the real gatedR
     expect(on.spoken).toBe(off.spoken);
   });
 
-  it('failed crisis read on a safety word (CRISIS_TIMEOUT_CHECKIN), flag on: the check-in carries no recalled memory', async () => {
-    const off = await call('off', TIMEOUT_CHECKIN, UNSAFE, { read: 'throws' });
-    const on = await call('on', TIMEOUT_CHECKIN, UNSAFE, { read: 'throws' });
-    expect(counts.generate).toBeGreaterThan(0);
-    expect(on.sent.length).toBeGreaterThanOrEqual(2); // the held reply, then the check-in
-    expect(off.sent.at(-1)).toContain(MEMORY);
-    expect(on.sent.at(-1)).toBe(withoutMemory(off.sent.at(-1)!));
+  it('failed or late crisis read on a safety word (CRISIS_TIMEOUT_CHECKIN), flag on: the check-in carries no recalled memory', async () => {
+    for (const read of ['throws', 'late'] as const) {
+      const off = await call('off', TIMEOUT_CHECKIN, UNSAFE, { read });
+      const on = await call('on', TIMEOUT_CHECKIN, UNSAFE, { read });
+      expect(counts.generate).toBeGreaterThan(0);
+      expect(on.sent.length).toBeGreaterThanOrEqual(2); // the held reply, then the check-in
+      expect(off.sent.at(-1)).toContain(MEMORY);
+      expect(on.sent.at(-1)).toBe(withoutMemory(off.sent.at(-1)!));
+    }
+  });
+
+  it('a line with crisis words or a call with crisis risk, flag on: no memory search runs; flag off, it runs', async () => {
+    const guided = { ...ORDINARY_READ, isCrisis: true, severity: 0.8 };
+    await call('off', PATTERNS_ONLY, COOK, { line1: CRISIS_LINE, turn1Crisis: guided });
+    expect(state.searches).toBe(1);
+    state.searches = 0;
+    const on = await call('on', PATTERNS_ONLY, COOK, { line1: CRISIS_LINE, turn1Crisis: guided });
+    expect(state.searches).toBe(0);
+    expect(on.before).not.toContain(BISCUIT);
+    await call('on', PATTERNS_ONLY, COOK, { risk: 'before' });
+    expect(state.searches).toBe(0);
+    await call('on', PATTERNS_ONLY, COOK);
+    expect(state.searches).toBe(1); // an ordinary line searches as before
   });
 
   it('a turn with no crisis read, flag on: its note is built without recalled memory, and the next reply gets none', async () => {
@@ -286,10 +321,14 @@ describe('CRISIS_NO_MEMORY_RECALL through the real turn note and the real gatedR
     expect(onAfter.sent.at(-1)).toBe(withoutMemory(offAfter.sent.at(-1)!));
   });
 
-  it('ordinary turn, flag on: recalled memory reaches the model, the request byte-equal to the flag off', async () => {
-    const off = await call('off', PATTERNS_ONLY, COOK);
-    const on = await call('on', PATTERNS_ONLY, COOK);
-    expect(off.sent.at(-1)).toContain(MEMORY);
+  it('ordinary turn, flag on: the same memories in the same order reach the model, the request byte-equal to the flag off', async () => {
+    const memories = [MEMORY, MEMORY_2];
+    const off = await call('off', PATTERNS_ONLY, COOK, { memories });
+    const on = await call('on', PATTERNS_ONLY, COOK, { memories });
+    expect(state.searches).toBe(2); // one search each
+    const last = off.sent.at(-1)!;
+    expect(last.indexOf(MEMORY)).toBeGreaterThan(-1);
+    expect(last.indexOf(MEMORY_2)).toBeGreaterThan(last.indexOf(MEMORY));
     expect(on.sent).toEqual(off.sent);
     expect(on.spoken).toBe(off.spoken);
   });
