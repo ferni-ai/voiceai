@@ -34,6 +34,7 @@ import {
   startReturningCaller,
   watchCallerPhone,
 } from '../voice-agent-entry/caller-recognition.js';
+import { familyCircleMember } from './family-circle-hook.js';
 import { newAnonymousId } from '../../services/identity/anonymous-session-id.js';
 import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
 import { deviceNameGuardEnabled, isDeviceOrHandleName } from './device-name-guard.js';
@@ -176,8 +177,11 @@ export async function identifyUser(
       diag.warn('Caller recognition failed', { error: String(e) });
       return null;
     });
+    // No account: a proven family member runs as their sponsored identity (family-circle-hook.ts).
+    const family = phone && !phone.userId ? await familyCircleMember(room, sessionId) : null;
     // Known: their account. Otherwise drop an id that came from the number alone.
     if (phone?.userId) ({ userId, userName } = phone);
+    else if (family) ({ familyUserId: userId, displayName: userName } = family);
     else if (phone && identificationSource !== 'anonymous' && identificationSource !== 'device')
       userId = userName = undefined;
     if (phone) identificationSource = 'phone';
