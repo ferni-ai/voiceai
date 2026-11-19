@@ -4,7 +4,7 @@
  * holds on the turn's crisis read. Off: saved inline, as before, crisis line and all. On: saved
  * in the background, only once the read settles clean and no hold covers the caller; a crisis
  * read, no read, a read that throws or a held caller keeps nothing, even after the auto-save
- * runs. One crisis-read wait per turn, shared with the other writers (pipeline-crisis-hold.ts).
+ * runs; so does a hold set while the read is still open (the hold is read after the wait). One crisis-read wait per turn, shared with the other writers (pipeline-crisis-hold.ts).
  * The real processTurn and reflection detector run, from a fresh module graph each row (its
  * trackers carry state across turns); the analysis and the classifier reads are faked.
  * Invented lines, fictional user.
@@ -229,6 +229,27 @@ describe('CRISIS_HOLD_PIPELINE_WRITERS on', () => {
     release({ risk: 'crisis' });
     await vi.waitFor(() => expect(ran(SITE)).toBe(1), { timeout: 5_000 });
     expect(m.crisisMemoryHeld(t.sessionId)).toBe(true);
+    expect(t.saved).toEqual(['{}']);
+    expect(moments(t.profile)).toEqual([]);
+  }, 30_000);
+
+  it('a MINOR_CARE hold set while the read is still open, then a clean read: nothing kept', async () => {
+    // The caller's hold is read after the wait, not when the writer starts.
+    Object.assign(m.CRISIS_READ_WAIT, { settleMs: 15_000 });
+    let release: (v: { risk: string }) => void = () => undefined;
+    const open = new Promise<{ risk: string }>((resolve) => {
+      release = resolve;
+    });
+    const t = startTurn(JOY, (id) => void m.trackCrisisRead(id, JOY, open));
+    await t.done;
+    await vi.waitFor(() => expect(ran('periodic-auto-save')).toBe(1));
+    expect(m.writeHeld(t.profile.userId, t.sessionId)).toBe(false); // not held when the turn ended
+    expect(ran(SITE)).toBe(0); // the writer is still waiting on the read
+    m.holdSession(t.sessionId);
+    release({ risk: 'none' });
+    await vi.waitFor(() => expect(ran(SITE)).toBe(1), { timeout: 5_000 });
+    expect(m.crisisMemoryHeld(t.sessionId)).toBe(false); // the read was clean; the hold is MINOR_CARE's
+    expect(m.writeHeld(t.profile.userId, t.sessionId)).toBe(true);
     expect(t.saved).toEqual(['{}']);
     expect(moments(t.profile)).toEqual([]);
   }, 30_000);
