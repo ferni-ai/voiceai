@@ -35,6 +35,7 @@ import { watchBlocked } from './crisis-classifier-blocked.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
+import { noteTurnRead } from './crisis-turn-read-arrival.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -334,6 +335,7 @@ function rememberRead(
   verdict: Promise<CrisisVerdict | null>
 ): void {
   rememberLoose(scope, normalizeInput(input).latest, now, verdict);
+  noteTurnRead(scope); // a gate waiting on this call's next read looks again (#4004)
   for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
   const key = turnKey(scope, input);
   const reads = turnReads.get(key);
