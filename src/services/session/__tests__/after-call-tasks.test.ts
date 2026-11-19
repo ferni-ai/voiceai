@@ -35,6 +35,7 @@ import { getHistoryTracker } from '../../../memory/index.js';
 import {
   clearAfterCallTasks,
   drainAfterCallTasks,
+  noteCallEnded,
   pendingAfterCallTasks,
   registerAfterCallTask,
   registeredAfterCallTasks,
@@ -114,6 +115,27 @@ describe('runAfterCall', () => {
     const got = task.mock.calls[0]?.[0];
     expect(got?.timezone).toBe('America/Denver');
     expect(Math.abs(Date.now() - 120_000 - (got?.startedAt.getTime() ?? 0))).toBeLessThan(1_000);
+  });
+
+  /** What each runAfterCall for `sessionId` hands its tasks about who was on the line. */
+  async function onTheLine(sessionId: string, runs: number): Promise<unknown[]> {
+    const task = vi.fn(async (_c: AfterCallContext) => undefined);
+    registerAfterCallTask('t', task);
+    for (let i = 0; i < runs; i++)
+      runAfterCall('u1', sessionId, [], undefined, { getDurationSeconds: () => 60 });
+    await drainAfterCallTasks(1_000);
+    return task.mock.calls.map(([c]) => c.thirdPartyOnLine);
+  }
+
+  it("hands the tasks what the call's end recorded, once: a second run finds no record", async () => {
+    noteCallEnded('s-once', { thirdPartyOnLine: false });
+    expect(await onTheLine('s-once', 2)).toEqual([false, undefined]);
+  });
+
+  it('keeps at most 2,000 ended calls: the oldest record goes', async () => {
+    for (let i = 0; i <= 2_000; i++) noteCallEnded(`s-cap-${i}`, { thirdPartyOnLine: false });
+    expect(await onTheLine('s-cap-0', 1)).toEqual([undefined]);
+    expect(await onTheLine('s-cap-1', 1)).toEqual([false]);
   });
 });
 

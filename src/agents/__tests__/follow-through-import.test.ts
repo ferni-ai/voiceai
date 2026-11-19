@@ -215,6 +215,16 @@ describe('follow-through import after a call (FOLLOW_THROUGH_IMPORT)', () => {
     expect(followUps('owner-1')).toHaveLength(0);
   });
 
+  it("runAfterCall with no recorded end reads nobody as the owner, though the owner's on the line", async () => {
+    const s = ownerSession('s-runner-no-end');
+    rememberCallerTimeZone('America/Denver', s); // so 'no-zone' isn't what stops it
+    runAfterCall('owner-1', s, [], undefined, { getDurationSeconds: () => 60 });
+    await drainAfterCallTasks(2_000);
+    expect(followUps('owner-1')).toHaveLength(0);
+    await endThenRunAfterCall('owner-1', ownerSession('s-runner-ended')); // control: with its end recorded, it imports
+    expect(followUps('owner-1').length).toBeGreaterThan(0);
+  });
+
   it('treats nobody as the owner when no owner check is handed in', async () => {
     const r = await importFollowUpsAfterCall(call('owner-1', ownerSession('s-no-check')));
     expect(r).toEqual({ imported: false, reason: 'not-owner' });
