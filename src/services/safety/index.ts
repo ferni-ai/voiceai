@@ -273,15 +273,10 @@ export function performSafetyCheck(
   // 4. Generate response if needed
   let response: CrisisResponseContent | null = null;
   if (detection.detected && detection.primary) {
-    const hour = new Date().getHours();
-    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
-      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-
     response = generateCrisisResponse({
       signal: detection.primary,
       userName,
       personaId,
-      timeOfDay,
       isFirstMention: sessionSignals.length === 0,
     });
   }
