@@ -31,7 +31,7 @@ import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
-import { consentClassifierOn } from './consent-judge.js';
+import { consentClassifierOn, consentNaturalOn } from './consent-judge.js';
 import {
   cancel,
   forgetAsks,
@@ -44,6 +44,7 @@ import { isClearNo, words } from './consent-words.js';
 import {
   argsOnYes,
   classifyFerniTurn,
+  crisisSaid,
   foreclosesReopen,
   judgeWindow,
   logDecision,
@@ -92,17 +93,17 @@ export function testAccountReply(toolId: string): string {
 
 /** Marks a definition already wrapped, so wrapping it again (e.g. at registration) is a no-op. */
 const GATED = Symbol.for('ferni.outbound-confirm');
-/** Every tool id wrapped here: a run of one between a read-back and its yes voids it. */
-const gatedIds = new Set<string>();
-function markGated(def: ToolDefinition, id: string): void {
+function markGated(def: ToolDefinition): void {
   (def as unknown as Record<symbol, unknown>)[GATED] = true;
-  gatedIds.add(id);
 }
+/** CALL_CONSENT_NATURAL: the only tools whose run between a read-back and its yes leaves the
+ * window open; any other run, or one with no name, voids it (consent-window.ts). */
+const READ_ONLY_TOOLS = new Set(['callStatus', 'getContactInfo']);
 
 type SessionEvent =
   | { kind: 'caller'; text: string; agentSpeaking: boolean }
-  // outbound: the calls run by a gated tool (or one with no name), which void a read-back
-  | { kind: 'tool'; callIds: string[]; outbound?: string[] }
+  // readOnly: the calls run by an allow-listed read-only tool (READ_ONLY_TOOLS)
+  | { kind: 'tool'; callIds: string[]; readOnly?: string[] }
   | { kind: 'agent'; text: string }; // what Ferni said, only to find his read-backs
 /** ferniStarts: how many times Ferni had started speaking (agent_state_changed) when the owner
  * began this final (user_state_changed), or when a tool or Ferni event was recorded. */
@@ -128,8 +129,11 @@ export interface PendingAction {
   owner?: string[];
   /** Ferni already asked once whether it is still wanted (consent-loop.ts). */
   asked?: boolean;
-  /** CALL_CONSENT_NATURAL: and asked again in plain words; the next unclear cancels. */
-  reasked?: boolean;
+  /** CALL_CONSENT_NATURAL: the line Ferni was told to ask last, read as a read-back of it. */
+  askLine?: string;
+  /** CALL_CONSENT_NATURAL: the owner's message for the person, read back to them with the call
+   * before their yes, so only what they confirmed reaches the call (consent-loop.ts). */
+  message?: string;
   /** Stored again after a cancel, from Ferni's fresh read-back: its window starts there. */
   reopened?: boolean;
   /** The arguments the read-back was made from: a call with the same ones is the same request. */
@@ -153,6 +157,9 @@ export interface SessionLog {
   /** Times Ferni has started speaking on this call, and that count when the owner last began to. */
   ferniStarts?: number;
   ownerStart?: number;
+  /** CALL_CONSENT_NATURAL: tools a crisis line was said around: none is read back or sent again
+   * on this call. */
+  held?: Set<string>;
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -187,9 +194,14 @@ function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
   const ferniStarts =
     event.kind === 'caller' ? (entry.ownerStart ?? entry.ferniStarts) : entry.ferniStarts;
-  entry.events.push({ ...event, seq: ++entry.seq, ferniStarts: ferniStarts ?? 0 });
+  entry.events.push({ ...event, seq: ++entry.seq, ferniStarts });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
+  const around = pending ?? entry.closed?.action;
+  if (event.kind === 'caller' && around && consentNaturalOn() && crisisSaid(entry.events)) {
+    hold(entry, around.toolId);
+    return;
+  }
   // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it; after a cancel
   // too, since a fresh read-back may reopen it.
   const action = pending ?? entry.closed?.action;
@@ -286,10 +298,10 @@ export function outreachConfirmListeners(
       const run = event as { functionCalls?: Array<{ callId?: string; name?: string }> };
       const calls = run.functionCalls ?? [];
       const callIds = calls.map((c) => c.callId ?? '');
-      const outbound = calls.flatMap((c, i) =>
-        !c.name || gatedIds.has(c.name) ? [callIds[i]] : []
+      const readOnly = calls.flatMap((c, i) =>
+        c.name && READ_ONLY_TOOLS.has(c.name) ? [callIds[i]] : []
       );
-      record(session, { kind: 'tool', callIds, outbound });
+      record(session, { kind: 'tool', callIds, readOnly });
     },
     /** When Ferni and the owner start speaking: the read-back only hears words begun after it plays. */
     onAgentState: (event: unknown) => {
@@ -379,18 +391,37 @@ async function attestOnConfirm(userId: string, args: Record<string, unknown>): P
   await recordOwnerAttestation(planned.to, channel, userId);
 }
 
-/** Sends what was confirmed. CALL_CONSENT_NATURAL: when the yes carried a message for the person
- * (argsOnYes), the model is told to say it will pass it on; the note holds none of its words. */
+/** CALL_CONSENT_NATURAL: a crisis line was said around this tool's read-back: it is dropped, and
+ * neither read back nor sent again on this call. */
+function hold(entry: SessionLog, toolId: string): void {
+  (entry.held ??= new Set()).add(toolId);
+  if (entry.pending?.toolId === toolId) dropConfirmThread(entry.pending);
+  if (entry.pending?.toolId === toolId) entry.pending = undefined;
+  if (entry.closed?.action.toolId === toolId) entry.closed = undefined;
+  log.info({ toolId }, 'CALL_CONSENT_NATURAL: held for the rest of the call');
+}
+const HELD_REPLY = "Nothing was sent. Don't read it back, offer it or try it again on this call.";
+
+/** Sends what was confirmed, with the args fixed when the yes was decided (argsOnYes): nothing
+ * said after it reaches the call. CALL_CONSENT_NATURAL: a crisis line said while the owner's yes
+ * was being recorded (attestOnConfirm) voids the send. When the yes carried a confirmed message,
+ * the model is told to say it will pass it on; the note holds none of its words. */
 async function sendOnYes(
   toolId: string,
   pending: PendingAction,
   entry: SessionLog,
   execute: Execute,
-  opts: unknown
+  opts: { args: Record<string, unknown>; opts: unknown; userId: string }
 ): Promise<unknown> {
+  const args = argsOnYes(pending);
+  const decided = entry.seq;
+  await attestOnConfirm(opts.userId, opts.args);
+  if (consentNaturalOn() && entry.seq > decided && crisisSaid(entry.events)) {
+    hold(entry, pending.toolId);
+    return HELD_REPLY;
+  }
   log.info({ toolId, previewedBy: pending.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');
-  const args = argsOnYes(pending, entry.events);
-  const result = await sentConfirmThread(pending, execute(args, opts));
+  const result = await sentConfirmThread(pending, execute(args, opts.opts));
   if (args === pending.args || typeof result !== 'string') return result;
   return `${result} Their yes carried a message for the person, now in the call's purpose: tell them in a few words you'll pass it on.`;
 }
@@ -423,6 +454,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
+        if (consentNaturalOn() && entry.held?.has(def.id)) return HELD_REPLY;
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);
@@ -436,8 +468,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           if (state === 'confirmed') {
             entry.pending = undefined; // taken before sending, so a second call can't repeat it
             forgetAsks(entry, pending);
-            await attestOnConfirm(ctx.userId, pending.args);
-            return sendOnYes(def.id, pending, entry, execute, opts);
+            const attest = { args: pending.args, opts, userId: ctx.userId };
+            return sendOnYes(def.id, pending, entry, execute, attest);
           }
           const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
           const expiresAt = Date.now() + CONFIRM_WINDOW_MS;
@@ -485,6 +517,6 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
       return { ...tool, execute: gated } as Tool;
     },
   };
-  markGated(gatedDef, def.id);
+  markGated(gatedDef);
   return gatedDef;
 }

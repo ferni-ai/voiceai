@@ -131,21 +131,39 @@ export function isClearNo(text: string): boolean {
   return words(text).some((x) => NOES.includes(x));
 }
 
-// CALL_CONSENT_NATURAL: never placed on the judge's yes when any of these is said anywhere.
-const HARD_NO = /\b(no|nope|nah|stop|wait|dont|cancel|hold on|never mind)\b/;
-/** Whether the reply says a hard no anywhere ("Yeah, no, wait."): the judge's yes can't place it. */
-export const hasHardNo = (text: string): boolean => HARD_NO.test(words(text).join(' '));
+// CALL_CONSENT_NATURAL: the only words a reply placed on the judge's yes may hold, besides the
+// person's name, their pronoun and the owner's name. Any other word ("not", "if", "actually",
+// "honey", "jordan", "nein", "line") leaves it to a plain yes, so the judge can't place it alone.
+const AGREES = new Set(
+  words('yes yeah yep yup yea sure ok okay alright absolutely definitely certainly perfect great')
+);
+const NATURAL = new Set(
+  words(`good fine please do it that go ahead for and now right away sounds works
+    thanks thank you of course all um uh so well`)
+);
+/** A yes in an allow-listed word set only: "Yeah, do that.", "Perfect.", "Please do it right away." */
+export function isNaturalYes(text: string, allowed: readonly string[]): boolean {
+  const said = words(text);
+  const ok = (w: string): boolean => AGREES.has(w) || NATURAL.has(w) || allowed.includes(w);
+  const agrees =
+    said.some((w) => AGREES.has(w)) || /\b(do (it|that)|go ahead)\b/.test(said.join(' '));
+  return agrees && said.every(ok);
+}
 
 // "Yes, tell him I'm running late.", "Let her know I'll be late": what the owner asks Ferni to
 // pass on to the person called. Never "let me know", "tell you what".
 const MESSAGE =
   /\b(?:tell|let)\s+(?!(?:me|us|you|ferni)\b)(?:my\s+)?[\p{L}'’]+\s+(?:know\s+)?(?:that\s+)?(.+)$/iu;
-/** The owner's message for the person, in their own words, or undefined. */
-export function ownerMessage(text: string): string | undefined {
-  const said = MESSAGE.exec(text)?.[1]
-    ?.replace(/[\s.!,;]+$/u, '')
-    .trim();
-  return said || undefined;
+// A message carried as data: a short clause with no digits, quotes or brackets that could pass for
+// a number or break out of the quoted purpose.
+const CARRIED = /^[^\d"“”{}[\]<>\\\n]{1,100}$/u;
+/** The owner's reply split at a message for the person: the words before it, and the message
+ * (undefined: none; null: one that can't be carried). */
+export function splitMessage(text: string): { rest: string; message?: string | null } {
+  const found = MESSAGE.exec(text);
+  if (!found) return { rest: text };
+  const said = found[1].replace(/[\s.!,;]+$/u, '').trim();
+  return { rest: text.slice(0, found.index), message: CARRIED.test(said) ? said : null };
 }
 
 // A reply that opens with one of these is a no to the read-back ("No, wait.", "Hold on, who?").
