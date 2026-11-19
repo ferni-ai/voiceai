@@ -27,6 +27,10 @@ vi.mock('../../../../../utils/consent-port.js', () => ({
     });
   },
 }));
+import {
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+} from '../../../../../services/safety/crisis-call-risk.js';
 import { setConsentAsk, type ConsentAsk } from '../consent-judge.js';
 import { setReadBackAsk } from '../consent-readback.js';
 import { pendingFor, PLANNED } from '../outreach-confirm.js';
@@ -77,6 +81,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   sends.length = 0;
   logged.length = 0;
+  resetCrisisCallRisk();
 });
 
 describe('1. spoken, not stored: only words begun after the read-back started playing count', () => {
@@ -372,6 +377,11 @@ describe('5. red team: with the flag on these never place, even when the judge s
     // a yes to someone or something else
     "Yes, honey, I'll be right there.",
     "Yes, I'd love some coffee.",
+    // a number: a new one needs a new read-back
+    'Yes, call him, 555-0177.',
+    'Okay, go ahead, 0177.',
+    'Yes, call him at five five five, oh one seven seven.',
+    'Yes, call him, 0002.', // the read-back's own digits: still asked again
     // sarcasm
     'Oh yeah, great idea, totally.',
     'Yeah, right.',
@@ -513,6 +523,95 @@ describe('5. red team: with the flag on these never place, even when the judge s
     call.owner('Yeah sure, call him and tell him he owes me a million bucks.');
     expect(await placed(call)).toBe(0);
     expect(system).toContain('a joke not meant as a request');
+  });
+});
+
+describe("7. the call's crisis state: risk the safety kernel noted on this call holds its outbound", () => {
+  beforeEach(() => natural(true));
+  const ORDINARY = ['Okay.', 'Thanks for listening.', 'It was a long week.', 'Anyway.'];
+
+  it('risk noted before any window: the read-back is never stored, and a yes places nothing', async () => {
+    const call = liveCall();
+    call.speaks();
+    noteCrisisRisk(call.sessionId);
+    call.owner('Can you call my dad?');
+    expect(await call.call('c1')).toContain('Nothing was sent');
+    expect(pendingFor(call.session)).toBeUndefined();
+    call.speaks();
+    call.ferni(READ_BACK);
+    call.owner('Yes, call him.');
+    expect(await call.call('c2')).toContain('Nothing was sent');
+    expect(sends.length).toBe(0);
+  });
+
+  it('risk noted while the window is open: the yes places nothing (main places it)', async () => {
+    const inWindow = async (on: boolean) => {
+      natural(on);
+      const call = await readBack();
+      noteCrisisRisk(call.sessionId);
+      call.owner('Yes, call him.');
+      return placed(call);
+    };
+    expect(await inWindow(false)).toBe(1);
+    sends.length = 0;
+    expect(await inWindow(true)).toBe(0);
+  });
+
+  it('risk noted after a window closed: a fresh read-back and a yes place nothing', async () => {
+    const call = await readBack();
+    call.owner('No.');
+    await call.call('c2');
+    noteCrisisRisk(call.sessionId);
+    for (const line of ORDINARY) call.owner(line);
+    expect(await call.call('c3')).toContain('Nothing was sent');
+    call.speaks();
+    call.ferni(READ_BACK);
+    call.owner('Yes, call him.');
+    expect(await call.call('c4')).toContain('Nothing was sent');
+    expect(sends.length).toBe(0);
+  });
+
+  it('risk noted on ANOTHER call: this one places as normal', async () => {
+    const call = await readBack();
+    noteCrisisRisk('another-call');
+    call.owner('Yes, call him.');
+    expect(await placed(call)).toBe(1);
+  });
+
+  it('with OUTREACH_SERVER_CONFIRM, risk noted while the send settles: nothing is placed', async () => {
+    const settle = async (risk: boolean) => {
+      vi.stubEnv('OUTREACH_SERVER_CONFIRM', 'on');
+      const call = await readBack();
+      await tick(); // Ferni's read-back is classified as one
+      vi.useFakeTimers();
+      try {
+        call.owner('Yes, call him.');
+        if (risk) noteCrisisRisk(call.sessionId);
+        await vi.advanceTimersByTimeAsync(5000);
+      } finally {
+        vi.useRealTimers();
+      }
+      return sends.length;
+    };
+    expect(await settle(false)).toBe(1);
+    sends.length = 0;
+    expect(await settle(true)).toBe(0);
+  });
+
+  it('X8: a crisis line before any window, then a call asked for: never read back, offered or placed', async () => {
+    const call = liveCall();
+    call.speaks();
+    call.owner('I want to kill myself.');
+    for (const line of ORDINARY) call.owner(line);
+    call.owner('Can you call my sister?');
+    const first = await call.call('c1', { contactQuery: 'my sister' });
+    expect(first).toContain("Don't read it back, offer it or try it again");
+    expect(pendingFor(call.session)).toBeUndefined();
+    call.speaks();
+    call.ferni('A call to your sister, right now. Should I go ahead?');
+    call.owner('Yes, call her.');
+    expect(await call.call('c2', { contactQuery: 'my sister' })).toContain('Nothing was sent');
+    expect(sends.length).toBe(0);
   });
 });
 

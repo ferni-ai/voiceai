@@ -4,6 +4,7 @@
  * have sent. Shared by outreach-consent-v2.test.ts and outreach-refusal-and-split-crisis.test.ts.
  */
 
+import { noteLiveSession } from '../../../../registry/live-session.js';
 import type { ToolDefinition } from '../../../../registry/types.js';
 import type { ConsentAsk } from '../consent-judge.js';
 import {
@@ -46,6 +47,8 @@ interface Gated {
 /** One call's gate, driven turn by turn. */
 export interface LiveCall {
   session: { agentState: string };
+  /** The call's id, as the safety kernel notes crisis risk under it (crisis-call-risk.ts). */
+  sessionId: string;
   /** The model calls the tool; its output then reaches the model. */
   call: (callId: string, args?: Record<string, unknown>) => Promise<string>;
   owner: (text: string) => void;
@@ -65,6 +68,8 @@ export interface LiveCall {
 
 export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
   const session = { agentState: 'listening' };
+  const sessionId = `call-${Math.random().toString(36).slice(2)}`;
+  noteLiveSession(session, sessionId); // as the live call does: a tool reads the id from its run
   const on = outreachConfirmListeners(session, () => true);
   const gated = (id: string, kind: string): Gated =>
     withOutreachConfirmation(def(id), spec(kind)).create({
@@ -85,6 +90,7 @@ export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
   };
   return {
     session,
+    sessionId,
     call: async (callId: string, args: Record<string, unknown> = { contactQuery: 'my dad' }) =>
       run(toolId, callId, args),
     callOther: async (id, callId, args = { contactQuery: 'my dad' }) => run(id, callId, args),

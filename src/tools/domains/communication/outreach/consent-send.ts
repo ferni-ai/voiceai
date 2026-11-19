@@ -1,14 +1,16 @@
 /**
  * What a confirmed action sends (outreach-confirm.ts, outreach-server-confirm.ts): the args fixed
- * at the owner's yes, so nothing said after it reaches the call. With CALL_CONSENT_NATURAL, a
- * crisis line heard on the call, or said while the yes is being recorded, holds every outbound
- * action for the rest of the call.
+ * at the owner's yes, so nothing said after it reaches the call. With CALL_CONSENT_NATURAL, crisis
+ * risk on the call (a crisis line heard by this gate, or risk the safety kernel noted on the call:
+ * crisis-call-risk.ts), even while the yes is being recorded, holds every outbound action for the
+ * rest of the call.
  */
 
+import { crisisRiskNoted } from '../../../../services/safety/index.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
+import { liveSessionIdOf } from '../../../registry/live-session.js';
 import { dropConfirmThread, sentConfirmThread } from './confirm-thread.js';
 import { consentNaturalOn } from './consent-judge.js';
-import { crisisSaid } from './consent-window.js';
 import type { PendingAction, SessionLog } from './outreach-confirm.js';
 
 const log = getLogger();
@@ -27,6 +29,17 @@ export function hold(entry: SessionLog): void {
   entry.pending = undefined;
   entry.closed = undefined;
   if (first) log.info('CALL_CONSENT_NATURAL: outbound held for the rest of the call');
+}
+
+/** CALL_CONSENT_NATURAL: whether this call's outbound is held: a crisis line heard by this gate
+ * (hold), or risk the safety kernel noted on the call, read by the live call's id (a tool run's
+ * `run`, else the id it was built with; later checks reuse it). Reads in flight aren't counted:
+ * one that finds risk notes it before the reply's request is built. */
+export function callHeld(entry: SessionLog, run?: unknown, builtId?: string): boolean {
+  const liveId = liveSessionIdOf(run) ?? builtId ?? entry.liveId;
+  entry.liveId = liveId;
+  if (liveId !== undefined && crisisRiskNoted(liveId)) hold(entry);
+  return entry.crisisHeld === true;
 }
 
 /** What a confirmed action runs with: with CALL_CONSENT_NATURAL, the message the owner confirmed
@@ -53,12 +66,8 @@ export async function sendOnYes(
 ): Promise<unknown> {
   const { toolId, pending, entry } = yes;
   const args = argsOnYes(pending);
-  const decided = entry.seq;
   await yes.attest();
-  if (consentNaturalOn() && entry.seq > decided && crisisSaid(entry.events)) {
-    hold(entry);
-    return HELD_REPLY;
-  }
+  if (consentNaturalOn() && callHeld(entry)) return HELD_REPLY;
   log.info({ toolId, previewedBy: pending.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');
   const result = await sentConfirmThread(pending, send(args));
   if (args === pending.args || typeof result !== 'string') return result;

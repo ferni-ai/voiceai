@@ -150,8 +150,11 @@ const RIGHT: ReadonlyArray<[RegExp, string]> = [
 ];
 /** CALL_CONSENT_NATURAL: a reply that trails off in hesitation ("Okay, so, um, well.") is not done. */
 export const trailsOff = (text: string): boolean => HESITANT.has(words(text).at(-1) ?? '');
-/** A yes in an allow-listed word set only: "Yeah, do that.", "Perfect.", "Please do it right away." */
+/** A yes in an allow-listed word set only: "Yeah, do that.", "Perfect.", "Please do it right away."
+ * words() drops digits, so a reply with any ("Yes, call him, 555-0177.") is never one: a new
+ * number needs a new read-back. A spelled-out number fails the word set. */
 export function isNaturalYes(text: string, allowed: readonly string[]): boolean {
+  if (/\d/.test(text)) return false;
   const said = words(RIGHT.reduce((t, [re, to]) => t.replace(re, to), words(text).join(' ')));
   const ok = (w: string): boolean =>
     AGREES.has(w) || NATURAL.has(w) || HESITANT.has(w) || allowed.includes(w);

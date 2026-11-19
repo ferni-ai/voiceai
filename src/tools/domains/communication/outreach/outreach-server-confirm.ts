@@ -18,7 +18,8 @@ import {
   sentConfirmThread,
 } from './confirm-thread.js';
 import { messageAskLine } from './consent-action.js';
-import { argsOnYes } from './consent-send.js';
+import { consentNaturalOn } from './consent-judge.js';
+import { argsOnYes, callHeld } from './consent-send.js';
 import { heardMessage } from './consent-window.js';
 import {
   alreadyPlacedReply,
@@ -95,6 +96,7 @@ export function settleThenSend(gate: ConfirmGate, session: object, entry: Sessio
     entry.settle = undefined;
     // A later final ("Call Bob instead"), another tool's output, a no or expiry voids it.
     if (entry.pending !== pending) return;
+    if (consentNaturalOn() && callHeld(entry)) return; // crisis risk since the yes
     if (confirmationState(pending, entry.events, Date.now()) !== 'confirmed') return;
     if (!gate.ownerKnown(session) || isSyntheticUserId(pending.userId)) {
       log.warn(

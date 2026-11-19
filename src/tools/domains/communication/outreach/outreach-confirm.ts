@@ -31,7 +31,7 @@ import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread } from './confirm-thread.js';
-import { hold, HELD_REPLY, sendOnYes } from './consent-send.js';
+import { callHeld, hold, HELD_REPLY, sendOnYes } from './consent-send.js';
 import { consentClassifierOn, consentNaturalOn } from './consent-judge.js';
 import {
   cancel,
@@ -154,14 +154,13 @@ export interface SessionLog {
   asks?: Map<string, AskRecord>;
   /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
   closed?: { action: PendingAction; seq: number; at: number; final: boolean };
-  /** Times Ferni has started speaking on this call, and that count when the owner last began to;
-   * startedAt: when his last 20 starts were, so a late user_state stamps by when it began. */
+  /** Ferni's starts on the call, that count when the owner began, his last 20 start times. */
   ferniStarts?: number;
   ownerStart?: number;
   startedAt?: number[];
-  /** CALL_CONSENT_NATURAL: a crisis line was heard on this call: no outbound action is read back
-   * or sent again on it (consent-send.ts hold). */
+  /** CALL_CONSENT_NATURAL: outbound is held for the call; the call's id (consent-send callHeld). */
   crisisHeld?: boolean;
+  liveId?: string;
 }
 
 /** When a LiveKit state event happened (its createdAt), or now when it carries none. */
@@ -429,7 +428,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
-        if (consentNaturalOn() && entry.crisisHeld) return HELD_REPLY;
+        if (consentNaturalOn() && callHeld(entry, opts, ctx.sessionId)) return HELD_REPLY;
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);
