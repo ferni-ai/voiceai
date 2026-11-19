@@ -17,14 +17,17 @@ import { forgetMemoryDef } from '../tools.js';
 import { getToolDescription } from '../../../utils/tool-descriptions.js';
 
 type Execute = (
-  args: { whatToForget: string; confirmDeletion: boolean },
+  args: { whatToForget: string; confirmDeletion: boolean; alsoAbout?: string[] },
   opts: unknown
 ) => Promise<string>;
 const execute = (_userData: Record<string, unknown>) =>
   (forgetMemoryDef.create({ agentId: 'ferni' } as never) as unknown as { execute: Execute })
     .execute;
 
-afterEach(() => forget.mockClear());
+afterEach(() => {
+  forget.mockClear();
+  delete process.env.FORGET_RELATED_WORDS;
+});
 
 describe('forgetMemory (the live tool)', () => {
   it('forgets the topic in stored memory once the caller confirms', async () => {
@@ -39,11 +42,44 @@ describe('forgetMemory (the live tool)', () => {
       { whatToForget: 'my divorce', confirmDeletion: true },
       { ctx: { userData } }
     );
-    expect(forget).toHaveBeenCalledWith('u-1', 'my divorce');
+    expect(forget).toHaveBeenCalledWith('u-1', 'my divorce', undefined, undefined);
     expect(userData.keyMoments).toEqual(['Biscuit learned sit']);
     // Hidden, not erased: he says only that he won't bring it up (FORGET_DELETES off)
     expect(reply).toContain('"I won\'t bring that up again."');
     expect(reply).toMatch(/Don't say you've forgotten, deleted or erased it/);
+  });
+
+  it('passes the related words the model names (alsoAbout) through to the forget', async () => {
+    const userData = { userId: 'u-1' };
+    const alsoAbout = ['the recruiter', 'job offer'];
+    await execute(userData)(
+      { whatToForget: 'the Denver job', confirmDeletion: true, alsoAbout },
+      { ctx: { userData } }
+    );
+    expect(forget).toHaveBeenCalledWith('u-1', 'the Denver job', undefined, alsoAbout);
+  });
+
+  // The verifier's ask on fb4737bab1: off (prod), the model must not be told
+  // that words it names are kept out, since nothing applies them.
+  it('offers alsoAbout, and says what it does, only with FORGET_RELATED_WORDS on', () => {
+    const offered = () => {
+      const tool = forgetMemoryDef.create({ agentId: 'ferni' } as never) as unknown as {
+        description: string;
+        parameters: { shape: Record<string, { description?: string }> };
+      };
+      return { description: tool.description, keys: Object.keys(tool.parameters.shape), tool };
+    };
+    const off = offered();
+    expect(off.description).toBe(getToolDescription('forgetMemory')); // main's text
+    expect(off.description).not.toMatch(/alsoAbout|kept out too/);
+    expect(off.keys).toEqual(['whatToForget', 'confirmDeletion']);
+
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const on = offered();
+    expect(on.keys).toEqual(['whatToForget', 'confirmDeletion', 'alsoAbout']);
+    expect(on.description.startsWith(getToolDescription('forgetMemory'))).toBe(true);
+    expect(on.description).toMatch(/In alsoAbout, name the specific people/);
+    expect(on.tool.parameters.shape.alsoAbout?.description).toMatch(/Never general words/);
   });
 
   it('says it deleted the facts only when every one was deleted (FORGET_DELETES on)', async () => {
