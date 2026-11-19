@@ -53,6 +53,7 @@ describe('the prompt (withHonesty, as prompt-loader.ts builds it)', () => {
 
   it('live: the model-level instructions carry it with the flag on, not off', async () => {
     vi.stubEnv('PROMPT_MODE', 'character');
+    vi.stubEnv(FLAG, undefined); // unset, whatever the shell exports
     const off = await (await import('../prompt-loader.js')).loadModelBaseInstructions();
     expect(off).not.toContain(USAGE_HONESTY);
     vi.resetModules(); // the instructions are cached per process
