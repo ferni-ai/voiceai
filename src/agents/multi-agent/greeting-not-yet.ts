@@ -23,6 +23,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { eventState } from '../../understanding/temporal/event-state.js';
 import { resolveTimes, warmTemporalParser } from '../../understanding/temporal/resolve-time.js';
 import { sentenceTense } from '../../understanding/temporal/tense.js';
+import { targetDateAhead } from '../../utils/calendar-days.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import type { CallerHistory } from './greeting-direction.js';
 import { recentCallRestraintEnabled } from './welcome-back.js';
@@ -134,13 +135,8 @@ export function commitmentAhead(
   timeZone?: string,
   env: Record<string, string | undefined> = process.env
 ): boolean {
+  if (c.targetDate !== undefined && targetDateAhead(c.targetDate, now, timeZone)) return true;
   const today = localYmd(now, timeZone);
-  // Day-granular: a date stored as midnight UTC is that calendar day; due today is not past yet.
-  const target = c.targetDate;
-  if (target !== undefined) {
-    const due = target % DAY === 0 ? localYmd(target) : localYmd(target, timeZone);
-    if (target > now || due >= today) return true;
-  }
   const saidOn = Number.isFinite(c.createdAt) ? localYmd(c.createdAt, timeZone) : undefined;
   if (saidOn && flagOn('TEMPORAL_RESOLVER', env)) {
     return resolvedAhead(c.statement, c.createdAt, now, timeZone);
