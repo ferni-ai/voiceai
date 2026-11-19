@@ -1052,7 +1052,7 @@
     
     <!-- Footer -->
     <footer class="footer">
-      <p>Press <kbd>Ctrl</kbd> + <kbd>D</kbd> for demo mode, <kbd>Ctrl</kbd> + <kbd>R</kbd> to refresh</p>
+      <p>Press <kbd>Ctrl</kbd> + <kbd>R</kbd> to refresh</p>
     </footer>
   </div>
   
@@ -1074,7 +1074,6 @@
       ? 'ws://localhost:8080/ws/cognitive'
       : null;
     let isConnected = false;
-    let demoMode = false;
     let ws = null;
     let reconnectAttempts = 0;
     const MAX_RECONNECT_ATTEMPTS = 5;
@@ -1169,9 +1168,6 @@
       if (isConnected) {
         statusIndicator.classList.add('connected');
         statusText.textContent = 'Live';
-      } else if (demoMode) {
-        statusIndicator.classList.remove('connected');
-        statusText.textContent = 'Demo Mode';
       } else {
         statusIndicator.classList.remove('connected');
         statusText.textContent = 'Disconnected';
@@ -1196,8 +1192,6 @@
     }
 
     async function connectWebSocket() {
-      if (demoMode) return;
-      
       // Skip WebSocket if not available (production) - use HTTP polling
       if (!WS_URL) {
         console.log('WebSocket not available in production, using HTTP polling');
@@ -1229,11 +1223,11 @@
           updateConnectionStatus();
           
           // Attempt reconnection
-          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !demoMode) {
+          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             console.log(`WebSocket disconnected. Reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
             setTimeout(() => void connectWebSocket(), RECONNECT_DELAY);
-          } else if (!demoMode) {
+          } else {
             console.log('WebSocket max reconnect attempts reached. Falling back to polling.');
             startPolling();
           }
@@ -1364,9 +1358,6 @@
       if (isConnected) {
         statusIndicator.classList.add('connected');
         statusText.textContent = 'Live (WebSocket)';
-      } else if (demoMode) {
-        statusIndicator.classList.remove('connected');
-        statusText.textContent = 'Demo Mode';
       } else {
         statusIndicator.classList.remove('connected');
         statusText.textContent = 'Disconnected';
@@ -1398,47 +1389,8 @@
       } catch (error) {
         isConnected = false;
         updateConnectionStatus();
-        if (!demoMode) {
-          console.log('Cognitive API not available:', error.message);
-        }
+        console.log('Cognitive API not available:', error.message);
       }
-    }
-    
-    // ========================================
-    // DEMO MODE
-    // ========================================
-    
-    function runDemoMode() {
-      demoMode = true;
-      if (ws) {
-        ws.close();
-      }
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = null;
-      }
-      
-      const modes = Object.keys(modeIcons);
-      const styles = ['Analytical', 'Emotional', 'Practical', 'Narrative', 'Systematic'];
-      const emotions = ['neutral', 'happy', 'calm', 'thoughtful', 'excited'];
-      
-      updateConnectionStatus();
-      
-      setInterval(() => {
-        updateMode(modes[Math.floor(Math.random() * modes.length)], 'Demo: Adapting');
-        updateUserStyle(styles[Math.floor(Math.random() * styles.length)], 0.5 + Math.random() * 0.5);
-        updateVoiceEmotion(
-          emotions[Math.floor(Math.random() * emotions.length)],
-          0.6 + Math.random() * 0.4,
-          ['stable', 'improving', 'worsening'][Math.floor(Math.random() * 3)]
-        );
-        updateConfidence(0.6 + Math.random() * 0.35);
-        updateMetrics({
-          avgTotalOverhead: 8 + Math.random() * 20,
-          p95TotalOverhead: 20 + Math.random() * 40,
-          under50msPercentage: 85 + Math.random() * 15,
-        });
-      }, 2000);
     }
     
     // ========================================
@@ -1446,10 +1398,6 @@
     // ========================================
     
     document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 'd') {
-        e.preventDefault();
-        runDemoMode();
-      }
       if (e.ctrlKey && e.key === 'r') {
         e.preventDefault();
         if (ws && ws.readyState === WebSocket.OPEN) {

@@ -15,20 +15,19 @@
 
 import { isFtisEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  autoExecuteHeld,
+  type AutoExecuteGate,
+} from '../../tools/semantic-router/integration/index.js';
 import type { SemanticRoutingResult } from './types.js';
 
 const log = createLogger({ module: 'ftis-routing' });
 
 // ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-
-// ============================================================================
 // TYPES
 // ============================================================================
 
-export interface FTISRoutingContext {
+export interface FTISRoutingContext extends AutoExecuteGate {
   userId: string;
   sessionId: string;
   personaId: string;
@@ -190,8 +189,9 @@ export async function runFTISRouting(
       isOpenIntent: false,
     };
 
-    // High confidence → execute directly
-    if (topPrediction.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD) {
+    // High confidence → execute directly, unless held (ROUTER_EXEC_AFTER_CRISIS_READ)
+    const direct = topPrediction.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD;
+    if (direct && !(await autoExecuteHeld(context, 'ftis'))) {
       log.info(
         {
           domain: topPrediction.domain,

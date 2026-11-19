@@ -328,9 +328,9 @@ function handleKeydown(e: KeyboardEvent): void {
     }
   }
 
-  // Escape to go back to app
+  // Escape closes the top modal; it used to leave the portal mid-edit, losing changes.
   if (e.key === 'Escape') {
-    window.location.href = '/';
+    Array.from(document.querySelectorAll('.admin-modal-overlay')).pop()?.remove();
   }
 
   // Cmd/Ctrl + B to toggle sidebar

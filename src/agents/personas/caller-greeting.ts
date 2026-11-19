@@ -28,6 +28,7 @@
  */
 
 import { contentWords } from '../../memory/recall/session-recall.js';
+import { listedNow } from '../../config/seth-teammate.js';
 import { DISPLAY_NAMES } from '../../personas/persona-ids.js';
 
 const GREETING_WORDS = new Set(
@@ -47,7 +48,11 @@ const NOT_A_NAME = new Set(
 const ASKS_WHO_OR_IF_THERE =
   /\bwho(?:'s| is| am i| are you)\b|\bis (?:that|this|it) you\b|\b(?:are )?you (?:back|there|still there|here)\b|\bwhat(?:'s| is) your name\b|\bwhat should i call you\b/i;
 
-const PERSONA_NAMES = Object.values(DISPLAY_NAMES).map((n) => n.split(' ')[0].toLowerCase());
+/** First names a caller can greet; Seth only while his gate is open, so "Seth." stays a caller's name. */
+const personaNames = (): string[] =>
+  Object.entries(DISPLAY_NAMES)
+    .filter(([id]) => listedNow(id))
+    .map(([, n]) => n.split(' ')[0].toLowerCase());
 
 /** One edit apart at most (a letter added, dropped or changed). */
 function nearly(a: string, b: string): boolean {
@@ -62,7 +67,7 @@ function nearly(a: string, b: string): boolean {
 export function isVocative(word: string): boolean {
   const w = word.toLowerCase();
   if (/^fern(?:i|ie|ee|ey|y|eh|ay)?$/.test(w)) return true; // STT's Ferni, two letters off too
-  return w.length >= 4 && PERSONA_NAMES.some((name) => nearly(w, name));
+  return w.length >= 4 && personaNames().some((name) => nearly(w, name));
 }
 
 /** The question's content words, without the name it greets ("Hey Sam, ..."). */
