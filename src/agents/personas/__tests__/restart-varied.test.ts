@@ -84,3 +84,23 @@ describe('RESTART_VARIED: the turn reminder the model reads (turnShapeFor)', () 
     expect(reminders().some((t) => t.reminder.includes('("I, I think"'))).toBe(true);
   });
 });
+
+describe('RESTART_VARIED off: no extra random draw', () => {
+  it("each line takes main's draws: one for a clean line, two for a rough one, restarts included", () => {
+    const seeded = rngFor('restart-varied-draws');
+    let draws = 0;
+    const rng = (): number => {
+      draws += 1;
+      return seeded();
+    };
+    const lines = [3, 10, 30].flatMap((target) =>
+      Array.from({ length: 400 }, () => textureLine(target, rng, { RESTART_VARIED: 'off' }))
+    );
+    expect(lines.filter((t) => t.kind === 'restart').length).toBeGreaterThan(20);
+    expect(draws).toBe(lines.reduce((n, t) => n + (t.kind === 'clean' ? 1 : 2), 0));
+    // The next draw is the one main would make next: the stream is not shifted.
+    const reference = rngFor('restart-varied-draws');
+    for (let i = 0; i < draws; i++) reference();
+    expect(rng()).toBe(reference());
+  });
+});
