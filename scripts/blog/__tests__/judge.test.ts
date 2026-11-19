@@ -13,6 +13,7 @@ import {
   type Dimension,
   type JudgeModel,
   type Verdict,
+  rewriteIsBetter,
 } from '../judge.js';
 import { offFlags } from '../live-check.js';
 import { POST_TYPES } from '../post-types.js';
@@ -199,5 +200,55 @@ describe('editorNotes', () => {
 
   it('gives no notes when there is no verdict', () => {
     expect(editorNotes({ status: 'error', model: 'judge', failures: ['no verdict'] })).toEqual([]);
+  });
+});
+
+describe('rewriteIsBetter', () => {
+  const DIMS = ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'] as const;
+  /** A consumer verdict from six scores in DIMENSIONS order. */
+  const judged = (...scores: number[]): JudgeResult => {
+    const failures = DIMS.flatMap((d, i) => {
+      const need = d === 'honesty' ? 5 : 4;
+      return scores[i] < need ? [`${d} ${scores[i]} (needs ${need})`] : [];
+    });
+    return {
+      status: failures.length ? 'fail' : 'pass',
+      model: 'judge',
+      verdict: {
+        scores: Object.fromEntries(DIMS.map((d, i) => [d, { score: scores[i], reason: 'r' }])),
+        summary: 's',
+      } as JudgeResult['verdict'],
+      failures,
+    };
+  };
+  const none: JudgeResult = { status: 'error', model: 'judge', failures: ['no verdict'] };
+
+  it('never keeps a rewrite the judge gave no verdict on', () => {
+    expect(rewriteIsBetter(judged(3, 3, 4, 3, 3, 3), none)).toBe(false);
+  });
+
+  it('keeps a rewrite that passes over a draft that failed, even if one score fell', () => {
+    expect(rewriteIsBetter(judged(4, 4, 5, 4, 5, 3), judged(4, 4, 5, 4, 4, 4))).toBe(true);
+  });
+
+  it('keeps a rewrite with a verdict over a draft without one', () => {
+    expect(rewriteIsBetter(none, judged(3, 3, 4, 3, 3, 3))).toBe(true);
+  });
+
+  it('drops the rewrite from run 44515303932: 19 down to 17, honesty 5 down to 4', () => {
+    expect(rewriteIsBetter(judged(4, 3, 5, 2, 3, 2), judged(3, 2, 4, 2, 3, 3))).toBe(false);
+  });
+
+  it('drops a rewrite that trades one dimension for another', () => {
+    expect(rewriteIsBetter(judged(4, 3, 5, 3, 4, 3), judged(4, 3, 4, 3, 4, 4))).toBe(false);
+    expect(rewriteIsBetter(judged(4, 3, 5, 3, 4, 3), judged(4, 4, 5, 2, 4, 4))).toBe(false);
+  });
+
+  it('drops a rewrite that scores exactly the same', () => {
+    expect(rewriteIsBetter(judged(4, 3, 5, 3, 4, 3), judged(4, 3, 5, 3, 4, 3))).toBe(false);
+  });
+
+  it('keeps a rewrite that is better on every failing dimension and worse on none', () => {
+    expect(rewriteIsBetter(judged(3, 2, 4, 2, 4, 2), judged(4, 3, 4, 3, 4, 3))).toBe(true);
   });
 });

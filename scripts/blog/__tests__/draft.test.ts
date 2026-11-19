@@ -616,10 +616,12 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
   it("on and the judge fails it: rewrites once with the judge's notes and writes the rewrite", async () => {
     const { prompts, model } = twoAnswers(REWRITE);
     const { d, writes } = deps(model);
-    const review = vi.fn(async () => verdict(3));
+    const review = vi.fn(async (markdown: string) =>
+      verdict(matter(markdown).data.title === 'Second draft' ? 4 : 3)
+    );
     const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
 
-    expect(review).toHaveBeenCalledOnce();
+    expect(review).toHaveBeenCalledTimes(2);
     const [judged, sourceText] = review.mock.calls[0] as unknown as [string, string];
     expect(matter(judged).data.title).toBe('First draft');
     expect(sourceText).toContain('essentially no users yet');
@@ -638,6 +640,44 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
     expect(result.title).toBe('Second draft');
     expect(writes).toHaveLength(1);
     expect(matter(writes[0].content).data.title).toBe('Second draft');
+  });
+
+  it('on and the rewrite scores no better: the first draft stands, and both verdicts are kept', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const worse: JudgeResult = { ...verdict(2), failures: ['craft 2 (needs 4)'] };
+    const review = vi.fn(async (markdown: string) =>
+      matter(markdown).data.title === 'Second draft' ? worse : verdict(3)
+    );
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+
+    expect(prompts).toHaveLength(2);
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(result.review).toMatchObject({
+      revised: false,
+      after: { failures: ['craft 2 (needs 4)'] },
+    });
+    expect(result.title).toBe('First draft');
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on and the judge throws on the rewrite: the first draft stands', async () => {
+    const { model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const review = async (markdown: string): Promise<JudgeResult> => {
+      if (matter(markdown).data.title === 'Second draft') throw new Error('overloaded');
+      return verdict(3);
+    };
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(result.review).toMatchObject({ revised: false, after: { status: 'error' } });
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('a first draft that passes the gate leaves no gate retry to log', async () => {
+    const { model } = twoAnswers(REWRITE);
+    const { d } = deps(model);
+    const result = await draftPost({ type: 'building-in-public' }, d);
+    expect(result.gateRetry).toBeUndefined();
   });
 
   it('on and the judge passes it: no rewrite', async () => {
@@ -705,9 +745,10 @@ describe('the rewrite against the judge (BLOG_REVISE)', () => {
     });
     const result = await draftPost(
       { type: 'building-in-public' },
-      { ...d, review: async () => verdict(3) }
+      { ...d, review: async (md) => verdict(matter(md).data.title === 'Third draft' ? 4 : 3) }
     );
     expect(prompts).toHaveLength(3);
+    expect(result.gateRetry).toEqual(['em-dash']);
     expect(prompts[2]).toContain('"title":"Second draft"');
     expect(result.review?.revised).toBe(true);
     expect(matter(writes[0].content).data.title).toBe('Third draft');
