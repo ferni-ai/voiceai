@@ -21,7 +21,7 @@ import { errorClass } from '../../utils/error-class.js';
 import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
-import { livePersonaId } from '../../personas/index.js';
+import { livePersonaId } from '../../personas/identity/index.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe

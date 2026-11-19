@@ -22,7 +22,7 @@ import type {
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { flagOn } from '../../../config/env-flag.js';
 import type { FlagName } from '../../../config/flag-manifest.js';
-import { isKnownId, toCanonical, type CanonicalPersonaId } from '../../../personas/index.js';
+import { isKnownId, toCanonical, type CanonicalPersonaId } from '../../../personas/identity/index.js';
 import { hasHandoffArrival } from '../../../tools/handoff/handoff-arrival.js';
 
 // ============================================================================
