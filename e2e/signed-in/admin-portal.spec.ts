@@ -274,6 +274,22 @@ async function domEffects(
   });
 }
 
+/**
+ * domEffects, or null when a navigation the click started tore the page down mid-read
+ * (seen in CI: the URL check ran just before the navigation began). A reload is an effect.
+ */
+async function domEffectsUnlessGone(
+  walk: Walk
+): Promise<Awaited<ReturnType<typeof domEffects>> | null> {
+  try {
+    return await domEffects(walk);
+  } catch (e) {
+    if (!(e instanceof Error) || !/Execution context was destroyed/.test(e.message)) throw e;
+    await walk.page.waitForLoadState();
+    return null;
+  }
+}
+
 /** Wait (up to 3s) for the screen to stop changing, so what an earlier click set off isn't credited to the next. */
 async function quiet(walk: Walk): Promise<void> {
   for (const until = Date.now() + 3_000; Date.now() < until;) {
@@ -452,7 +468,8 @@ async function clickControl(walk: Walk, id: string, root: string, c: Control): P
     const reloaded =
       after.some((e) => e.kind === 'load') || walk.page.url().split('#')[0] !== urlBefore;
     if (reloaded) return void (await reopen(walk, id));
-    const dom = await domEffects(walk);
+    const dom = await domEffectsUnlessGone(walk);
+    if (!dom) return void (await reopen(walk, id));
     reasons = dom.reasons;
     const other = after.find((e) => ['request', 'dialog', 'download', 'popup'].includes(e.kind));
     effect =
@@ -482,7 +499,9 @@ async function clickControl(walk: Walk, id: string, root: string, c: Control): P
       if (e.kind === 'request')
         walk.findings.add(`wrote after its confirm was cancelled: ${where}: ${e.method} ${e.path}`);
   }
-  reasons = [...new Set([...reasons, ...(await domEffects(walk)).reasons])];
+  const last = await domEffectsUnlessGone(walk);
+  if (!last) return void (await reopen(walk, id));
+  reasons = [...new Set([...reasons, ...last.reasons])];
   checkFailures(walk, from, reasons, where);
 }
 
