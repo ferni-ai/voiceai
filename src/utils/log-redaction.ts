@@ -39,10 +39,13 @@
  * over-masking is the safe side. The last four digits stay, for debugging. Mixed
  * arrays in text ([{"n":"…"},"…"]) are left to the structured pass.
  *
- * Writes are redacted line by line: text after the last newline is held (at most a few
- * hundred chars, and only until the next write or 20 ms) so a number or its key split
- * across two writes is still seen whole, and bytes are decoded with a streaming decoder
- * so a multibyte character split across writes is not mangled.
+ * Writes are redacted line by line: text after the last newline is held (only until the
+ * next write or 20 ms; log-hold-back.ts says how much of a long line) so a number, its key
+ * or a clone id split across two writes is still seen whole, and bytes are decoded with a
+ * streaming decoder so a multibyte character split across writes is not mangled.
+ *
+ * The text pass also replaces a consented clone's voice id (redacted-log-values.ts, as the
+ * app logger does), so the SDK, console and raw writes can't print one either.
  *
  * What this does not cover: a child process with inherited stdio writes to the fd
  * directly, so it has to install this itself (the per-call job child imports
@@ -74,6 +77,8 @@ import {
   validWeak,
   WEAK,
 } from './log-object-redaction.js';
+import { createHoldBack } from './log-hold-back.js';
+import { redactLogValues } from './redacted-log-values.js';
 import { onSdkLogger } from './sdk-logger-slot.js';
 
 const MAX_DIGITS = 15;
@@ -319,21 +324,8 @@ function redactionOff(): boolean {
   return false;
 }
 
-/** A line longer than this with no newline yet is written out, keeping only its end. */
-const HOLD_MAX = 512;
-const HOLD_TAIL = 64;
+/** How long an unfinished line is held before it is written out anyway. */
 const HOLD_MS = 20;
-const RUN_CHARS = new Set('0123456789+%(). \t-');
-
-/** Where the part of `text` to hold back for the next write starts. */
-function holdFrom(text: string): number {
-  if (text.endsWith('\n')) return text.length;
-  const lineStart = text.lastIndexOf('\n') + 1;
-  if (text.length - lineStart <= HOLD_MAX) return lineStart;
-  let runStart = text.length;
-  while (runStart > lineStart && RUN_CHARS.has(text[runStart - 1])) runStart--;
-  return Math.max(lineStart, runStart - HOLD_TAIL);
-}
 
 const flushers = new Set<() => void>();
 let exitHooked = false;
@@ -368,12 +360,15 @@ function callbackOf(rest: unknown[]): (() => void) | undefined {
   return typeof cb === 'function' ? (cb as () => void) : undefined;
 }
 
+const redactText = (text: string): string => redactPhoneNumbers(redactLogValues(text));
+
 /** Wraps `target.write` so every chunk is redacted first. Idempotent per target. */
 export function redactWrites(target: unknown): void {
   const t = target as Marked | null | undefined;
   if (!t || typeof t.write !== 'function' || t[REDACTING] === true) return;
   const { write } = t;
   const decoder = new StringDecoder('utf8');
+  const hold = createHoldBack();
   let pending = '';
   let timer: NodeJS.Timeout | undefined;
 
@@ -383,7 +378,7 @@ export function redactWrites(target: unknown): void {
     if (pending === '') return;
     const text = pending;
     pending = '';
-    write.call(t, redactionOff() ? text : redactPhoneNumbers(text));
+    write.call(t, redactionOff() ? text : redactText(hold.release(text)));
   };
   flushers.add(flush);
   if (!exitHooked) {
@@ -399,21 +394,20 @@ export function redactWrites(target: unknown): void {
     }
     const asChunk = (s: string): unknown =>
       typeof chunk === 'string' ? s : Buffer.from(s, 'utf8');
-    if (pending === '' && wholeLines(chunk, text)) {
-      const redacted = redactPhoneNumbers(text);
+    if (pending === '' && !hold.masking && wholeLines(chunk, text)) {
+      const redacted = redactText(text);
       return write.call(this, redacted === text ? chunk : asChunk(redacted), ...rest);
     }
-    const all = pending + text;
-    const cut = holdFrom(all);
-    pending = all.slice(cut);
+    const { now, held } = hold.split(pending, text);
+    pending = held;
     if (timer) clearTimeout(timer);
     timer = pending === '' ? undefined : setTimeout(flush, HOLD_MS).unref();
-    if (cut === 0) {
+    if (now === '') {
       const cb = callbackOf(rest);
       if (cb) process.nextTick(cb);
       return true;
     }
-    return write.call(this, asChunk(redactPhoneNumbers(all.slice(0, cut))), ...rest);
+    return write.call(this, asChunk(redactText(now)), ...rest);
   };
   t[REDACTING] = true;
 }

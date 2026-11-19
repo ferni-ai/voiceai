@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
+import { rememberedInsights } from './remembered-insights.js';
 
 const log = createLogger({ module: 'insight-broker' });
 
@@ -184,7 +185,7 @@ export async function getInsightsToSurface(
     hourOfDay?: number;
   }
 ): Promise<ProactiveInsight[]> {
-  const insights = await loadInsights(userId);
+  const insights = await rememberedInsights(userId, await loadInsights(userId));
   const now = new Date();
   const hour = context.hourOfDay ?? now.getHours();
 
@@ -264,11 +265,9 @@ export async function dismissInsight(userId: string, insightId: string): Promise
   }
 }
 
-/**
- * Get pending insights count for a user.
- */
+/** Get pending insights count for a user. */
 export async function getPendingInsightCount(userId: string): Promise<number> {
-  const insights = await loadInsights(userId);
+  const insights = await rememberedInsights(userId, await loadInsights(userId)); // held: not counted
   return insights.filter((i) => !i.surfaced && !i.dismissed).length;
 }
 

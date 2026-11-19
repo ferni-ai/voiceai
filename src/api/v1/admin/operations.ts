@@ -94,16 +94,16 @@ interface OperationsMetrics {
 }
 
 interface BudgetStatus {
-  name: string;
-  limit: number;
-  spent: number;
-  percentage: number;
+  /** null when no GCP budget was found: never a made-up budget (#4069) */
+  name: string | null;
+  limit: number | null;
+  /** null: real spend needs the BigQuery billing export, which isn't read yet (#4069) */
+  spent: number | null;
+  percentage: number | null;
   currency: string;
   period: string;
   alertThresholds: number[];
-  /** Whether spend is estimated (true) or from actual billing data (false) */
-  estimated: boolean;
-  /** Data source: 'billing-api' | 'estimated' | 'fallback' */
+  /** Where the budget came from: the billing API, a billing account with no budget, or nothing */
   source: 'billing-api' | 'estimated' | 'fallback';
 }
 
@@ -440,39 +440,11 @@ async function getBillingAccount(): Promise<string | null> {
 }
 
 /**
- * Estimate current month spend based on service usage
- * Uses pricing estimates similar to costs-ai.ts
- */
-function estimateCurrentMonthSpend(): number {
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const dayOfMonth = now.getDate();
-  const monthProgress = dayOfMonth / daysInMonth;
-
-  // Base monthly estimates (conservative, based on typical Ferni usage)
-  const monthlyEstimates = {
-    // Cloud Run: ~$15-25/month for voice agent + UI server
-    cloudRun: 20,
-    // Firestore: ~$5-10/month for reads/writes/storage
-    firestore: 7,
-    // External APIs (Gemini, Cartesia, LiveKit): ~$10-20/month
-    externalApis: 15,
-    // Storage, networking, misc: ~$3-5/month
-    misc: 4,
-  };
-
-  const totalMonthly = Object.values(monthlyEstimates).reduce((a, b) => a + b, 0);
-
-  // Pro-rate based on current day of month
-  return Math.round(totalMonthly * monthProgress * 100) / 100;
-}
-
-/**
  * Try to get budget info from GCP Billing Budget API
  */
 async function queryGCPBudget(billingAccount: string): Promise<{
   name: string;
-  limit: number;
+  limit: number | null;
   thresholds: number[];
 } | null> {
   try {
@@ -499,12 +471,10 @@ async function queryGCPBudget(billingAccount: string): Promise<{
           b.budgetFilter?.projects?.some((p: string) => p.includes(GCP_PROJECT))
       ) || budgets[0];
 
-    // Extract budget amount
+    // Extract budget amount (a last-period budget has no fixed limit to show)
     const budgetAmount = budget.amount?.specifiedAmount?.units
       ? parseFloat(budget.amount.specifiedAmount.units)
-      : budget.amount?.lastPeriodAmount
-        ? 0 // Last period amount - unknown exact limit
-        : 50; // Default fallback
+      : null;
 
     // Extract threshold rules
     const thresholds = (budget.thresholdRules || [])
@@ -514,7 +484,7 @@ async function queryGCPBudget(billingAccount: string): Promise<{
     return {
       name: budget.displayName || 'GCP Budget',
       limit: budgetAmount,
-      thresholds: thresholds.length > 0 ? thresholds : [50, 80, 100],
+      thresholds,
     };
   } catch (error) {
     log.debug({ error: String(error) }, 'Could not query GCP budgets');
@@ -532,47 +502,29 @@ async function getBudgetStatus(): Promise<BudgetStatus> {
     return cache.budget.data;
   }
 
-  // Default budget configuration
-  const defaultBudget = {
-    name: 'Ferni Monthly Budget',
-    limit: 50,
-    alertThresholds: [50, 80, 100],
-  };
-
-  // Try to get billing account
+  // Try to get billing account, then its budget. No budget found means no limit to show.
   const billingAccount = await getBillingAccount();
+  const gcpBudget = billingAccount ? await queryGCPBudget(billingAccount) : null;
+  const source: BudgetStatus['source'] = gcpBudget
+    ? 'billing-api'
+    : billingAccount
+      ? 'estimated'
+      : 'fallback';
+  const limit = gcpBudget?.limit ?? null;
 
-  let budgetInfo = defaultBudget;
-  let source: 'billing-api' | 'estimated' | 'fallback' = 'fallback';
-
-  if (billingAccount) {
-    // Try to get actual budget from GCP
-    const gcpBudget = await queryGCPBudget(billingAccount);
-    if (gcpBudget) {
-      budgetInfo = {
-        name: gcpBudget.name,
-        limit: gcpBudget.limit || defaultBudget.limit,
-        alertThresholds: gcpBudget.thresholds,
-      };
-      source = 'billing-api';
-    } else {
-      source = 'estimated';
-    }
-  }
-
-  // Estimate current spend (real-time billing data requires BigQuery export)
-  const spent = estimateCurrentMonthSpend();
-  const percentage = budgetInfo.limit > 0 ? Math.round((spent / budgetInfo.limit) * 100) : 0;
+  // Spend is not measured: real-time billing data needs the BigQuery export. It used to be
+  // a fixed $46 a month scaled by the date, shown as if it were the bill.
+  const spent = null;
+  const percentage = null;
 
   const result: BudgetStatus = {
-    name: budgetInfo.name,
-    limit: budgetInfo.limit,
+    name: gcpBudget?.name ?? null,
+    limit,
     spent,
     percentage,
     currency: 'USD',
     period: 'monthly',
-    alertThresholds: budgetInfo.alertThresholds,
-    estimated: true, // Spend is always estimated without BigQuery export
+    alertThresholds: gcpBudget?.thresholds ?? [],
     source,
   };
 
@@ -580,7 +532,7 @@ async function getBudgetStatus(): Promise<BudgetStatus> {
   cache.budget = { data: result, timestamp: Date.now() };
 
   log.debug(
-    { source, spent, limit: budgetInfo.limit, hasBillingAccount: !!billingAccount },
+    { source, spent, limit, hasBillingAccount: !!billingAccount },
     'Budget status retrieved'
   );
 

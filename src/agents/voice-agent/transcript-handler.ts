@@ -73,6 +73,7 @@ import type { UserData } from '../shared/types.js';
 import { crisisTurnSettled, heldAfter, memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { readCallerTurn } from '../personas/sexual-boundary.js';
 import { holdOnCrisisPattern } from '../../services/safety/index.js';
+import { turnSettledToolCheck } from '../processors/turn-processor/router-crisis-check.js';
 import { ownerWriteId, wordsNeverLogged } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
@@ -1249,13 +1250,11 @@ async function processFinalTranscript(
   // Check if early classification already handled this turn (prevents double execution)
   const alreadyHandled = (userData as Record<string, unknown>).ftisHandledThisTurn === true;
   if (alreadyHandled) {
-    // Clear the flag for next turn
-    delete (userData as Record<string, unknown>).ftisHandledThisTurn;
+    delete (userData as Record<string, unknown>).ftisHandledThisTurn; // cleared for the next turn
     diag.state('🧠 FTIS: Skipping - already handled by early classification');
     // Continue with memory capture, etc. but skip FTIS routing
   }
 
-  // Only run FTIS if not already handled
   if (!alreadyHandled) {
     try {
       const { runFTISRouting, buildToolResponseInstructions } =
@@ -1271,6 +1270,7 @@ async function processFinalTranscript(
           userLocation: userData.userLocation as
             | { city?: string; regionCode?: string; countryCode?: string }
             | undefined,
+          autoExecuteCheck: turnSettledToolCheck(sessionId, event.transcript),
         });
 
         diag.state('🧠 FTIS routing completed', {

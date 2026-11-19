@@ -10,6 +10,7 @@
  */
 
 import type { EnglishAccent } from '../../config/voice-accents.js';
+import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import type { PersonaConfig, VoiceConfig } from '../../personas/types.js';
 import { isLiveCustomAgent } from '../shared/custom-agent-live.js';
 
@@ -26,7 +27,8 @@ export async function resolveSessionVoice(
   const { getDefaultVoiceConfig } = await import('../../config/cartesia-config.js');
   const defaultVoice = getDefaultVoiceConfig();
   const voiceConfig = sessionPersona.voice || defaultVoice;
-  let effectiveVoiceId = voiceConfig.voiceId;
+  // A bundle that names no voice (seth: his clone is never in a manifest) speaks in its gated one.
+  let effectiveVoiceId = voiceConfig.voiceId || getVoiceIdForPersona(sessionPersona.id);
   let isLocalizedVoice = false;
 
   if (userAccent && userAccent !== 'american' && !isLiveCustomAgent(sessionPersona)) {
