@@ -114,6 +114,20 @@ describe('POST /api/twin/profile body check', () => {
     expect(docs.size).toBe(0);
   });
 
+  it('a 400 holds only the error and the field names, never a value from the profile', async () => {
+    const values = ['Riley Test kept bees', 'lake-walk-7Q', 'grew up on Maple Row'];
+    const { status, body } = await post({
+      coreValues: [values[0]],
+      keyRelationships: values[1],
+      lifePhilosophy: values[2],
+    });
+    expect(status).toBe(400);
+    expect(Object.keys(body).sort()).toEqual(['error', 'invalidFields']);
+    expect(body.invalidFields).toContain('keyRelationships');
+    const sent = JSON.stringify(body);
+    for (const value of values) expect(sent).not.toContain(value);
+  });
+
   it('answers 400 for a profile that is not an object', async () => {
     const { status, body } = await post(['lifeChapters']);
     expect(status).toBe(400);
