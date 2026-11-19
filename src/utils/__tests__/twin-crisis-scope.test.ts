@@ -23,6 +23,7 @@ const {
 const FAST = { startMs: 50, settleMs: 50 };
 const WORDS = 'Riley Test said the bus was late again.';
 const MAX_SESSIONS = 500; // crisis-memory-hold.ts
+const HOLD_MS = 6 * 60 * 60 * 1000; // crisis-memory-hold.ts
 const TWIN_SCOPE_PREFIX = 'twin-crisis:'; // twin-crisis-scope.ts
 const TWIN_SCOPES_MAX = 1000; // twin-crisis-scope.ts
 const twin = (i: number): string => `${TWIN_SCOPE_PREFIX}riley-test-${i}`;
@@ -32,6 +33,7 @@ const loggedText = (): string => JSON.stringify([logged.info.mock.calls, logged.
 afterEach(() => {
   resetCrisisMemoryHold();
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
 
 /** Write `id` into the map, then trim it as a crisis store would. */
@@ -95,6 +97,20 @@ describe('the crisis memory hold', () => {
     noteCrisisTurnRead(callId(0), WORDS);
     for (let i = 0; i <= TWIN_SCOPES_MAX + MAX_SESSIONS; i++) noteCrisisTurnRead(twin(i), WORDS);
     expect(await crisisTurnSettled(callId(0), WORDS, FAST)).toBe(true);
+  });
+
+  it('the turn reads keep at most TWIN_SCOPES_MAX twin scopes, oldest first, held ones too', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    for (let i = 0; i <= TWIN_SCOPES_MAX; i++) {
+      holdForCrisis(twin(i));
+      noteCrisisTurnRead(twin(i), WORDS);
+    }
+    expect(logged.warn).toHaveBeenCalledWith({ store: 'seen', evicted: 1 }, 'twin_scope_evicted');
+    // Once the holds run out, the oldest twin's read is gone, so its turn fails closed.
+    vi.setSystemTime(Date.now() + HOLD_MS + 1);
+    expect(await crisisTurnSettled(twin(0), WORDS, FAST)).toBe(false);
+    expect(await crisisTurnSettled(twin(1), WORDS, FAST)).toBe(true);
+    expect(await crisisTurnSettled(twin(TWIN_SCOPES_MAX), WORDS, FAST)).toBe(true);
   });
 
   it('calls alone trim as before: past the cap the oldest turn read goes, live holds stay', async () => {
