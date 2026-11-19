@@ -13,12 +13,12 @@ import {
   type AfterCallContext,
 } from '../../services/session/after-call-tasks.js';
 import { FOLLOW_THROUGH_IMPORT_TASK, importFollowUpsAfterCall } from '../follow-through-import.js';
-import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { thirdPartyCall } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from './caller-recognition.js';
 
 /** A signed-in app call or a recognised phone caller, and not a call Ferni placed to someone. */
 export function ownerOnTheLine(sessionId: string): boolean {
-  return sessionIsVerifiedOwner(sessionId) && !outboundPartiesFor(sessionId);
+  return sessionIsVerifiedOwner(sessionId) && !thirdPartyCall(sessionId);
 }
 
 /**

@@ -7,7 +7,7 @@
  */
 
 import { finishCallTypeContexts, roomKeyOf } from './metadata-parser.js';
-import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { thirdPartyCall } from '../shared/outbound-opener.js';
 import { noteCallEnded } from '../../services/session/after-call-tasks.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { errorClass } from '../../utils/error-class.js';
@@ -69,7 +69,7 @@ export function callEndFor(
   const release = once(ctx, async () => {
     await finish().catch(() => undefined); // the report reads the context release drops
     // After-call tasks run after the release (handleSessionCleanup → runAfterCall): they read this.
-    noteCallEnded(sessionId, { thirdPartyOnLine: outboundPartiesFor(sessionId) !== undefined });
+    noteCallEnded(sessionId, { thirdPartyOnLine: thirdPartyCall(sessionId) });
     await releaseStep();
   });
   let reported: Promise<void> | undefined; // logged once, however many paths ask

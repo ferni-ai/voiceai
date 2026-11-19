@@ -20,6 +20,10 @@ const outbound =
 const proactive =
   await import('../../../intelligence/context-builders/external/proactive-session-context.js');
 const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
+const { rememberDispatchIdentity } = await import('../caller-recognition.js');
+const { ownerOnTheLine } = await import('../follow-through-import-register.js');
+const { signedInOwnerSession } = await import('../sms-owner-register.js');
+const { speakerIsAccountOwner } = await import('../../multi-agent/live-call-behaviors.js');
 
 const SECRET = 'test-livekit-secret';
 /** The stores' cap (call-context-cap.ts): about 1,000 calls at two keys each. */
@@ -344,5 +348,40 @@ describe('call context stores are capped', () => {
     expect(get('cap-1')).toBeUndefined();
     expect(get('cap-2')).toBeDefined();
     expect(get('cap-over')).toBeDefined();
+  });
+});
+
+describe('a placed call never reads as the owner once its context is gone', () => {
+  // The live owner checks: follow-up import and future letters, SMS reading, a spoken yes.
+  const readers = { ownerOnTheLine, signedInOwnerSession, speakerIsAccountOwner };
+  /** What each owner check says of a session whose dispatch named the account (signed in). */
+  const ownerReads = (sessionId: string): Record<string, boolean> => {
+    rememberDispatchIdentity(sessionId, 'web_auth', '{}');
+    return Object.fromEntries(Object.entries(readers).map(([n, read]) => [n, read(sessionId)]));
+  };
+  const all = (v: boolean) => ({
+    ownerOnTheLine: v,
+    signedInOwnerSession: v,
+    speakerIsAccountOwner: v,
+  });
+
+  it('control: a signed-in call with no placed call reads as the owner', () => {
+    expect(ownerReads(key('s-owner-control'))).toEqual(all(true));
+  });
+
+  it('after end() released it, on every check', async () => {
+    const call = await startCall(onBehalfCall(), key('s-placed-ended'), key('room-placed-ended'));
+    expect(ownerReads(call.sessionId)).toEqual(all(false));
+    await call.end().end();
+    expect(outbound.getOutboundCallContext(call.sessionId)).toBeUndefined();
+    expect(ownerReads(call.sessionId)).toEqual(all(false));
+  });
+
+  it('after the store cap dropped it mid-call, on every check', () => {
+    outbound.setOutboundCallContext(key('s-placed-evicted'), onBehalfCall() as never);
+    for (let i = 0; i < CALL_CONTEXT_MAX_KEYS; i++)
+      outbound.setOutboundCallContext(key(`evict-${i}`), onBehalfCall() as never);
+    expect(outbound.getOutboundCallContext('s-placed-evicted')).toBeUndefined();
+    expect(ownerReads('s-placed-evicted')).toEqual(all(false));
   });
 });

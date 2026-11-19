@@ -24,6 +24,7 @@ import {
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { storeCallContext } from './call-context-cap.js';
+import { setCapped } from '../../../utils/capped-map.js';
 import { outboundOpener, partiesOf } from '../../../services/outreach/opening-line.js';
 import { isCallOpeningAmdEnabled } from '../../../config/call-opening-flag.js';
 import { flagOn } from '../../../config/env-flag.js';
@@ -71,6 +72,14 @@ export const CHECKIN_HONESTY_RULE =
 
 // Per call, released at call end (releaseCallTypeContexts); capped as a backstop
 const outboundCallContexts = new Map<string, OutboundCallContext>();
+/**
+ * Every key that has held an outbound context, kept after the context is released or
+ * dropped at the cap (keys only, no call data), so an ended or evicted placed call never
+ * reads as the account owner's (hadOutboundCallContext).
+ */
+const placedCallKeys = new Map<string, true>();
+/** Ten times the context cap: a key's mark outlives its context. */
+const PLACED_CALL_KEYS_MAX = 20_000;
 
 // ============================================================================
 // CONTEXT STORAGE
@@ -85,6 +94,7 @@ export function setOutboundCallContext(
   context: OutboundCallContext
 ): void {
   storeCallContext(outboundCallContexts, roomOrSessionId, context, log);
+  setCapped(placedCallKeys, roomOrSessionId, true, PLACED_CALL_KEYS_MAX);
   log.info(
     {
       roomOrSessionId,
@@ -101,6 +111,11 @@ export function setOutboundCallContext(
  */
 export function getOutboundCallContext(roomOrSessionId: string): OutboundCallContext | undefined {
   return outboundCallContexts.get(roomOrSessionId);
+}
+
+/** This key has held an outbound context: still true after its release or eviction. */
+export function hadOutboundCallContext(roomOrSessionId: string): boolean {
+  return outboundCallContexts.has(roomOrSessionId) || placedCallKeys.has(roomOrSessionId);
 }
 
 /**

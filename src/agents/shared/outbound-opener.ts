@@ -15,6 +15,7 @@ import {
   AI_DISCLOSURE_RULE,
   CHECKIN_HONESTY_RULE,
   getOutboundCallContext,
+  hadOutboundCallContext,
 } from '../../intelligence/context-builders/external/outbound-call-context.js';
 import { partiesOf, type OutboundParties } from '../../services/outreach/opening-line.js';
 
@@ -27,6 +28,15 @@ export { outboundOpener, type OutboundParties } from '../../services/outreach/op
  */
 export function isOnBehalfCall(sessionId: string): boolean {
   return getOutboundCallContext(sessionId)?.kind === 'on_behalf';
+}
+
+/**
+ * Ferni placed this session's call, so someone other than the account owner may be on the
+ * line. Unlike outboundPartiesFor, it stays true after the call's context is released at
+ * call end or dropped at the store cap: an owner check on that session fails closed.
+ */
+export function thirdPartyCall(sessionId: string): boolean {
+  return hadOutboundCallContext(sessionId);
 }
 
 /** The parties of this session's on-behalf call, or undefined for any other call. */
