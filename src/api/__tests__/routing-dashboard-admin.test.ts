@@ -58,6 +58,19 @@ describe('routing dashboard is admin only', () => {
     expect(await res.json()).toHaveProperty('recentRoutes');
   });
 
+  // #4069: no corrections store exists, so no placeholder list or zero rate is sent
+  it('sends no placeholder corrections and no fake correction rate', async () => {
+    const body = await (await get('/api/observability/routing-dashboard', 'test-admin-key')).json();
+    expect(body).not.toHaveProperty('topCorrections');
+    expect(body.summary).not.toHaveProperty('correctionRate');
+    expect(typeof body.summary.pendingLearningExamples).toBe('number');
+    const semantic = await (
+      await get('/api/observability/semantic-routing', 'test-admin-key')
+    ).json();
+    expect(semantic).toHaveProperty('aggregate');
+    expect(semantic).not.toHaveProperty('learning');
+  });
+
   it('leaves the other observability reads open to a signed-in non-admin', async () => {
     const res = await get('/api/observability/semantic-routing', 'test-member-key');
     expect(res.status).toBe(200);

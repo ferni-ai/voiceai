@@ -28,6 +28,7 @@ import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { geminiBillingLabels, labelLlmChat } from '../../config/gemini-billing-labels.js';
 import { geminiLocation, vertexBaseUrl } from '../../config/vertex-endpoint.js';
+import { listedNow } from '../../config/seth-teammate.js';
 import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
@@ -163,11 +164,15 @@ function withEndOverride(profile: InkTurnDetection, raw: string | undefined): In
 }
 
 /**
- * Every word of every persona's name (Ferni, Maya, ... Nate Holloway, Henry Caldwell): made-up
- * or uncommon names a general model has no prior for. Built from the canonical
- * persona list so a new persona is heard by name without editing this file.
+ * Every word of every listed persona's name (Ferni, Maya, ... Nate Holloway, Henry Caldwell):
+ * made-up or uncommon names a general model has no prior for. Built from the canonical
+ * persona list so a new persona is heard by name without editing this file; Seth only
+ * while his gate is open (config/seth-teammate.ts).
  */
-const TEAM_NAMES = [...new Set(ALL_CANONICAL_IDS.flatMap((id) => DISPLAY_NAMES[id].split(/\s+/)))];
+const teamNames = (env: Env): string[] =>
+  ALL_CANONICAL_IDS.filter((id) => listedNow(id, env)).flatMap((id) =>
+    DISPLAY_NAMES[id].split(/\s+/)
+  );
 const MAX_KEYTERMS = 100;
 const MAX_KEYTERM_CHARS = 1200;
 
@@ -182,7 +187,7 @@ export function buildCascadeKeyterms(
 ): string[] {
   const name = context.userName?.trim();
   const candidates = [
-    ...TEAM_NAMES,
+    ...teamNames(env),
     ...(name ? [name, name.split(/\s+/)[0]] : []),
     ...(env.CASCADE_STT_KEYTERMS ?? '').split(','),
   ];

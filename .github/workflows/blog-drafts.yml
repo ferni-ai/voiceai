@@ -147,6 +147,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           GOOGLE_CLOUD_PROJECT: johnb-2025
           GOOGLE_CLOUD_LOCATION: global
+          # The repetition rule in the brand gate (brand-gate.ts), off unless the variable is "on".
+          BLOG_REPEAT_GATE: ${{ vars.BLOG_REPEAT_GATE == 'on' && 'on' || 'off' }}
           BLOG_REVISE: ${{ vars.BLOG_REVISE == 'on' && 'on' || 'off' }}
           ANTHROPIC_API_KEY: ${{ vars.BLOG_REVISE == 'on' && secrets.ANTHROPIC_API_KEY || '' }}
           ANTHROPIC_WORKSPACE_ID: ${{ vars.BLOG_REVISE == 'on' && secrets.ANTHROPIC_WORKSPACE_ID || '' }}
