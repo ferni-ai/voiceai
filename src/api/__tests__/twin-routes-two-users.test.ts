@@ -1,7 +1,8 @@
 /**
  * Every twin route acts only on the signed-in caller's own twin (#3871). Two synthetic
  * users, Riley and Jordan, sign in by token. Jordan asks each route for Riley's twin, its
- * memories, its journal and its Chronicle, and is refused, with no model asked. Afterwards
+ * memories, its journal and its Chronicle, and is refused, with no model asked and nothing
+ * transcribed. Afterwards
  * the database holds exactly what it held before. Riley's own requests through the same
  * routes succeed, so a refusal can't come from a broken setup.
  *
@@ -11,13 +12,14 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = Record<string, unknown>;
 
 const h = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   callLLM: vi.fn<(prompt: string, opts?: unknown) => Promise<string | null>>(),
+  transcribe: vi.fn(async () => 'Sat on the dock at sunset.'),
 }));
 
 /** A path-keyed Firestore with just what the agent and journal stores use. */
@@ -75,7 +77,15 @@ const db = (() => {
   function collection(path: string) {
     return { doc: (id: string) => ref(`${path}/${id}`), ...query(path, []) };
   }
-  return { collection, doc: ref };
+  type Ref = ReturnType<typeof ref>;
+  /** One request at a time here, so a transaction reads and writes straight through. */
+  const runTransaction = async <T>(fn: (tx: unknown) => Promise<T>) =>
+    fn({
+      get: (r: Ref) => r.get(),
+      update: (r: Ref, data: Doc) => r.update(data),
+      delete: (r: Ref) => r.delete(),
+    });
+  return { collection, doc: ref, runTransaction };
 })();
 
 vi.mock('../../utils/firebase-admin-app.js', async (importOriginal) => ({
@@ -106,6 +116,17 @@ vi.mock('../../services/llm-utils.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   callLLM: h.callLLM,
 }));
+// The voice journal's speech-to-text and recording upload.
+vi.mock('../../services/custom-agent/memory-capture-service.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  transcribeAudioBuffer: h.transcribe,
+  extractMetadata: vi.fn(async () => ({ themes: [], emotions: [], keyPhrases: [] })),
+}));
+vi.mock('../../services/custom-agent/gcs-storage-service.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  uploadVoiceJournalEntry: vi.fn(async () => null),
+  deleteVoiceJournalAudio: vi.fn(async () => undefined),
+}));
 vi.mock('../../agents/personas/crisis-gate-text.js', () => ({
   readTypedMessageForCrisis: vi.fn(async (message: string) => ({ action: 'pass', message })),
 }));
@@ -116,6 +137,10 @@ const { addMemoryToAgent, createCustomAgent, updateAgentVoice } =
   await import('../../services/custom-agent/custom-agent-persistence-service.js');
 const { DEFAULT_CUSTOM_AGENT_VOICE_ID: STOCK_VOICE } =
   await import('../../services/custom-agent/custom-agent-voice-catalog.js');
+const { addJournalEntry } = await import('../../services/stores/journal-store.js');
+
+/** A recording, as the voice journal posts it. */
+const AUDIO = Buffer.from('a short recording').toString('base64');
 
 let server: Server;
 let base = '';
@@ -166,6 +191,7 @@ let memoryId = '';
 beforeEach(async () => {
   h.docs.clear();
   h.callLLM.mockReset().mockResolvedValue('We kept walking by the lake, remember?');
+  h.transcribe.mockClear();
   const twin = await createCustomAgent('uid-riley', {
     name: 'Riley Test',
     description: 'Riley Test at twenty',
@@ -205,6 +231,8 @@ const routes = (): Array<[string, string, string, unknown, number]> => {
     ['a voice picked', 'PUT', `${agent}/voice/select-premade`, { voiceId: STOCK_VOICE }, 404],
     ['a status change', 'PUT', `${agent}/status`, { status: 'paused' }, 404],
     ['an activation', 'POST', `${agent}/activate`, undefined, 404],
+    ['its system prompt', 'POST', `${agent}/generate-prompt`, undefined, 404],
+    ['a voice journal entry', 'POST', `${agent}/journal/entry`, { audio: AUDIO }, 404],
     [
       'a twin reply',
       'POST',
@@ -229,6 +257,7 @@ describe("another user can't reach Riley's twin", () => {
 
     expect(status, label).toBe(refused);
     expect(h.callLLM, label).not.toHaveBeenCalled();
+    expect(h.transcribe, label).not.toHaveBeenCalled();
     expect(userData(), label).toEqual(before);
     expect(before.length, 'Riley has a twin with memories to protect').toBeGreaterThan(0);
   });
@@ -299,5 +328,52 @@ describe('Riley reaches the same routes', () => {
     const paused = await call('riley', 'PUT', `${agent}/status`, { status: 'paused' });
     expect(paused.status).toBe(200);
     expect((await call('riley', 'GET', agent)).body.status).toBe('paused');
+  });
+
+  it('generates the system prompt and records a voice journal entry', async () => {
+    const agent = `/api/custom-agents/${twinId}`;
+    const prompt = await call('riley', 'POST', `${agent}/generate-prompt`);
+    expect(prompt.status).toBe(200);
+    expect(String(prompt.body.systemPrompt)).toContain('Riley Test');
+
+    expect((await call('riley', 'POST', `${agent}/journal/entry`, { audio: AUDIO })).status).toBe(
+      201
+    );
+    expect(h.transcribe).toHaveBeenCalledTimes(1);
+    const journal = await call('riley', 'GET', `${agent}/journal/entries`);
+    expect(JSON.stringify(journal.body)).toContain('Sat on the dock at sunset.');
+  });
+});
+
+describe("Riley's Chronicle entry (the one journal store, JOURNAL_ONE_STORE on)", () => {
+  let entryPath = '';
+  let entryDoc = '';
+  beforeEach(async () => {
+    vi.stubEnv('JOURNAL_ONE_STORE', 'on');
+    const entry = await addJournalEntry('uid-riley', { content: 'Rained all afternoon.' });
+    entryPath = `/api/journal/chronicle/entry/${entry.id}`;
+    entryDoc = `bogle_users/uid-riley/journal/${entry.id}`;
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ['an edit', 'PUT', { content: 'Changed' }],
+    ['a delete', 'DELETE', undefined],
+  ])('%s by another user is refused', async (label, method, body) => {
+    const before = structuredClone(userData());
+
+    const { status } = await call('jordan', method, entryPath, body);
+
+    expect(status, label).toBe(404);
+    expect(userData(), label).toEqual(before);
+    expect(h.docs.get(entryDoc)?.content, label).toBe('Rained all afternoon.');
+  });
+
+  it('Riley edits it, then deletes it', async () => {
+    const edit = await call('riley', 'PUT', entryPath, { content: 'Rained, then cleared.' });
+    expect(edit.status).toBe(200);
+    expect(h.docs.get(entryDoc)?.content).toBe('Rained, then cleared.');
+    expect((await call('riley', 'DELETE', entryPath)).status).toBe(200);
+    expect(h.docs.has(entryDoc)).toBe(false);
   });
 });
