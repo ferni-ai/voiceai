@@ -10,12 +10,15 @@
  * Messages are scrubbed by pattern, so the rules lean toward removing too much:
  * quoted text with spaces, anything after "transcript:"/"said" and similar
  * markers, runs of six or more plain words (prose), phone numbers, emails,
- * tokens, long opaque ids and URL query strings.
+ * tokens, long opaque ids and URL query strings. A consented clone's voice id (registered
+ * by the roster, redacted-log-values.ts) is replaced first, by value, whatever its shape.
  *
  * @module utils/error-scrub
  */
 
 import type { Breadcrumb, Event } from '@sentry/node';
+
+import { redactLogValues } from './redacted-log-values.js';
 
 const REDACTED = '[redacted]';
 const MAX_STRING = 500;
@@ -73,7 +76,7 @@ const PROSE_RUN = /[A-Za-z][A-Za-z']*(?:[ ,]+[A-Za-z][A-Za-z']*){5,}/g;
 
 /** Removes personal data and secrets from free text. */
 export function scrubString(input: string): string {
-  let out = input;
+  let out = redactLogValues(input);
   for (const [pattern, replacement] of STRING_RULES) out = out.replace(pattern, replacement);
   out = out.replace(PHONE_LIKE, (match) => {
     const digits = match.replace(/\P{Nd}/gu, '').length;

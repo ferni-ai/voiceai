@@ -18,11 +18,13 @@ const log = getLogger().child({ module: 'user-analytics-routes' });
 
 // Initialize analytics on module load
 let initialized = false;
+// Without Firestore the service answers from empty in-memory maps: zeros that are not measurements
+let storeAvailable = false;
 
 async function ensureInitialized(): Promise<void> {
   if (!initialized) {
     try {
-      await initializeAnalytics();
+      storeAvailable = await initializeAnalytics();
       initialized = true;
     } catch (error) {
       log.warn({ error }, 'Failed to initialize analytics');
@@ -62,6 +64,11 @@ export async function handleAnalyticsRoutes(
 
   // GET /api/analytics/summary - Full analytics summary for dashboard
   if (pathname === '/api/analytics/summary' && req.method === 'GET') {
+    if (!storeAvailable) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Analytics store unavailable' }));
+      return true;
+    }
     try {
       const summary = await getAnalyticsSummary();
       res.writeHead(200, { 'Content-Type': 'application/json' });
