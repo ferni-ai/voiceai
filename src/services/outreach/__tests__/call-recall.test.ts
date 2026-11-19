@@ -113,6 +113,20 @@ describe('recallFrom', () => {
     );
   });
 
+  it('a call that never reported is unconfirmed: never failed, never "didn\'t connect"', () => {
+    const call = recallFrom(
+      { words: ['sam'] },
+      records([], [dadResult(NOW - HOUR, 'unconfirmed')]),
+      NOW
+    );
+    expect(call).toMatchObject({ state: 'unconfirmed', name: 'Sam' });
+    expect(call?.said).toBeUndefined(); // Ferni's own line, no one's words
+    const line = recallLine(call, 'dad', NOW);
+    expect(line).toMatch(/^Ferni called Sam about an hour ago, but couldn't confirm how it went/);
+    expect(line).not.toMatch(/didn't connect|didn't go through|Ferni tried/);
+    expect(blocksNewCall(call!, NOW)).toBe(true); // it rang: told before a second ring
+  });
+
   it.each([
     ["did you tell 'em", 'em'],
     ["we've talked", 've'],

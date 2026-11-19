@@ -347,8 +347,9 @@ export async function placeOrHold(
   if (!held) watchCallResult(request, callId);
   if (!held) void armCallResultWatchdog(request, callId); // CALL_RESULT_WATCHDOG: never silent
   const also = otherCallsLine(others, now, callId);
-  // How the result will reach them, said when it rings now (call-result-promise.ts).
-  return { callId, held: held && held + also, others: also, promise: callResultPromise() };
+  // CALL_RESULT_WATCHDOG: how the result will reach them, with the call it rang (off: no key).
+  const promise = held ? undefined : callResultPromise();
+  return { callId, held: held && held + also, others: also, ...(promise && { promise }) };
 }
 
 /**

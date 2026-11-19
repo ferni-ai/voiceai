@@ -40,7 +40,7 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions and the activity, call-watch and waitlist indexes', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the call-watch TTL and the activity, call-watch and waitlist indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
@@ -53,6 +53,8 @@ describe('firestore index drift', () => {
       'composite call_result_watchdogs (COLLECTION_GROUP): status ASCENDING, dueAt ASCENDING',
       // the waitlist wave store's lapse query (wave-store.ts), not deployed yet
       'composite waitlist (COLLECTION): status ASCENDING, seatExpiresAt ASCENDING',
+      // the no-report watch's TTL (call-result-watchdog.ts expireAt), not deployed yet
+      'field override call_result_watchdogs.expireAt [TTL policy] indexes=[ASCENDING/COLLECTION, DESCENDING/COLLECTION, CONTAINS/COLLECTION]',
       'field override memory_vectors.text indexes=[none (exempt)]',
       'field override unified_memories.content indexes=[none (exempt)]',
       'field override vectors.text indexes=[none (exempt)]',

@@ -77,10 +77,28 @@ vi.mock('../delivery/push-notifications.js', () => ({
 }));
 vi.mock('../guarded-text.js', () => ({ sendGuardedText: async () => ({ sent: true }) }));
 vi.mock('../../calendar/index.js', () => ({ hasAnyProviderConnected: async () => false }));
+const card = vi.hoisted(() => vi.fn(async (_r: { status: string; summary: string }) => ({})));
 vi.mock('../../background-agents/unified-result-capture.js', () => ({
-  captureBackgroundResult: async () => ({}),
+  captureBackgroundResult: card,
+}));
+const indexed = vi.hoisted(() => vi.fn(async (..._a: unknown[]) => undefined));
+vi.mock('../../data-layer/hooks/misc-hooks.js', () => ({
+  onCallResultChange: indexed,
+  onFollowUpActionChange: async () => undefined,
+}));
+/** The call's LiveKit room: open, gone, or unreadable (a throw). */
+const room = vi.hoisted(() => ({ state: 'gone' as 'open' | 'gone' | 'throws', asked: [] as string[] })); // prettier-ignore
+vi.mock('livekit-server-sdk', () => ({
+  RoomServiceClient: class {
+    async listRooms(names: string[]): Promise<Array<{ name: string }>> {
+      room.asked.push(...names);
+      if (room.state === 'throws') throw new Error('UNAVAILABLE');
+      return room.state === 'open' ? names.map((name) => ({ name })) : [];
+    }
+  },
 }));
 const watchLog = vi.hoisted(() => [] as Array<{ outcome?: string }>);
+const warned = vi.hoisted(() => [] as Array<Record<string, unknown>>);
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
   const quiet = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} };
@@ -88,7 +106,7 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
     ...real,
     createLogger: (o: { module?: string }) =>
       o?.module === 'call-result-watchdog'
-        ? { ...quiet, info: (fields: { outcome?: string }) => watchLog.push(fields) }
+        ? { ...quiet, info: (fields: { outcome?: string }) => watchLog.push(fields), warn: (fields: Record<string, unknown>) => warned.push(fields) } // prettier-ignore
         : real.createLogger(o),
   };
 });
@@ -117,7 +135,7 @@ const NO_REPORT_LINE = `I couldn't confirm how the call to ${NAME} went.`;
 /** Max call (15 min) + margin: the watch's own 25 minutes, written out. */
 const NO_REPORT_AFTER_MS = 25 * 60_000;
 /** What the sweep captures; built here to land a no-report after a real result (the race). */
-const noReportOutcome = (id: string, name: string): CallOutcome => ({ callId: id, status: 'failed', objectiveAchieved: false, outcome: `I couldn't confirm how the call to ${name} went.`, callbackRequired: false, noReport: true }); // prettier-ignore
+const noReportOutcome = (id: string, name: string): CallOutcome => ({ callId: id, status: 'unconfirmed', objectiveAchieved: false, outcome: `I couldn't confirm how the call to ${name} went.`, callbackRequired: false }); // prettier-ignore
 const told = (line: string): number => bodies().filter((b) => b.includes(line)).length;
 const outcomes = (): Array<string | undefined> => watchLog.map((l) => l.outcome).filter(Boolean);
 
@@ -130,11 +148,19 @@ beforeEach(() => {
   resetToldClaimsForTests();
   push.mockClear();
   watchLog.length = 0;
+  warned.length = 0;
+  card.mockClear();
+  indexed.mockClear();
+  room.state = 'gone';
+  room.asked.length = 0;
   callId = `onbehalf_watch_${++seq}`;
-  process.env.CALL_RESULT_WATCHDOG = 'on';
+  vi.stubEnv('CALL_RESULT_WATCHDOG', 'on');
+  vi.stubEnv('LIVEKIT_URL', 'wss://livekit.invalid');
+  vi.stubEnv('LIVEKIT_API_KEY', 'test-key');
+  vi.stubEnv('LIVEKIT_API_SECRET', 'test-secret');
 });
 afterEach(() => {
-  delete process.env.CALL_RESULT_WATCHDOG;
+  vi.unstubAllEnvs();
 });
 
 describe('CALL_RESULT_WATCHDOG on', () => {
@@ -145,7 +171,8 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(stored()).toBeUndefined();
 
     await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) });
-    expect(stored()).toMatchObject({ status: 'failed', noReport: true, outcome: NO_REPORT_LINE });
+    expect(stored()).toMatchObject({ status: 'unconfirmed', outcome: NO_REPORT_LINE });
+    expect(room.asked).toEqual([`onbehalf-${callId}`]); // the room the orchestrator made
     expect(told(NO_REPORT_LINE)).toBe(1);
     expect(watchDoc()).toBeUndefined(); // the request it held is gone
     expect(outcomes()).toEqual(['timed_out']);
@@ -160,7 +187,6 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(push).toHaveBeenCalledTimes(1);
     await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) });
     expect(stored()).toMatchObject({ status: 'completed', transcriptSummary: 'Saturday works for them.' }); // prettier-ignore
-    expect(stored()?.noReport).toBeUndefined();
     expect(push).toHaveBeenCalledTimes(1);
     expect(outcomes()).toEqual(['reported']);
   });
@@ -186,19 +212,78 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) });
     await captureCallResult(callId, answered(), request());
     expect(stored()).toMatchObject({ status: 'completed' });
-    expect(stored()?.noReport).toBeUndefined();
     expect(callDoc()?.delivered).toBe(false); // the next opener brings the real one up
     expect(push).toHaveBeenCalledTimes(2);
     expect(told(NO_REPORT_LINE)).toBe(1);
     expect(outcomes()).toEqual(['timed_out', 'late_real_result']);
   });
 
-  it('a late status-only result is recorded, not told again (tellOwnerOnce: same level)', async () => {
+  it('a late status-only result is recorded, not told again; the app card gets the real one', async () => {
     await armCallResultWatchdog(request(), callId, T0);
     await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) });
+    expect(card.mock.calls.at(-1)?.[0].summary).toContain(NO_REPORT_LINE);
     await captureCallResult(callId, statusOnly(), request());
     expect(stored()).toMatchObject({ status: 'no_answer' });
     expect(push).toHaveBeenCalledTimes(1);
+    expect(card).toHaveBeenCalledTimes(2); // While You Were Away: the real result, after it
+    expect(card.mock.calls.at(-1)?.[0].summary).toBe(`Tried calling ${NAME} - no answer`);
+    await captureCallResult(callId, statusOnly(), request());
+    expect(card).toHaveBeenCalledTimes(2); // a second capture of the same result: not again
+  });
+
+  it('the app card and the memory index say unconfirmed, never failed', async () => {
+    await armCallResultWatchdog(request(), callId, T0);
+    await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) });
+    expect(card).toHaveBeenCalledTimes(1);
+    expect(card.mock.calls[0]?.[0]).toMatchObject({ summary: `Call to ${NAME}: ${NO_REPORT_LINE}` }); // prettier-ignore
+    expect(card.mock.calls[0]?.[0].status).not.toBe('failed');
+    expect(indexed.mock.calls[0]?.[2]).toMatchObject({ outcome: 'unconfirmed', summary: NO_REPORT_LINE }); // prettier-ignore
+  });
+
+  it('a 40-minute call whose room is still open is never told as unreported; its real result is', async () => {
+    await armCallResultWatchdog(request(), callId, T0);
+    room.state = 'open';
+    for (const min of [25, 30, 35, 40]) {
+      // eslint-disable-next-line no-await-in-loop -- one sweep a minute, in order
+      const run = await sweepCallResultWatchdogs({ now: at(min * 60_000 + 1000) });
+      expect(run).toMatchObject({ due: 1, settled: 0, again: 1 });
+      expect(watchDoc()).toMatchObject({ status: 'pending', dueAt: at(min * 60_000 + 1000 + 5 * 60_000).toISOString() }); // prettier-ignore
+    }
+    expect(stored()).toBeUndefined();
+    expect(push).not.toHaveBeenCalled();
+    room.state = 'gone';
+    await captureCallResult(callId, answered(), request()); // it ends at 41 min and reports
+    await sweepCallResultWatchdogs({ now: at(46 * 60_000) });
+    expect(told(NO_REPORT_LINE)).toBe(0);
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(watchDoc()).toBeUndefined();
+    expect(outcomes()).toEqual(['still_on', 'still_on', 'still_on', 'still_on', 'reported']);
+  });
+
+  it('a room that cannot be read is looked at again; past 4 h the owner is told', async () => {
+    await armCallResultWatchdog(request(), callId, T0);
+    room.state = 'throws';
+    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) })).toMatchObject({ again: 1 }); // prettier-ignore
+    expect(stored()).toBeUndefined();
+    vi.stubEnv('LIVEKIT_API_SECRET', ''); // no keys here: unknown too
+    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 6 * 60_000) })).toMatchObject({ again: 1 }); // prettier-ignore
+    room.state = 'open'; // a room stuck open past any call
+    store.docs.set(`bogle_users/${OWNER}/call_result_watchdogs/${callId}`, { ...watchDoc(), dueAt: at(4 * 3600_000).toISOString() }); // prettier-ignore
+    await sweepCallResultWatchdogs({ now: at(4 * 3600_000 + 1000) });
+    expect(stored()).toMatchObject({ status: 'unconfirmed' });
+    expect(told(NO_REPORT_LINE)).toBe(1);
+  });
+
+  it('the watch carries an expireAt for the TTL and its arm time; warns carry a hash, never the id', async () => {
+    await armCallResultWatchdog(request(), callId, T0);
+    expect(watchDoc()).toMatchObject({ armedAt: T0.toISOString(), expireAt: at(2 * 86_400_000) });
+    const failing = { ...store.db, collection: () => { throw new Error('UNAVAILABLE'); } }; // prettier-ignore
+    const spy = vi.spyOn(store.db, 'collection').mockImplementation(failing.collection);
+    await armCallResultWatchdog(request(), `${callId}_b`, T0);
+    spy.mockRestore();
+    expect(warned).toHaveLength(1);
+    expect(JSON.stringify(warned)).not.toContain(callId);
+    expect(warned[0]).toMatchObject({ callHash: expect.stringMatching(/^[0-9a-f]{12}$/) });
   });
 });
 
@@ -230,14 +315,14 @@ describe('CALL_RESULT_WATCHDOG and a crisis lead', () => {
 
 describe('CALL_RESULT_WATCHDOG off', () => {
   beforeEach(() => {
-    delete process.env.CALL_RESULT_WATCHDOG;
+    vi.stubEnv('CALL_RESULT_WATCHDOG', '');
   });
 
   it('arms, sweeps and guards nothing: a call record is written as before', async () => {
     await armCallResultWatchdog(request(), callId, T0);
     expect(watchDoc()).toBeUndefined();
     store.docs.set(`bogle_users/${OWNER}/call_result_watchdogs/${callId}`, { status: 'pending', dueAt: T0.toISOString(), request: request() }); // prettier-ignore
-    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) })).toEqual({ due: 0, settled: 0, failed: 0 }); // prettier-ignore
+    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) })).toEqual({ due: 0, settled: 0, again: 0, failed: 0 }); // prettier-ignore
     expect(watchDoc()).toMatchObject({ status: 'pending' });
     await captureCallResult(callId, answered(), request());
     expect(stored()).toMatchObject({ status: 'completed' });

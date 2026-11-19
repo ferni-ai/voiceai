@@ -995,7 +995,7 @@ export interface CallResultEntity {
   callId: string;
   contactName: string;
   purpose: string;
-  outcome: 'answered' | 'voicemail' | 'busy' | 'no_answer' | 'failed';
+  outcome: 'answered' | 'voicemail' | 'busy' | 'no_answer' | 'failed' | 'unconfirmed';
   summary?: string;
   nextSteps?: string;
   duration?: number;

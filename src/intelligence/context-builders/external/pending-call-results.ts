@@ -36,7 +36,8 @@ const log = createLogger({ module: 'PendingBackgroundResults' });
 interface PendingCallResult {
   callId: string;
   contactName: string;
-  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+  /** 'unconfirmed': the call never reported, so how it went is unknown (call-result-watchdog.ts). */
+  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | 'unconfirmed';
   outcome: string;
   objectiveAchieved: boolean;
   callbackRequired: boolean;
@@ -45,8 +46,6 @@ interface PendingCallResult {
   delivered?: boolean;
   /** status 'voicemail' only: Ferni really spoke a message (voicemail-outcome.ts). */
   voicemailLeft?: boolean;
-  /** The call never reported, so how it went is unknown (call-result-watchdog.ts). */
-  noReport?: boolean;
 }
 
 // ============================================================================
@@ -102,7 +101,6 @@ export async function getPendingCallResults(userId: string): Promise<PendingCall
         callbackRequired: data.outcome?.callbackRequired ?? false,
         actionItems: data.outcome?.actionItems,
         voicemailLeft: data.outcome?.voicemailLeft === true,
-        noReport: data.outcome?.noReport === true,
         capturedAt: data.capturedAt,
         delivered: data.delivered,
       });
@@ -191,7 +189,7 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
 
     if (result.objectiveAchieved) {
       body.push(`✅ **SUCCESS**: ${result.outcome}`);
-    } else if (result.noReport) {
+    } else if (result.status === 'unconfirmed') {
       body.push(`❓ **No report came back**: ${result.outcome}`);
     } else if (result.status === 'voicemail') {
       const { label } = voicemailWords(result.voicemailLeft, result.contactName);
@@ -222,10 +220,8 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   lines.push(
     "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
   );
-  if (results.some((r) => r.noReport)) {
-    lines.push(
-      "- If no report came back: say you couldn't confirm how it went, never that it failed."
-    );
+  if (results.some((r) => r.status === 'unconfirmed')) {
+    lines.push("- If no report came back: say only that you couldn't confirm how it went.");
   }
   lines.push('');
 

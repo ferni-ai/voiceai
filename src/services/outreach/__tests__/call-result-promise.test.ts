@@ -1,22 +1,24 @@
 /**
  * What callOnBehalf promises when a call is placed says what the delivery path
  * will actually do (CALL_RESULT_WATCHDOG), read from the delivery path's own
- * switches; off, the old promise word for word.
+ * switches; off, none.
  */
 import { describe, expect, it } from 'vitest';
 import { callResultPromise } from '../call-result-promise.js';
 
-const AS_BEFORE = "I'll let you know how it goes once the call is complete.";
 const TELL = "I'll let you know how it goes.";
 const APP = "You'll see how it went in the app.";
 
 describe('callResultPromise', () => {
   it.each([
-    [{}, AS_BEFORE],
-    [{ CALL_RESULT_LIVE_REPORT: 'on', CALL_RESULT_TEXT: 'on' }, AS_BEFORE],
-  ])('flag off: the old promise whatever else is on (%o)', (env, want) => {
-    expect(callResultPromise(env)).toBe(want);
-  });
+    [{}, undefined],
+    [{ CALL_RESULT_LIVE_REPORT: 'on', CALL_RESULT_TEXT: 'on' }, undefined],
+  ])(
+    'flag off: no promise (callOnBehalf keeps its own line), whatever else is on (%o)',
+    (env, want) => {
+      expect(callResultPromise(env)).toBe(want);
+    }
+  );
 
   it.each([
     [{ CALL_RESULT_LIVE_REPORT: 'on' }, TELL],

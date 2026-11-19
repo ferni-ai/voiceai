@@ -86,10 +86,7 @@ async function storeCallResult(result: StoredCallResult): Promise<boolean> {
           callId: result.callId,
           contactName: result.request.contactName || result.request.contactQuery,
           purpose: result.request.purpose,
-          outcome:
-            result.outcome.status === 'completed'
-              ? 'answered'
-              : (result.outcome.status as 'voicemail' | 'busy' | 'no_answer' | 'failed'),
+          outcome: result.outcome.status === 'completed' ? 'answered' : result.outcome.status, // 'unconfirmed' stays: never indexed as failed
           summary: result.outcome.transcriptSummary || result.outcome.outcome,
           nextSteps: result.outcome.actionItems?.join('; '),
           capturedAt: result.capturedAt,
