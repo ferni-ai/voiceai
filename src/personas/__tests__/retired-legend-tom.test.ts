@@ -28,6 +28,7 @@ import {
 } from '../persona-ids.js';
 import { getPersonaAsync, initializeFromBundles, listPersonas } from '../index.js';
 import { AgentRegistry } from '../registry/unified-registry.js';
+import { listedNow } from '../../config/seth-teammate.js';
 
 const TOM_ID = 'peter-lynch';
 const TOM_NAMES = ['tom', 'tom brannigan', 'tom-brannigan', 'brannigan', 'stock-picker'];
@@ -163,7 +164,8 @@ describe('no call starts on a stand-in named after the id', () => {
     );
     const lost = loadable
       .filter(([, got]) => got !== undefined)
-      .filter(([name, got]) => livePersonaId(name) !== got)
+      // Seth starts on Ferni while his gate is closed, on purpose (seth-teammate.test.ts)
+      .filter(([name, got]) => livePersonaId(name) !== got && listedNow(name))
       .map(([name, got]) => `${name}: loads ${got}, live ${livePersonaId(name)}`);
     expect(loadable.filter(([, got]) => got !== undefined).length).toBeGreaterThan(30);
     expect(lost).toEqual([]);
