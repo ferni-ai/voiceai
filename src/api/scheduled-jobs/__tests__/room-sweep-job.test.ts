@@ -4,6 +4,8 @@
  * grace clocks in Firestore, so a pass on a fresh instance finishes what another one started.
  */
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { ParticipantInfo_Kind as Kind, ParticipantInfo_State as State } from '@livekit/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -151,5 +153,32 @@ describe('POST /api/jobs/room-sweep', () => {
     fake.firestoreUp = false;
     expect((await post()).status).toBe(500);
     expect(fake.deleteRoom).not.toHaveBeenCalled();
+  });
+
+  it('the scheduler config lists it every minute, in the CLI source and the infra yaml', () => {
+    const root = join(__dirname, '../../../..');
+    const entry = (file: string, start: RegExp): string => {
+      const text = readFileSync(join(root, file), 'utf8');
+      const at = text.search(start);
+      expect(at, `${file} lists room-sweep`).toBeGreaterThanOrEqual(0);
+      return text.slice(at, at + 700);
+    };
+    const cli =
+      entry('apps/cli/src/commands/ops/delivery-jobs.ts', /name: 'room-sweep',/).split(
+        /\n\s*\},/
+      )[0] ?? '';
+    expect(cli).toContain("schedule: '* * * * *',");
+    expect(cli).toContain("timezone: 'Etc/UTC',");
+    expect(cli).toContain('uri: `${uiServerUrl}/api/jobs/room-sweep`,');
+    expect(cli).toContain("httpMethod: 'POST',");
+    expect(cli).toContain('retryCount: 0,');
+    const yaml = entry('infra/cloud-scheduler-delivery.yaml', /- name: room-sweep\n/);
+    const job = yaml.split(/\n {2}- name: /)[0] ?? '';
+    expect(job).toContain('schedule: "* * * * *"');
+    expect(job).toContain('timeZone: Etc/UTC');
+    expect(job).toContain('uri: https://app.ferni.ai/api/jobs/room-sweep');
+    expect(job).toContain('httpMethod: POST');
+    expect(job).toContain('audience: https://app.ferni.ai/api/jobs/room-sweep');
+    expect(job).toMatch(/retryConfig:\s+retryCount: 0/);
   });
 });
