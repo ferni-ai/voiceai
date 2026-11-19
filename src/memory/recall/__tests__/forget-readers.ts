@@ -187,6 +187,24 @@ export const FORGET_READERS: readonly ForgetReader[] = [
   },
 
   // ── Checked only with FORGET_EVERY_READER=on (off in prod) ─────────────────
+  // Every open-loop reader (both /open-loops routes, Story So Far, the shared-history
+  // aggregator, the semantic context on the web and in the prompt) reads the store's getters.
+  {
+    id: 'web.openLoops',
+    file: 'src/services/superhuman/semantic-intelligence/open-loops.ts',
+    site: 'await rememberedLoops(userId, await loadOpenLoops(userId))',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/services/superhuman/semantic-intelligence/__tests__/open-loops-forget.test.ts',
+  },
+  {
+    id: 'prompt.openLoopsContext',
+    file: 'src/services/superhuman/semantic-intelligence/open-loops.ts',
+    site: 'due ?? (await getLoopsReadyForFollowUp(userId))',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: 'src/services/superhuman/semantic-intelligence/__tests__/open-loops-forget.test.ts',
+  },
   {
     id: 'prompt.profile',
     file: 'src/agents/multi-agent/setup-profile.ts',
@@ -194,6 +212,16 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     reaches: 'prompt',
     check: 'flag',
     probe: EVERY_READER,
+  },
+  // Every insight reader (the sanctuary and semantic-intelligence routes, the session's prompt,
+  // the semantic context) reads getInsightsToSurface, which filters before it scores.
+  {
+    id: 'web.proactiveInsights',
+    file: 'src/services/superhuman/semantic-intelligence/insight-broker.ts',
+    site: 'await rememberedInsights(userId, await loadInsights(userId))',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/services/superhuman/semantic-intelligence/__tests__/insight-broker-forget.test.ts',
   },
   {
     id: 'greeting.multiAgent',

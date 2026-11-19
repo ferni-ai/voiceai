@@ -108,8 +108,6 @@ describe('Dashboard Utilities', () => {
         {
           label: 'Conversations Today',
           value: stats.conversations.today,
-          change: stats.conversations.trend === 'up' ? '+12%' : undefined,
-          trend: stats.conversations.trend,
           icon: 'ICON_USER',
         },
         {
@@ -136,12 +134,11 @@ describe('Dashboard Utilities', () => {
       });
     });
 
-    it('should include trend for conversations when up', () => {
+    it('draws no made-up delta for conversations (#4069)', () => {
       const stats = buildQuickStats(mockAggregatedStats);
       const conversationsStat = stats.find((s) => s.label === 'Conversations Today');
 
-      expect(conversationsStat?.change).toBe('+12%');
-      expect(conversationsStat?.trend).toBe('up');
+      expect(conversationsStat).not.toHaveProperty('change');
     });
 
     it('should format evalops pass rate as percentage', () => {
@@ -165,7 +162,7 @@ describe('Dashboard Utilities', () => {
       const stats = buildQuickStats(neutralStats);
       const conversationsStat = stats.find((s) => s.label === 'Conversations Today');
 
-      expect(conversationsStat?.change).toBeUndefined();
+      expect(conversationsStat).not.toHaveProperty('change');
     });
   });
 
@@ -238,7 +235,6 @@ describe('Dashboard Section Rendering', () => {
         <div class="stat-card">
           <div class="stat-value">127</div>
           <div class="stat-label">Conversations Today</div>
-          <div class="stat-change stat-change--up">+12%</div>
         </div>
       </div>
       <div class="admin-card dashboard-actions">
@@ -338,12 +334,10 @@ describe('Dashboard Section Rendering', () => {
       expect(statValues.some((el) => hasText(el, '127'))).toBe(true);
     });
 
-    it('should display trend indicator for trending stat', () => {
+    it('draws no delta badge (#4069)', () => {
       const fragment = parseHTML(mockDashboardHTML);
-      const trendIndicator = querySelector(fragment, '.stat-change--up');
 
-      expect(trendIndicator).not.toBeNull();
-      expect(hasText(trendIndicator, '+12%')).toBe(true);
+      expect(querySelector(fragment, '.stat-change')).toBeNull();
     });
   });
 

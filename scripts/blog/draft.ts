@@ -42,6 +42,11 @@ export function reviseEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.BLOG_REVISE === 'on';
 }
 
+/** BLOG_REPEAT_GATE=on adds the repetition rule to the brand gate; anything else leaves it off. */
+export function repeatGateEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.BLOG_REPEAT_GATE === 'on';
+}
+
 export interface DraftOptions {
   type: string;
   since?: string;
@@ -209,7 +214,12 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
     seriesPart: existing.filter((p) => p.series === type.series).length + 1,
     label: letter ? characterLabel(persona) : undefined,
   };
-  const gate = { terms, sourceText: renderPack(sources), words: type.words };
+  const gate = {
+    terms,
+    sourceText: renderPack(sources),
+    words: type.words,
+    repeats: repeatGateEnabled(),
+  };
   const render = (d: DraftText): string => renderPost(type, d, meta);
   const model = deps.model;
   /**
