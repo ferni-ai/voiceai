@@ -5,10 +5,20 @@
  * The wait never hangs forever if LiveKit ends the job without a clean room
  * 'disconnected' event: the room can stay isConnected after the user leaves or
  * the room is deleted, or the job can get a shutdown request while we wait.
+ *
+ * SINGLE_AGENT_IDLE_WAIT (off): the multi-agent rule instead of the fixed 10-minute wait,
+ * which settled mid-conversation (#4157): the call ends after IDLE_MS with no sign of life,
+ * or at MAX_CALL_MS whatever happens (session-end-watch.ts). Off: exactly as before.
  */
 import type { JobContext } from '@livekit/agents';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
 import { closeAgentSession } from '../shared/close-agent-session.js';
+import {
+  IDLE_MS,
+  MAX_CALL_MS,
+  watchCallActivity,
+} from '../voice-agent/phases/session-end-watch.js';
 
 export interface RunUntilCallEndsInput {
   ctx: Pick<JobContext, 'room' | 'shutdown' | 'addShutdownCallback'>;
@@ -18,19 +28,26 @@ export interface RunUntilCallEndsInput {
   onDisconnect: (reason: string) => void;
   pollMs?: number;
   emptyRoomGraceMs?: number;
+  /** The cap: 10 minutes, or MAX_CALL_MS with SINGLE_AGENT_IDLE_WAIT on. */
   maxWaitMs?: number;
+  idleMs?: number;
+  env?: Env;
 }
 
 export async function runUntilCallEnds(input: RunUntilCallEndsInput): Promise<string> {
-  const { ctx, onDisconnect, pollMs = 1_000, emptyRoomGraceMs = 5_000, maxWaitMs = 10 * 60_000 } = input;
+  const { ctx, onDisconnect, pollMs = 1_000, emptyRoomGraceMs = 5_000, idleMs = IDLE_MS } = input;
+  const idleWait = flagOn('SINGLE_AGENT_IDLE_WAIT', input.env);
+  const maxWaitMs = input.maxWaitMs ?? (idleWait ? MAX_CALL_MS : 10 * 60_000);
   const reason = await new Promise<string>((resolve) => {
     let settled = false;
     let emptySinceMs: number | null = null;
+    const activity = idleWait ? watchCallActivity(ctx.room) : null;
     const timers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = [];
 
     const finish = (reason: string): void => {
       if (settled) return;
       settled = true;
+      activity?.stop();
       for (const t of timers) clearInterval(t as ReturnType<typeof setInterval>);
       for (const t of timers) clearTimeout(t as ReturnType<typeof setTimeout>);
       process.stderr.write(`[voice-agent-entry] 🔌 Ending session wait (${reason})\n`);
@@ -92,14 +109,18 @@ export async function runUntilCallEnds(input: RunUntilCallEndsInput): Promise<st
       } else {
         emptySinceMs = null;
       }
+      if (!settled && activity && activity.quietMs() >= idleMs) {
+        onDisconnect('idle');
+        finish('idle');
+      }
     }, pollMs);
     timers.push(poll);
 
-    // Absolute safety net (shorter than 30m — leaked activeCalls hurt ops)
+    // Absolute safety net (shorter than 30m — leaked activeCalls hurt ops); MAX_CALL_MS on the idle clock
     timers.push(setTimeout(() => {
       if (!settled) {
-        onDisconnect('disconnect_wait_timeout');
-        finish('timeout');
+        onDisconnect(idleWait ? 'max_duration' : 'disconnect_wait_timeout');
+        finish(idleWait ? 'max_duration' : 'timeout');
       }
     }, maxWaitMs));
   });
