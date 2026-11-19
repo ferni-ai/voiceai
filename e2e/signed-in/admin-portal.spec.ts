@@ -437,7 +437,17 @@ async function closeModals(walk: Walk): Promise<'confirm' | null> {
 
 /** Back on the section, freshly loaded, after a click navigated or reloaded the page. */
 async function reopen(walk: Walk, id: string): Promise<void> {
-  await walk.page.goto(`/admin?section=${id}`);
+  // The click's own reload may still be landing and cut this goto short: let it land, go again
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await walk.page.goto(`/admin?section=${id}`);
+      break;
+    } catch (e) {
+      const interrupted = e instanceof Error && /interrupted by another navigation/.test(e.message);
+      if (!interrupted || attempt >= 2) throw e;
+      await walk.page.waitForLoadState('load');
+    }
+  }
   await expect(walk.page.locator('#adminContent .admin-loading')).toHaveCount(0, {
     timeout: 15_000,
   });
@@ -499,10 +509,11 @@ async function clickControl(walk: Walk, id: string, root: string, c: Control): P
       if (e.kind === 'request')
         walk.findings.add(`wrote after its confirm was cancelled: ${where}: ${e.method} ${e.path}`);
   }
+  // A navigation here still has the click's failures judged, on the reasons seen before it
   const last = await domEffectsUnlessGone(walk);
-  if (!last) return void (await reopen(walk, id));
-  reasons = [...new Set([...reasons, ...last.reasons])];
+  reasons = [...new Set([...reasons, ...(last?.reasons ?? [])])];
   checkFailures(walk, from, reasons, where);
+  if (!last) await reopen(walk, id);
 }
 
 /** Click every control in `root` (twice over, so a tab's panel is walked once it shows). */
