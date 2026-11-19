@@ -138,6 +138,14 @@ describe('finishedReply with STREAM_ERROR_REPAIR', () => {
     expect(await heard(tail(call, failing([PARTIAL], error)))).toBe(error);
   });
 
+  it('a crisis-guided turn (its own crisis read found risk), then a stream error with the flag on: the same error, no line', async () => {
+    const call = newCall();
+    await trackCrisisRead(call, 'an invented caller line', Promise.resolve({ risk: 'crisis' }));
+    const error = streamError();
+    expect(await heard(tail(call, failing([PARTIAL], error)))).toBe(error);
+    expect(withoutStreamRepair(call, `${PARTIAL} ${LINE}`)).toBe(`${PARTIAL} ${LINE}`);
+  });
+
   it('no call id (no crisis read possible): the error is rethrown', async () => {
     const error = streamError();
     expect(await heard(tail(undefined, failing([PARTIAL], error)))).toBe(error);
