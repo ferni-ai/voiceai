@@ -34,24 +34,14 @@ export interface GuestConsent {
 export const isWordingVersion = (v: unknown): v is number =>
   typeof v === 'number' && Number.isSafeInteger(v) && v >= 1;
 
-/** True only for a yes that stands (no revoke) to the current wording or a newer one. */
-export function consentStands(
-  consent: GuestConsent | null,
-  currentVersion: number = GUEST_CONSENT_WORDING_VERSION
-): boolean {
-  return (
-    consent !== null && consent.revokedAt === undefined && consent.wordingVersion >= currentVersion
-  );
-}
-
 const withChange = (history: readonly string[], change: string): string[] =>
   [...history, change].slice(-HISTORY_MAX);
 
 /**
  * A yes made at `at` (when the guest said it): clears any revoke and takes the
  * new wording version; the history is kept. Null (nothing to write) when a
- * revoke on record is later than this yes, or its time can't be read: a slow or
- * retried yes never undoes a stop that came after it.
+ * revoke on record is as late as this yes or later, or its time can't be read: a
+ * slow or retried yes never undoes a stop that came after it, and a tie is a stop.
  */
 export function afterYes(
   prev: GuestConsent | null,
@@ -59,7 +49,7 @@ export function afterYes(
   at: string,
   keyVersion: string | null
 ): GuestConsent | null {
-  if (prev?.revokedAt !== undefined && !(Date.parse(prev.revokedAt) <= Date.parse(at))) {
+  if (prev?.revokedAt !== undefined && !(Date.parse(prev.revokedAt) < Date.parse(at))) {
     return null;
   }
   return {

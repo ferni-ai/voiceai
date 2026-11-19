@@ -160,6 +160,28 @@ describe('Fast Capture', () => {
       expect(places).toEqual([]);
     });
 
+    it('saves the listed abbreviations "NYC" and "Washington DC" as places (#4034)', () => {
+      const places = detectEntityMentions('I moved to NYC, then visiting Washington DC.')
+        .filter((m) => m.type === 'place')
+        .map((m) => m.name);
+      expect(places).toEqual(expect.arrayContaining(['NYC', 'Washington DC']));
+    });
+
+    it('takes no "LA" out of "flew to LAX" (#4034)', () => {
+      const places = detectEntityMentions('I flew to LAX last night.').filter(
+        (m) => m.type === 'place'
+      );
+      expect(places).toEqual([]);
+    });
+
+    it.each(['I work at US Bank.', 'We went to US Open last year.'])(
+      'saves no place starting with "US" from "%s"',
+      (said) => {
+        const places = detectEntityMentions(said).filter((m) => m.type === 'place');
+        expect(places).toEqual([]);
+      }
+    );
+
     it('still saves "Denver" and "New York" as places', () => {
       const places = detectEntityMentions('I moved to Denver, then visiting New York.')
         .filter((m) => m.type === 'place')
@@ -179,6 +201,13 @@ describe('Fast Capture', () => {
         .filter((m) => m.type === 'organization')
         .map((m) => m.name);
       expect(orgs).toEqual(['Acme Labs']);
+    });
+
+    it('still saves "IBM" from "I work at IBM."', () => {
+      const orgs = detectEntityMentions('I work at IBM.')
+        .filter((m) => m.type === 'organization')
+        .map((m) => m.name);
+      expect(orgs).toEqual(['IBM']);
     });
 
     it('quotes the words around "son" itself, not around ja-SON', () => {

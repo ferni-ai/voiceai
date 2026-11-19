@@ -18,7 +18,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { nameAsSaid, properNameAsSaid } from '../../memory/index.js';
+import { nameAsSaid, placeAfter, properNameAsSaid } from '../../memory/index.js';
 import { findCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 // ============================================================================
@@ -325,7 +325,7 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   // cue words spell both cases and the name must be capitalised as said (#4028).
   const placeOrCompany: Array<[RegExp, 'place' | 'company']> = [
     [
-      /\b(?:[Ll]ive|[Ll]iving|[Mm]oved|[Mm]oving|[Ff]rom|[Ii]n)\s+(?:to\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
+      placeAfter(String.raw`(?:[Ll]ive|[Ll]iving|[Mm]oved|[Mm]oving|[Ff]rom|[Ii]n)(?:\s+to)?`),
       'place',
     ],
     [/\b[Ww]ork(?:ed|ing)?\s+(?:at|for)\s+([A-Z][a-zA-Z]+)/g, 'company'],

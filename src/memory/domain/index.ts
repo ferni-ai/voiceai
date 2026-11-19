@@ -7,7 +7,7 @@
  */
 
 export { couldBePerson, nameAsSaid } from './person-name.js';
-export { properNameAsSaid } from './place-name.js';
+export { placeAfter, properNameAsSaid } from './place-name.js';
 export {
   groupOf,
   keepLetters,

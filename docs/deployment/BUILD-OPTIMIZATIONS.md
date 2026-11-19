@@ -168,7 +168,6 @@ Both `Dockerfile.agent` and `Dockerfile.ui` now support pnpm:
 
 2. **Further split index.js** (178KB → ~100KB + lazy chunks)
    - Move heavy services to dynamic imports
-   - Use `lazyService()` from `src/utils/lazy-service.ts`
 
 3. **Tree-shake unused code**
    - Run `pnpm bundle:analyze` to visualize
@@ -178,28 +177,6 @@ Both `Dockerfile.agent` and `Dockerfile.ui` now support pnpm:
 ```bash
 pnpm bundle:analyze
 ```
-
----
-
-## Backend Lazy Loading
-
-Heavy services are now lazy-loaded using `src/utils/lazy-service.ts`:
-
-```typescript
-import { lazyServices } from '../utils/lazy-service.js';
-
-// Only loads when called
-const landingService = await lazyServices.landingIntelligence();
-landingService.optimizeLandingPage(...)
-```
-
-**Lazy-loaded services:**
-- `landing-intelligence` - Marketing page optimization
-- `scientific-knowledge` - Research knowledge base
-- `predictive-insights` - ML predictions
-- `wisdom-synthesis` - Wisdom aggregation
-- `behavioral-economics` - Nudge patterns
-- `somatic-intelligence` - Body awareness
 
 ---
 

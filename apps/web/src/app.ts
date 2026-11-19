@@ -932,8 +932,8 @@ class VoiceAIApp {
       await initAdminDashboard();
     } else {
       // New unified Admin Portal
-      const { initAdminPortal } = await import('./admin/index.js');
-      await initAdminPortal();
+      const { openAdminPortal } = await import('./admin/index.js');
+      await openAdminPortal();
     }
 
     this.isInitialized = true;

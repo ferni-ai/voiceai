@@ -135,6 +135,20 @@ export async function judgePost(
   return { status: 'error', model, failures: ['the judge gave no readable verdict'] };
 }
 
+/**
+ * The judge's reasons for each dimension under the bar, for the drafter to
+ * revise against: "craft 3 (needs 4): <reason>". Empty when it passed or gave
+ * no verdict.
+ */
+export function editorNotes(result: JudgeResult): string[] {
+  const { verdict } = result;
+  if (!verdict) return [];
+  return result.failures.map((failure) => {
+    const dimension = failure.split(' ')[0] as Dimension;
+    return `${failure}: ${cap(stripMarkup(verdict.scores[dimension].reason), 600)}`;
+  });
+}
+
 /** Claude through the repo's Anthropic client (ANTHROPIC_API_KEY, optional ANTHROPIC_WORKSPACE_ID). */
 export function claudeJudge(env: NodeJS.ProcessEnv = process.env): JudgeModel {
   const name = env.BLOG_JUDGE_MODEL || 'claude-opus-5-5';

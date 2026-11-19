@@ -33,6 +33,8 @@ setupAllMocks({ llmClient: mockLLM });
 
 // Now import the modules under test
 import { getCelebrationEvents, injectTurnContext } from '../../processors/turn-processor/index.js';
+import { buildSafetyInjections } from '../../processors/injection-builders/index.js';
+import { SAFETY_NOTE } from '../../processors/turn-processor/safety-note.js';
 import type { TurnProcessorResult } from '../../processors/types.js';
 import { perfBudget } from '../../../tests/perf-budget.js';
 
@@ -283,7 +285,8 @@ describe('Turn Processing Integration Tests', () => {
       expect(result.emotional.trajectory).toBe('stable');
     });
 
-    it('should handle distressed emotional state', () => {
+    it("a distressed turn's safety guidance goes in first, as its own marked note", () => {
+      const chatCtx = { addMessage: vi.fn() };
       const result = createBaseTurnResult({
         emotional: {
           primary: 'distressed',
@@ -291,11 +294,22 @@ describe('Turn Processing Integration Tests', () => {
           distressLevel: 0.9,
           trajectory: 'volatile',
         },
+        context: {
+          injections: [
+            { category: 'humanizing', content: 'Be warm and friendly', priority: 8 },
+            { category: 'safety', content: 'Stay with them; ask if they are safe', priority: 99 },
+          ],
+          elapsedMs: 10,
+        },
       });
+      expect(chatCtx.addMessage).not.toHaveBeenCalled();
 
-      expect(result.emotional.primary).toBe('distressed');
-      expect(result.emotional.distressLevel).toBe(0.9);
-      expect(result.emotional.trajectory).toBe('volatile');
+      injectTurnContext(chatCtx as never, result);
+
+      expect(chatCtx.addMessage.mock.calls.map(([m]) => [m.content, m.extra])).toEqual([
+        ['Stay with them; ask if they are safe', { [SAFETY_NOTE]: true }],
+        ['Be warm and friendly', undefined],
+      ]);
     });
 
     it('should include trajectory in emotional state', () => {
@@ -482,14 +496,23 @@ describe('Turn Processing Integration Tests', () => {
       expect(questionAnalysis.isQuestion).toBe(true);
     });
 
-    it('should detect crisis indicators', () => {
-      const crisisAnalysis = createMockAnalysis({
-        hasCrisisIndicators: true,
-        emotion: createMockEmotionAnalysis('distressed', 0.95, 0.9),
-      });
+    it('should detect crisis indicators in what the caller says (the real safety builder)', async () => {
+      const turn = (userText: string) =>
+        ({
+          userText,
+          services: { userId: 'test-user-456', sessionId: 'test-session-123' },
+          userData: { relationshipStage: 'friend' },
+          persona: { id: 'ferni' },
+        }) as never;
 
-      expect(crisisAnalysis.hasCrisisIndicators).toBe(true);
-      expect(crisisAnalysis.emotion.distressLevel).toBeGreaterThan(0.8);
+      expect(await buildSafetyInjections(turn('What a lovely morning for a walk.'))).toEqual([]);
+      const crisis = await buildSafetyInjections(
+        turn("I want to kill myself. I've got the pills right here.")
+      );
+      expect(crisis.map((i) => [i.category, i.priority])).toEqual([
+        ['safety', 99],
+        ['crisis_response', 98],
+      ]);
     });
   });
 

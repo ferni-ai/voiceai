@@ -109,7 +109,16 @@ import {
 // Dev Panel Modules (extracted for maintainability)
 import { cancelAllAvatarAnimations } from './dev-panel/handlers/index.js';
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
+import {
+  ADMIN_UTILITY_LINKS,
+  MODEL_AND_VOICE_DASHBOARD_LINKS,
+  CORE_DASHBOARD_LINKS,
+  FEATURE_TOOL_LINKS,
+  INFRASTRUCTURE_DASHBOARD_LINKS,
+  renderDashboardLinks,
+} from './dev-panel/dashboard-links.js';
 import { ICONS } from './dev-panel/icons.js';
+import { isUnavailable, unavailableReason, type Unavailable } from '../utils/unavailable.js';
 import { devPanelMayEnable } from './dev-panel-gate.js';
 import { toast } from './whisper.ui.js';
 
@@ -624,17 +633,6 @@ function createPanel(): HTMLElement {
             <button aria-label="Sleepy" class="dev-soul-btn" data-soul="sleepy" title="Late night yawn">
               ${ICONS.sleepy} Sleepy
             </button>
-          </div>
-        </div>
-        
-        <!-- Ideas for Future -->
-        <div class="dev-subsection">
-          <span class="dev-label">${ICONS.lightbulb} Ideas (Coming Soon)</span>
-          <div class="dev-soul-ideas">
-            <span>Connection Spark</span>
-            <span>Heartbeat Glow</span>
-            <span>Confetti Burst</span>
-            <span>Attentive Lean</span>
           </div>
         </div>
       </section>
@@ -2216,75 +2214,28 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Core Dashboards</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/analytics-dashboard.html" target="_blank" title="Analytics Dashboard">
-              ${ICONS.trendingUp} Analytics
-            </a>
-            <a class="dev-dashboard-link" href="/metrics-dashboard.html" target="_blank" title="Metrics Dashboard">
-              ${ICONS.barChart} Metrics
-            </a>
-            <a class="dev-dashboard-link" href="/ux-dashboard.html" target="_blank" title="UX Dashboard">
-              ${ICONS.colorPalette} UX
-            </a>
-            <a class="dev-dashboard-link" href="/error-dashboard.html" target="_blank" title="Error Dashboard">
-              ${ICONS.alertTriangle} Errors
-            </a>
+            ${renderDashboardLinks(CORE_DASHBOARD_LINKS)}
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">AI & Voice</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/llm-dashboard.html" target="_blank" title="LLM Dashboard">
-              ${ICONS.robot} LLM
-            </a>
-            <a class="dev-dashboard-link" href="/voice-presence-dashboard.html" target="_blank" title="Voice Presence Dashboard">
-              ${ICONS.micFilled} Voice
-            </a>
-            <a class="dev-dashboard-link" href="/persona-dashboard.html" target="_blank" title="Persona Dashboard">
-              ${ICONS.drama} Personas
-            </a>
-            <a class="dev-dashboard-link" href="/cognitive-dashboard.html" target="_blank" title="Cognitive Dashboard">
-              ${ICONS.brain} Cognitive
-            </a>
+            ${renderDashboardLinks(MODEL_AND_VOICE_DASHBOARD_LINKS)}
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Infrastructure</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/connection-dashboard.html" target="_blank" title="Connection Dashboard">
-              ${ICONS.signalStrength} Connection
-            </a>
-            <a class="dev-dashboard-link" href="/memory-dashboard.html" target="_blank" title="Memory Dashboard">
-              ${ICONS.save} Memory
-            </a>
-            <a class="dev-dashboard-link" href="/cost-dashboard.html" target="_blank" title="Cost Dashboard">
-              ${ICONS.coins} Costs
-            </a>
-            <a class="dev-dashboard-link" href="/dora-dashboard.html" target="_blank" title="DORA Metrics">
-              ${ICONS.rocket} DORA
-            </a>
+            ${renderDashboardLinks(INFRASTRUCTURE_DASHBOARD_LINKS)}
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Features & Tools</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/handoff-dashboard.html" target="_blank" title="Handoff Dashboard">
-              ${ICONS.handshake} Handoffs
-            </a>
-            <a class="dev-dashboard-link" href="/outreach-dashboard.html" target="_blank" title="Outreach Dashboard">
-              ${ICONS.upload} Outreach
-            </a>
-            <a class="dev-dashboard-link" href="/tools-dashboard.html" target="_blank" title="Tools Dashboard">
-              ${ICONS.wrench} Tools
-            </a>
-            <a class="dev-dashboard-link" href="/experiments-dashboard.html" target="_blank" title="Experiments">
-              ${ICONS.flask} Experiments
-            </a>
-            <a class="dev-dashboard-link" href="/feature-flags.html" target="_blank" title="Feature Flags">
-              ${ICONS.flag} Feature Flags
-            </a>
+            ${renderDashboardLinks(FEATURE_TOOL_LINKS)}
             <button aria-label="EvalOps" class="dev-dashboard-link" data-action="open-evalops" title="EvalOps Dashboard (Cmd+Shift+E)">
               ${ICONS.target} EvalOps
             </button>
@@ -2294,15 +2245,7 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Admin & Utilities</span>
           <div class="dev-dashboard-links">
-            <a class="dev-dashboard-link" href="/admin.html" target="_blank" title="Admin Panel">
-              ${ICONS.cog} Admin
-            </a>
-            <a class="dev-dashboard-link" href="/observability-hub.html" target="_blank" title="Observability Hub">
-              ${ICONS.eye} Observability
-            </a>
-            <a class="dev-dashboard-link" href="/animation-playground.html" target="_blank" title="Animation Playground">
-              ${ICONS.movie} Animations
-            </a>
+            ${renderDashboardLinks(ADMIN_UTILITY_LINKS)}
             <button aria-label="BTH Analytics" class="dev-dashboard-link" data-action="open-bth-analytics" title="Better Than Human Analytics">
               ${ICONS.heart} BTH Analytics
             </button>
@@ -4376,20 +4319,10 @@ interface MusicStatus {
   };
 }
 
-async function fetchMusicStatus(): Promise<MusicStatus | null> {
-  try {
-    // Use the API endpoint to get music status
-    const response = await apiGet<MusicStatus>('/api/music/status');
-
-    if (response.ok && response.data) {
-      return response.data;
-    }
-
-    // If API not available, return null (we'll show "Not Connected")
-    return null;
-  } catch {
-    return null;
-  }
+/** The music status, or why it could not be read (apiGet reports a network error as status 0). */
+async function fetchMusicStatus(): Promise<MusicStatus | Unavailable> {
+  const response = await apiGet<MusicStatus>('/api/music/status');
+  return response.ok && response.data ? response.data : { unavailable: unavailableReason(response.status) };
 }
 
 async function updateMusicStatusDisplay(): Promise<void> {
@@ -4398,12 +4331,12 @@ async function updateMusicStatusDisplay(): Promise<void> {
 
   const status = await fetchMusicStatus();
 
-  if (!status) {
+  if (isUnavailable(status)) {
     statusContainer.innerHTML = `
       <div class="dev-music-status__grid">
         <div class="dev-music-status__item dev-music-status__item--warning">
           <span class="dev-music-status__label">Status</span>
-          <span class="dev-music-status__value">Not Connected</span>
+          <span class="dev-music-status__value">Status API ${status.unavailable}</span>
         </div>
         <div class="dev-music-status__item">
           <span class="dev-music-status__label">Note</span>
@@ -4432,7 +4365,7 @@ async function updateMusicStatusDisplay(): Promise<void> {
         <span class="dev-music-status__label">Spotify</span>
         <span class="dev-music-status__value">${
           status.spotifyStatus.linked
-            ? '${ICONS.check} Linked' + (status.spotifyStatus.deviceConnected ? ' + Device' : ' (No Device)')
+            ? `${ICONS.check} Linked` + (status.spotifyStatus.deviceConnected ? ' + Device' : ' (No Device)')
             : 'Not Linked'
         }</span>
       </div>
@@ -4443,11 +4376,11 @@ async function updateMusicStatusDisplay(): Promise<void> {
     <div class="dev-music-status__grid">
       <div class="dev-music-status__item ${statusClass}">
         <span class="dev-music-status__label">Player</span>
-        <span class="dev-music-status__value">${status.initialized ? '${ICONS.check} Ready' : '${ICONS.x} Not Init'}</span>
+        <span class="dev-music-status__value">${status.initialized ? `${ICONS.check} Ready` : `${ICONS.x} Not Init`}</span>
       </div>
       <div class="dev-music-status__item ${playingClass}">
         <span class="dev-music-status__label">Playing</span>
-        <span class="dev-music-status__value">${status.isPlaying ? '${ICONS.play} Yes' : '${ICONS.stop} No'}</span>
+        <span class="dev-music-status__value">${status.isPlaying ? `${ICONS.play} Yes` : `${ICONS.stop} No`}</span>
       </div>
       <div class="dev-music-status__item">
         <span class="dev-music-status__label">Volume</span>
@@ -4455,7 +4388,7 @@ async function updateMusicStatusDisplay(): Promise<void> {
       </div>
       <div class="dev-music-status__item ${itunesClass}">
         <span class="dev-music-status__label">iTunes</span>
-        <span class="dev-music-status__value">${status.itunesAvailable ? '${ICONS.check} Available' : '${ICONS.x} Down'}</span>
+        <span class="dev-music-status__value">${status.itunesAvailable ? `${ICONS.check} Available` : `${ICONS.x} Down`}</span>
       </div>
       ${spotifyHtml}
       ${
@@ -4487,11 +4420,11 @@ async function handleMusicStatusAction(action: string): Promise<void> {
         );
         const result = response.ok && response.data ? response.data : { success: false };
         if (result.success) {
-          log.info({ track: result.track }, '${ICONS.check} iTunes API working');
-          alert(`${ICONS.check} iTunes API working!\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
+          log.info({ track: result.track }, 'iTunes API working');
+          alert(`iTunes API working.\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
         } else {
-          log.warn({ error: result.error }, '${ICONS.x} iTunes API failed');
-          alert(`${ICONS.x} iTunes API failed\n\n${result.error}`);
+          log.warn({ error: result.error }, 'iTunes API failed');
+          alert(`iTunes API failed\n\n${result.error ?? unavailableReason(response.status)}`);
         }
       } catch (e) {
         log.error({ error: e }, 'iTunes test failed');
@@ -4504,13 +4437,13 @@ async function handleMusicStatusAction(action: string): Promise<void> {
         const response = await apiGet<{ configured?: boolean; linked?: boolean; deviceConnected?: boolean }>(
           '/spotify/status'
         );
-        const result = response.ok && response.data ? response.data : {};
-        const statusLines = [
-          `Configured: ${result.configured ? '${ICONS.check}' : '${ICONS.x}'}`,
-          `Linked: ${result.linked ? '${ICONS.check}' : '${ICONS.x}'}`,
-          `Device Connected: ${result.deviceConnected ? '${ICONS.check}' : '${ICONS.x}'}`,
-        ];
-        alert(`Spotify Status:\n\n${statusLines.join('\n')}`);
+        if (!response.ok || !response.data) {
+          alert(`Spotify status ${unavailableReason(response.status)}`);
+          break;
+        }
+        const result = response.data;
+        const yesNo = (v?: boolean): string => (v ? 'yes' : 'no');
+        alert(`Spotify Status:\n\nConfigured: ${yesNo(result.configured)}\nLinked: ${yesNo(result.linked)}\nDevice Connected: ${yesNo(result.deviceConnected)}`);
         log.info({ status: result }, 'Spotify status check');
       } catch (e) {
         log.error({ error: e }, 'Spotify check failed');
@@ -6780,21 +6713,6 @@ function injectStyles(): void {
     .dev-soul-btn--primary:hover {
       background: linear-gradient(135deg, rgba(74, 103, 65, 0.6), rgba(90, 128, 96, 0.6));
       box-shadow: 0 0 20px rgba(74, 103, 65, 0.5);
-    }
-    
-    .dev-soul-ideas {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--dev-btn-gap);
-    }
-    
-    .dev-soul-ideas span {
-      padding: 4px 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius-sm, 4px);
-      font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.4);
-      font-style: italic;
     }
     
     /* Avatar Lamp Buttons - Pixar Luxo Jr. */
