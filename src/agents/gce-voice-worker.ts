@@ -149,6 +149,7 @@ log('✅ Ops orchestrator started');
 
 // Start Call Quality Monitor (disconnect patterns, connection success rates)
 import { flushBqEvents } from '../services/analytics/bq-events.js';
+import { stopBTHTelemetry } from '../services/better-than-human-validation/index.js';
 import { startCallQualityMonitor } from '../services/analytics/call-quality-monitor.js';
 startCallQualityMonitor({
   connectionSuccessRateWarning: 0.95,
@@ -347,6 +348,8 @@ const shutdown = async (signal: string): Promise<void> => {
   await drainBatchedMemoryWork(10_000);
   // 6b. Send buffered analytics rows (bq-events.ts; nothing when BQ_EVENTS is off), max 5s
   await flushBqEvents(5_000);
+  // 6c. Send buffered BTH capability events (nothing when BTH_TELEMETRY_FLUSH is off), max 5s
+  await stopBTHTelemetry(5_000);
 
   const metrics = getJobMetrics();
   log('Shutdown complete', {
