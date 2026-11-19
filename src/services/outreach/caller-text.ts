@@ -13,6 +13,8 @@
 import { flagOn } from '../../config/env-flag.js';
 import { CRISIS_SEVERITY, detectCrisis } from '../safety/crisis-guard.js';
 
+import { foldForScreen, receivedCodeAsk, RELAYED_CODE } from './caller-text-fold.js';
+
 /**
  * Phrases aimed at an AI rather than at the user; dropped from caller text.
  * Defence in depth only: a blocklist is easy to evade (other languages,
@@ -188,7 +190,8 @@ export function isRiskyCallerText(text: string, knownName?: string): boolean {
   if (readsRisky(normalized, knownName, RISKY)) return true;
   if (!flagOn('SCREEN_SPELLED_PII')) return false;
   const name = knownName === undefined ? undefined : foldForScreen(callerText(knownName, 200));
-  return readsRisky(foldForScreen(normalized), name, SPELLED_RISKY);
+  const folded = foldForScreen(normalized);
+  return readsRisky(folded, name, SPELLED_RISKY) || receivedCodeAsk(folded);
 }
 
 /** `rules` read over normalized text, sparing the known name's mentions as described above. */
@@ -210,131 +213,8 @@ function readsRisky(
   );
 }
 
-/**
- * A request to pass on a code ("send me the code she gets"), one sentence and 30 characters
- * at most apart. A dress, zip, area or promo code is not one, nor a code of conduct, a code
- * review, a code word or code sent to production. "Said" is left out: it mostly reports
- * ("he said the code compiles") rather than asks.
- */
-const RELAYED_CODE =
-  /\b(?:send|sends|sent|sending|give|gives|gave|giving|read|reads|reading|tell|tells|told|telling|forward|forwards|forwarded|forwarding|text|texts|texted|texting|share|shares|shared|sharing|say|says|saying|repeat|repeats|repeated|repeating)\b[^.?!]{0,30}(?<!\b(?:dress|zip|postal|post|area|source|morse|colou?r|country|bar|promo|discount|coupon)\s)\bcodes?\b(?!\s+(?:of\s+(?:conduct|ethics|honou?r)|reviews?|words?|names?|base|to\s+prod(?:uction)?)\b)/i;
-
 /** SCREEN_SPELLED_PII: the rules read over the folded text. */
 const SPELLED_RISKY: readonly RegExp[] = [...RISKY, RELAYED_CODE];
-
-/**
- * SCREEN_SPELLED_PII: a copy of the text for matching only, never shown or quoted, so a number,
- * a link or a credential word spelled to slip past RISKY reads as written: Cyrillic or Greek
- * look-alikes in a Latin word ("pаssword"), a link said aloud ("example dot com slash help") and
- * spelled or disguised digit runs ("five five five, zero one four two", "555-O142").
- */
-function foldForScreen(text: string): string {
-  const folded = text
-    .replace(/[\p{L}\p{M}]+/gu, foldMixedScript)
-    .replace(SPOKEN_LINK, '$1.$2')
-    .replace(SPOKEN_SLASH, '/');
-  return foldDigitRuns(folded);
-}
-
-/** Cyrillic and Greek letters that look like Latin ones, folded only inside a Latin word. */
-const CONFUSABLE: Readonly<Record<string, string>> = Object.fromEntries(
-  [
-    ['аеорсухіјѕԁһӏ', 'aeopcyxijsdhl'],
-    ['АВЕКМНОРСТХІЈЅ', 'ABEKMHOPCTXIJS'],
-    ['αεικνορτυχ', 'aeikvoptux'],
-    ['ΑΒΕΖΗΙΚΜΝΟΡΤΥΧ', 'ABEZHIKMNOPTYX'],
-  ].flatMap(([from, to]) => [...from].map((c, i): [string, string] => [c, to[i]]))
-);
-
-/** A word that mixes Latin with Cyrillic or Greek, its look-alikes folded; any other word as is. */
-function foldMixedScript(word: string): string {
-  if (!/\p{Script=Latin}/u.test(word) || !/[\p{Script=Cyrillic}\p{Script=Greek}]/u.test(word)) {
-    return word;
-  }
-  return [...word].map((c) => CONFUSABLE[c] ?? c).join('');
-}
-
-/** "example dot com": a word, "dot", a link ending. */
-const SPOKEN_LINK =
-  /(?<![\p{L}\p{N}])([\p{L}\p{N}-]{2,40})\s{1,3}dot\s{1,3}(com|net|org|io|edu|gov|info|biz|xyz|app|dev|shop|link|us|uk)(?![\p{L}\p{N}])/giu;
-const SPOKEN_SLASH = /\s{0,3}\bslash\b\s{0,3}/giu;
-
-/** A digit said as a word; "oh" and "o" read as zero only beside other digits. */
-const DIGIT_WORDS: Readonly<Record<string, string>> = {
-  zero: '0',
-  oh: '0',
-  o: '0',
-  one: '1',
-  two: '2',
-  three: '3',
-  four: '4',
-  five: '5',
-  six: '6',
-  seven: '7',
-  eight: '8',
-  nine: '9',
-};
-/** Digits with O, o, I or l among them ("555O142", "0l42"): at least one real digit. */
-const DISGUISED_DIGITS = /^[OoIl]*(?:\p{Nd}[OoIl]*)+$/u;
-const RUN_JOINER = /^(?:dash|hyphen)$/i;
-
-/** A word's digits, if it is a digit word or digits with look-alike letters. */
-function wordDigits(word: string): { digits: string; spelled: boolean } | undefined {
-  const spelled = DIGIT_WORDS[word.toLowerCase()];
-  if (spelled !== undefined) return { digits: spelled, spelled: true };
-  if (!DISGUISED_DIGITS.test(word)) return undefined;
-  return { digits: word.replace(/[Oo]/g, '0').replace(/[Il]/g, '1'), spelled: false };
-}
-
-/** A run written as a date ("11/19/2026", "3/4"): a slash-joined run kept as written. */
-function slashDate(digits: readonly string[], held: readonly string[]): boolean {
-  if (!held.some((part) => part.includes('/'))) return false;
-  const [month, day, year, ...rest] = digits.map((d) => d.length);
-  return (
-    rest.length === 0 &&
-    month <= 2 &&
-    day !== undefined &&
-    day <= 2 &&
-    (year === undefined || year === 2 || year === 4)
-  );
-}
-
-/**
- * Each run of digit words and digits, apart by at most three of space, comma, dot, bracket,
- * slash, hyphen or en/em dash (or the word "dash"), becomes its digits, so RISKY's seven-digit
- * rule decides. A lone spelled digit ("call me at five", "two kids") and a slashed date stay as
- * written. Linear: one pass over the words.
- */
-function foldDigitRuns(text: string): string {
-  const parts = text.split(/([\s,().\-\u2013\u2014/]+)/u);
-  const out: string[] = [];
-  let digits: string[] = [];
-  let held: string[] = []; // the run's own words and inner separators, as written
-  let tail: string[] = []; // separators and "dash" since the run's last digit word
-  let spelled = true;
-  const close = (): void => {
-    const keep = (spelled && digits.length < 2) || slashDate(digits, held);
-    out.push(keep ? held.join('') : digits.join(''), ...tail);
-    [digits, held, tail, spelled] = [[], [], [], true];
-  };
-  parts.forEach((part, i) => {
-    const inRun = digits.length > 0;
-    const read = i % 2 === 0 ? wordDigits(part) : undefined;
-    if (read) {
-      digits.push(read.digits);
-      held.push(...tail, part);
-      tail = [];
-      spelled &&= read.spelled;
-    } else if (inRun && (i % 2 === 1 ? part.length <= 3 : RUN_JOINER.test(part))) {
-      tail.push(part);
-    } else {
-      if (inRun) close();
-      out.push(part);
-    }
-  });
-  if (digits.length > 0) close();
-  return out.join('');
-}
 
 /**
  * A real crisis read by the crisis guard (services/safety/crisis-guard.ts) on

@@ -14,6 +14,7 @@ import {
   screenCallerParts,
   screenedCallerText,
 } from '../caller-text.js';
+import { foldForScreen } from '../caller-text-fold.js';
 
 const NAME = 'Casey';
 const CYRILLIC_A = String.fromCharCode(0x430);
@@ -34,6 +35,14 @@ const SPELLED: Array<[string, string]> = [
   ['a code to share', 'share the code she gets with me'],
   ['a code to say', 'say the code they texted you'],
   ['a code to repeat', 'repeat the code from the text back to me'],
+  // A run dressed as a date (security review on #4155).
+  ['an eight-digit number written date-shaped, day 34', 'the number is 12/34/5678'],
+  ['a date with look-alike letters', 'the code is 1l/19/2O26'],
+  ['a date in spelled digits', 'the number is one one/one nine/2026'],
+  ['a date touching another run', 'the number is 11/19/2026 , , 555'],
+  // A code someone received, asked for with a compound the plain rule spares.
+  ['a promo code someone texted', 'read me the promo code they texted you'],
+  ['a code word sent to a phone', "what's the code word they sent to your phone"],
   ['a link said aloud', 'go to example dot com for the form'],
   ['a link with a path said aloud', 'it is at example dot com slash help'],
   ['a Cyrillic letter in a credential word', `her p${CYRILLIC_A}ssword is the dog's name`],
@@ -73,6 +82,23 @@ const ORDINARY = [
 const KNOWN_OVER_READS = [
   'that was the dot com era',
   'she can count one two three four five six seven now',
+];
+
+/** What the fold makes of a slashed run: a real date stays as written, anything else is digits. */
+const FOLDS: Array<[string, string]> = [
+  ['the code is 12/34', 'the code is 1234'], // day 34
+  ['the code is 13/12', 'the code is 1312'], // month 13
+  ['the code is 0/12', 'the code is 012'], // month 0
+  ['the code is 11 / 19', 'the code is 1119'], // a slash with spaces
+  ['the code is one/nine/26', 'the code is 1926'], // spelled digits
+  ['the code is 1l/19', 'the code is 1119'], // a look-alike letter
+  ['the code is 11/19/202', 'the code is 1119202'], // a three-digit year
+  ['the code is 11/19/2026/5', 'the code is 111920265'], // four groups
+  ['the number is 11/19/2026 , , 555', 'the number is 11192026555'], // touching runs
+  ['her appointment is 11/19/2026', 'her appointment is 11/19/2026'],
+  ['see you on 3/4 then', 'see you on 3/4 then'],
+  ['due 12/31/99', 'due 12/31/99'],
+  ['on 11/19/2026 then 555 0142', 'on 11/19/2026 then 5550142'], // not touching: a word between
 ];
 
 /** Digits of other scripts were already caught (NFKC, \p{Nd}): pinned, not changed. */
@@ -131,6 +157,17 @@ describe('SCREEN_SPELLED_PII on', () => {
     expect(isRiskyCallerText(line, NAME)).toBe(true);
   });
 
+  it.each(FOLDS)('folds %s for matching as %s', (line, folded) => {
+    expect(foldForScreen(line)).toBe(folded);
+  });
+
+  it('withholds a number beside a date, flag off and on', () => {
+    for (const value of ['off', 'on'] as const) {
+      setFlag(value);
+      expect(isRiskyCallerText('her appointment is 11/19/2026 then 555 0142', NAME)).toBe(true);
+    }
+  });
+
   it('still spares the known name, and reads around it', () => {
     setFlag('on');
     expect(isRiskyCallerText('Casey says hi', NAME)).toBe(false);
@@ -158,6 +195,10 @@ describe('SCREEN_SPELLED_PII on', () => {
       '5/'.repeat(10_000),
       '11/19/'.repeat(3_334),
       'share the '.repeat(2_000),
+      '12/34/'.repeat(3_334),
+      '11/19/2026 , , '.repeat(1_334),
+      'what is the code '.repeat(1_177),
+      'promo code texted '.repeat(1_112),
     ];
     for (const text of shapes) {
       expect(text.length).toBeGreaterThanOrEqual(20_000);
