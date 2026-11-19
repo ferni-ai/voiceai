@@ -48,6 +48,7 @@ describe('Semantic Router Comprehensive E2E', () => {
     personaId: 'ferni',
     conversationHistory: [],
     recentTools: [],
+    autoExecuteCheck: null,
   };
 
   beforeEach(async () => {
@@ -554,6 +555,7 @@ describe('Semantic Router Performance', () => {
     personaId: 'ferni',
     conversationHistory: [],
     recentTools: [],
+    autoExecuteCheck: null,
   };
 
   beforeEach(async () => {
@@ -607,7 +609,9 @@ describe('Semantic Router Performance', () => {
 
     // Log for debugging CI failures
     // eslint-disable-next-line no-console
-    console.log(`Latency: P50=${p50.toFixed(1)}ms, P95=${p95.toFixed(1)}ms, P99=${p99.toFixed(1)}ms`);
+    console.log(
+      `Latency: P50=${p50.toFixed(1)}ms, P95=${p95.toFixed(1)}ms, P99=${p99.toFixed(1)}ms`
+    );
 
     // Relaxed thresholds for CI (actual prod targets: 30/100/200)
     // CI environments have variable load, so we use 2x multiplier

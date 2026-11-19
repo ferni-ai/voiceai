@@ -125,17 +125,6 @@ export async function render(): Promise<string> {
             ${renderWarmthStage('Established', 0.7, 'Avatar becomes noticeably warmer')}
             ${renderWarmthStage('Deep Partnership', 0.9, 'Maximum warmth - trusted inner circle')}
           </div>
-          
-          <div class="warmth-preview">
-            <div class="warmth-avatar-container">
-              <div class="warmth-avatar-glow"></div>
-              <div class="warmth-avatar">F</div>
-            </div>
-            <div class="warmth-slider-container">
-              <label>Preview Warmth: <span id="warmthPreviewValue">0.3</span></label>
-              <input type="range" id="warmthPreviewSlider" min="0" max="1" step="0.1" value="0.3">
-            </div>
-          </div>
         </div>
 
         <div class="warmth-stats">
@@ -483,86 +472,6 @@ export async function render(): Promise<string> {
         line-height: 1.3;
       }
 
-      .warmth-preview {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--space-4, 1rem);
-        padding: var(--space-4, 1rem);
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: var(--radius-lg, 12px);
-        min-width: min(200px, 100%);
-      }
-
-      .warmth-avatar-container {
-        position: relative;
-        width: min(100px, 100%);
-        height: 100px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .warmth-avatar-glow {
-        position: absolute;
-        inset: -20px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
-        transition: transform 0.5s ease, opacity 0.5s ease;
-        pointer-events: none;
-      }
-
-      .warmth-avatar {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background: linear-gradient(180deg, hsl(120, 20%, 33%), hsl(120, 22%, 28%));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: white;
-        box-shadow: 0 0 15px hsla(120, 20%, 33%, 0.3);
-        transition: transform 0.5s ease, opacity 0.5s ease;
-        z-index: var(--z-docked);
-      }
-
-      .warmth-slider-container {
-        width: 100%;
-        text-align: center;
-      }
-
-      .warmth-slider-container label {
-        display: block;
-        font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
-        margin-bottom: var(--space-2, 0.5rem);
-      }
-
-      .warmth-slider-container input[type="range"] {
-        width: 100%;
-        height: 8px;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        appearance: none;
-        cursor: pointer;
-      }
-
-      .warmth-slider-container input[type="range"]::-webkit-slider-thumb {
-        appearance: none;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: var(--persona-primary, #4a6741);
-        cursor: pointer;
-        transition: transform 0.2s;
-      }
-
-      .warmth-slider-container input[type="range"]::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-      }
-
       .warmth-stats {
         display: flex;
         gap: var(--space-4, 1rem);
@@ -798,32 +707,6 @@ function renderWarmthStage(name: string, warmth: number, desc: string): string {
       <div class="warmth-stage-desc">${desc}</div>
     </div>
   `;
-}
-
-export function setupWarmthPreview(): void {
-  const slider = document.getElementById('warmthPreviewSlider') as HTMLInputElement;
-  const valueDisplay = document.getElementById('warmthPreviewValue');
-  const avatar = document.querySelector('.warmth-avatar') as HTMLElement;
-  const glow = document.querySelector('.warmth-avatar-glow') as HTMLElement;
-  
-  if (!slider || !avatar || !glow) return;
-  
-  slider.addEventListener('input', () => {
-    const warmth = parseFloat(slider.value);
-    if (valueDisplay) valueDisplay.textContent = warmth.toFixed(1);
-    
-    // Update avatar appearance based on warmth
-    const hue = 120 - warmth * 75;
-    const saturation = 20 + warmth * 20;
-    const lightness = 33 + warmth * 12;
-    const glowOpacity = 0.3 + warmth * 0.4;
-    
-    avatar.style.background = `linear-gradient(180deg, hsl(${hue}, ${saturation}%, ${lightness}%), hsl(${hue}, ${saturation + 2}%, ${lightness - 5}%))`;
-    avatar.style.boxShadow = `0 0 ${15 + warmth * 15}px hsla(${hue}, ${saturation}%, ${lightness}%, ${glowOpacity})`;
-    
-    glow.style.background = `radial-gradient(circle, hsla(${hue - 30}, ${saturation + 10}%, ${lightness + 10}%, ${glowOpacity}) 0%, transparent 70%)`;
-    glow.style.transform = `scale(${1 + warmth * 0.3})`;
-  });
 }
 
 export default { render };

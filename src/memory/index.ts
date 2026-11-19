@@ -1276,11 +1276,11 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgetGeneration, forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js'; // prettier-ignore
-export { aboutForgotten, forgottenPassageCheck, forgottenWithin, keepRemembered, profileForCaller, remembered } from './recall/forget-every-reader.js'; // prettier-ignore
+export { aboutForgotten, forgottenPassageCheck, forgottenPassageWithin, forgottenWithin, keepRemembered, profileForCaller, remembered } from './recall/forget-every-reader.js'; // prettier-ignore
 export { isPersonaSubject } from './entity-hygiene.js';
 export { dualWriteFacts, mapDynamicFact, mapWorldFact, type DualWriteDeps } from './writer/facts-dual-write.js'; // prettier-ignore
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
-export { formatRecall, isForgotten, loadRecallSnapshot, recallForTurn, undisputed, type RecallFact } from './recall/session-recall.js'; // prettier-ignore
+export { formatRecall, isForgotten, isForgottenPassage, loadRecallSnapshot, recallForTurn, undisputed, type RecallFact } from './recall/session-recall.js'; // prettier-ignore
 export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';

@@ -37,6 +37,7 @@ import {
   aboutForgotten,
   forgottenCheck,
   forgottenCheckNow,
+  forgottenPassageWithin,
   forgottenWithin,
   snapshotTopics,
 } from '../forget-every-reader.js';
@@ -185,5 +186,34 @@ describe('forgottenWithin: bounded, and unflagged', () => {
       { reader: 'last-summary', why: 'timeout' },
       { reader: 'recent-context', why: 'failed' },
     ]);
+  });
+});
+
+describe('forgottenPassageWithin: the passage match, fresh reads only', () => {
+  it('any distinctive word of a topic counts, as the passage readers read', async () => {
+    read.fn.mockResolvedValue(['the Denver job']);
+    const check = await forgottenPassageWithin(U);
+    expect(check?.('the offer from the Denver office')).toBe(true);
+    expect(check?.('a weekend in Boston')).toBe(false);
+    // The fact readers' match needs more of the topic, so it keeps this passage.
+    expect((await forgottenCheck(U))?.('the offer from the Denver office')).toBe(false);
+  });
+
+  it('a failed read after a good one fails closed, never the old list (#2623)', async () => {
+    vi.useFakeTimers({ now: 4_000_000 });
+    read.fn.mockResolvedValueOnce([]); // read before: nothing forgotten yet
+    expect((await forgottenPassageWithin(U))?.('the Denver job')).toBe(false);
+    vi.setSystemTime(4_000_000 + 60_000); // stale
+    read.fn.mockResolvedValueOnce(null); // forgotten elsewhere since; this read fails
+    expect(await forgottenPassageWithin(U)).toBeNull();
+    expect(forgetReadStats()).toMatchObject({ fallbacks: 0, failClosed: 1 });
+  });
+
+  it('null with the flag off or no member, and nothing is read', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    expect(await forgottenPassageWithin(U)).toBeNull();
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    expect(await forgottenPassageWithin(undefined)).toBeNull();
+    expect(read.fn).not.toHaveBeenCalled();
   });
 });
