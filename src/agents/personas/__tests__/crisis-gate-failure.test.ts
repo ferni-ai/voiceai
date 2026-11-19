@@ -322,10 +322,14 @@ describe('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed', () =>
         const callB = { userData: { services: { sessionId: `b-${shared}` } } };
         // Call A, turn 1: its read rejects only once call B's turn is under way.
         let rejectA: (error: unknown) => void = () => undefined;
-        const readA = new Promise<never>((_resolve, reject) => (rejectA = reject));
+        const readA = new Promise<never>((_resolve, reject) => {
+          rejectA = reject;
+        });
         const failing = replyTo(UNSAFE, { env, ...models(NONE), readAfter: () => readA }, callA);
         const other = replyTo(UNSAFE, { env, ...models(NONE), generate: down }, callB);
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0);
+        });
         rejectA(new RangeError(SENTINEL));
         const [a, b] = await Promise.all([failing, other]);
         expect(a.out.join(' '), shared).toContain('Are you safe right now?'); // the forced check-in
