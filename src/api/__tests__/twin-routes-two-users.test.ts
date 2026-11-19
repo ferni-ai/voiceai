@@ -112,8 +112,10 @@ vi.mock('../../agents/personas/crisis-gate-text.js', () => ({
 
 const { handleCustomAgentRoutes } = await import('../custom-agent/index.js');
 const { handleJournalRoutes } = await import('../journal-routes.js');
-const { addMemoryToAgent, createCustomAgent } =
+const { addMemoryToAgent, createCustomAgent, updateAgentVoice } =
   await import('../../services/custom-agent/custom-agent-persistence-service.js');
+const { DEFAULT_CUSTOM_AGENT_VOICE_ID: STOCK_VOICE } =
+  await import('../../services/custom-agent/custom-agent-voice-catalog.js');
 
 let server: Server;
 let base = '';
@@ -178,31 +180,41 @@ beforeEach(async () => {
   await addMemoryToAgent('uid-riley', twinId, 'journalEntries', {
     content: 'Walked by the lake again this morning.',
   });
+  // A ready stock voice, so the twin could be activated: a refused activation is the owner
+  // check, not the readiness check.
+  await updateAgentVoice('uid-riley', twinId, {
+    voiceId: STOCK_VOICE,
+    status: 'ready',
+    type: 'selected',
+  });
 });
 
-/** Each twin route, as [label, method, path, body]. */
-const routes = (): Array<[string, string, string, unknown]> => [
-  ['the twin', 'GET', `/api/custom-agents/${twinId}`, undefined],
-  ['its memories', 'GET', `/api/custom-agents/${twinId}/memories`, undefined],
-  ['its journal entries', 'GET', `/api/custom-agents/${twinId}/journal/entries`, undefined],
-  ['a change to the twin', 'PUT', `/api/custom-agents/${twinId}`, { name: 'Changed' }],
-  ['a chat with the twin', 'POST', `/api/custom-agents/${twinId}/chat`, { message: 'hi' }],
-  [
-    'a memory added',
-    'POST',
-    `/api/custom-agents/${twinId}/memories`,
-    { type: 'story', content: 'x' },
-  ],
-  ['a memory deleted', 'DELETE', `/api/custom-agents/${twinId}/memories/${memoryId}`, undefined],
-  ['the twin deleted', 'DELETE', `/api/custom-agents/${twinId}`, undefined],
-  [
-    'a twin reply',
-    'POST',
-    '/api/journal/twin-response',
-    { userMessage: 'Do you remember the lake?', agentId: twinId },
-  ],
-  ['the Chronicle', 'GET', '/api/journal/chronicle?userId=uid-riley', undefined],
-];
+/** Each twin route, as [label, method, path, body, what Jordan gets]. */
+const routes = (): Array<[string, string, string, unknown, number]> => {
+  const agent = `/api/custom-agents/${twinId}`;
+  return [
+    ['the twin', 'GET', agent, undefined, 404],
+    ['its memories', 'GET', `${agent}/memories`, undefined, 404],
+    ['its journal entries', 'GET', `${agent}/journal/entries`, undefined, 404],
+    ['a change to the twin', 'PUT', agent, { name: 'Changed' }, 404],
+    ['a chat with the twin', 'POST', `${agent}/chat`, { message: 'hi' }, 404],
+    ['a memory added', 'POST', `${agent}/memories`, { type: 'story', content: 'x' }, 404],
+    ['a memory deleted', 'DELETE', `${agent}/memories/${memoryId}`, undefined, 404],
+    ['the twin deleted', 'DELETE', agent, undefined, 404],
+    ['its voice status', 'GET', `${agent}/voice/status`, undefined, 404],
+    ['a voice picked', 'PUT', `${agent}/voice/select-premade`, { voiceId: STOCK_VOICE }, 404],
+    ['a status change', 'PUT', `${agent}/status`, { status: 'paused' }, 404],
+    ['an activation', 'POST', `${agent}/activate`, undefined, 404],
+    [
+      'a twin reply',
+      'POST',
+      '/api/journal/twin-response',
+      { userMessage: 'Do you remember the lake?', agentId: twinId },
+      400,
+    ],
+    ['the Chronicle', 'GET', '/api/journal/chronicle?userId=uid-riley', undefined, 403],
+  ];
+};
 // The ids exist only once beforeEach runs, so the rows are named by label.
 const LABELS = routes().map(([label]) => label);
 
@@ -210,12 +222,12 @@ describe("another user can't reach Riley's twin", () => {
   it.each(LABELS)('%s is refused', async (label) => {
     const route = routes().find(([l]) => l === label);
     if (!route) throw new Error(`no route named ${label}`);
-    const [, method, path, body] = route;
+    const [, method, path, body, refused] = route;
     const before = structuredClone(userData());
 
     const { status } = await call('jordan', method, path, body);
 
-    expect([400, 403, 404], label).toContain(status);
+    expect(status, label).toBe(refused);
     expect(h.callLLM, label).not.toHaveBeenCalled();
     expect(userData(), label).toEqual(before);
     expect(before.length, 'Riley has a twin with memories to protect').toBeGreaterThan(0);
@@ -273,5 +285,19 @@ describe('Riley reaches the same routes', () => {
       300
     );
     expect([...h.docs.keys()].filter((p) => p.includes(twinId))).toEqual([]);
+  });
+
+  it('reads the voice status, picks a voice, activates and pauses the twin', async () => {
+    const agent = `/api/custom-agents/${twinId}`;
+    const voice = await call('riley', 'GET', `${agent}/voice/status`);
+    expect(voice.status).toBe(200);
+    expect(voice.body).toMatchObject({ voiceId: STOCK_VOICE, isReady: true });
+    expect(
+      (await call('riley', 'PUT', `${agent}/voice/select-premade`, { voiceId: STOCK_VOICE })).status
+    ).toBe(200);
+    expect((await call('riley', 'POST', `${agent}/activate`)).body.status).toBe('active');
+    const paused = await call('riley', 'PUT', `${agent}/status`, { status: 'paused' });
+    expect(paused.status).toBe(200);
+    expect((await call('riley', 'GET', agent)).body.status).toBe('paused');
   });
 });
