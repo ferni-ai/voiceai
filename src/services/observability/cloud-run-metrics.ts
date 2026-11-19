@@ -46,30 +46,40 @@ export function unmeasuredService(reason: string): ServiceMetrics {
 }
 
 let reader: Promise<MetricServiceClient> | undefined;
+
+/**
+ * The client, initialized. initialize() is awaited here so a missing credential rejects
+ * this promise, where the read catches it: left to the client's first call, the gapic
+ * code rethrows it as an uncaught exception, which takes the whole server down.
+ */
 async function getReader(): Promise<MetricServiceClient> {
+  if (reader) return reader;
   // Loaded on first read: the gRPC client is heavy and most requests never need it
-  reader ??= import('@google-cloud/monitoring').then(
-    ({ MetricServiceClient: Client }) => new Client()
-  );
-  // The failed read reports it; the next read tries again
-  reader.catch(() => {
-    reader = undefined;
+  const created = import('@google-cloud/monitoring').then(async ({ MetricServiceClient }) => {
+    const client = new MetricServiceClient();
+    await client.initialize();
+    return client;
   });
-  return reader;
+  reader = created;
+  // The read that waits on it reports the failure; the next read (a Refresh) tries again
+  created.catch(() => {
+    if (reader === created) reader = undefined;
+  });
+  return created;
 }
 
 class ReadTimeout extends Error {}
 
 /** The reason a Monitoring read failed, in words an admin can act on. */
-function failureReason(error: unknown, timeoutMs: number): string {
+function failureReason(error: unknown, timeoutMs: number, projectId: string): string {
   if (error instanceof ReadTimeout) {
     return `unavailable: Cloud Monitoring did not answer within ${timeoutMs / 1000}s`;
   }
   const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
   if (code === 7) {
-    return 'unavailable: the UI service account cannot read Cloud Monitoring (needs roles/monitoring.viewer)';
+    return `unavailable: these credentials can't read Cloud Monitoring for ${projectId} (in prod the UI service account needs roles/monitoring.viewer)`;
   }
-  if (code === 16 || /default credentials/i.test(String(message))) {
+  if (code === 16 || /default credentials|credential file/i.test(String(message))) {
     return 'unavailable: no Google Cloud credentials on this server';
   }
   return `unavailable: Cloud Monitoring error (${typeof code === 'number' ? `code ${code}` : String(message).slice(0, 80)})`;
@@ -162,7 +172,7 @@ export async function readCloudRunMetrics(options: {
   ]);
   const failed = (read: PromiseSettledResult<TimeSeries[]>): string | undefined => {
     if (read.status === 'fulfilled') return undefined;
-    const reason = failureReason(read.reason, timeoutMs);
+    const reason = failureReason(read.reason, timeoutMs, options.projectId);
     log.warn({ service: options.service, reason }, 'Cloud Monitoring read failed');
     return reason;
   };
@@ -175,7 +185,10 @@ export async function readCloudRunMetrics(options: {
   if (latencyFailed) result.missing.latencyMs = latencyFailed;
   else if (low !== null) {
     result.latencyMs = { p50: low, p95: mid, p99: high };
-    delete result.missing.latencyMs;
+    // A percentile Monitoring sent nothing for keeps a reason the section shows beside it
+    if (mid === null || high === null) {
+      result.missing.latencyMs = 'no data: Cloud Monitoring sent no p95 or p99 for this window';
+    } else delete result.missing.latencyMs;
   }
 
   const requestsFailed = failed(requests);

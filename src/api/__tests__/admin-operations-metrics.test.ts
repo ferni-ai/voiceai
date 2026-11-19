@@ -21,10 +21,23 @@ const monitoring = vi.hoisted(() => ({
   /** What each metric's read answers: its series (or a function of the request), an error, or no end */
   answers: {} as Record<string, Series[] | ((r: Request) => Series[]) | Error | 'hang'>,
   requests: [] as Request[],
+  /** What initialize() rejects with (as the real client does with no ADC), or null */
+  initError: null as Error | null,
+  initCalls: 0,
 }));
 vi.mock('@google-cloud/monitoring', () => ({
+  // Like the real gapic client: credentials load in initialize(). A call made without it
+  // never settles here (the real client rethrows the failure as an uncaught exception).
   MetricServiceClient: class {
+    private ready = false;
+    async initialize() {
+      monitoring.initCalls++;
+      await Promise.resolve();
+      if (monitoring.initError) throw monitoring.initError;
+      this.ready = true;
+    }
     async listTimeSeries(request: Request) {
+      if (!this.ready && monitoring.initError) return new Promise(() => {});
       monitoring.requests.push(request);
       const metric = /run\.googleapis\.com\/([\w/]+)"/.exec(request.filter)?.[1] ?? '';
       const answer = monitoring.answers[metric] ?? [];
@@ -90,6 +103,8 @@ beforeEach(() => {
     'container/instance_count': INSTANCES,
   };
   monitoring.requests = [];
+  monitoring.initError = null;
+  monitoring.initCalls = 0;
   fetchMock.mockClear();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -155,7 +170,7 @@ describe('UI server metrics from Cloud Monitoring', () => {
     expect(metrics.errorRate).toBeNull();
   });
 
-  it('says the service account needs monitoring.viewer when permission is denied', async () => {
+  it('says these credentials need monitoring.viewer when permission is denied', async () => {
     monitoring.answers = {
       request_latencies: Object.assign(new Error('7 PERMISSION_DENIED: Permission denied'), {
         code: 7,
@@ -166,21 +181,47 @@ describe('UI server metrics from Cloud Monitoring', () => {
     const metrics = uiServer(await get('/api/v1/admin/operations/metrics'));
     expect(metrics.latencyMs).toEqual({ p50: null, p95: null, p99: null });
     expect((metrics.missing as Record<string, string>).latencyMs).toBe(
-      'unavailable: the UI service account cannot read Cloud Monitoring (needs roles/monitoring.viewer)'
+      "unavailable: these credentials can't read Cloud Monitoring for johnb-2025 (in prod the UI service account needs roles/monitoring.viewer)"
     );
     // Each metric fails alone: the others are still read
     expect(metrics.requestCount).toBe(100);
   });
 
-  it('says there are no credentials when ADC finds none', async () => {
-    monitoring.answers = {
-      request_count: new Error('Could not load the default credentials. Browse to ...'),
-    };
+  it('says there are no credentials when ADC finds none, not that it timed out', async () => {
+    vi.useFakeTimers();
+    monitoring.initError = new Error('Could not load the default credentials. Browse to ...');
+    const pending = get('/api/v1/admin/operations/metrics');
+    await vi.advanceTimersByTimeAsync(8_000);
+    const metrics = uiServer(await pending);
+    expect(metrics).toMatchObject({ errorRate: null, requestCount: null, instances: null });
+    const reason = 'unavailable: no Google Cloud credentials on this server';
+    expect(metrics.missing).toEqual({
+      latencyMs: reason,
+      errorRate: reason,
+      requestCount: reason,
+      instances: reason,
+    });
+  });
+
+  it('tries the credentials again on the next fresh read, not a cached broken client', async () => {
+    monitoring.initError = new Error('Could not load the default credentials.');
+    await get('/api/v1/admin/operations/metrics');
+    expect(monitoring.initCalls).toBe(1);
+    monitoring.initError = null;
+    const metrics = uiServer(await get('/api/v1/admin/operations/metrics?fresh=1'));
+    expect(monitoring.initCalls).toBe(2);
+    expect(metrics.requestCount).toBe(100);
+  });
+
+  it('gives p95/p99 a reason when Monitoring sends only p50', async () => {
+    monitoring.answers.request_latencies = (request: Request) =>
+      request.aggregation.crossSeriesReducer === 'REDUCE_PERCENTILE_50'
+        ? [{ points: [{ value: { doubleValue: 32 } }] }]
+        : [];
     const metrics = uiServer(await get('/api/v1/admin/operations/metrics'));
-    expect(metrics.requestCount).toBeNull();
-    expect(metrics.errorRate).toBeNull();
-    expect((metrics.missing as Record<string, string>).requestCount).toBe(
-      'unavailable: no Google Cloud credentials on this server'
+    expect(metrics.latencyMs).toEqual({ p50: 32, p95: null, p99: null });
+    expect((metrics.missing as Record<string, string>).latencyMs).toBe(
+      'no data: Cloud Monitoring sent no p95 or p99 for this window'
     );
   });
 

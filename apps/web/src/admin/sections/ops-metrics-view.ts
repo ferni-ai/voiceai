@@ -33,7 +33,7 @@ export function renderServiceMetrics(
   const item = (name: string, ms: number | null) => `
     <div class="ops-latency-item">
       <span class="ops-latency-percentile">${name}</span>
-      <span class="ops-latency-value">${ms === null ? '-' : `${Math.round(ms)}ms`}</span>
+      <span class="ops-latency-value">${ms === null ? why(metrics, 'latencyMs') : `${Math.round(ms)}ms`}</span>
     </div>`;
   const latency =
     p50 === null
