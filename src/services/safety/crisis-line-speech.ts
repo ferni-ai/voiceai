@@ -34,6 +34,13 @@ const ALONE_BEFORE = String.raw`(?<![\w$€£#]|\d[.,])`;
 const ALONE_AFTER = String.raw`(?![\w%]|[.,]\d)`;
 /** 988, 9-8-8 or 9 8 8, standing alone. */
 const DIGITS = `${ALONE_BEFORE}(?:988|9-8-8|9 8 8)${ALONE_AFTER}`;
+/**
+ * CRISIS_988_STRICT_PRESENCE (#4026): DIGITS, but not a dash-joined part of a longer number
+ * (1-988-555, 9-8-8-0), not the spaced form with one more lone digit (9 8 8 0), and not an amount
+ * (988 dollars). "988 24/7", "988, 24/7" and "988-lifeline" read as DIGITS does.
+ */
+const AMOUNT = String.raw`(?![ ]{0,3}(?:dollars?|bucks|cents?|usd|euros?|pounds?)\b)`;
+const STRICT_DIGITS = String.raw`(?<!\d-)${ALONE_BEFORE}(?:988|9-8-8|9 8 8(?! \d(?:$|[.,;:!?)]| \d)))${ALONE_AFTER}(?!-\d)${AMOUNT}`;
 const LINE = new RegExp(`${SPELLED}|${DIGITS}`, 'gi');
 const CUE = /^(?:call|calling|text|texting|dial|dialing|line|lifeline|hotline|crisis|suicide)$/i;
 
@@ -45,7 +52,12 @@ const SPOKEN = String.raw`\bnine${LIST_SEP}eight${LIST_SEP}eight\b`;
 const SPOKEN_ES = String.raw`\bnueve${LIST_SEP}ocho${LIST_SEP}ocho\b`;
 /** The line's site written as one word (988lifeline.org), which DIGITS reads as a longer word. */
 const SITE = String.raw`\b988lifeline\b`;
-const NAMES_988 = new RegExp(`${SPELLED}|${DIGITS}|${SPOKEN}|${SPOKEN_ES}|${SITE}`, 'i');
+const namesWith = (digits: string): RegExp =>
+  new RegExp(`${SPELLED}|${digits}|${SPOKEN}|${SPOKEN_ES}|${SITE}`, 'i');
+const NAMES_988 = namesWith(DIGITS);
+const NAMES_988_STRICT = namesWith(STRICT_DIGITS);
+/** Whether the strict 988 reader is on: only where a miss adds the line (names988, says988). */
+const strict = (): boolean => flagOn('CRISIS_988_STRICT_PRESENCE');
 /** 911 as digits (911 as main reads it; 9-1-1 and 9 1 1 standing alone), or in words. */
 const NAMES_911 = new RegExp(
   String.raw`\b911\b|${ALONE_BEFORE}(?:9-1-1|9 1 1)${ALONE_AFTER}|\bnine${LIST_SEP}one${LIST_SEP}one\b|\bnueve${LIST_SEP}uno${LIST_SEP}uno\b`,
@@ -79,9 +91,14 @@ const asWritten = (text: string): string =>
  * "ninety-eight-eight", "nine-eighty-eight"), Spanish words ("nueve ocho ocho"), or the site
  * (988lifeline.org), with any Unicode dash or space between the parts. The 988 floor and the
  * timeout check-in read presence here, so a reply that already gave the line in any of these
- * forms never hears it twice.
+ * forms never hears it twice. With CRISIS_988_STRICT_PRESENCE on it reads the strict digits
+ * (#4026), where a miss only adds the line.
  */
-export const names988 = (text: string): boolean => NAMES_988.test(asWritten(text));
+export const names988 = (text: string): boolean =>
+  strict() ? NAMES_988_STRICT.test(asWritten(text)) : names988Wide(text);
+
+/** names988 as main reads it, always: for readers where a miss costs more than a false read. */
+const names988Wide = (text: string): boolean => NAMES_988.test(asWritten(text));
 
 /**
  * The one reader of whether text names 911: 911, 9-1-1, 9 1 1, "nine one one" or "nueve uno
@@ -98,10 +115,12 @@ export const names911 = (text: string): boolean => NAMES_911.test(asWritten(text
  * reads Unicode dashes and spaces (names988); the 741741 and by-name parts read as main does.
  */
 export function offersCrisisLine(text: string): boolean {
-  return names988(text) || TEXT_LINE_NUMBER.test(text) || NAMED.test(text);
+  // Always the wide reader: a miss here (a crisis call recorded, a help line dropped) costs more.
+  return names988Wide(text) || TEXT_LINE_NUMBER.test(text) || NAMED.test(text);
 }
 
 const DIGITS_ONLY = new RegExp(DIGITS);
+const STRICT_DIGITS_ONLY = new RegExp(STRICT_DIGITS, 'i');
 
 /**
  * Whether text carries 988 as a number someone can dial or text: 988, 9-8-8 or 9 8 8, never "$988"
@@ -109,7 +128,7 @@ const DIGITS_ONLY = new RegExp(DIGITS);
  * number ("a crisis line") is not 988, so a reply that must carry 988 still gets it.
  */
 export function says988(text: string): boolean {
-  return DIGITS_ONLY.test(text);
+  return (strict() ? STRICT_DIGITS_ONLY : DIGITS_ONLY).test(text);
 }
 /** How many words either side of a digit form are searched for a cue. */
 const CUE_WINDOW = 3;

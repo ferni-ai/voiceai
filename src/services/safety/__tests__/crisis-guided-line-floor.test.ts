@@ -364,9 +364,9 @@ describe('CRISIS_GUIDED_LINE_FLOOR: one reader, one appender', () => {
         .map(([file]) => file);
     expect(definedIn('names988')).toEqual(['src/services/safety/crisis-line-speech.ts']);
     expect(definedIn('names911')).toEqual(['src/services/safety/crisis-line-speech.ts']);
-    // offersCrisisLine is built on names988, not on a pattern of its own.
+    // offersCrisisLine is built on names988Wide (main's reader, #4026), not a pattern of its own.
     expect(readFileSync('src/services/safety/crisis-line-speech.ts', 'utf8')).toContain(
-      'return names988(text) ||'
+      'return names988Wide(text) ||'
     );
     // No second copy of a 988 pattern: the earlier digit reader and the check-in's are gone.
     const copies = sources.filter(
