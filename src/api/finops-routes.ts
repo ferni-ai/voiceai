@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
+import { requireAuth } from './auth-middleware.js';
 import { parseBody, sendJSON } from './helpers.js';
 import { finops, type FinOpsThresholds } from '../services/observability/finops.js';
 
@@ -34,40 +35,6 @@ const LtvCacConfigSchema = z.object({
 const log = createLogger({ module: 'FinOpsRoutes' });
 
 // ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Verify admin access for FinOps endpoints.
- *
- * SECURITY: Properly validates admin key without accepting 'dev-mode' in production.
- * The dev-mode bypass only works when NODE_ENV is explicitly 'development'.
- */
-function isAdmin(req: IncomingMessage, query: URLSearchParams): boolean {
-  const adminKeyHeader = req.headers['x-admin-key'] as string | undefined;
-  const adminKeyQuery = query.get('admin_key');
-  const adminKey = adminKeyHeader || adminKeyQuery || undefined;
-
-  const configuredAdminKey = process.env.ADMIN_KEY;
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // Primary check: valid ADMIN_KEY from environment
-  if (configuredAdminKey && adminKey === configuredAdminKey) {
-    return true;
-  }
-
-  // Dev mode bypass - ONLY works in development environment
-  // SECURITY: Never accept 'dev-mode' string in production
-  if (isDev && adminKey === 'dev-mode') {
-    return true;
-  }
-
-  return false;
-}
-
-// parseBody and sendJSON imported from './helpers.js'
-
-// ============================================================================
 // ROUTE HANDLER
 // ============================================================================
 
@@ -79,20 +46,17 @@ export async function handleFinOpsRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  parsedUrl: URL
+  _parsedUrl: URL
 ): Promise<boolean> {
   // Only handle /api/finops/* routes
   if (!pathname.startsWith('/api/finops')) {
     return false;
   }
 
-  const query = parsedUrl.searchParams;
-
-  // Auth check
-  if (!isAdmin(req, query)) {
-    sendJSON(res, { error: 'Unauthorized' }, 401);
-    return true;
-  }
+  // Company finances: admins only, through the same check as every other admin route
+  // (a Firebase admin; in development, the dev-mode key). 401 signed out, 403 non-admin.
+  const auth = await requireAuth(req, res, { requireAdmin: true });
+  if (!auth) return true;
 
   try {
     // GET /api/finops/snapshot

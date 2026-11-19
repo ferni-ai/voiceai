@@ -18,6 +18,7 @@ import { watchCallLoop } from '../shared/loop-watch.js';
 import { watchTimeToFirstWord } from '../shared/time-to-first-word.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
 import { emptyRoomGraceMs } from './empty-room-grace.js';
+import { endRoomWithAgent } from './room-ends-with-agent.js';
 // Work that runs after each call ends (extraction, person model): registered once per process.
 import '../after-call-register.js';
 // The one journal store, for the tools that write it during a call (CALL_JOURNAL).
@@ -30,6 +31,8 @@ import '../voice-agent-entry/future-letter-register.js';
 import '../voice-agent-entry/returning-caller-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
+// A phone caller's family circle, for identifyUser (nobody is in it until this loads).
+import '../voice-agent-entry/family-circle-register.js';
 // Which sessions may hear about the texts Ferni sent them (CALL_KNOWS_RECENT_TEXTS).
 import '../voice-agent-entry/recent-texts-owner-register.js';
 // A caller's own cohort flags for code that runs after their call (config/person-flag.ts).
@@ -117,6 +120,9 @@ const activeJobIds = new Set<string>();
 // Running jobs' contexts, so a LiveKit termination can end the session.
 const runningContexts = new Map<string, JobContext>();
 
+/** The shutdown reason when LiveKit terminates a job (livekit-connection.ts). */
+export const LIVEKIT_TERMINATION = 'livekit_termination';
+
 /** Ends a running job's session (LiveKit terminated it). False if it isn't running here. */
 export function shutdownJob(jobId: string, reason: string): boolean {
   const ctx = runningContexts.get(jobId);
@@ -174,6 +180,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   const closeEvent = new EventEmitter();
   let connected = false;
   let shutdown = false;
+  const ending = { liveKitEnded: false, sessionFailed: false }; // for ROOM_ENDS_WITH_AGENT
   let reconnectCount = 0;
   let lastQuality: string | undefined;
 
@@ -302,6 +309,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   const onShutdown = (reason: string) => {
     shutdown = true;
+    ending.liveKitEnded ||= reason === LIVEKIT_TERMINATION;
     log('Shutdown requested', { jobId, reason });
     closeEvent.emit('close', true, reason);
   };
@@ -337,6 +345,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
         await runFullVoiceAgentEntry(ctx);
       } catch (sessionError) {
         log('Session error', { jobId, error: String(sessionError) });
+        ending.sessionFailed = true;
         throw sessionError;
       } finally {
         clearTimeout(unconnectedTimeout);
@@ -390,6 +399,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     runningContexts.delete(jobId);
     clearTimeout(sessionTimeout);
     if (emptyRoomTimer) clearTimeout(emptyRoomTimer);
+    // ROOM_ENDS_WITH_AGENT, while the agent still sees who is in the room.
+    await endRoomWithAgent(ctx.room, { jobId, roomName: info.job.room?.name, ...ending }, log);
     try {
       if (ctx.room.isConnected) {
         await ctx.room.disconnect();

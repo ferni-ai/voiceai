@@ -682,6 +682,12 @@ function formatTime(isoString: string): string {
 // EVENT SETUP
 // ============================================================================
 
+/** Draw the section again into `container` (the portal's content area) and wire it. */
+async function rerender(container: HTMLElement): Promise<void> {
+  container.innerHTML = await render();
+  setupEvents(container);
+}
+
 /**
  * Set up event listeners for the BTH Validation section
  */
@@ -722,27 +728,21 @@ export function setupEvents(container: HTMLElement): void {
       const res = await fetch('/api/v1/admin/bth/validation/benchmark?run=true', { headers });
       if (res.ok) {
         cachedData = null; // Clear cache
-        const section = container.closest('.admin-section-content');
-        if (section) {
-          section.innerHTML = await render();
-          setupEvents(section as HTMLElement);
-        }
+        await rerender(container);
       }
     } catch (error) {
       log.error({ error: String(error) }, 'Benchmark failed');
     }
   });
 
-  container.querySelector('[data-action="refresh-telemetry"]')?.addEventListener('click', async () => {
-    log.info('Refreshing telemetry...');
-    cachedData = null;
-    currentTab = 'telemetry';
-    const section = container.closest('.admin-section-content');
-    if (section) {
-      section.innerHTML = await render();
-      setupEvents(section as HTMLElement);
-    }
-  });
+  container
+    .querySelector('[data-action="refresh-telemetry"]')
+    ?.addEventListener('click', async () => {
+      log.info('Refreshing telemetry...');
+      cachedData = null;
+      currentTab = 'telemetry';
+      await rerender(container);
+    });
 
   container.querySelector('[data-action="export-report"]')?.addEventListener('click', async () => {
     log.info('Exporting report...');

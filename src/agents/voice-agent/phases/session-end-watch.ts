@@ -104,6 +104,49 @@ function idleCheckInClock(checkIn: IdleCheckIn, idleMs: number) {
 
 const ACTIVITY_EVENTS = ['dataReceived', 'participantConnected', 'trackSubscribed'] as const;
 
+/** How long the call has gone without a sign of life; stop() removes the listeners. */
+export interface CallActivity {
+  quietMs: () => number;
+  /** The same, not counting the agent's own voice (IDLE_END_CHECKIN). */
+  callerQuietMs: () => number;
+  stop: () => void;
+}
+
+/**
+ * The idle clock's signs of life, for both call paths: someone speaking (LiveKit active
+ * speakers, which covers the caller and the agent), a data message, a participant or track
+ * arriving. The clock starts now.
+ */
+export function watchCallActivity(
+  room: Pick<WatchedRoom, 'on' | 'off' | 'localParticipant'>
+): CallActivity {
+  let lastActivityMs = Date.now();
+  let lastCallerMs = lastActivityMs;
+  const touch = (): void => {
+    lastActivityMs = Date.now();
+    lastCallerMs = lastActivityMs;
+  };
+  const agentVoice = (speaker: unknown): boolean => {
+    const self = room.localParticipant?.identity;
+    return self !== undefined && (speaker as { identity?: unknown } | null)?.identity === self;
+  };
+  const onSpeakers = (speakers: unknown): void => {
+    if (!Array.isArray(speakers) || speakers.length === 0) return;
+    lastActivityMs = Date.now();
+    if (!speakers.every(agentVoice)) lastCallerMs = lastActivityMs;
+  };
+  room.on('activeSpeakersChanged', onSpeakers);
+  for (const event of ACTIVITY_EVENTS) room.on(event, touch);
+  return {
+    quietMs: () => Date.now() - lastActivityMs,
+    callerQuietMs: () => Date.now() - lastCallerMs,
+    stop: () => {
+      room.off('activeSpeakersChanged', onSpeakers);
+      for (const event of ACTIVITY_EVENTS) room.off(event, touch);
+    },
+  };
+}
+
 /** Resolves with why the call ended: room.disconnected or room.closed, room.!isConnected, caller_left, empty_room, idle or max_duration (or options.maxReason). */
 export function waitForSessionEnd(
   room: WatchedRoom,
@@ -116,23 +159,7 @@ export function waitForSessionEnd(
   return new Promise<string>((resolve) => {
     let settled = false;
     let emptySinceMs: number | null = null;
-    let lastActivityMs = Date.now();
-    /** Activity that isn't the agent's own voice (IDLE_END_CHECKIN). */
-    let lastCallerMs = lastActivityMs;
-
-    const touch = (): void => {
-      lastActivityMs = Date.now();
-      lastCallerMs = lastActivityMs;
-    };
-    const agentVoice = (speaker: unknown): boolean => {
-      const self = room.localParticipant?.identity;
-      return self !== undefined && (speaker as { identity?: unknown } | null)?.identity === self;
-    };
-    const onSpeakers = (speakers: unknown): void => {
-      if (!Array.isArray(speakers) || speakers.length === 0) return;
-      lastActivityMs = Date.now();
-      if (!speakers.every(agentVoice)) lastCallerMs = lastActivityMs;
-    };
+    const activity = watchCallActivity(room);
     const lost = (reason: string): string => (emptySinceMs === null ? reason : 'caller_left');
     const onDisconnected = (reason?: unknown): void =>
       finish(lost(roomDisconnectEndReason(reason)));
@@ -147,15 +174,12 @@ export function waitForSessionEnd(
       clearTimeout(cap);
       room.off('disconnected', onDisconnected);
       room.off('participantDisconnected', onParticipantLeft);
-      room.off('activeSpeakersChanged', onSpeakers);
-      for (const event of ACTIVITY_EVENTS) room.off(event, touch);
+      activity.stop();
       resolve(reason);
     };
 
     room.on('disconnected', onDisconnected);
     room.on('participantDisconnected', onParticipantLeft);
-    room.on('activeSpeakersChanged', onSpeakers);
-    for (const event of ACTIVITY_EVENTS) room.on(event, touch);
 
     const checkIn = options.idleCheckIn && idleCheckInClock(options.idleCheckIn, idleMs);
 
@@ -167,9 +191,11 @@ export function waitForSessionEnd(
       } else {
         emptySinceMs = null;
       }
-      const step = checkIn?.(Date.now(), lastActivityMs, lastCallerMs) ?? 'pass';
+      const now = Date.now();
+      const step =
+        checkIn?.(now, now - activity.quietMs(), now - activity.callerQuietMs()) ?? 'pass';
       if (step === 'end') return finish('idle');
-      if (step === 'pass' && Date.now() - lastActivityMs >= idleMs) finish('idle');
+      if (step === 'pass' && activity.quietMs() >= idleMs) finish('idle');
     }, options.pollMs ?? 1_000);
 
     const cap = setTimeout(() => finish(options.maxReason ?? 'max_duration'), maxMs);

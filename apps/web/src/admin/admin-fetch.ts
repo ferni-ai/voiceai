@@ -25,9 +25,8 @@ export async function adminFetch(url: string, options: RequestInit = {}): Promis
 }
 
 /**
- * Admin key for the FinOps routes, which accept only the server's ADMIN_KEY
- * (they do not read the Firebase token). An admin can store it in localStorage;
- * under `vite dev` the dev-mode key is used.
+ * The admin key saved in this browser, or the dev-mode key under `vite dev`. Only the
+ * portal's access gate reads it (admin-access.ts); no admin request sends it.
  */
 export function getStoredAdminKey(): string {
   try {
@@ -37,17 +36,4 @@ export function getStoredAdminKey(): string {
     // Storage blocked: fall through to the dev-mode key
   }
   return import.meta.env.DEV ? 'dev-mode' : '';
-}
-
-/**
- * Fetch a FinOps route with the admin's Firebase token and, when one is
- * stored, the admin key in the X-Admin-Key header (never in the URL, where it
- * would land in access logs).
- */
-export async function finopsFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const key = getStoredAdminKey();
-  return adminFetch(url, {
-    ...options,
-    headers: { ...(key ? { 'X-Admin-Key': key } : {}), ...options.headers },
-  });
 }

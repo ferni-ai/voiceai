@@ -754,23 +754,18 @@ async function getConfig(ctx: RequestContext): Promise<ResponseContext> {
 // ROUTER
 // ============================================================================
 
-/**
- * Routes support both /subscription/* and /api/subscription/* for flexibility
- * Frontend uses /subscription/*, firebase rewrites use /subscription/**
- */
-/**
- * GET /api/subscription/metrics
- * Get subscription metrics for admin dashboard
- */
-async function getMetrics(_ctx: RequestContext): Promise<ResponseContext> {
+/** GET /api/subscription/metrics: revenue and subscriber totals for the admin dashboard, admins only. */
+async function getMetrics(ctx: RequestContext): Promise<ResponseContext> {
+  if (ctx.isAdmin !== true) {
+    const status = ctx.authUserId === undefined ? 401 : 403;
+    const error = status === 401 ? 'Authentication required' : 'Admin access required';
+    return { status, headers: { 'Content-Type': 'application/json' }, body: { error } };
+  }
   const metrics = await getMetricsForApi();
-  return {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: metrics,
-  };
+  return { status: 200, headers: { 'Content-Type': 'application/json' }, body: metrics };
 }
 
+/** Routes answer on both /subscription/* and /api/subscription/* (firebase rewrites use /subscription/**). */
 const routes: Record<string, Record<string, RouteHandler>> = {
   GET: {
     // With /api prefix (for API consistency)

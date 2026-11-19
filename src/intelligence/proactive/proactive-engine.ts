@@ -282,7 +282,7 @@ function checkLateNightTrigger(
   context: ContextWindow,
   moment: SurfaceMoment
 ): ProactiveIntelligenceInsight | null {
-  if (!context.immediate.isLateNight) return null;
+  if (!context.immediate.isLateNight || context.immediate.hour === undefined) return null;
   if (moment !== 'session_start') return null;
 
   const hour = context.immediate.hour;
