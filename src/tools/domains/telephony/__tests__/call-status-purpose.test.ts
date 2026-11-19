@@ -50,6 +50,7 @@ import { setCallRecallPort } from '../call-status-tool.js';
 import { installCallRecallPort } from '../../../../services/outreach/call-recall.js';
 import { purposeWords } from '../../../../services/outreach/call-purpose.js';
 import { getHonestyInjection } from '../../../../intelligence/context-builders/safety/honesty-guardrail.js';
+import { noteLiveSession } from '../../../registry/live-session.js';
 
 const OWNER = 'u7Qm2Zp9LkX4vN1sB8cRw3Ty'; // synthetic
 const ASKED = Date.parse('2026-10-29T18:00:00Z');
@@ -101,6 +102,7 @@ function liveCall(owner: (() => boolean) | null = () => true) {
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
   const ctx: ToolContext = { userId: OWNER, agentId: 'ferni', agentDisplayName: 'Ferni' };
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   outreachConfirmListeners(session, owner ?? undefined);
   return {
     tool: (): ToolShape => registry.get('callStatus')!.create(ctx),

@@ -16,6 +16,7 @@ import {
   outreachConfirmListeners,
   withOutreachConfirmation,
 } from '../outreach-confirm.js';
+import { noteLiveSession } from '../../../../registry/live-session.js';
 
 const TO_MIKE = ['mike'];
 const OWNER = ['seth'];
@@ -76,6 +77,7 @@ describe('the gate: a yes naming someone else sends nothing', () => {
       prepare: async (args) => ({ args, readBack: 'a call to Mike at 555-0142' }),
     }).create({ userId: 'user-1', agentId: 'ferni', agentDisplayName: 'Ferni' });
     const session = { agentState: 'listening' };
+    noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
     const listeners = outreachConfirmListeners(session, () => true);
     const call = async (callId: string) => {
       const run = { ctx: { session, userData }, toolCallId: callId };

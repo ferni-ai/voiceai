@@ -56,6 +56,7 @@ import {
   targetOf,
 } from '../../communication/outreach/outreach-confirm-family.js';
 import { getTelephonyToolDefinitions } from '../index.js';
+import { noteLiveSession } from '../../../registry/live-session.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
 // What the model passed at 14:03:25, and what it passed to callAndConverse after the yes.
@@ -77,6 +78,7 @@ function liveCall(userId = 'user-1') {
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
   registry.register(makePhoneCallDef);
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   let owner = true;
   const notes: string[] = [];
   const listeners = outreachConfirmListeners(

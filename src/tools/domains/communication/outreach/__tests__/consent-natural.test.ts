@@ -34,7 +34,7 @@ import {
 } from '../../../../../services/safety/crisis-call-risk.js';
 import { VAD_START_LAG_MS } from '../../../../../config/vad-timing.js';
 import { setConsentAsk, type ConsentAsk } from '../consent-judge.js';
-import { CRISIS_READ_WAIT_MS, HELD_REPLY, PENDING_REPLY } from '../consent-send.js';
+import { HELD_REPLY } from '../consent-send.js';
 import { setReadBackAsk } from '../consent-readback.js';
 import { pendingFor, PLANNED } from '../outreach-confirm.js';
 import {
@@ -624,6 +624,7 @@ describe("7. the call's crisis state: risk the safety kernel noted on this call 
     readInFlight(call.sessionId, words, risk, ms);
     return { call, reply: await call.call('c2') };
   }
+  const PAST_READ_WAIT_MS = 1700; // past consent-send's 1.5 s CRISIS_READ_WAIT_MS
   const WORDS = [
     ['the yes turn', 'Yes, call him.'],
     ['an earlier turn', 'It was a long week.'],
@@ -645,12 +646,8 @@ describe("7. the call's crisis state: risk the safety kernel noted on this call 
   });
 
   it('a read still in flight at the bound holds this attempt only; one after it settles clean places', async () => {
-    const { call, reply } = await sendWhileRead(
-      'Yes, call him.',
-      'none',
-      CRISIS_READ_WAIT_MS + 200
-    );
-    expect(reply).toBe(PENDING_REPLY);
+    const { call, reply } = await sendWhileRead('Yes, call him.', 'none', PAST_READ_WAIT_MS);
+    expect(reply).toBe('Nothing was sent yet; ask me again in a moment.');
     expect(sends.length).toBe(0);
     await new Promise((resolve) => {
       setTimeout(resolve, 300);

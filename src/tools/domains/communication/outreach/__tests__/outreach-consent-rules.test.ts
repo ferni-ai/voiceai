@@ -54,6 +54,7 @@ import type { ToolContext } from '../../../../registry/types.js';
 import { getOutreachToolDefinitions } from '../index.js';
 import { outreachConfirmListeners } from '../outreach-confirm.js';
 import { registerMessagingConsent } from '../../../../../services/messaging/consent.js';
+import { noteLiveSession } from '../../../../registry/live-session.js';
 
 const PAT = '+12025550177';
 const ctx: ToolContext = { userId: 'owner-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -63,6 +64,7 @@ const consentDoc = () =>
 /** The model asks, the owner says yes, the model asks again: the confirmed send. */
 async function confirmedReachOut(args: Record<string, unknown>): Promise<string> {
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session);
   const def = getOutreachToolDefinitions().find((d) => d.id === 'reachOut');
   const run = async (callId: string) => {

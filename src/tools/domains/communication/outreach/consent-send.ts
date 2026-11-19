@@ -20,10 +20,10 @@ export const HELD_REPLY =
   "Nothing was sent. Don't read it back, offer it or try it again on this call.";
 
 /** What a send held for a crisis read still in flight returns: this attempt only. */
-export const PENDING_REPLY = 'Nothing was sent yet; ask me again in a moment.';
+const PENDING_REPLY = 'Nothing was sent yet; ask me again in a moment.';
 
 /** How long a send waits for the call's crisis reads in flight to settle before holding it. */
-export const CRISIS_READ_WAIT_MS = 1500;
+const CRISIS_READ_WAIT_MS = 1500;
 const READ_POLL_MS = 50;
 
 /** CALL_CONSENT_NATURAL: a crisis line was heard on this call: any read-back waiting or just
