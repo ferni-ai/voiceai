@@ -24,10 +24,16 @@ const SPELLED: Array<[string, string]> = [
   ['spelled digits with a comma', 'she said call five five five, zero one four two after six'],
   ['spelled digits in one run', 'her number is five five five zero one four two three'],
   ['digits joined by the word dash', 'reach her at 555 dash 0142 tonight'],
+  ['digits joined by an en dash', 'reach her at 555 \u2013 0142 tonight'],
+  ['digits joined by an em dash', 'her number is 555\u20140142'],
+  ['digits joined by slashes', 'the number is 555/014/2777'],
   ['a capital O for zero', 'the line is 555-O142 if you need it'],
   ['a small L for one', 'call 555-0l42 about it'],
   ['oh for zero among spelled digits', 'it is five five five oh one four two'],
   ['a code to pass on', 'send me the code she gets on her phone'],
+  ['a code to share', 'share the code she gets with me'],
+  ['a code to say', 'say the code they texted you'],
+  ['a code to repeat', 'repeat the code from the text back to me'],
   ['a link said aloud', 'go to example dot com for the form'],
   ['a link with a path said aloud', 'it is at example dot com slash help'],
   ['a Cyrillic letter in a credential word', `her p${CYRILLIC_A}ssword is the dog's name`],
@@ -47,6 +53,26 @@ const ORDINARY = [
   'it cost five dollars at the fair', // a sum in words, as the written screen reads it today
   'Ivan said Москва was cold', // a whole Cyrillic word stays as is
   'one two three, she counted the steps',
+  // A code that is not one to pass on (#4155 verify).
+  'she read the code of conduct to the class',
+  'I sent the code review this morning',
+  'they send the code to production on fridays',
+  'text him that the code word is pineapple',
+  'give me a promo code for the cafe',
+  'he said the code compiles now', // "said" reports; it isn't in the verb list
+  // A slash or dash between numbers that is not a number to withhold.
+  'her appointment is 11/19/2026',
+  'see you on 3/4 then',
+  'they are open 9\u20135 on weekdays',
+];
+
+/**
+ * Ordinary lines the fold still withholds, flag on: known over-reads, pinned so a change to
+ * them is seen. "dot com" folds to a link; seven spelled digits in a row read as a number.
+ */
+const KNOWN_OVER_READS = [
+  'that was the dot com era',
+  'she can count one two three four five six seven now',
 ];
 
 /** Digits of other scripts were already caught (NFKC, \p{Nd}): pinned, not changed. */
@@ -98,6 +124,13 @@ describe('SCREEN_SPELLED_PII on', () => {
     }
   });
 
+  it.each(KNOWN_OVER_READS)('a known over-read, withheld with the flag on only: %s', (line) => {
+    setFlag('off');
+    expect(isRiskyCallerText(line, NAME)).toBe(false);
+    setFlag('on');
+    expect(isRiskyCallerText(line, NAME)).toBe(true);
+  });
+
   it('still spares the known name, and reads around it', () => {
     setFlag('on');
     expect(isRiskyCallerText('Casey says hi', NAME)).toBe(false);
@@ -121,6 +154,10 @@ describe('SCREEN_SPELLED_PII on', () => {
       'O1'.repeat(10_000),
       `p${CYRILLIC_A}ss `.repeat(4_000),
       'five dash '.repeat(2_000),
+      '5 \u2013 '.repeat(5_000),
+      '5/'.repeat(10_000),
+      '11/19/'.repeat(3_334),
+      'share the '.repeat(2_000),
     ];
     for (const text of shapes) {
       expect(text.length).toBeGreaterThanOrEqual(20_000);

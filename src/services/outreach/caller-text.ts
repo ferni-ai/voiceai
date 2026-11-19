@@ -212,10 +212,12 @@ function readsRisky(
 
 /**
  * A request to pass on a code ("send me the code she gets"), one sentence and 30 characters
- * at most apart. A dress, zip or area code is not one.
+ * at most apart. A dress, zip, area or promo code is not one, nor a code of conduct, a code
+ * review, a code word or code sent to production. "Said" is left out: it mostly reports
+ * ("he said the code compiles") rather than asks.
  */
 const RELAYED_CODE =
-  /\b(?:send|sends|sent|sending|give|gives|gave|giving|read|reads|reading|tell|tells|told|telling|forward|forwards|forwarded|forwarding|text|texts|texted|texting)\b[^.?!]{0,30}(?<!\b(?:dress|zip|postal|post|area|source|morse|colou?r|country|bar)\s)\bcodes?\b/i;
+  /\b(?:send|sends|sent|sending|give|gives|gave|giving|read|reads|reading|tell|tells|told|telling|forward|forwards|forwarded|forwarding|text|texts|texted|texting|share|shares|shared|sharing|say|says|saying|repeat|repeats|repeated|repeating)\b[^.?!]{0,30}(?<!\b(?:dress|zip|postal|post|area|source|morse|colou?r|country|bar|promo|discount|coupon)\s)\bcodes?\b(?!\s+(?:of\s+(?:conduct|ethics|honou?r)|reviews?|words?|names?|base|to\s+prod(?:uction)?)\b)/i;
 
 /** SCREEN_SPELLED_PII: the rules read over the folded text. */
 const SPELLED_RISKY: readonly RegExp[] = [...RISKY, RELAYED_CODE];
@@ -284,20 +286,35 @@ function wordDigits(word: string): { digits: string; spelled: boolean } | undefi
   return { digits: word.replace(/[Oo]/g, '0').replace(/[Il]/g, '1'), spelled: false };
 }
 
+/** A run written as a date ("11/19/2026", "3/4"): a slash-joined run kept as written. */
+function slashDate(digits: readonly string[], held: readonly string[]): boolean {
+  if (!held.some((part) => part.includes('/'))) return false;
+  const [month, day, year, ...rest] = digits.map((d) => d.length);
+  return (
+    rest.length === 0 &&
+    month <= 2 &&
+    day !== undefined &&
+    day <= 2 &&
+    (year === undefined || year === 2 || year === 4)
+  );
+}
+
 /**
- * Each run of digit words and digits, apart by at most three of space, comma, dot, bracket or
- * dash (or the word "dash"), becomes its digits, so RISKY's seven-digit rule decides. A lone
- * spelled digit ("call me at five", "two kids") stays a word. Linear: one pass over the words.
+ * Each run of digit words and digits, apart by at most three of space, comma, dot, bracket,
+ * slash, hyphen or en/em dash (or the word "dash"), becomes its digits, so RISKY's seven-digit
+ * rule decides. A lone spelled digit ("call me at five", "two kids") and a slashed date stay as
+ * written. Linear: one pass over the words.
  */
 function foldDigitRuns(text: string): string {
-  const parts = text.split(/([\s,().-]+)/u);
+  const parts = text.split(/([\s,().\-\u2013\u2014/]+)/u);
   const out: string[] = [];
   let digits: string[] = [];
   let held: string[] = []; // the run's own words and inner separators, as written
   let tail: string[] = []; // separators and "dash" since the run's last digit word
   let spelled = true;
   const close = (): void => {
-    out.push(digits.length >= 2 || !spelled ? digits.join('') : held.join(''), ...tail);
+    const keep = (spelled && digits.length < 2) || slashDate(digits, held);
+    out.push(keep ? held.join('') : digits.join(''), ...tail);
     [digits, held, tail, spelled] = [[], [], [], true];
   };
   parts.forEach((part, i) => {
