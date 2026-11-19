@@ -42,6 +42,7 @@ observability/
 ├── # Cost & Infrastructure
 ├── cost-tracking.ts       # API cost tracking
 ├── finops.ts              # Financial operations metrics
+├── finops-settings/       # Saved FinOps figures + thresholds (Firestore finops_settings/current)
 ├── resilience-metrics.ts  # Workers, queues, circuits
 ├── cache-monitoring.ts    # Cache hit/miss metrics
 ├── firestore-monitor.ts   # Firestore read/write monitoring
