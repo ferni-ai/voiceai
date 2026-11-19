@@ -31,6 +31,7 @@ import {
   noteCrisisRisk,
   resetCrisisCallRisk,
 } from '../../../../../services/safety/crisis-call-risk.js';
+import { VAD_START_LAG_MS } from '../../../../../config/vad-timing.js';
 import { setConsentAsk, type ConsentAsk } from '../consent-judge.js';
 import { setReadBackAsk } from '../consent-readback.js';
 import { pendingFor, PLANNED } from '../outreach-confirm.js';
@@ -113,12 +114,13 @@ describe('1. spoken, not stored: only words begun after the read-back started pl
   it('words begun before the read-back played, landing during it, are ignored too', async () => {
     natural(true);
     const call = await readBack(undefined, false);
-    call.ownerStarts(); // the owner is still finishing their request
-    call.speaks(); // the read-back starts playing
+    const t = Date.now();
+    call.ownerStarts(t - 500); // the owner is still finishing their request
+    call.speaks(t); // the read-back starts playing
     call.ownerOver('Actually, maybe tomorrow.');
     expect(pendingFor(call.session)).toBeDefined();
     call.ferni(READ_BACK);
-    call.ownerStarts();
+    call.ownerStarts(t + 3000); // after the read-back: "Should I go ahead?"
     call.owner('Yes, call him.');
     expect(await placed(call)).toBe(1);
   });
@@ -149,21 +151,23 @@ describe('1. spoken, not stored: only words begun after the read-back started pl
     expect(await placed(call)).toBe(0);
   });
 
-  it("a user_state delivered late is stamped by when it began: a yes begun before isn't heard", async () => {
-    /** The owner began at `began`; the read-back started at t+1000; the event lands after both. */
-    const late = async (began: number) => {
+  it("a yes whose VAD fired just after the read-back started, but begun before it, isn't heard", async () => {
+    // LiveKit stamps user_state_changed when the VAD fires (createdAt = arrival), up to
+    // VAD_START_LAG_MS after the words began: a stamp within that of the read-back start
+    // could have begun before it, so it is never counted (fail closed).
+    const firedAfter = async (ms: number) => {
       natural(true);
-      const t = Date.now();
       const call = await readBack(undefined, false);
-      call.speaks(t + 1000);
-      call.ownerStarts(t + began);
+      const t = Date.now();
+      call.speaks(t);
       call.ferni(READ_BACK);
+      call.ownerStarts(t + ms);
       call.owner('Yes.');
       return placed(call);
     };
-    expect(await late(500)).toBe(0);
+    expect(await firedAfter(VAD_START_LAG_MS - 40)).toBe(0);
     sends.length = 0;
-    expect(await late(1500)).toBe(1); // begun after the read-back started: heard
+    expect(await firedAfter(VAD_START_LAG_MS + 300)).toBe(1); // began after the read-back: heard
   });
 });
 

@@ -26,6 +26,7 @@
 
 import { isDeepStrictEqual } from 'node:util';
 import { flagOn } from '../../../../config/env-flag.js';
+import { VAD_START_LAG_MS } from '../../../../config/vad-timing.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
@@ -319,7 +320,7 @@ export function outreachConfirmListeners(
     onUserState: (event: unknown) => {
       if ((event as { newState?: string })?.newState !== 'speaking') return;
       const entry = logFor(session);
-      const at = createdAt(event);
+      const at = createdAt(event) - VAD_START_LAG_MS; // stamped when the VAD fired (vad-timing.ts)
       const after = (entry.startedAt ?? []).filter((t) => t > at).length;
       entry.ownerStart = (entry.ferniStarts ?? 0) - after;
     },
