@@ -480,46 +480,56 @@ describe('E2E: Persona-Specific Transitions', () => {
 describe('E2E: Relationship Stage Influence', () => {
   const stages = ['stranger', 'acquaintance', 'friend', 'close_friend'] as const;
 
+  // Seeded (#3889): unseeded, 20 draws at a true stranger rate of 0.7 fell under the
+  // old 0.4 bound about once in 770 runs. Each trial's roll is a point on an even grid,
+  // (i + 0.5) / 20, and every later draw (phrase picks) is 0, so the counts are exact:
+  // roll < 0.6 is silence for everyone, 0.6-0.9 is presence, and the top 10% is silence
+  // for a stranger or acquaintance but a check-in for a friend.
   it('should be more cautious with strangers', () => {
-    const silenceRates: Record<string, number> = {};
+    const silenceCounts: Record<string, number> = {};
+    const trials = 20;
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
 
-    for (const stage of stages) {
-      let silenceCount = 0;
-      const trials = 20;
+    try {
+      for (const stage of stages) {
+        let silenceCount = 0;
 
-      for (let i = 0; i < trials; i++) {
-        startMusicContext(
-          TEST_SESSION_ID,
-          createTestContext({
-            startReason: 'emotional_processing',
-            emotionalTone: 'heavy',
+        for (let i = 0; i < trials; i++) {
+          startMusicContext(
+            TEST_SESSION_ID,
+            createTestContext({
+              startReason: 'emotional_processing',
+              emotionalTone: 'heavy',
+              relationshipStage: stage,
+            })
+          );
+          const musicContext = endMusicContext(TEST_SESSION_ID);
+
+          random.mockReturnValueOnce((i + 0.5) / trials);
+          const transition = getMusicTransition({
+            musicContext,
+            personaId: 'ferni',
             relationshipStage: stage,
-          })
-        );
-        const musicContext = endMusicContext(TEST_SESSION_ID);
+            userId: `${TEST_USER_ID}-${stage}-${i}`,
+            sessionId: `${TEST_SESSION_ID}-${stage}-${i}`,
+            enableEnhancements: false, // Disable learning for consistent results
+          });
 
-        const transition = getMusicTransition({
-          musicContext,
-          personaId: 'ferni',
-          relationshipStage: stage,
-          userId: `${TEST_USER_ID}-${stage}-${i}`,
-          sessionId: `${TEST_SESSION_ID}-${stage}-${i}`,
-          enableEnhancements: false, // Disable learning for consistent results
-        });
+          if (transition.transitionType === 'silence') {
+            silenceCount++;
+          }
 
-        if (transition.transitionType === 'silence') {
-          silenceCount++;
+          clearMusicContext(TEST_SESSION_ID);
         }
 
-        clearMusicContext(TEST_SESSION_ID);
+        silenceCounts[stage] = silenceCount;
       }
-
-      silenceRates[stage] = silenceCount / trials;
+    } finally {
+      random.mockRestore();
     }
 
-    // Strangers should have high silence rate in emotional moments
-    // (at least higher than close friends on average)
-    expect(silenceRates['stranger']).toBeGreaterThanOrEqual(0.4);
+    expect(silenceCounts).toEqual({ stranger: 14, acquaintance: 14, friend: 12, close_friend: 12 });
+    expect(silenceCounts['stranger']).toBeGreaterThan(silenceCounts['close_friend']);
   });
 });
 
