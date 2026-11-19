@@ -10,7 +10,6 @@
 import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import {
-  ICON_EXTERNAL,
   ICON_FLAGS,
   ICON_HEALTH,
   ICON_AGENTS,
@@ -33,6 +32,14 @@ interface ApiEndpoint {
   auth?: 'none' | 'user' | 'admin';
 }
 
+/** Reads the quick requests send: the trust summary is the caller's own (the route takes the uid from the token). */
+const QUICK_REQUESTS: { label: string; icon: string; path: string }[] = [
+  { label: 'Feature Flags API', icon: ICON_FLAGS, path: '/api/v1/admin/flags' },
+  { label: 'Health Check', icon: ICON_HEALTH, path: '/health' },
+  { label: 'Agents API', icon: ICON_AGENTS, path: '/api/agents' },
+  { label: 'Trust API', icon: ICON_TRUST, path: '/api/trust-journey/summary' },
+];
+
 interface ApiCategory {
   name: string;
   icon: string;
@@ -49,29 +56,14 @@ export function render(): string {
 
   return `
     <div class="api-docs-section">
-      <!-- Quick Links -->
+      <!-- Quick Requests: each fills the tester and sends with the admin's sign-in -->
       <div class="admin-card api-quick-links">
         <h2 class="admin-section-title">
-          <span class="admin-icon">${iconSm(ICON_EXTERNAL)}</span>
-          Quick Links
+          <span class="admin-icon">${iconSm(ICON_SEND)}</span>
+          Quick Requests
         </h2>
         <div class="quick-links-grid">
-          <a href="/api/v1/admin/flags" target="_blank" class="quick-link">
-            <span class="quick-link-icon">${iconSm(ICON_FLAGS)}</span>
-            <span class="quick-link-text">Feature Flags API</span>
-          </a>
-          <a href="/health" target="_blank" class="quick-link">
-            <span class="quick-link-icon">${iconSm(ICON_HEALTH)}</span>
-            <span class="quick-link-text">Health Check</span>
-          </a>
-          <a href="/api/agents" target="_blank" class="quick-link">
-            <span class="quick-link-icon">${iconSm(ICON_AGENTS)}</span>
-            <span class="quick-link-text">Agents API</span>
-          </a>
-          <a href="/api/trust-journey/summary?userId=demo" target="_blank" class="quick-link">
-            <span class="quick-link-icon">${iconSm(ICON_TRUST)}</span>
-            <span class="quick-link-text">Trust API</span>
-          </a>
+          ${QUICK_REQUESTS.map(q => renderQuickRequest(q)).join('')}
         </div>
       </div>
 
@@ -113,7 +105,7 @@ export function render(): string {
             ></textarea>
           </div>
           <div class="tester-response" id="testerResponse">
-            <p class="tester-hint">Click "Send" to make a request</p>
+            <p class="tester-hint">Send makes the request with your admin sign-in, to paths on this site only</p>
           </div>
         </div>
       </div>
@@ -134,6 +126,10 @@ export function render(): string {
 
       .quick-link {
         display: flex;
+        width: 100%;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
@@ -353,6 +349,15 @@ export function render(): string {
   `;
 }
 
+function renderQuickRequest(q: (typeof QUICK_REQUESTS)[number]): string {
+  return `
+    <button type="button" class="quick-link" data-tester-run data-method="GET" data-path="${q.path}">
+      <span class="quick-link-icon">${iconSm(q.icon)}</span>
+      <span class="quick-link-text">${q.label}</span>
+    </button>
+  `;
+}
+
 function renderCategory(category: ApiCategory): string {
   return `
     <div class="admin-card api-category">
@@ -399,7 +404,6 @@ function getApiCategories(): ApiCategory[] {
         { method: 'GET', path: '/api/agents', description: 'List all enabled agents', auth: 'none' },
         { method: 'GET', path: '/api/agents/:id', description: 'Get agent by ID', auth: 'none' },
         { method: 'POST', path: '/api/agents/:id/enable', description: 'Enable/disable agent', auth: 'admin' },
-        { method: 'PUT', path: '/api/agents/:id', description: 'Update agent settings', auth: 'admin' },
         { method: 'POST', path: '/api/team/order', description: 'Update team roster order', auth: 'admin' },
       ],
     },
@@ -420,8 +424,9 @@ function getApiCategories(): ApiCategory[] {
       endpoints: [
         { method: 'GET', path: '/api/trust-journey/summary', description: 'Get trust journey summary', auth: 'user' },
         { method: 'GET', path: '/api/trust/analytics/metrics', description: 'Get trust metrics', auth: 'admin' },
-        { method: 'GET', path: '/api/trust-export/preview', description: 'Preview exportable data', auth: 'user' },
-        { method: 'POST', path: '/api/trust-export/export', description: 'Export trust data', auth: 'user' },
+        { method: 'GET', path: '/api/trust-export', description: 'Export your trust journey (JSON)', auth: 'user' },
+        { method: 'GET', path: '/api/trust-export/csv', description: 'Export your journey timeline (CSV)', auth: 'user' },
+        { method: 'GET', path: '/api/trust-export/summary', description: 'Export a readable journey summary', auth: 'user' },
       ],
     },
     {
