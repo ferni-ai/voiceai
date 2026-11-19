@@ -9,6 +9,19 @@ import { ReadableStream } from 'node:stream/web';
 import { llm, voice } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+/** Every warn the stream repair (and the recorders) log, as [fields, message]. */
+const warned = vi.hoisted(() => [] as unknown[][]);
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
+  const logger = {
+    debug: () => undefined,
+    info: () => undefined,
+    warn: (...args: unknown[]) => warned.push(args),
+    error: () => undefined,
+    child: () => logger,
+  };
+  return { ...actual, createLogger: () => logger };
+});
 vi.mock('../../../conversation/advanced-humanization-integration.js', () => ({
   recordAgentResponse: vi.fn(),
   recordAdviceGiven: vi.fn(),
@@ -118,6 +131,40 @@ describe('finishedReply with STREAM_ERROR_REPAIR', () => {
     expect((await reader.read()).value).toBe(PARTIAL);
     await reader.cancel('barge-in');
     expect(cancel).toHaveBeenCalledWith('barge-in');
+    expect(withoutStreamRepair(call, `${PARTIAL} ${LINE}`)).toBe(`${PARTIAL} ${LINE}`);
+  });
+
+  it('a barge-in while a read is pending, the source rejecting on cancel: no repair, call not marked', async () => {
+    const call = newCall();
+    // A transport reader (not a spec stream): its pending read rejects when the reader is
+    // cancelled, as a socket teardown does, instead of settling as done.
+    let reads = 0;
+    let fail: (error: Error) => void = () => undefined;
+    const source = {
+      getReader: () => ({
+        read: () =>
+          reads++ === 0
+            ? Promise.resolve({ done: false, value: PARTIAL })
+            : new Promise((_resolve, reject) => {
+                fail = reject;
+              }),
+        cancel: async () => fail(new Error('socket closed')), // not an abort
+        releaseLock: () => undefined,
+      }),
+    } as unknown as ReadableStream<ReplyChunk>;
+    const reader = tail(call, source).getReader();
+    expect((await reader.read()).value).toBe(PARTIAL);
+    const pending = reader.read();
+    await vi.waitFor(() => expect(reads).toBe(2)); // the second read is at the transport
+    await reader.cancel('barge-in');
+    await pending.catch(() => undefined);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0); // the tail pull settles after cancel
+    });
+    const ofThisCall = ([fields, message]: unknown[]) =>
+      (fields as { sessionId?: string }).sessionId === call &&
+      String(message).includes('repair line');
+    expect(warned.filter(ofThisCall)).toEqual([]);
     expect(withoutStreamRepair(call, `${PARTIAL} ${LINE}`)).toBe(`${PARTIAL} ${LINE}`);
   });
 
