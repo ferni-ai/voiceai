@@ -151,6 +151,19 @@ describe('buildCascadeKeyterms', () => {
     expect(terms).not.toContain('');
   });
 
+  it("hears Seth's name only while his gate is open (SETH_TEAMMATE)", () => {
+    const open = buildCascadeKeyterms(
+      {},
+      { SETH_TEAMMATE: 'on', ROSTER_VOICE_SETH: 'fake-seth-id' }
+    );
+    const closed = buildCascadeKeyterms({}, { SETH_TEAMMATE: 'off' });
+    expect(open).toContain('Seth');
+    expect(closed).not.toContain('Seth');
+    // Closed, the list is the one every call had before him, slots and all.
+    expect(closed).toEqual(open.filter((t) => t !== 'Seth'));
+    expect(buildCascadeKeyterms({}, { SETH_TEAMMATE: 'on' })).not.toContain('Seth');
+  });
+
   it("stays inside Cartesia's limits (100 terms, 1200 characters)", () => {
     const many = Array.from({ length: 300 }, (_, i) => `term${i}`).join(',');
     const terms = buildCascadeKeyterms({}, { CASCADE_STT_KEYTERMS: many });

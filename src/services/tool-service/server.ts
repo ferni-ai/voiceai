@@ -11,6 +11,7 @@
  */
 
 import '../../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
+import '../../personas/roster/index.js'; // and consented clones' voice ids
 import express from 'express';
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../../tools/registry/index.js';
