@@ -8,6 +8,17 @@
  * shares no word with it.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Every log line any module writes, to check none carries what was forgotten.
+const logged = vi.hoisted(() => [] as unknown[][]);
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
+  const logger: Record<string, unknown> = new Proxy(
+    {},
+    { get: (_t, key) => (key === 'child' ? () => logger : (...a: unknown[]) => logged.push(a)) }
+  );
+  return { ...real, createLogger: () => logger };
+});
 import {
   forgetForCaller,
   type ForgetStore,
@@ -95,6 +106,31 @@ describe('forgetForCaller with related words (FORGET_RELATED_WORDS on)', () => {
     expect(result).toEqual({ kind: 'forgotten', marked: 1 });
     expect(marked(state)).toEqual(['d1', 'd2']); // no Theo fact
     expect(state.topics).toEqual(['Denver job', 'recruiter']);
+  });
+
+  it('logs a too-broad related phrase without its words', async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const theo = Array.from({ length: 6 }, (_, i) => fact(`t${i}`, `theo ${i}`, 'Theo said so'));
+    const { store, state } = memoryStore([offer, recruiter, tomatoes, ...theo]);
+    logged.length = 0;
+    await forgetForCaller(UID, 'the Denver job', store, ['Theo', 'the recruiter']);
+    expect(state.topics).toEqual(['Denver job', 'recruiter']); // Theo was too broad
+    const lines = JSON.stringify(logged);
+    expect(lines).toMatch(/too broad/); // the skip is logged
+    expect(lines).not.toMatch(/theo|recruiter|denver/i);
+  });
+
+  it("fails the forget when a related phrase can't be stored, never claiming it went through", async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const { store, state } = memoryStore([offer, recruiter, tomatoes]);
+    const addTopic = store.addTopic;
+    store.addTopic = async (u, t, asked) => {
+      if (t === 'recruiter') throw new Error('firestore unavailable');
+      return addTopic(u, t, asked);
+    };
+    const result = await forgetForCaller(UID, 'the Denver job', store, ['the recruiter']);
+    expect(result).toEqual({ kind: 'failed' });
+    expect(state.topics).toEqual(['Denver job']);
   });
 
   it(`applies at most ${MAX_RELATED} related phrases`, async () => {

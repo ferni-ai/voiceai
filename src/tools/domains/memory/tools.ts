@@ -15,7 +15,7 @@ import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { keepRemembered, profileForCaller } from '../../../memory/index.js';
 import { memoryToolFlags, updateRemembered } from './honest-memory.js';
-import { forgetMemoryParams } from './forget-memory-params.js';
+import * as forgetTool from './forget-memory-params.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -477,9 +477,10 @@ export const forgetMemoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('forgetMemory'),
-      parameters: forgetMemoryParams, // alsoAbout: related words (FORGET_RELATED_WORDS)
-      execute: async ({ whatToForget, confirmDeletion, alsoAbout }, { ctx: toolCtx }) => {
+      description: forgetTool.description(getToolDescription('forgetMemory')),
+      parameters: forgetTool.parameters(),
+      execute: async ({ whatToForget, confirmDeletion, ...rest }, { ctx: toolCtx }) => {
+        const alsoAbout = forgetTool.alsoAboutOf(rest);
         getLogger().info(
           { agentId: ctx.agentId, confirmDeletion }, // never log what to forget
           'Forgetting memory'

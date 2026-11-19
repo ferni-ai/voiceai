@@ -14,7 +14,6 @@ vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
 }));
 
 import { forgetMemoryDef } from '../tools.js';
-import { forgetMemoryParams } from '../forget-memory-params.js';
 import { getToolDescription } from '../../../utils/tool-descriptions.js';
 
 type Execute = (
@@ -25,7 +24,10 @@ const execute = (_userData: Record<string, unknown>) =>
   (forgetMemoryDef.create({ agentId: 'ferni' } as never) as unknown as { execute: Execute })
     .execute;
 
-afterEach(() => forget.mockClear());
+afterEach(() => {
+  forget.mockClear();
+  delete process.env.FORGET_RELATED_WORDS;
+});
 
 describe('forgetMemory (the live tool)', () => {
   it('forgets the topic in stored memory once the caller confirms', async () => {
@@ -55,9 +57,29 @@ describe('forgetMemory (the live tool)', () => {
       { ctx: { userData } }
     );
     expect(forget).toHaveBeenCalledWith('u-1', 'the Denver job', undefined, alsoAbout);
-    // The model is offered the parameter, and told what belongs in it.
-    expect(forgetMemoryParams.shape.alsoAbout.description).toMatch(/Never general words/);
-    expect(getToolDescription('forgetMemory')).toMatch(/alsoAbout/);
+  });
+
+  // The verifier's ask on fb4737bab1: off (prod), the model must not be told
+  // that words it names are kept out, since nothing applies them.
+  it('offers alsoAbout, and says what it does, only with FORGET_RELATED_WORDS on', () => {
+    const offered = () => {
+      const tool = forgetMemoryDef.create({ agentId: 'ferni' } as never) as unknown as {
+        description: string;
+        parameters: { shape: Record<string, { description?: string }> };
+      };
+      return { description: tool.description, keys: Object.keys(tool.parameters.shape), tool };
+    };
+    const off = offered();
+    expect(off.description).toBe(getToolDescription('forgetMemory')); // main's text
+    expect(off.description).not.toMatch(/alsoAbout|kept out too/);
+    expect(off.keys).toEqual(['whatToForget', 'confirmDeletion']);
+
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const on = offered();
+    expect(on.keys).toEqual(['whatToForget', 'confirmDeletion', 'alsoAbout']);
+    expect(on.description.startsWith(getToolDescription('forgetMemory'))).toBe(true);
+    expect(on.description).toMatch(/In alsoAbout, name the specific people/);
+    expect(on.tool.parameters.shape.alsoAbout?.description).toMatch(/Never general words/);
   });
 
   it('says it deleted the facts only when every one was deleted (FORGET_DELETES on)', async () => {
