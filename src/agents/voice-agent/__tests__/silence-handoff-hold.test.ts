@@ -3,7 +3,9 @@
  * progress (shouldSkipGenerateReply), so Ferni doesn't speak over the handoff. Nothing on main
  * tested it. One row per live caller in the real session-state handler: the long-silence remark
  * and quiet presence's check (LISTEN_FIRST). During the handoff nothing is spoken; once it has
- * completed, the next quiet gets its usual response.
+ * completed, the next quiet gets its usual response. One more row covers the drain half
+ * (isSessionDraining): a quiet that turns "away" inside the 3 s after a handoff completes gets
+ * no remark; the same quiet turning "away" just past it does.
  *
  * Speech is stubbed at safeGenerateReply; fake clock; Riley Test's call, invented lines only.
  */
@@ -26,7 +28,9 @@ import { setupSessionStateHandlers, type SessionStateContext } from '../session-
 
 /** Short, tired turns: quiet presence holds back until its one late check. */
 const TIRED = ['Long day.', 'Yeah.', 'Mm.', 'Still here.'];
-/** Past the 3 s window after a handoff in which the old session is still draining. */
+/** The window after a handoff completes in which the old session is still draining (unified-state.ts). */
+const DRAIN_MS = 3_000;
+/** Past the drain window. */
 const PAST_DRAIN_MS = 5_000;
 
 /** The real session-state handler on Riley Test's quiet call, with one caller in the room. */
@@ -82,7 +86,7 @@ function call() {
     await vi.advanceTimersByTimeAsync(Math.max(0, quietMs - AWAY_MS));
     await vi.dynamicImportSettled();
   };
-  return { sessionId, quietFor, end: () => result.clearTimers() };
+  return { sessionId, userState, quietFor, end: () => result.clearTimers() };
 }
 
 /** Silence responses spoken in a quiet gap during a handoff, then in one after it completed. */
@@ -98,6 +102,28 @@ async function duringThenAfter(quietMs: number): Promise<{ during: number; after
   const after = safeGenerateReply.mock.calls.length;
   c.end();
   return { during, after };
+}
+
+/**
+ * Long-silence remarks when Riley goes quiet during a handoff and the quiet turns "away" (the
+ * moment the handler decides on a remark) `msAfterDone` after the handoff completed.
+ */
+async function remarksWhenAwayLands(msAfterDone: number): Promise<number> {
+  const c = call();
+  safeGenerateReply.mockClear();
+  markHandoffStarted(c.sessionId, 'peter');
+  c.userState('speaking');
+  await vi.advanceTimersByTimeAsync(1_000);
+  c.userState('listening');
+  await vi.advanceTimersByTimeAsync(AWAY_MS - msAfterDone);
+  markHandoffCompleted(c.sessionId, true);
+  await vi.advanceTimersByTimeAsync(msAfterDone);
+  c.userState('away');
+  await vi.advanceTimersByTimeAsync(5_000);
+  await vi.dynamicImportSettled();
+  const remarks = safeGenerateReply.mock.calls.length;
+  c.end();
+  return remarks;
 }
 
 describe('the handoff blocker through the live callers (session-state-handler.ts)', () => {
@@ -123,5 +149,12 @@ describe('the handoff blocker through the live callers (session-state-handler.ts
   it("quiet presence's check (LISTEN_FIRST): none during a handoff, the usual one after it", async () => {
     vi.stubEnv('LISTEN_FIRST', 'on');
     expect(await duringThenAfter(QUIET_WAIT_MS + 1_000)).toEqual({ during: 0, after: 1 });
+  });
+
+  it('the long-silence remark right after a handoff: none while the old session drains, the usual one just past it', async () => {
+    expect({
+      insideDrain: await remarksWhenAwayLands(DRAIN_MS - 500),
+      pastDrain: await remarksWhenAwayLands(DRAIN_MS + 500),
+    }).toEqual({ insideDrain: 0, pastDrain: 1 });
   });
 });
