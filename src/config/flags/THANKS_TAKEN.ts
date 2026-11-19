@@ -5,4 +5,8 @@ export const THANKS_TAKEN = {
   default: 'off',
   owner: 'voice',
   kind: 'experiment',
+  expires: '2027-02-17',
+  issue: 'https://github.com/ferni-ai/voiceai/issues/3877',
+  context:
+    'Keep if a mid-call thank-you is taken in a few words of his own and the story goes on; else delete.',
 } as const satisfies FlagSpec;
