@@ -148,6 +148,8 @@ afterEach(() => {
 });
 
 describe('CRISIS_HOLD_PIPELINE_WRITERS off: as before', () => {
+  beforeEach(() => vi.stubEnv(FLAG, 'off'));
+
   it('a clean turn: the moment is on the profile when the turn is done, and auto-saved', async () => {
     const t = await turn(JOY, read(JOY, 'none'));
     expect(moments(t.profile)).toHaveLength(1);
@@ -248,14 +250,14 @@ describe('CRISIS_HOLD_PIPELINE_WRITERS: never lowers a crisis turn', () => {
   it('on a crisis-guided turn and a held turn, processTurn hands the reply what it does with the flag off', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.42); // the same phrasing picks in both arms
     for (const [name, said, before] of turns) {
+      vi.stubEnv(FLAG, 'off');
+      m = await load();
       const off = reply((await turn(said, before)).result);
       vi.stubEnv(FLAG, 'on');
       m = await load();
       const on = reply((await turn(said, before)).result);
       expect(on, name).toEqual(off);
       expect(on.crisis?.isCrisis ?? false, name).toBe(name === 'crisis-guided');
-      vi.stubEnv(FLAG, 'off');
-      m = await load();
     }
   });
 
