@@ -30,6 +30,7 @@ const HIDDEN_PANELS = [
 /** Controls that exist on one screen size only. */
 const NOT_ON_DESKTOP = ['**/mobile-sheet.spec.ts']; // the phone's pull-down sheet
 const NOT_ON_DESKTOP_TESTS = [/home: "journey" opens and closes cleanly/]; // phone indicator
+const NOT_ON_PHONE = ['**/admin-portal.spec.ts']; // the admin portal is not a phone UI
 
 const projects = base.projects ?? [];
 const project = (name: string) => {
@@ -53,7 +54,7 @@ export default defineConfig({
     },
     {
       ...project('mobile'),
-      testIgnore: HIDDEN_PANEL_SPECS,
+      testIgnore: [...HIDDEN_PANEL_SPECS, ...NOT_ON_PHONE],
       grepInvert: HIDDEN_PANELS,
     },
   ],
