@@ -73,7 +73,7 @@ function numberOwner(topic: string): string {
  * phone number" -> every number in a fact about Theo; "the new phone number"
  * names nobody, so none.
  */
-export function numbersNamedBy(topics: readonly string[], factTexts: readonly string[]): string[] {
+function numbersNamedBy(topics: readonly string[], factTexts: readonly string[]): string[] {
   const out = new Set<string>();
   for (const owner of topics.map(numberOwner).filter(Boolean)) {
     for (const text of factTexts.filter((t) => isForgotten(t, [owner]))) {
