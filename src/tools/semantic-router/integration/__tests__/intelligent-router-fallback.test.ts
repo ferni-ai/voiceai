@@ -23,13 +23,15 @@ import {
   initializeIntelligentRouter,
   startIntelligentRouting,
 } from '../intelligent-router-integration.js';
+import type { RoutingContext } from '../turn-processor-integration.js';
 
-const context = {
-  userId: 'riley-test',
+const context: RoutingContext = {
+  userId: 'user-4116',
   sessionId: 's-4116',
   personaId: 'ferni',
   conversationHistory: [],
   recentTools: [],
+  autoExecuteCheck: null,
 };
 const decision = {
   action: 'conversation',
