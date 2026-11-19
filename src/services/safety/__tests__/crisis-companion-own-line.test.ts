@@ -5,7 +5,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { noteCrisisRisk, resetCrisisCallRisk } from '../crisis-call-risk.js';
+import {
+  crisisConfirmedThisCall,
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+} from '../crisis-call-risk.js';
 import {
   normalizeInput,
   resetCrisisClassifierCache,
@@ -15,6 +19,9 @@ import {
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
 import { companionForRead } from '../crisis-companion-own-line.js';
+import { noteConfirmedRisk, resetConfirmedCallRisk } from '../crisis-confirmed-risk.js';
+import { getCrisisResponse } from '../crisis-guard-replies.js';
+import { SEVERITY } from '../crisis-severity.js';
 
 const CALL = 'riley-test-call';
 const LIVE = { CRISIS_CLASSIFIER_MODE: 'live' };
@@ -33,6 +40,25 @@ const after = (latest: string): CrisisClassifierInput => ({
   companion: SAFETY_REPLY,
 });
 const PUSHBACK = after("what? no, I meant the game, I'm fine");
+
+/** #3465's shapes, in the repo's own words: the 988 script with a direct question, and the imminent script. */
+const SCRIPT_988 = `${getCrisisResponse(SEVERITY.block, 'self', 'en', false)} Are you safe right now?`;
+const SCRIPT_911 = getCrisisResponse(SEVERITY.block, 'self', 'en', true);
+const answering = (latest: string, companion: string): CrisisClassifierInput => ({
+  latest,
+  earlier: [ALARM.latest],
+  companion,
+});
+/**
+ * The model reads an answer with the safety question it answers: a "no" to "are you safe", or a
+ * name (or a "no") to "is anyone nearby". Without the question the same words are nothing.
+ */
+const answers = vi.fn<CrisisGenerateFn>(async (_prompt, content) => {
+  const { latest, companion = '' } = JSON.parse(content) as { latest: string; companion?: string };
+  const safe = /are you safe right now\?/i.test(companion) && /^no\b/i.test(latest);
+  const nearby = /is anyone nearby who can be with you\?/i.test(companion) && latest.length < 30;
+  return verdict(safe || nearby ? 'imminent' : 'none');
+});
 
 const verdict = (risk: string): string => JSON.stringify({ risk, subject: 'self' });
 /** The false alarm: the alarm turn reads imminent, so the call has crisis risk noted. */
@@ -74,7 +100,46 @@ describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE', () => {
   beforeEach(() => {
     resetCrisisClassifierCache();
     resetCrisisCallRisk();
+    resetConfirmedCallRisk();
     model.mockClear();
+    answers.mockClear();
+  });
+
+  // #3465: a turn after one of Ferni's safety questions may be the caller's answer to it. The
+  // question stays in what the read sees, so these keep reading as risk with the flag on.
+  it('#3465: "No. Get me Jordan." after the 988 script\'s "Are you safe right now?" still reads imminent', async () => {
+    await read(ALARM, ON, falseAlarm);
+    expect((await read(answering('No. Get me Jordan.', SCRIPT_988), ON, answers))?.risk).toBe(
+      'imminent'
+    );
+    const companion = String(JSON.parse(String(answers.mock.calls.at(-1)?.[1])).companion);
+    expect(companion).toMatch(/Are you safe right now\?$/);
+    expect(companion).not.toMatch(/988/);
+  });
+
+  it('#3465: a bare name after the imminent script\'s "Is anyone nearby who can be with you?" still reads imminent', async () => {
+    await read(ALARM, ON, falseAlarm);
+    for (const name of ['Jordan.', 'Maya please', 'no, nobody']) {
+      resetCrisisClassifierCache();
+      expect((await read(answering(name, SCRIPT_911), ON, answers))?.risk, name).toBe('imminent');
+      const companion = String(JSON.parse(String(answers.mock.calls.at(-1)?.[1])).companion);
+      expect(companion).toMatch(/Is anyone nearby who can be with you\?$/);
+      expect(companion).not.toMatch(/911|988/);
+    }
+  });
+
+  // The owner's 11-14 rule: once a crisis is confirmed, crisis turns go on for the call. The flag
+  // changes only a call whose risk is one unconfirmed classifier read.
+  it("once risk is confirmed, every read sees Ferni's line whole, whatever CRISIS_CONFIRMED_CALL_RISK", async () => {
+    for (const mode of ['off', 'shadow', 'on']) {
+      resetCrisisClassifierCache();
+      resetCrisisCallRisk();
+      await read(ALARM, ON, falseAlarm);
+      noteConfirmedRisk(CALL, { CRISIS_CONFIRMED_CALL_RISK: mode });
+      expect(crisisConfirmedThisCall(CALL), mode).toBe(true);
+      expect((await read(PUSHBACK, ON, model))?.risk, mode).toBe('imminent');
+      expect(shown().companion, mode).toBe(SAFETY_REPLY);
+    }
   });
 
   it('a lock replay: the pushback after an alarm reads imminent with the flag off, none with it on', async () => {
@@ -128,6 +193,21 @@ describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE', () => {
       await afterAlarm(PUSHBACK, off);
       expect(model.mock.calls.at(-1)?.[1]).toBe(JSON.stringify(normalizeInput(PUSHBACK)));
     }
+  });
+
+  it("a read shown less is never shared with another call that sees Ferni's line whole", async () => {
+    await afterAlarm(PUSHBACK, ON); // this call's read: shown the question only
+    model.mockClear();
+    // Another call, same words, nothing noted: its own run, shown the whole line.
+    const other = startCrisisClassifier(PUSHBACK, {
+      pattern: 'none',
+      generate: model,
+      env: ON,
+      call: 'riley-test-other-call',
+    })?.verdict;
+    expect((await other)?.risk).toBe('imminent');
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(shown().companion).toBe(SAFETY_REPLY);
   });
 
   it("the turn's reads keep their keys: the read is found by the caller's own input", async () => {

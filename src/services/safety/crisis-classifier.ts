@@ -409,6 +409,10 @@ export function startCrisisClassifier(
   const { call, pattern, secondRead } = options;
   const lines = [normalized.latest, ...normalized.earlier];
   const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
+  // CRISIS_COMPANION_EXCLUDES_OWN_LINE: what the model is shown. A shared run is keyed on it too,
+  // so a read shown less is never another call's read; the turn's own reads keep the input.
+  const companion = companionForRead(input.companion, options.call, env);
+  const shown = companion === input.companion ? input : { ...input, companion };
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
@@ -417,6 +421,7 @@ export function startCrisisClassifier(
     waitMs,
     second.key,
     ...agreementCacheScope(env, options.call),
+    ...(shown === input ? [] : [normalizeInput(shown).companion ?? '']),
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
@@ -430,9 +435,6 @@ export function startCrisisClassifier(
 
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
-  // CRISIS_COMPANION_EXCLUDES_OWN_LINE: what the model is shown; the keys above keep the input.
-  const companion = companionForRead(input.companion, options.call, env);
-  const shown = companion === input.companion ? input : { ...input, companion };
   const read = (p: string): Promise<CrisisVerdict | null> =>
     classifyCrisis(shown, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
