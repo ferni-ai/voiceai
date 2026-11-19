@@ -35,6 +35,7 @@
  */
 import type { llm } from '@livekit/agents';
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { ledgerRead } from './attune-ledger.js';
@@ -193,16 +194,20 @@ function confident(voice: VoiceCue | undefined): VoiceCue | undefined {
  * until a turn that isn't low), their short answers or a flat voice. The voice
  * only ever breaks a tie with neutral; it never overrides what they said.
  * With `ledger` (ATTUNE_LEDGER) low, upbeat and mixed come from the evidence
- * ledger instead, and the voice never sets a state by itself.
+ * ledger instead, and the voice never sets a state by itself. With
+ * `ledger.sarcasm` (SARCASM_READ) a sarcastic latest turn is never read as
+ * excited: hurting words still win, else the ledger's read (mixed, or low).
  */
 export function readCaller(
   turns: string[],
   voice?: VoiceCue,
-  ledger?: { baselineWords?: number }
+  ledger?: { baselineWords?: number; sarcasm?: boolean }
 ): CallerState {
   if (ledger) {
-    const energy = ledgerRead(turns, voice, ledger.baselineWords).state;
-    return statesFromWords(turns) ?? energy ?? 'neutral';
+    const read = ledgerRead(turns, voice, ledger.baselineWords, {
+      stockSarcasm: ledger.sarcasm === true,
+    });
+    return statesFromWords(turns, read.sarcastic === true) ?? read.state ?? 'neutral';
   }
   return fromWords(turns) ?? fromVoice(voice) ?? 'neutral';
 }
@@ -211,11 +216,15 @@ function fromWords(turns: string[]): CallerState | undefined {
   return statesFromWords(turns) ?? energyFromWords(turns);
 }
 
-/** Every state but energy: laughing, happy news, hurting, hurried, distracted, playful. */
-function statesFromWords(turns: string[]): CallerState | undefined {
+/**
+ * Every state but energy: laughing, happy news, hurting, hurried, distracted,
+ * playful. `sarcastic` (SARCASM_READ): the latest turn is sarcasm, so its "best
+ * day" is not happy news.
+ */
+function statesFromWords(turns: string[], sarcastic = false): CallerState | undefined {
   const now = turns.slice(-2).join(' ');
   const recent = turns.slice(-4).join(' ');
-  const excited = EXCITED.test(now) || (now.match(/!/g) ?? []).length >= 2;
+  const excited = !sarcastic && (EXCITED.test(now) || (now.match(/!/g) ?? []).length >= 2);
   // Laughing, or happy news with tears in it, is not grief.
   if (callerLaughed(now)) return 'playful';
   if (excited && !hardNews(now)) return 'excited';
@@ -450,7 +459,8 @@ export function attunementNote(
   const { userData } = session as { userData?: { voiceEmotion?: VoiceCue } };
   const env = options.env ?? process.env;
   const ledger = attuneLedgerOn(env);
-  const state = readCaller(turns, userData?.voiceEmotion, ledger ? {} : undefined);
+  const sarcasm = flagOn('SARCASM_READ', env); // #4054, off: unchanged
+  const state = readCaller(turns, userData?.voiceEmotion, ledger ? { sarcasm } : undefined);
   if (env.ATTUNE !== 'all' && !(ledger ? LEDGER_STATES : ON_STATES).has(state)) return '';
   const target = targetFor(state, turns, ferniAskedLast(chatCtx.items));
   const withLength = attunedLengthOn(env);
