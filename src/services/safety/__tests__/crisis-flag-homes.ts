@@ -330,3 +330,51 @@ export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> =
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act on the turn's tool routing, before the reply gate runs: a tool a
+ * router runs on its own, and the direct tool reply that skips the reply model. The six readers
+ * and SHOWN_ON (the gate's reply) never see that step. This home is open only to a flag whose
+ * named rows drive the real turn path (processTurn, the real crisis reads, a stubbed classifier
+ * model) on a fictional line, flag off then on, and assert that with it on a crisis turn runs no
+ * tool and is never answered by a tool in place of the reply model, a failed read included.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  ROUTER_EXEC_AFTER_CRISIS_READ: [
+    {
+      file: 'src/agents/processors/turn-processor/__tests__/router-exec-after-crisis-read.test.ts',
+      rows: [
+        'a crisis only the classifier reads: no tool runs and no direct reply',
+        'a classifier read that fails: no tool runs and no direct reply',
+        'a router that ran the tool anyway: the direct reply is still refused',
+        'risk an earlier turn noted on the call: no tool runs and no direct reply',
+        'a turn read that throws inside the check: no tool runs and no direct reply',
+        'a classifier read still pending at its timeout, no call id: no tool runs and no direct reply',
+        'a router that ran a short-circuit tool anyway on a failed read: the short-circuit refuses the direct reply',
+        'FTIS, a crisis only the classifier reads: no tool runs and no direct reply',
+        'FTIS ran the tool anyway on a classifier-only crisis: the FTIS bypass refuses the direct reply',
+        'a crisis only the classifier reads still runs the tool and takes the direct reply',
+      ],
+    },
+    {
+      // Each router (semantic, intelligent, FTIS) holds the tool on a hold, a failed read and a
+      // check that throws.
+      file: 'src/tools/semantic-router/integration/__tests__/auto-execute-hold.test.ts',
+      rows: [
+        'each router holds the tool on a hold, a failed read and a check that throws',
+        'with the flag on, each router holds the tool when no check is handed and logs no_check',
+      ],
+    },
+    {
+      // FTIS run by the transcript handler, outside processTurn.
+      file: 'src/agents/voice-agent/__tests__/ftis-transcript-crisis-hold.test.ts',
+      rows: [
+        'flag on, FTIS on: a crisis only the classifier reads runs no tool through the transcript handler',
+        'flag on, FTIS on: no crisis read of the turn starts, so no tool runs (fail closed)',
+      ],
+    },
+  ],
+};

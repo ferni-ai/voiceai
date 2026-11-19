@@ -8,6 +8,7 @@
  *
  * @module memory/domain/forgotten
  */
+import { contactNumberRuns } from './contact-data.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
 /** Words too common to say what a memory is about (recall's content words share them). */
@@ -67,6 +68,9 @@ export function isForgotten(text: string, topics: readonly string[]): boolean {
   // "ex wife" in a memory is the "ex-wife" / "exwife" of a request, and back.
   const raw = foldedWords(text).map((w) => w.word);
   for (let i = 0; i + 1 < raw.length; i++) words.add(stem(`${raw[i]}${raw[i + 1]}`));
+  // A phone number as speech-to-text writes it ("435, 555, 0142", "four three
+  // five...") is the forgotten "4355550142" too: each dialable run, joined.
+  for (const run of contactNumberRuns(text)) words.add(run.replace(/\D/g, ''));
   // A capitalized word in a memory is often just a sentence's first word
   // ("Divorce papers came"): it matches stemmed too. A topic's name never
   // stems, so forgetting "James" can't hide "jam".

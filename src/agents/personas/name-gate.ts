@@ -373,7 +373,9 @@ export function withNameGate(
       }
       if (!decided.has(v.nameAt) && waits(v)) upTo = Math.min(upTo, Math.max(sentRaw, v.start));
     }
-    const done = found.filter((v) => v.end <= upTo);
+    // A settled one went out as decided, though its stretch may since have grown over the
+    // spaces after it ("Søren," then " "): leaving it out would bring the name back (#3189).
+    const done = found.filter((v) => decided.has(v.nameAt) || v.end <= upTo);
     for (const v of done) {
       if (!decided.has(v.nameAt))
         decided.set(v.nameAt, { keep: decideKeep(v), clipped: undefined });

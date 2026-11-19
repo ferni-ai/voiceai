@@ -42,6 +42,7 @@ import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { handleTrackBatch } from './v1/public/experiments.js';
 import { generatePersonaVoice } from '../services/voice/voice-call.js';
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
+import { isSeth } from '../config/seth-teammate.js';
 
 /** Experiment batches one IP may send a minute: a visitor flushes about every 5 s, so a few share a NAT. */
 const LANDING_BATCHES_PER_IP_PER_MINUTE = 120;
@@ -794,9 +795,7 @@ export async function handleLandingIntelligenceRoutes(
       return true;
     }
 
-    // ============================================================================
     // POST /api/landing/tts - Generate real AI voice audio using Cartesia TTS
-    // ============================================================================
     if (pathname === '/api/landing/tts' && method === 'POST') {
       const body = await parseBody<{ text: string; personaId?: string }>(req);
 
@@ -805,20 +804,23 @@ export async function handleLandingIntelligenceRoutes(
         return true;
       }
 
-      // Validate text length to prevent abuse (max 500 chars for landing page samples)
       if (body.text.length > 500) {
         sendError(res, 'Text too long (max 500 characters)', 400);
         return true;
       }
 
       const personaId = body.personaId || 'ferni';
+      // Never a consented clone: not Seth (flag or no), nor a voice the registry refuses
+      if (isSeth(personaId) || !getVoiceId(personaId)) {
+        sendError(res, 'Unknown persona', 404);
+        return true;
+      }
       const personaName = getPersonaDisplayName(personaId);
 
       log.info({ personaId, personaName, textLength: body.text.length }, '🎤 Landing TTS request');
 
       try {
-        // The words as written, the way a call speaks a reply. The old humanizer put
-        // "Well..." and "Ah," in front of lines; its tags were stripped before Cartesia.
+        // The words as written, as a call speaks a reply (no old humanizer "Well..." or "Ah,").
         const audioBuffer = await generatePersonaVoice(body.text, personaId);
 
         if (!audioBuffer) {
@@ -847,9 +849,7 @@ export async function handleLandingIntelligenceRoutes(
       }
     }
 
-    // ============================================================================
     // GET /api/landing/tts/info - Get available personas for TTS
-    // ============================================================================
     if (pathname === '/api/landing/tts/info' && method === 'GET') {
       const personas = [
         { id: 'ferni', name: 'Ferni', role: 'Life Coach' },
