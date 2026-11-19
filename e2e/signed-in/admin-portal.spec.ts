@@ -68,6 +68,7 @@ const WRITES = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CONTROLS = 'button, [role="tab"], a[href], [data-navigate]';
 /** How long a click may take to show its effect before the walk calls the control dead. */
 const EFFECT_MS = 1_500;
+const REOPEN_GOTO_MS = 15_000;
 
 type Seen =
   | { kind: 'request'; method: string; path: string; sameOrigin: boolean; bearer: boolean }
@@ -435,17 +436,20 @@ async function closeModals(walk: Walk): Promise<'confirm' | null> {
   return confirmed ? 'confirm' : null;
 }
 
-/** Back on the section, freshly loaded, after a click navigated or reloaded the page. */
+/**
+ * Back on the section, freshly loaded, after a click navigated or reloaded the page.
+ * The click's own navigation may still be landing: it can interrupt this goto, or (a reload
+ * of the same URL) leave it waiting with no end. So each goto is bounded and retried, and
+ * what counts is the section loading below, not the goto's own answer.
+ */
 async function reopen(walk: Walk, id: string): Promise<void> {
-  // The click's own reload may still be landing and cut this goto short: let it land, go again
-  for (let attempt = 0; ; attempt++) {
+  for (let attempt = 1; ; attempt++) {
     try {
-      await walk.page.goto(`/admin?section=${id}`);
+      await walk.page.goto(`/admin?section=${id}`, { timeout: REOPEN_GOTO_MS });
       break;
     } catch (e) {
-      const interrupted = e instanceof Error && /interrupted by another navigation/.test(e.message);
-      if (!interrupted || attempt >= 2) throw e;
-      await walk.page.waitForLoadState('load');
+      if (attempt >= 3) throw e;
+      await walk.page.waitForTimeout(500);
     }
   }
   await expect(walk.page.locator('#adminContent .admin-loading')).toHaveCount(0, {
