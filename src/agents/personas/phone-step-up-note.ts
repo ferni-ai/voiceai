@@ -6,12 +6,13 @@
  * actually make calls for you" (honest-line.ts), with no reason and no way
  * on. Now it hears that a code texted to the caller's verified phone opens
  * those tools, and offers it as a question: the code goes out only on the
- * caller's own yes. Never on a crisis turn, where no tools run at all.
+ * caller's own yes. Never on a crisis turn, where no tools run at all, nor on
+ * a later turn of a call with crisis risk (phone-step-up.ts).
  *
  * @module agents/personas/phone-step-up-note
  */
 import { stepUpOffered } from '../shared/phone-step-up.js';
-import { actionInPlay } from './action-claim-guard.js';
+import { actionInPlay, lastCallerWords } from './action-claim-guard.js';
 import { STEP_UP_OFFER } from './honest-line.js';
 
 const STEP_UP_NOTE =
@@ -25,6 +26,6 @@ export function phoneStepUpNote(
   chatCtx: { items: readonly unknown[] },
   crisis: boolean
 ): string {
-  if (crisis || !stepUpOffered(sessionId)) return '';
+  if (crisis || !stepUpOffered(sessionId, process.env, lastCallerWords(chatCtx))) return '';
   return actionInPlay(chatCtx) ? STEP_UP_NOTE : '';
 }

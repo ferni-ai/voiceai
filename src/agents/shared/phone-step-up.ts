@@ -15,6 +15,7 @@
  * @module agents/shared/phone-step-up
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { crisisRiskThisCall, offersCrisisLine } from '../../services/safety/index.js';
 
 let phoneInOwner: (sessionId: string) => boolean = () => false;
 
@@ -23,7 +24,28 @@ export function setPhoneInOwnerCheck(check: (sessionId: string) => boolean): voi
   phoneInOwner = check;
 }
 
-/** This call may be offered a code texted to the owner's verified phone. */
-export function stepUpOffered(sessionId: string | undefined, env: Env = process.env): boolean {
-  return flagOn('PHONE_STEP_UP', env) && sessionId !== undefined && phoneInOwner(sessionId);
+/**
+ * This call may be offered a code texted to the owner's verified phone. Never on a call with
+ * crisis risk: risk noted on any turn, or a read still in flight (crisis-call-risk.ts), since
+ * presence after a crisis is a crisis turn and no tools run on one. `latest`, this turn's words,
+ * leaves this turn's own read out, for a note built while it runs (phone-step-up-note.ts).
+ */
+export function stepUpOffered(
+  sessionId: string | undefined,
+  env: Env = process.env,
+  latest?: string
+): boolean {
+  if (!flagOn('PHONE_STEP_UP', env) || sessionId === undefined) return false;
+  return phoneInOwner(sessionId) && !crisisRiskThisCall(sessionId, latest);
+}
+
+/**
+ * A claim's 'step_up' reason, unless its sentence names a crisis line: "I'll call 988 for you"
+ * keeps today's honest line, so Ferni never implies a code lets him dial 988 (action-claim-guard.ts).
+ */
+export function keptStepUp<R extends string>(
+  reason: R | null,
+  sentence: string
+): R | 'no_tool' | null {
+  return reason === 'step_up' && offersCrisisLine(sentence) ? 'no_tool' : reason;
 }

@@ -265,8 +265,16 @@ export function callerRecognitionFor(sessionId: string | undefined): CallerRecog
 const namedByDispatch = new Set<string>();
 /** PLACED_CALL_NOT_OWNER_PROOF=on: sessions of calls Ferni placed (placedByFerni). */
 const placedSessions = new Set<string>();
+/** PHONE_STEP_UP: sessions of calls Ferni placed, whatever PLACED_CALL_NOT_OWNER_PROOF says. */
+const placedJobs = new Set<string>();
 
 export function rememberDispatchIdentity(sessionId: string, source: string, meta?: string): void {
+  const type = jobTypeOf(meta);
+  if (typeof type === 'string' && isPlacedCall(type)) {
+    placedJobs.add(sessionId);
+    if (placedJobs.size > MAX_SESSIONS)
+      placedJobs.delete(placedJobs.values().next().value as string);
+  }
   if (placedByFerni(meta)) {
     placedSessions.add(sessionId);
     if (placedSessions.size > MAX_SESSIONS)
@@ -313,10 +321,9 @@ export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known' || onPlacedCallSession(sessionId);
 }
 
-// PHONE_STEP_UP (phone-step-up.ts): only the verified owner who phoned in may be offered a code.
-setPhoneInOwnerCheck(
-  (id) => callerRecognitionFor(id)?.status === 'known' && !onPlacedCallSession(id)
-);
+// PHONE_STEP_UP (phone-step-up.ts): only the verified owner who phoned in may be offered a code,
+// never on a call Ferni placed, whether or not PLACED_CALL_NOT_OWNER_PROOF is on.
+setPhoneInOwnerCheck((id) => callerRecognitionFor(id)?.status === 'known' && !placedJobs.has(id));
 
 /** Both checks, for lower layers that are handed them (data-channel-handler.ts). */
 export const callerChecks = { verifiedOwner: sessionIsVerifiedOwner, phoneOnly: phoneOnlyIdentity };

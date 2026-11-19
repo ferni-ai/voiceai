@@ -78,7 +78,7 @@ import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './actio
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
-import { stepUpOffered } from '../shared/phone-step-up.js';
+import { keptStepUp, stepUpOffered } from '../shared/phone-step-up.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -148,7 +148,7 @@ const actedOn = (text: string): boolean =>
         (OFFER.test(part) && (ACTION_TALK.test(part) || ASK_SHAPE.test(part)))
     );
 /** The caller's latest words. */
-function lastCallerWords(chatCtx: { items: readonly unknown[] }): string {
+export function lastCallerWords(chatCtx: { items: readonly unknown[] }): string {
   const asks = (chatCtx.items as readonly Item[]).filter(
     (item) => item.type === 'message' && item.role === 'user'
   );
@@ -211,7 +211,7 @@ export async function withActionClaimCheck<T>(
     : undefined;
   // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
   const facts = withHouseFactsGuard(reply, chatCtx, env, who);
-  const stepUp = stepUpOffered(sessionIdIn(caller), env); // PHONE_STEP_UP: a code opens calls
+  const stepUp = (): boolean => stepUpOffered(sessionIdIn(caller), env); // PHONE_STEP_UP, per claim
   const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords, stepUp);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }
@@ -224,7 +224,7 @@ async function checkActionClaims<T>(
   env: Env,
   askedLookup?: Promise<AskedCallStatus>,
   firstWords?: ReturnType<typeof turnHoldTimer>,
-  stepUp = false
+  stepUp = (): boolean => false
 ): Promise<T> {
   const stream = await reply;
   // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
@@ -248,7 +248,7 @@ async function checkActionClaims<T>(
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     !open.has(kind)
-      ? stepUp && (kind === 'call' || kind === 'send')
+      ? stepUp() && (kind === 'call' || kind === 'send')
         ? 'step_up'
         : 'no_tool'
       : failed.has(kind)
@@ -303,7 +303,7 @@ async function checkActionClaims<T>(
         : past
           ? unrun(past, calling)
           : unkept(kind, calling);
-    return { kind, reason, claimed, promised };
+    return { kind, reason: keptStepUp(reason, text), claimed, promised };
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ClaimKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
