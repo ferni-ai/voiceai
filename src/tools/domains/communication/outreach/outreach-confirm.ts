@@ -30,7 +30,8 @@ import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
-import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
+import { dropConfirmThread, openConfirmThread } from './confirm-thread.js';
+import { hold, HELD_REPLY, sendOnYes } from './consent-send.js';
 import { consentClassifierOn, consentNaturalOn } from './consent-judge.js';
 import {
   cancel,
@@ -42,7 +43,6 @@ import {
 } from './consent-loop.js';
 import { isClearNo, words } from './consent-words.js';
 import {
-  argsOnYes,
   classifyFerniTurn,
   crisisSaid,
   foreclosesReopen,
@@ -391,41 +391,6 @@ async function attestOnConfirm(userId: string, args: Record<string, unknown>): P
   await recordOwnerAttestation(planned.to, channel, userId);
 }
 
-/** CALL_CONSENT_NATURAL: a crisis line was said around this tool's read-back: it is dropped, and
- * neither read back nor sent again on this call. */
-function hold(entry: SessionLog, toolId: string): void {
-  (entry.held ??= new Set()).add(toolId);
-  if (entry.pending?.toolId === toolId) dropConfirmThread(entry.pending);
-  if (entry.pending?.toolId === toolId) entry.pending = undefined;
-  if (entry.closed?.action.toolId === toolId) entry.closed = undefined;
-  log.info({ toolId }, 'CALL_CONSENT_NATURAL: held for the rest of the call');
-}
-const HELD_REPLY = "Nothing was sent. Don't read it back, offer it or try it again on this call.";
-
-/** Sends what was confirmed, with the args fixed when the yes was decided (argsOnYes): nothing
- * said after it reaches the call. CALL_CONSENT_NATURAL: a crisis line said while the owner's yes
- * was being recorded (attestOnConfirm) voids the send. When the yes carried a confirmed message,
- * the model is told to say it will pass it on; the note holds none of its words. */
-async function sendOnYes(
-  toolId: string,
-  pending: PendingAction,
-  entry: SessionLog,
-  execute: Execute,
-  opts: { args: Record<string, unknown>; opts: unknown; userId: string }
-): Promise<unknown> {
-  const args = argsOnYes(pending);
-  const decided = entry.seq;
-  await attestOnConfirm(opts.userId, opts.args);
-  if (consentNaturalOn() && entry.seq > decided && crisisSaid(entry.events)) {
-    hold(entry, pending.toolId);
-    return HELD_REPLY;
-  }
-  log.info({ toolId, previewedBy: pending.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');
-  const result = await sentConfirmThread(pending, execute(args, opts.opts));
-  if (args === pending.args || typeof result !== 'string') return result;
-  return `${result} Their yes carried a message for the person, now in the call's purpose: tell them in a few words you'll pass it on.`;
-}
-
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
   if ((def as unknown as Record<symbol, unknown>)[GATED]) return def;
@@ -468,8 +433,10 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           if (state === 'confirmed') {
             entry.pending = undefined; // taken before sending, so a second call can't repeat it
             forgetAsks(entry, pending);
-            const attest = { args: pending.args, opts, userId: ctx.userId };
-            return sendOnYes(def.id, pending, entry, execute, attest);
+            const attest = async (): Promise<void> => attestOnConfirm(ctx.userId, pending.args);
+            return sendOnYes({ toolId: def.id, pending, entry, attest }, async (a) =>
+              execute(a, opts)
+            );
           }
           const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
           const expiresAt = Date.now() + CONFIRM_WINDOW_MS;

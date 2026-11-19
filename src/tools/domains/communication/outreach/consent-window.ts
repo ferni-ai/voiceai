@@ -446,21 +446,6 @@ function heardOf(pending: PendingAction, events: ConfirmEvent[]): ConfirmEvent[]
 export const crisisSaid = (events: ConfirmEvent[]): boolean =>
   crisisIn(events.flatMap((e) => (e.kind === 'caller' ? [e.text] : [])).slice(-3));
 
-/** What a confirmed action runs with: with CALL_CONSENT_NATURAL, the message the owner confirmed
- * when it was read back (pending.message) is added to the call's purpose, as data. It was fixed
- * then, so nothing said later reaches the call. Only its length is logged, never its words. */
-export function argsOnYes(pending: PendingAction): Record<string, unknown> {
-  const { purpose } = pending.args;
-  const { message } = pending;
-  if (!consentNaturalOn() || typeof purpose !== 'string' || !message) return pending.args;
-  log.info(
-    { toolId: pending.toolId, messageLength: message.length },
-    'CALL_CONSENT_NATURAL: the yes carried a message, added to the purpose'
-  );
-  const tell = `tell them ${JSON.stringify(message)}`;
-  return { ...pending.args, purpose: purpose.trim() ? `${purpose.trim()}, and ${tell}` : tell };
-}
-
 /** CONSENT_NATURAL_DECISION, in both flag states so the flag can be measured before it flips: what
  * the allow-list and the judge made of the heard answer, and the outcome. Enums only, no words. */
 export function logDecision(
