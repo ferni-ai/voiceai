@@ -14,6 +14,12 @@
  *
  * Exceptions live in ALLOWED, each with its reason.
  *
+ * A workflow that also runs on labeled/unlabeled must give a label it doesn't read
+ * a group of its own (keyed on github.event.label.name, falling to github.run_id),
+ * allowlisted or not. Opening a PR with a label fires opened and labeled a second
+ * apart; in one shared group the second cancels the first, and a cancelled run's
+ * fail-closed check stays red on a head that passed (#4198).
+ *
  *   node scripts/ci/workflow-concurrency.mjs [workflows-dir]
  *
  * It reads the YAML by line, not with a parser: `on:` and `concurrency:` are
@@ -37,6 +43,7 @@ export const ALLOWED = {
 };
 
 const TRIGGERS = /^(pull_request|pull_request_target)$/;
+const LABEL_EVENTS = /^(labeled|unlabeled)$/;
 
 /** The lines of a top-level key's block, or the inline value as one line. */
 function topLevelBlock(lines, key) {
@@ -92,13 +99,52 @@ export function concurrency(text) {
   return { group: field('group'), cancel: field('cancel-in-progress') || 'false' };
 }
 
+/** The `types:` of the pull_request trigger; [] when it lists none (Actions' defaults). */
+export function pullRequestTypes(text) {
+  const lines = text.split('\n');
+  const on = topLevelBlock(lines, 'on') ?? topLevelBlock(lines, 'true') ?? [];
+  const start = on.findIndex((l) => /^\s+pull_request\s*:/.test(l));
+  if (start === -1) return [];
+  const depth = (l) => l.match(/^\s*/)[0].length;
+  const body = [];
+  for (const l of on.slice(start + 1)) {
+    if (depth(l) <= depth(on[start])) break;
+    body.push(l);
+  }
+  const at = body.findIndex((l) => /^\s*types\s*:/.test(l));
+  if (at === -1) return [];
+  const inline = body[at]
+    .replace(/^\s*types\s*:/, '')
+    .replace(/\s+#.*$/, '')
+    .trim();
+  const items = inline
+    ? inline.replace(/[[\]]/g, '').split(',')
+    : body
+        .slice(at + 1)
+        .filter((l) => /^\s*-/.test(l))
+        .map((l) => l.replace(/^\s*-\s*/, ''));
+  return items.map((s) => s.trim()).filter(Boolean);
+}
+
+/** A pull_request label trigger whose runs share the PR's cancelling group. */
+function labelProblems(file, text, c) {
+  if (!triggers(text).includes('pull_request')) return [];
+  if (!pullRequestTypes(text).some((t) => LABEL_EVENTS.test(t))) return [];
+  if (!c || c.cancel === 'false') return [];
+  if (c.group.includes('github.event.label.name') && c.group.includes('github.run_id')) return [];
+  return [
+    `${file}: runs on labeled/unlabeled in the PR's cancelling group, so a label it doesn't read cancels the PR's run; give those events their own group (github.event.label.name ... github.run_id)`,
+  ];
+}
+
 /** Problems for one workflow file; empty when it complies or isn't PR-triggered. */
 export function problems(file, text) {
   if (!triggers(text).some((t) => TRIGGERS.test(t))) return [];
-  if (ALLOWED[file]) return [];
   const c = concurrency(text);
+  const labels = labelProblems(file, text, c);
+  if (ALLOWED[file]) return labels;
   if (!c) return [`${file}: runs on pull_request but has no top-level concurrency group`];
-  const out = [];
+  const out = [...labels];
   if (!c.group.includes('github.event.pull_request.number')) {
     out.push(
       `${file}: concurrency group is not keyed on github.event.pull_request.number (${c.group})`

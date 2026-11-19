@@ -15,7 +15,7 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
-import { jobs, running, triggers } from './workflow-jobs.js';
+import { concurrencyGroup, jobs, running, triggers } from './workflow-jobs.js';
 
 const WORKFLOW = 'crisis-sweep.yml';
 const VERDICT = 'crisis-sweep-verdict';
@@ -51,14 +51,27 @@ describe('crisis-sweep verdict job', () => {
     const job = jobs(WORKFLOW).find((j) => j.id === VERDICT);
     expect(job?.checks).toEqual(['Crisis Sweep Verdict']);
     expect(job?.needs.sort()).toEqual(['changes', 'sweep']);
-    expect(job?.if).toBe('always()');
+    // always(), except for a label the sweep doesn't read (label-run-dedupe.test.ts).
+    expect(job?.if).toMatch(/^always\(\) && \(/);
   });
 
-  it('runs on pull requests and in the merge queue, even when detection failed', () => {
+  it('runs on pull requests and in the merge queue, even when detection failed or was cancelled', () => {
     expect(triggers(WORKFLOW)).toEqual(expect.arrayContaining(['pull_request', 'merge_group']));
-    for (const event of ['pull_request', 'merge_group'] as const) {
-      const ran = running(WORKFLOW, event, { 'needs.changes.result': 'failure' });
-      expect(ran.has(VERDICT), event).toBe(true);
+    const approvalLabel = {
+      'github.event.action': 'labeled',
+      'github.event.label.name': 'crisis:lowering-approved',
+    };
+    for (const result of ['failure', 'cancelled']) {
+      for (const event of ['pull_request', 'merge_group'] as const) {
+        const ran = running(WORKFLOW, event, { 'needs.changes.result': result });
+        expect(ran.has(VERDICT), `${event} ${result}`).toBe(true);
+      }
+      // A cancelled run with no green sibling: its verdict runs, and fails (below).
+      const ran = running(WORKFLOW, 'pull_request', {
+        ...approvalLabel,
+        'needs.changes.result': result,
+      });
+      expect(ran.has(VERDICT), `approval label ${result}`).toBe(true);
     }
   });
 
@@ -227,9 +240,9 @@ describe('crisis sweep base commit', () => {
     const block = /^concurrency:\n {2}group: (.*)\n {2}cancel-in-progress: (.*)$/m.exec(TEXT);
     // Without the ref fallback every queue run would share one group, and a newer
     // group would cancel the pending one.
-    expect(block?.[1]).toBe(
-      '${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}'
-    );
+    // (An unread label's run comes first, with its own group: label-run-dedupe.test.ts.)
+    expect(block?.[1]).toMatch(/\|\| github\.event\.pull_request\.number \|\| github\.ref \}\}$/);
+    expect(concurrencyGroup(WORKFLOW, 'merge_group')).toBe('Crisis Sweep-refs/heads/main');
     expect(block?.[2]).toBe("${{ github.event_name == 'pull_request' }}");
   });
 });

@@ -5,6 +5,7 @@ import {
   PR_ONLY_CANCEL,
   concurrency,
   problems,
+  pullRequestTypes,
   scan,
   triggers,
 } from '../ci/workflow-concurrency.mjs';
@@ -58,6 +59,37 @@ describe('workflow-concurrency', () => {
       'concurrency:\n  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}\n';
     expect(concurrency(wf('  pull_request:', conc)).cancel).toBe('false');
     expect(problems('x.yml', wf('  pull_request:', conc))).toHaveLength(1);
+  });
+
+  it('reads the pull_request types, flow or block list', () => {
+    const flow = wf(
+      '  pull_request:\n    branches: [main]\n    types: [opened, labeled]\n  merge_group:'
+    );
+    expect(pullRequestTypes(flow)).toEqual(['opened', 'labeled']);
+    const block = wf('  pull_request:\n    types:\n      - opened\n      - unlabeled\n  push:');
+    expect(pullRequestTypes(block)).toEqual(['opened', 'unlabeled']);
+    expect(pullRequestTypes(wf('  pull_request:\n  push:'))).toEqual([]);
+  });
+
+  // #4198: opened + labeled a second apart; one PR group cancelled one of them.
+  it('flags a label trigger in the PR cancelling group, allowlisted or not', () => {
+    const on = '  pull_request:\n    types: [opened, synchronize, labeled, unlabeled]';
+    const found = problems('x.yml', wf(on, good));
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatch(/labeled\/unlabeled in the PR's cancelling group/);
+    const allowed =
+      'concurrency:\n  group: pr-flow-${{ github.event.pull_request.number }}\n  cancel-in-progress: true\n';
+    expect(problems('pr-flow.yml', wf(on, allowed))).toHaveLength(1);
+  });
+
+  it('accepts a label trigger whose unread labels get their own group', () => {
+    const on = '  pull_request:\n    types: [opened, labeled]';
+    const conc = `concurrency:\n  group: \${{ github.workflow }}-\${{ (github.event.action == 'labeled' && github.event.label.name != 'x' && github.run_id) || github.event.pull_request.number }}\n  cancel-in-progress: ${PR_ONLY_CANCEL}\n`;
+    expect(problems('x.yml', wf(on, conc))).toEqual([]);
+    // pull_request_target never cancels here, and a group with no cancel never cancels.
+    expect(problems('x.yml', wf('  pull_request_target:\n    types: [labeled]', good))).toEqual([]);
+    const noCancel = 'concurrency:\n  group: g-${{ github.event.pull_request.number }}\n';
+    expect(problems('pr-flow.yml', wf(on, noCancel))).toEqual([]);
   });
 
   it('skips allowlisted workflows, and every entry names a reason', () => {
