@@ -132,22 +132,32 @@ export function isClearNo(text: string): boolean {
 }
 
 // CALL_CONSENT_NATURAL: the only words a reply placed on the judge's yes may hold, besides the
-// person's name, their pronoun and the owner's name. Any other word ("not", "if", "actually",
-// "honey", "jordan", "nein", "line") leaves it to a plain yes, so the judge can't place it alone.
+// action's own verb and the person's pronoun. Any other word, a name included ("riley", "ferni",
+// "not", "if", "actually", "honey", "nein", "line"), leaves it to a plain yes, so the judge can't
+// place it alone.
 const AGREES = new Set(
   words('yes yeah yep yup yea sure ok okay alright absolutely definitely certainly perfect great')
 );
 const NATURAL = new Set(
-  words(`good fine please do it that go ahead for and now right away sounds works
-    thanks thank you of course all um uh so well`)
+  words('good fine please do it that go ahead for and now sounds works thanks thank you of course')
 );
+/** Hesitation: allowed inside a yes, never as its last word ("Okay, so, um, well."). */
+const HESITANT = new Set(words('um uh so well'));
+/** "all right" and "right away" are the only uses of "right": "Yeah, right." is not a yes. */
+const RIGHT: ReadonlyArray<[RegExp, string]> = [
+  [/\ball right\b/g, 'alright'],
+  [/\bright away\b/g, 'now'],
+];
+/** CALL_CONSENT_NATURAL: a reply that trails off in hesitation ("Okay, so, um, well.") is not done. */
+export const trailsOff = (text: string): boolean => HESITANT.has(words(text).at(-1) ?? '');
 /** A yes in an allow-listed word set only: "Yeah, do that.", "Perfect.", "Please do it right away." */
 export function isNaturalYes(text: string, allowed: readonly string[]): boolean {
-  const said = words(text);
-  const ok = (w: string): boolean => AGREES.has(w) || NATURAL.has(w) || allowed.includes(w);
+  const said = words(RIGHT.reduce((t, [re, to]) => t.replace(re, to), words(text).join(' ')));
+  const ok = (w: string): boolean =>
+    AGREES.has(w) || NATURAL.has(w) || HESITANT.has(w) || allowed.includes(w);
   const agrees =
     said.some((w) => AGREES.has(w)) || /\b(do (it|that)|go ahead)\b/.test(said.join(' '));
-  return agrees && said.every(ok);
+  return agrees && said.every(ok) && !trailsOff(text);
 }
 
 // "Yes, tell him I'm running late.", "Let her know I'll be late": what the owner asks Ferni to

@@ -41,6 +41,11 @@ import {
 
 const READ_BACK = 'A call to Dad at 555-123-0002, right now. Should I go ahead?';
 const natural = (on: boolean) => vi.stubEnv('CALL_CONSENT_NATURAL', on ? 'on' : 'off');
+/** Lets the stubbed judge answer, as it does while the model replies. */
+const tick = async (): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 
 /** Stores the read-back (the tool's output reaches the model); `played`: Ferni then speaks it.
  * Ferni has spoken before (his greeting), as on every live call. */
@@ -138,6 +143,23 @@ describe('1. spoken, not stored: only words begun after the read-back started pl
     call.owner('Yes, call him.');
     expect(await placed(call)).toBe(0);
   });
+
+  it("a user_state delivered late is stamped by when it began: a yes begun before isn't heard", async () => {
+    /** The owner began at `began`; the read-back started at t+1000; the event lands after both. */
+    const late = async (began: number) => {
+      natural(true);
+      const t = Date.now();
+      const call = await readBack(undefined, false);
+      call.speaks(t + 1000);
+      call.ownerStarts(t + began);
+      call.ferni(READ_BACK);
+      call.owner('Yes.');
+      return placed(call);
+    };
+    expect(await late(500)).toBe(0);
+    sends.length = 0;
+    expect(await late(1500)).toBe(1); // begun after the read-back started: heard
+  });
 });
 
 describe('2. the judge decides natural answers; a hard no never places', () => {
@@ -201,6 +223,30 @@ describe('3. "yes, and tell him X": the message is read back with the call befor
     const plain = await readBack(PURPOSE);
     plain.owner('Yes, call him.');
     expect(await plain.call('c2', PURPOSE)).not.toContain('pass it on');
+  });
+
+  it('with OUTREACH_SERVER_CONFIRM too: the message is read back, and the send carries it', async () => {
+    const server = async (on: boolean) => {
+      natural(on);
+      vi.stubEnv('OUTREACH_SERVER_CONFIRM', 'on');
+      const call = await readBack(PURPOSE);
+      call.owner(YES_TELL);
+      await tick(); // the judge answers first
+      const asked = await call.call('c2', PURPOSE);
+      call.speaks();
+      call.ferni(on ? ASK_TELL : READ_BACK);
+      call.owner('Yes.');
+      await tick();
+      await call.call('c3', PURPOSE);
+      return { asked, purposes: sends.map((a) => a.purpose) };
+    };
+    const off = await server(false);
+    expect(off.asked).not.toContain(ASK_TELL);
+    expect(off.purposes).toEqual(['check in']); // main: the message is dropped
+    sends.length = 0;
+    const on = await server(true);
+    expect(on.asked).toContain(ASK_TELL);
+    expect(on.purposes).toEqual([`check in, and tell them "I'm running late"`]);
   });
 
   it('the judge is told a message is agreement, and only a condition on calling is conditional', async () => {
@@ -328,6 +374,13 @@ describe('5. red team: with the flag on these never place, even when the judge s
     "Yes, I'd love some coffee.",
     // sarcasm
     'Oh yeah, great idea, totally.',
+    'Yeah, right.',
+    // a name after the verb, the person's own or not
+    'Okay, call Riley.',
+    'Yeah, call Ferni.',
+    'Yeah, do that, Ferni.',
+    // hesitation only
+    'Okay, so, um, well.',
   ])('"%s"', async (text) => {
     expect(await worstCase(text)).toBe(0);
   });
@@ -397,6 +450,56 @@ describe('5. red team: with the flag on these never place, even when the judge s
     call.owner('Yes, call him.');
     expect(await call.call('c3')).toContain('Nothing was sent');
     expect(sends.length).toBe(0);
+  });
+
+  const ORDINARY = ['Okay.', 'Thanks for listening.', 'It was a long week.', 'Anyway.'];
+  it('a crisis line holds every outbound tool for the call: a text previewed 4 finals later', async () => {
+    const text = async (on: boolean) => {
+      natural(on);
+      const call = liveCall();
+      call.speaks();
+      call.owner('I want to kill myself.');
+      for (const line of ORDINARY) call.owner(line);
+      const preview = await call.callOther('sendTextMessage', 't1');
+      call.speaks();
+      call.ferni('A text to Dad at 555-123-0002. Should I send it?');
+      call.owner('Yes.');
+      const after = await call.callOther('sendTextMessage', 't2');
+      return { preview, after, sent: sends.length };
+    };
+    const off = await text(false);
+    expect(off.sent).toBe(1); // main: nothing holds a later, different action
+    sends.length = 0;
+    const on = await text(true);
+    expect(on.preview).toContain('Nothing was sent');
+    expect(on.after).toContain('Nothing was sent');
+    expect(on.sent).toBe(0);
+  });
+
+  it('a window closed before a crisis line is never reopened by a fresh read-back after it', async () => {
+    const reopen = async (crisis: boolean) => {
+      natural(true);
+      const call = await readBack();
+      call.owner('Hmm.');
+      await call.call('c2'); // unclear: Ferni asks once
+      call.speaks();
+      call.ferni('Just to be sure: call Dad now?');
+      call.owner('Hmm.');
+      await call.call('c3'); // a second unclear cancels it
+      expect(pendingFor(call.session)).toBeUndefined(); // closed
+      if (crisis) call.owner('I want to kill myself.');
+      for (const line of ORDINARY) call.owner(line);
+      call.speaks();
+      call.ferni(READ_BACK); // the model reads it back afresh anyway
+      call.owner('Yes, call him.');
+      const out = await call.call('c4');
+      return { out, sent: sends.length };
+    };
+    expect((await reopen(false)).sent).toBe(1); // without the crisis line the fresh read-back reopens
+    sends.length = 0;
+    const held = await reopen(true);
+    expect(held.out).toContain('Nothing was sent');
+    expect(held.sent).toBe(0);
   });
 
   it('a joke (#3876): the judge is told a joke is off topic', async () => {

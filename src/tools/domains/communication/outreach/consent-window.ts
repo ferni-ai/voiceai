@@ -38,6 +38,7 @@ import {
   isClearYes,
   isContentFree,
   isNaturalYes,
+  trailsOff,
   isNonAnswer,
   isPlainNo,
   isStatusQuestion,
@@ -381,11 +382,11 @@ export function windowState(
   return 'confirmed';
 }
 
-/** CALL_CONSENT_NATURAL: the words a reply placed on the judge's yes may name besides its own. */
+/** CALL_CONSENT_NATURAL: the words a reply placed on the judge's yes may hold besides its own: the
+ * action's verb and the person's pronoun, never a name ("Okay, call Riley." asks again). */
 const allowedWords = (pending: PendingAction): string[] => {
-  const pronoun = pronounOf(targetWords(pending));
   const verb = words(VERB[channelOf(pending)]); // "call" for a call, never for a text
-  return [...targetWords(pending), ...(pending.owner ?? []), ...verb, 'ferni', pronoun ?? 'him'];
+  return [...verb, pronounOf(targetWords(pending)) ?? 'him'];
 };
 /** CALL_CONSENT_NATURAL: the judge's yes, heard, not over Ferni and beside no question. */
 const judgedYes = (
@@ -401,6 +402,8 @@ function isYes(
   answer: { turns: string[]; overTalk: boolean },
   judged: ConsentJudgement | undefined
 ): boolean {
+  // A reply that trails off ("Okay, so, um, well.") isn't finished, so not a yes even to the fast path.
+  if (consentNaturalOn() && trailsOff(answer.turns.join(' '))) return false;
   if (plain || !consentNaturalOn() || !judgedYes(answer, judged)) return plain;
   const { rest, message } = splitMessage(answer.turns.join(' '));
   return message === undefined && isNaturalYes(rest, allowedWords(pending));

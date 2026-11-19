@@ -1,7 +1,8 @@
 /**
- * What a confirmed action sends (outreach-confirm.ts): the args fixed at the owner's yes, so
- * nothing said after it reaches the call. With CALL_CONSENT_NATURAL, a crisis line said around a
- * read-back, or while the yes is being recorded, holds that tool for the rest of the call.
+ * What a confirmed action sends (outreach-confirm.ts, outreach-server-confirm.ts): the args fixed
+ * at the owner's yes, so nothing said after it reaches the call. With CALL_CONSENT_NATURAL, a
+ * crisis line heard on the call, or said while the yes is being recorded, holds every outbound
+ * action for the rest of the call.
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
@@ -16,14 +17,16 @@ const log = getLogger();
 export const HELD_REPLY =
   "Nothing was sent. Don't read it back, offer it or try it again on this call.";
 
-/** CALL_CONSENT_NATURAL: a crisis line was said around this tool's read-back: it is dropped, and
- * neither read back nor sent again on this call. */
-export function hold(entry: SessionLog, toolId: string): void {
-  (entry.held ??= new Set()).add(toolId);
-  if (entry.pending?.toolId === toolId) dropConfirmThread(entry.pending);
-  if (entry.pending?.toolId === toolId) entry.pending = undefined;
-  if (entry.closed?.action.toolId === toolId) entry.closed = undefined;
-  log.info({ toolId }, 'CALL_CONSENT_NATURAL: held for the rest of the call');
+/** CALL_CONSENT_NATURAL: a crisis line was heard on this call: any read-back waiting or just
+ * cancelled is dropped, and no outbound action is read back or sent again until the call ends.
+ * The emergency-contact flows aren't gated here and keep their own crisis handling. */
+export function hold(entry: SessionLog): void {
+  const first = entry.crisisHeld !== true;
+  entry.crisisHeld = true;
+  if (entry.pending) dropConfirmThread(entry.pending);
+  entry.pending = undefined;
+  entry.closed = undefined;
+  if (first) log.info('CALL_CONSENT_NATURAL: crisis line heard, outbound held for the call');
 }
 
 /** What a confirmed action runs with: with CALL_CONSENT_NATURAL, the message the owner confirmed
@@ -53,7 +56,7 @@ export async function sendOnYes(
   const decided = entry.seq;
   await yes.attest();
   if (consentNaturalOn() && entry.seq > decided && crisisSaid(entry.events)) {
-    hold(entry, pending.toolId);
+    hold(entry);
     return HELD_REPLY;
   }
   log.info({ toolId, previewedBy: pending.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');

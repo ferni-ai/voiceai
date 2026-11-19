@@ -17,6 +17,9 @@ import {
   outcomeOf,
   sentConfirmThread,
 } from './confirm-thread.js';
+import { messageAskLine } from './consent-action.js';
+import { argsOnYes } from './consent-send.js';
+import { heardMessage } from './consent-window.js';
 import {
   alreadyPlacedReply,
   failedNote,
@@ -53,20 +56,22 @@ export interface ConfirmGate {
   planned: symbol;
 }
 
-/** Take the stored action, so nothing can send it twice, and send it as read back. */
+/** Take the stored action, so nothing can send it twice, and send it as read back, with the
+ * message the owner confirmed when it was read back to them (argsOnYes, CALL_CONSENT_NATURAL). */
 async function sendTaken(
   gate: ConfirmGate,
   entry: SessionLog,
   pending: PendingAction,
-  send: () => Promise<unknown>
+  send: (args: Record<string, unknown>) => Promise<unknown>
 ): Promise<unknown> {
+  const args = argsOnYes(pending);
   entry.pending = undefined;
   clearTimeout(entry.settle);
   entry.settle = undefined;
   const { server } = pending;
   const sent = server && { ...server, expiresAt: Date.now() + gate.windowMs };
   entry.sent = sent || undefined;
-  const result = sentConfirmThread(pending, send());
+  const result = sentConfirmThread(pending, send(args));
   // A send that failed is not "already placed": the caller may ask again.
   const forget = (): void => {
     if (entry.sent === sent) entry.sent = undefined;
@@ -148,11 +153,14 @@ function familyAnswer(c: FamilyCall, family: Family | undefined, target: Target)
   if (gate.confirmationState(pending, c.entry.events, now) === 'confirmed') {
     if (pending.toolId !== c.toolId && !kin) return undefined;
     log.info({ toolId: c.toolId }, 'OUTREACH_CONFIRM: caller said yes, sending');
-    const send = pending.server?.send ?? (async () => c.execute(pending.args, c.opts));
+    const send = pending.server?.send ?? (async (a) => c.execute(a, c.opts));
     return sendTaken(gate, c.entry, pending, send);
   }
   if (!kin || !pending.server || saidNoTo(gate, c.entry, pending) || now > pending.expiresAt)
     return undefined;
+  // CALL_CONSENT_NATURAL: a yes with a message for the person is read back with it first, so the
+  // send never drops what they added, nor carries what they didn't confirm.
+  const message = heardMessage(pending, c.entry.events);
   // The same action for the same person: read it again, and judge the answer to this reading.
   Object.assign(pending, {
     callId: c.callId,
@@ -160,7 +168,13 @@ function familyAnswer(c: FamilyCall, family: Family | undefined, target: Target)
     expiresAt: now + gate.windowMs,
   });
   log.info({ toolId: c.toolId }, 'OUTREACH_SERVER_CONFIRM: kept the stored read-back');
-  return stillWaitingReply(pending.server.readBack, pending.toolId);
+  if (!message) return stillWaitingReply(pending.server.readBack, pending.toolId);
+  pending.message = message;
+  pending.askLine = messageAskLine(pending, message);
+  return (
+    `NOT SENT YET: the caller's yes carried a message. Ask exactly this, once: ` +
+    `"${pending.askLine}" Call ${pending.toolId} again only after they answer.`
+  );
 }
 
 /** The gate with OUTREACH_SERVER_CONFIRM on: siblings share one read-back (outreach-confirm-family.ts). */
@@ -183,7 +197,7 @@ export async function gateInFamily(c: FamilyCall): Promise<unknown> {
   if (late !== undefined) return late;
   const { entry } = c;
   if (entry.pending) dropConfirmThread(entry.pending); // replaced, never sent
-  const send = async (): Promise<unknown> => c.execute(prepared.args, c.opts);
+  const send = async (a: Record<string, unknown>): Promise<unknown> => c.execute(a, c.opts);
   const { readBack } = prepared;
   entry.pending = {
     toolId: c.toolId,

@@ -124,7 +124,7 @@ export interface PendingAction {
   final?: boolean;
   expiresAt: number;
   /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
-  server?: Kin & { readBack: string; send: () => Promise<unknown> };
+  server?: Kin & { readBack: string; send: (args: Record<string, unknown>) => Promise<unknown> };
   /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
   owner?: string[];
   /** Ferni already asked once whether it is still wanted (consent-loop.ts). */
@@ -154,13 +154,21 @@ export interface SessionLog {
   asks?: Map<string, AskRecord>;
   /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
   closed?: { action: PendingAction; seq: number; at: number; final: boolean };
-  /** Times Ferni has started speaking on this call, and that count when the owner last began to. */
+  /** Times Ferni has started speaking on this call, and that count when the owner last began to;
+   * startedAt: when his last 20 starts were, so a late user_state stamps by when it began. */
   ferniStarts?: number;
   ownerStart?: number;
-  /** CALL_CONSENT_NATURAL: tools a crisis line was said around: none is read back or sent again
-   * on this call. */
-  held?: Set<string>;
+  startedAt?: number[];
+  /** CALL_CONSENT_NATURAL: a crisis line was heard on this call: no outbound action is read back
+   * or sent again on it (consent-send.ts hold). */
+  crisisHeld?: boolean;
 }
+
+/** When a LiveKit state event happened (its createdAt), or now when it carries none. */
+const createdAt = (event: unknown): number => {
+  const at = (event as { createdAt?: unknown } | undefined)?.createdAt;
+  return typeof at === 'number' ? at : Date.now();
+};
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
 const sessions = new WeakMap<object, SessionLog>();
@@ -197,9 +205,8 @@ function record(session: object, event: SessionEvent): void {
   entry.events.push({ ...event, seq: ++entry.seq, ferniStarts });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
-  const around = pending ?? entry.closed?.action;
-  if (event.kind === 'caller' && around && consentNaturalOn() && crisisSaid(entry.events)) {
-    hold(entry, around.toolId);
+  if (event.kind === 'caller' && consentNaturalOn() && crisisSaid(entry.events)) {
+    hold(entry);
     return;
   }
   // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it; after a cancel
@@ -308,11 +315,14 @@ export function outreachConfirmListeners(
       if ((event as { newState?: string })?.newState !== 'speaking') return;
       const entry = logFor(session);
       entry.ferniStarts = (entry.ferniStarts ?? 0) + 1;
+      entry.startedAt = [...(entry.startedAt ?? []), createdAt(event)].slice(-20);
     },
     onUserState: (event: unknown) => {
       if ((event as { newState?: string })?.newState !== 'speaking') return;
       const entry = logFor(session);
-      entry.ownerStart = entry.ferniStarts ?? 0;
+      const at = createdAt(event);
+      const after = (entry.startedAt ?? []).filter((t) => t > at).length;
+      entry.ownerStart = (entry.ferniStarts ?? 0) - after;
     },
     /** Ferni's own words (conversation_item_added), read only to find where he asked again. */
     onItemAdded: (event: unknown) => {
@@ -419,7 +429,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
-        if (consentNaturalOn() && entry.held?.has(def.id)) return HELD_REPLY;
+        if (consentNaturalOn() && entry.crisisHeld) return HELD_REPLY;
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);
