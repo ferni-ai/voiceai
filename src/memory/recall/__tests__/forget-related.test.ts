@@ -140,3 +140,86 @@ describe('forgetForCaller with related words, flag off', () => {
     expect(marked(withWords.state)).toEqual(['d1']); // the leak this flag fixes
   });
 });
+
+/**
+ * Live leak, dev 2026-11-19 (fgR1): the model forgot "Theo's new cell phone
+ * number" and passed no related words, and the next call read the number back.
+ * The facts held it as "435-555-0142 (new/current)" and "Sam's brother is Theo
+ * and his new number is 435-555-0142": neither says "cell" or "phone", so the
+ * all-words match hid neither.
+ */
+describe('forgetForCaller: the phone number a topic names (FORGET_RELATED_WORDS)', () => {
+  const about = (id: string, entityName: string, value: string): StoredFactRef => ({
+    collection: 'dynamic_facts',
+    id,
+    data: { entityName, key: 'phone', value, syncedToSpanner: false },
+  });
+  const theoNumber = about('n1', 'Theo', '435-555-0142');
+  const theoSentence = fact(
+    'n2',
+    'brother',
+    "Sam's brother is Theo and his new number is 435-555-0142"
+  );
+  const brother = fact('n3', 'brother', 'brother: Theo');
+  const maya = about('n4', 'Maya', '212-555-0199');
+  const counted = (store: ForgetStore): { n: number } => {
+    const reads = { n: 0 };
+    const { facts } = store;
+    store.facts = async (u) => {
+      reads.n++;
+      return facts(u);
+    };
+    return reads;
+  };
+
+  it("forgets the number itself, so a fact that never says 'cell phone' goes too", async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const { store, state } = memoryStore([theoNumber, theoSentence, brother, maya, tomatoes]);
+    const result = await forgetForCaller(UID, "Theo's new cell phone number", store, []);
+    expect(result.kind).toBe('forgotten');
+    expect(marked(state)).toEqual(['n1', 'n2']); // not "brother: Theo", not Maya's number
+    expect(state.topics).toEqual(["Theo's new cell phone number", '4355550142']);
+  });
+
+  it('finds the number through a related phrase too', async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const { store, state } = memoryStore([offer, theoNumber, maya]);
+    await forgetForCaller(UID, 'the Denver job', store, ["Theo's cell"]);
+    expect(state.topics).toEqual(['Denver job', "Theo's cell", '4355550142']);
+    expect(marked(state)).toEqual(['d1', 'n1']);
+  });
+
+  it("needs no 'new' in the fact: it dates the number, it isn't whose it is", async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const { store, state } = memoryStore([theoNumber, brother, maya]);
+    await forgetForCaller(UID, "Theo's new number", store, []);
+    expect(state.topics).toEqual(["Theo's new number", '4355550142']);
+    expect(marked(state)).toEqual(['n1']);
+  });
+
+  it('forgets no number for a topic that names nobody it belongs to', async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const { store, state } = memoryStore([theoNumber, maya, tomatoes]);
+    await forgetForCaller(UID, 'the new phone number', store, []);
+    expect(state.topics).toEqual(['new phone number']);
+    expect(marked(state)).toEqual([]);
+  });
+
+  it('reads the facts no second time for a topic that names no number', async () => {
+    process.env.FORGET_RELATED_WORDS = 'on';
+    const { store, state } = memoryStore([theoNumber, theoSentence, brother]);
+    const reads = counted(store);
+    await forgetForCaller(UID, "Theo's birthday", store, []);
+    expect(reads.n).toBe(1);
+    expect(state.topics).toEqual(["Theo's birthday"]);
+  });
+
+  it('with the flag off, forgets only the topic, as main does', async () => {
+    const { store, state } = memoryStore([theoNumber, theoSentence, brother, maya]);
+    const reads = counted(store);
+    await forgetForCaller(UID, "Theo's new cell phone number", store, []);
+    expect(reads.n).toBe(1);
+    expect(state.topics).toEqual(["Theo's new cell phone number"]);
+    expect(marked(state)).toEqual([]); // the leak
+  });
+});

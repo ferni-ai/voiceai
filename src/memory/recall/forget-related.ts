@@ -14,12 +14,18 @@
  * is skipped and logged, never applied, and never fails the forget. At most
  * MAX_RELATED phrases, and their words are never logged.
  *
+ * A topic that names someone's phone number ("Theo's new cell phone number")
+ * also forgets the number itself (numbersNamedBy): the facts hold it as
+ * "Theo: 435-555-0142", without the topic's "cell" or "phone", so the word
+ * match alone hid none of them and the next call read it back (dev, fgR1).
+ *
  * @module memory/recall/forget-related
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { storedTopic } from '../domain/forgotten.js';
-import type { ForgetResult } from './forget.js';
+import { contactNumberRuns } from '../domain/contact-data.js';
+import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
+import type { ForgetResult, StoredFactRef } from './forget.js';
 
 const log = createLogger({ module: 'forget-related' });
 
@@ -46,6 +52,51 @@ export function relatedPhrases(
     out.push(phrase.trim());
   }
   return out.slice(0, MAX_RELATED);
+}
+
+/** Words that make a topic a phone number, and words that only date one. */
+const NUMBER_WORDS = new Set(forgetTokens('number phone cell cellphone mobile digits'));
+const DATING_WORDS = new Set(forgetTokens('new old current latest updated'));
+
+/** The words of `topic` that say whose number it is; none when it names no number. */
+function numberOwner(topic: string): string {
+  const words = storedTopic(topic).split(' ').filter(Boolean);
+  const tokens = words.map((w) => forgetTokens(w));
+  if (!tokens.some((t) => t.some((w) => NUMBER_WORDS.has(w)))) return '';
+  const describes = (t: string[]) => t.every((w) => NUMBER_WORDS.has(w) || DATING_WORDS.has(w));
+  return words.filter((_, i) => !describes(tokens[i] ?? [])).join(' ');
+}
+
+/**
+ * The phone numbers the topics name, as digits: each dialable number
+ * (contact-data's rule) in a fact about the number's owner. "Theo's new cell
+ * phone number" -> every number in a fact about Theo; "the new phone number"
+ * names nobody, so none.
+ */
+export function numbersNamedBy(topics: readonly string[], factTexts: readonly string[]): string[] {
+  const out = new Set<string>();
+  for (const owner of topics.map(numberOwner).filter(Boolean)) {
+    for (const text of factTexts.filter((t) => isForgotten(t, [owner]))) {
+      for (const run of contactNumberRuns(text)) out.add(run.replace(/\D/g, ''));
+    }
+  }
+  return [...out].slice(0, MAX_RELATED);
+}
+
+/**
+ * numbersNamedBy over the caller's facts, with FORGET_RELATED_WORDS on; reads
+ * the facts only when a topic names a number.
+ */
+export async function relatedNumbers(
+  topics: readonly string[],
+  facts: () => Promise<StoredFactRef[]>,
+  env: Env = process.env
+): Promise<string[]> {
+  if (!flagOn('FORGET_RELATED_WORDS', env) || !topics.some(numberOwner)) return [];
+  return numbersNamedBy(
+    topics,
+    (await facts()).map((f) => factText(f.data))
+  );
 }
 
 /**

@@ -61,7 +61,7 @@ import {
   noteUnstoredForget,
 } from '../adapters/firestore/forgotten-store.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
-import { forgetRelated, relatedPhrases } from './forget-related.js';
+import { forgetRelated, relatedNumbers, relatedPhrases } from './forget-related.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
@@ -254,7 +254,9 @@ export async function forgetForCaller(
   const forgetAll = async () => {
     const result = await forgetTopic(userId, topic, store);
     if (result.kind !== 'forgotten') return result;
-    await forgetRelated(userId, related, (phrase) => forgetTopic(userId, phrase, store));
+    const numbers = await relatedNumbers([topic, ...related], () => store.facts(userId));
+    const phrases = [...related, ...numbers];
+    await forgetRelated(userId, phrases, (phrase) => forgetTopic(userId, phrase, store));
     return result;
   };
   return forgetAll().catch((error: unknown) => {
