@@ -179,6 +179,14 @@ describe('data export, FORGET_EVERY_READER on, production shapes', () => {
     expect(call).toMatchObject({ heldByForget: true });
   });
 
+  it('CSV keeps the topics on their comment line when a topic has a newline', async () => {
+    topics.mockResolvedValue(['the Denver\n=job']);
+    const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
+    const lines = csv.split('\n');
+    expect(lines).toContain('# Forgotten topics: the Denver =job');
+    expect(lines.filter((line) => line.startsWith('='))).toEqual([]);
+  });
+
   it('CSV says when the list could not be read, and gives no count', async () => {
     topics.mockResolvedValue(null);
     const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
@@ -186,7 +194,7 @@ describe('data export, FORGET_EVERY_READER on, production shapes', () => {
     expect(csv).not.toContain('Records tagged heldByForget');
   });
 
-  it('CSV counts tagged records it can only show as item counts, and points to the JSON', async () => {
+  it('CSV counts tagged records and shows each one in its row', async () => {
     history.getHistory.mockResolvedValue({
       sessions: [
         { id: 's1', summary: 'Denver offer', messages: [{ text: 'the Denver office called' }] },
@@ -196,10 +204,15 @@ describe('data export, FORGET_EVERY_READER on, production shapes', () => {
     });
     const csv = await getDataExportService().exportData(UID, 'csv', ['Conversations']);
     const lines = csv.split('\n');
-    expect(lines).toContain('sessions,3 items');
+    expect(lines).toContain('# Records tagged heldByForget: 2.');
+    expect(csv).not.toContain('JSON download');
+    // The innermost record is the one tagged: s1's message (inside its JSON cell) and s2
+    expect(lines).toContain('id,summary,messages,heldByForget');
     expect(lines).toContain(
-      '# Records tagged heldByForget: 2. The JSON download shows which ones.'
+      '"s1","Denver offer","[{""text"":""the Denver office called"",""heldByForget"":true}]",'
     );
+    expect(lines).toContain('"s2","moving to Denver",,true');
+    expect(lines).toContain('"s3","garden",,');
     const file = await exportJson();
     expect(file.heldCount).toBe(2);
   });
