@@ -26,6 +26,8 @@ const $ = <T extends HTMLElement>(selector: string): T => {
 };
 const response = () => $('#testerResponse');
 const authOf = (init?: RequestInit) => new Headers(init?.headers).get('Authorization');
+/** Where fetch really goes: the URL it was given, resolved as the browser resolves it. */
+const resolved = (url: unknown) => new URL(String(url), window.location.href);
 
 async function send(method: string, url: string): Promise<void> {
   $<HTMLSelectElement>('#testerMethod').value = method;
@@ -49,7 +51,8 @@ describe('Send', () => {
     await send('GET', '/api/v1/admin/flags');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/v1/admin/flags');
+    expect(resolved(url).origin).toBe(window.location.origin);
+    expect(resolved(url).pathname).toBe('/api/v1/admin/flags');
     expect(init?.method).toBe('GET');
     expect(authOf(init)).toBe('Bearer admin-token');
     expect(response().textContent).toContain('Status: 200');
@@ -62,6 +65,30 @@ describe('Send', () => {
     'api/v1/admin/flags',
   ])('refuses %s on screen and sends nothing', async (url) => {
     await send('GET', url);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response().textContent).toContain(
+      'Refused: the tester sends only to paths on this site'
+    );
+  });
+
+  // Each starts with "/" and resolves on this site, but its path normalises to "//host"
+  // (or "/\\host"): re-derived as a relative path, fetch would take it off-site.
+  it.each([
+    ['GET', '/.//other.example/x'],
+    ['GET', '/..//other.example/x'],
+    ['GET', '/%2e//other.example/x'],
+    ['GET', '/%2e%2e//other.example/x'],
+    ['GET', '/a/..//other.example/x'],
+    ['GET', '/./\\other.example/x'],
+    ['POST', '/.//other.example/x'],
+  ])('never sends the admin token off-site for %s %s', async (method, url) => {
+    $<HTMLTextAreaElement>('#testerBody').value = '{"a":1}';
+    await send(method, url);
+    const offSite = fetchMock.mock.calls.filter(
+      ([target, init]) =>
+        resolved(target).origin !== window.location.origin && authOf(init) !== null
+    );
+    expect(offSite).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(response().textContent).toContain(
       'Refused: the tester sends only to paths on this site'
@@ -120,7 +147,8 @@ describe('Quick requests', () => {
     button?.click();
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(path);
+    expect(resolved(url).origin).toBe(window.location.origin);
+    expect(`${resolved(url).pathname}${resolved(url).search}`).toBe(path);
     expect(authOf(init)).toBe('Bearer admin-token');
     expect($<HTMLInputElement>('#testerUrl').value).toBe(path);
   });

@@ -25,15 +25,18 @@ export type TesterResult =
   | { kind: 'failed'; reason: string };
 
 /**
- * The path and query of `input` when it names this site (it starts with "/" and resolves
- * to this origin), else null. "//host", "/\host" and full URLs all resolve elsewhere.
+ * `input` resolved once against this site, when it starts with "/" and stays on this
+ * origin, else null. The caller fetches this exact URL, so nothing is resolved twice:
+ * a relative path re-derived from it could turn "/.//host" into "//host", off-site.
+ * A path that normalises to "//" or "/\\" is refused too, as a second guard.
  */
-export function sameOriginPath(input: string): string | null {
+export function sameOriginUrl(input: string): URL | null {
   const trimmed = input.trim();
   if (!trimmed.startsWith('/')) return null;
   try {
     const url = new URL(trimmed, window.location.origin);
-    return url.origin === window.location.origin ? `${url.pathname}${url.search}` : null;
+    if (url.origin !== window.location.origin) return null;
+    return /^\/[/\\]/.test(url.pathname) ? null : url;
   } catch {
     return null;
   }
@@ -46,15 +49,15 @@ export async function sendTesterRequest(
   body?: string
 ): Promise<TesterResult> {
   if (!METHODS.has(method)) return { kind: 'refused', reason: `Refused: unknown method ${method}` };
-  const path = sameOriginPath(input);
-  if (!path) {
+  const url = sameOriginUrl(input);
+  if (!url) {
     return {
       kind: 'refused',
       reason:
         'Refused: the tester sends only to paths on this site (starting with /), so your admin sign-in never leaves it',
     };
   }
-  const placeholder = /\/:([A-Za-z_]+)/.exec(path.split('?')[0]);
+  const placeholder = /\/:([A-Za-z_]+)/.exec(url.pathname);
   if (placeholder) {
     return {
       kind: 'refused',
@@ -62,13 +65,13 @@ export async function sendTesterRequest(
     };
   }
   try {
-    const response = await adminFetch(path, {
+    const response = await adminFetch(url.href, {
       method,
       body: WITH_BODY.has(method) && body ? body : undefined,
     });
     return { kind: 'answered', status: response.status, body: readable(await response.text()) };
   } catch (error) {
-    log.warn({ error, method, path }, 'API tester request failed');
+    log.warn({ error, method, path: url.pathname }, 'API tester request failed');
     return { kind: 'failed', reason: unavailableReason() };
   }
 }
