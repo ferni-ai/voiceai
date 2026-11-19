@@ -14,10 +14,11 @@ vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
 }));
 
 import { forgetMemoryDef } from '../tools.js';
+import { forgetMemoryParams } from '../forget-memory-params.js';
 import { getToolDescription } from '../../../utils/tool-descriptions.js';
 
 type Execute = (
-  args: { whatToForget: string; confirmDeletion: boolean },
+  args: { whatToForget: string; confirmDeletion: boolean; alsoAbout?: string[] },
   opts: unknown
 ) => Promise<string>;
 const execute = (_userData: Record<string, unknown>) =>
@@ -39,11 +40,24 @@ describe('forgetMemory (the live tool)', () => {
       { whatToForget: 'my divorce', confirmDeletion: true },
       { ctx: { userData } }
     );
-    expect(forget).toHaveBeenCalledWith('u-1', 'my divorce');
+    expect(forget).toHaveBeenCalledWith('u-1', 'my divorce', undefined, undefined);
     expect(userData.keyMoments).toEqual(['Biscuit learned sit']);
     // Hidden, not erased: he says only that he won't bring it up (FORGET_DELETES off)
     expect(reply).toContain('"I won\'t bring that up again."');
     expect(reply).toMatch(/Don't say you've forgotten, deleted or erased it/);
+  });
+
+  it('passes the related words the model names (alsoAbout) through to the forget', async () => {
+    const userData = { userId: 'u-1' };
+    const alsoAbout = ['the recruiter', 'job offer'];
+    await execute(userData)(
+      { whatToForget: 'the Denver job', confirmDeletion: true, alsoAbout },
+      { ctx: { userData } }
+    );
+    expect(forget).toHaveBeenCalledWith('u-1', 'the Denver job', undefined, alsoAbout);
+    // The model is offered the parameter, and told what belongs in it.
+    expect(forgetMemoryParams.shape.alsoAbout.description).toMatch(/Never general words/);
+    expect(getToolDescription('forgetMemory')).toMatch(/alsoAbout/);
   });
 
   it('says it deleted the facts only when every one was deleted (FORGET_DELETES on)', async () => {
