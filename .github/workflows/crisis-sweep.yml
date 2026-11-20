@@ -9,8 +9,14 @@ name: Crisis Sweep
 # job-level `if:` instead. A skipped job reports success, and so does one whose
 # `needs:` failed, so the check to require is "Crisis Sweep Verdict", which is
 # green only when the sweep passed or had a reason to skip. labeled/unlabeled
-# re-run it, so adding or removing the approval label takes effect. It runs in
-# the merge queue too, against main and every PR in the group.
+# re-run it, so adding or removing the approval label takes effect. Any other
+# label runs the whole check in a group of its own: opening a PR with a label
+# fires opened and labeled a second apart, and a shared group cancelled one of
+# them, leaving its fail-closed Verdict red on a head that passed (#4198). It
+# must not skip instead: a skipped Verdict counts as passing, and as the newest
+# run of that name it would stand in for a red one. The event carries the PR's
+# current labels, so the label run's Verdict is the head's real result. It runs
+# in the merge queue too, against main and every PR in the group.
 on:
   pull_request:
     branches: [main]
@@ -18,7 +24,7 @@ on:
   merge_group:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'crisis:lowering-approved' && github.run_id) || github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
