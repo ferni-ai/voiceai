@@ -50,8 +50,9 @@ export { names911, offersCrisisLine, says988 } from './crisis-line-speech.js';
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
-// A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
-export { checkin } from './crisis-timeout-checkin.js';
+// A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts), and
+// its word read and question for a text (SMS_CRISIS_TIMEOUT_CHECKIN, sms-crisis-screen.ts).
+export { checkin, holdsCheckinWords, SAFETY_QUESTION } from './crisis-timeout-checkin.js';
 // CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
 export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).

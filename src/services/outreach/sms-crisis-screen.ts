@@ -9,7 +9,9 @@
  * guard (detectCrisis) and the crisis classifier, and either one is enough. A
  * read is never lowered here: no easing, no agreement gate, no grounded
  * release; a text has no call around it to explain the words. A classifier
- * timeout or error leaves the pattern read alone.
+ * timeout or error leaves the pattern read alone, except that with
+ * SMS_CRISIS_TIMEOUT_CHECKIN on, a text the patterns read as nothing whose words
+ * touch on the sender's own safety gets the check-in reply (smsCheckin below).
  *
  * On a crisis read the reply is SMS_CRISIS_REPLY and nothing else changes
  * (STOP, consent and the minor-care hold run as before). Seth, 2026-10-25:
@@ -19,7 +21,7 @@
  * @module services/outreach/sms-crisis-screen
  */
 import { randomUUID } from 'node:crypto';
-import { flagModeOf } from '../../config/env-flag.js';
+import { flagModeOf, flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   classifyCrisis,
@@ -34,6 +36,7 @@ import {
   normalizeSms,
 } from '../messaging/sms-keywords.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
+import { holdsCheckinWords, SAFETY_QUESTION } from '../safety/index.js';
 import { escapeXml } from './twilio-ssml.js';
 
 const log = createLogger({ module: 'SmsCrisisScreen' });
@@ -41,20 +44,35 @@ const log = createLogger({ module: 'SmsCrisisScreen' });
 /** Seth approved this wording, 2026-10-25: everything after the opening line. */
 const SMS_CRISIS_RESOURCES =
   "If you might act on these thoughts or you're not safe right now, please call or text 988 (Suicide & Crisis Lifeline), or text HOME to 741741. If you're in immediate danger, call 911. You can open Ferni anytime and we'll talk.";
-export const SMS_CRISIS_REPLY = `I'm really glad you told me, and I'm here. ${SMS_CRISIS_RESOURCES}`;
+const SMS_OPENING = "I'm really glad you told me, and I'm here.";
+const SMS_CALLING = "I'm calling you now.";
+export const SMS_CRISIS_REPLY = `${SMS_OPENING} ${SMS_CRISIS_RESOURCES}`;
 /**
  * A crisis text that also asked for a call: the call is kept and the one text
  * says so (Seth, 2026-11-06). Before, "Calling you now." was replaced by 988,
  * and the phone then rang with no word why.
  */
-export const SMS_CRISIS_CALLING_REPLY = `I'm really glad you told me, and I'm here. I'm calling you now. ${SMS_CRISIS_RESOURCES}`;
+export const SMS_CRISIS_CALLING_REPLY = `${SMS_OPENING} ${SMS_CALLING} ${SMS_CRISIS_RESOURCES}`;
+/**
+ * SMS_CRISIS_TIMEOUT_CHECKIN: the check-in for a text whose crisis read failed, in approved words
+ * only: the crisis reply's opening, the voice check-in's safety question, then the same resources.
+ */
+const SMS_CHECKIN_REPLY = `${SMS_OPENING} ${SAFETY_QUESTION.en} ${SMS_CRISIS_RESOURCES}`;
+const SMS_CHECKIN_CALLING_REPLY = `${SMS_OPENING} ${SMS_CALLING} ${SAFETY_QUESTION.en} ${SMS_CRISIS_RESOURCES}`;
 
 /**
- * The crisis reply for a text whose handler placed a call now, or none. A crisis "call me" is
- * never held for calling hours (held-call.ts asCrisisCallMe), so no call-later line exists.
+ * The reply for a text the screen answered (`screened`, smsCrisisReply's reply), by what its
+ * handler did: placed a call now, or not. A crisis "call me" is never held for calling hours
+ * (held-call.ts asCrisisCallMe), so no call-later line exists.
  */
-export function smsCrisisReplyFor(called: 'now' | 'later' | undefined): string {
-  return called === 'now' ? SMS_CRISIS_CALLING_REPLY : SMS_CRISIS_REPLY;
+export function smsCrisisReplyFor(
+  handled: { called?: 'now' | 'later' } | null | undefined,
+  screened: string = SMS_CRISIS_REPLY
+): string {
+  const checkin = screened === SMS_CHECKIN_REPLY;
+  if (handled?.called === 'now')
+    return checkin ? SMS_CHECKIN_CALLING_REPLY : SMS_CRISIS_CALLING_REPLY;
+  return checkin ? SMS_CHECKIN_REPLY : SMS_CRISIS_REPLY;
 }
 
 /** A text isn't a live turn: Twilio waits ~15 s for the webhook, so the classifier gets longer than a call's 1 s. */
@@ -117,7 +135,19 @@ export async function smsCrisisReply(
   }
   const outcome = await screenSms(text, read);
   logScreen(mode, text, outcome, 'classifier', randomUUID());
-  return outcome.crisis ? SMS_CRISIS_REPLY : null;
+  if (outcome.crisis) return SMS_CRISIS_REPLY;
+  return smsCheckin(text, outcome) ? SMS_CHECKIN_REPLY : null;
+}
+
+/**
+ * SMS_CRISIS_TIMEOUT_CHECKIN (off): the calls' check-in (owner, 2026-11-10;
+ * crisis-timeout-checkin.ts) for a text. Not a crisis read, the read could not be made (no
+ * classifier verdict), and the words touch on the sender's own safety. A text has no call before
+ * it, so a plain denial alone ("i'm not going to hurt myself.") is no reason to check in.
+ */
+function smsCheckin(text: string, outcome: SmsCrisisRead): boolean {
+  if (outcome.crisis || outcome.risk !== null) return false;
+  return flagOn('SMS_CRISIS_TIMEOUT_CHECKIN') && holdsCheckinWords(text, false);
 }
 
 /** The read, falling back to the pattern guard alone when it throws. Never rejects. */
@@ -187,6 +217,7 @@ function logScreen(
       crisis: outcome.crisis,
       pattern: outcome.pattern,
       risk: outcome.risk,
+      checkin: stage === 'classifier' && smsCheckin(text, outcome),
       keyword: isKeywordOnly(text),
       help: HELP_WORDS.has(normalizeSms(text)),
       bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),

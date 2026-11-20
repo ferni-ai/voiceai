@@ -111,9 +111,9 @@ const plainDenial = (words: string, mention: RegExpExecArray): boolean =>
 
 /**
  * The caller's line holds check-in words. A line that only plainly denies them does not, unless
- * the call carried risk before it.
+ * the call carried risk before it. The SMS screen reads a text with it too (sms-crisis-screen.ts).
  */
-function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
+export function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
   const words = wordsOf(line);
   const found = mentions(words);
   if (!found.length) return false;
@@ -135,7 +135,7 @@ A safety read of the caller's last words could not be made, and their words touc
 2. Say they can call or text 988, the Suicide & Crisis Lifeline, any time
 3. Then carry on with them, in their language. No crisis script, no list of hotlines, no lecture. If they say they are not safe, or anything about hurting themselves, take it seriously and stay with them`;
 
-const SAFETY_QUESTION = { en: 'Are you safe right now?', es: '¿Estás a salvo ahora mismo?' };
+export const SAFETY_QUESTION = { en: 'Are you safe right now?', es: '¿Estás a salvo ahora mismo?' };
 const LINE_988 = { en: TALK_TO_988, es: TALK_TO_988_ES };
 const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
 
