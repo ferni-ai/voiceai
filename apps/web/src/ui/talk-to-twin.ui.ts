@@ -25,6 +25,7 @@ import {
   type CustomAgent,
 } from '../services/custom-agent.service.js';
 import { apiPost } from '../utils/api.js';
+import { isTwinConversationV2On } from '../config/twin-conversation-v2-flag.js';
 import {
   applyChatFraming,
   replyFromAgent,
@@ -345,10 +346,9 @@ function describeCommunicationStyle(personality: Record<string, unknown>): strin
 
 function addTwinWelcome(): void {
   if (!twinContext) return;
-
-  const { profile, recentJournals, currentMood: _currentMood } = twinContext;
-
-  // Build a personalized welcome using the profile; greeting comes from mannerisms if available
+  // TWIN_CONVERSATION_V2: the app's own note; the twin's first words are the model's
+  if (isTwinConversationV2On()) return addMessage('notice', t('talkToTwin.appNote'));
+  const { profile, recentJournals } = twinContext;
   const parts = [
     profile.mannerisms[0] ?? t('talkToTwin.welcome.hey'),
     t('talkToTwin.welcome.intro', { name: profile.name }),
@@ -356,7 +356,6 @@ function addTwinWelcome(): void {
   if (recentJournals.length > 0) parts.push(tp('talkToTwin.welcome.journals', recentJournals.length));
   if (profile.philosophy) parts.push(t('talkToTwin.welcome.philosophy', { philosophy: profile.philosophy }));
   const welcome = `${parts.join(' ')}\n\n${t('talkToTwin.welcome.prompt')}`;
-
   addMessage('twin', welcome);
 }
 
