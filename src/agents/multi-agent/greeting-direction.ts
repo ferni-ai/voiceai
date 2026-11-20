@@ -48,6 +48,7 @@ import {
 } from '../../tools/domains/engagement/future-letters.js';
 import * as stranger from './first-call-stranger.js';
 import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
+import { namesWhoCheck } from './greeting-names-who.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
 import { callNewsFor } from './call-news-opener.js';
 import { dateFor } from './greeting-date.js';
@@ -395,6 +396,7 @@ export async function directedGreeting(
   const stage = firstCall || unplaced ? ('stranger' as const) : ('friend' as const);
   const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
   const introAs = unknown ? undefined : introName;
+  const namesWho = namesWhoCheck(userData?.userName); // GREETING_NAMES_WHO: says who "her" is
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
   // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
   const told = (await raised) ? withoutTopic(history) : history;
@@ -457,7 +459,7 @@ export async function directedGreeting(
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
-    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
+    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : namesWho,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();
