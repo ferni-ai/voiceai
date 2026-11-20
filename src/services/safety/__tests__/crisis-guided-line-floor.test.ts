@@ -381,8 +381,11 @@ describe('CRISIS_GUIDED_LINE_FLOOR: one reader, one appender', () => {
     ]);
   });
 
-  it("crisis-gate.ts sets a guide's line only through crisisGuide, at the three crisis reads", () => {
-    const gate = readFileSync('src/agents/personas/crisis-gate.ts', 'utf8');
+  it("the reply gate sets a guide's line only through crisisGuide, at the three crisis reads", () => {
+    // The gate and its decisions (decisionFor, crisisGuide), read as one.
+    const gate = ['crisis-gate.ts', 'crisis-gate-decision.ts']
+      .map((file) => readFileSync(`src/agents/personas/${file}`, 'utf8'))
+      .join('\n');
     // Every guide literal: none names a line. crisisGuide is the one builder that does.
     const literals = gate.match(/\{ action: 'guide'[^}]*\}/g) ?? [];
     expect(literals.length).toBeGreaterThan(0);

@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOpeningAmdEnabled } from '../../config/call-opening-flag.js';
 import { forgetVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
+import { deleteRoom } from '../shared/phone-goodbye.js';
 
 const log = createLogger({ module: 'outbound-call-control' });
 
@@ -89,15 +90,6 @@ export function amdOpensCall(sessionId: string): boolean {
 }
 
 export type HangUp = (roomName: string) => Promise<void>;
-
-export async function deleteRoom(roomName: string): Promise<void> {
-  const { RoomServiceClient } = await import('livekit-server-sdk');
-  const url = process.env.LIVEKIT_URL;
-  const key = process.env.LIVEKIT_API_KEY;
-  const secret = process.env.LIVEKIT_API_SECRET;
-  if (!url || !key || !secret) throw new Error('LiveKit credentials not configured');
-  await new RoomServiceClient(url, key, secret).deleteRoom(roomName);
-}
 
 /**
  * End this session's call, recording how it ended (if Ferni knows). Returns
