@@ -10,7 +10,7 @@
  * - Humanizing Context Builder (orchestrator)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Voice Emotion Intelligence
 import {
@@ -325,6 +325,40 @@ describe('Spontaneous Vulnerability', () => {
       // Same draws and context; only the share count differs.
       expect(neverShared).toBeGreaterThan(0);
       expect(sharedOften).toBeLessThan(neverShared);
+    });
+
+    describe('share-count backoff steps (#4045)', () => {
+      const context = {
+        turnCount: 10,
+        relationshipStage: 'friend',
+        userEmotion: 'neutral',
+        userEmotionIntensity: 0.5,
+        recentShareCount: 0,
+        conversationFlow: 'flowing' as const,
+        timeOfDay: 'afternoon' as const,
+      };
+      const sharesAt = (recentShareCount: number) =>
+        overRandomGrid(() =>
+          selectSpontaneousShare('ferni', { ...context, recentShareCount }, [])
+        ).filter(Boolean).length;
+
+      afterEach(() => {
+        delete process.env.SPONTANEOUS_SHARE_BACKOFF;
+      });
+
+      it('on: three shares back off from none, and five back off further than three', () => {
+        process.env.SPONTANEOUS_SHARE_BACKOFF = 'on';
+        const [none, three, five] = [sharesAt(0), sharesAt(3), sharesAt(5)];
+        expect(none).toBeGreaterThan(0);
+        expect(three).toBeLessThan(none);
+        expect(five).toBeLessThan(three);
+      });
+
+      it('off: five shares back off exactly as three, as today', () => {
+        process.env.SPONTANEOUS_SHARE_BACKOFF = 'off';
+        expect(sharesAt(5)).toBe(sharesAt(3));
+        expect(sharesAt(3)).toBeLessThan(sharesAt(0));
+      });
     });
 
     it('should return persona-specific content', () => {

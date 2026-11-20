@@ -26,12 +26,6 @@ const KNOWN_DEAD: Record<string, string> = {
   // Save cash and Update LTV:CAC do nothing with empty inputs, and keep nothing (FO12, FO13)
   'dead control: finops > Save (2)': 'W7',
   'dead control: finops > Update LTV:CAC': 'W7',
-  // refresh-ops has no handler (OP1)
-  'dead control: operations > Refresh': 'W11',
-  // the tester's Send is cancelled by the delegated click trap (AD7); catalogue links to authed routes (AD9, AD10)
-  'dead control: api-docs > Send': 'W15',
-  'link leads nowhere (401): api-docs > Feature Flags API -> /api/v1/admin/flags': 'W15',
-  'link leads nowhere (401): api-docs > Trust API -> /api/trust-journey/summary': 'W15',
 };
 
 /** console.error lines that are not a portal fault, each with why. */
