@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { userTimeZone } from '../../utils/caller-time-zone.js';
 import {
   assembleContext,
   clearContextCache,
@@ -81,6 +82,8 @@ export interface IntelligenceOptions {
   currentTopic?: string;
   persona?: Persona;
   forceRefresh?: boolean;
+  /** The call's session: its settled zone sets the caller's clock (CALLER_CLOCK_TIME_OF_DAY) */
+  sessionId?: string;
 }
 
 /**
@@ -161,6 +164,7 @@ export async function getIntelligenceForTurn(
     calendarEvents: options.calendarEvents,
     recentTopics: options.recentTopics,
     forceRefresh: options.forceRefresh,
+    timeZone: userTimeZone({ sessionId: options.sessionId, userId }),
   };
   const fullContext = await assembleContext(assemblyOptions);
 

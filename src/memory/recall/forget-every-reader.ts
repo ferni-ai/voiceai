@@ -122,6 +122,22 @@ export async function forgottenPassageCheck(
 }
 
 /**
+ * forgottenPassageCheck without the last-known fallback, for a reader that
+ * fails closed when the read is late or failed (revived intelligence, whose
+ * earlier calls' summaries must not come back on an old list: #2623). Null
+ * then, and when the flag is off or there is no member.
+ */
+export async function forgottenPassageWithin(
+  userId: string | null | undefined,
+  reader = 'passage-fresh',
+  env: Env = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
+  const stored = await topicsFreshWithin(userId, reader);
+  return stored === null ? null : checkFor(userId, stored, isForgottenPassage);
+}
+
+/**
  * The check for a reader that fails closed without the flag (recentContext,
  * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
  * is late or failed. No last-known fallback until #2623 bounds its age.

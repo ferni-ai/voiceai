@@ -61,7 +61,6 @@ const KNOWN_UNINDEXED = new Set([
   'src/services/automation/audit-log.ts audit_log (status asc, canUndo asc, executedAt desc)',
   'src/services/automation/insight-action-bridge.ts action_executions (ruleId asc, status asc, createdAt asc)',
   'src/services/automation/trust-level-system.ts pending_actions (status asc, expiresAt asc)',
-  'src/services/better-than-human-validation/production-telemetry.ts bth_production_events (capability asc, timestamp asc)',
   'src/services/calendar/local-calendar-store.ts local_calendar_events (userId asc, startTime asc)',
   'src/services/calendar/meeting-followup-automation.ts meeting_outcomes (processedAt asc, endTime asc)',
   'src/services/calendar/meeting-memory-service.ts meeting_interactions (personEmail asc, date desc)',

@@ -13,6 +13,7 @@ import {
   type OpenCommitment,
 } from '../commitment-follow-up.js';
 import { ferniCallNotes, type CallRecords } from '../../outreach/call-status.js';
+import { MAX_CHARS } from '../../../utils/commitment-quality.js';
 
 const DAY = 86_400_000;
 const NOW = Date.parse('2026-10-10T18:00:00Z');
@@ -28,12 +29,12 @@ function commitment(over: Partial<OpenCommitment> = {}): OpenCommitment {
   };
 }
 
-/** Best of three runs, in ms: the work done, not a scheduler or GC pause. */
-function fastest(run: () => unknown): number {
+/** Best of five runs of `times` calls, in ms: the work done, not a scheduler or GC pause. */
+function fastest(run: () => unknown, times = 1): number {
   let best = Infinity;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     const started = performance.now();
-    run();
+    for (let n = 0; n < times; n++) run();
     best = Math.min(best, performance.now() - started);
   }
   return best;
@@ -112,10 +113,19 @@ describe('toOpenCommitment', () => {
     expect(c && youSaidYoud(c)).toBe("you'd call your mom and tell her you're sorry");
   });
 
+  // #4153: no absolute cap under 1 s. On shared CI runners a 50 ms cap measured runner load.
   it('reads a pathological stored line quickly (cut to MAX_CHARS first)', () => {
     toOpenCommitment('warm', doc);
-    for (const statement of [`${' ,'.repeat(5000)}x`, `${'my me '.repeat(2000)}x`]) {
-      expect(fastest(() => toOpenCommitment('c', { ...doc, statement }))).toBeLessThan(50);
+    for (const unit of [' ,', 'my me ']) {
+      const line = (chars: number) => `${unit.repeat(Math.ceil(chars / unit.length))}x`;
+      const [atCap, tenTimes] = [line(MAX_CHARS), line(10 * MAX_CHARS)];
+      const read = (statement: string) => () => toOpenCommitment('c', { ...doc, statement });
+      // Catastrophic backtracking: one read of the long line stays under a second.
+      expect(fastest(read(tenTimes)), unit).toBeLessThan(1000);
+      // Polynomial growth: a line 10x the cap costs under 3x one at the cap. Runner load slows
+      // both reads alike, so it cancels out of the ratio.
+      const ratio = fastest(read(tenTimes), 50) / fastest(read(atCap), 50);
+      expect(ratio, unit).toBeLessThan(3);
     }
   });
 

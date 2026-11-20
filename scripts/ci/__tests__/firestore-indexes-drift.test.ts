@@ -40,7 +40,7 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the call-watch TTL and the activity, call-watch and waitlist indexes', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the call-watch TTL and the activity, BTH, call-watch and waitlist indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
@@ -49,6 +49,8 @@ describe('firestore index drift', () => {
       'composite activity (COLLECTION): state ASCENDING, updatedAt DESCENDING',
       'composite activity (COLLECTION): subjectKeys CONTAINS, state ASCENDING, updatedAt DESCENDING',
       'composite activity (COLLECTION): subjectKeys CONTAINS, updatedAt DESCENDING',
+      // the admin BTH telemetry query (getCapabilityTelemetry), not deployed yet
+      'composite bth_production_events (COLLECTION): capability ASCENDING, timestamp ASCENDING',
       // the no-report watch sweep (call-result-watchdog.ts, CALL_RESULT_WATCHDOG), not deployed yet
       'composite call_result_watchdogs (COLLECTION_GROUP): status ASCENDING, dueAt ASCENDING',
       // the waitlist wave store's lapse query (wave-store.ts), not deployed yet
