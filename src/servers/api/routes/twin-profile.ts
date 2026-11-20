@@ -19,6 +19,7 @@ import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { API_ERRORS } from '../../../api/error-messages.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
+import { calculateCompletionPercentage, invalidScoredFields } from './twin-profile-completion.js';
 
 const log = createLogger({ module: 'TwinProfileRoutes' });
 
@@ -156,42 +157,6 @@ function createEmptyProfile(): TwinProfile {
   };
 }
 
-function calculateCompletionPercentage(profile: TwinProfile): number {
-  const weights = {
-    lifeChapters: 15,
-    keyRelationships: 10,
-    formativeExperiences: 10,
-    signaturePhrases: 15,
-    greetingStyle: 5,
-    farewellStyle: 5,
-    expressionsWhenHappy: 5,
-    expressionsWhenSad: 5,
-    expressionsWhenExcited: 5,
-    expressionsWhenFrustrated: 5,
-    coreValues: 10,
-    lifePhilosophy: 5,
-    whatMatters: 5,
-  };
-
-  let score = 0;
-
-  if (profile.lifeChapters.length > 0) score += weights.lifeChapters;
-  if (profile.keyRelationships.length > 0) score += weights.keyRelationships;
-  if (profile.formativeExperiences.length > 0) score += weights.formativeExperiences;
-  if (profile.signaturePhrases.length > 0) score += weights.signaturePhrases;
-  if (profile.greetingStyle) score += weights.greetingStyle;
-  if (profile.farewellStyle) score += weights.farewellStyle;
-  if (profile.expressionsWhenHappy.length > 0) score += weights.expressionsWhenHappy;
-  if (profile.expressionsWhenSad.length > 0) score += weights.expressionsWhenSad;
-  if (profile.expressionsWhenExcited.length > 0) score += weights.expressionsWhenExcited;
-  if (profile.expressionsWhenFrustrated.length > 0) score += weights.expressionsWhenFrustrated;
-  if (profile.coreValues.length > 0) score += weights.coreValues;
-  if (profile.lifePhilosophy) score += weights.lifePhilosophy;
-  if (profile.whatMatters.length > 0) score += weights.whatMatters;
-
-  return Math.min(100, score);
-}
-
 // ============================================================================
 // FIRESTORE HELPERS
 // ============================================================================
@@ -271,6 +236,11 @@ export async function handleTwinProfileRoutes(
     const body = await parseBody<{ profile: TwinProfile }>(req);
     if (!body?.profile) {
       sendError(res, 400, API_ERRORS.TWIN_INVALID_PROFILE_DATA);
+      return true;
+    }
+    const invalidFields = invalidScoredFields(body.profile);
+    if (invalidFields.length > 0) {
+      sendJson(res, 400, { error: API_ERRORS.TWIN_INVALID_PROFILE_DATA, invalidFields });
       return true;
     }
 
