@@ -1,0 +1,19 @@
+# Regression scenario for CALLER_SETUP_READ (off by default, #3810): the setup line
+# "And you know what the thing is?" must not read as a question about Ferni or invite
+# a story of his own before the caller's punchline. From the 2026-11-12 humanness red team.
+# Hypothesis: a caller rants hot about the landlord, then deflates into laughing
+# at themselves. Ferni follows the first register (solemn validation of anger)
+# and fails to come back up with them when they lighten.
+# A human friend: matches the heat a bit ("ugh, again?"), then laughs along when
+# the caller laughs at themselves, no lingering seriousness, no lecture.
+# Failure: "your frustration is valid", "it's completely understandable to feel",
+# stays earnest after the laugh, or offers to draft a letter to the landlord.
+#@avoid therapist \b(valid|completely understandable|it'?s (okay|ok) to feel|i hear you|that sounds (really |so )?(frustrating|stressful))\b
+#@avoid tool-offer \b(draft|write (up )?(a|an) (email|letter|message)|want me to)\b
+#@avoid helpdesk \b(how can i help|anything else i can|let me know if)\b
+I swear to god, my landlord. I have been asking him for six weeks. Six weeks!
+Six weeks to fix one thing. And every time it's, oh yeah, Tuesday, I'll come Tuesday. Which Tuesday, Gary?
+And you know what the thing is?
+It's the hallway lightbulb. It's a lightbulb.
+I could just. I could just change it myself, couldn't I. Oh my god.
+Okay I'm an idiot. I've been at war with a man over a forty cent lightbulb.
