@@ -32,6 +32,7 @@ import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../safety/crisis-s
 import { LATE_WORDS_MERGED, type LateWordsMergedEvent } from '../shared/late-words-event.js';
 import { startCrisisGate } from './crisis-gate.js';
 import { recordCrisisOnCall, replaceKind } from '../safety/crisis-event-record.js';
+import { noteGateDecision } from '../safety/crisis-turn-note.js';
 import { quietAfterCrisis } from '../safety/crisis-quiet-window.js';
 
 const log = createLogger({ module: 'LateWords' });
@@ -131,6 +132,7 @@ export function lateWordsMerger(
     // CRISIS_EVENT_RECORD: after the script is queued, on a later tick; never throws
     const reader = decision === gate.decision ? 'pattern' : 'classifier';
     recordCrisisOnCall(session, decision.action, reader, replaceKind(decision));
+    noteGateDecision(session, decision, reader); // TURN_RECEIPT and the override log, words-free
     quietAfterCrisis(session, decision); // CRISIS_QUIET_FROM_GATE
   };
 

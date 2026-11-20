@@ -84,6 +84,7 @@ import { CRISIS_GATE_SIGNAL } from '../../safety/crisis-gate-signal.js';
 import type { UserData } from '../../shared/types.js';
 import { recordCommittedAgentReply } from '../../voice-agent/agent-reply-recorder.js';
 import { gatedReply, startCrisisGate } from '../crisis-gate.js';
+import { noteGateDecision } from '../../safety/crisis-turn-note.js';
 import { OpenerGate } from '../opener-gate.js';
 
 const R = (risk: string, subject = 'self') => JSON.stringify({ risk, subject });
@@ -298,22 +299,27 @@ describe('CRISIS_GRADED_RESPONSE=shadow: the grade', () => {
     expect(grades('gate')[0]).toMatchObject({ would: 'L2', main: 'guide' });
   });
 
-  it("C7c: shadow logs main's guard lines and no more (the call miner's marker)", async () => {
+  it("C7c: shadow logs main's override lines and no more (the call miner's marker)", async () => {
     const IMMINENT = R('imminent');
     const overridden = () =>
       guardWarn.mock.calls.filter((c) => String(c[1]).includes('CRISIS DETECTED')).length;
-    const rows: Turn[] = [
-      { latest: "I'm going to kill myself tonight." },
-      { reads: [IMMINENT, IMMINENT] }, // the classifier alone makes it a replace
-      {},
+    // The marker logs where the gate's decision replaces the reply (crisis-turn-note.ts, as
+    // gatedReply notes it): one on each replace, none otherwise.
+    const marked = async (row: Turn) => {
+      const { call, decision } = await turn(row);
+      noteGateDecision({ userData: { services: { sessionId: call } } }, decision, 'pattern');
+      return overridden();
+    };
+    const rows: Array<[Turn, number]> = [
+      [{ latest: "I'm going to kill myself tonight." }, 1],
+      [{ reads: [IMMINENT, IMMINENT] }, 1], // the classifier alone makes it a replace
+      [{}, 0],
     ];
-    for (const row of rows) {
+    for (const [row, replaces] of rows) {
       guardWarn.mockReset();
-      await turn({ ...row, env: PROD });
-      const off = overridden();
+      expect(await marked({ ...row, env: PROD }), `off ${JSON.stringify(row)}`).toBe(replaces);
       guardWarn.mockReset();
-      await turn(row);
-      expect(overridden(), JSON.stringify(row)).toBe(off);
+      expect(await marked(row), `shadow ${JSON.stringify(row)}`).toBe(replaces);
     }
   });
 

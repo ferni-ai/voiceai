@@ -12,6 +12,7 @@
 import { llm } from '@livekit/agents';
 import { startCrisisGate, type CrisisGateOptions } from './crisis-gate.js';
 import { crisisScriptFor } from './crisis-gate-words.js';
+import { noteGateDecision } from '../safety/crisis-turn-note.js';
 
 /** One earlier turn of a typed conversation. */
 export interface TypedTurn {
@@ -49,6 +50,7 @@ export async function readTypedMessageForCrisis(
     gate.decision.action === 'replace' ? null : await gate.escalation?.catch(() => null);
   const decision = escalated && escalated.action !== 'pass' ? escalated : gate.decision;
   if (decision.action === 'replace') {
+    noteGateDecision(undefined, decision, decision === gate.decision ? 'pattern' : 'classifier');
     const reply = crisisScriptFor(decision.script, chatCtx, undefined, options.env ?? process.env);
     return { action: 'replace', reply };
   }

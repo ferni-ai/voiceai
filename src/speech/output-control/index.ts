@@ -5,3 +5,4 @@
  * @module speech/output-control
  */
 export { pauseHoldHolding } from './pause-hold.js';
+export { sessionIdIn } from './turn-timing.js';

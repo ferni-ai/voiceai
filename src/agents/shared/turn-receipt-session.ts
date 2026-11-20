@@ -32,6 +32,8 @@ import { noteOfferedTools, withTurnMetricsBq } from './turn-receipt-bq.js';
 import { turnDetectionInUse } from './turn-patience.js';
 import { timelineFor } from './call-timeline.js';
 import { preemptiveCause } from './preemptive-cause.js';
+import { onCrisisTurn } from './turn-receipt-crisis.js';
+import { bindCallTurn } from '../../utils/call-turn.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
 const recorders = new WeakMap<object, TurnReceiptRecorder>();
@@ -129,9 +131,17 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
   const offHold = onPauseHoldReleased((sessionId, heldMs) => {
     if (sessionId === opts.sessionId) rec.onPauseHold(heldMs);
   });
+  // A note made on another turn (a read that settled after the next commit) is dropped.
+  const offCrisis = onCrisisTurn((sessionId, turn, note) => {
+    if (sessionId !== opts.sessionId) return;
+    if (turn === null || turn === rec.currentTurn()) rec.onCrisis(note);
+  });
+  const unbindTurn = bindCallTurn(opts.sessionId, () => rec.currentTurn());
   return () => {
     offAudio();
     offHold();
+    offCrisis();
+    unbindTurn();
     offTiming();
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);

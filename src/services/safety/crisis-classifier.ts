@@ -36,6 +36,7 @@ import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
+import { callTurnOf } from '../../utils/call-turn.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -399,6 +400,7 @@ export function startCrisisClassifier(
     return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
+  const readOnTurn = callTurnOf(options.call); // the TURN_RECEIPT turn read, not one it settles on
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
@@ -441,6 +443,8 @@ export function startCrisisClassifier(
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
       {
+        sessionId: options.call ?? null, // with `turn`, each read joins its turn exactly
+        turn: readOnTurn,
         mode,
         risk: v?.risk ?? null,
         subject: v?.subject ?? null,
