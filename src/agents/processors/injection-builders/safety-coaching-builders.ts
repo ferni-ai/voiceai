@@ -21,7 +21,7 @@ import {
 } from '../../integrations/session-dynamics-integration.js';
 
 // Static imports for performance (TIER 1-2)
-import { performSafetyCheck } from '../../../services/safety/index.js';
+import { crisisLineFor, performSafetyCheck } from '../../../services/safety/index.js';
 import { buildScientificCoachingContext } from '../../../intelligence/context-builders/coaching/scientific-coaching.js';
 import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 import { getCoachingContextForLLM, analyzeForCoaching } from '../../../services/coaching/index.js';
@@ -107,9 +107,11 @@ export async function buildSafetyInjections(
       // If crisis response is generated, add it
       if (safetyResult.response) {
         const resourceName = safetyResult.response.primaryResource?.name || 'professional support';
+        // CRISIS_ONE_988_SOURCE: a 988 resource line names the shared policy's line instead
+        const line = crisisLineFor(`Resource if appropriate: ${resourceName}`, userText);
         injections.push({
           category: 'crisis_response',
-          content: `[CRISIS SUPPORT]\nValidate first: "${safetyResult.response.validation}"\nResource if appropriate: ${resourceName}`,
+          content: `[CRISIS SUPPORT]\nValidate first: "${safetyResult.response.validation}"\n${line}`,
           priority: 98,
         });
       }

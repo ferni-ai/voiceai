@@ -397,7 +397,7 @@ export async function buildHumanTransferInjections(
       return null;
     }
 
-    const content = buildTransferAwarenessContext(decision);
+    const content = buildTransferAwarenessContext(decision, userText);
     if (!content) return null;
 
     const priority = decision.urgency === 'immediate' ? 95 : decision.urgency === 'soon' ? 88 : 80;

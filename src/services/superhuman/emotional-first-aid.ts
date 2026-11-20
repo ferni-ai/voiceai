@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { crisisLineFor } from '../safety/index.js';
 
 const log = createLogger({ module: 'emotional-first-aid' });
 
@@ -293,13 +294,15 @@ const PROTOCOL_BY_LEVEL: Record<
   },
 };
 
+/** The safety follow-up without its 988 sentence (CRISIS_ONE_988_SOURCE: the policy names the line). */
+const SAFETY_STAY = "I'm not going anywhere. Do you have someone you can call right now?";
+
 export function getFirstAidResponse(level: CrisisLevel): FirstAidResponse {
   const protocol = PROTOCOL_BY_LEVEL[level];
   const technique = protocol.techniques[0]; // Start with first technique
 
   const followUps: Record<CrisisLevel, string> = {
-    safety:
-      "I'm not going anywhere. Do you have someone you can call right now? A crisis line is 988 if you need it.",
+    safety: `${SAFETY_STAY} A crisis line is 988 if you need it.`,
     containing:
       "You're doing hard work right now. I'm proud of you for staying with me. What do you need right now?",
     stabilizing:
@@ -323,7 +326,11 @@ export function getFirstAidResponse(level: CrisisLevel): FirstAidResponse {
 // VOICE INSTRUCTION HELPERS
 // ============================================================================
 
-export function getVoiceInstructions(response: FirstAidResponse): string {
+const SAFETY_988 = '- For safety level: Always mention 988 crisis line.';
+
+/** `latest`: the caller's last line, which picks the crisis line under CRISIS_ONE_988_SOURCE. */
+export function getVoiceInstructions(response: FirstAidResponse, latest = ''): string {
+  const line = crisisLineFor(SAFETY_988, latest, '- For safety level: ');
   const toneInstructions: Record<FirstAidResponse['voiceTone'], string> = {
     calm: 'Speak slowly and evenly. No urgency. Like still water.',
     warm: 'Warm and present. Like a caring friend beside them.',
@@ -350,7 +357,7 @@ CRITICAL REMINDERS:
 - Do NOT offer solutions. Just be present.
 - Do NOT say "calm down" or "it's okay" - validate instead.
 - Do NOT leave them. Stay present until they're stable.
-- For safety level: Always mention 988 crisis line.
+${line}
   `.trim();
 }
 
@@ -358,21 +365,25 @@ CRITICAL REMINDERS:
 // CONTEXT BUILDING
 // ============================================================================
 
-export function buildFirstAidContext(crisis: CrisisSignal): string {
+/** `latest`: the caller's last line, which picks the crisis line under CRISIS_ONE_988_SOURCE. */
+export function buildFirstAidContext(crisis: CrisisSignal, latest = ''): string {
   const response = getFirstAidResponse(crisis.severity);
+  // The policy's line replaced the 988 reminder: the safety follow-up drops its own 988 too.
+  const fromPolicy = crisisLineFor(SAFETY_988, latest) !== SAFETY_988;
+  const followUp = crisis.severity === 'safety' && fromPolicy ? SAFETY_STAY : response.followUp;
 
   const sections: string[] = ['[⚠️ EMOTIONAL FIRST AID ACTIVATED]'];
   sections.push(`Detected: ${crisis.signal}`);
   sections.push(`Level: ${crisis.severity.toUpperCase()}`);
   sections.push('');
-  sections.push(getVoiceInstructions(response));
+  sections.push(getVoiceInstructions(response, latest));
   sections.push('');
   sections.push('**Suggested Script:**');
   for (const line of response.script.slice(0, 3)) {
     sections.push(`→ "${line}"`);
   }
   sections.push('');
-  sections.push(`**Follow Up:** "${response.followUp}"`);
+  sections.push(`**Follow Up:** "${followUp}"`);
 
   return sections.join('\n');
 }
