@@ -433,7 +433,7 @@ jobs:
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -594,7 +594,7 @@ jobs:
       # uploads for a commit. vitest.config.unit.ts sets no coverage thresholds, so
       # there is no merged total to enforce here.
       - name: Upload unit coverage
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always() && steps.full-unit.outcome != 'skipped'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -669,7 +669,7 @@ jobs:
 
       - name: Setup pnpm
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
@@ -774,7 +774,7 @@ jobs:
           fi
 
       - name: Upload integration coverage
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always() && github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -823,7 +823,7 @@ jobs:
 
       - name: Setup pnpm
         if: steps.changed.outputs.count != '0'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         if: steps.changed.outputs.count != '0'
