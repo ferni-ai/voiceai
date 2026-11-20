@@ -14,7 +14,13 @@ import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
 import { alsoSafe } from './phone-safe-also.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
-import { heldAfter, lastFerniLine, type YouthNote } from '../../utils/minor-care.js';
+import { flagOn } from '../../config/env-flag.js';
+import {
+  careHoldReason,
+  heldAfter,
+  lastFerniLine,
+  type YouthNote,
+} from '../../utils/minor-care.js';
 import {
   hasThirdPartyTools,
   mayReachOthers,
@@ -99,6 +105,8 @@ export interface TurnToolsState {
   loggedLockedHandoffs: boolean;
   /** The agent, so tools a phone-only caller can't use come off it too (phone-safe-tools.ts). */
   agent?: object;
+  /** PHONE_SAFE_SETTLED_HOLD: the agent's tools before its first phone-safe cut, given back after. */
+  beforeCut?: AgentTools;
 }
 
 const sessionIdOf = (userData: unknown): string | undefined =>
@@ -424,17 +432,29 @@ export async function toolsForTurn(
   // on: a held caller under 18 gets no tool that stores anything; the phone-safe set reaches no
   // one, so it covers both. ONBEHALF_WRITE_GATE: a call placed for a member acts on no account.
   const others = mayReachOthers(userId, sessionId, sessionIsVerifiedOwner);
+  // PHONE_SAFE_SETTLED_HOLD: a verified owner's tools follow holds that were set, not a read still
+  // running (the 11-18 cut: 94 -> 20 for the rest of the call). Memory writes still wait on it.
+  const settledFlag = flagOn('PHONE_SAFE_SETTLED_HOLD');
+  const settled = settledFlag && !!sessionId && sessionIsVerifiedOwner(sessionId);
   const held = heldAfter(sessionId, callerWords(chatCtx), {
     asked: lastFerniLine(chatCtx.items),
     userId, // userHeld follows
     careOnly: true, // a crisis hold keeps the call's tools (support, handoffs); each writer refuses
+    settledOnly: settled,
   });
-  const allowed =
-    phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userId)
-      ? await withoutAccountTools(toolCtx, state, alsoSafe(userId, onPlacedCallSession(sessionId)))
-      : others
-        ? toolCtx
-        : await withoutReachingOthers(toolCtx, state);
+  const phoneOnly = phoneOnlyIdentity(sessionId);
+  const cut = phoneOnly || held || ownerWritesBlocked(userId);
+  if (!cut && settled) await withToolsBack(toolCtx, state);
+  const allowed = cut
+    ? await withoutAccountTools(
+        toolCtx,
+        state,
+        alsoSafe(userId, onPlacedCallSession(sessionId)),
+        settledFlag ? cutReason(phoneOnly, held, sessionId) : undefined
+      )
+    : others
+      ? toolCtx
+      : await withoutReachingOthers(toolCtx, state);
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
     return allowed;
@@ -479,6 +499,7 @@ async function withoutReachingOthers(
  * allowlist leaves the request and the agent itself, so a call to one can't
  * run (phone-safe-tools.ts). endCall, support and handoffs stay.
  */
+type AgentTools = Parameters<llm.ToolContext['updateTools']>[0];
 interface ToolHolder {
   readonly toolCtx: llm.ToolContext;
   updateTools(
@@ -486,15 +507,55 @@ interface ToolHolder {
   ): Promise<void>;
 }
 
+/** Why a turn's tools are cut to the phone-safe set (PHONE_SAFE_SETTLED_HOLD's log). */
+type CutReason =
+  | NonNullable<ReturnType<typeof careHoldReason>>
+  | 'care-hold'
+  | 'phone-only'
+  | 'owner-writes-blocked';
+
+const cutReason = (phoneOnly: boolean, held: boolean, sessionId?: string): CutReason =>
+  phoneOnly
+    ? 'phone-only'
+    : held
+      ? (careHoldReason(sessionId) ?? 'care-hold')
+      : 'owner-writes-blocked';
+
 async function withoutAccountTools(
   toolCtx: llm.ToolContext,
   state: TurnToolsState,
-  also?: ReadonlySet<string> // phone-safe-also.ts
+  also: ReadonlySet<string> | undefined, // phone-safe-also.ts
+  reason?: CutReason // PHONE_SAFE_SETTLED_HOLD on
 ): Promise<llm.ToolContext> {
   const agent = state.agent as ToolHolder | undefined;
   if (agent && onlyPhoneSafeTools(agent.toolCtx, also) !== agent.toolCtx) {
-    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));
-    log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
+    if (reason === undefined) {
+      await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));
+      log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
+    } else {
+      const before = agent.toolCtx.tools.length;
+      state.beforeCut ??= [...agent.toolCtx.tools];
+      await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));
+      log.info({ reason, before, after: agent.toolCtx.tools.length }, 'Only phone-safe tools open');
+    }
   }
   return onlyPhoneSafeTools(toolCtx, also);
+}
+
+/**
+ * PHONE_SAFE_SETTLED_HOLD, a verified owner's turn with no cut: the agent gets back the tools it
+ * had before its first cut, and this turn's request carries them (withPinnedTools adds what the
+ * agent has that the request lacks). Only when changing the agent's tools is safe mid-session.
+ */
+async function withToolsBack(toolCtx: llm.ToolContext, state: TurnToolsState): Promise<void> {
+  const agent = state.agent as ToolHolder | undefined;
+  if (!agent || state.beforeCut === undefined) return;
+  const { isMidSessionToolUpdateSafe } = await import('../shared/tool-updater.js');
+  const tools = state.beforeCut; // read after the await: a turn in between may have used it
+  if (tools === undefined || !isMidSessionToolUpdateSafe()) return;
+  state.beforeCut = undefined;
+  const before = agent.toolCtx.tools.length;
+  await agent.updateTools(tools);
+  withPinnedTools(toolCtx, agent);
+  log.info({ before, after: agent.toolCtx.tools.length }, 'Tools back after the hold cleared');
 }
