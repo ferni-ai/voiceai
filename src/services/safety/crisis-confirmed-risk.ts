@@ -30,6 +30,7 @@ import { derivedHold, likelyMinor, statesUnder18 } from '../../utils/minor-care.
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAdjudicatorMode } from './crisis-adjudicator.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
+import { noteCrisisConfirmed } from './crisis-call-risk.js';
 import {
   classifyCrisis,
   createGeminiCrisisGenerate,
@@ -130,6 +131,7 @@ function entry(call: string, now: number): CallRisk {
 
 /** Risk on this call that something besides one classifier read found: never eased again. */
 export function noteConfirmedRisk(call: string | undefined, env: Env = process.env): void {
+  noteCrisisConfirmed(call); // whatever this mode (CRISIS_COMPANION_EXCLUDES_OWN_LINE)
   if (call && resolveConfirmedCallRisk(env) !== 'off') entry(call, Date.now()).confirmed = true;
 }
 

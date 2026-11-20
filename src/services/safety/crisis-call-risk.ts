@@ -243,6 +243,27 @@ export function crisisRiskNoted(sessionId: string, now = Date.now()): boolean {
   return at !== undefined && now - at <= TTL_MS;
 }
 
+/** Calls where something besides one classifier read confirmed risk, by when it last did. */
+const confirmed = new Map<string, number>();
+
+/**
+ * Something besides one classifier read confirmed risk on this call: a pattern, two reads of a
+ * turn agreeing, an after-check read (noteConfirmedRisk, crisis-confirmed-risk.ts). Kept whatever
+ * CRISIS_CONFIRMED_CALL_RISK's mode, for CRISIS_COMPANION_EXCLUDES_OWN_LINE: once a crisis is
+ * confirmed, the call's reads see Ferni's line whole (crisis-companion-own-line.ts).
+ */
+export function noteCrisisConfirmed(sessionId: string | undefined, now = Date.now()): void {
+  if (!sessionId) return;
+  for (const [id, at] of confirmed) if (now - at > TTL_MS) confirmed.delete(id);
+  confirmed.set(sessionId, now);
+}
+
+/** Risk confirmed on this call in the last 6 hours (noteCrisisConfirmed). */
+export function crisisConfirmedThisCall(sessionId: string, now = Date.now()): boolean {
+  const at = confirmed.get(sessionId);
+  return at !== undefined && now - at <= TTL_MS;
+}
+
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */
 export function explainCrisisTurn(sessionId: string | undefined, latest: string): void {
   if (sessionId) notesOf(sessionId).explained.add(turnOf(latest));
@@ -279,5 +300,6 @@ export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
   notes.clear();
+  confirmed.clear();
   resetCrisisMemoryHold();
 }
