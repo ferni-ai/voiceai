@@ -298,7 +298,7 @@ export class Director {
    * Ferni finished a reply: think about the next one. Never throws. `stage`
    * (DIRECTOR_SEES_SCENE=on) frames it for the persona speaking, with the scene.
    */
-  async observe(lines: Line[], stage?: Stage): Promise<void> {
+  observe(lines: Line[], stage?: Stage): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
@@ -467,7 +467,7 @@ export function directorSystem(
   return directorEscalates(env) ? `${system}\n${directorAddress(cast)}` : system;
 }
 
-async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     work,

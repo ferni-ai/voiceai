@@ -48,14 +48,14 @@ describe('the #2438 note through parseNotes (DIRECTOR_PUSHY_WIDE)', () => {
 });
 
 describe('pushyNote', () => {
+  // Aimed at how the caller worded something: dropped with the flag on.
   const caught = [
     NOTE,
-    "Don't let that go; ask what he meant.",
-    'Do not let this slide.',
-    'Dont let it pass.',
     'He said "him" again. Don’t let that one slide.',
-    'Point it out gently.',
     'She called herself "they". Point that out.',
+    "Odd wording there; don't let it pass.",
+    'He mispronounced her name. Do not let this slide.',
+    'He used the wrong pronoun. Point it out.',
   ];
   it.each(caught)('on: drops %j', (note) => {
     expect(pushyNote(note, on)).toBe(true);
@@ -78,6 +78,38 @@ describe('pushyNote', () => {
   ];
   it.each(kept)('on: keeps %j', (note) => {
     expect(pushyNote(note, on)).toBe(false);
+  });
+
+  // PR #4276 verify, round 1: the idiom alone dropped safety follow-ups and
+  // praise. A note that asks after safety or wellbeing, or celebrates, stays.
+  const safety = [
+    "If they bring up the overdose again, don't let it pass, ask gently.",
+    "She mentioned self-harm last week; don't let that go unmentioned, ask how she is.",
+    "He said he wants to disappear. Don't let that slide; ask if he's safe.",
+    'They hinted at not wanting to be here. Do not let it pass; ask directly and kindly.',
+    "If he talks about the pills again, point it out gently and ask if he's safe.",
+    'She minimised the bruises. Point that out softly and ask if she is safe at home.',
+    "He's been drinking more; don't let that slide, ask about it gently.",
+  ];
+  const supportive = [
+    "He keeps calling himself a failure. Don't let that slide; remind him of what he did well.",
+    "She's being hard on herself; point it out kindly and offer another view.",
+    "Don't let this one go: celebrate the promotion with him.",
+    "He got the job! Don't let it pass without celebrating.",
+    "Don't let it go too long without a pause.",
+  ];
+  it.each(safety)('on: keeps the safety follow-up %j', (note) => {
+    expect(pushyNote(note, on)).toBe(false);
+  });
+  it.each(supportive)('on: keeps the supportive note %j', (note) => {
+    expect(pushyNote(note, on)).toBe(false);
+  });
+  it('on: parseNotes passes a safety follow-up through to Ferni', () => {
+    process.env.DIRECTOR_PUSHY_WIDE = 'on';
+    const said = [
+      { speaker: 'user' as const, text: 'Honestly I just want to disappear sometimes.' },
+    ];
+    expect(parseNotes(safety[2], said, undefined)).toEqual([safety[2]]);
   });
 
   it('the older pushy phrasings are dropped with the flag off too', () => {
