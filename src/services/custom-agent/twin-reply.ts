@@ -86,7 +86,9 @@ export async function generateTwinResponse(
   const v2 = flagOn('TWIN_CONVERSATION_V2', env);
   const history = v2 ? (request.history ?? []) : [];
   const place = v2 ? { firstTurn: history.length === 0 } : undefined;
-  const systemPrompt = buildTwinSystemPrompt(profile, relevantJournals, keyThemes, place);
+  // A crisis read guided this turn: no canned greeting or sign-off next to its guidance.
+  const styled = guidanceNote ? { ...profile, greetingStyle: '', farewellStyle: '' } : profile;
+  const systemPrompt = buildTwinSystemPrompt(styled, relevantJournals, keyThemes, place);
   const said = history.length
     ? `\n\n## The conversation so far\n${history.map((t) => `${t.from === 'person' ? 'Them' : 'You'}: ${t.text}`).join('\n')}`
     : '';
