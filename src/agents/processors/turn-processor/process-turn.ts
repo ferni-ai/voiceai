@@ -88,9 +88,10 @@ import { checkEasterEggs } from '../easter-egg-handler.js';
 import { buildEmotionalState } from '../emotional-state-builder.js';
 import { buildResponseGuidance } from '../response-guidance-builder.js';
 import { buildIdentityContext } from '../identity-context-builder.js';
-import { buildHumanizingContextForTurn } from '../humanizing-context-builder.js';
+import { buildHumanizingContextForTurn, settleTurnMood } from '../humanizing-context-builder.js';
 import { processBundleRuntime } from '../bundle-runtime-processor.js';
 import { processAdvancedHumanization } from '../advanced-humanization.js';
+import { keepCapUnlessCrisis, taskHelpDistressCapped } from '../task-help-distress.js';
 
 import {
   createTimer,
@@ -571,8 +572,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     );
 
     const extractedDetails = (userData as Record<string, unknown>).extractedDetails as
-      | Array<{ type: string; value: string }>
-      | undefined;
+      Array<{ type: string; value: string }> | undefined;
     if (extractedDetails) {
       triggerAutoSave(services.userId, turnCount, extractedDetails);
     } else {
@@ -627,11 +627,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
               surfacingCountThisSession: ctx.surfacingCount || 0,
               sessionTopics: ctx.sessionTopics || [],
               conversationMood: analysisResult?.analysis?.state?.currentMood as
-                | 'exploratory'
-                | 'venting'
-                | 'seeking_help'
-                | 'casual'
-                | undefined,
+                'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
               lastTurnWasQuestion: userText.trim().endsWith('?'),
               detectedEmotion: analysisResult?.analysis?.emotion?.primary,
             });
@@ -663,8 +659,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (isFTISMode) {
     const ftisUserId = services.userId || 'unknown';
     const userLocationData = ctx.userData?.location as
-      | { city?: string; regionCode?: string; countryCode?: string }
-      | undefined;
+      { city?: string; regionCode?: string; countryCode?: string } | undefined;
 
     const lastAgentMessage = undefined;
 
@@ -841,11 +836,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   trace?.stage('parallel_core_analysis');
   const parallelCoreTimer = createTimer();
 
+  // Task-help distress (HUMANIZE_DISTRESS_CORROBORATION): decided once, read by every humanization seam
+  const distressCapped = taskHelpDistressCapped({
+    text: userText,
+    emotion: analysisResult.analysis.emotion,
+    crisisSignal: hasCrisisSignal(crisisResult),
+  });
+
   const [emotionalState, identityContext, humanizingResult, bundleRuntimeContext] =
     await Promise.all([
       (async () => {
         const timer = createTimer();
-        const result = buildEmotionalState(ctx, analysisResult);
+        const result = buildEmotionalState(ctx, analysisResult, distressCapped);
         recordPhaseTiming('emotional_state', timer.stop());
         return result;
       })(),
@@ -857,7 +859,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       })(),
       (async () => {
         const timer = createTimer();
-        const result = buildHumanizingContextForTurn(ctx, analysisResult);
+        const result = buildHumanizingContextForTurn(ctx, analysisResult, distressCapped);
         recordPhaseTiming('humanizing_context', timer.stop());
         return result;
       })(),
@@ -896,12 +898,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // Record mismatch as cross-persona insight
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
     const personaId = ctx.persona.id as
-      | 'ferni'
-      | 'maya-santos'
-      | 'peter-john'
-      | 'alex-chen'
-      | 'jordan-taylor'
-      | 'nayan-patel';
+      'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan-patel';
     void recordMismatchInsight(
       services.userId || 'anonymous',
       personaId,
@@ -1277,8 +1274,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   const lastValueEvent = (userData as Record<string, unknown>).lastValueEvent as
-    | { type: string; eventId: string }
-    | undefined;
+    { type: string; eventId: string } | undefined;
   const shouldPromptValue = (userData as Record<string, unknown>).shouldPromptValueCapture;
 
   const valueCaptureResult = lastValueEvent
@@ -1474,7 +1470,11 @@ If they're just conversing, respond naturally without a tool call.`,
       elapsedMs,
       trackedInjections,
     },
-    emotional: emotionalState,
+    emotional: keepCapUnlessCrisis(
+      emotionalState,
+      hasCrisisSignal(finalCrisis) || finalCrisis.softCheck === true,
+      () => settleTurnMood(ctx, humanizingResult, analysisResult.analysis.emotion)
+    ),
     response: responseGuidance,
     identity: identityContext,
     bundleRuntime: bundleRuntimeContext,

@@ -22,7 +22,9 @@ import {
   dispatchBehaviorEvents,
   type BehaviorDetectionContext,
 } from '../realtime/behavior-event-dispatcher.js';
+import { flagOn } from '../../config/env-flag.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { readsHeavy } from '../processors/task-help-distress.js';
 import type { SessionStateManager } from '../session/session-state.js';
 
 // ============================================================================
@@ -44,6 +46,8 @@ export interface EventDispatchContext {
     intensity: number;
     distressLevel: number;
     trajectory?: string;
+    /** Task-help distress only (task-help-distress.ts) */
+    distressCapped?: boolean;
   };
   /** Humanizing result from turn processing */
   humanizingResult?: {
@@ -88,6 +92,10 @@ export async function dispatchTurnEmotionEvents(ctx: EventDispatchContext): Prom
   const logger = log();
 
   if (!ctx.userId) {
+    return 0;
+  }
+  // turn-handler.ts already sent this turn's emotion events (anonymous callers too): one concern_detected per turn
+  if (flagOn('HUMANIZE_DISTRESS_CORROBORATION')) {
     return 0;
   }
 
@@ -165,7 +173,7 @@ export function buildBehaviorContext(ctx: EventDispatchContext): BehaviorDetecti
     hourOfDay: new Date().getHours(),
     // Topic weight detection
     topicWeight:
-      ctx.emotionalResult.distressLevel > 0.6 ||
+      readsHeavy(ctx.emotionalResult.distressLevel, ctx.emotionalResult.distressCapped) ||
       ctx.injections.some(
         (i) =>
           i.content.toLowerCase().includes('grief') ||

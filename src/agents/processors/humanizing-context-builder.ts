@@ -17,6 +17,7 @@ import {
   logValidation,
 } from '../../intelligence/context-builders/humanization/humanizing-debug.js';
 import { extractPersonalThemes } from '../session/session-state.js';
+import { readsHeavy } from './task-help-distress.js';
 import type { TurnAnalysisResult, TurnContext } from './types.js';
 
 // ============================================================================
@@ -28,7 +29,8 @@ import type { TurnAnalysisResult, TurnContext } from './types.js';
  */
 export function buildHumanizingContextForTurn(
   ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
+  analysisResult: TurnAnalysisResult,
+  distressCapped = false
 ): HumanizingResult | null {
   const { persona, bundleRuntime, services, userData, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
@@ -112,27 +114,7 @@ export function buildHumanizingContextForTurn(
       }
     }
 
-    // Check for mood shift
-    const topicWeight =
-      analysis.emotion.distressLevel > 0.6
-        ? ('heavy' as const)
-        : analysis.emotion.distressLevel > 0.3
-          ? ('medium' as const)
-          : ('light' as const);
-
-    if (shouldMoodShift(result.mood, analysis.emotion.primary, topicWeight)) {
-      const newMoodState = getMoodShift(
-        result.mood.state,
-        `${analysis.emotion.primary}_${topicWeight}`
-      );
-      ctx.logger.info(
-        { from: result.mood.state, to: newMoodState, reason: topicWeight },
-        '🌤️ Mood shifting'
-      );
-      if (userData) {
-        userData.lastMood = newMoodState;
-      }
-    }
+    settleTurnMood(ctx, result, analysis.emotion, distressCapped);
 
     ctx.logger.info({ summary: getHumanizingSummary(result) }, '🎭 Humanizing context built');
 
@@ -144,5 +126,35 @@ export function buildHumanizingContextForTurn(
   } catch (error) {
     ctx.logger.warn({ error: String(error) }, 'Humanizing context failed (non-fatal)');
     return null;
+  }
+}
+
+/**
+ * The persona mood this turn leaves for the next one: a heavy topic may shift it. Run again
+ * with the full reading when the task-help cap comes off after the classifier (process-turn.ts);
+ * any shift the capped reading allows, the full (heavy) reading allows too, so the rerun
+ * overwrites it.
+ */
+export function settleTurnMood(
+  ctx: Pick<TurnContext, 'logger' | 'userData'>,
+  result: HumanizingResult | null,
+  emotion: { primary: string; distressLevel: number },
+  distressCapped = false
+): void {
+  if (!result) return;
+  const topicWeight = readsHeavy(emotion.distressLevel, distressCapped)
+    ? ('heavy' as const)
+    : emotion.distressLevel > 0.3
+      ? ('medium' as const)
+      : ('light' as const);
+
+  if (!shouldMoodShift(result.mood, emotion.primary, topicWeight)) return;
+  const newMoodState = getMoodShift(result.mood.state, `${emotion.primary}_${topicWeight}`);
+  ctx.logger.info(
+    { from: result.mood.state, to: newMoodState, reason: topicWeight },
+    '🌤️ Mood shifting'
+  );
+  if (ctx.userData) {
+    ctx.userData.lastMood = newMoodState;
   }
 }
