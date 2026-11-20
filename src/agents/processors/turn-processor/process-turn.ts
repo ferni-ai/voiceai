@@ -35,7 +35,7 @@ import {
 } from '../../../services/intelligence-publisher.js';
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
-import { crisisTurnSettled } from '../../../utils/crisis-memory-hold.js';
+import { turnHold } from './pipeline-crisis-hold.js';
 import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
 import { ownerWriteId, ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
@@ -198,6 +198,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const turnCrisis = startTurnCrisis(userText, userData, { sessionId: services.sessionId });
   const crisisResult = turnCrisis.patterns;
   const routerChecks = routerCrisisChecks(turnCrisis, services.sessionId, userText);
+  const hold = turnHold(services.userId, services.sessionId, userText); // one read wait a turn
 
   if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {
@@ -498,10 +499,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
     }
 
-    let kept: Promise<boolean> | undefined; // the three tasks below share one crisis-read wait
     safeFireAndForget(
       async () => {
-        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
+        if (!(await hold.kept())) return;
         const names = await recordNamesSaid(services.userId!, extractNames(userText));
         for (const name of names) diag.state('📇 Recorded person mention', { name });
       },
@@ -510,7 +510,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
-        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
+        if (!(await hold.kept())) return;
         const captureResult = await fastCapture({
           transcript: userText,
           userId: services.userId!,
@@ -535,7 +535,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
-        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
+        if (!(await hold.kept())) return;
         try {
           const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
@@ -1230,7 +1230,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     );
 
     if (reflectionMoment) {
-      saveReflectionMoment(services.userProfile, reflectionMoment);
+      hold.write('reflection-moment', saveReflectionMoment, services.userProfile, reflectionMoment);
       diag.debug('Reflection moment captured', {
         type: reflectionMoment.type,
         topic: reflectionMoment.topic,
