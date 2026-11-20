@@ -201,6 +201,7 @@ const CASES: Case[] = [
     seed: seedConnected,
     args: { title: 'Lunch with Riley', date: tomorrow(), startTime: '12:30' },
     outcome: (uid) => events(uid).some((e) => e.title === 'Lunch with Riley'),
+    fix: { flag: 'CALENDAR_WRITES_TRUTHFUL', pr: '#4255' },
   },
   {
     id: 'deleteCalendarEvent/healthy',
@@ -217,6 +218,7 @@ const CASES: Case[] = [
     seed: seedEventToday,
     args: { eventId: 'evt_seed', eventTitle: 'Dentist checkup' },
     outcome: (uid) => events(uid).length === 0,
+    fix: { flag: 'CALENDAR_WRITES_TRUTHFUL', pr: '#4255' },
   },
   {
     id: 'canary/healthy',
@@ -249,8 +251,8 @@ const GAPS = new Set([
   'setReminder/write-fails', // #4225, fix #4228 (REMINDER_WRITES_TRUTHFUL)
   'cancelReminder/write-fails', // #4225, fix #4228 (REMINDER_WRITES_TRUTHFUL)
   'getCalendarToday/read-fails', // #4237, fix #4240 (CALENDAR_LOAD_FAIL_HONEST)
-  'createCalendarEvent/write-fails', // #4244, no fix yet
-  'deleteCalendarEvent/write-fails', // #4244, no fix yet
+  'createCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
+  'deleteCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
 ]);
 
 let runs = 0;
