@@ -251,7 +251,7 @@ export function likelyMinor(sessionId: string | undefined): boolean {
  * every flag on or off: the visitor was told nothing is kept. Bound at session start
  * (session-init-handler.ts), before session services make their first write.
  */
-const demoCallHeld = (sessionId: string | undefined): boolean =>
+export const demoCallHeld = (sessionId: string | undefined): boolean =>
   !!sessionId && isAnonymousDemoUser(sessionUsers.get(sessionId));
 
 /** An anonymous try-first call (demoCallHeld), MINOR_CARE (minorHeld) or SEXUAL_TOPIC_BOUNDARY. */

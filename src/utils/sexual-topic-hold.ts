@@ -68,10 +68,19 @@ export function sexualTopicHeld(sessionId: string | undefined, env: Env = proces
 
 /** Any session of this user is held or being read (flag on): the per-user writers' check. */
 export function sexualTopicUserHeld(userId: string | undefined, env: Env = process.env): boolean {
+  return sexualTopicUserHeldBesides(userId, undefined, env);
+}
+
+/** sexualTopicUserHeld without `sessionId`'s own reads still running; its held entry still counts. */
+export function sexualTopicUserHeldBesides(
+  userId: string | undefined,
+  sessionId: string | undefined,
+  env: Env = process.env
+): boolean {
   if (!userId || !sexualBoundaryOn(env)) return false;
   for (const entry of held.values()) if (entry.userId === userId && live(entry)) return true;
-  for (const running of reads.values())
-    for (const read of running) if (read.userId === userId) return true;
+  for (const [id, running] of reads)
+    if (id !== sessionId) for (const read of running) if (read.userId === userId) return true;
   return false;
 }
 
