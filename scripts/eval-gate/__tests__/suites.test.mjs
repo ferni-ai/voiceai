@@ -2,17 +2,41 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { SUITES, suitesFor } from '../suites.mjs';
+import { posix } from 'node:path';
+import { PERSONA_IMPORTS_EXCUSED, SUITES, suitesFor } from '../suites.mjs';
 
 const cli = fileURLToPath(new URL('../suites.mjs', import.meta.url));
-const baseline = fileURLToPath(new URL('../../../evals/baselines/model.json', import.meta.url));
+const repo = fileURLToPath(new URL('../../../', import.meta.url));
+
+/** The files that put the per-turn notes into the persona gate's request. */
+const NOTE_BUILDERS = [
+  'src/agents/personas/turn-request.ts',
+  'src/agents/personas/turn-notes-guarded.ts',
+];
+
+/** Repo paths of the relative value imports (and re-exports) in `src`, a file at `file`. */
+function valueImportsIn(src, file) {
+  const specs = [
+    ...src.matchAll(/^(?:import|export)\s+(?!type\b)[\w\s{},*$]*?\bfrom\s+'([^']+)'/gm),
+  ].map((m) => m[1]);
+  return specs
+    .filter((s) => s.startsWith('.'))
+    .map((s) => posix.normalize(posix.join(posix.dirname(file), s)).replace(/\.js$/, '.ts'));
+}
+
+const valueImportsOf = (file) => valueImportsIn(readFileSync(`${repo}${file}`, 'utf8'), file);
+const baselines = ['model', 'persona'].map((b) =>
+  fileURLToPath(new URL(`../../../evals/baselines/${b}.json`, import.meta.url))
+);
 
 describe('suitesFor', () => {
   it('runs nothing for a change no suite imports', () => {
     expect(suitesFor(['docs/README.md', 'web/src/app.ts'])).toEqual([]);
     // The PR path filter is wider (it also feeds the offline job); src/agents
     // code outside the crisis fixtures is not in any model suite.
-    expect(suitesFor(['src/agents/voice-agent.ts', 'src/personas/ferni.ts'])).toEqual([]);
+    expect(
+      suitesFor(['src/agents/voice-agent.ts', 'src/agents/shared/close-agent-session.ts'])
+    ).toEqual([]);
     expect(suitesFor([])).toEqual([]);
   });
 
@@ -33,6 +57,62 @@ describe('suitesFor', () => {
     ]);
     expect(suitesFor(['src/tools/retrieval/intent-manual.generated.json'])).toEqual([
       'tool_retrieval',
+    ]);
+  });
+
+  it('runs the persona suite for the prompt path, the bar and its data', () => {
+    for (const f of [
+      'src/personas/bundles/ferni/identity/character.md',
+      'src/personas/bundles/shared/voice-base-character.md',
+      'src/agents/personas/prompt-loader.ts',
+      'src/agents/personas/turn-request.ts',
+      'src/agents/shared/time-context.ts',
+      'scripts/persona-eval/bar.ts',
+      'scripts/persona-eval/fixtures/bar-lines.json',
+      'evals/persona-flags.json',
+      'evals/baselines/persona.json',
+    ])
+      expect(suitesFor([f])).toEqual(['persona']);
+    // The recall note's formatter is in both suites.
+    expect(suitesFor(['src/memory/recall/session-recall.ts'])).toEqual([
+      'semantic_recall',
+      'persona',
+    ]);
+    // Persona tools the gate does not run, and the multi-turn fixture (not gated yet).
+    expect(suitesFor(['scripts/persona-eval/ai-honesty-probe.ts'])).toEqual([]);
+    expect(suitesFor(['scripts/persona-eval/fixtures/bar-conversations.json'])).toEqual([]);
+  });
+
+  it('runs the persona suite for every turn note the two note builders import', () => {
+    const imports = NOTE_BUILDERS.flatMap(valueImportsOf);
+    expect(imports.length).toBeGreaterThan(40);
+    expect(imports).toContain('src/agents/shared/world-now.ts');
+    const unselected = imports.filter(
+      (f) => !suitesFor([f]).includes('persona') && !(f in PERSONA_IMPORTS_EXCUSED)
+    );
+    expect(unselected).toEqual([]);
+  });
+
+  it('excuses only imports the note builders still have, and none the path list selects', () => {
+    const imports = new Set(NOTE_BUILDERS.flatMap(valueImportsOf));
+    for (const f of Object.keys(PERSONA_IMPORTS_EXCUSED)) {
+      expect(imports.has(f), f).toBe(true);
+      expect(suitesFor([f]), f).not.toContain('persona');
+    }
+  });
+
+  it('reads multi-line and re-exported value imports, and skips type-only ones', () => {
+    const src = [
+      "import type { a } from './typed.js';",
+      "import {\n  b,\n  c,\n} from '../shared/multi.js';",
+      "import * as d from './star.js';",
+      "export { e } from '../../tools/re.js';",
+      "import { f } from '@livekit/agents';",
+    ].join('\n');
+    expect(valueImportsIn(src, 'src/agents/personas/x.ts')).toEqual([
+      'src/agents/shared/multi.ts',
+      'src/agents/personas/star.ts',
+      'src/tools/re.ts',
     ]);
   });
 
@@ -67,9 +147,11 @@ describe('suitesFor', () => {
 });
 
 describe('suites.mjs', () => {
-  it('names exactly the suites in the committed model baseline', () => {
-    const { metrics } = JSON.parse(readFileSync(baseline, 'utf8'));
-    const prefixes = new Set(Object.keys(metrics).map((m) => m.split('.')[0]));
+  it('names exactly the suites in the committed model and persona baselines', () => {
+    const names = baselines.flatMap((b) =>
+      Object.keys(JSON.parse(readFileSync(b, 'utf8')).metrics)
+    );
+    const prefixes = new Set(names.map((m) => m.split('.')[0]));
     expect([...prefixes].sort()).toEqual([...SUITES].sort());
   });
 

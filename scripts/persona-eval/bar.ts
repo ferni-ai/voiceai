@@ -62,6 +62,7 @@ import {
   compareTable,
   copiedNgrams,
   copyStats,
+  fixedClock,
   JUDGED_METRICS,
   maskNames,
   maxFloor,
@@ -370,6 +371,9 @@ const untagged = (t: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/** --now, pinned once for the whole process (every run of the arm reads the same instant). */
+let pinnedAt: Date | undefined;
+
 /** Run `i` of an arm; what the verdict over all runs needs. */
 async function main(
   i: number
@@ -400,6 +404,12 @@ async function main(
       // Scripted calls with the director and deliberation between turns (fixtures/bar-conversations.json).
       'multi-turn': { type: 'boolean', default: false },
       conversations: { type: 'string', default: join(HERE, 'fixtures/bar-conversations.json') },
+      // A fixed instant (ISO 8601) for every clock the turn path reads, so the request is the
+      // same on every run (the gate passes one). Default: the real time.
+      now: { type: 'string' },
+      // The caller's zone for the one-turn lines (as a live call's browser gives one). Default:
+      // none, so the time note says the caller's local time is unknown.
+      'caller-zone': { type: 'string' },
     },
   });
   if (!values.arm || !values.flags || !values.out)
@@ -418,7 +428,10 @@ async function main(
   const CALLS = multi ? (fixture.conversations ?? []) : [];
   if (multi && !CALLS.length) throw new Error(`${linesFile} has no conversations`);
   // A call with a local hour goes to a zone where it is that hour now; the rest are in New York.
-  const at = new Date();
+  const at = values.now ? (pinnedAt ??= fixedClock(values.now).at) : new Date();
+  const callerZone = values['caller-zone'];
+  // A RangeError here, not a time note that quietly ignores an unknown zone.
+  if (callerZone) new Intl.DateTimeFormat('en-US', { timeZone: callerZone });
   const zoneOf = (c?: Conversation): string =>
     c?.localHour === undefined ? 'America/New_York' : zoneAtLocalHour(c.localHour, at);
   const clock = (zone: string): string =>
@@ -479,7 +492,7 @@ async function main(
   };
   const copiedFor = (p: string, reply: string, reminder: string, zone?: string): string[] =>
     copiedNgrams(reply, [systemFor(p, zone).grams, ngramSet(reminder)], 4, canonGrams[p]);
-  const now = Date.now();
+  const now = at.getTime();
   const recallFor = (context?: Fact[]): string | null =>
     context
       ? formatRecall(
@@ -540,15 +553,20 @@ async function main(
       LINES.flatMap((line) =>
         PERSONAS.map((p) => async () => {
           const session = {
-            userData: { userId: `bar-${arm}-${label}-${p}`, isReturningUser: true, personaId: p },
+            userData: {
+              userId: `bar-${arm}-${label}-${p}`,
+              isReturningUser: true,
+              personaId: p,
+              ...(callerZone ? { callerTimezone: callerZone } : {}),
+            },
           };
           const ctx = llm.ChatContext.empty();
-          ctx.addMessage({ role: 'system', content: systemFor(p).text });
+          ctx.addMessage({ role: 'system', content: systemFor(p, callerZone).text });
           const note = recallFor(line.context);
           if (note) ctx.addMessage({ role: 'system', content: note, id: 'recall_1' });
           ctx.addMessage({ role: 'user', content: line.text });
           const { reply, reminder } = await answer(ctx, session, line.text);
-          out[line.key][p] = { reply, reminder, copied: copiedFor(p, reply, reminder) };
+          out[line.key][p] = { reply, reminder, copied: copiedFor(p, reply, reminder, callerZone) };
           if (++done % 30 === 0 || !reply)
             progress(
               `${label} reply ${done}/${LINES.length * PERSONAS.length}${reply ? '' : ` EMPTY (${p})`}`
