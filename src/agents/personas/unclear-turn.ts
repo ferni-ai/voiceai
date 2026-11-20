@@ -58,13 +58,13 @@ const REQUEST =
 const FEMALE = 'mom mother sister wife girlfriend aunt grandma grandmother daughter niece';
 const MALE = 'dad father brother husband boyfriend uncle grandpa grandfather son nephew';
 const ANYONE = 'partner boss manager friend neighbor recruiter coworker roommate doctor';
-const KIN = new Map<string, 'f' | 'm' | 'x'>([
+export const KIN = new Map<string, 'f' | 'm' | 'x'>([
   ...FEMALE.split(' ').map((w) => [w, 'f'] as const),
   ...MALE.split(' ').map((w) => [w, 'm'] as const),
   ...ANYONE.split(' ').map((w) => [w, 'x'] as const),
 ]);
 /** Capitalized words that are not people: days, months, Ferni, sentence openers. */
-const NOT_PEOPLE = new Set(
+export const NOT_PEOPLE = new Set(
   'i ferni fern monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december okay oh hey hi yeah so and but the my your that it there here what who let he she'.split(
     ' '
   )
@@ -73,7 +73,8 @@ const NOT_PEOPLE = new Set(
 const PLAYED = /\b(?:here'?s|here is|playing|put on|queued)\b|\[playMusic/i;
 
 /** After a capital that opens a sentence, these mark it as someone ("Jordan's", "Kyle wants"). */
-const ACTS = /^(?:is|was|said|says|wants|called|texted|thinks|just|and|texted|landed|asked|told)$/;
+export const ACTS =
+  /^(?:is|was|said|says|wants|called|texted|thinks|just|and|texted|landed|asked|told)$/;
 
 interface Person {
   who: string;
