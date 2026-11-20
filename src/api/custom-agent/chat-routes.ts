@@ -24,6 +24,7 @@ import {
 import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { parseBody } from '../helpers.js';
+import { type ChatTurn, readTypedHistory, typedText } from '../typed-history.js';
 import { sendJson } from './helpers.js';
 import { generateSystemPrompt } from './prompt-routes.js';
 
@@ -34,36 +35,16 @@ async function loadCrisisGateText(): Promise<typeof CrisisGateText> {
   return import('../../agents/personas/crisis-gate-text.js');
 }
 
-export interface ChatTurn {
-  from: 'person' | 'agent';
-  text: string;
-}
-
-const MAX_TURNS = 20;
-const MAX_TEXT = 2000;
-
-const text = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, MAX_TEXT) : '');
-
 /** The request, cleaned: null if there's neither a message nor a scene to open */
 export function readChatRequest(
   body: unknown
 ): { message: string; history: ChatTurn[]; scene: string } | null {
   if (typeof body !== 'object' || body === null) return null;
   const input = body as Record<string, unknown>;
-  const message = text(input.message);
-  const scene = text(input.scene);
+  const message = typedText(input.message);
+  const scene = typedText(input.scene);
   if (!message && !scene) return null;
-  const history = (Array.isArray(input.history) ? input.history : [])
-    .filter(
-      (turn): turn is ChatTurn =>
-        typeof turn === 'object' &&
-        turn !== null &&
-        ((turn as ChatTurn).from === 'person' || (turn as ChatTurn).from === 'agent') &&
-        typeof (turn as ChatTurn).text === 'string'
-    )
-    .slice(-MAX_TURNS)
-    .map((turn) => ({ from: turn.from, text: text(turn.text) }));
-  return { message, history, scene };
+  return { message, history: readTypedHistory(input.history), scene };
 }
 
 export interface AgentChatPromptOptions {

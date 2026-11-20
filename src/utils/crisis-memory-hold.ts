@@ -18,6 +18,7 @@
  * @module utils/crisis-memory-hold
  */
 import { createLogger } from './safe-logger.js';
+import { loggedScope, trimTwinFirst } from './twin-crisis-scope.js';
 
 const log = createLogger({ module: 'crisis-memory-hold' });
 
@@ -48,20 +49,21 @@ export const crisisTurnKey = (words: string): string =>
 
 const live = (at: number | undefined): boolean => at !== undefined && Date.now() - at <= HOLD_MS;
 
-/** Over the cap, only sessions that are not held go, oldest first. */
-function trim<V>(map: Map<string, V>): void {
-  for (const id of map.keys()) {
-    if (map.size <= MAX_SESSIONS) return;
-    if (!live(held.get(id))) map.delete(id);
-  }
+/**
+ * Over the cap, only sessions that are not held go, oldest first, twin scopes before calls
+ * (twin-crisis-scope.ts). The turn reads also keep at most TWIN_SCOPES_MAX twin scopes.
+ */
+function trim<V>(map: Map<string, V>, inserted: string, store: 'held' | 'seen'): void {
+  const droppable = (id: string): boolean => !live(held.get(id));
+  trimTwinFirst(map, { max: MAX_SESSIONS, inserted, droppable, capTwins: store === 'seen', store });
 }
 
 /** Hold this call's memory from now on. Never throws. */
 export function holdForCrisis(sessionId: string | undefined): void {
   if (!sessionId || live(held.get(sessionId))) return;
   held.set(sessionId, Date.now());
-  trim(held);
-  log.info({ sessionId }, 'Crisis memory hold');
+  trim(held, sessionId, 'held');
+  log.info(loggedScope(sessionId), 'Crisis memory hold');
 }
 
 /** A crisis read on this call has held its memory. */
@@ -85,7 +87,7 @@ export function noteCrisisTurnRead(sessionId: string | undefined, words: string)
   const turns = (seen.get(sessionId) ?? []).concat(crisisTurnKey(words)).slice(-TURNS_KEPT);
   seen.delete(sessionId);
   seen.set(sessionId, turns);
-  trim(seen);
+  trim(seen, sessionId, 'seen');
 }
 
 /** A classifier read of these words starts: running until `end()`, which its reader calls. */
@@ -160,7 +162,7 @@ export async function crisisTurnSettled(
 }
 
 function unread(sessionId: string, why: string): false {
-  log.info({ sessionId, why }, 'Turn not captured: no settled crisis read');
+  log.info({ ...loggedScope(sessionId), why }, 'Turn not captured: no settled crisis read');
   return false;
 }
 
