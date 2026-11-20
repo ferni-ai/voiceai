@@ -12,6 +12,7 @@ import {
   truthPack,
   type Dimension,
   type JudgeModel,
+  type JudgeResult,
   type Verdict,
   rewriteIsBetter,
 } from '../judge.js';
