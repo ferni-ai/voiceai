@@ -59,6 +59,13 @@ const DANGLING_WORDS = new Set([
   'i',
 ]);
 
+/**
+ * Words no sentence ends on, even one ink closed with a period: "...and." / "...um." is a
+ * thought that stopped (#4242). Narrower than DANGLING_WORDS, whose other words end real
+ * sentences ("I think so.", "I wanted to.", "Just because.", "Turn it on.").
+ */
+const NEVER_LAST_WORDS = new Set(['and', 'but', 'or', 'um', 'uh', 'er', 'erm']);
+
 /** Short replies that are whole turns even when ink leaves them unpunctuated. */
 const WHOLE_SHORT_REPLIES = new Set(['no', 'nope', 'nah', 'hi', 'hello', 'hey', 'bye', 'thanks']);
 
@@ -125,6 +132,12 @@ export function unfinishedness(transcript: string, env: Env = process.env): Unfi
   const text = transcript.trim().replace(/["')\]]+$/, '');
   const ws = words(text);
   if (ws.length === 0) return 'finished';
+  if (
+    text.endsWith('.') &&
+    NEVER_LAST_WORDS.has(ws[ws.length - 1]) &&
+    flagOn('UNFINISHED_TURN_PERIOD_DANGLING', env)
+  )
+    return 'dangling';
   if (/[.?!]$/.test(text) && !/\.\.\.$/.test(text)) return 'finished';
   if (/(,|-|—|…|\.\.\.)$/.test(text)) return 'dangling';
   // Before the dangling words: "hold on" ends on one.
