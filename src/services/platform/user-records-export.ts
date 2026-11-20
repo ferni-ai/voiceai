@@ -184,6 +184,7 @@ export const WITHHELD_STORES: Readonly<Record<string, string>> = {
   extraction_history: 'pipeline bookkeeping (which turns were processed)',
   insights_cache: 'cache rebuilt from the stores above',
   deferred_calls: 'in-flight call queue: a held-back call waits here until its hour',
+  call_result_watchdogs: 'in-flight watch: a placed call waits here until it reports, then goes',
   system: 'pipeline bookkeeping (when memory maintenance last ran)',
 };
 

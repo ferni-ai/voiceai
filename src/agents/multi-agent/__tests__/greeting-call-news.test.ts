@@ -106,7 +106,7 @@ const lastCue = (): Cue => directedText.mock.calls.at(-1)![1];
 
 /** A fictional call: what its unified result and its on_behalf_calls record hold. */
 interface Call {
-  status?: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+  status?: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | 'unconfirmed';
   said?: string;
   message?: string;
   details?: string;
@@ -255,6 +255,17 @@ describe('call news opens the call, from structured fields only', () => {
     expect(cue.facts['who you called for them']).toBe('Rosa');
     expect(cue.facts['how the call went']).toBe('you reached them and talked');
     expect(JSON.stringify(cue)).not.toContain('Lee');
+  });
+
+  it('a call that never reported (CALL_RESULT_WATCHDOG): calm, "no report", never failed', async () => {
+    seed({ status: 'unconfirmed', said: "I couldn't confirm how the call to Rosa went." });
+    const cue = await greet();
+    expect(cue.direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
+    expect(cue.direction).not.toContain(opener.CALL_NEWS_PLAIN_DIRECTION);
+    expect(cue.facts['how the call went']).toMatch(/^no report came back/);
+    expect(JSON.stringify(cue)).not.toMatch(
+      /did not go through|didn't connect|did not get through/
+    );
   });
 
   it.each([

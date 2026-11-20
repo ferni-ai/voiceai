@@ -753,6 +753,14 @@
       ]
     },
     {
+      "collectionGroup": "call_result_watchdogs",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dueAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "family_checkin_schedules",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -1894,6 +1902,16 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "call_result_watchdogs",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
+      ]
+    },
     {
       "collectionGroup": "events",
       "fieldPath": "expireAt",

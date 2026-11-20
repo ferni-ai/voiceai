@@ -77,18 +77,22 @@ function fieldsOf(outcome: CallOutcome): string[] {
 }
 
 function toldLevel(outcome: CallOutcome): ToldLevel {
+  // A no-report (call-result-watchdog.ts) is Ferni's own line, no one's words: never a crisis lead,
+  // and status-level, so any real result with words, or a crisis line, outranks it.
+  if (outcome.status === 'unconfirmed') return 0;
   if (fieldsOf(outcome).some(carriesCrisis)) return 2;
   const words = [outcome.transcriptSummary, outcome.message].some((t) => !!t?.trim());
   return words || (outcome.actionItems?.length ?? 0) > 0 ? 1 : 0;
 }
 
-/** A callback, a message to pass on, a failed call or a crisis line: the owner should act. */
+/** A callback, a message to pass on, a call that failed or never reported, or a crisis line. */
 function needsOwner(outcome: CallOutcome): boolean {
   return (
     toldLevel(outcome) === 2 ||
     outcome.callbackRequired === true ||
     !!outcome.message?.trim() ||
-    outcome.status === 'failed'
+    outcome.status === 'failed' ||
+    outcome.status === 'unconfirmed'
   );
 }
 
@@ -103,9 +107,17 @@ interface Claims {
   send: <T>(channel: ToldChannel, run: () => Promise<T>, went: (r: T) => boolean, also?: ToldChannel[]) => Promise<T | 'skipped'>; // prettier-ignore
 }
 
-function claimsFor(userId: string, callId: string, level: ToldLevel): Claims {
+/**
+ * A no-report's record (While You Were Away) is claimed below every real result's level, so
+ * a late real one, even status alone, replaces it there; its other channels stay told.
+ */
+const UNCONFIRMED_RECORD = -0.5;
+
+function claimsFor(userId: string, callId: string, level: ToldLevel, unconfirmed: boolean): Claims {
+  const levelOf = (channel: ToldChannel): number =>
+    channel === 'crisis' ? 2 : unconfirmed && channel === 'record' ? UNCONFIRMED_RECORD : level;
   const claim = async (channel: ToldChannel, also: ToldChannel[] = []): Promise<Claimed | null> =>
-    claimTold(userId, callId, channel, channel === 'crisis' ? 2 : level, also);
+    claimTold(userId, callId, channel, levelOf(channel), also);
   return {
     take: async (channel) => (await claim(channel)) !== null,
     send: async (channel, run, went, also) => {
@@ -143,7 +155,7 @@ export async function tellOwnerOnce(
   ports: TellPorts
 ): Promise<Told> {
   const level = toldLevel(call.outcome);
-  const claims = claimsFor(call.userId, call.callId, level);
+  const claims = claimsFor(call.userId, call.callId, level, call.outcome.status === 'unconfirmed');
   // The first capture of a call (or one with more to say) is the one that tells live.
   const first = await claims.take('voice');
   const live = first ? await ports.live() : false;

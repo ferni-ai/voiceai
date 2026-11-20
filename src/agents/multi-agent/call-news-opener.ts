@@ -93,7 +93,8 @@ export const CALL_NEWS_GUARDED_DIRECTION =
   ' You made a call for them and something from it needs care: no cheerful hello. Say hello quietly, then only that you need to tell them about the call, naming who you called ("Hey Sam. I need to tell you about your call with your mom."). Nothing about what was said.';
 
 type CallNewsTone = 'news' | 'calm' | 'plain' | 'heavy' | 'guarded';
-type LineStatus = 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+/** 'unconfirmed': the call never reported back (call-result-watchdog.ts). */
+type LineStatus = 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | 'unconfirmed';
 
 export interface CallNews {
   tone: CallNewsTone;
@@ -153,7 +154,9 @@ async function callRecord(
   const status = text(outcome.status) as LineStatus;
   const actions = Array.isArray(outcome.actionItems) ? outcome.actionItems.map(text) : [];
   return {
-    status: ['completed', 'voicemail', 'no_answer', 'busy', 'failed'].includes(status)
+    status: ['completed', 'voicemail', 'no_answer', 'busy', 'failed', 'unconfirmed'].includes(
+      status
+    )
       ? status
       : undefined,
     relation: text(request.contactQuery),
@@ -187,7 +190,8 @@ function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: str
   const screen = screenCallerParts(all, who, 10_000);
   if (crisisRead(all) || screen.safety || screen.risky) return 'guarded';
   if (isHeavyMoment(words) || words.some((w) => WORRY.test(w))) return 'heavy';
-  const unknown = !rec?.status && r.status !== 'failed'; // a lost record write: assume they spoke
+  // A lost record write, or a call that never reported: assume they spoke.
+  const unknown = (!rec?.status || rec.status === 'unconfirmed') && r.status !== 'failed';
   if (Boolean(r.details?.trim()) || rec?.calleeText || unknown) return 'calm';
   const status = rec?.status ?? (r.status === 'failed' ? 'failed' : undefined);
   if (status && status !== 'completed') return 'plain';
@@ -206,6 +210,7 @@ const HOW_IT_WENT: Record<LineStatus, string> = {
   no_answer: 'nobody answered',
   busy: 'the line was busy',
   failed: 'the call did not go through',
+  unconfirmed: 'no report came back, so how it went is not known',
 };
 
 function structuredFacts(rec: CallRecord | undefined, r: BackgroundResult): Record<string, string> {

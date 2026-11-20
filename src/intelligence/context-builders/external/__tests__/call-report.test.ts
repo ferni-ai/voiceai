@@ -620,6 +620,21 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     expect(filterInjections([big], { mode: 'unknown' })).toEqual([big]);
   });
 
+  it('a call that never reported reads "couldn\'t confirm" in both builders, never "couldn\'t connect"', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    const line = "I couldn't confirm how the call to Aunt Rosa went.";
+    seedCall('call-quiet', 'Aunt Rosa', line, 15, true);
+    Object.assign(fake.state.docs.on_behalf_calls![0]!, {
+      outcome: { status: 'unconfirmed', outcome: line, objectiveAchieved: false, callbackRequired: false }, // prettier-ignore
+    });
+    const legacy = await buildAllPendingResultsContext(USER);
+    expect(legacy).toContain(`**No report came back**: ${line}`);
+    expect(legacy).toContain("say only that you couldn't confirm how it went");
+    const offered = await callReportInjection({ userId: USER, sessionId: 's-quiet', turnCount: 0, crisis: false, timeoutMs: 150 }); // prettier-ignore
+    expect(offered?.content).toContain(`Couldn't confirm how it went: ${line}`);
+    expect(`${legacy}\n${offered?.content}`).not.toMatch(/Couldn't connect|❌/);
+  });
+
   it('the legacy builders (the web API reads one) no longer mark what they build', async () => {
     vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
     seedCall('call-api', 'Aunt Rosa', 'she says hi', 15);

@@ -36,7 +36,8 @@ const log = createLogger({ module: 'PendingBackgroundResults' });
 interface PendingCallResult {
   callId: string;
   contactName: string;
-  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+  /** 'unconfirmed': the call never reported, so how it went is unknown (call-result-watchdog.ts). */
+  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | 'unconfirmed';
   outcome: string;
   objectiveAchieved: boolean;
   callbackRequired: boolean;
@@ -188,6 +189,8 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
 
     if (result.objectiveAchieved) {
       body.push(`✅ **SUCCESS**: ${result.outcome}`);
+    } else if (result.status === 'unconfirmed') {
+      body.push(`❓ **No report came back**: ${result.outcome}`);
     } else if (result.status === 'voicemail') {
       const { label } = voicemailWords(result.voicemailLeft, result.contactName);
       body.push(`📞 **${label}**: ${result.outcome}`);
@@ -217,6 +220,9 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   lines.push(
     "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
   );
+  if (results.some((r) => r.status === 'unconfirmed')) {
+    lines.push("- If no report came back: say only that you couldn't confirm how it went.");
+  }
   lines.push('');
 
   // Delivered as built (fire and forget) only with CALL_REPORT_REACHES_YOU off; on, once a reply

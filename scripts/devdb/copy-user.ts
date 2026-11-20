@@ -117,6 +117,7 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   voice_profile: 'the voiceprint that recognizes the caller, an authenticator',
   pending_messages: QUEUE,
   deferred_calls: QUEUE,
+  call_result_watchdogs: QUEUE,
   scheduled_calls: QUEUE,
   contacts: `${OTHERS}: contacts`,
   on_behalf_calls: `${OTHERS}: third parties' numbers and what they said`,

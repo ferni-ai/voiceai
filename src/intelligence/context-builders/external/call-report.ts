@@ -284,7 +284,9 @@ function callText(call: PendingCallResult): string {
         ? 'No answer'
         : call.status === 'busy'
           ? 'Line busy'
-          : "Couldn't connect";
+          : call.status === 'unconfirmed'
+            ? "Couldn't confirm how it went"
+            : "Couldn't connect";
   const callback = call.callbackRequired ? 'They want a callback from the user.' : '';
   return reported(
     call.contactName,

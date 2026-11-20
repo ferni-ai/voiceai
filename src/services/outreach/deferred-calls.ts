@@ -30,6 +30,8 @@ import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-c
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
 import { watchCallResult } from './call-result-watch.js';
+import { armCallResultWatchdog } from './call-result-watchdog.js';
+import { callResultPromise } from './call-result-promise.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -305,7 +307,7 @@ export async function placeOrHold(
   request: OnBehalfCallRequest,
   place: (request: OnBehalfCallRequest) => Promise<string>,
   now = new Date()
-): Promise<{ callId?: string; held?: string; others?: string }> {
+): Promise<{ callId?: string; held?: string; others?: string; promise?: string }> {
   const name = request.resolvedContact?.name || request.contactQuery;
   const want = lastTen(request.resolvedContact?.phone);
   const all = await pendingCalls(request.userId, now);
@@ -343,8 +345,11 @@ export async function placeOrHold(
   const held = deferredCallReply(callId, name, purposeForRequester(request), now);
   // CALL_RESULT_LIVE_REPORT: the owner's call hears the result, whichever worker captures it.
   if (!held) watchCallResult(request, callId);
+  const armed = !held && (await armCallResultWatchdog(request, callId)); // CALL_RESULT_WATCHDOG
   const also = otherCallsLine(others, now, callId);
-  return { callId, held: held && held + also, others: also };
+  // CALL_RESULT_WATCHDOG: how the result will reach them, only once it is watched (off: no key).
+  const promise = held ? undefined : callResultPromise(armed);
+  return { callId, held: held && held + also, others: also, ...(promise !== undefined && { promise }) }; // prettier-ignore
 }
 
 /**
@@ -402,12 +407,11 @@ async function place(userId: string, call: DeferredCall): Promise<string | undef
   if (call.kind === 'on_behalf') {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
     const userName = await requesterNameNow(userId, call.request.userName);
-    const callId = await getOnBehalfCallOrchestrator().initiateCall({
-      ...call.request,
-      userId,
-      userName,
-    });
-    return callId.startsWith('deferred_') ? callId : undefined;
+    const request = { ...call.request, userId, userName };
+    const callId = await getOnBehalfCallOrchestrator().initiateCall(request);
+    if (callId.startsWith('deferred_')) return callId;
+    await armCallResultWatchdog(request, callId); // CALL_RESULT_WATCHDOG: it rang, so it reports
+    return undefined;
   }
   const { scheduleProactiveCall } = await import('./conversational-calls.js');
   const result = await scheduleProactiveCall({ ...call.request, userId });

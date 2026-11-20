@@ -59,6 +59,11 @@ describe('callStatusOf', () => {
       'failed'
     );
     expect(callStatusOf('mom', { deferred: [placed], results: [] }, NOW)?.state).toBe('unknown');
+    // CALL_RESULT_WATCHDOG: a call that never reported is no word yet, never failed.
+    const unconfirmed = { ...done, outcome: { status: 'unconfirmed' } };
+    expect(callStatusOf('mom', { deferred: [placed], results: [unconfirmed] }, NOW)?.state).toBe(
+      'unknown'
+    );
     expect(
       callStatusOf('mom', { deferred: [{ ...heldMom, status: 'missed' }], results: [] }, NOW)?.state
     ).toBe('failed');

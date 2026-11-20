@@ -117,7 +117,15 @@ export async function handleExecuteScheduledOutreach(
       log.error({ error: String(error) }, 'Deferred calls run failed');
       return { error: String(error) };
     });
-    return { ...outreach, deferredCalls };
+    // CALL_RESULT_WATCHDOG: placed calls that never reported are told now. Off: no run, no key.
+    const { callResultWatchdogOn, sweepCallResultWatchdogs } =
+      await import('../../services/outreach/call-result-watchdog.js');
+    if (!callResultWatchdogOn()) return { ...outreach, deferredCalls };
+    const noReport = await sweepCallResultWatchdogs().catch((error: unknown) => {
+      log.error({ error: String(error) }, 'Call result watchdog run failed');
+      return { error: String(error) };
+    });
+    return { ...outreach, deferredCalls, noReport };
   });
 }
 
