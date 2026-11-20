@@ -110,6 +110,7 @@ vi.mock('../../background-agents/unified-result-capture.js', () => ({
 }));
 
 const { deferCall, executeDueDeferredCalls } = await import('../deferred-calls.js');
+const { watchDeferral } = await import('../crisis-dial-hold.js');
 const { executeCall } = await import('../../background-agents/executors/call-executor.js');
 const { noteCrisisRisk, resetCrisisCallRisk } = await import('../../safety/crisis-call-risk.js');
 
@@ -135,8 +136,9 @@ const heldOn = (origin: string) => ({
     recordingConsent: false,
   },
 });
-const defer = (origin: string, at = DUE) =>
-  deferCall('u-4187', heldOn(origin) as never, { ...decision, at } as never);
+const deferAs = (userId: string, origin: string, at = DUE) =>
+  deferCall(userId, heldOn(origin) as never, { ...decision, at } as never);
+const defer = (origin: string, at = DUE) => deferAs('u-4187', origin, at);
 const HOUR = 3600_000;
 const later = (hours: number) => new Date(NOW.getTime() + hours * HOUR);
 /** The deferral `origin`'s call made. */
@@ -507,15 +509,49 @@ describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table
     expect(onlyDeferral().status).toBe('placed');
   });
 
-  // Last in the file: it fills the module's table. It runs 24 h past the other rows, after their
+  it('a watch time that is not a time, or past the horizon: refused, nothing written, 0 dials', async () => {
+    ON();
+    const bad = [Number.NaN, Number.POSITIVE_INFINITY, NOW.getTime() + 72 * HOUR + 60_000];
+    for (const until of bad) {
+      expect(() => watchDeferral('u-4187', heldOn(`call-${++n}`), until)).toThrow('Call not placed'); // prettier-ignore
+    }
+    await expect(defer(`call-${++n}`, new Date(Number.NaN))).rejects.toThrow('Call not placed');
+    expect(deferred()).toHaveLength(0);
+    expect(lines('crisis_hold_bad_until')).toHaveLength(4);
+    expect(Object.keys(lines('crisis_hold_bad_until')[0] ?? {})).toEqual(['outcome', 'watched']); // a count, no id
+    await expect(defer(`call-${++n}`, later(48))).resolves.toBeDefined(); // two days out: watched
+    vi.setSystemTime(new Date(later(48).getTime() + 60_000));
+    expect(await executeDueDeferredCalls()).toMatchObject({ placed: 1 });
+    expect(initiateCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("one requester can't use up the room: their 33rd watched call is refused, another requester's is not", async () => {
+    ON();
+    // eslint-disable-next-line no-await-in-loop -- in order
+    for (let i = 0; i < 32; i++) await deferAs('u-full-a', `call-full-${i}`);
+    await expect(deferAs('u-full-a', 'call-full-32')).rejects.toThrow('Call not placed');
+    expect(lines('crisis_hold_user_full')).toEqual([{ outcome: 'crisis_hold_user_full', watched: expect.any(Number) }]); // prettier-ignore
+    await expect(deferAs('u-full-a', 'call-full-0')).resolves.toBeDefined(); // already watched
+    await expect(deferAs('u-full-b', 'call-full-b')).resolves.toBeDefined();
+    expect(deferred()).toHaveLength(34);
+    noteCrisisRisk('call-full-0'); // both of its deferrals are still watched
+    await settled();
+    const cancelled = deferred().filter((r) => r.data.status === 'cancelled');
+    expect(cancelled).toHaveLength(2);
+    vi.setSystemTime(AFTER);
+    expect(await executeDueDeferredCalls({ limit: 50 })).toMatchObject({ placed: 32 });
+    expect(initiateCall).toHaveBeenCalledTimes(32); // 31 of A's, B's one; never the refused one
+  });
+
+  // Last in the file: it fills the module's table. It runs 72 h past the other rows, after their
   // calls' time and late window, so they are let go first, and ends with one call watched.
   it('1024 calls watched: a new deferral is refused, none is dropped; past their time and late window they are let go', async () => {
     ON();
-    const start = later(24);
+    const start = later(72);
     const due = new Date(start.getTime() + HOUR);
     vi.setSystemTime(start);
-    // eslint-disable-next-line no-await-in-loop -- in order, so call-room-0 is the oldest
-    for (let i = 0; i < 1024; i++) await defer(`call-room-${i}`, due);
+    // eslint-disable-next-line no-await-in-loop -- in order, so call-room-0 is the oldest; 64 requesters
+    for (let i = 0; i < 1024; i++) await deferAs(`u-room-${i % 64}`, `call-room-${i}`, due);
     await expect(defer('call-room-new', due)).rejects.toThrow('Call not placed');
     expect(deferred()).toHaveLength(1024);
     expect(lines('crisis_hold_room_full')).toEqual([

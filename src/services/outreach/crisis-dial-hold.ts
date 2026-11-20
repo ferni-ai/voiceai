@@ -14,8 +14,9 @@
  *   while the deferral was being written (settleDeferral cancels the written doc, retried once,
  *   and deletes it when both cancels fail). Either way the deferral is refused.
  * - A call is watched until its last deferral can no longer dial (its time plus the dial job's
- *   late window); when CALL_ROOM calls are still watched, a new deferral is refused rather than
- *   one left unwatched.
+ *   late window). A deferral is refused rather than left unwatched when CALL_ROOM calls are still
+ *   watched, when its requester already has USER_ROOM watched calls (so one requester can't use up
+ *   the room), or when its watch time is not a time within WATCH_HORIZON_MS.
  * - The dial job never dials a deferral with no originating call (it stays pending), nor one whose
  *   call noted risk in this process (it is cancelled): heldAtDial.
  *
@@ -39,22 +40,37 @@ const holdOn = (env: Env): boolean => flagOn('CRISIS_DIAL_HOLD', env);
 const COLLECTION = 'deferred_calls';
 /** Calls whose deferrals this agent watches, at most this many: past it, a deferral is refused. */
 const CALL_ROOM = 1024;
+/** Calls one requester may have watched at once: past it, that requester's deferral is refused. */
+const USER_ROOM = 32;
+/**
+ * The furthest a watch may run: a deferral waits at most for its recipient's next callable time
+ * (call-hours-guard.ts, within two days), plus the dial job's 12 h late window, plus a margin.
+ */
+const WATCH_HORIZON_MS = 3 * 24 * 60 * 60 * 1000;
+
+type Refusal = 'crisis_hold_room_full' | 'crisis_hold_user_full' | 'crisis_hold_bad_until';
 
 /** Originating call → the requester whose deferrals it made, and when the last can no longer dial. */
 const deferredOn = new Map<string, { userId: string; until: number }>();
 
 /**
  * Watch `origin`'s deferrals until `until` (ms), the latest any of them can dial. Calls past
- * theirs are let go (at most CALL_ROOM to look at); false when CALL_ROOM are still watched.
+ * theirs are let go (at most CALL_ROOM to look at). The refusal when it can't be watched: the
+ * call stays watched as it was.
  */
-function remember(origin: string, userId: string, until: number): boolean {
+function remember(origin: string, userId: string, until: number): Refusal | undefined {
   const now = Date.now();
-  const kept = deferredOn.get(origin)?.until ?? 0;
-  deferredOn.delete(origin);
+  if (!Number.isFinite(until) || until > now + WATCH_HORIZON_MS) return 'crisis_hold_bad_until';
   for (const [call, watch] of deferredOn) if (watch.until < now) deferredOn.delete(call);
-  if (deferredOn.size >= CALL_ROOM) return false;
-  deferredOn.set(origin, { userId, until: Math.max(kept, until) });
-  return true;
+  const kept = deferredOn.get(origin);
+  if (!kept) {
+    if (deferredOn.size >= CALL_ROOM) return 'crisis_hold_room_full';
+    let mine = 0;
+    for (const watch of deferredOn.values()) if (watch.userId === userId) mine++;
+    if (mine >= USER_ROOM) return 'crisis_hold_user_full';
+  }
+  deferredOn.set(origin, { userId, until: Math.max(kept?.until ?? 0, until) });
+  return undefined;
 }
 
 /** The parts of a deferral, written or stored, this module reads. */
@@ -95,8 +111,9 @@ export function watchDeferral(
     log.info({ outcome: 'crisis_hold_at_dial', at: 'defer' }, 'CRISIS_DIAL_HOLD');
     throw new DialHeld();
   }
-  if (!remember(origin, userId, until)) {
-    log.warn({ outcome: 'crisis_hold_room_full', watched: deferredOn.size }, 'CRISIS_DIAL_HOLD');
+  const refused = remember(origin, userId, until);
+  if (refused) {
+    log.warn({ outcome: refused, watched: deferredOn.size }, 'CRISIS_DIAL_HOLD');
     throw new DialHeld();
   }
 }
