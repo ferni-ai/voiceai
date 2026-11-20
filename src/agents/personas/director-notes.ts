@@ -52,6 +52,7 @@ import {
 } from './director-cast.js';
 import { formatScene, scriptedNote, type Stage } from './director-scene.js';
 import { erodesGuard, guardRuleFor } from './director-guard.js';
+import { pushyNote } from './director-pushy.js'; // DIRECTOR_PUSHY_WIDE (#2438)
 import { directorDirects, directsAsk, misdirects, type DirectsFilter } from './director-directs.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
@@ -161,9 +162,6 @@ export function buildDirectorPrompt(
 
 const GENERIC =
   /^(acknowledge|validate|show (support|empathy)|let (them|him|her) know|be supportive|offer (support|comfort)|empathi[sz]e)/i;
-/** Pushing on a pause or a question they skipped: a friend lets it go. */
-const PUSHY =
-  /call (that|it) out|ask (it |that )?again|repeat (the|your) question|didn'?t (respond|answer)|still there|check (if|that) (they|he|she)/i;
 /**
  * Mind-reading: a motive or hidden mood pinned on the caller, or Ferni told to
  * discuss their tone instead of answering. Dev call 2026-10-05: "Sam is
@@ -244,7 +242,7 @@ export function parseNotes(
     .filter((l) => !/^["“'].*["”']$/.test(l))
     // Never against a boundary, honesty or tool truth, whatever the flags (director-guard.ts).
     .filter((l) => !erodesGuard(l, opts.sessionId))
-    .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
+    .filter((l) => !GENERIC.test(l) && !pushyNote(l) && !MIND_READING.test(l))
     // CALLER_SETS_DEPTH=on: no note that labels their deflection or says "hold space".
     .filter((l) => !(callerSetsDepthOn() && labelsDeflection(l)))
     .filter((l) => directorLooksBack() || !backToEarlier(l))
@@ -300,7 +298,7 @@ export class Director {
    * Ferni finished a reply: think about the next one. Never throws. `stage`
    * (DIRECTOR_SEES_SCENE=on) frames it for the persona speaking, with the scene.
    */
-  observe(lines: Line[], stage?: Stage): Promise<void> {
+  async observe(lines: Line[], stage?: Stage): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
@@ -469,7 +467,7 @@ export function directorSystem(
   return directorEscalates(env) ? `${system}\n${directorAddress(cast)}` : system;
 }
 
-function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
+async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     work,
