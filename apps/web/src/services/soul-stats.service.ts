@@ -11,8 +11,8 @@
  *
  * Counts only, kept in memory: never the trigger, a session id, the uid or any
  * text, and nothing in localStorage. Sent for a signed-in person at most once a
- * minute, and when the page is hidden. A 404 means SOUL_STATS is off on the
- * server, so this page stops sending for the rest of its life.
+ * minute, and when the page is hidden. A 404 (SOUL_STATS off on the server), 400
+ * or 413 stops this page sending for the rest of its life.
  *
  * @module SoulStatsService
  */
@@ -30,6 +30,8 @@ const SOUL_STATS_URL = '/api/soul-stats';
 const SEND_EVERY_MS = 60_000;
 /** The server refuses a count above this, so one send never carries more. */
 const MAX_COUNT = 500;
+/** Off on the server (404), or a body it will never take (400, 413): stop for this page. */
+const STOP_STATUSES = new Set([400, 404, 413]);
 
 const noCounts = (): SoulCounts => ({
   micro_expression: 0,
@@ -87,13 +89,14 @@ export class SoulStatsService {
     this.add('memory_spark');
   }
 
-  /** Sends what is pending: nothing when every count is 0, nobody is signed in, or after a 404. */
+  /** Sends what is pending: nothing when every count is 0, nobody is signed in, or once stopped. */
   async send(): Promise<void> {
     if (this.stopped || KEYS.every((k) => this.pending[k] === 0)) return;
-    const token = await this.deps.getToken().catch(() => null);
-    if (!token) return;
+    // Taken before any await, so a timer send and a page-hide send never carry the same counts
     const counts = this.pending;
     this.pending = noCounts();
+    const token = await this.deps.getToken().catch(() => null);
+    if (!token) return this.keep(counts, false); // signed out: hold them, no retry timer
     try {
       const response = await this.deps.fetch(SOUL_STATS_URL, {
         method: 'POST',
@@ -101,9 +104,11 @@ export class SoulStatsService {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ counts }),
       });
-      if (response.status === 404) {
+      if (STOP_STATUSES.has(response.status)) {
         this.stopped = true;
-        log.debug('Soul stats are off on the server; not sending again on this page');
+        log.debug('Soul stats not taken; not sending again on this page', {
+          status: response.status,
+        });
       } else if (!response.ok) {
         log.warn('Soul stats not stored; keeping them for the next send', {
           status: response.status,
@@ -127,9 +132,9 @@ export class SoulStatsService {
   }
 
   /** Puts counts that were not stored back, so the next send carries them. */
-  private keep(counts: SoulCounts): void {
+  private keep(counts: SoulCounts, retry = true): void {
     for (const k of KEYS) this.pending[k] = Math.min(MAX_COUNT, this.pending[k] + counts[k]);
-    this.schedule();
+    if (retry) this.schedule();
   }
 
   private schedule(): void {

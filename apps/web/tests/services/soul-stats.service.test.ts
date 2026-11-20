@@ -15,12 +15,19 @@ import { SoulStatsService, type SoulStatsDeps } from '../../src/services/soul-st
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function harness(opts: { token?: string | null; status?: number; fail?: boolean } = {}) {
+interface Opts {
+  token?: string | null;
+  getToken?: () => Promise<string | null>;
+  status?: number;
+  fail?: boolean;
+}
+
+function harness(opts: Opts = {}) {
   const timers: (() => void)[] = [];
   const hides: (() => void)[] = [];
   const sent: { url: string; init: RequestInit }[] = [];
   const deps: SoulStatsDeps = {
-    getToken: async () => (opts.token === undefined ? 'id-token' : opts.token),
+    getToken: opts.getToken ?? (async () => (opts.token === undefined ? 'id-token' : opts.token)),
     fetch: vi.fn(async (url: string, init: RequestInit) => {
       sent.push({ url, init });
       if (opts.fail) throw new TypeError('Failed to fetch');
@@ -101,8 +108,12 @@ describe('SoulStatsService', () => {
     ]);
   });
 
-  it('stops for the rest of the page after a 404 (SOUL_STATS off)', async () => {
-    const h = harness({ status: 404 });
+  it.each([
+    [404, 'SOUL_STATS off'],
+    [400, 'a body the server refuses'],
+    [413, 'a body over the cap'],
+  ])('stops for the rest of the page after a %i (%s)', async (status) => {
+    const h = harness({ status });
     h.service.recordMicroExpression();
     await h.tick();
     expect(h.sent).toHaveLength(1);
@@ -113,6 +124,44 @@ describe('SoulStatsService', () => {
     await h.tick();
     expect(h.sent).toHaveLength(1);
     expect(h.timers).toHaveLength(0);
+  });
+
+  it.each([401, 429, 500])('keeps counts and retries after a %i', async (status) => {
+    const h = harness({ status });
+    h.service.recordComfortPulse();
+    await h.tick();
+    await h.tick(); // the retry timer the failure set
+    const counts = h.bodies().map((b) => (b as { counts: { comfort_pulse: number } }).counts);
+    expect(counts.map((c) => c.comfort_pulse)).toEqual([1, 1]);
+  });
+
+  it('a timer send and a page-hide send waiting on the token never carry the same counts', async () => {
+    let release: (t: string) => void = () => {};
+    const token = new Promise<string>((r) => (release = r));
+    const h = harness({ getToken: () => token });
+    h.service.recordMicroExpression();
+    h.service.recordMicroExpression();
+    void h.tick(); // the timer send, now waiting on the token
+    h.hides[0](); // the page is hidden before the token arrives
+    release('tok');
+    await flush();
+    expect(h.bodies()).toEqual([
+      { counts: { micro_expression: 2, protective_mode: 0, comfort_pulse: 0, memory_spark: 0 } },
+    ]);
+  });
+
+  it('holds counts while signed out and sends them once signed in', async () => {
+    let token: string | null = null;
+    const h = harness({ getToken: async () => token });
+    h.service.recordMemorySpark();
+    await h.tick();
+    expect(h.sent).toHaveLength(0);
+    token = 'tok';
+    h.hides[0]();
+    await flush();
+    expect(h.bodies()).toEqual([
+      { counts: { micro_expression: 0, protective_mode: 0, comfort_pulse: 0, memory_spark: 1 } },
+    ]);
   });
 
   it('sends nothing for a signed-out visitor', async () => {
