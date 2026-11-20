@@ -55,7 +55,33 @@ const CAUGHT = [
   'Hey Sam. Did you hear back from them?',
   'Hey Sam. Did you end up sending it?',
   'Morning, Sam, nice to hear from you. Did you end up texting him back?',
+  'Hey Sam. Long week? Did you end up calling her?',
+];
+
+/**
+ * Verifier round 1 (PR #4281): who or what was named in an EARLIER sentence of
+ * the same hello, or after a title ("Dr. Patel"). Turning these away swapped a
+ * specific hello for the generic one. A name, kin word or "the/your <noun>"
+ * anywhere before the question counts, so "How did the interview go? Did you
+ * end up calling her?" is kept too: a narrow check takes that miss.
+ */
+const KEPT_EARLIER = [
+  'Hey Sam. Your sister was visiting. Did you have fun with her?',
+  'Hey Sam. Priya was flying in. Did you pick her up?',
+  "Hey Sam. Your mom's surgery was Tuesday. Did you get to see her?",
+  'Hey Sam! The big interview was today, right? Did you nail it?',
+  'Hey Sam. Did the job offer come through? Did you take it?',
+  'Hey Sam. You were writing to your landlord. Did you send it?',
+  'Hey Sam, how was the date? Did you like him?',
+  "Hey Sam. How's the puppy? Did you name her yet?",
+  'Hey Sam. Did you get the car back? Did they fix it?',
+  'Hey Sam. You said the recital was Friday. Did you go to it?',
+  'Hey Sam. You were dreading the dentist. Did you get through it?',
+  "Hey Sam! How's the new place? Did you get it all unpacked?",
   'Hey Sam. How did the interview go? Did you end up calling her?',
+  'Did you get to talk with Dr. Patel about it?',
+  'Hey Sam. Did you see Dr. Lee about it?',
+  'Hey Sam. Did you call Ms. Ortiz about that?',
 ];
 
 let n = 0;
@@ -96,6 +122,12 @@ describe('GREETING_NAMES_WHO on: a callback must say who', () => {
     vi.stubEnv('GREETING_NAMES_WHO', 'on');
     const cue = await cueFor(returning, { calls: 4 });
     expect(acceptLine(line, cue)).toBe(line);
+    expect(await speak(cue, line)).toMatchObject({ source: 'actor', text: line });
+  });
+
+  it.each(KEPT_EARLIER)('keeps, named earlier: %s', async (line) => {
+    vi.stubEnv('GREETING_NAMES_WHO', 'on');
+    const cue = await cueFor(returning, { calls: 4 });
     expect(await speak(cue, line)).toMatchObject({ source: 'actor', text: line });
   });
 

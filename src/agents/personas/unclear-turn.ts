@@ -73,7 +73,8 @@ export const NOT_PEOPLE = new Set(
 const PLAYED = /\b(?:here'?s|here is|playing|put on|queued)\b|\[playMusic/i;
 
 /** After a capital that opens a sentence, these mark it as someone ("Jordan's", "Kyle wants"). */
-const ACTS = /^(?:is|was|said|says|wants|called|texted|thinks|just|and|texted|landed|asked|told)$/;
+export const ACTS =
+  /^(?:is|was|said|says|wants|called|texted|thinks|just|and|texted|landed|asked|told)$/;
 
 interface Person {
   who: string;

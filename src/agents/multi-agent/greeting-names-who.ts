@@ -6,8 +6,8 @@
  * calls, and the caller had to ask "Calling who?". The hello's direction asks
  * the model to name the thing (GREETING_DIRECTION), but nothing checked the
  * line. With GREETING_NAMES_WHO on, a hello with a question whose object is a
- * bare "her", "him", "them", "it" or "that", and that never says who or what
- * in that sentence, is turned away and the scripted hello plays instead.
+ * bare "her", "him", "them", "it" or "that", where nothing in that question or
+ * before it says who or what, is turned away and the scripted hello plays.
  *
  * Narrow on purpose. It reads Ferni's own line, never the caller's; a false
  * positive costs one callback (the scripted hello plays), a miss keeps today's
@@ -18,7 +18,7 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { KIN, NOT_PEOPLE } from '../personas/unclear-turn.js';
+import { ACTS, KIN, NOT_PEOPLE } from '../personas/unclear-turn.js';
 
 const PERSON = new Set(['her', 'him', 'them']);
 const THING = new Set(['it', 'that']);
@@ -40,44 +40,72 @@ const words = (sentence: string): string[] =>
     .map((w) => w.replace(/[^A-Za-z']/g, ''))
     .filter(Boolean);
 
-/** A capitalised name in the sentence that is not the caller, "I" or a day, month or opener. */
+/** Capitalised words that open a sentence without naming anyone ("You said", "Morning, Sam"). */
+const OPENERS = new Set(
+  'you we they did how morning evening afternoon well good nice hello long'.split(' ')
+);
+
+/**
+ * A capitalised name in the sentence that is not the caller, "I" or a day, month
+ * or opener. A sentence's first word counts only when it reads as someone:
+ * "Maya, did you", "Priya was flying in", "Priya's flight".
+ */
 function namesSomeone(tokens: string[], raw: string[], caller: string | undefined): boolean {
   return tokens.some((word, i) => {
     const bare = word.replace(/'s$/, '');
-    if (!/^[A-Z][a-z]+$/.test(bare)) return false;
-    if (NOT_PEOPLE.has(bare.toLowerCase()) || bare.toLowerCase() === caller) return false;
-    return i > 0 || /,$/.test(raw[0] ?? ''); // "Maya, did you call her?"
+    const lower = bare.toLowerCase();
+    if (!/^[A-Z][a-z]+$/.test(bare) || NOT_PEOPLE.has(lower) || lower === caller) return false;
+    if (i > 0) return true;
+    if (OPENERS.has(lower)) return false;
+    return /,$/.test(raw[0] ?? '') || bare !== word || ACTS.test(tokens[1]?.toLowerCase() ?? '');
   });
 }
 
 /** A pronoun that is the object of the question and says nothing about who or what. */
-function bareObject(tokens: string[], i: number): 'person' | 'thing' | undefined {
+function bareObject(tokens: string[], i: number): boolean {
   const word = tokens[i].toLowerCase();
   const before = tokens[i - 1]?.toLowerCase();
   const after = tokens[i + 1]?.toLowerCase();
-  if (before === undefined || SUBJECT_AFTER.has(before)) return undefined;
-  if (PERSON.has(word)) return after && KIN.has(after) ? undefined : 'person'; // "her sister"
-  if (!THING.has(word) || /^mak(?:e|es|ing)$|^made$/.test(before)) return undefined; // "make it"
-  if (word === 'that' && after && !AFTER_BARE.test(after)) return undefined; // "that essay"
-  return 'thing';
+  if (before === undefined || SUBJECT_AFTER.has(before)) return false;
+  if (PERSON.has(word)) return !(after && KIN.has(after)); // "her sister"
+  if (!THING.has(word) || /^mak(?:e|es|ing)$|^made$/.test(before)) return false; // "make it"
+  return word !== 'that' || !after || AFTER_BARE.test(after); // "that essay"
 }
 
-/** True for a question that asks about "her" or "it" and never says who or what. */
-function questionNamesNoOne(sentence: string, caller: string | undefined): boolean {
-  const raw = sentence.trim().split(/\s+/);
+/** "Dr. Patel": a title's full stop does not end the sentence. */
+const TITLE = /\b(Mr|Mrs|Ms|Dr|St|Jr)\./g;
+
+/** The sentence names someone or something: a name, a kin word, "the interview". */
+function namesAnything(sentence: string, caller: string | undefined): boolean {
   const tokens = words(sentence);
-  const kinds = tokens.map((_, i) => bareObject(tokens, i)).filter(Boolean);
-  if (kinds.length === 0) return false;
-  if (namesSomeone(tokens, raw, caller) || tokens.some((w) => KIN.has(w.toLowerCase())))
-    return false;
-  return kinds.includes('person') || !NAMED_THING.test(sentence);
+  return (
+    namesSomeone(tokens, sentence.trim().split(/\s+/), caller) ||
+    tokens.some((w) => KIN.has(w.toLowerCase().replace(/'s$/, ''))) ||
+    NAMED_THING.test(sentence)
+  );
 }
 
-/** True when a question in the hello is a callback that never says who or what it is about. */
+/** A question in it has a bare object pronoun ("calling her", "figure that out"). */
+function asksBare(sentence: string): boolean {
+  if (!sentence.trim().endsWith('?')) return false;
+  const tokens = words(sentence);
+  return tokens.some((_, i) => bareObject(tokens, i));
+}
+
+/**
+ * True when a question in the hello asks about "her" or "it" and nothing in it,
+ * or in the hello before it, says who or what ("Priya was flying in. Did you
+ * pick her up?" says who).
+ */
 export function callbackNamesNoOne(line: string, userName?: string): boolean {
   const caller = userName?.trim().split(/\s+/)[0]?.toLowerCase();
-  const questions = line.match(/[^.!?]*\?/g) ?? [];
-  return questions.some((q) => questionNamesNoOne(q, caller));
+  const sentences = line.replace(TITLE, '$1').match(/[^.!?]+[.!?]*/g) ?? [];
+  let named = false;
+  for (const sentence of sentences) {
+    named ||= namesAnything(sentence, caller);
+    if (!named && asksBare(sentence)) return true;
+  }
+  return false;
 }
 
 /** The returning caller's hello guard (the cue's `rejectIf`): undefined with the flag off. */
