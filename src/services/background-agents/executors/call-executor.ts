@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { dialHeld } from './crisis-dial-check.js';
 import { captureBackgroundResult } from '../unified-result-capture.js';
 import type { OutcomeStatus, ResultPriority } from '../result-types.js';
 
@@ -61,6 +62,7 @@ export async function executeCall(request: CallRequest): Promise<CallResult> {
   try {
     // Try to use the conversational call service
     const result = await makeConversationalCall(request, callId);
+    if (!result) return notPlaced(request, callId); // CRISIS_DIAL_HOLD: nothing rang or is recorded
 
     const status: OutcomeStatus = result.success
       ? 'success'
@@ -220,7 +222,22 @@ export async function queueCall(request: CallRequest): Promise<string> {
 // CALL IMPLEMENTATION
 // ============================================================================
 
-async function makeConversationalCall(request: CallRequest, callId: string): Promise<CallResult> {
+/** A held call: nothing rang, and nothing about it is recorded (CRISIS_DIAL_HOLD). */
+const notPlaced = (request: CallRequest, callId: string): CallResult => ({
+  success: false,
+  callId,
+  contactName: request.contactName,
+  status: 'failed',
+  outcome: 'No call was placed.',
+  objectiveAchieved: false,
+  callbackRequired: false,
+});
+
+/** The call's result, or null when CRISIS_DIAL_HOLD holds it right before it dials. */
+async function makeConversationalCall(
+  request: CallRequest,
+  callId: string
+): Promise<CallResult | null> {
   try {
     // Try to use the existing conversational call service
     const { makeConversationalCall: makeCall, isConversationalCallingConfigured } =
@@ -228,6 +245,7 @@ async function makeConversationalCall(request: CallRequest, callId: string): Pro
 
     if (isConversationalCallingConfigured().configured) {
       log.info({ contact: request.contactName }, 'Using conversational call service');
+      if (dialHeld(request.sessionId)) return null; // its call noted risk since it was confirmed
 
       // Result type varies by implementation - handle gracefully
       // Map CallRequest to ConversationalCallRequest format
