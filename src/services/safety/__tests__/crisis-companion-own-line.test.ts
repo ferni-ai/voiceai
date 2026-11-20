@@ -107,7 +107,7 @@ describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE', () => {
 
   // #3465: a turn after one of Ferni's safety questions may be the caller's answer to it. The
   // question stays in what the read sees, so these keep reading as risk with the flag on.
-  it('#3465: "No. Get me Jordan." after the 988 script\'s "Are you safe right now?" still reads imminent', async () => {
+  it('#3465: "No. Get me Jordan." after the 988 script and "Are you safe right now?" still reads imminent', async () => {
     await read(ALARM, ON, falseAlarm);
     expect((await read(answering('No. Get me Jordan.', SCRIPT_988), ON, answers))?.risk).toBe(
       'imminent'
@@ -117,7 +117,7 @@ describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE', () => {
     expect(companion).not.toMatch(/988/);
   });
 
-  it('#3465: a bare name after the imminent script\'s "Is anyone nearby who can be with you?" still reads imminent', async () => {
+  it('#3465: a bare name after the imminent script and "Is anyone nearby who can be with you?" still reads imminent', async () => {
     await read(ALARM, ON, falseAlarm);
     for (const name of ['Jordan.', 'Maya please', 'no, nobody']) {
       resetCrisisClassifierCache();
