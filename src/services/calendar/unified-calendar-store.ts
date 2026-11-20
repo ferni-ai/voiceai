@@ -333,10 +333,12 @@ export async function updateEvent(
     syncStatus: event.syncStatus === 'synced' ? 'pending' : event.syncStatus,
   };
 
-  if (events) {
-    events.set(eventId, updated);
+  events?.set(eventId, updated);
+  // CALENDAR_WRITES_TRUTHFUL: an update whose write didn't save is rolled back and reported null
+  if (!(await persistEvent(userId, updated))) {
+    events?.set(eventId, event);
+    return null;
   }
-  await persistEvent(userId, updated);
 
   log.info({ userId, eventId }, 'Updated calendar event');
   return updated;

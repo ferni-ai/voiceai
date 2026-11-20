@@ -35,7 +35,7 @@ vi.mock('../../../utils/shared-firestore.js', () => ({
 
 const { smartCalendarTools } =
   await import('../../../tools/domains/calendar/calendar-connection-gate.js');
-const { deleteEvent, getEventsForDay } = await import('../unified-calendar-store.js');
+const { deleteEvent, getEventById, getEventsForDay } = await import('../unified-calendar-store.js');
 const service = await import('../calendar-service.js');
 const { saveEventDoc, deleteEventDoc } = await import('../calendar-event-persist.js');
 const { calendarWriteSaved } = await import('../calendar-write-state.js');
@@ -76,6 +76,8 @@ const tomorrow = (): string => {
 const lunch = { title: 'Lunch with Riley', date: tomorrow(), startTime: '12:30' };
 const lunchOn = async (uid: string) =>
   (await getEventsForDay(uid, new Date(Date.now() + 86_400_000))).map((e) => e.title);
+const rename = { eventId: 'evt_seed', title: 'Dentist follow-up' };
+const titleOf = async (uid: string) => (await getEventById(uid, 'evt_seed'))?.title;
 const stored = (uid: string) =>
   [...db.docs.keys()].filter((k) => k.startsWith(`users/${uid}/calendar_events/`));
 
@@ -107,6 +109,19 @@ describe('CALENDAR_WRITES_TRUTHFUL off (== main)', () => {
     expect(reply).toBe('Dentist checkup has been removed from your calendar.');
     expect(stored(uid)).toHaveLength(1);
   });
+
+  it('a failed update says updated and keeps the new time in memory only', async () => {
+    const uid = person();
+    seedConnected(uid);
+    seedEvent(uid);
+    db.failWrites = true;
+    expect(await tool('updateCalendarEvent', uid, rename)).toMatch(/^Updated\. Dentist follow-up/);
+    db.failWrites = false;
+    expect(await titleOf(uid)).toBe('Dentist follow-up');
+    expect((db.docs.get(`users/${uid}/calendar_events/evt_seed`) as { title: string }).title).toBe(
+      'Dentist checkup'
+    );
+  });
 });
 
 describe('CALENDAR_WRITES_TRUTHFUL on', () => {
@@ -118,6 +133,28 @@ describe('CALENDAR_WRITES_TRUTHFUL on', () => {
     expect(await tool('createCalendarEvent', uid, lunch)).toMatch(/^Couldn't create the event/);
     db.failWrites = false;
     expect(await lunchOn(uid)).toEqual([]);
+  });
+
+  it('a failed update says it could not, and the cache shows the old event', async () => {
+    process.env.CALENDAR_WRITES_TRUTHFUL = 'on';
+    const uid = person();
+    seedConnected(uid);
+    seedEvent(uid);
+    db.failWrites = true;
+    expect(await tool('updateCalendarEvent', uid, rename)).toMatch(/^Couldn't update that event/);
+    db.failWrites = false;
+    expect(await titleOf(uid)).toBe('Dentist checkup');
+  });
+
+  it('an update that saves says updated, and the stored event has the new title', async () => {
+    process.env.CALENDAR_WRITES_TRUTHFUL = 'on';
+    const uid = person();
+    seedConnected(uid);
+    seedEvent(uid);
+    expect(await tool('updateCalendarEvent', uid, rename)).toMatch(/^Updated\. Dentist follow-up/);
+    expect((db.docs.get(`users/${uid}/calendar_events/evt_seed`) as { title: string }).title).toBe(
+      'Dentist follow-up'
+    );
   });
 
   it('a create that saves says saved, and the event is stored', async () => {

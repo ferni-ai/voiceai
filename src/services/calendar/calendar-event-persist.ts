@@ -4,11 +4,12 @@
  * The unified store keeps events in memory and writes each one to Firestore. A failed write
  * was logged and swallowed, so createEvent returned the event as saved and the create tool
  * said "Saved", though the event lived only in this process and was gone after a restart or
- * on another instance. A failed delete was swallowed the same way, and the tool said "removed".
+ * on another instance. A failed delete or update was swallowed the same way ("removed", "Updated").
  *
  * Every write here records its result: 'saved', 'no-db' (no Firestore, so nothing durable)
  * or 'failed'. With the flag on, an event that wasn't saved is not kept, and the create tool
- * says it couldn't create it; a delete whose write failed is undone and returns false. Off,
+ * says it couldn't create it; a failed delete is undone and returns false; a failed update
+ * is rolled back to the old event and returns null. Off,
  * the results are recorded and nothing else changes.
  *
  * @module calendar/calendar-event-persist
