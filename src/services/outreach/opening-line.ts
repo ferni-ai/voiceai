@@ -40,6 +40,8 @@ export interface OutboundParties {
    * is, so Ferni says its name without "<sponsor>'s AI friend" (Seth, 2026-10-18).
    */
   checkin?: boolean;
+  /** The persona placing the call, as it names itself (CALL_AS_PERSONA); Ferni when unset. */
+  agentName?: string;
 }
 
 /** The parties of a call, from the outbound call context's fields. */
@@ -50,6 +52,7 @@ export function partiesOf(
     callType?: string;
     openingLine?: string;
     kind?: string;
+    agentName?: string;
   },
   env: Env = process.env
 ): OutboundParties {
@@ -63,6 +66,7 @@ export function partiesOf(
     personal,
     openingLine: call.openingLine,
     ...(checkin && { checkin: true }),
+    ...(call.agentName && { agentName: call.agentName }),
   };
 }
 
