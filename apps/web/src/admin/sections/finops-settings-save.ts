@@ -2,7 +2,8 @@
  * The FinOps Save buttons (MRR, cash reserve, LTV:CAC) and Sync from Stripe, each with a
  * visible answer next to it. They used to do nothing on an empty or invalid input and
  * ignore the response, so a 400 or 500 looked like success. Now an empty or invalid input
- * says so and sends nothing, a failed save says "Couldn't save (HTTP n)", and a save shows
+ * says so and sends nothing, a failed save says "Couldn't save: unavailable (HTTP n)" (the
+ * portal's unavailable wording, which the admin walk looks for), and a save shows
  * "Saved" and fills the inputs from the server's answer before the section refreshes.
  *
  * @module admin/sections/finops-settings-save
@@ -97,8 +98,10 @@ const CONTROLS: SaveControl[] = [
     method: 'POST',
     read: () => ({}),
     done: (a) => {
-      fill('config-mrr', a.mrr);
+      // An older server answers 200 with mrr 0 when Stripe has nothing: not an MRR to keep
       const n = typeof a.subscriptionCount === 'number' ? a.subscriptionCount : 0;
+      if (n === 0) return 'Stripe reported no subscriptions';
+      fill('config-mrr', a.mrr);
       return `Synced from Stripe (${n} subscriptions)`;
     },
   },
@@ -147,12 +150,12 @@ async function run(control: SaveControl, button: HTMLButtonElement, onSaved: () 
   try {
     const res = await adminFetch(control.path, { method: control.method, body: JSON.stringify(body) }); // prettier-ignore
     const answer = await answerOf(res);
-    if (!res.ok) return show(button, `${verb} (HTTP ${res.status})${detailOf(answer)}`, false);
+    if (!res.ok) return show(button, `${verb}: unavailable (HTTP ${res.status})${detailOf(answer)}`, false); // prettier-ignore
     show(button, control.done(answer), true);
     await onSaved();
   } catch (error) {
     log.error({ error, path: control.path }, 'FinOps settings request failed');
-    show(button, `${verb} (network error)`, false);
+    show(button, `${verb}: unavailable (network error)`, false);
   } finally {
     button.disabled = false;
   }

@@ -1,6 +1,7 @@
 /**
  * The FinOps Save buttons answer on screen (#4069 W7): an empty or invalid input says so
- * and sends nothing, a failed save says "Couldn't save (HTTP n)", and a save says "Saved"
+ * and sends nothing, a failed save says "Couldn't save: unavailable (HTTP n)" (the wording
+ * the admin walk accepts as a reason), and a save says "Saved"
  * and fills the input from the server's answer. Driven through the real section with
  * only adminFetch (the network boundary) faked.
  */
@@ -66,18 +67,18 @@ describe('FinOps Save buttons', () => {
     expect(writes()).toEqual([]);
   });
 
-  it('a 500 shows "Couldn\'t save (HTTP 500)"', async () => {
+  it('a 500 shows "Couldn\'t save: unavailable (HTTP 500)"', async () => {
     save = () => json({}, 500);
     await open();
     type('config-mrr', '1500');
-    expect(await click('save-mrr')).toBe("Couldn't save (HTTP 500)");
+    expect(await click('save-mrr')).toBe("Couldn't save: unavailable (HTTP 500)");
   });
 
   it('a 503 shows the reason the server gave', async () => {
     save = () => json({ error: 'FinOps settings unavailable', reason: 'firestore down' }, 503);
     await open();
     type('config-cash', '9000');
-    expect(await click('save-cash')).toBe("Couldn't save (HTTP 503): firestore down");
+    expect(await click('save-cash')).toBe("Couldn't save: unavailable (HTTP 503): firestore down");
   });
 
   it('a save shows "Saved", sends the value and fills the input from the answer', async () => {
@@ -98,5 +99,43 @@ describe('FinOps Save buttons', () => {
       ['/api/finops/ltv-cac', { cac: 80, churnRate: 0.025 }],
     ]);
     expect((document.getElementById('config-churn') as HTMLInputElement).value).toBe('2.5');
+  });
+
+  it('a network error shows "Couldn\'t save: unavailable (network error)"', async () => {
+    save = () => {
+      throw new TypeError('Failed to fetch');
+    };
+    await open();
+    type('config-mrr', '10');
+    expect(await click('save-mrr')).toBe("Couldn't save: unavailable (network error)");
+  });
+});
+
+describe('Sync from Stripe', () => {
+  const mrrInput = () => (document.getElementById('config-mrr') as HTMLInputElement).value;
+
+  it("a 503 shows the server's reason and leaves the MRR input alone", async () => {
+    save = () => json({ success: false, error: 'MRR not synced', reason: 'Stripe is not configured' }, 503); // prettier-ignore
+    await open();
+    type('config-mrr', '1200');
+    expect(await click('sync-mrr')).toBe(
+      "Couldn't sync: unavailable (HTTP 503): Stripe is not configured"
+    );
+    expect(mrrInput()).toBe('1200');
+  });
+
+  it('a 200 with subscriptions fills the MRR input', async () => {
+    save = () => json({ success: true, mrr: 22, subscriptionCount: 2 });
+    await open();
+    expect(await click('sync-mrr')).toBe('Synced from Stripe (2 subscriptions)');
+    expect(mrrInput()).toBe('22');
+  });
+
+  it("an older server's 200 with no subscriptions never fills MRR with 0", async () => {
+    save = () => json({ success: true, mrr: 0, subscriptionCount: 0 });
+    await open();
+    type('config-mrr', '1200');
+    expect(await click('sync-mrr')).toBe('Stripe reported no subscriptions');
+    expect(mrrInput()).toBe('1200');
   });
 });
