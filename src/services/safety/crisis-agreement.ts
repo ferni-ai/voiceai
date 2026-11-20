@@ -147,6 +147,12 @@ export function endorses(latest: string | undefined | null): boolean {
 /** Sad or hurt emoticons: ":(", ":'(", ";_;", "</3". */
 const EMOTICON = /[:;=8][-'^o]?[([/\\|{<@]|[)\]/\\|}>][-'^o]?[:;=8]|<\/3|;_;|\bt_t\b/i;
 
+const carries = (text: string, risk: RegExp): boolean =>
+  /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) ||
+  EMOTICON.test(text) ||
+  risk.test(words(text)) ||
+  risk.test(normalized(text));
+
 /**
  * True for anything it cannot read: a failed check never softens a turn.
  * Checked on the raw (NFKC) text too, so punctuation or digits between words
@@ -155,16 +161,23 @@ const EMOTICON = /[:;=8][-'^o]?[([/\\|{<@]|[)\]/\\|}>][-'^o]?[:;=8]|<\/3|;_;|\bt
 export function hasRiskContent(text: string | undefined | null): boolean {
   if (typeof text !== 'string') return true;
   try {
-    const has = (risk: RegExp): boolean =>
-      /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) ||
-      EMOTICON.test(text) ||
-      risk.test(words(text)) ||
-      risk.test(normalized(text));
     return wholeWordSite(
       'crisis-agreement',
-      () => has(RISK_CONTENT),
-      () => has(RISK_CONTENT_SITES)
+      () => carries(text, RISK_CONTENT),
+      () => carries(text, RISK_CONTENT_SITES)
     );
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * For log fields only: hasRiskContent's check on today's list, outside the
+ * SAFETY_WHOLE_WORD_SITES measurement, so a log never adds a would-differ line.
+ */
+export function riskWordsIn(text: string): boolean {
+  try {
+    return carries(text, RISK_CONTENT);
   } catch {
     return true;
   }

@@ -32,6 +32,7 @@ import {
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
+import { classifierLogFields } from './crisis-classifier-log-fields.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
@@ -449,6 +450,7 @@ export function startCrisisClassifier(
         agree: classifier === options.pattern,
         latencyMs: Date.now() - startedAt,
         noVerdict: v === null,
+        ...classifierLogFields(normalized, secondRead?.path), // #4211: what the read was given
         ...(plain ? { everydayBackstop: true } : {}),
       },
       'CRISIS_CLASSIFIER'
