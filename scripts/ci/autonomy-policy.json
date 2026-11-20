@@ -44,6 +44,7 @@
         "src/agents/personas/listen-offer.ts",
         "src/agents/personas/phrase-loops.ts",
         "src/agents/personas/question-pace.ts",
+        "src/agents/personas/stream-repair.ts",
         "src/agents/personas/told-this-call.ts",
         "src/agents/personas/turn-call-report.ts",
         "src/agents/personas/turn-holds.ts",
