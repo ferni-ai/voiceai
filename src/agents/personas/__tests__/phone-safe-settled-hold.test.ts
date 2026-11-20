@@ -38,7 +38,12 @@ import { toolsForTurn, type TurnToolsState } from '../turn-request.js';
 import { phoneSafeTool } from '../../shared/phone-safe-tools.js';
 import { DOMAIN_TOOL_IDS } from '../../shared/domain-tool-ids.generated.js';
 import { rememberDispatchIdentity } from '../../voice-agent-entry/caller-recognition.js';
-import { holdSession, memoryHeld, resetMinorCare } from '../../../utils/minor-care.js';
+import {
+  bindSessionUser,
+  holdSession,
+  memoryHeld,
+  resetMinorCare,
+} from '../../../utils/minor-care.js';
 import {
   beginSexualRead,
   holdForSexualTopic,
@@ -80,9 +85,9 @@ function agentWith(ctx: llm.ToolContext) {
 
 let n = 0;
 /** A call: its session, agent and per-agent tool state; turn() runs toolsForTurn as llmNode does. */
-function call(opts: { owner: boolean }) {
+function call(opts: { owner: boolean; userId?: string }) {
   const sessionId = `settled-hold-${++n}`;
-  const userId = `uid-riley-test-${n}`;
+  const userId = opts.userId ?? `uid-riley-test-${n}`;
   if (opts.owner) rememberDispatchIdentity(sessionId, 'web_auth', '{}'); // a signed-in web owner
   const agent = agentWith(catalog());
   const state: TurnToolsState = { loggedLockedHandoffs: false, agent };
@@ -170,6 +175,56 @@ describe('PHONE_SAFE_SETTLED_HOLD on', () => {
     expect(offersAccountTools(await c.turn())).toBe(true);
     expect(logged(BACK)).toHaveLength(1); // given back once
   });
+});
+
+describe("PHONE_SAFE_SETTLED_HOLD waives only a read that is the call's sole hold", () => {
+  const otherSession = (userId: string) => `settled-hold-other-${userId}`;
+  it.each([
+    [
+      "another of the user's sessions is held for a sexual topic",
+      (uid: string): void => holdForSexualTopic(otherSession(uid), uid),
+      'sexual-read-running',
+    ],
+    [
+      "another of the user's sessions has a sexual-topic read running",
+      (uid: string): void => void beginSexualRead(otherSession(uid), uid),
+      'sexual-read-running',
+    ],
+    [
+      "another of the user's sessions sounds under 18 (userAgeHeld)",
+      (uid: string): void => {
+        holdSession(otherSession(uid));
+        bindSessionUser(otherSession(uid), uid);
+      },
+      'sexual-read-running',
+    ],
+    ['the caller is an anonymous try-first visitor', (): void => {}, 'try-first'],
+    [
+      'the caller is an anonymous try-first visitor, MINOR_CARE off',
+      (): void => void vi.stubEnv('MINOR_CARE', 'off'), // heldAfter's own visitor check, not demoCallHeld
+      'try-first',
+    ],
+  ] as const)(
+    'a verified owner with a read running, and %s: cut, the same set flag off and on',
+    async (_case, alsoHold, reason) => {
+      const offered = async (arm: string): Promise<string[]> => {
+        vi.stubEnv(FLAG, arm);
+        const anon = reason === 'try-first';
+        const c = call({
+          owner: true,
+          userId: anon ? `device:demo_179356000000${n}_k3x9q2` : undefined,
+        });
+        alsoHold(c.userId);
+        beginSexualRead(c.sessionId, c.userId);
+        return (await c.turn()).sort();
+      };
+      const off = await offered('off');
+      const on = await offered('on');
+      expect(on).toEqual(off);
+      expect(offersNone(on)).toBe(true);
+      expect(logged(CUT_ON).map((l) => l.fields.reason)).toEqual([reason]);
+    }
+  );
 });
 
 describe('PHONE_SAFE_SETTLED_HOLD never loosens a settled hold', () => {

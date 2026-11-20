@@ -15,7 +15,7 @@ import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js'
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
 import { flagOn } from '../../config/env-flag.js';
 import { heldAfter, lastFerniLine, type YouthNote } from '../../utils/minor-care.js';
-import { careHoldReason } from '../../utils/minor-care-reason.js';
+import { careHoldReason, onlyReadRunning } from '../../utils/minor-care-reason.js';
 import {
   type PhoneSafeCutState,
   type ToolHolder,
@@ -439,7 +439,7 @@ export async function toolsForTurn(
     careOnly: true, // a crisis hold keeps the call's tools (support, handoffs); each writer refuses
   });
   const why = settledFlag && careHeld ? careHoldReason(sessionId, userId) : undefined;
-  const held = careHeld && !(settled && why === 'sexual-read-running');
+  const held = careHeld && !(settled && onlyReadRunning(sessionId, userId));
   const phoneOnly = phoneOnlyIdentity(sessionId);
   const cut = phoneOnly || held || ownerWritesBlocked(userId);
   if (!cut && settled) await withToolsBack(toolCtx, state);
