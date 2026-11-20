@@ -1,23 +1,19 @@
 /**
- * GSAP Setup - Use global GSAP from CDN
+ * GSAP Setup: the one gsap instance the app uses, bundled from the `gsap`
+ * package (its main entry registers CSSPlugin).
  *
- * The CDN version (loaded in index.html) has CSSPlugin built-in.
- * This file provides typed access to the global gsap instance.
+ * Import gsap from this file instead of 'gsap' directly, so every module shares
+ * this instance and its config.
  *
- * Import gsap from this file instead of 'gsap' directly to ensure
- * you're using the same instance as the CDN.
+ * Until 2026-10-31 this read `window.gsap` from a cdnjs script tag. When that
+ * host was slow or blocked, gsap was undefined and the avatar's eye motion
+ * (avatar-soul.ui.ts) threw every few seconds.
  *
  * Note: force3D is a gsap.config() option in GSAP 3, not a tween property.
  * It's set globally in initGSAP() in gsap-animations.ts.
  */
 
-// Type assertion for TypeScript
-import type { gsap as GsapType } from 'gsap';
+import { gsap } from 'gsap';
 
-// Use the global GSAP instance from CDN (loaded in index.html)
-// The CDN UMD bundle includes CSSPlugin automatically
-const gsap = (window as unknown as { gsap: typeof GsapType }).gsap;
-
-// Re-export the global instance with proper typing
 export { gsap };
 export default gsap;

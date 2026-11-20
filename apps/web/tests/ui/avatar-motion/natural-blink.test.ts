@@ -269,9 +269,9 @@ describe('with the flag on', () => {
   });
 
   it('holds the blink while an expression is changing', async () => {
-    // gsap is the CDN global that ferni-expressions tweens the lids with.
+    // ferni-expressions tweens the lids with the bundled gsap from gsap-setup.
     const tweening = vi.fn((_target: Element) => true);
-    Object.assign(window, { gsap: { isTweening: tweening } });
+    vi.doMock('../../../src/utils/gsap-setup.js', () => ({ gsap: { isTweening: tweening } }));
     const m = await import('../../../src/ui/avatar-motion/natural-blink.js');
     const overlay = document.createElement('div');
     overlay.className = 'avatar-lid-overlay';
@@ -284,7 +284,7 @@ describe('with the flag on', () => {
     tweening.mockReturnValue(false);
     vi.advanceTimersByTime(400);
     expect(eyeBlinks().length).toBeGreaterThan(0);
-    Reflect.deleteProperty(window, 'gsap');
+    vi.doUnmock('../../../src/utils/gsap-setup.js');
   });
 
   it('pauses in a hidden tab and resumes when it shows again', async () => {

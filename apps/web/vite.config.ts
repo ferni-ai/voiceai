@@ -52,11 +52,8 @@ export default defineConfig(({ mode }) => {
         }),
       },
     },
-    // Use global GSAP from CDN instead of bundling npm version
-    // This avoids duplicate instances and plugin registration issues
     optimizeDeps: {
       exclude: [
-        'gsap',
         // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
         '@livekit/agents',
         // LiveKit client - loaded via voice-engine.js UMD; no npm bundle needed
@@ -143,8 +140,6 @@ export default defineConfig(({ mode }) => {
         drop: ['console', 'debugger'],
       },
       rolldownOptions: {
-        // Treat gsap as external - use window.gsap from CDN
-        external: ['gsap'],
         // A circular chunk is a runtime TDZ crash waiting for the right import
         // order; it shipped once as a warning nobody read. Fail the build.
         onwarn(warning, warn) {
@@ -154,10 +149,6 @@ export default defineConfig(({ mode }) => {
           warn(warning);
         },
         output: {
-          // Map gsap imports to the global
-          globals: {
-            gsap: 'gsap',
-          },
           // Rollup names a chunk after its module's file, so a lazily loaded
           // foo/index.ts became index-*.js: indistinguishable from the entry in
           // devtools, and counted as initial by the bundle ratchet. Use the folder.
