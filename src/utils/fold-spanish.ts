@@ -12,6 +12,9 @@ export const spanishReadersOn = (): boolean => flagOn('CRISIS_SPANISH_READERS');
 /** At most this much of a turn is read, its end: the cut keeps every Spanish read linear. */
 const SPANISH_MAX_CHARS = 4000;
 
+/** The end of a turn the Spanish readers read: anything done to a turn before folding is done to this. */
+export const spanishTail = (text: string): string => text.slice(-SPANISH_MAX_CHARS);
+
 /** "Se DESMAYÓ" reads as "se desmayo". */
 export const foldSpanish = (text: string): string =>
-  text.slice(-SPANISH_MAX_CHARS).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  spanishTail(text).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();

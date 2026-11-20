@@ -63,6 +63,37 @@ const NOT_NOW: ReadonlyArray<[string, string]> = [
     'mi hermana se cayó de la risa y no responde mis mensajes',
     "my sister fell over laughing and isn't answering my texts",
   ],
+  // Grief: a death and a date after the fall (verify of 39e5cd9e, ask A).
+  ['mi papá se desmayó y murió en marzo', 'my dad collapsed and died in march'],
+  ['mi mamá se cayó y falleció hace dos años', 'my mom fell and passed away two years ago'],
+  // A maybe, said in the past (ask B).
+  ['si mi mamá se desmayó, ¿qué hago?', 'if my mom fainted, what do i do?'],
+  // Not answering the phone, after a fall (ask C).
+  ['mi mamá se cayó y no contesta el teléfono', "my mom fell and isn't answering her phone"],
+  // Not waking or not moving, on its own, is no one down (ask D).
+  ['mi hijo no se despierta para la escuela', "my son won't wake up for school"],
+  ['mi hijo no se mueve de la cama', "my son won't get out of bed"],
+];
+/** Spanish falls that stay 911 for them now, each beside an English twin that reads the same. */
+const STILL_NOW: ReadonlyArray<[string, string]> = [
+  // A death alone is no grief: only a death and a date are.
+  ['mi papá se desmayó y murió', 'my dad collapsed and died'],
+  // Now, or a second fall, in the sentence: never grief.
+  [
+    'mi mamá se desmayó y murió en marzo y ahora mi papá no se levanta',
+    "my mom collapsed and died in march and now my dad can't get up",
+  ],
+  [
+    'mi mamá se desmayó y murió en marzo, y él se cayó',
+    'my mom collapsed and died in march, and he fell',
+  ],
+  // "Sí" is yes, not "si" (if), once the accents come off.
+  ['Sí mi mamá se desmayó', 'yes my mom fainted'],
+  // A floor or a fall word keeps it an emergency, whatever phone words follow.
+  [
+    'mi papá se cayó en el piso y no contesta el teléfono',
+    "my dad fell on the floor and isn't answering his phone",
+  ],
 ];
 /** English lines across the readers: each reads the same with the flag on as off. */
 const ENGLISH = [
@@ -75,6 +106,7 @@ const ENGLISH = [
   "my friend said she doesn't want to be alive",
   "i'm 14 years old and i want to kill myself",
   ...NOT_NOW.map(([, english]) => english),
+  ...STILL_NOW.map(([, english]) => english),
 ];
 
 describe('CRISIS_SPANISH_READERS off: every read is main', () => {
@@ -127,6 +159,14 @@ describe('CRISIS_SPANISH_READERS on: someone down, in Spanish, is 911 for them f
     expect(read.indicators).not.toContain('third_party_emergency');
     expect(detectCrisis(en).indicators).not.toContain('third_party_emergency');
     expect(read.suggestedResponse ?? '').not.toContain(CALL_911_FOR_THEM_ES);
+  });
+
+  it.each(STILL_NOW)('%s: 911 for them, the same as its English twin', (es, en) => {
+    spanish('on');
+    const read = detectCrisis(es);
+    expect(read.indicators).toContain('third_party_emergency');
+    expect(detectCrisis(en).indicators).toContain('third_party_emergency');
+    expect(read.suggestedResponse ?? '').toContain(CALL_911_FOR_THEM_ES);
   });
 
   it.each(ENGLISH)('%s: the same read, the flag on as off', (line) => {
@@ -247,9 +287,25 @@ describe('the Spanish readers stay linear on long unpunctuated speech', () => {
   const line = (unit: string, chars: number): string =>
     unit.repeat(Math.floor(chars / unit.length));
 
-  /** How much longer the second read takes. Runner load slows both alike, so it cancels out. */
-  const growth = (read: (text: string) => boolean, unit: string, short: number, long: number) =>
-    fastest(() => read(line(unit, long)), 20) / fastest(() => read(line(unit, short)), 20);
+  /**
+   * How much longer the long read takes: the fastest of many rounds of each, the rounds taken in
+   * turn and the texts built first, so a loaded runner slows both alike and a burst of load can't
+   * land on one side only (verify of 39e5cd9e, ask E: 3.4x once in a loaded 100-file run).
+   */
+  const growth = (read: (text: string) => boolean, unit: string, short: number, long: number) => {
+    const [shortText, longText] = [line(unit, short), line(unit, long)];
+    const once = (text: string): number => {
+      const started = performance.now();
+      for (let n = 0; n < 20; n++) read(text);
+      return performance.now() - started;
+    };
+    let [shortBest, longBest] = [Infinity, Infinity];
+    for (let round = 0; round < 15; round++) {
+      shortBest = Math.min(shortBest, once(shortText));
+      longBest = Math.min(longBest, once(longText));
+    }
+    return longBest / shortBest;
+  };
 
   it.each(READERS)(
     '%s: 20k chars under 1 s, and long text costs no more than the cut',
