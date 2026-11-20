@@ -40,6 +40,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/follow-through',
   '/api/jobs/retry-pending-revocations',
   '/api/jobs/held-scrub-sweep',
+  '/api/jobs/room-sweep',
   '/api/jobs/deep-analysis',
   '/api/jobs/pondering',
   '/api/jobs/person-model',

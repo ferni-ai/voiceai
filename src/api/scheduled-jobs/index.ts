@@ -75,6 +75,7 @@ import {
   handleRetryPendingRevocations,
   handleHeldScrubSweep,
 } from './background-delivery-jobs.js';
+import { handleRoomSweep } from './room-sweep-job.js';
 
 // Memory maintenance handlers
 import {
@@ -280,6 +281,10 @@ async function dispatchJob(
 
     case '/api/jobs/held-scrub-sweep':
       await handleHeldScrubSweep(req, res);
+      return true;
+
+    case '/api/jobs/room-sweep':
+      await handleRoomSweep(res);
       return true;
 
     case '/api/jobs/deep-analysis':

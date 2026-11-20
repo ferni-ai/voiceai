@@ -127,5 +127,16 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       retryCount: 0,
       timeout: '280s',
     },
+    {
+      name: 'room-sweep',
+      description:
+        'Delete rooms with a person but no agent past the grace period (off unless ROOM_SWEEP_NO_AGENT)',
+      schedule: '* * * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/room-sweep`,
+      httpMethod: 'POST',
+      retryCount: 0,
+      timeout: '60s',
+    },
   ];
 }

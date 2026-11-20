@@ -141,3 +141,19 @@ jobs:
         audience: https://app.ferni.ai/api/jobs/held-scrub-sweep
     retryConfig:
       retryCount: 0
+
+  - name: room-sweep
+    description: Delete rooms with a person but no agent past the grace period (off unless ROOM_SWEEP_NO_AGENT)
+    schedule: "* * * * *"
+    timeZone: Etc/UTC
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/room-sweep
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/room-sweep
+    retryConfig:
+      retryCount: 0
