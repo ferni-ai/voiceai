@@ -6,7 +6,9 @@
  * productivityData.tasks on the user doc, where getTasks' store saves them (its
  * loader caches a person for the life of the process, too stale for this
  * long-running server). Commitments: open ones, less forgotten topics, none
- * when that list can't be read.
+ * when that list can't be read. With FORGET_EVERY_READER on, reminders and
+ * tasks about a forgotten topic are left out too (forgottenCheck, read once
+ * per brief; no topic source at all leaves them all out).
  *
  * @module services/outreach/morning-brief/default-deps
  */
@@ -23,6 +25,7 @@ import {
 } from '../../superhuman/commitment-follow-up.js';
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
+import { forgottenCheck, remembered } from '../../../memory/index.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
@@ -176,7 +179,7 @@ export async function readDay(
   env: Record<string, string | undefined> = process.env
 ): Promise<DayItems> {
   const withCommitments = flagOn('MORNING_BRIEF_COMMITMENTS', env);
-  const [events, reminders, commitments] = await Promise.all([
+  const [events, reminders, commitments, forgotten] = await Promise.all([
     orNone('calendar', userId, () => todaysEvents(userId, zone, now)),
     orNone('reminders', userId, async () =>
       ((await pendingReminderItems(userId)) ?? []).filter(
@@ -187,13 +190,15 @@ export async function readDay(
     withCommitments
       ? orNone('commitments', userId, async () => (await openCommitments(userId)) ?? [])
       : [],
+    forgottenCheck(userId, 'morning-brief', env), // FORGET_EVERY_READER
   ]);
   // OWNER_OUTREACH_STORED_TEXT_SCREEN: what calls stored goes in only if it passes the screen
   const screened = (items: BriefItem[]): BriefItem[] =>
     items.filter((t) => storedTextForOwner([t.text], { site: 'morning-brief', userId }, env));
+  const kept = (items: BriefItem[]): BriefItem[] => remembered(items, forgotten, (i) => i.text);
   const lists = {
-    reminders: screened(reminders),
-    tasks: screened(openTaskItems(user).slice(0, TASKS)),
+    reminders: screened(kept(reminders)),
+    tasks: screened(kept(openTaskItems(user)).slice(0, TASKS)),
     commitments: screened(commitments),
   };
   // A title shown by name is screened too: a call can put an event on Ferni's own calendar
