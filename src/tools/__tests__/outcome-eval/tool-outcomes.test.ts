@@ -30,6 +30,14 @@ vi.mock('../../../services/superhuman/firestore-utils.js', async (importOriginal
   getFirestoreDb: () => db.fake,
 }));
 vi.mock('../../../utils/shared-firestore.js', () => ({ sharedFirestore: () => db.fake }));
+// Life-automation stores (#4272) read Firestore through utils/firestore-utils.
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => db.fake,
+}));
+// The relationship store (#4282) opens Firestore through the admin app.
+vi.mock('firebase-admin/app', () => ({ getApps: () => [{}] }));
+vi.mock('../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => db.fake }));
 
 const fake = new FakeFirestore();
 db.fake = fake;
@@ -37,6 +45,7 @@ db.fake = fake;
 const FLAGS: Record<string, unknown> = await import('../../../config/flags/index.generated.js');
 const { reminderTools } = await import('../../domains/productivity/reminders.js');
 const { smartCalendarTools } = await import('../../domains/calendar/calendar-connection-gate.js');
+const store = await import('./store-cases.js');
 
 const K = 4;
 const FAILED = /\b(?:couldn't|could not|can't|cannot|didn't|unable|wasn't able)\b/i;
@@ -82,7 +91,13 @@ const idle = {
   create: () => ({ execute: async () => "I couldn't save that." }),
 };
 
-const TOOLS = [...reminderTools, ...smartCalendarTools, canary as never, idle as never];
+const TOOLS = [
+  ...reminderTools,
+  ...smartCalendarTools,
+  ...store.STORE_TOOLS,
+  canary as never,
+  idle as never,
+];
 
 async function call(tool: string, uid: string, args: Record<string, unknown>): Promise<string> {
   const def = TOOLS.find((d) => d.id === tool);
@@ -127,6 +142,8 @@ async function seedEventToday(uid: string): Promise<void> {
 
 const setFerns = (uid: string) =>
   call('setReminder', uid, { message: 'water the ferns', when: 'in 2 hours' }).then(() => {});
+
+const STORE_CASES: Case[] = store.storeCases(fake);
 
 const CASES: Case[] = [
   {
@@ -261,6 +278,7 @@ const CASES: Case[] = [
     outcome: () => false,
     expected: 'untested',
   },
+  ...STORE_CASES,
 ];
 
 /** Dishonest on main today, each with the fix that closes it. Asserted exactly. */
@@ -271,6 +289,7 @@ const GAPS = new Set([
   'createCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
   'deleteCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
   'updateCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
+  ...STORE_CASES.filter((c) => c.fault === 'write').map((c) => c.id), // fixes: store-cases.ts
 ]);
 
 let runs = 0;
