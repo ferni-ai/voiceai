@@ -1,0 +1,30 @@
+/*
+ * Calm idle screen (app/calm-idle-screen.ts sets the classes; off unless the
+ * calm-idle flag is on). While no call is running the idle screen is Ferni,
+ * the name, role and AI label, and the talk button. Everything hidden here
+ * returns as soon as a call starts.
+ */
+
+/* Out of a call the avatar badge draws a split heart ("disconnected", and on
+   first load it carries no state class at all). Hide it until there is
+   something real to show: a check-in, a milestone, voice verification. */
+.calm-idle--resting
+  .unified-indicator:not(
+    .unified-indicator--checkin,
+    .unified-indicator--milestone,
+    .unified-indicator--voice_verify
+  ) {
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+
+/* A persona picker with one choice is a second copy of the avatar. */
+.calm-idle--resting #teamRoster:not(:has(> .team-member + .team-member)) {
+  display: none;
+}
+
+/* No unread-style count on the idle screen; rituals are one tap away. */
+.calm-idle--resting #engagementBadge {
+  display: none;
+}
