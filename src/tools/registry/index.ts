@@ -24,8 +24,9 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { wrapCreateWithUserIdGuard } from './user-id-guard.js';
-import { gateOutboundTool } from './outbound-gate.js';
+import { wrapCreateWithUserIdGuard } from './user-id-guard.js'; // session userId wins
+import { gateOutboundTool } from './outbound-gate.js'; // calls/texts wait for a yes
+import { withToolResultErrors } from './result-errors.js'; // { success: false } is an error
 import { toolAvailable } from './tool-availability.js';
 import {
   ALL_TOOL_DOMAINS,
@@ -94,8 +95,7 @@ export class ToolRegistry {
     if (!toolAvailable(definition)) return;
     if (this.tools.has(definition.id))
       getLogger().debug({ toolId: definition.id }, 'Tool re-registered (parallel init)');
-    // Session userId wins (./user-id-guard.ts); calls/texts wait for a yes (./outbound-gate.ts)
-    const create = wrapCreateWithUserIdGuard(gateOutboundTool(definition));
+    const create = wrapCreateWithUserIdGuard(withToolResultErrors(gateOutboundTool(definition)));
     this.tools.set(definition.id, { ...definition, create });
 
     // Index by primary domain
@@ -664,9 +664,8 @@ export function buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult
   return toolRegistry.buildToolSet(spec, ctx);
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
+// EXPORTS (the SDK port for result-errors.ts is installed by each live call)
+export { setToolErrorPort, type ToolErrorPort } from './result-errors.js';
 
 export {
   ALL_TOOL_DOMAINS,
