@@ -6,6 +6,7 @@
  *
  * @module services/observability/finops-settings/use-cases/finops-settings-service
  */
+import { TimeoutError, withTimeout } from '../../../../utils/async.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
   applyFinOpsPatch,
@@ -28,10 +29,12 @@ export class FinOpsSettingsUnavailableError extends Error {
   }
 }
 
-const unavailable = (error: unknown): FinOpsSettingsUnavailableError =>
-  error instanceof FinOpsSettingsUnavailableError
-    ? error
-    : new FinOpsSettingsUnavailableError(error instanceof Error ? error.message : String(error));
+function unavailable(error: unknown): FinOpsSettingsUnavailableError {
+  if (error instanceof TimeoutError) {
+    return new FinOpsSettingsUnavailableError(`Firestore did not answer within ${error.timeoutMs / 1000}s`); // prettier-ignore
+  }
+  return new FinOpsSettingsUnavailableError(error instanceof Error ? error.message : String(error));
+}
 
 export interface FinOpsSettingsService {
   /** The settings last read or saved (the defaults before the first read). */
@@ -42,25 +45,12 @@ export interface FinOpsSettingsService {
   save: (patch: FinOpsSettingsPatch, updatedBy: string) => Promise<SavedFinOpsSettings>;
 }
 
-/** How long one store call may take before it counts as unavailable, by default. */
-const FINOPS_SETTINGS_DEADLINE_MS = 5_000;
-
 /**
- * `call`, or FinOpsSettingsUnavailableError after `ms`. The Admin SDK retries UNAVAILABLE
- * for about 40 s and the server drops the socket at 30 s, so without a deadline a down
- * store reached the browser as a dropped connection instead of a 503.
+ * How long one store call may take before it counts as unavailable, by default. The Admin
+ * SDK retries UNAVAILABLE for about 40 s and the server drops the socket at 30 s, so with
+ * no deadline a down store reached the browser as a dropped connection instead of a 503.
  */
-async function withDeadline<T>(call: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new FinOpsSettingsUnavailableError(`Firestore did not answer within ${ms / 1000}s`)), ms); // prettier-ignore
-  });
-  try {
-    return await Promise.race([call, late]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
+const FINOPS_SETTINGS_DEADLINE_MS = 5_000;
 
 export function createFinOpsSettingsService(
   store: FinOpsSettingsStore,
@@ -75,7 +65,9 @@ export function createFinOpsSettingsService(
 
   async function readThrough(): Promise<SavedFinOpsSettings> {
     try {
-      cached = (await withDeadline(store.read(), deadlineMs)) ?? DEFAULT_FINOPS_SETTINGS;
+      cached =
+        (await withTimeout(store.read(), deadlineMs, 'FinOps settings read')) ??
+        DEFAULT_FINOPS_SETTINGS;
       readAt = now();
       return cached;
     } catch (error) {
@@ -94,7 +86,7 @@ export function createFinOpsSettingsService(
     async save(patch, updatedBy) {
       const meta = { updatedAt: new Date(now()).toISOString(), updatedBy };
       try {
-        await withDeadline(store.merge(patch, meta), deadlineMs);
+        await withTimeout(store.merge(patch, meta), deadlineMs, 'FinOps settings save');
       } catch (error) {
         readAt = null;
         log.error({ error: String(error), updatedBy }, 'FinOps settings save failed');

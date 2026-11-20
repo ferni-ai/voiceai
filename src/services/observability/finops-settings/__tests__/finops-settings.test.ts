@@ -78,14 +78,13 @@ describe('createFinOpsSettingsService', () => {
     await expect(service.save({ monthlyRevenue: 1 }, 'uid')).rejects.toMatchObject({ reason: 'offline' }); // prettier-ignore
   });
 
-  describe('a store that never answers', () => {
+  describe('a store that answers only after 40 s (the Admin SDK retrying UNAVAILABLE)', () => {
     afterEach(() => {
       vi.useRealTimers();
     });
-    const hung: FinOpsSettingsStore = {
-      read: async () => new Promise(() => undefined),
-      merge: async () => new Promise(() => undefined),
-    };
+    const late = (): Promise<never> =>
+      new Promise((_, reject) => setTimeout(() => reject(new Error('14 UNAVAILABLE')), 40_000));
+    const slow: FinOpsSettingsStore = { read: late, merge: late };
 
     it.each([
       ['load', (s: ReturnType<typeof createFinOpsSettingsService>) => s.load()],
@@ -93,21 +92,30 @@ describe('createFinOpsSettingsService', () => {
         'save',
         (s: ReturnType<typeof createFinOpsSettingsService>) => s.save({ cashReserve: 1 }, 'uid'),
       ],
-    ])('%s gives up after 5 s with FinOpsSettingsUnavailableError', async (_name, run) => {
-      vi.useFakeTimers();
-      const outcome = run(createFinOpsSettingsService(hung)).then(
-        () => 'resolved',
-        (error: unknown) => error
-      );
-      await vi.advanceTimersByTimeAsync(4_999);
-      let settled = false;
-      void outcome.then(() => (settled = true));
-      await Promise.resolve();
-      expect(settled).toBe(false);
-      await vi.advanceTimersByTimeAsync(1);
-      expect(await outcome).toEqual(
-        new FinOpsSettingsUnavailableError('Firestore did not answer within 5s')
-      );
+    ])('%s gives up after 5 s, and the late rejection is not unhandled', async (_name, run) => {
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+      try {
+        vi.useFakeTimers();
+        let settled = false;
+        const outcome = run(createFinOpsSettingsService(slow)).then(
+          () => 'resolved',
+          (error: unknown) => error
+        );
+        void outcome.then(() => (settled = true));
+        await vi.advanceTimersByTimeAsync(4_999);
+        expect(settled).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await outcome).toEqual(
+          new FinOpsSettingsUnavailableError('Firestore did not answer within 5s')
+        );
+        await vi.advanceTimersByTimeAsync(40_000); // Firestore finally gives up
+        vi.useRealTimers();
+        await new Promise((resolve) => setImmediate(resolve));
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.off('unhandledRejection', unhandled);
+      }
     });
   });
 
