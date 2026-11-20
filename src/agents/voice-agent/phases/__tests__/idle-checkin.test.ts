@@ -117,6 +117,35 @@ describe('idle check-in timing (session-end-watch)', () => {
     expect(outcomes).toEqual(['resumed']);
   });
 
+  it.each(['dataReceived', 'participantConnected', 'trackSubscribed'])(
+    'a %s after the check-in is an answer too: resumed, and no end at the window',
+    async (event) => {
+      const room = new FakeRoom();
+      const { checkIn, speak, outcomes } = stubCheckIn(room);
+      const ended = waitForSessionEnd(room, { idleCheckIn: checkIn });
+
+      await vi.advanceTimersByTimeAsync(CHECK_IN_AT);
+      expect(speak).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(20 * SECOND);
+      room.emit(event); // no speech from the caller, only this sign of life
+      await vi.advanceTimersByTimeAsync(SECOND);
+      expect(outcomes).toEqual(['resumed']);
+
+      // Past where the check-in's window would have ended the call: still open.
+      const sinceAnswer = SECOND + IDLE_CHECKIN_WINDOW_MS + 30 * SECOND;
+      await vi.advanceTimersByTimeAsync(IDLE_CHECKIN_WINDOW_MS + 30 * SECOND);
+      expect(await state(ended)).toBe('still-open');
+
+      // From the event on, main's idle clock: it ends IDLE_MS after it, not before.
+      await vi.advanceTimersByTimeAsync(IDLE_MS - sinceAnswer - SECOND);
+      expect(await state(ended)).toBe('still-open');
+      await vi.advanceTimersByTimeAsync(2 * SECOND);
+      expect(await ended).toBe('idle');
+      expect(speak).toHaveBeenCalledTimes(1);
+      expect(outcomes).toEqual(['resumed']);
+    }
+  );
+
   it("nobody answers: it ends 'idle' when the second window passes; the agent's own voice is not an answer", async () => {
     const room = new FakeRoom();
     const { checkIn, speak, outcomes } = stubCheckIn(room);
