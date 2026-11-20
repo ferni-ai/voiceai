@@ -25,6 +25,15 @@ export type VolumeTrend = 'getting_quieter' | 'getting_louder' | 'stable' | 'flu
 
 export type VolumeLevel = 'whisper' | 'soft' | 'normal' | 'loud' | 'very_loud';
 
+/** How loud a voice is, from its average level in dBFS (typically -60 to 0). */
+export function volumeLevelOfDb(db: number): VolumeLevel {
+  if (db < -45) return 'whisper';
+  if (db < -35) return 'soft';
+  if (db < -20) return 'normal';
+  if (db < -10) return 'loud';
+  return 'very_loud';
+}
+
 export interface VolumeObservation {
   timestamp: number;
   /** Average volume level (dB, typically -60 to 0) */
@@ -284,7 +293,7 @@ export class VolumeDynamicsTracker {
     const currentRelativeVolume = Math.pow(10, (current.averageDb - effectiveBaseline) / 20);
 
     // Current level category
-    const currentLevel = this.categorizeVolume(current.averageDb);
+    const currentLevel = volumeLevelOfDb(current.averageDb);
 
     // Within utterance trend
     const withinUtteranceTrend = this.determineWithinUtteranceTrend(current);
@@ -346,14 +355,6 @@ export class VolumeDynamicsTracker {
     }
 
     return state;
-  }
-
-  private categorizeVolume(db: number): VolumeLevel {
-    if (db < -45) return 'whisper';
-    if (db < -35) return 'soft';
-    if (db < -20) return 'normal';
-    if (db < -10) return 'loud';
-    return 'very_loud';
   }
 
   private determineWithinUtteranceTrend(obs: VolumeObservation): VolumeTrend {
