@@ -16,7 +16,7 @@ describe('callResultPromise', () => {
   ])(
     'flag off: no promise (callOnBehalf keeps its own line), whatever else is on (%o)',
     (env, want) => {
-      expect(callResultPromise(env)).toBe(want);
+      expect(callResultPromise(true, env)).toBe(want);
     }
   );
 
@@ -27,6 +27,13 @@ describe('callResultPromise', () => {
     [{}, APP],
     [{ CALL_RESULT_LIVE_REPORT: 'off', CALL_RESULT_TEXT: 'off' }, APP],
   ])('flag on: %o promises the matching line', (env, want) => {
-    expect(callResultPromise({ CALL_RESULT_WATCHDOG: 'on', ...env })).toBe(want);
+    expect(callResultPromise(true, { CALL_RESULT_WATCHDOG: 'on', ...env })).toBe(want);
   });
+
+  it.each([{}, { CALL_RESULT_LIVE_REPORT: 'on', CALL_RESULT_TEXT: 'on' }])(
+    'flag on, the watch not written: no promise at all (%o)',
+    (env) => {
+      expect(callResultPromise(false, { CALL_RESULT_WATCHDOG: 'on', ...env })).toBe('');
+    }
+  );
 });

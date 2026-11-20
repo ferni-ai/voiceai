@@ -345,11 +345,11 @@ export async function placeOrHold(
   const held = deferredCallReply(callId, name, purposeForRequester(request), now);
   // CALL_RESULT_LIVE_REPORT: the owner's call hears the result, whichever worker captures it.
   if (!held) watchCallResult(request, callId);
-  if (!held) void armCallResultWatchdog(request, callId); // CALL_RESULT_WATCHDOG: never silent
+  const armed = !held && (await armCallResultWatchdog(request, callId)); // CALL_RESULT_WATCHDOG
   const also = otherCallsLine(others, now, callId);
-  // CALL_RESULT_WATCHDOG: how the result will reach them, with the call it rang (off: no key).
-  const promise = held ? undefined : callResultPromise();
-  return { callId, held: held && held + also, others: also, ...(promise && { promise }) };
+  // CALL_RESULT_WATCHDOG: how the result will reach them, only once it is watched (off: no key).
+  const promise = held ? undefined : callResultPromise(armed);
+  return { callId, held: held && held + also, others: also, ...(promise !== undefined && { promise }) }; // prettier-ignore
 }
 
 /**

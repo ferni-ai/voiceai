@@ -51,11 +51,29 @@ export interface ClaimOptions {
   limit?: number;
   /** Report what would happen without claiming anything. */
   dryRun?: boolean;
+  /**
+   * Claim by a lease instead of a status: the item stays 'pending' and its due time moves this
+   * far ahead (late items too, still reported as late). A run that dies mid-item leaves it due
+   * again when the lease ends, never stuck; a run that overlaps finds it not due. claimStatus and
+   * lateStatus are not written.
+   */
+  leaseMs?: number;
 }
 
 function dueTime(value: unknown): number {
   const raw = (value as { toDate?: () => Date })?.toDate?.() ?? value;
   return new Date(raw as string | number | Date).getTime();
+}
+
+/** The claim's write: a lease (a later due time), the late status, or the claim status. */
+function claimWrite(opts: ClaimOptions, now: Date, late: boolean): Record<string, unknown> {
+  if (opts.leaseMs !== undefined) {
+    const until = new Date(now.getTime() + opts.leaseMs);
+    return { [opts.dueField]: opts.dueType === 'iso' ? until.toISOString() : until, claimedAt: now.toISOString() }; // prettier-ignore
+  }
+  return late
+    ? { status: opts.lateStatus, missedAt: now.toISOString() }
+    : { status: opts.claimStatus, claimedAt: now.toISOString() };
 }
 
 export async function claimDueItems(db: Firestore, opts: ClaimOptions): Promise<ClaimResult> {
@@ -95,14 +113,11 @@ export async function claimDueItems(db: Firestore, opts: ClaimOptions): Promise<
     }
 
     const outcome = await db.runTransaction(async (tx) => {
-      const fresh = await tx.get(doc.ref);
-      if (fresh.data()?.status !== 'pending') return 'skipped';
-      tx.update(
-        doc.ref,
-        late
-          ? { status: opts.lateStatus, missedAt: now.toISOString() }
-          : { status: opts.claimStatus, claimedAt: now.toISOString() }
-      );
+      const fresh = (await tx.get(doc.ref)).data();
+      if (fresh?.status !== 'pending') return 'skipped';
+      // Leased by another run since the query read it: no longer due.
+      if (opts.leaseMs !== undefined && dueTime(fresh[opts.dueField]) > now.getTime()) return 'skipped'; // prettier-ignore
+      tx.update(doc.ref, claimWrite(opts, now, late));
       return late ? 'late' : 'claimed';
     });
     if (outcome === 'skipped') result.skipped++;

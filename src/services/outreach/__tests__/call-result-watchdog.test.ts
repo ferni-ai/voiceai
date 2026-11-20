@@ -86,13 +86,19 @@ vi.mock('../../data-layer/hooks/misc-hooks.js', () => ({
   onCallResultChange: indexed,
   onFollowUpActionChange: async () => undefined,
 }));
-/** The call's LiveKit room: open, gone, or unreadable (a throw). */
-const room = vi.hoisted(() => ({ state: 'gone' as 'open' | 'gone' | 'throws', asked: [] as string[] })); // prettier-ignore
+/** The call's LiveKit room: open, gone, unreadable (a throw), or a read that hangs until released. */
+const room = vi.hoisted(() => ({ state: 'gone' as 'open' | 'gone' | 'throws' | 'hangs', asked: [] as string[], release: () => {} })); // prettier-ignore
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     async listRooms(names: string[]): Promise<Array<{ name: string }>> {
       room.asked.push(...names);
       if (room.state === 'throws') throw new Error('UNAVAILABLE');
+      if (room.state === 'hangs') {
+        await new Promise<void>((resolve) => {
+          room.release = resolve;
+        });
+        return [];
+      }
       return room.state === 'open' ? names.map((name) => ({ name })) : [];
     }
   },
@@ -274,16 +280,58 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(told(NO_REPORT_LINE)).toBe(1);
   });
 
-  it('the watch carries an expireAt for the TTL and its arm time; warns carry a hash, never the id', async () => {
-    await armCallResultWatchdog(request(), callId, T0);
+  it('the watch carries an expireAt for the TTL and its arm time; both warns carry a hash, never the id', async () => {
+    expect(await armCallResultWatchdog(request(), callId, T0)).toBe(true);
     expect(watchDoc()).toMatchObject({ armedAt: T0.toISOString(), expireAt: at(2 * 86_400_000) });
     const failing = { ...store.db, collection: () => { throw new Error('UNAVAILABLE'); } }; // prettier-ignore
     const spy = vi.spyOn(store.db, 'collection').mockImplementation(failing.collection);
-    await armCallResultWatchdog(request(), `${callId}_b`, T0);
+    expect(await armCallResultWatchdog(request(), `${callId}_b`, T0)).toBe(false); // not armed
     spy.mockRestore();
-    expect(warned).toHaveLength(1);
+    // A watch its sweep can't settle: its request can't be read.
+    const unreadable = new Proxy({}, { ownKeys: () => { throw new Error('unreadable'); } }); // prettier-ignore
+    store.docs.set(`bogle_users/${OWNER}/call_result_watchdogs/${callId}`, { ...watchDoc(), request: unreadable }); // prettier-ignore
+    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) })).toMatchObject({ failed: 1 }); // prettier-ignore
+    const hash = expect.stringMatching(/^[0-9a-f]{12}$/);
+    expect(warned).toEqual([
+      { callHash: hash, error: 'Error: UNAVAILABLE' }, // not armed
+      { callHash: hash, error: 'Error: unreadable' }, // not settled
+    ]);
+    expect(warned[0]?.callHash).not.toBe(warned[1]?.callHash); // each its own call's hash
     expect(JSON.stringify(warned)).not.toContain(callId);
-    expect(warned[0]).toMatchObject({ callHash: expect.stringMatching(/^[0-9a-f]{12}$/) });
+  });
+
+  it('a watch that cannot be settled keeps its due time, is tried again, and goes once a day late', async () => {
+    await armCallResultWatchdog(request(), callId, T0);
+    const unreadable = new Proxy({}, { ownKeys: () => { throw new Error('unreadable'); } }); // prettier-ignore
+    store.docs.set(`bogle_users/${OWNER}/call_result_watchdogs/${callId}`, { ...watchDoc(), request: unreadable }); // prettier-ignore
+    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) })).toMatchObject({ failed: 1 }); // prettier-ignore
+    expect(watchDoc()).toMatchObject({ status: 'pending', dueAt: at(NO_REPORT_AFTER_MS).toISOString() }); // prettier-ignore
+    expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 61_000) })).toMatchObject({ due: 1, failed: 1 }); // prettier-ignore
+    expect(watchDoc()).toBeDefined();
+    await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 24 * 3600_000 + 1000) });
+    expect(watchDoc()).toBeUndefined(); // a day late and still failing: dropped
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('a sweep that dies after its claim: the watch is due again when the lease ends, told once', async () => {
+    await armCallResultWatchdog(request(), callId, T0);
+    room.state = 'hangs'; // the first sweep claims, then never comes back
+    const first = at(NO_REPORT_AFTER_MS + 1000);
+    const dead = sweepCallResultWatchdogs({ now: first });
+    await vi.waitFor(() => {
+      expect(room.asked).toHaveLength(1);
+    });
+    expect(watchDoc()).toMatchObject({ status: 'pending', dueAt: at(NO_REPORT_AFTER_MS + 1000 + 10 * 60_000).toISOString() }); // prettier-ignore
+    room.state = 'gone';
+    expect((await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 5 * 60_000) })).due).toBe(0); // prettier-ignore
+    const retaken = await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 11 * 60_000) });
+    expect(retaken).toMatchObject({ due: 1, settled: 1 });
+    expect(told(NO_REPORT_LINE)).toBe(1);
+    expect(watchDoc()).toBeUndefined();
+    room.release(); // the first sweep comes back late: it finds the result and tells nothing
+    await dead;
+    expect(told(NO_REPORT_LINE)).toBe(1);
+    expect(stored()).toMatchObject({ status: 'unconfirmed' });
   });
 });
 

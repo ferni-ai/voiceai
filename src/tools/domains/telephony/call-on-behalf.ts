@@ -466,8 +466,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
-          `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
-          `${promise ?? "I'll let you know how it goes once the call is complete."}${others}`
+          `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}.` +
+          `${promise === '' ? '' : ` ${promise ?? "I'll let you know how it goes once the call is complete."}`}${others}` // prettier-ignore
         );
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why

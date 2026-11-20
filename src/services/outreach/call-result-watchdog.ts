@@ -16,8 +16,9 @@
  * call with no stored result, it captures one with status 'unconfirmed' ("I
  * couldn't confirm how the call to X went"), told through the same tellOwnerOnce
  * path every result takes; every reader says it couldn't confirm, never that it
- * failed. Durable: a restart of the agent or the server loses no watch, and a
- * watch left claimed by a process that died is deleted by its expireAt (TTL).
+ * failed. Durable: a restart of the agent or the server loses no watch. A sweep
+ * claims a watch by a lease (LEASE_MS): one whose process died is due again when
+ * the lease ends, and every watch is deleted by its expireAt (TTL) in the end.
  *
  * A no-report result is stored only while the call has none, in one transaction
  * (writeCallResult), so it never replaces a real one. A real result that comes
@@ -56,6 +57,8 @@ const MAX_WATCH_MS = 4 * 60 * 60 * 1000;
 const LATE_AFTER_MS = 24 * 60 * 60 * 1000;
 /** A watch is deleted by Firestore's TTL this long after it is armed, settled or not. */
 const WATCH_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+/** A claimed watch is due again this long after its claim, unless its sweep settled it. */
+const LEASE_MS = 10 * 60 * 1000;
 
 type WatchOutcome = 'reported' | 'timed_out' | 'late_real_result' | 'still_on';
 
@@ -96,13 +99,13 @@ async function callRoom(callId: string): Promise<'open' | 'gone' | 'unknown'> {
   }
 }
 
-/** Watch a call just placed for the owner. Never throws; a no-op with the flag off. */
+/** Watch a call just placed for the owner: true once the watch is written. Never throws. */
 export async function armCallResultWatchdog(
   request: OnBehalfCallRequest,
   callId: string,
   now = new Date()
-): Promise<void> {
-  if (!callResultWatchdogOn() || !isMemberIdentity(request.userId?.trim())) return;
+): Promise<boolean> {
+  if (!callResultWatchdogOn() || !isMemberIdentity(request.userId?.trim())) return false;
   try {
     const db = getFirestoreDb();
     if (!db) throw new Error('Firestore not available');
@@ -110,8 +113,10 @@ export async function armCallResultWatchdog(
     const expireAt = new Date(now.getTime() + WATCH_TTL_MS); // a Date: TTL reads a Timestamp
     const watch = { ...cleanForFirestore({ status: 'pending', dueAt, armedAt: now.toISOString(), request }), expireAt }; // prettier-ignore
     await db.collection('bogle_users').doc(request.userId).collection(COLLECTION).doc(callId).set(watch); // prettier-ignore
+    return true;
   } catch (error) {
     log.warn({ callHash: callHashOf(callId), error: String(error) }, 'CALL_RESULT_WATCHDOG not armed'); // prettier-ignore
+    return false;
   }
 }
 
@@ -192,6 +197,7 @@ export async function sweepCallResultWatchdogs(
     claimStatus: 'settling',
     lateStatus: 'late',
     lateAfterMs: LATE_AFTER_MS,
+    leaseMs: LEASE_MS,
     now,
     limit: opts.limit ?? 20,
   });
@@ -205,9 +211,10 @@ export async function sweepCallResultWatchdogs(
     run[got]++;
     // The watch holds the request (who, what for): it goes once settled. A failure is
     // tried again next minute, until the watch is a day late; a call still going, later.
-    const again = got === 'again' && { status: 'pending', dueAt: new Date(now.getTime() + RECHECK_MS).toISOString() }; // prettier-ignore
+    // A failure keeps its own due time (so it turns late); a write lost here leaves the lease.
+    const next = got === 'again' ? new Date(now.getTime() + RECHECK_MS).toISOString() : item.data.dueAt; // prettier-ignore
     const done = got === 'settled' || (got === 'failed' && late.has(item));
-    await (done ? item.ref.delete() : item.ref.update(again || { status: 'pending' })).catch(() => undefined); // prettier-ignore
+    await (done ? item.ref.delete() : item.ref.update({ dueAt: next })).catch(() => undefined);
   }
   if (run.due > 0) log.info({ ...run }, 'CALL_RESULT_WATCHDOG run');
   return run;

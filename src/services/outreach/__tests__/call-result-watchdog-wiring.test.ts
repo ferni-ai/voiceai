@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firestore.js';
 
 let rows: Row[] = [];
+/** Every write of a watch fails. */
+let failArm = false;
 /** Transactions wait for the one before them, as Firestore's contention makes them. */
 let lastTx: Promise<unknown> = Promise.resolve();
 const db = () => {
@@ -48,6 +50,14 @@ const db = () => {
           ...user,
           collection: (c: string) => ({
             ...user.collection(c),
+            doc: (id: string) => {
+              const doc = user.collection(c).doc(id);
+              if (c === 'call_result_watchdogs' && failArm)
+                doc.set = async () => {
+                  throw new Error('UNAVAILABLE');
+                };
+              return doc;
+            },
             where: (f: string, op: string, v: unknown) => ({
               get: async () => {
                 const snap = await base.collectionGroup(c).where(f, op, v).get();
@@ -101,6 +111,7 @@ const flushed = async () =>
 
 beforeEach(() => {
   rows = [];
+  failArm = false;
   lastTx = Promise.resolve();
   initiateCall.mockClear();
   captured.mockClear();
@@ -119,12 +130,28 @@ afterEach(() => {
 describe('CALL_RESULT_WATCHDOG wiring', () => {
   it('placeOrHold arms a watch for the call it places, and returns its promise', async () => {
     const out = await placeOrHold(request(), async () => 'onbehalf_now_1', NOW);
-    await flushed(); // the arm is never awaited by the turn
     expect(out.callId).toBe('onbehalf_now_1');
     expect(out.promise).toBe("You'll see how it went in the app."); // on: with the call it rang
     expect(watches()).toHaveLength(1);
     expect(watches()[0]).toMatchObject({ id: 'onbehalf_now_1', userId: OWNER });
     expect(watches()[0]?.data).toMatchObject({ status: 'pending', dueAt: new Date(NOW.getTime() + 25 * 60_000).toISOString() }); // prettier-ignore
+  });
+
+  it('arming throws: the call still places, and it carries no promise', async () => {
+    failArm = true;
+    const place = vi.fn(async () => 'onbehalf_noarm_1');
+    const out = await placeOrHold(request(), place, NOW);
+    expect(place).toHaveBeenCalledTimes(1);
+    expect(out).toStrictEqual({ callId: 'onbehalf_noarm_1', held: undefined, others: '', promise: '' }); // prettier-ignore
+    expect(watches()).toHaveLength(0);
+  });
+
+  it('a call held for its calling hours: no watch and no promise when held; the job arms it when it rings', async () => {
+    const out = await placeOrHold(request(), async () => 'deferred_1763564400000_abcde', NOW);
+    expect(out.held).toMatch(/^Nothing was dialed yet/);
+    expect(out.held).not.toMatch(/let you know|in the app/);
+    expect(Object.keys(out)).toEqual(['callId', 'held', 'others']);
+    expect(watches()).toHaveLength(0);
   });
 
   it('the deferred-call job arms a watch for a held call it dials', async () => {
