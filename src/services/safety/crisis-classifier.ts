@@ -41,6 +41,7 @@ import {
   SharedRuns,
 } from './crisis-read-room.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
+import { classifierLogFields } from './crisis-classifier-log-fields.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
@@ -472,6 +473,7 @@ export function startCrisisClassifier(
         agree: classifier === options.pattern,
         latencyMs: Date.now() - startedAt,
         noVerdict: v === null,
+        ...classifierLogFields(normalized, secondRead?.path), // #4211: what the read was given
         ...(plain ? { everydayBackstop: true } : {}),
         ...(on ? { shared: false } : {}),
       },
