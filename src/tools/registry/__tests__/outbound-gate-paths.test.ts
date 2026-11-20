@@ -66,11 +66,13 @@ import { definitions as marketingDefs } from '../../domains/marketing/index.js';
 import { definitions as proactiveDefs } from '../../domains/proactive/index.js';
 import { gateLegacyTool, outboundDispatchRefusal } from '../outbound-gate.js';
 import type { Tool, ToolContext } from '../types.js';
+import { noteLiveSession } from '../live-session.js';
 
 const ctx: ToolContext = { userId: 'user-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
 
 function liveCall(userId = 'user-1') {
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session);
   return {
     run: async (tool: Tool, args: Record<string, unknown>, callId: string) => {

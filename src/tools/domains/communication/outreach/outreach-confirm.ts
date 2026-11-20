@@ -26,12 +26,14 @@
 
 import { isDeepStrictEqual } from 'node:util';
 import { flagOn } from '../../../../config/env-flag.js';
+import { VAD_START_LAG_MS } from '../../../../config/vad-timing.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
-import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
-import { consentClassifierOn } from './consent-judge.js';
+import { dropConfirmThread, openConfirmThread } from './confirm-thread.js';
+import { hold, HELD_REPLY, outboundHold, sendOnYes } from './consent-send.js';
+import { consentClassifierOn, consentNaturalOn } from './consent-judge.js';
 import {
   cancel,
   forgetAsks,
@@ -43,8 +45,10 @@ import {
 import { isClearNo, words } from './consent-words.js';
 import {
   classifyFerniTurn,
+  crisisSaid,
   foreclosesReopen,
   judgeWindow,
+  logDecision,
   windowState,
   type ConfirmState,
 } from './consent-window.js';
@@ -90,12 +94,21 @@ export function testAccountReply(toolId: string): string {
 
 /** Marks a definition already wrapped, so wrapping it again (e.g. at registration) is a no-op. */
 const GATED = Symbol.for('ferni.outbound-confirm');
+function markGated(def: ToolDefinition): void {
+  (def as unknown as Record<symbol, unknown>)[GATED] = true;
+}
+/** CALL_CONSENT_NATURAL: the only tools whose run between a read-back and its yes leaves the
+ * window open; any other run, or one with no name, voids it (consent-window.ts). */
+const READ_ONLY_TOOLS = new Set(['callStatus', 'getContactInfo']);
 
 type SessionEvent =
   | { kind: 'caller'; text: string; agentSpeaking: boolean }
-  | { kind: 'tool'; callIds: string[] }
+  // readOnly: the calls run by an allow-listed read-only tool (READ_ONLY_TOOLS)
+  | { kind: 'tool'; callIds: string[]; readOnly?: string[] }
   | { kind: 'agent'; text: string }; // what Ferni said, only to find his read-backs
-export type ConfirmEvent = SessionEvent & { seq: number };
+/** ferniStarts: how many times Ferni had started speaking (agent_state_changed) when the owner
+ * began this final (user_state_changed), or when a tool or Ferni event was recorded. */
+export type ConfirmEvent = SessionEvent & { seq: number; ferniStarts?: number };
 
 export interface PendingAction {
   toolId: string;
@@ -112,11 +125,16 @@ export interface PendingAction {
   final?: boolean;
   expiresAt: number;
   /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
-  server?: Kin & { readBack: string; send: () => Promise<unknown> };
+  server?: Kin & { readBack: string; send: (args: Record<string, unknown>) => Promise<unknown> };
   /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
   owner?: string[];
   /** Ferni already asked once whether it is still wanted (consent-loop.ts). */
   asked?: boolean;
+  /** CALL_CONSENT_NATURAL: the line Ferni was told to ask last, read as a read-back of it. */
+  askLine?: string;
+  /** CALL_CONSENT_NATURAL: the owner's message for the person, read back to them with the call
+   * before their yes, so only what they confirmed reaches the call (consent-loop.ts). */
+  message?: string;
   /** Stored again after a cancel, from Ferni's fresh read-back: its window starts there. */
   reopened?: boolean;
   /** The arguments the read-back was made from: a call with the same ones is the same request. */
@@ -137,7 +155,20 @@ export interface SessionLog {
   asks?: Map<string, AskRecord>;
   /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
   closed?: { action: PendingAction; seq: number; at: number; final: boolean };
+  /** Ferni's starts on the call, that count when the owner began, his last 20 start times. */
+  ferniStarts?: number;
+  ownerStart?: number;
+  startedAt?: number[];
+  /** CALL_CONSENT_NATURAL: outbound is held for the call; the call's id (consent-send outboundHold). */
+  crisisHeld?: boolean;
+  liveId?: string;
 }
+
+/** When a LiveKit state event happened (its createdAt), or now when it carries none. */
+const createdAt = (event: unknown): number => {
+  const at = (event as { createdAt?: unknown } | undefined)?.createdAt;
+  return typeof at === 'number' ? at : Date.now();
+};
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
 const sessions = new WeakMap<object, SessionLog>();
@@ -169,9 +200,15 @@ export function ownerKnown(session: object | undefined): boolean {
 
 function record(session: object, event: SessionEvent): void {
   const entry = logFor(session);
-  entry.events.push({ ...event, seq: ++entry.seq });
+  const ferniStarts =
+    event.kind === 'caller' ? (entry.ownerStart ?? entry.ferniStarts) : entry.ferniStarts;
+  entry.events.push({ ...event, seq: ++entry.seq, ferniStarts });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
+  if (event.kind === 'caller' && consentNaturalOn() && crisisSaid(entry.events)) {
+    hold(entry);
+    return;
+  }
   // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it; after a cancel
   // too, since a fresh read-back may reopen it.
   const action = pending ?? entry.closed?.action;
@@ -180,8 +217,10 @@ function record(session: object, event: SessionEvent): void {
   if (event.kind !== 'caller' || !pending) return;
   if (foreclosesReopen(event.text, pending)) pending.final = true;
   // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
-  if (confirmationState(pending, entry.events, Date.now()) === 'declined')
+  if (confirmationState(pending, entry.events, Date.now()) === 'declined') {
+    logDecision(pending, entry.events, 'declined');
     cancel(entry, pending, 'declined', entry.seq - 1);
+  }
   // Judged now, in parallel with the model's reply, so the tool call rarely waits on it.
   else void judgeConfirmation(pending, entry.events);
 }
@@ -263,8 +302,27 @@ export function outreachConfirmListeners(
       if (serverConfirmOn()) settleThenSend(serverGate, session, logFor(session));
     },
     onToolsExecuted: (event: unknown) => {
-      const calls = (event as { functionCalls?: Array<{ callId?: string }> }).functionCalls ?? [];
-      record(session, { kind: 'tool', callIds: calls.map((c) => c.callId ?? '') });
+      const run = event as { functionCalls?: Array<{ callId?: string; name?: string }> };
+      const calls = run.functionCalls ?? [];
+      const callIds = calls.map((c) => c.callId ?? '');
+      const readOnly = calls.flatMap((c, i) =>
+        c.name && READ_ONLY_TOOLS.has(c.name) ? [callIds[i]] : []
+      );
+      record(session, { kind: 'tool', callIds, readOnly });
+    },
+    /** When Ferni and the owner start speaking: the read-back only hears words begun after it plays. */
+    onAgentState: (event: unknown) => {
+      if ((event as { newState?: string })?.newState !== 'speaking') return;
+      const entry = logFor(session);
+      entry.ferniStarts = (entry.ferniStarts ?? 0) + 1;
+      entry.startedAt = [...(entry.startedAt ?? []), createdAt(event)].slice(-20);
+    },
+    onUserState: (event: unknown) => {
+      if ((event as { newState?: string })?.newState !== 'speaking') return;
+      const entry = logFor(session);
+      const at = createdAt(event) - VAD_START_LAG_MS; // stamped when the VAD fired (vad-timing.ts)
+      const after = (entry.startedAt ?? []).filter((t) => t > at).length;
+      entry.ownerStart = (entry.ferniStarts ?? 0) - after;
     },
     /** Ferni's own words (conversation_item_added), read only to find where he asked again. */
     onItemAdded: (event: unknown) => {
@@ -371,6 +429,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
+        if (consentNaturalOn() && outboundHold(entry, opts, ctx.sessionId)) return HELD_REPLY;
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);
@@ -380,15 +439,14 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           // A call racing this one took it (or replaced it) while the judge read the answer.
           if (entry.pending !== pending)
             return 'Nothing more to do here: that was already handled.';
+          logDecision(pending, entry.events, state);
           if (state === 'confirmed') {
             entry.pending = undefined; // taken before sending, so a second call can't repeat it
             forgetAsks(entry, pending);
-            log.info(
-              { toolId: def.id, previewedBy: pending.toolId },
-              'OUTREACH_CONFIRM: caller said yes, sending'
+            const attest = async (): Promise<void> => attestOnConfirm(ctx.userId, pending.args);
+            return sendOnYes({ toolId: def.id, pending, entry, attest }, async (a) =>
+              execute(a, opts)
             );
-            await attestOnConfirm(ctx.userId, pending.args);
-            return sentConfirmThread(pending, execute(pending.args, opts));
           }
           const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
           const expiresAt = Date.now() + CONFIRM_WINDOW_MS;
@@ -436,6 +494,6 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
       return { ...tool, execute: gated } as Tool;
     },
   };
-  (gatedDef as unknown as Record<symbol, unknown>)[GATED] = true;
+  markGated(gatedDef);
   return gatedDef;
 }

@@ -30,21 +30,29 @@ export interface ConsentInput {
 export function consentClassifierOn(env: Env = process.env): boolean {
   return flagOn('CALL_CONSENT_CLASSIFIER', env);
 }
+/** CALL_CONSENT_NATURAL: the judge's yes places a reply the allow-list can't read (consent-window.ts). */
+export function consentNaturalOn(env: Env = process.env): boolean {
+  return flagOn('CALL_CONSENT_NATURAL', env);
+}
 const CONSENT_MODEL = 'gemini-3.5-flash-lite';
 /** Started on the owner's last final, so it is usually done before the model calls the tool. */
 const CONSENT_TIMEOUT_MS = 1200;
 
-const CONSENT_PROMPT = `Ferni, a voice assistant, read an action back to its owner and asked whether to go ahead. Decide whether the owner's reply agrees to THAT action, to THAT person, now. Return JSON only: {"verdict":"yes"|"no"|"unclear","reason":"${REASONS.slice(0, -1).join('"|"')}"}
-yes (reason agreed): the owner plainly agreed to this action to this person now, e.g. "Yeah, go ahead and call.", "Yes, it's okay with me. Give him a call.", "Yes, you should call him.", "That's fine with me.", "Yep, call him." for a call to a man, "Sure, text her." for a text to a woman. Saying why, as the read-back's own errand ("and check in", "see how he's doing", "say hi"), is still agreement.
+/** CALL_CONSENT_NATURAL (`natural`): a yes carrying a message for the person is agreement; only a
+ * condition on whether to act at all is conditional. Off, the prompt is as before. */
+const consentPrompt = (
+  natural: boolean
+): string => `Ferni, a voice assistant, read an action back to its owner and asked whether to go ahead. Decide whether the owner's reply agrees to THAT action, to THAT person, now. Return JSON only: {"verdict":"yes"|"no"|"unclear","reason":"${REASONS.slice(0, -1).join('"|"')}"}
+yes (reason agreed): the owner plainly agreed to this action to this person now, e.g. "Yeah, go ahead and call.", "Yes, it's okay with me. Give him a call.", "Yes, you should call him.", "That's fine with me.", "Yep, call him." for a call to a man, "Sure, text her." for a text to a woman. Saying why, as the read-back's own errand ("and check in", "see how he's doing", "say hi"), is still agreement.${natural ? ' So is a yes carrying a message for the person ("Yes, call him and tell him I\'m running late.", "Yeah, let her know I\'ll be there at six.").' : ''}
 no (reason declined): the owner declined or cancelled, e.g. "No.", "Don't call him.", "Not now.", "Never mind.", "I'll call him myself."
 unclear: everything else, including
 - redirect: someone else should do it, or it should come to the owner ("He can call you.", "Call me instead.", "Check in with me.");
 - other_person: a different person ("Call her." or "Call Mom." when the read-back is a call to Dad or a man);
 - other_channel: a different channel (any call when the read-back is a text, any text when it is a call);
 - deferred: a later time ("later", "tomorrow", "on Monday", "again tonight");
-- conditional: a condition, a change or an extra instruction ("Yes, but...", "call him and tell him...");
+- conditional: ${natural ? 'a condition on whether to do it at all ("Yes, but only if he\'s free.", "Call if it\'s not too late."), or a change to who, how or when' : 'a condition, a change or an extra instruction ("Yes, but...", "call him and tell him...")'};
 - question: a question, or a fresh request with no agreement word ("You should call.", "Call.");
-- off_topic: about something else, grudging or sarcastic ("Fine, whatever.", "Wow, yes, what a brilliant plan.").
+- off_topic: about something else, grudging or sarcastic ("Fine, whatever.", "Wow, yes, what a brilliant plan.")${natural ? ', or a joke not meant as a request ("Yeah sure, call him and tell him he owes me a million bucks.")' : ''}.
 Turns may be split mid-sentence, and the owner may call Ferni by name ("Yes," then "Ferni."): neither is a refusal. Never answer yes when unsure.`;
 
 /** The owner's words as data, one per line, so nothing in them reads as an instruction. */
@@ -143,7 +151,8 @@ const UNCLEAR: ConsentJudgement = { verdict: 'unclear', reason: 'error' };
 async function classifyConsent(input: ConsentInput, timeoutMs = waitMs): Promise<ConsentJudgement> {
   const started = Date.now();
   try {
-    const reply = await replyWithin(ask, CONSENT_PROMPT, consentUserText(input), timeoutMs);
+    const prompt = consentPrompt(consentNaturalOn());
+    const reply = await replyWithin(ask, prompt, consentUserText(input), timeoutMs);
     const judged = (reply === null ? null : parseConsent(reply)) ?? UNCLEAR;
     log.info({ ...judged, latencyMs: Date.now() - started }, 'CALL_CONSENT_JUDGE');
     return judged;

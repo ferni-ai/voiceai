@@ -131,6 +131,54 @@ export function isClearNo(text: string): boolean {
   return words(text).some((x) => NOES.includes(x));
 }
 
+// CALL_CONSENT_NATURAL: the only words a reply placed on the judge's yes may hold, besides the
+// action's own verb and the person's pronoun. Any other word, a name included ("riley", "ferni",
+// "not", "if", "actually", "honey", "nein", "line"), leaves it to a plain yes, so the judge can't
+// place it alone.
+const AGREES = new Set(
+  words('yes yeah yep yup yea sure ok okay alright absolutely definitely certainly perfect great')
+);
+const NATURAL = new Set(
+  words('good fine please do it that go ahead for and now sounds works thanks thank you of course')
+);
+/** Hesitation: allowed inside a yes, never as its last word ("Okay, so, um, well."). */
+const HESITANT = new Set(words('um uh so well'));
+/** "all right" and "right away" are the only uses of "right": "Yeah, right." is not a yes. */
+const RIGHT: ReadonlyArray<[RegExp, string]> = [
+  [/\ball right\b/g, 'alright'],
+  [/\bright away\b/g, 'now'],
+];
+/** CALL_CONSENT_NATURAL: a reply that trails off in hesitation ("Okay, so, um, well.") is not done. */
+export const trailsOff = (text: string): boolean => HESITANT.has(words(text).at(-1) ?? '');
+/** A yes in an allow-listed word set only: "Yeah, do that.", "Perfect.", "Please do it right away."
+ * words() drops digits, so a reply with any ("Yes, call him, 555-0177.") is never one: a new
+ * number needs a new read-back. A spelled-out number fails the word set. */
+export function isNaturalYes(text: string, allowed: readonly string[]): boolean {
+  if (/\d/.test(text)) return false;
+  const said = words(RIGHT.reduce((t, [re, to]) => t.replace(re, to), words(text).join(' ')));
+  const ok = (w: string): boolean =>
+    AGREES.has(w) || NATURAL.has(w) || HESITANT.has(w) || allowed.includes(w);
+  const agrees =
+    said.some((w) => AGREES.has(w)) || /\b(do (it|that)|go ahead)\b/.test(said.join(' '));
+  return agrees && said.every(ok) && !trailsOff(text);
+}
+
+// "Yes, tell him I'm running late.", "Let her know I'll be late": what the owner asks Ferni to
+// pass on to the person called. Never "let me know", "tell you what".
+const MESSAGE =
+  /\b(?:tell|let)\s+(?!(?:me|us|you|ferni)\b)(?:my\s+)?[\p{L}'’]+\s+(?:know\s+)?(?:that\s+)?(.+)$/iu;
+// A message carried as data: a short clause with no digits, quotes or brackets that could pass for
+// a number or break out of the quoted purpose.
+const CARRIED = /^[^\d"“”{}[\]<>\\\n]{1,100}$/u;
+/** The owner's reply split at a message for the person: the words before it, and the message
+ * (undefined: none; null: one that can't be carried). */
+export function splitMessage(text: string): { rest: string; message?: string | null } {
+  const found = MESSAGE.exec(text);
+  if (!found) return { rest: text };
+  const said = found[1].replace(/[\s.!,;]+$/u, '').trim();
+  return { rest: text.slice(0, found.index), message: CARRIED.test(said) ? said : null };
+}
+
 // A reply that opens with one of these is a no to the read-back ("No, wait.", "Hold on, who?").
 const NO_OPENERS = [
   ...'no nope nah dont cancel wait stop'.split(' '),

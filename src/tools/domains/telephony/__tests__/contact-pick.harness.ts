@@ -12,6 +12,7 @@ import { outreachConfirmListeners } from '../../communication/outreach/outreach-
 import { findContact } from '../call-on-behalf.js';
 import { getTelephonyToolDefinitions } from '../index.js';
 import type { Pick, Seed } from './contact-pick.fixtures.js';
+import { noteLiveSession } from '../../../registry/live-session.js';
 
 export const USER = 'user-pick';
 
@@ -60,6 +61,7 @@ export function liveCall(userId = USER) {
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
   const ctx: ToolContext = { userId, agentId: 'ferni', agentDisplayName: 'Ferni' };
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session);
   return {
     call: async (args: Record<string, unknown>, callId: string) => {

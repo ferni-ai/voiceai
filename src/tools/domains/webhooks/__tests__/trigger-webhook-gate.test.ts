@@ -31,6 +31,7 @@ vi.mock('../../../../services/webhooks/index.js', () => ({
 
 import { outreachConfirmListeners } from '../../communication/outreach/outreach-confirm.js';
 import { ToolRegistry } from '../../../registry/index.js';
+import { noteLiveSession } from '../../../registry/live-session.js';
 import type { ToolContext } from '../../../registry/types.js';
 import { definitions } from '../index.js';
 
@@ -39,6 +40,7 @@ function liveCall(userId: string, speakerIsOwner?: () => boolean) {
   for (const def of definitions) registry.register(def);
   const ctx: ToolContext = { userId, agentId: 'ferni', agentDisplayName: 'Ferni' };
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session, speakerIsOwner);
   return {
     trigger: async (args: Record<string, unknown>, callId: string) => {

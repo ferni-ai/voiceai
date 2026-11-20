@@ -4,6 +4,7 @@
  * have sent. Shared by outreach-consent-v2.test.ts and outreach-refusal-and-split-crisis.test.ts.
  */
 
+import { noteLiveSession } from '../../../../registry/live-session.js';
 import type { ToolDefinition } from '../../../../registry/types.js';
 import type { ConsentAsk } from '../consent-judge.js';
 import {
@@ -32,40 +33,82 @@ const def = (id: string): ToolDefinition => ({
     return tool as never;
   },
 });
-const spec = (what: string): ConfirmSpec => ({
-  prepare: async (args) => ({
-    args: { ...args, phoneNumber: DAD },
-    readBack: `${what} to Dad at 555-123-0002, right now`,
-  }),
+const spec = (what: string, duringPrepare?: () => Promise<void>): ConfirmSpec => ({
+  prepare: async (args) => {
+    await duringPrepare?.();
+    return {
+      args: { ...args, phoneNumber: DAD },
+      readBack: `${what} to Dad at 555-123-0002, right now`,
+    };
+  },
 });
+
+/** How a test call is set up: `duringPrepare` runs while the tool prepares its read-back; `noId`:
+ * the call's id is never registered, so no tool can find it. */
+export interface CallSetup {
+  duringPrepare?: () => Promise<void>;
+  noId?: boolean;
+}
+
+interface Gated {
+  execute: (a: unknown, o: unknown) => Promise<unknown>;
+}
 
 /** One call's gate, driven turn by turn. */
 export interface LiveCall {
   session: { agentState: string };
+  /** The call's id, as the safety kernel notes crisis risk under it (crisis-call-risk.ts). */
+  sessionId: string;
   /** The model calls the tool; its output then reaches the model. */
   call: (callId: string, args?: Record<string, unknown>) => Promise<string>;
   owner: (text: string) => void;
   /** The owner speaks over Ferni. */
   ownerOver: (text: string) => void;
   ferni: (text: string) => void;
-  otherTool: (callId: string) => void;
+  /** Another tool's output reaches the model; with no name it counts as outbound. */
+  otherTool: (callId: string, name?: string) => void;
+  /** Ferni starts speaking (agent_state_changed), e.g. the read-back starts playing; `at` is the
+   * event's createdAt. */
+  speaks: (at?: number) => void;
+  /** The owner starts speaking (user_state_changed); their final lands later. */
+  ownerStarts: (at?: number) => void;
+  /** Another gated tool on the same call (e.g. sendTextMessage), called by the model. */
+  callOther: (toolId: string, callId: string, args?: Record<string, unknown>) => Promise<string>;
 }
 
-export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
+export function liveCall(
+  toolId = 'callOnBehalf',
+  what = 'a call',
+  setup: CallSetup = {}
+): LiveCall {
   const session = { agentState: 'listening' };
+  const sessionId = `call-${Math.random().toString(36).slice(2)}`;
+  // As the live call does: a tool reads the id from its run.
+  if (!setup.noId) noteLiveSession(session, sessionId);
   const on = outreachConfirmListeners(session, () => true);
-  const tool = withOutreachConfirmation(def(toolId), spec(what)).create({
-    userId: 'owner-1',
-    agentId: 'ferni',
-    agentDisplayName: 'Ferni',
-  }) as { execute: (a: unknown, o: unknown) => Promise<unknown> };
+  const gated = (id: string, kind: string): Gated =>
+    withOutreachConfirmation(def(id), spec(kind, setup.duringPrepare)).create({
+      userId: 'owner-1',
+      agentId: 'ferni',
+      agentDisplayName: 'Ferni',
+    }) as Gated;
+  const tools = new Map([[toolId, gated(toolId, what)]]);
+  const run = async (
+    id: string,
+    callId: string,
+    args: Record<string, unknown>
+  ): Promise<string> => {
+    if (!tools.has(id)) tools.set(id, gated(id, 'a text'));
+    const out = await tools.get(id)?.execute(args, { ctx: { session }, toolCallId: callId });
+    on.onToolsExecuted({ functionCalls: [{ callId }] });
+    return String(out);
+  };
   return {
     session,
-    call: async (callId: string, args: Record<string, unknown> = { contactQuery: 'my dad' }) => {
-      const out = await tool.execute(args, { ctx: { session }, toolCallId: callId });
-      on.onToolsExecuted({ functionCalls: [{ callId }] });
-      return String(out);
-    },
+    sessionId,
+    call: async (callId: string, args: Record<string, unknown> = { contactQuery: 'my dad' }) =>
+      run(toolId, callId, args),
+    callOther: async (id, callId, args = { contactQuery: 'my dad' }) => run(id, callId, args),
     owner: (text: string) => on.onTranscript({ transcript: text, isFinal: true }),
     ownerOver: (text: string) => {
       session.agentState = 'speaking';
@@ -74,7 +117,10 @@ export function liveCall(toolId = 'callOnBehalf', what = 'a call'): LiveCall {
     },
     ferni: (text: string) =>
       on.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: text } }),
-    otherTool: (callId: string) => on.onToolsExecuted({ functionCalls: [{ callId }] }),
+    otherTool: (callId: string, name?: string) =>
+      on.onToolsExecuted({ functionCalls: [{ callId, name }] }),
+    speaks: (at?: number) => on.onAgentState({ newState: 'speaking', createdAt: at }),
+    ownerStarts: (at?: number) => on.onUserState({ newState: 'speaking', createdAt: at }),
   };
 }
 

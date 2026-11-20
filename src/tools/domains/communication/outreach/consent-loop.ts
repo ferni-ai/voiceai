@@ -13,10 +13,12 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { READBACK_GRACE_MS } from './consent-readback.js';
-import { askOnceLine, channelOf, personOf, VERB } from './consent-action.js';
+import { askOnceLine, channelOf, messageAskLine, personOf, VERB } from './consent-action.js';
+import { consentNaturalOn } from './consent-judge.js';
 import {
   asksAgain,
   classifyFerniTurn,
+  heardMessage,
   reopenable,
   ferniTurn,
   type ConfirmState,
@@ -144,6 +146,8 @@ export async function reopenClosed(
     startSeq: fresh.seq - 1,
     reopened: true,
     asked: false,
+    message: undefined,
+    askLine: undefined,
   });
   closed.action.expiresAt = Date.now() + windowMs;
   [entry.pending, entry.closed] = [closed.action, undefined];
@@ -159,8 +163,11 @@ export function unconfirmedReply(
   next: { callId: string; same: boolean; expiresAt: number }
 ): string | undefined {
   if (!next.same || state === 'void' || state === 'confirmed') return undefined;
-  if (state === 'declined' || (state === 'unclear' && pending.asked))
-    return cancel(entry, pending, state);
+  const again = state === 'unclear' && pending.asked === true;
+  if (state === 'declined' || again) return cancel(entry, pending, state);
+  // CALL_CONSENT_NATURAL: a yes with a message for the person is asked once with the message read
+  // back, so only a yes to that carries it (argsOnYes).
+  const message = state === 'unclear' ? heardMessage(pending, entry.events) : undefined;
   // Its next answer is to what Ferni says now, so judge from here (the earlier words still count
   // for reopening it, see reopenable).
   pending.startSeq ??= pending.createdSeq;
@@ -170,7 +177,9 @@ export function unconfirmedReply(
   });
   if (state === 'waiting') return stillWaitingReply(pending.readBack, pending.toolId);
   pending.asked = true;
-  const ask = askOnceLine(pending);
+  if (message) pending.message = message;
+  const ask = message ? messageAskLine(pending, message) : askOnceLine(pending);
+  if (consentNaturalOn()) pending.askLine = ask;
   log.info({ toolId: pending.toolId }, 'OUTREACH_CONFIRM: unclear, asking once');
   return (
     `NOT SENT YET: the caller's answer wasn't a clear yes. Ask exactly this, once, and nothing ` +

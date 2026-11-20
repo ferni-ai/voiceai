@@ -10,6 +10,7 @@
  * and names are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { noteLiveSession } from '../../../../registry/live-session.js';
 
 Object.assign(process.env, {
   GOOGLE_CALENDAR_CLIENT_ID: 'g-id',
@@ -87,6 +88,7 @@ let notes: string[] = [];
 
 function liveCall(userId = 'user-a', owner: boolean | null = true, def?: ToolDefinition) {
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const isOwner = owner === null ? undefined : () => owner;
   const listeners = outreachConfirmListeners(session, isOwner, (n) => void notes.push(n));
   const reachOut = def ?? getOutreachToolDefinitions().find((d) => d.id === 'reachOut')!;
