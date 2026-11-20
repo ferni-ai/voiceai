@@ -38,12 +38,7 @@ import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
 import { isAnonymousDemoUser, PLACEHOLDER_IDS } from './synthetic-user.js';
-import {
-  sexualReadsSettled,
-  sexualTopicConfirmed,
-  sexualTopicHeld,
-  sexualTopicUserHeld,
-} from './sexual-topic-hold.js';
+import { sexualReadsSettled, sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
 import {
   CRISIS_READ_WAIT,
   crisisMemoryHeld,
@@ -194,8 +189,6 @@ interface HeardOptions {
   userId?: string;
   /** Not the crisis hold: a tool filter (support and handoff tools stay; each writer refuses). */
   careOnly?: boolean;
-  /** With careOnly: holds that were set only, not a sexual-topic read still running (settledCareHolds). */
-  settledOnly?: boolean;
 }
 
 /** Read the caller's words for this session; true once they have sounded under 18. Flag off: nothing. */
@@ -258,35 +251,12 @@ export function likelyMinor(sessionId: string | undefined): boolean {
  * every flag on or off: the visitor was told nothing is kept. Bound at session start
  * (session-init-handler.ts), before session services make their first write.
  */
-const demoCallHeld = (sessionId: string | undefined): boolean =>
+export const demoCallHeld = (sessionId: string | undefined): boolean =>
   !!sessionId && isAnonymousDemoUser(sessionUsers.get(sessionId));
 
 /** An anonymous try-first call (demoCallHeld), MINOR_CARE (minorHeld) or SEXUAL_TOPIC_BOUNDARY. */
 const careHolds = (sessionId: string | undefined, env: Env = process.env): boolean =>
   demoCallHeld(sessionId) || minorHeld(sessionId, env) || sexualTopicHeld(sessionId, env);
-
-/** Why careHolds holds this session, the first that applies; undefined when nothing does. */
-export type CareHoldReason = 'try-first' | 'minor-care' | 'sexual-topic' | 'sexual-read-running';
-
-export function careHoldReason(
-  sessionId: string | undefined,
-  env: Env = process.env
-): CareHoldReason | undefined {
-  if (demoCallHeld(sessionId)) return 'try-first';
-  if (minorHeld(sessionId, env)) return 'minor-care';
-  if (sexualTopicConfirmed(sessionId, env)) return 'sexual-topic';
-  if (sexualTopicHeld(sessionId, env)) return 'sexual-read-running';
-  return undefined;
-}
-
-/**
- * careHolds without a sexual-topic read still running: only holds that were set. A verified
- * owner's tool filter under PHONE_SAFE_SETTLED_HOLD; memory writes keep careHolds (fail closed).
- */
-const settledCareHolds = (sessionId: string | undefined, env: Env = process.env): boolean => {
-  const reason = careHoldReason(sessionId, env);
-  return reason !== undefined && reason !== 'sexual-read-running';
-};
 
 /** Nothing personal is stored for this session: careHolds, or a crisis read on the call. */
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
@@ -314,7 +284,7 @@ export function heldAfter(
   said: string,
   options: HeardOptions = {}
 ): boolean {
-  const held = options.careOnly ? (options.settledOnly ? settledCareHolds : careHolds) : memoryHeld;
+  const held = options.careOnly ? careHolds : memoryHeld;
   if (!minorCareOn(options.env))
     return held(sessionId, options.env) || isAnonymousDemoUser(options.userId);
   noteCallerWords(sessionId, said, options);
