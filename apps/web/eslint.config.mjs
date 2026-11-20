@@ -1,7 +1,9 @@
 /**
  * ESLint for apps/web (flat config; ESLint 10 dropped .eslintrc). CI ratchets its error
- * counts per rule (ratchet-baseline.json "webEslint"), so a rule left out here reads as
- * fixed: keep this a translation of the old .eslintrc.cjs, not a new rule set.
+ * counts per rule (ratchet-baseline.json "webEslint" for src/, "webTestsEslint" for
+ * tests/), so a rule left out here reads as fixed: keep this a translation of the old
+ * .eslintrc.cjs, not a new rule set. tsconfig.json covers src/ only; tests/ is typed
+ * through tsconfig.tests.json.
  *
  * The old `env: { browser, es2022 }` is not carried over: typescript-eslint's
  * eslint-recommended config turns no-undef off for TypeScript, and no rule that runs here
@@ -21,7 +23,7 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: ['./tsconfig.json'],
+        project: ['./tsconfig.json', './tsconfig.tests.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
