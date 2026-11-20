@@ -3,8 +3,8 @@
  * and cosmetics onto the server ledger, and the `SEEDS_SERVER_LEDGER` switch that tells
  * the web to use the server at all.
  *
- * Until the switch, every web earn and purchase lived in localStorage. Those numbers can't
- * be checked, so the import is guarded:
+ * Before the switch (on by default since 2026-10-31), every web earn and purchase lived
+ * in localStorage. Those numbers can't be checked, so the import is guarded:
  * - Seeds: capped (1000), and a balance of 10 000+ (the dev "unlock all") imports nothing.
  * - Only accounts created before `SEEDS_IMPORT_BEFORE` (an ISO date) import anything, so
  *   making fresh accounts and gifting their imports to one can't mint seeds. Unset or
@@ -22,6 +22,7 @@
  * @module api/seeds-import
  */
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { flagOn } from '../config/env-flag.js';
 import { getSubscriptionInfo } from '../services/billing/stripe-subscription.js';
 import { getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { cosmeticForSale, tierAllows } from '../services/seeds/cosmetics-catalog.js';
@@ -38,9 +39,14 @@ export const IMPORT_KEY = 'import:local';
 /** More owned ids than the catalog has items is not a real browser. */
 const MAX_OWNED_IDS = 100;
 
-/** Whether the web should read and spend seeds on the server. Off unless 'on'. */
-export function serverLedgerEnabled(): boolean {
-  return process.env.SEEDS_SERVER_LEDGER === 'on';
+/**
+ * Whether the web should read and spend seeds on the server. On unless
+ * SEEDS_SERVER_LEDGER is off (the kill switch, config/flags/SEEDS_SERVER_LEDGER.ts).
+ */
+export function serverLedgerEnabled(
+  env: Readonly<Record<string, string | undefined>> = process.env
+): boolean {
+  return flagOn('SEEDS_SERVER_LEDGER', env);
 }
 
 /** Seeds a browser balance is worth on import. */
