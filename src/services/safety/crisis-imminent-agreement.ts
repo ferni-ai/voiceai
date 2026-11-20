@@ -86,8 +86,8 @@ export interface TurnReads {
   earlier: readonly string[];
   /** The call; without one, nothing is eased. */
   call?: string;
-  /** One read stands for both (no second prompt): it never notes agreed risk. */
-  lone?: boolean;
+  /** The turn's reads are one reader (CRISIS_INDEPENDENT_AGREEMENT): they never note agreed risk. */
+  oneReader?: boolean;
   env?: Record<string, string | undefined>;
   now?: number;
 }
@@ -95,7 +95,8 @@ export interface TurnReads {
 /**
  * A turn's read: with the everyday rules, and without them when a second
  * prompt is given. A lone read stands for both, so it is never eased; with
- * CRISIS_INDEPENDENT_AGREEMENT on, its risk is not noted as agreed either.
+ * CRISIS_INDEPENDENT_AGREEMENT on, the turn's reads are one reader, so their risk is not noted
+ * as agreed either.
  */
 export async function readTurn(
   read: (prompt: string) => Promise<CrisisVerdict | null>,
@@ -106,9 +107,10 @@ export async function readTurn(
     read(ruledPrompt),
     plainPrompt === null ? undefined : read(plainPrompt),
   ]);
-  // CRISIS_INDEPENDENT_AGREEMENT: a lone read standing for both is one read, never agreement.
-  const lone = plain === undefined && resolveIndependentAgreement(turn.env);
-  return combineReads({ ...turn, ruled, plain: plain === undefined ? ruled : plain, lone });
+  // CRISIS_INDEPENDENT_AGREEMENT: a lone read standing for both is one reader, and so is the
+  // plain read beside the ruled one, a floor under it asked of the same words in the same run.
+  const oneReader = resolveIndependentAgreement(turn.env);
+  return combineReads({ ...turn, ruled, plain: plain === undefined ? ruled : plain, oneReader });
 }
 
 /**
@@ -141,7 +143,7 @@ function eases(reads: TurnReads, read: CrisisVerdict | null): boolean {
   const { call, now = Date.now() } = reads;
   if (!call) return false;
   const split = splitImminent(reads);
-  const agreed = read !== null && read.risk !== 'none' && !split && !reads.lone;
+  const agreed = read !== null && read.risk !== 'none' && !split && !reads.oneReader;
   const risk = reads.pattern !== 'none' || agreed;
   if (risk) noteAgreedRisk(call, now);
   if (!split || reads.pattern !== 'none' || hadAgreedRisk(call, now)) return false;

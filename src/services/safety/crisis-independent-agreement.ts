@@ -9,9 +9,12 @@
  * turn of the call gets the after-check. A turn with no second prompt hands its one read in for
  * both (crisis-imminent-agreement.ts readTurn), which marks the call as agreed risk for 6 hours.
  *
- * With the flag on, a reader is the prompt a read was asked with. Agreement needs two readers
- * that found risk: the everyday-rules read and the read without them, or v3's second read.
- * However many paths kept it, one prompt counts once. A read whose readers are not known counts
+ * With the flag on, one classifier run is one reader, however many prompts it asks: the read
+ * with the everyday rules, the read without them and v3's second read are asked of the same words
+ * in the same run (owner decision, 2026-11-20). A run's reader is its base prompt, so runs of one
+ * prompt count once. Agreement needs two readers that found risk; the turn's reads never note the
+ * call as agreed risk (crisis-imminent-agreement.ts). However many paths kept it, one reader
+ * counts once. A read whose readers are not known counts
  * as a reader of its own, as on main. The after-check read and the patterns confirm as before.
  * In memory only; nothing is logged here.
  *
@@ -22,7 +25,7 @@ import type { CrisisVerdict } from './crisis-classifier.js';
 
 type Read = Promise<CrisisVerdict | null>;
 type Env = Record<string, string | undefined>;
-/** One run's reads, by the prompt each was asked with. */
+/** One run's reads, by reader: a run has one. */
 type Asked = Map<string, Read[]>;
 
 export function resolveIndependentAgreement(env: Env = process.env): boolean {
@@ -32,8 +35,11 @@ export function resolveIndependentAgreement(env: Env = process.env): boolean {
 /** Every promise that stands for a run (the run's own, and each path's copy of it) → its reads. */
 const runReaders = new WeakMap<Read, Asked>();
 
-/** A run's read function that keeps each read with the prompt it was asked with. */
-export function readersOfRun(read: (prompt: string) => Read): {
+/** A run's read function that keeps every read it asks with the run's one reader. */
+export function readersOfRun(
+  read: (prompt: string) => Read,
+  reader: string
+): {
   read: (prompt: string) => Read;
   asked: Asked;
 } {
@@ -42,7 +48,7 @@ export function readersOfRun(read: (prompt: string) => Read): {
     asked,
     read: (prompt) => {
       const verdict = read(prompt);
-      asked.set(prompt, [...(asked.get(prompt) ?? []), verdict]);
+      asked.set(reader, [...(asked.get(reader) ?? []), verdict]);
       return verdict;
     },
   };
@@ -56,6 +62,10 @@ export function standsFor(run: Read, asked: Asked | Read | undefined): Read {
 }
 
 const risky = (v: CrisisVerdict | null): boolean => v?.risk === 'crisis' || v?.risk === 'imminent';
+
+/** Two or more of these verdicts of one turn read risk: main's count, which ignores readers. */
+export const verdictsAgreeOnRisk = (verdicts: ReadonlyArray<CrisisVerdict | null>): boolean =>
+  verdicts.filter(risky).length >= 2;
 const settled = (read: Read): Promise<CrisisVerdict | null> => read.catch(() => null);
 
 /** How many independent readers found risk in these reads of one turn. */

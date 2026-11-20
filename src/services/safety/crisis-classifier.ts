@@ -439,14 +439,15 @@ export function startCrisisClassifier(
 
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
-  // CRISIS_INDEPENDENT_AGREEMENT: each read is kept with its prompt, its reader.
-  const { read, asked } = readersOfRun((p) =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p)
-  );
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
     : null;
+  // CRISIS_INDEPENDENT_AGREEMENT: the run is one reader, whatever it asks (crisis-independent-agreement.ts).
+  const { read, asked } = readersOfRun(
+    (p) => classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p),
+    prompt
+  );
   const base = readTurn(read, [prompt, plain], { ...options, ...normalized, env });
   const reads = second.apply(base, read, prompt);
   const verdict = reads.then((v) => {

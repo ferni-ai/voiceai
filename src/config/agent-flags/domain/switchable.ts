@@ -70,6 +70,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   CRISIS_CONFIRMED_CALL_RISK: WITH_SHADOW, // crisis-confirmed-risk.ts
   CRISIS_GRADED_RESPONSE: OFF_SHADOW, // crisis-graded-shadow.ts; live runs as shadow
   CRISIS_IMMINENT_NEEDS_AGREEMENT: ON_OFF, // crisis-imminent-agreement.ts
+  CRISIS_INDEPENDENT_AGREEMENT: ON_OFF, // crisis-independent-agreement.ts, === 'on'
   CRISIS_MEANS_IN_HAND: SHADOW_LIVE, // crisis-means-in-hand.ts, default shadow
   CRISIS_READ_JOINED_TURN: ON_OFF, // crisis-read-joined-turn.ts, === 'on'
   EARLY_WARNING_STT_FORMS: WITH_SHADOW, // phrase-match.ts, resolveShadowMode

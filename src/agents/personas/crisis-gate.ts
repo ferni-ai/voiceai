@@ -49,6 +49,7 @@ import {
   afterCheckLoneRead,
   noteConfirmedRisk,
   readsAgreeOnRisk,
+  verdictsAgreeOnRisk,
 } from '../../services/safety/crisis-confirmed-risk.js';
 import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
@@ -309,6 +310,7 @@ export function startCrisisGate(
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
       }
       // Reads of this turn that agree on risk are never eased.
+      if (verdictsAgreeOnRisk(verdicts)) softTransfer = false; // main's count, never readers
       if (await readsAgreeOnRisk(scope, said, verdicts, env)) {
         softTransfer = false;
         noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check

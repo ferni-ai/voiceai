@@ -48,7 +48,14 @@ import {
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
-import { resolveIndependentAgreement, riskReaders } from './crisis-independent-agreement.js';
+import {
+  resolveIndependentAgreement,
+  riskReaders,
+  verdictsAgreeOnRisk,
+} from './crisis-independent-agreement.js';
+
+/** Main's count of a turn's verdicts; a transfer request two reads agree on is never eased. */
+export { verdictsAgreeOnRisk };
 
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
@@ -154,9 +161,11 @@ async function agreed(call: string, input: CrisisClassifierInput, env: Env): Pro
 }
 
 /**
- * Reads of this turn (`verdicts`, its turnVerdicts) agree on risk: two of them read risk. With
- * CRISIS_INDEPENDENT_AGREEMENT on, two independent readers did (crisis-independent-agreement.ts);
- * a failed count is agreement, so the call is never eased on an error.
+ * Reads of this turn agree on risk. With CRISIS_INDEPENDENT_AGREEMENT off, two of `verdicts` (the
+ * turn's turnVerdicts) read risk, as on main. With it on, the same reads (turnReadsOf, which
+ * turnVerdicts settles) are counted by reader instead, so `verdicts` is not used: two independent
+ * readers must find risk (crisis-independent-agreement.ts). A failed count is agreement, so the
+ * call is never eased on an error.
  */
 export async function readsAgreeOnRisk(
   scope: string,
@@ -164,9 +173,7 @@ export async function readsAgreeOnRisk(
   verdicts: ReadonlyArray<CrisisVerdict | null>,
   env: Env = process.env
 ): Promise<boolean> {
-  if (!resolveIndependentAgreement(env)) {
-    return verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2;
-  }
+  if (!resolveIndependentAgreement(env)) return verdictsAgreeOnRisk(verdicts);
   try {
     const { strict, loose } = turnReadsOf(scope, input);
     return (await riskReaders([...strict, ...loose])) >= 2;
