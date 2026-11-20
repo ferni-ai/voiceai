@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GateIssue } from '../brand-gate.js';
 import type { DraftResult } from '../draft.js';
+import { REJECTED } from '../exit-codes.js';
 import { linkCount, ruleCounts } from '../log-safe.js';
 import { unsafeOutput } from '../untrusted-text.js';
 
@@ -44,6 +45,7 @@ afterEach(() => vi.restoreAllMocks());
 const SCRIPTS = {
   'draft-post.ts': () => import('../draft-post.js'),
   'check-post.ts': () => import('../check-post.js'),
+  'judge-post.ts': () => import('../judge-post.js'),
 };
 
 /** Imports a CLI script fresh with these arguments; returns its exit code, if it exited. */
@@ -239,7 +241,7 @@ describe('check-post.ts on a failing post', () => {
     fs.writeFileSync(file, `---\ntitle: "x"\n---\n\nThis ${MARKER} — and more.\n`);
     const code = await run('check-post.ts', [file]);
 
-    expect(code).toBe(1);
+    expect(code).toBe(REJECTED);
     expect(output()).not.toContain(MARKER);
     expect(output()).toContain('em-dash x1');
     expect(output()).toMatch(/front-matter x\d+/);
@@ -253,10 +255,58 @@ describe('check-post.ts on a failing post', () => {
     );
     const code = await run('check-post.ts', [file]);
 
-    expect(code).toBe(1);
+    expect(code).toBe(REJECTED);
     expect(output()).toContain('unsafe-link x1');
     expect(output()).not.toContain(MARKER);
     expect(output()).not.toContain('evil.example');
+  });
+});
+
+describe('judge-post.ts exit codes, which blog-drafts.yml reads', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'blog-judge-exit-'));
+    fs.writeFileSync(path.join(dir, 'post.md'), '---\ntitle: "x"\n---\n\nHello.\n');
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const scores = Object.fromEntries(
+    ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'].map((d) => [
+      d,
+      { score: d === 'craft' ? 3 : 5, reason: MARKER },
+    ])
+  );
+
+  it('a post under the bar is REJECTED, a verdict, and prints scores only', async () => {
+    judgePost.mockResolvedValue({
+      status: 'fail',
+      model: 'judge',
+      verdict: { scores, summary: MARKER },
+      failures: ['craft 3 (needs 4)'],
+    });
+    expect(await run('judge-post.ts', [path.join(dir, 'post.md')])).toBe(REJECTED);
+    expect(output()).toContain(
+      'fail (on_message 5, brand_voice 5, honesty 5, meaningful 5, impact 5, craft 3)'
+    );
+    expect(output()).not.toContain(MARKER);
+  });
+
+  it('no verdict is an error (exit 1), never read as a rejection', async () => {
+    judgePost.mockResolvedValue({
+      status: 'error',
+      model: 'judge',
+      failures: ['the judge gave no readable verdict'],
+    });
+    expect(await run('judge-post.ts', [path.join(dir, 'post.md')])).toBe(1);
+  });
+
+  it('a post that clears the bar exits normally', async () => {
+    judgePost.mockResolvedValue({
+      status: 'pass',
+      model: 'judge',
+      verdict: { scores },
+      failures: [],
+    });
+    expect(await run('judge-post.ts', [path.join(dir, 'post.md')])).toBeUndefined();
   });
 });
 
