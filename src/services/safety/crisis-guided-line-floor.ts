@@ -91,6 +91,9 @@ function partsFor(line: GuideLine): readonly ReplyPart[] {
   return line.urgent ? [{ present: names911, words: LATE_911_LINE }, SAY_988] : [SAY_988];
 }
 
+/** The words this line is said in, in order: the prompt builders quote them (crisis-one-988-source). */
+export const lineWordsOf = (line: GuideLine): string[] => partsFor(line).map((part) => part.words);
+
 /**
  * The guided reply with the line it left out said after it, when the flag is on and the guide
  * has a line; every other reply, the same stream untouched.

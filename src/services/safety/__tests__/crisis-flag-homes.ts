@@ -422,3 +422,31 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act on the prompt context the turn's builders hand the model, before the
+ * reply gate runs (the transfer awareness, safety and first-aid injections). The six readers and
+ * SHOWN_ON (the gate's reply) never see that context. This home is open only to a flag whose
+ * named rows drive the real builders on a fictional crisis line, flag off then on, and assert
+ * that on loses no 988 or 911 the builder gave off, but where the owner's rules say otherwise
+ * (an emergency for someone else: 911, no 988).
+ *
+ * The named rows run the real builders (buildHumanTransferInjections or
+ * buildTransferAwarenessContext, buildSafetyInjections, buildFirstAidContext), not copies; the never-lower row also fails if a
+ * site gives no 988 off on any line, so a stubbed builder can't pass it. The census itself checks
+ * only that each named file exists and holds each title as an it() or test() call; that the rows
+ * still drive those builders is a reviewer's check.
+ */
+export const PROMPT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  CRISIS_ONE_988_SOURCE: [
+    {
+      file: 'src/agents/processors/injection-builders/__tests__/crisis-one-988-source.test.ts',
+      rows: [
+        'transfer awareness, a crisis line: the line main says',
+        "the caller's own imminent read (safety injection): 911, then 988",
+        'an emergency for someone else (first-aid and transfer awareness): 911 for them, no 988',
+        'never lower: every 988 and 911 a site gave off is still there on, but for an emergency for someone else',
+      ],
+    },
+  ],
+};
