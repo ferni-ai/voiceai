@@ -9,20 +9,14 @@
  * buffer holds every frame while paused, so none arrives: the whole queue
  * plays out, and a resume then replays that audio a second time.
  *
- * Only the rtc AudioSource is a stand-in (it needs a native track); it keeps
- * rtc-node 1.1.0's bookkeeping: clearQueue() also zeroes queuedDuration.
+ * Only the rtc AudioSource is a stand-in (sdk-room-output.ts).
  */
-import { join, dirname } from 'node:path';
-import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { initializeLogger, voice } from '@livekit/agents';
-import { AudioFrame } from '@livekit/rtc-node';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ResumeBufferOutput } from '../resume-buffer.js';
+import { QUEUE_MS, type RoomOutput, frame, roomOutput, sdkDist, sleep } from './sdk-room-output.js';
 
-const sdkDist = join(dirname(createRequire(import.meta.url).resolve('@livekit/agents')), 'voice');
-const { ParticipantAudioOutput } = (await import(join(sdkDist, 'room_io/_output.js'))) as {
-  ParticipantAudioOutput: new (room: unknown, opts: Record<string, unknown>) => RoomOutput;
-};
 const { TranscriptionSynchronizer } = (await import(
   join(sdkDist, 'transcription/synchronizer.js')
 )) as {
@@ -35,74 +29,9 @@ const { TranscriptionSynchronizer } = (await import(
     close: () => Promise<void>;
   };
 };
-interface RoomOutput extends voice.AudioOutput {
-  audioSource: FakeRtcSource;
-  startedFuture: { resolve: () => void };
-  sourceDiscardedDuration: number;
-}
 /** The SDK logger the patched output logs BARGE_IN_FAST_STOP_CLEAR to (shared by every output). */
 const loggerOf = (o: RoomOutput) =>
   (o as unknown as { logger: { info: (...args: unknown[]) => void } }).logger;
-
-const SAMPLE_RATE = 24_000;
-const QUEUE_MS = 500;
-const sleep = (ms: number) =>
-  new Promise<void>((r) => {
-    setTimeout(r, ms);
-  });
-
-/** rtc-node AudioSource: same queuedDuration math, a bounded queue played in real time. */
-class FakeRtcSource {
-  currentQueueSize = 0;
-  lastCapture = 0;
-  /** Each frame's play interval; a clear cuts the ones not yet played. */
-  private played: Array<[number, number]> = [];
-  get queuedDuration(): number {
-    return Math.max(this.currentQueueSize - Date.now() + this.lastCapture, 0);
-  }
-  /** When the caller stops hearing audio, as of now. */
-  get audibleUntil(): number {
-    return this.played.length ? this.played[this.played.length - 1][1] : 0;
-  }
-  heardMs(): number {
-    const now = Date.now();
-    return this.played.reduce((a, [s, e]) => a + Math.max(0, Math.min(e, now) - s), 0);
-  }
-  clearQueue(): void {
-    const now = Date.now();
-    this.currentQueueSize = 0; // rtc's releaseWaiter
-    this.lastCapture = 0;
-    this.played = this.played
-      .filter(([s]) => s < now)
-      .map(([s, e]): [number, number] => [s, Math.min(e, now)]);
-  }
-  /** Counted when called, as rtc does, then held until the queue has room. */
-  async captureFrame(frame: AudioFrame): Promise<void> {
-    const now = Date.now();
-    const ms = (frame.samplesPerChannel / frame.sampleRate) * 1000;
-    const elapsed = this.lastCapture === 0 ? 0 : now - this.lastCapture;
-    this.currentQueueSize = Math.max(this.currentQueueSize - elapsed, 0) + ms;
-    this.lastCapture = now;
-    const start = Math.max(now, this.audibleUntil);
-    this.played.push([start, start + ms]);
-    while (this.queuedDuration > QUEUE_MS) await sleep(2);
-  }
-  async waitForPlayout(): Promise<void> {
-    while (Date.now() < this.audibleUntil) await sleep(2);
-  }
-}
-
-const frame = (ms: number) => {
-  const n = (SAMPLE_RATE * ms) / 1000;
-  return new AudioFrame(new Int16Array(n), SAMPLE_RATE, 1, n);
-};
-
-function roomOutput(): RoomOutput {
-  const out = new ParticipantAudioOutput({}, { sampleRate: SAMPLE_RATE, numChannels: 1 });
-  out.audioSource = new FakeRtcSource();
-  out.startedFuture.resolve();
-  return out;
-}
 
 /** A reply of `replyMs` streamed into `out` the way LiveKit's forwarder does (one frame at a time). */
 function speak(out: voice.AudioOutput, replyMs: number, frameMs = 20) {

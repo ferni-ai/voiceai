@@ -29,11 +29,12 @@
  * @module agents/multi-agent/barge-in-soft-pause
  */
 import { voice } from '@livekit/agents';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { setPlayoutHeld } from '../shared/playout-hold.js';
 import { speechPausedForCaller } from './interruption-config.js';
 import type { LiveCallBehaviorsInput } from './live-call-behaviors.js';
-import { ensureResumeBuffer } from './resume-buffer.js';
+import { ensureResumeBuffer, ResumeBufferOutput } from './resume-buffer.js';
 
 const log = getLogger();
 
@@ -47,6 +48,8 @@ export interface SoftPause {
   pause: () => boolean;
   /** Play on from where the pause stopped. */
   resume: () => void;
+  /** SOFT_PAUSE_CUT_DROPS_HELD=on: drop a cut reply's held audio, so the cut ends at once. */
+  dropCut?: () => void;
   confirmMs: number;
   graceMs: number;
   /** One line per decision: BARGE_IN_SOFT_PAUSE {outcome, why, pausedMs}. */
@@ -116,6 +119,12 @@ export function liveCallSoftPause(
       if (speechPausedForCaller(session)) return;
       output.output.audio?.resume();
     },
+    dropCut: flagOn('SOFT_PAUSE_CUT_DROPS_HELD', env)
+      ? () => {
+          const { audio } = output.output;
+          if (audio instanceof ResumeBufferOutput) audio.dropCutReply();
+        }
+      : undefined,
     log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_SOFT_PAUSE'),
   });
   if (!soft) return undefined;

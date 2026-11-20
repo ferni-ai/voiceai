@@ -221,6 +221,7 @@ export function createBargeInFastPath(deps: {
       // The output stays paused until the cut reply ends (releaseOutput).
       if (tryInterrupt()) {
         soft.log?.({ outcome, ...fields, pausedMs });
+        soft.dropCut?.(); // SOFT_PAUSE_CUT_DROPS_HELD: the cut ends now, not after LiveKit's 2 s wait
         return;
       }
       // An uninterruptible reply would otherwise stay paused, and "speaking", for good.
