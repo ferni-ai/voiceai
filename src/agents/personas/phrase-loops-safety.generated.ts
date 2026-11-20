@@ -1,4 +1,10 @@
-import { TALK_TO_988_ES, SELF_HARM_911_LINE, LATE_911_LINE } from '../../services/safety/index.js';
+import {
+  TALK_TO_988_ES,
+  SELF_HARM_911_LINE,
+  LATE_911_LINE,
+  FOR_THEM_911_ES,
+  FOR_THEM_911_HELP_ES,
+} from '../../services/safety/index.js';
 
 /**
  * Every line of wording in the crisis and safety scripts (7 files), which
@@ -178,6 +184,7 @@ const SCRIPT_WORDING = [
   'That sounds like an emergency. Please call 911 right now, and put them on speaker so you can stay with them.',
   "If they're not breathing or not responding, tell the dispatcher; they'll walk you through what to do until help gets there.",
   "I'm right here with you. Is anyone else there who can help?",
+  'Estoy aquí contigo. ¿Hay alguien más ahí que pueda ayudar?',
   "I'm really glad you told me. Your safety matters most right now.",
   "If you've taken something or you're in danger right now,",
   "I'm staying right here with you. Is anyone nearby who can be with you?",
@@ -192,6 +199,7 @@ const SCRIPT_WORDING = [
   "I can hear how difficult things are for you right now. What you're feeling is real and valid, and it takes courage to share it.",
   'I want you to know that support is available. The 988 Suicide & Crisis Lifeline (call or text 988) is there 24/7 if you need to talk to someone.',
   "I'm here to listen. What's weighing on you most right now?",
+  '../../utils/fold-spanish.js',
   'node:stream/web',
   '../../utils/text-utils.js',
   './crisis-release-words.js',
@@ -277,4 +285,6 @@ export const SAFETY_WORDING: readonly string[] = [
   TALK_TO_988_ES,
   SELF_HARM_911_LINE,
   LATE_911_LINE,
+  FOR_THEM_911_ES,
+  FOR_THEM_911_HELP_ES,
 ];

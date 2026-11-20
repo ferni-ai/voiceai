@@ -52,6 +52,21 @@ export const CALL_911_FOR_THEM = EMERGENCY_FOR_THEM.slice(
 );
 
 /**
+ * The Spanish 911 for someone down (#4060): call now, on speaker, and stay with them. "Al 911"
+ * and "el 911" are the forms the Spanish speech pass says as digit words (#4062). A Spanish
+ * speaker reviews these lines before CRISIS_SPANISH_READERS is promoted.
+ */
+export const FOR_THEM_911_ES =
+  'Eso suena como una emergencia. Llama al 911 ahora mismo y pon el teléfono en altavoz para que puedas quedarte con esa persona.';
+/** What to tell the 911 call taker, in Spanish. */
+export const FOR_THEM_911_HELP_ES =
+  'Si no respira o no responde, díselo a quien te conteste en el 911; te van a guiar hasta que llegue la ayuda.';
+/** CALL_911_FOR_THEM in Spanish: the 911 for them without the staying line. */
+export const CALL_911_FOR_THEM_ES = `${FOR_THEM_911_ES}\n\n${FOR_THEM_911_HELP_ES}`;
+/** EMERGENCY_FOR_THEM in Spanish, line for line. */
+export const EMERGENCY_FOR_THEM_ES = `${CALL_911_FOR_THEM_ES}\n\nEstoy aquí contigo. ¿Hay alguien más ahí que pueda ayudar?`;
+
+/**
  * Get appropriate crisis response based on severity
  */
 export function getCrisisResponse(

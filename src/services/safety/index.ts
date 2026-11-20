@@ -30,6 +30,8 @@ export {
 } from './crisis-guard.js';
 export {
   EMERGENCY_FOR_THEM,
+  FOR_THEM_911_ES,
+  FOR_THEM_911_HELP_ES,
   getCrisisResponse,
   LATE_911_LINE,
   namesCrisisLine,

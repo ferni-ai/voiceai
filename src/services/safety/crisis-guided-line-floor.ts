@@ -29,10 +29,11 @@
 
 import type { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { spanishReadersOn } from '../../utils/fold-spanish.js';
 import { ABUSE_INDICATOR, MINOR_ABUSE_INDICATOR } from './abuse-disclosure.js';
+import { call911ForThem } from './crisis-caller-check.js';
 import {
   CALL_911_ES,
-  CALL_911_FOR_THEM,
   FOR_THEM_988,
   LATE_911_LINE,
   TALK_TO_988,
@@ -69,8 +70,10 @@ export function guideLineOf(
   const lang = spanish ? 'es' : 'en';
   if (disclosure && !SELF_RISK.some((i) => crisis.indicators.includes(i))) return undefined;
   if (crisis.subject === 'third_party' && !disclosure) {
-    if (lang === 'es') return undefined;
-    return { who: 'them', urgent: crisis.indicators.includes('third_party_emergency'), lang };
+    const urgent = crisis.indicators.includes('third_party_emergency');
+    // In Spanish, only the 911 for someone down, with CRISIS_SPANISH_READERS on (#4060).
+    if (lang === 'es' && !(urgent && spanishReadersOn())) return undefined;
+    return { who: 'them', urgent, lang };
   }
   return { who: 'self', urgent: crisis.indicators.includes('imminent_danger'), lang };
 }
@@ -82,7 +85,7 @@ const SAY_988_ES: ReplyPart = { present: names988, words: TALK_TO_988_ES };
 function partsFor(line: GuideLine): readonly ReplyPart[] {
   if (line.who === 'them') {
     return line.urgent
-      ? [{ present: names911, words: CALL_911_FOR_THEM }]
+      ? [{ present: names911, words: call911ForThem(line.lang) }]
       : [{ present: names988, words: FOR_THEM_988 }];
   }
   if (line.lang === 'es') {
