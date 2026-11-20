@@ -28,5 +28,4 @@ export {
   disableAllFlags,
   resetFlags,
   runQuickAction,
-  sendApiRequest,
 } from './admin-events.js';
