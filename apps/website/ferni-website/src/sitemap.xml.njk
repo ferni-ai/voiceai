@@ -3,7 +3,7 @@ permalink: /sitemap.xml
 eleventyExcludeFromCollections: true
 ---
 {#- Leave out internal, utility and duplicate pages. /developers and /dev-blog 301 to developers.ferni.ai (firebase.json). -#}
-{%- set excludedUrls = ["/404.html", "/offline/", "/waitlist-index/", "/story-brand/", "/pages/animation-guide/"] -%}
+{%- set excludedUrls = ["/404.html", "/offline/", "/waitlist-index/", "/story-brand/", "/pages/animation-guide/", "/home-next/"] -%}
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   {%- for page in collections.all %}

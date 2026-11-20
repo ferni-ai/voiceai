@@ -108,6 +108,9 @@
    * Apply hero headline variant
    */
   function applyHeroHeadline(variantId) {
+    // A page whose hero copy is set in its template (data-hero-copy="fixed", the
+    // home-next preview) keeps it: a headline test would put back the copy it replaces.
+    if (document.querySelector('[data-hero-copy="fixed"]')) return;
     const variant = HERO_HEADLINE_VARIANTS[variantId];
     if (!variant) {
       // eslint-disable-next-line no-console -- report failures in the browser console
