@@ -65,6 +65,12 @@ const PILLS = 'i have a bottle of pills and i want to take them all';
 
 export const CALLS: readonly ReplyCall[] = [
   { name: 'ordinary', says: ['what should I cook tonight?'], floors: [CLASSIFIER_DECIDES] },
+  // #4159: a plain request to forget a named thing (CRISIS_FORGET_EVERYDAY).
+  {
+    name: 'a forget request',
+    says: ['please delete my old address from your memory'],
+    floors: [CLASSIFIER_DECIDES],
+  },
   { name: 'pills', says: [PILLS], floors: [CLASSIFIER_DECIDES] },
   { name: 'pills at midnight', says: [PILLS], hour: 0, floors: [CLASSIFIER_DECIDES] },
   {
@@ -270,7 +276,7 @@ export const WORDING_NOT_READ: {
   atDefaults: { scripted: number; guided: number; unguided: number };
   onlyWithFlag: Readonly<Record<string, { sentences: number; says: readonly string[] }>>;
 } = {
-  atDefaults: { scripted: 72, guided: 12, unguided: 30 },
+  atDefaults: { scripted: 74, guided: 13, unguided: 33 },
   onlyWithFlag: {
     CRISIS_GATE_TURN_READS: { sentences: 6, says: ['911', '988'] },
     CRISIS_GUIDED_LINE_FLOOR: { sentences: 3, says: ['988'] },
@@ -318,6 +324,15 @@ export const SHOWN_ON: Readonly<Record<string, Shown>> = {
 export const LOWERS_A_REPLY: Readonly<
   Record<string, { value: string; lost: readonly string[]; onEveryLive?: readonly string[] }>
 > = {
+  // A classifier-only crisis read of a plain request to forget a named thing gets the soft
+  // check-in, not crisis guidance (#4159, crisis-forget-request.ts). Alone it loses nothing
+  // measured here: the soft check still asks the model for 988 if they speak of harm. With
+  // CRISIS_GUIDED_LINE_FLOOR live, code no longer says 988 on that request: by design.
+  CRISIS_FORGET_EVERYDAY: {
+    value: 'on',
+    lost: [],
+    onEveryLive: ['a forget request/crisis turn 1 :: 988 spoken'],
+  },
   // A friend-at-risk line the classifier reads as the caller's own crisis: the guidance for
   // a worried friend (988 for them, 911 if the danger is immediate) gives way to the caller's
   // own, which has no 911.

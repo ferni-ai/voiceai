@@ -43,7 +43,7 @@ import {
   screenIdeation,
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
-import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
+import { requestIsEveryday } from '../../../services/safety/index.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   abuseCallRisk,
@@ -222,9 +222,8 @@ export function startTurnCrisis(
   };
   const call = options.sessionId || undefined;
   const lone = { call, input, detection: patterns, pattern, env, generate } as const;
-  // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
-  const transfer =
-    adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
+  // CRISIS_TRANSFER_EVERYDAY / CRISIS_FORGET_EVERYDAY: decided before this turn's own read starts.
+  const transfer = adjudicatorMode !== 'live' && requestIsEveryday(input, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);

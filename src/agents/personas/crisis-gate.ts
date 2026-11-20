@@ -62,7 +62,7 @@ import {
   withScreenPositive,
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
-import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import { requestIsEveryday } from '../../services/safety/index.js';
 import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
@@ -208,9 +208,8 @@ export function startCrisisGate(
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
   const turn = turnReads ? turnWords(callerWords(chatCtx, { sinceCompleted: true })) : said;
-  // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
-  const transfer =
-    adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
+  // CRISIS_TRANSFER_EVERYDAY / CRISIS_FORGET_EVERYDAY: decided before this turn's own read starts.
+  const transfer = adjudicatorMode !== 'live' && requestIsEveryday(said, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, said);
   const groundedPrior = groundedPriorRisk(call, latest);
