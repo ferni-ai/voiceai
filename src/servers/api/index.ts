@@ -252,8 +252,10 @@ import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
 import { decideCallsAtStartup } from './call-availability.js';
+import { uiServerListenHost } from './listen-host.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
+const HOST = uiServerListenHost();
 
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 if (!decideCallsAtStartup()) process.exit(1);
@@ -1461,15 +1463,13 @@ log.info('Life Context WebSocket server initialized on /ws/life-context');
 initUserEventsWebSocket(server);
 log.info('User Events WebSocket server initialized on /ws/user-events');
 
-// Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
 });
 
-// Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
-server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
+server.listen(PORT, HOST, () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
 
