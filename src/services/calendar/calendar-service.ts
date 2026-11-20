@@ -40,6 +40,7 @@ import {
   deleteEvent as deleteUnifiedEvent,
 } from './unified-calendar-store.js';
 import { outlookLinkedOr } from './providers/outlook-state.js';
+import { calendarWriteSaved } from './calendar-write-state.js';
 import type {
   CalendarEvent as UnifiedCalendarEvent,
   CreateEventInput as UnifiedCreateEventInput,
@@ -377,8 +378,8 @@ export async function createEvent(
     if (!accessToken) {
       log.warn({ userId }, 'Google token expired, creating in unified store');
       const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
-      // Use 'local' when falling back from Google to unified store
-      return unifiedToCalendarEvent(created, 'local');
+      // 'local': fell back from Google; CALENDAR_WRITES_TRUTHFUL: null when not saved
+      return calendarWriteSaved(created) ? unifiedToCalendarEvent(created, 'local') : null;
     }
 
     try {
@@ -392,16 +393,15 @@ export async function createEvent(
         'Google Calendar failed, creating in unified store'
       );
       const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
-      // Use 'local' when falling back from Google to unified store
-      return unifiedToCalendarEvent(created, 'local');
+      // 'local': fell back from Google; CALENDAR_WRITES_TRUTHFUL: null when not saved
+      return calendarWriteSaved(created) ? unifiedToCalendarEvent(created, 'local') : null;
     }
   }
 
   // Use unified Ferni calendar
   const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
   log.info({ userId, eventTitle: event.title }, 'Unified calendar event created');
-  // Use 'local' for unified calendar events (not connected to external provider)
-  return unifiedToCalendarEvent(created, 'local');
+  return calendarWriteSaved(created) ? unifiedToCalendarEvent(created, 'local') : null; // no provider
 }
 
 /**

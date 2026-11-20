@@ -14,9 +14,9 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { onCalendarEventChange } from '../data-layer/hooks/calendar-hooks.js';
 import { recordCalendarSignal } from '../data-layer/domain-signals.js';
 import { withOutlookEvents } from './providers/outlook-state.js';
+import { deleteEventDoc, saveEventDoc } from './calendar-event-persist.js';
 import type {
   CalendarEvent,
   CalendarProvider,
@@ -288,8 +288,11 @@ export async function createEvent(
   events.set(event.id, event);
   eventCache.set(userId, events);
 
-  // Persist to Firestore
-  await persistEvent(userId, event);
+  // Persist to Firestore; CALENDAR_WRITES_TRUTHFUL: an event that wasn't saved isn't kept
+  if (!(await persistEvent(userId, event))) {
+    events.delete(event.id);
+    return event; // calendarWriteSaved(event) is false, so the tool says it couldn't
+  }
 
   // Record domain signal for cross-domain intelligence
   recordCalendarSignal(userId, 'meeting_scheduled', {
@@ -353,16 +356,24 @@ export async function deleteEvent(userId: string, eventId: string): Promise<bool
   }
 
   // If synced, mark for deletion so sync engine can remove from provider
+  // CALENDAR_WRITES_TRUTHFUL: a delete whose write failed is undone and reported false
   if (event.syncStatus === 'synced' && event.externalId) {
+    const was = { syncStatus: event.syncStatus, updatedAt: event.updatedAt };
     event.syncStatus = 'deleted';
     event.updatedAt = new Date();
     events.set(eventId, event);
-    await persistEvent(userId, event);
+    if (!(await persistEvent(userId, event))) {
+      Object.assign(event, was);
+      return false;
+    }
     log.info({ userId, eventId }, 'Marked synced event for deletion');
   } else {
     // Local-only event, just delete it
     events.delete(eventId);
-    await deletePersistedEvent(userId, eventId);
+    if (!(await deletePersistedEvent(userId, eventId))) {
+      events.set(eventId, event);
+      return false;
+    }
     log.info({ userId, eventId }, 'Deleted local calendar event');
   }
 
@@ -743,49 +754,15 @@ export async function getWeekOverview(
 // PERSISTENCE HELPERS
 // ============================================================================
 
-async function persistEvent(userId: string, event: CalendarEvent): Promise<void> {
-  const firestore = await getFirestore();
-  if (!firestore) return;
+/** True when the event may be kept (CALENDAR_WRITES_TRUTHFUL: only if the write saved). */
+const persistEvent = (userId: string, event: CalendarEvent): Promise<boolean> =>
+  saveEventDoc(getFirestore, getUserEventsCollection(userId), userId, event, () =>
+    cleanForFirestore(eventToStored(event))
+  );
 
-  try {
-    const stored = eventToStored(event);
-    await firestore
-      .collection(getUserEventsCollection(userId))
-      .doc(event.id)
-      .set(cleanForFirestore(stored));
-
-    // Index to semantic memory for calendar awareness
-    void onCalendarEventChange(
-      userId,
-      event.id,
-      {
-        title: event.title,
-        date: event.startTime.toISOString(),
-        time: event.startTime.toTimeString().slice(0, 5),
-        duration: event.endTime
-          ? Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000)
-          : undefined,
-        attendees: event.attendees,
-        notes: event.description,
-        importance: 'medium',
-      },
-      event.syncStatus === 'local' ? 'create' : 'update'
-    );
-  } catch (error) {
-    log.error({ error: String(error), eventId: event.id }, 'Failed to persist event');
-  }
-}
-
-async function deletePersistedEvent(userId: string, eventId: string): Promise<void> {
-  const firestore = await getFirestore();
-  if (!firestore) return;
-
-  try {
-    await firestore.collection(getUserEventsCollection(userId)).doc(eventId).delete();
-  } catch (error) {
-    log.error({ error: String(error), eventId }, 'Failed to delete persisted event');
-  }
-}
+/** True when the delete may stand (CALENDAR_WRITES_TRUTHFUL: not if the delete write failed). */
+const deletePersistedEvent = (userId: string, eventId: string): Promise<boolean> =>
+  deleteEventDoc(getFirestore, getUserEventsCollection(userId), eventId);
 
 async function persistProviderConnection(
   userId: string,

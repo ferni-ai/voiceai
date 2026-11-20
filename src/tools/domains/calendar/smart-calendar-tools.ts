@@ -33,7 +33,7 @@ import {
   getWeekOverview,
   type CreateEventInput,
 } from '../../../services/calendar/index.js';
-// Keep formatting helpers from old service for now
+import { calendarWriteSaved } from '../../../services/calendar/calendar-write-state.js';
 import {
   formatEventForSpeech,
   formatDayOverviewForSpeech,
@@ -247,7 +247,7 @@ const createCalendarEventDef: ToolDefinition = {
 
         const created = await createEvent(userId, eventInput);
 
-        if (!created) {
+        if (!created || !calendarWriteSaved(created)) {
           return "Couldn't create the event. There might be an issue with your calendar connection.";
         }
 
