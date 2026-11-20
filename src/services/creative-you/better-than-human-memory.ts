@@ -12,6 +12,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationSummary, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { rememberedMemories } from './remembered-memories.js';
 
 const log = getLogger();
 
@@ -247,10 +248,10 @@ export async function getSuperhumanMemoryContext(
   userId: string,
   topic: string
 ): Promise<SuperhumanMemoryContext> {
-  const [summaries, keyMoments] = await Promise.all([
-    getUserSummaries(userId, 30),
-    getUserKeyMoments(userId, 20),
-  ]);
+  const [summaries, keyMoments] = await rememberedMemories(
+    userId, // FORGET_EVERY_READER
+    await Promise.all([getUserSummaries(userId, 30), getUserKeyMoments(userId, 20)])
+  );
 
   const context: SuperhumanMemoryContext = {};
   const topicLower = topic.toLowerCase();
@@ -260,7 +261,7 @@ export async function getSuperhumanMemoryContext(
     s.mainTopics.some((t) => t.toLowerCase().includes(topicLower))
   );
 
-  // First mention
+  // First mention, and how often it has come up since
   if (relatedSummaries.length > 0) {
     const oldest = relatedSummaries[relatedSummaries.length - 1];
     context.firstMention = {
@@ -268,10 +269,6 @@ export async function getSuperhumanMemoryContext(
       timestamp: oldest.timestamp,
       timeAgo: getTimeAgo(oldest.timestamp),
     };
-  }
-
-  // Topic frequency
-  if (relatedSummaries.length > 0) {
     context.topicFrequency = {
       topic,
       count: relatedSummaries.length,

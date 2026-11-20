@@ -17,7 +17,7 @@ export type ForgetCheck = 'always' | 'flag' | 'none';
 /** Who hears it: the model (prompt, greeting, tool result), the caller on the web, or a text/call out. */
 export type Reach = 'prompt' | 'greeting' | 'tool' | 'web' | 'outbound' | 'third-party';
 /** The PR that makes a `none` reader check, in the forget plan's order (outbound first). */
-export type FixPr = 'PR2a' | 'PR2b' | 'PR2c';
+export type FixPr = 'PR2a' | 'PR2b';
 
 export interface ForgetReader {
   id: string;
@@ -286,6 +286,55 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     probe: EVERY_READER,
   },
 
+  {
+    id: 'web.conversations',
+    file: 'src/api/routes/conversations.ts',
+    site: 'rememberedHistory',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/routes/__tests__/conversations-forget.test.ts',
+  },
+  {
+    id: 'web.threads',
+    file: 'src/api/routes/conversation-threads.ts',
+    site: 'rememberedThreads',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/routes/__tests__/conversation-threads-forget.test.ts',
+  },
+  {
+    id: 'web.voiceAuthMemory',
+    file: 'src/api/voice-auth/memory-routes.ts',
+    site: 'forgottenFor',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/voice-auth/__tests__/memory-routes-forget.test.ts',
+  },
+  {
+    id: 'web.yearInReview',
+    file: 'src/api/year-in-review-routes.ts',
+    site: 'forgottenPassageCheck',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/__tests__/year-in-review-forget.test.ts',
+  },
+  {
+    id: 'web.creativeYou',
+    file: 'src/services/creative-you/better-than-human-memory.ts',
+    site: 'rememberedMemories',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/services/creative-you/__tests__/better-than-human-memory-forget.test.ts',
+  },
+  {
+    id: 'sms.threadTurns',
+    file: 'src/services/conversation-thread/thread-manager.ts',
+    site: 'rememberedThread',
+    reaches: 'outbound',
+    check: 'flag',
+    probe: 'src/services/conversation-thread/__tests__/thread-forget.test.ts',
+  },
+
   // ── Not checked: PR2a, outbound and third-party first ──────────────────────
   {
     id: 'thirdParty.outreachTopics',
@@ -455,56 +504,6 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     reaches: 'prompt',
     check: 'none',
     fix: 'PR2b',
-  },
-
-  // ── Not checked: PR2c ──────────────────────────────────────────────────────
-  {
-    id: 'web.conversations',
-    file: 'src/api/routes/conversations.ts',
-    site: 'highlights',
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.threads',
-    file: 'src/api/routes/conversation-threads.ts',
-    site: "collection('conversation_threads')",
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.voiceAuthMemory',
-    file: 'src/api/voice-auth/memory-routes.ts',
-    site: 'export',
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.yearInReview',
-    file: 'src/api/year-in-review-routes.ts',
-    site: "collection('summaries')",
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.creativeYou',
-    file: 'src/services/creative-you/better-than-human-memory.ts',
-    site: "collection('summaries')",
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'sms.threadTurns',
-    file: 'src/services/conversation-thread/thread-manager.ts',
-    site: 'buildAgentContext',
-    reaches: 'outbound',
-    check: 'none',
-    fix: 'PR2c',
   },
 ];
 
