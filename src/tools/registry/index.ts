@@ -26,6 +26,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { wrapCreateWithUserIdGuard } from './user-id-guard.js';
 import { gateOutboundTool } from './outbound-gate.js';
+import { keepLateWriteResults } from './write-results.js'; // a late write reaches the model
 import { toolAvailable } from './tool-availability.js';
 import {
   ALL_TOOL_DOMAINS,
@@ -78,9 +79,7 @@ export class ToolRegistry {
     }
   }
 
-  // ==========================================================================
-  // REGISTRATION
-  // ==========================================================================
+  // ===================== REGISTRATION =====================
 
   /** Register a tool definition */
   register(definition: ToolDefinition): void {
@@ -95,7 +94,7 @@ export class ToolRegistry {
     if (this.tools.has(definition.id))
       getLogger().debug({ toolId: definition.id }, 'Tool re-registered (parallel init)');
     // Session userId wins (./user-id-guard.ts); calls/texts wait for a yes (./outbound-gate.ts)
-    const create = wrapCreateWithUserIdGuard(gateOutboundTool(definition));
+    const create = wrapCreateWithUserIdGuard(keepLateWriteResults(gateOutboundTool(definition)));
     this.tools.set(definition.id, { ...definition, create });
 
     // Index by primary domain
@@ -668,6 +667,7 @@ export function buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult
 // EXPORTS
 // ============================================================================
 
+export { setLateWriteResultPort, type LateWriteResultPort } from './write-results.js';
 export {
   ALL_TOOL_DOMAINS,
   assertTool,
