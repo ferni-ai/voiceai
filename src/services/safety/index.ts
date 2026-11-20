@@ -41,7 +41,8 @@ export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-flo
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
-export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
+// Note risk on a call: the reply gate's fail-closed settle (crisis-gate-failure.ts).
+export { crisisReadInFlight, crisisRiskThisCall, noteCrisisRisk } from './crisis-call-risk.js';
 // A crisis pattern holds the call's memory before capture (transcript-handler.ts).
 export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
 // The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
