@@ -30,6 +30,7 @@ import {
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
+import { readersOfRun, standsFor } from './crisis-independent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
@@ -348,6 +349,20 @@ function rememberRead(
   turnReads.set(key, { at: now, verdicts: new Set([verdict]) });
 }
 
+/** This turn's reads, unsettled: under the strict key, and the loose key's others. */
+export function turnReadsOf(
+  scope: string,
+  input: CrisisClassifierInput
+): { strict: Array<Promise<CrisisVerdict | null>>; loose: Array<Promise<CrisisVerdict | null>> } {
+  const strict = turnReads.get(turnKey(scope, input))?.verdicts ?? new Set();
+  const text = looseText(normalizeInput(input).latest);
+  const loose = (looseReads.get(scope) ?? [])
+    .filter((read) => text && read.text && (read.text.includes(text) || text.includes(read.text)))
+    .map((read) => read.verdict)
+    .filter((verdict) => !strict.has(verdict));
+  return { strict: [...strict], loose: [...new Set(loose)] };
+}
+
 /**
  * All reads of this turn started so far in this call, each bounded by the
  * classifier timeout: every read under the strict key, plus any other read of
@@ -358,15 +373,10 @@ export async function turnVerdicts(
   scope: string,
   input: CrisisClassifierInput
 ): Promise<Array<CrisisVerdict | null>> {
-  const strict = turnReads.get(turnKey(scope, input))?.verdicts ?? new Set();
-  const text = looseText(normalizeInput(input).latest);
-  const loose = (looseReads.get(scope) ?? [])
-    .filter((read) => text && read.text && (read.text.includes(text) || text.includes(read.text)))
-    .map((read) => read.verdict)
-    .filter((verdict) => !strict.has(verdict));
+  const { strict, loose } = turnReadsOf(scope, input);
   const [strictVerdicts, looseVerdicts] = await Promise.all([
-    Promise.all([...strict]),
-    Promise.all([...new Set(loose)]),
+    Promise.all(strict),
+    Promise.all(loose),
   ]);
   return [...strictVerdicts, ...looseVerdicts.filter((v) => v === null || v.risk !== 'none')];
 }
@@ -422,15 +432,17 @@ export function startCrisisClassifier(
   const shared = cachedRun(key, startedAt);
   if (shared) {
     second.note();
-    const verdict = own(shared.verdict);
+    const verdict = standsFor(own(shared.verdict), shared.verdict); // CRISIS_INDEPENDENT_AGREEMENT
     if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
     return { mode, verdict };
   }
 
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
-  const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+  // CRISIS_INDEPENDENT_AGREEMENT: each read is kept with its prompt, its reader.
+  const { read, asked } = readersOfRun((p) =>
+    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p)
+  );
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
@@ -455,8 +467,8 @@ export function startCrisisClassifier(
     );
     return v;
   });
-  rememberRun(key, startedAt, { mode, verdict });
-  const turn = own(verdict);
+  rememberRun(key, startedAt, { mode, verdict: standsFor(verdict, asked) });
+  const turn = standsFor(own(verdict), asked);
   if (options.scope) rememberRead(options.scope, input, startedAt, turn);
   return { mode, verdict: turn };
 }
