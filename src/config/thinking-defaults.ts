@@ -16,13 +16,23 @@
 
 export type GenerateConfig = Record<string, unknown> | undefined;
 
+/**
+ * Models whose lowest thinking level is LOW: they reject MINIMAL with a 400.
+ * gemini-3.8 (measured 2026-09-27); gemini-4 Neon and Hydrogen (2026-11-19),
+ * "Thinking level is unsupported: THINKING_LEVEL_MINIMAL". The SDK reports the
+ * 400 as an 'error' event and ends the stream empty, so a MINIMAL request to
+ * one of these models is a reply with no words.
+ */
+export function rejectsMinimalThinking(model: string): boolean {
+  return /^gemini-(?:3\.8|4[.-])/.test(model.toLowerCase().replace(/^.*\//, ''));
+}
+
 /** The least thinking `model` accepts, or undefined to leave the model's default. */
 export function minimalThinkingFor(model: string): Record<string, unknown> | undefined {
   const m = model.toLowerCase().replace(/^.*\//, '');
   // 2.5 Flash and Flash-Lite accept a zero budget; 2.5 Pro cannot turn thinking off.
   if (/^gemini-2\.5-flash/.test(m)) return { thinkingBudget: 0 };
-  // gemini-3.8 rejects MINIMAL with a 400; LOW is its floor.
-  if (/^gemini-3\.8/.test(m)) return { thinkingLevel: 'LOW' };
+  if (rejectsMinimalThinking(m)) return { thinkingLevel: 'LOW' };
   if (/^gemini-3(\.\d+)?-/.test(m)) return { thinkingLevel: 'MINIMAL' };
   return undefined;
 }
