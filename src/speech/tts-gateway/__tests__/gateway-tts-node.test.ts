@@ -145,6 +145,52 @@ describe('Gateway TTS Node', () => {
       expect(vi.mocked(mockProvider.synthesize).mock.calls[0]).toHaveLength(3);
     });
 
+    // Production's path: Cartesia's reply stream (streaming overlap on, its default, and
+    // TTS_REPLY_CONTINUATIONS unset). Only the wrapper's openReplyStream hands the stream the
+    // reply's language, read on each push.
+    describe('through the reply stream', () => {
+      const prior = process.env.TTS_REPLY_CONTINUATIONS;
+      const opened: unknown[][] = [];
+      beforeEach(() => {
+        delete process.env.TTS_REPLY_CONTINUATIONS;
+        opened.length = 0;
+        mockProvider.openReplyStream = (...args: unknown[]) => {
+          opened.push(args);
+          let ended = (): void => {};
+          const done = new Promise<void>((resolve) => {
+            ended = resolve;
+          });
+          return {
+            push: () => {},
+            end: () => ended(),
+            cancel: () => ended(),
+            async *[Symbol.asyncIterator]() {
+              await done;
+              yield new Int16Array(2400).fill(1000).buffer; // 100 ms, not silence (trimmed)
+            },
+          };
+        };
+      });
+      afterEach(() => {
+        delete mockProvider.openReplyStream;
+        if (prior !== undefined) process.env.TTS_REPLY_CONTINUATIONS = prior;
+      });
+
+      it.each([
+        ['es', 'Estoy aquí contigo.'],
+        ['en', 'I am right here with you.'],
+      ] as const)('the stream is opened with the reply language: %s', async (lang, text) => {
+        expect((await speak(() => lang, text, true)).length).toBeGreaterThan(0);
+        expect(opened.length).toBeGreaterThan(0);
+        for (const [voiceId, language] of opened) {
+          expect(voiceId).toBe('test-voice');
+          expect(typeof language).toBe('function');
+          expect((language as () => string)()).toBe(lang);
+        }
+        expect(mockProvider.synthesize).not.toHaveBeenCalled(); // the stream spoke, not the bytes API
+      });
+    });
+
     it('a Spanish reply never gets the English audio cached for the same words', async () => {
       await speak(() => 'en', 'Hola.');
       vi.mocked(mockProvider.synthesize).mockClear();
