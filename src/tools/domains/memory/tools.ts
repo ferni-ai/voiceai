@@ -15,6 +15,7 @@ import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { keepRemembered, profileForCaller } from '../../../memory/index.js';
 import { memoryToolFlags, updateRemembered } from './honest-memory.js';
+import * as forgetTool from './forget-memory-params.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -98,7 +99,10 @@ export const rememberAboutUserDef: ToolDefinition = {
 
         // Feed to learning engine for persistence
         const { services } = userData;
-        if (services?.captureInsight && !memoryHeld((services as { sessionId?: string }).sessionId)) {
+        if (
+          services?.captureInsight &&
+          !memoryHeld((services as { sessionId?: string }).sessionId)
+        ) {
           const typeMap: Record<string, string> = {
             personal: 'relationship',
             financial: 'concern',
@@ -473,14 +477,10 @@ export const forgetMemoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('forgetMemory'),
-      parameters: z.object({
-        whatToForget: z.string().describe('What the user wants you to forget'),
-        confirmDeletion: z
-          .boolean()
-          .describe('Whether the user has confirmed they want this forgotten'),
-      }),
-      execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
+      description: forgetTool.description(getToolDescription('forgetMemory')),
+      parameters: forgetTool.parameters(),
+      execute: async ({ whatToForget, confirmDeletion, ...rest }, { ctx: toolCtx }) => {
+        const alsoAbout = forgetTool.alsoAboutOf(rest);
         getLogger().info(
           { agentId: ctx.agentId, confirmDeletion }, // never log what to forget
           'Forgetting memory'
@@ -495,7 +495,7 @@ export const forgetMemoryDef: ToolDefinition = {
         const forget = whatToForget.toLowerCase();
         userData.keyMoments = userData.keyMoments?.filter((m) => !m.toLowerCase().includes(forget));
         // And from stored memory, so no later call recalls it (forget.ts).
-        const forgot = await forgetForCaller(userData.userId, whatToForget);
+        const forgot = await forgetForCaller(userData.userId, whatToForget, undefined, alsoAbout);
         if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
 
         // Log the deletion for audit purposes (but don't persist the deleted content)

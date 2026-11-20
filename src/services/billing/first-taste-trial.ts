@@ -345,13 +345,14 @@ export async function isEligibleForTrial(userId: string): Promise<boolean> {
  * - [soft breath] / [breath] = subtle inhale signal "I'm arriving"
  * - speed ratio 0.88-0.92 = slower, grounding opener
  * - speed ratio 1.0 = natural question pace
- * - Half-started ("...hey") = caught mid-thought, more human
+ * - No ellipses or em dashes in the words (speech-markup-notes.ts): the voice says them
+ *   unevenly, so a pause is a <break> and a beat is a comma (#2063)
  * - Landing pause 400-550ms = patient presence after question
  */
 export function getTrialWelcomePrompt(): string {
   const prompts = [
     // The classic arrival - breath, slow "hey", settling into presence
-    '<break time="40ms"/>[soft breath]<break time="80ms"/><speed ratio="0.88"/><emotion value="affectionate"/>...hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>What\'s your name?<break time="500ms"/>',
+    '<break time="40ms"/>[soft breath]<break time="80ms"/><speed ratio="0.88"/><emotion value="affectionate"/>Hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>What\'s your name?<break time="500ms"/>',
 
     // Recognition moment - "oh, someone's here"
     '<break time="50ms"/><speed ratio="0.9"/>Oh.<break time="120ms"/><emotion value="affectionate"/>Hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>Who\'s this?<break time="480ms"/>',
@@ -363,13 +364,13 @@ export function getTrialWelcomePrompt(): string {
     '<break time="40ms"/>[breath]<break time="60ms"/><speed ratio="0.9"/><emotion value="curious"/>Hmm.<break time="150ms"/>Hey there.<break time="200ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="180ms"/><speed ratio="1.0"/>What should I call you?<break time="520ms"/>',
 
     // Half-started casual - caught in the middle of something
-    '<break time="50ms"/><speed ratio="0.88"/><emotion value="affectionate"/>...hey.<break time="200ms"/><speed ratio="0.95"/>So, I\'m Ferni.<break time="180ms"/><speed ratio="1.0"/>And you are...?<break time="500ms"/>',
+    '<break time="50ms"/><speed ratio="0.88"/><emotion value="affectionate"/>Hey.<break time="200ms"/><speed ratio="0.95"/>So, I\'m Ferni.<break time="180ms"/><speed ratio="1.0"/>And you are?<break time="500ms"/>',
 
     // The gentle introduction - extra warm for someone new
-    '<break time="60ms"/>[soft breath]<break time="80ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Oh— hey.<break time="180ms"/><speed ratio="0.92"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>Nice to meet you.<break time="300ms"/>What\'s your name?<break time="480ms"/>',
+    '<break time="60ms"/>[soft breath]<break time="80ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Oh, hey.<break time="180ms"/><speed ratio="0.92"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>Nice to meet you.<break time="300ms"/>What\'s your name?<break time="480ms"/>',
 
     // Curious and present - leaning in
-    '<break time="40ms"/><speed ratio="0.9"/><emotion value="curious"/>Hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/><break time="100ms"/>So... what brings you here?<break time="550ms"/>',
+    '<break time="40ms"/><speed ratio="0.9"/><emotion value="curious"/>Hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/><break time="100ms"/>So,<break time="150ms"/>what brings you here?<break time="550ms"/>',
   ];
 
   return prompts[Math.floor(Math.random() * prompts.length)];

@@ -370,7 +370,7 @@ async function flushEventBuffer(): Promise<void> {
 // ============================================================================
 
 /**
- * Get aggregated telemetry for a capability over a time period.
+ * Aggregated telemetry for a capability: null with no events; a failed read throws (#4069).
  */
 export async function getCapabilityTelemetry(
   capability: string,
@@ -432,7 +432,7 @@ export async function getCapabilityTelemetry(
     };
   } catch (error) {
     log.error({ error: String(error), capability }, 'Failed to get capability telemetry');
-    return null;
+    throw error;
   }
 }
 
