@@ -105,7 +105,6 @@
   "src/agents/voice-agent-entry/__tests__/participant-wait.test.ts",
   "src/agents/voice-agent-entry/__tests__/run-until-call-ends.sdk.test.ts",
   "src/agents/voice-agent-entry/__tests__/sip-caller.test.ts",
-  "src/agents/voice-agent-entry/caller-recognition.ts",
   "src/agents/voice-agent-entry/handler-setup.ts",
   "src/agents/voice-agent-entry/index.ts",
   "src/agents/voice-agent-entry/metadata-parser.ts",
