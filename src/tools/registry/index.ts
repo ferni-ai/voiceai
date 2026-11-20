@@ -24,8 +24,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { wrapCreateWithUserIdGuard } from './user-id-guard.js';
-import { gateOutboundTool } from './outbound-gate.js';
+import { guardedCreate } from './tool-guards.js'; // one composition, shared with createDomainExport
 import { toolAvailable } from './tool-availability.js';
 import {
   ALL_TOOL_DOMAINS,
@@ -94,8 +93,8 @@ export class ToolRegistry {
     if (!toolAvailable(definition)) return;
     if (this.tools.has(definition.id))
       getLogger().debug({ toolId: definition.id }, 'Tool re-registered (parallel init)');
-    // Session userId wins (./user-id-guard.ts); calls/texts wait for a yes (./outbound-gate.ts)
-    const create = wrapCreateWithUserIdGuard(gateOutboundTool(definition));
+    // Calls/texts wait for a yes, then the session userId wins (./tool-guards.ts)
+    const create = guardedCreate(definition);
     this.tools.set(definition.id, { ...definition, create });
 
     // Index by primary domain
