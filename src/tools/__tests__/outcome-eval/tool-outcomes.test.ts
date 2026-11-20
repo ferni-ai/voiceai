@@ -221,6 +221,23 @@ const CASES: Case[] = [
     fix: { flag: 'CALENDAR_WRITES_TRUTHFUL', pr: '#4255' },
   },
   {
+    id: 'updateCalendarEvent/healthy',
+    tool: 'updateCalendarEvent',
+    fault: 'none',
+    seed: seedEventToday,
+    args: { eventId: 'evt_seed', title: 'Dentist follow-up' },
+    outcome: (uid) => events(uid).some((e) => e.title === 'Dentist follow-up'),
+  },
+  {
+    id: 'updateCalendarEvent/write-fails',
+    tool: 'updateCalendarEvent',
+    fault: 'write',
+    seed: seedEventToday,
+    args: { eventId: 'evt_seed', title: 'Dentist follow-up' },
+    outcome: (uid) => events(uid).some((e) => e.title === 'Dentist follow-up'),
+    fix: { flag: 'CALENDAR_WRITES_TRUTHFUL', pr: '#4255' },
+  },
+  {
     id: 'canary/healthy',
     tool: 'canarySaysSaved',
     fault: 'none',
@@ -253,6 +270,7 @@ const GAPS = new Set([
   'getCalendarToday/read-fails', // #4237, fix #4240 (CALENDAR_LOAD_FAIL_HONEST)
   'createCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
   'deleteCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
+  'updateCalendarEvent/write-fails', // #4244, fix #4255 (CALENDAR_WRITES_TRUTHFUL)
 ]);
 
 let runs = 0;
