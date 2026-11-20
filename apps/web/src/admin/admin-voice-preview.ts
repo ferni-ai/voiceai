@@ -18,7 +18,7 @@ export const VOICE_PREVIEW_ROUTE = '/api/landing/tts';
 
 export async function previewAgentVoice(agentId: string): Promise<void> {
   log.debug({ agentId }, 'Previewing agent voice');
-  toast.info(`Playing ${agentId}'s voice`);
+  const playing = toast.info(`Playing ${agentId}'s voice`);
 
   try {
     const response = await fetch(VOICE_PREVIEW_ROUTE, {
@@ -29,7 +29,13 @@ export async function previewAgentVoice(agentId: string): Promise<void> {
         personaId: agentId,
       }),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      // The server has no voice to give (no TTS key on this server, 503): say so, it is no fault here
+      log.warn({ agentId, status: response.status }, 'Voice preview unavailable');
+      toast.dismiss(playing); // or the reason waits in the queue behind "Playing ..."
+      toast.error(`Voice preview unavailable (HTTP ${response.status})`);
+      return;
+    }
 
     const audioUrl = URL.createObjectURL(await response.blob());
     const audio = new Audio(audioUrl);

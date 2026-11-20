@@ -46,6 +46,7 @@ describe('Semantic Router E2E', () => {
     personaId: 'ferni',
     conversationHistory: [],
     recentTools: [],
+    autoExecuteCheck: null,
   };
 
   beforeEach(async () => {
@@ -270,6 +271,7 @@ describe('Semantic Router Edge Cases', () => {
     personaId: 'ferni',
     conversationHistory: [],
     recentTools: [],
+    autoExecuteCheck: null,
   };
 
   beforeEach(async () => {

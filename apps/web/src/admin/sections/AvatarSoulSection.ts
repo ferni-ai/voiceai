@@ -191,11 +191,8 @@ export function render(): string {
 
       <!-- Quick Links -->
       <div class="soul-links">
-        <a href="/design-system/preview/index.html#avatar-soul" target="_blank" class="soul-link">
+        <a href="/design-system/preview.html" target="_blank" class="soul-link">
           View in Design System →
-        </a>
-        <a href="https://docs.google.com/document/d/YOUR_DOC_ID" target="_blank" class="soul-link">
-          Better Than Human Docs →
         </a>
       </div>
     </div>
@@ -658,7 +655,7 @@ export function setupEvents(): void {
 
 async function handleSoulAction(action: string, value: string): Promise<void> {
   const soul = await getAvatarSoul();
-  
+
   // Update preview
   updateAdminSoulPreview(action, value);
 
@@ -789,7 +786,9 @@ function updateAdminSoulPreview(action: string, value: string): void {
           glow.classList.add('active');
         }
       }
-      if (stateEl) stateEl.textContent = value === 'none' ? 'Neutral' : value.charAt(0).toUpperCase() + value.slice(1);
+      if (stateEl)
+        stateEl.textContent =
+          value === 'none' ? 'Neutral' : value.charAt(0).toUpperCase() + value.slice(1);
       break;
 
     case 'effect':
@@ -841,4 +840,3 @@ function updateAdminSoulPreview(action: string, value: string): void {
       break;
   }
 }
-

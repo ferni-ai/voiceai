@@ -15,7 +15,7 @@ vi.mock('../auth-middleware.js', () => ({ requireAdmin }));
 const analytics = vi.hoisted(() => ({
   getAnalyticsSummary: vi.fn(async () => ({ uniqueUsersToday: 42, subscriberSessions: 7 })),
   getCurrentConcurrent: vi.fn(() => 3),
-  initializeAnalytics: vi.fn(async () => undefined),
+  initializeAnalytics: vi.fn(async () => true), // the Firestore store is up
 }));
 vi.mock('../../services/analytics/user-analytics.js', () => analytics);
 

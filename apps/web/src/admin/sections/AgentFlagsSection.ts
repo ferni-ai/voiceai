@@ -46,7 +46,9 @@ const log = createLogger('AgentFlagsSection');
 
 const POLL_MS = 5_000;
 const CONFIRM_TIMEOUT_MS = 4 * 60_000;
-const NOT_DEV = 'Agent flags can only be changed on the dev admin server.';
+// "unavailable (HTTP n)" is how every admin section says its data did not load (e2e admin-portal walk)
+const NOT_DEV =
+  'Agent flags unavailable (HTTP 404): they can only be changed on the dev admin server.';
 
 let view = freshView();
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -92,10 +94,10 @@ export async function render(): Promise<string> {
       view.unconfirmed = unconfirm(view.unconfirmed, phase.applied, phase.appliedAt);
     }
     const text = !loaded
-      ? 'Could not reach the server to load agent flags.'
+      ? 'Agent flags unavailable (network error): could not reach the server.'
       : loaded.status === 404
         ? NOT_DEV
-        : `Could not load agent flags (HTTP ${loaded.status}).`;
+        : `Agent flags unavailable (HTTP ${loaded.status}).`;
     return shell(`<p class="af-banner">${escapeHtml(text)}</p>`);
   }
   view.body = loaded.body;

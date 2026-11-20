@@ -45,6 +45,10 @@ getLogger().info('Simple log');
 - Always use `createLogger` or `getLogger`, never `console.log`
 - Include context object as first parameter
 - Convert errors to strings: `{ error: String(err) }`
+- A consented clone's voice id never reaches a log: the app logger replaces it in the
+  whole written line (fields, child bindings, message) with `[consented-clone]`. The roster
+  registers the ids (`registerRedactedLogValues`, `redacted-log-values.ts`) and every
+  deployed entry imports the roster at boot. Don't add per-call-site masking for them.
 
 ### Circuit Breaker
 

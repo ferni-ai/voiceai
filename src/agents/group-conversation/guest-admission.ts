@@ -8,13 +8,11 @@
  *
  * @module agents/group-conversation/guest-admission
  */
-import { ParticipantKind } from '@livekit/rtc-node';
+import type { ParticipantKind } from '@livekit/rtc-node';
+
+import { isPersonKind } from '../shared/participant-kind.js';
 
 const GUEST_IDENTITY_PREFIX = 'guest_';
-const GUEST_KINDS: ReadonlySet<ParticipantKind> = new Set([
-  ParticipantKind.SIP,
-  ParticipantKind.STANDARD,
-]);
 
 export function isAdmittedGuest(
   person: { identity: string; kind?: ParticipantKind },
@@ -23,7 +21,6 @@ export function isAdmittedGuest(
   return (
     person.identity !== ownerIdentity &&
     person.identity.startsWith(GUEST_IDENTITY_PREFIX) &&
-    person.kind !== undefined &&
-    GUEST_KINDS.has(person.kind)
+    isPersonKind(person.kind)
   );
 }

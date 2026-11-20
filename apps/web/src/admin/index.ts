@@ -8,6 +8,7 @@
 
 export { initAdminPortal, destroyAdminPortal, adminPortalState } from './AdminPortal.js';
 export { ADMIN_SECTIONS, type AdminSection } from './section-registry.js';
+export { openAdminPortal } from './admin-access.js';
 
 // Admin API utilities
 export {
@@ -27,5 +28,4 @@ export {
   disableAllFlags,
   resetFlags,
   runQuickAction,
-  sendApiRequest,
 } from './admin-events.js';

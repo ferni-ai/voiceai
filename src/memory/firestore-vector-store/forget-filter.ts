@@ -17,11 +17,22 @@
  * (metadata.sourceCollection / sourceDocId). If the forgotten topics or the
  * source docs can't be read, the affected results are dropped (fails closed).
  *
+ * With FORGET_EVERY_READER on, an open loop's copy (openLoopWords) is matched
+ * on any distinctive word (isForgottenPassage), as the open-loops store and
+ * the insight broker read it: it quotes the caller, so "forget the Denver
+ * job" drops "the offer from the Denver office". Other copies keep isForgotten.
+ * The copy holds only a loop's first 100 characters, so the loop's own record
+ * (openLoopPath) is read with the sources and matched whole; when it can't be
+ * read, loop copies are dropped.
+ *
  * @module memory/firestore-vector-store/forget-filter
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { withoutHeldAt } from '../../utils/held-window-check.js';
+import type { Env } from '../../config/env-flag.js';
+import { isForgottenPassage } from '../domain/forgotten.js';
 import { forgetGeneration, forgottenTopicsOrNull } from '../recall/forget.js';
+import { forgetEveryReaderEnabled } from '../recall/forget-every-reader.js';
 import { isForgotten } from '../recall/session-recall.js';
 
 /** Topics change rarely; a short cache keeps search from paying a read every time. */
@@ -108,6 +119,44 @@ export function sourcePath(
   return undefined;
 }
 
+/** An expired loop's whole copy, as coaching-hooks.ts writes open-loop-expiry.ts's fields. */
+const EXPIRED_COPY =
+  /^Coaching insight: Open loop \(\w+\) expired\. Context: Status: expired\. Category: \w+\.$/;
+
+/**
+ * The caller's words in an open loop's copy (open-loops.ts saveOpenLoop), without the copy's own labels ("Priority", "Actionable"),
+ * which would match a topic on their own; none for an expired loop's copy, which is only
+ * labels (open-loop-expiry.ts); the whole text if its shape is new.
+ * Undefined for any other result.
+ */
+export function openLoopWords(doc: { id: string; text: string }): string | undefined {
+  // The store's id is `${storeType}_${entityType}_${entityId}`: coaching_coaching_insight_open_loop_<id>
+  if (!doc.id.includes('_open_loop_')) return undefined;
+  if (EXPIRED_COPY.test(doc.text)) return '';
+  const said = /Open loop \([^)]*\):\s*([\s\S]*?)\.\s*Context: Priority:/.exec(doc.text);
+  return said?.[1] ?? doc.text;
+}
+
+/** The open-loops record an open loop's copy was made from (open-loops.ts), or undefined. */
+export function openLoopPath(userId: string, doc: { id: string }): string | undefined {
+  const at = doc.id.indexOf('_open_loop_');
+  if (at < 0) return undefined;
+  const id = doc.id.slice(at + '_open_loop_'.length);
+  return /^[\w-]+$/.test(id) ? `bogle_users/${userId}/open_loops/${id}` : undefined;
+}
+
+/** The loop's labels: never the caller's words. */
+const LOOP_LABELS = new Set(['id', 'userId', 'type', 'status', 'emotionAtCreation']);
+
+/** Every string in a stored loop but its labels (content, context, the person, the topic...). */
+export function loopRecordText(record: Record<string, unknown>): string {
+  return Object.entries(record)
+    .filter(([k]) => !LOOP_LABELS.has(k))
+    .flatMap(([, v]) => (Array.isArray(v) ? v : [v]))
+    .filter((v): v is string => typeof v === 'string')
+    .join(' ');
+}
+
 /**
  * Leaves out results about a forgotten topic or copying a forgotten or
  * deleted source. Graph copies (fact_fact_) may come from `memories`, so
@@ -119,23 +168,36 @@ export async function withoutForgotten<
   userId: string,
   results: T[],
   reads: ForgetReads = firestoreReads,
-  now = Date.now()
+  now = Date.now(),
+  env: Env = process.env
 ): Promise<T[]> {
   if (results.length === 0) return results;
   // MINOR_CARE: nor what was indexed during a purged held call (held-index-purge.ts)
   const live = withoutHeldAt(userId, results, (r) => r.document.metadata?.indexedAt);
   const topics = await topicsFor(userId, reads, now);
   if (topics === null) return [];
-  const kept = live.filter((r) => !isForgotten(r.document.text, topics));
-  const paths = [...new Set(kept.flatMap((r) => sourcePath(userId, r.document) ?? []))];
+  const byWord = forgetEveryReaderEnabled(env);
+  const kept = live.filter((r) => {
+    const loop = byWord ? openLoopWords(r.document) : undefined;
+    if (loop !== undefined && isForgottenPassage(loop, topics)) return false;
+    return !isForgotten(r.document.text, topics);
+  });
+  // Nothing forgotten: no record to read (and none to fail closed on).
+  const loopOf = (r: T) =>
+    byWord && topics.length > 0 ? openLoopPath(userId, r.document) : undefined;
+  const read = (r: T) => [sourcePath(userId, r.document), loopOf(r)].filter((p) => p !== undefined);
+  const paths = [...new Set(kept.flatMap(read))];
   if (paths.length === 0) return kept;
   let docs: Map<string, Record<string, unknown> | undefined>;
   try {
     docs = await withinTimeout(reads.docs(paths));
   } catch {
-    return kept.filter((r) => sourcePath(userId, r.document) === undefined);
+    return kept.filter((r) => read(r).length === 0);
   }
   return kept.filter((r) => {
+    const loop = loopOf(r);
+    const record = loop === undefined ? undefined : docs.get(loop);
+    if (record && isForgottenPassage(loopRecordText(record), topics)) return false;
     const path = sourcePath(userId, r.document);
     if (!path) return true;
     const src = docs.get(path);

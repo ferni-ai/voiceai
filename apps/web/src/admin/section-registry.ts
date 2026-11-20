@@ -22,6 +22,7 @@ import {
   ICON_TARGET,
   ICON_TRUST,
 } from './icons.js';
+import { setupDesignSystemHandlers } from './admin-events.js';
 
 export interface AdminSection {
   id: string;
@@ -29,8 +30,23 @@ export interface AdminSection {
   icon: string;
   description: string;
   badge?: string;
+  /** The section's HTML. */
   component: () => Promise<string>;
+  /** Wires the section once its HTML is in `root`, the portal's content area. */
+  setup?: (root: HTMLElement) => void | Promise<void>;
+  /** Stops what `setup` started (timers, polling) when the portal leaves the section. */
+  cleanup?: () => void;
 }
+
+const businessMetrics = async () => import('./sections/BusinessMetricsSection.js');
+const semanticRouting = async () => import('./sections/SemanticRoutingSection.js');
+const bthValidation = async () => import('./sections/BTHValidationSection.js');
+const blindEvaluation = async () => import('./sections/BlindEvaluationPanel.js');
+const experiments = async () => import('./sections/ExperimentsSection.js');
+const agentFlags = async () => import('./sections/AgentFlagsSection.js');
+const finops = async () => import('./sections/FinOpsSection.js');
+const avatarSoul = async () => import('./sections/AvatarSoulSection.js');
+const modelConfig = async () => import('./sections/ModelConfigSection.js');
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   {
@@ -46,7 +62,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_CHART,
     description: 'DAU/WAU/MAU, MRR, churn',
     badge: 'NEW',
-    component: async () => (await import('./sections/BusinessMetricsSection.js')).render(),
+    component: async () => (await businessMetrics()).render(),
+    setup: async () => (await businessMetrics()).init(),
+    cleanup: () => void businessMetrics().then((s) => s.cleanup()),
   },
   {
     id: 'semantic-routing',
@@ -54,12 +72,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_ROUTING,
     description: 'Tool routing accuracy, learning, A/B tests',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/SemanticRoutingSection.js');
-      const html = section.render();
-      setTimeout(() => section.init(), 100);
-      return html;
-    },
+    component: async () => (await semanticRouting()).render(),
+    setup: async () => (await semanticRouting()).init(),
+    cleanup: () => void semanticRouting().then((s) => s.cleanup()),
   },
   {
     id: 'agents',
@@ -82,15 +97,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_TARGET,
     description: 'Better Than Human benchmark metrics',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/BTHValidationSection.js');
-      const html = await section.render();
-      setTimeout(
-        () => section.setupEvents(document.querySelector('.admin-section-content') as HTMLElement),
-        100
-      );
-      return html;
-    },
+    component: async () => (await bthValidation()).render(),
+    setup: async (root) => (await bthValidation()).setupEvents(root),
+    cleanup: () => void bthValidation().then((s) => s.cleanup()),
   },
   {
     id: 'blind-evaluation',
@@ -98,15 +107,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_EYE_OFF,
     description: 'A/B evaluation panel for human vs AI comparison',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/BlindEvaluationPanel.js');
-      const html = await section.render();
-      setTimeout(
-        () => section.setupEvents(document.querySelector('.admin-section-content') as HTMLElement),
-        100
-      );
-      return html;
-    },
+    component: async () => (await blindEvaluation()).render(),
+    setup: async (root) => (await blindEvaluation()).setupEvents(root),
+    cleanup: () => void blindEvaluation().then((s) => s.cleanup()),
   },
   {
     id: 'trust',
@@ -137,12 +140,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_FLAGS, // Using flags icon for now
     description: 'A/B tests and experiments',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/ExperimentsSection.js');
-      const html = await section.render();
-      setTimeout(() => section.setupEvents(), 100);
-      return html;
-    },
+    component: async () => (await experiments()).render(),
+    setup: async () => (await experiments()).setupEvents(),
   },
   {
     id: 'flags',
@@ -156,12 +155,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     name: 'Agent flags (dev)',
     icon: ICON_FLAGS,
     description: "Switch the dev voice agent's flags",
-    component: async () => {
-      const section = await import('./sections/AgentFlagsSection.js');
-      const html = await section.render();
-      setTimeout(() => section.setupEvents(), 100);
-      return html;
-    },
+    component: async () => (await agentFlags()).render(),
+    setup: async () => (await agentFlags()).setupEvents(),
   },
   {
     id: 'finops',
@@ -169,12 +164,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_CHART,
     description: 'Cost tracking, unit economics, burn rate',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/FinOpsSection.js');
-      const html = await section.render();
-      setTimeout(() => section.setupEvents(), 100);
-      return html;
-    },
+    component: async () => (await finops()).render(),
+    setup: async () => (await finops()).setupEvents(),
+    cleanup: () => void finops().then((s) => s.cleanup()),
   },
   {
     id: 'operations',
@@ -183,6 +175,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: 'Infrastructure health & metrics',
     badge: 'NEW',
     component: async () => (await import('./sections/OperationsSection.js')).render(),
+    setup: async (root) => (await import('./sections/OperationsSection.js')).setupEvents(root),
   },
   {
     id: 'diagnostics',
@@ -204,13 +197,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_SPARKLES,
     description: 'Better Than Human animations',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/AvatarSoulSection.js');
-      const html = await section.render();
-      // Schedule event setup after render
-      setTimeout(() => section.setupEvents(), 100);
-      return html;
-    },
+    component: async () => (await avatarSoul()).render(),
+    setup: async () => (await avatarSoul()).setupEvents(),
   },
   {
     id: 'design-system',
@@ -218,6 +206,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_DESIGN_SYSTEM,
     description: 'Animations and visual tokens',
     component: async () => (await import('./sections/DesignSystemSection.js')).render(),
+    setup: () => setupDesignSystemHandlers(),
   },
   {
     id: 'model-config',
@@ -225,12 +214,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_SPARKLES,
     description: 'LLM parameters and system prompts',
     badge: 'NEW',
-    component: async () => {
-      const section = await import('./sections/ModelConfigSection.js');
-      const html = await section.render();
-      setTimeout(() => section.setupEvents(), 100);
-      return html;
-    },
+    component: async () => (await modelConfig()).render(),
+    setup: async () => (await modelConfig()).setupEvents(),
   },
   {
     id: 'more-dashboards',
@@ -240,6 +225,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/MoreDashboardsSection.js')).render(),
   },
 ];
+
+/** `href` naming section `id` in `?section=`, so a reload or a shared link opens that section. */
+export function sectionHref(href: string, id: string): string {
+  const url = new URL(href);
+  url.searchParams.set('section', id);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
 
 /** The section `?section=<id>` names (how the Dev Panel opens one), or `fallback`. */
 export function initialSectionId(search: string, fallback: string): string {
