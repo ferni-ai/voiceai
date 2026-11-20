@@ -2,6 +2,11 @@
   "name": "@ferni/design-system",
   "version": "2.0.0",
   "description": "Ferni Design System - Better Than Human brand tokens, components, and documentation",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ferni-ai/voiceai.git",
+    "directory": "design-system"
+  },
   "type": "module",
   "scripts": {
     "build": "node build.js",
@@ -45,9 +50,15 @@
   },
   "files": [
     "dist",
+    "!dist/*report.json",
     "assets",
     "components",
-    "api"
+    "api",
+    "tokens/content-templates.json",
+    "tokens/persona-kits.json",
+    "tokens/sequences.json",
+    "tokens/responsive.json",
+    "tokens/i18n.json"
   ],
   "main": "dist/tokens.css",
   "exports": {
