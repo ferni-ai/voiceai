@@ -19,6 +19,7 @@ import {
   saveLifeAutomationData,
   isFirestoreAvailable,
 } from './firestore-life-adapter.js';
+import { notSaved } from './store-write-truth.js'; // STORE_WRITES_TRUTHFUL
 
 const log = createLogger({ module: 'meal-store' });
 
@@ -280,12 +281,7 @@ export async function saveMealData(userId: string, data: Partial<MealData>): Pro
         lastUpdated: (updated.lastUpdated as Date).toISOString(),
       };
       const result = await saveLifeAutomationData(userId, 'meals', firestoreData);
-      if (!result.success) {
-        log.warn(
-          { userId, error: result.error },
-          'Failed to save to Firestore, data in memory only'
-        );
-      }
+      if (!result.success) notSaved(log, mealStorage, 'meals', { userId, result });
     }
 
     log.debug({ userId }, 'Meal data saved');
