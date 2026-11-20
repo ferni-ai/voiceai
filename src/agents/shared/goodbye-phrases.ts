@@ -136,7 +136,8 @@ function closingClause(words: readonly string[], closers: ReadonlySet<string>): 
   return false;
 }
 
-function clauseWords(text: string): string[][] {
+/** The last MAX_CALLER_CHARS of a line as clauses of folded, lower-case words (wind-down.ts too). */
+export function clauseWords(text: string): string[][] {
   // Accents folded ("adiós" is "adios"); only warm symbols dropped ("bye 🙂", "bye :)").
   // Any other emoji stays a word no goodbye matches ("bye 😢"); letters of any script
   // stay, so a line in another script never matches a goodbye here.

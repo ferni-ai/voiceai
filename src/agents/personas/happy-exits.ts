@@ -25,6 +25,10 @@
  * position ("okay, bye"), not "say bye to grandma for me". HAPPY_EXITS's note,
  * when it fires, already has the cap and wins.
  *
+ * SIGNOFF_READ_WIDE=on (off by default) lets both notes fire on a wind-down
+ * with no goodbye word too: "thanks, man. I'll call him tonight", "night"
+ * (wind-down.ts, #3197).
+ *
  * @module agents/personas/happy-exits
  */
 import type { llm } from '@livekit/agents';
@@ -34,6 +38,7 @@ import { rememberGoodbyePlan } from '../../services/superhuman/commitment-follow
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { callerSaysGoodbye } from '../shared/call-farewell.js';
+import { windingDown } from '../shared/wind-down.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
@@ -50,10 +55,18 @@ export function shortGoodbyeEnabled(env: Env = process.env): boolean {
 
 export const SHORT_GOODBYE_NOTE =
   "They've said goodbye. Say yours in one or two short sentences, then stop: no recap, no new topic, no question.";
+/** The same cap for a wind-down with no goodbye word (SIGNOFF_READ_WIDE, wind-down.ts). */
+const WIND_DOWN_NOTE =
+  "They're wrapping up. Let them go warmly in one or two short sentences, then stop: no recap, no new topic, no question.";
 
-/** SHORT_GOODBYE's cap for this reply, or '' (flag off, or the caller hasn't said bye). */
+/**
+ * SHORT_GOODBYE's cap for this reply, or '' (flag off, or the caller hasn't said bye).
+ * With SIGNOFF_READ_WIDE=on, a wind-down ("thanks, I'll call him tonight") gets it too.
+ */
 export function shortGoodbyeNote(said: string, env: Env = process.env): string {
-  return shortGoodbyeEnabled(env) && callerSaysGoodbye(said) ? SHORT_GOODBYE_NOTE : '';
+  if (!shortGoodbyeEnabled(env)) return '';
+  if (callerSaysGoodbye(said)) return SHORT_GOODBYE_NOTE;
+  return windingDown(said, env) ? WIND_DOWN_NOTE : '';
 }
 
 /** A goodbye note may be added: HAPPY_EXITS's, or SHORT_GOODBYE's cap. */
@@ -150,7 +163,8 @@ export interface Exit {
 /** The goodbye note for one reply, or none when they aren't saying goodbye or the flag is off. */
 export function happyExitFor(input: ExitInput, env: Env = process.env): Exit {
   if (!happyExitsEnabled(env)) return { note: '', fired: 'none' };
-  if (!sayingGoodbye(input.said) && !input.wantsToEnd) return { note: '', fired: 'none' };
+  const ending = sayingGoodbye(input.said) || input.wantsToEnd || windingDown(input.said, env);
+  if (!ending) return { note: '', fired: 'none' };
   if (input.careful || heavyCall(input.callerTurns))
     return { note: `${EXIT} ${HEAVY}`, fired: 'heavy' };
   const plan = mentionedPlan(input.callerTurns);
