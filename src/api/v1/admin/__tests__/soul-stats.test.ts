@@ -109,6 +109,27 @@ describe('GET soul stats, by what the store holds', () => {
       reason: 'Could not read soul_stats_hourly (Error, code 7)',
     });
   });
+
+  it('Firestore that never answers: measured false after 5 s, not a hung request', async () => {
+    const hung = {
+      collection: () => ({ doc: (id: string) => ({ id }) }),
+      getAll: () => new Promise(() => {}),
+    };
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const answer = readAdminSoulStats(deps({ getDb: () => hung as never }));
+      const settled = () => Promise.race([answer, Promise.resolve('pending')]);
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(await settled()).toBe('pending');
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await settled()).toEqual({
+        measured: false,
+        reason: 'Firestore did not answer within 5s',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 function request(method: string, path: string) {

@@ -39,7 +39,12 @@ function call(body: unknown, deps: Partial<SoulStatsDeps> = {}, method = 'POST')
     destroy: () => {},
   });
   let status = 0;
-  const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} };
+  let sent = '';
+  const res = {
+    writeHead: (s: number) => void (status = s),
+    setHeader: () => {},
+    end: (b?: string) => void (sent = b ?? ''),
+  };
   const uid = `uid-${++uidSeq}`; // own rate-limit bucket per call unless a test passes one
   const done = handleSoulStatsRoutes(req as never, res as never, '/api/soul-stats', {
     authenticate: async () => ({ userId: uid }),
@@ -53,7 +58,7 @@ function call(body: unknown, deps: Partial<SoulStatsDeps> = {}, method = 'POST')
     req.emit('data', Buffer.from(typeof body === 'string' ? body : JSON.stringify(body)));
     req.emit('end');
   });
-  return done.then((handled) => ({ handled, status }));
+  return done.then((handled) => ({ handled, status, body: sent }));
 }
 
 describe('SOUL_STATS', () => {
@@ -108,6 +113,26 @@ describe('what is stored', () => {
     const { db } = memoryDb();
     const addCounts = async () => Promise.reject(new Error('14 UNAVAILABLE'));
     expect((await call({ counts: COUNTS }, { getDb: () => db, addCounts })).status).toBe(500);
+  });
+
+  it('answers 503 with the reason when the Firestore write does not settle within 5 s', async () => {
+    const hung = { collection: () => ({ doc: () => ({ set: () => new Promise(() => {}) }) }) };
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const done = call({ counts: COUNTS }, { getDb: () => hung as never });
+      const settled = () => Promise.race([done, Promise.resolve(null)]);
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(await settled()).toBeNull();
+      await vi.advanceTimersByTimeAsync(1);
+      const out = await settled();
+      expect(out?.status).toBe(503);
+      expect(JSON.parse(out?.body ?? '{}')).toEqual({
+        error: 'Soul stats are unavailable right now',
+        reason: 'Firestore did not answer within 5s',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

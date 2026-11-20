@@ -8,6 +8,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Firestore } from '@google-cloud/firestore';
+import { TimeoutError } from '../../utils/async.js';
 import { errorClass } from '../../utils/error-class.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -15,7 +16,7 @@ import { rateLimit, requireAuth } from '../auth-middleware.js';
 import { BodyTooLargeError } from '../bounded-body.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from '../helpers.js';
 import { SOUL_STATS_LIMITS, soulStatsBodySchema, type SoulCounts } from './soul-stats-input.js';
-import { addSoulCounts, soulStatsOn } from './soul-stats-store.js';
+import { addSoulCounts, FIRESTORE_SLOW, soulStatsOn } from './soul-stats-store.js';
 
 const log = createLogger({ module: 'SoulStats' });
 
@@ -82,7 +83,8 @@ export async function handleSoulStatsRoutes(
   } catch (error) {
     const code = (error as { code?: unknown } | null)?.code;
     log.error({ error: errorClass(error), code }, 'Could not store soul stats');
-    sendError(res, 'Could not store soul stats', 500);
+    if (!(error instanceof TimeoutError)) return answer(500, 'Could not store soul stats');
+    sendJSON(res, { error: 'Soul stats are unavailable right now', reason: FIRESTORE_SLOW }, 503);
   }
   return true;
 }

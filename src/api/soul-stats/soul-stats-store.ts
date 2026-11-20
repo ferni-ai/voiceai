@@ -8,12 +8,16 @@
  */
 import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { withTimeout } from '../../utils/async.js';
 import { SOUL_COUNT_KEYS, type SoulCounts } from './soul-stats-input.js';
 
 const COLLECTION = 'soul_stats_hourly';
 const KEEP_MS = 8 * 24 * 60 * 60 * 1000;
 const WINDOW_HOURS = 24;
 const HOUR_MS = 60 * 60 * 1000;
+/** Every Firestore call here gives up after this (it can hang for minutes otherwise). */
+const DEADLINE_MS = 5_000;
+export const FIRESTORE_SLOW = 'Firestore did not answer within 5s';
 
 export function soulStatsOn(env: Env = process.env): boolean {
   return flagOn('SOUL_STATS', env);
@@ -33,13 +37,9 @@ export async function addSoulCounts(
   const added = SOUL_COUNT_KEYS.filter((k) => counts[k] > 0);
   if (added.length === 0) return false;
   const increments = Object.fromEntries(added.map((k) => [k, FieldValue.increment(counts[k])]));
-  await db
-    .collection(COLLECTION)
-    .doc(hourId(now))
-    .set(
-      { ...increments, updatedAt: new Date(now), expireAt: new Date(now + KEEP_MS) },
-      { merge: true }
-    );
+  const doc = { ...increments, updatedAt: new Date(now), expireAt: new Date(now + KEEP_MS) };
+  const write = db.collection(COLLECTION).doc(hourId(now)).set(doc, { merge: true });
+  await withTimeout(write, DEADLINE_MS, 'soul_stats_hourly write');
   return true;
 }
 
@@ -67,7 +67,7 @@ function asMs(v: unknown): number | null {
 export async function readSoulTotals(db: Firestore, now: number): Promise<SoulStatsTotals> {
   const col = db.collection(COLLECTION);
   const refs = Array.from({ length: WINDOW_HOURS }, (_, i) => col.doc(hourId(now - i * HOUR_MS)));
-  const snaps = await db.getAll(...refs);
+  const snaps = await withTimeout(db.getAll(...refs), DEADLINE_MS, 'soul_stats_hourly read');
   const sum = Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 0])) as SoulCounts;
   let newest: number | null = null;
   for (const snap of snaps) {

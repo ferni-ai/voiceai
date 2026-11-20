@@ -8,11 +8,13 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Firestore } from '@google-cloud/firestore';
+import { TimeoutError } from '../../../utils/async.js';
 import { errorClass } from '../../../utils/error-class.js';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
 import {
+  FIRESTORE_SLOW,
   readSoulTotals,
   soulStatsOn,
   type SoulStatsTotals,
@@ -45,6 +47,7 @@ async function readAdminSoulStats(deps: AdminSoulStatsDeps): Promise<AdminSoulSt
   } catch (error) {
     const code = (error as { code?: unknown } | null)?.code;
     log.error({ error: errorClass(error), code }, 'Could not read soul stats');
+    if (error instanceof TimeoutError) return { measured: false, reason: FIRESTORE_SLOW };
     const why =
       code === undefined ? errorClass(error) : `${errorClass(error)}, code ${String(code)}`;
     return { measured: false, reason: `Could not read soul_stats_hourly (${why})` };
