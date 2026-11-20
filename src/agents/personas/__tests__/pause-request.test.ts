@@ -25,12 +25,18 @@ vi.mock('../../shared/farewell-risk.js', async (importOriginal) => {
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
 import { gatedReply } from '../crisis-gate.js';
-import { isPauseRequest, PAUSE_REQUEST_NOTE, pauseRequestNote } from '../pause-request.js';
+import { pauseRequestNote } from '../pause-request.js';
 import { withTurnReminder } from '../turn-request.js';
 
 const ISSUE_LINE = 'Hmm. Okay, hold on. Let me think.'; // rt-1116-let-me-think
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const ON = { PAUSE_REQUEST_WAIT: 'on' };
+/** The note as the model reads it (pause-request.ts). */
+const PAUSE_REQUEST_NOTE =
+  '[They asked for a moment to think. Give it to them: a few warm words at most, ' +
+  'such as "Sure, take your time." Ask no question, add nothing else, and let them come back to you.]';
+/** Whether the whole turn reads as a pause request: the note comes back with the flag on. */
+const isPauseRequest = (said: string): boolean => pauseRequestNote(said, ON) !== '';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -68,7 +74,7 @@ async function gatedRequests(said: string, sessionId: string): Promise<string[]>
   return sent;
 }
 
-describe('isPauseRequest: the whole turn asks for a moment', () => {
+describe('pauseRequestNote (flag on): the whole turn asks for a moment', () => {
   it.each([
     ISSUE_LINE,
     'Give me a sec.',
@@ -118,8 +124,10 @@ describe('pauseRequestNote: PAUSE_REQUEST_WAIT', () => {
   });
 
   it('the note asks for no question and has no em dash or ellipsis', () => {
-    expect(PAUSE_REQUEST_NOTE).toContain('Ask no question');
-    expect(PAUSE_REQUEST_NOTE).not.toMatch(/—|…|\.\.\./);
+    const note = pauseRequestNote(ISSUE_LINE, ON);
+    expect(note).toMatch(/Ask no question/);
+    expect(note).toMatch(/"Sure, take your time\."/);
+    expect(note).not.toMatch(/—|…|\.\.\./);
   });
 });
 

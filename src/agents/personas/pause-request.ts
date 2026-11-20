@@ -38,9 +38,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'PauseRequest' });
 
 /** The longest turn read as a pause request ("Okay, hold on, let me think about that."). */
-export const PAUSE_REQUEST_MAX_WORDS = 8;
+const PAUSE_REQUEST_MAX_WORDS = 8;
 
-export const PAUSE_REQUEST_NOTE =
+const PAUSE_REQUEST_NOTE =
   '[They asked for a moment to think. Give it to them: a few warm words at most, ' +
   'such as "Sure, take your time." Ask no question, add nothing else, and let them come back to you.]';
 
@@ -86,7 +86,7 @@ function core(ws: readonly string[]): string {
 }
 
 /** True when the whole turn is a request to wait and nothing else, with no risk in it. */
-export function isPauseRequest(said: string): boolean {
+function isPauseRequest(said: string): boolean {
   const line = said.trim();
   if (!line || !PLAIN_LINE.test(line)) return false;
   if (tokens(line).length > PAUSE_REQUEST_MAX_WORDS) return false;
