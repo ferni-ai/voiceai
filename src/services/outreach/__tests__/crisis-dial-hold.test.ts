@@ -14,7 +14,7 @@ const logged = vi.hoisted(() => [] as Array<[Record<string, unknown>, string]>);
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
   const keep = (fields: Record<string, unknown>, message: string) => logged.push([fields, message]);
-  const logger = { debug: () => undefined, info: keep, warn: keep, error: () => undefined };
+  const logger = { debug: () => undefined, info: keep, warn: keep, error: keep };
   return { ...actual, createLogger: () => ({ ...logger, child: () => logger }) };
 });
 
@@ -25,6 +25,12 @@ let failReads = 0;
 let slowWriteMs = 0;
 /** Each cancel transaction lands this many ms after it starts (0: at once). */
 let slowTxMs = 0;
+/** Fails this many store transactions before one runs. */
+let failTx = 0;
+/** Every delete of a deferral fails. */
+let failDelete = false;
+/** Fails this many deferral writes (set) before one lands. */
+let failSets = 0;
 /** Runs once the cancel's query has read, before its transaction: what lands in between. */
 let afterQuery: (() => void) | undefined;
 /** The fake, plus where() on a user's own collection (the cancel's query). */
@@ -38,6 +44,7 @@ const db = () => {
         await new Promise((resolve) => {
           setTimeout(resolve, slowTxMs);
         });
+      if (failTx > 0 && failTx--) throw new Error('ABORTED');
       return base.runTransaction(fn);
     },
     collection: () => ({
@@ -51,13 +58,18 @@ const db = () => {
               const doc = user.collection(c).doc(id);
               const write = doc.set;
               doc.set = async (data: Record<string, unknown>) => {
+                if (failSets > 0 && failSets--) throw new Error('UNAVAILABLE');
                 if (slowWriteMs)
                   await new Promise((resolve) => {
                     setTimeout(resolve, slowWriteMs);
                   });
                 return write(data);
               };
-              return doc;
+              const remove = async () => {
+                if (failDelete) throw new Error('UNAVAILABLE');
+                rows = rows.filter((r) => !(r.collection === c && r.id === id && r.userId === uid));
+              };
+              return Object.assign(doc, { id, delete: remove });
             },
             where: (f: string, op: string, v: unknown) => ({
               get: async () => {
@@ -123,7 +135,15 @@ const heldOn = (origin: string) => ({
     recordingConsent: false,
   },
 });
-const defer = (origin: string) => deferCall('u-4187', heldOn(origin) as never, decision as never);
+const defer = (origin: string, at = DUE) =>
+  deferCall('u-4187', heldOn(origin) as never, { ...decision, at } as never);
+const HOUR = 3600_000;
+const later = (hours: number) => new Date(NOW.getTime() + hours * HOUR);
+/** The deferral `origin`'s call made. */
+const deferralOf = (origin: string) =>
+  deferred().find(
+    (r) => (r.data.request as { originalSessionId?: string }).originalSessionId === origin
+  )?.data;
 const deferred = () => rows.filter((r) => r.collection === 'deferred_calls');
 const lines = (outcome: string) =>
   logged.filter(([f, m]) => m === 'CRISIS_DIAL_HOLD' && f.outcome === outcome).map(([f]) => f);
@@ -146,6 +166,9 @@ beforeEach(() => {
   failReads = 0;
   slowWriteMs = 0;
   slowTxMs = 0;
+  failTx = 0;
+  failDelete = false;
+  failSets = 0;
   afterQuery = undefined;
   logged.length = 0;
   resetCrisisCallRisk();
@@ -244,7 +267,23 @@ describe('CRISIS_DIAL_HOLD: a deferred call (recipient hours)', () => {
     expect(initiateCall).not.toHaveBeenCalled();
     expect(deferred()).toHaveLength(1);
     expect(deferred()[0]?.data.status).toBe('pending');
-    expect(lines('no_origin_call')).toEqual([{ outcome: 'no_origin_call' }]);
+    expect(lines('no_origin_call')).toEqual([{ outcome: 'no_origin_call', at: 'dial' }]);
+  });
+
+  it('scheduled 8 h out, risk noted 7 h in: still watched, cancelled at the risk, 0 dials', async () => {
+    ON();
+    const call = `call-${++n}`;
+    await defer(call, later(8));
+    vi.setSystemTime(later(7));
+    const other = `call-${++n}`;
+    await defer(other, later(8)); // a later deferral lets go of calls past their time
+    noteCrisisRisk(call);
+    await settled();
+    expect(deferralOf(call)?.status).toBe('cancelled'); // by the watch, before any dial job
+    vi.setSystemTime(new Date(later(8).getTime() + 60_000));
+    await executeDueDeferredCalls();
+    expect(initiateCall).toHaveBeenCalledTimes(1); // the other call only
+    expect([deferralOf(call)?.status, deferralOf(other)?.status]).toEqual(['cancelled', 'placed']);
   });
 
   it('a failed cancel write is retried once, logs counts only, and never throws', async () => {
@@ -264,7 +303,7 @@ describe('CRISIS_DIAL_HOLD: a deferred call (recipient hours)', () => {
     expect(lines('cancel_failed')).toHaveLength(3);
   });
 
-  it('flag off: a crisis cancels nothing and a call with no call id dials, as main', async () => {
+  it('flag off: a crisis cancels nothing, the dial job checks nothing, and a call with no call id dials, as main', async () => {
     const call = `call-${++n}`;
     await defer(call);
     await defer('');
@@ -350,6 +389,7 @@ describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table
       expect(lines('crisis_hold_at_dial')).toContainEqual({
         outcome: 'crisis_hold_at_dial',
         at: 'written',
+        undone: true,
       });
     }
   );
@@ -367,6 +407,65 @@ describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table
       expect(await dialsAfterDue()).toBe(0);
     }
   );
+
+  it('both cancels of the written doc throw: still refused, the doc deleted, 0 dials', async () => {
+    ON();
+    slowWriteMs = 40;
+    failTx = 2;
+    const call = `call-${++n}`;
+    const deferring = defer(call);
+    const noted = noteAfter(call, 20);
+    expect(await deferring.catch((e: Error) => e.message)).toBe('Call not placed');
+    await noted;
+    await settled();
+    expect(deferred()).toHaveLength(0);
+    expect(lines('cancel_failed')).toHaveLength(2);
+    expect(lines('deleted')).toEqual([
+      {
+        outcome: 'deleted',
+        deferral: expect.stringMatching(/^deferred_\d+_[a-z0-9]+$/),
+        at: 'written',
+      },
+    ]);
+    expect(await dialsAfterDue()).toBe(0);
+  });
+
+  it("the delete throws too: refused, and the dial job's own check holds it, 0 dials", async () => {
+    ON();
+    slowWriteMs = 40;
+    failTx = 2;
+    failDelete = true;
+    const call = `call-${++n}`;
+    const deferring = defer(call);
+    const noted = noteAfter(call, 20);
+    expect(await deferring.catch((e: Error) => e.message)).toBe('Call not placed');
+    await noted;
+    await settled();
+    expect(onlyDeferral().status).toBe('pending'); // left behind, still dialable by status
+    expect(lines('delete_failed')).toHaveLength(1);
+    expect(await dialsAfterDue()).toBe(0);
+    expect(onlyDeferral().status).toBe('cancelled');
+    expect(lines('crisis_hold_at_dial')).toContainEqual({
+      outcome: 'crisis_hold_at_dial',
+      at: 'dial',
+    });
+  });
+
+  it("the dial job's own cancel write fails: still 0 dials, the doc left claimed", async () => {
+    ON();
+    const call = `call-${++n}`;
+    await defer(call);
+    failReads = 2; // the cancel at risk time fails, and its retry
+    noteCrisisRisk(call);
+    await settled();
+    expect(onlyDeferral().status).toBe('pending');
+    failSets = 1;
+    expect(await dialsAfterDue()).toBe(0);
+    expect(onlyDeferral().status).toBe('placing'); // claimed, never dialed; never retried
+    expect(lines('crisis_hold_at_dial')).toContainEqual(
+      expect.objectContaining({ at: 'dial', write: 'failed' })
+    );
+  });
 
   it('the control: the same 40 ms write and no risk dials once', async () => {
     ON();
@@ -408,15 +507,16 @@ describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table
     expect(onlyDeferral().status).toBe('placed');
   });
 
-  // Last in the file: it fills the module's table. It runs 7 h past the other rows, so their calls
-  // are let go first, and ends with one call watched.
-  it('1024 calls watched: a new deferral is refused, none is dropped; past 6 h they are let go', async () => {
+  // Last in the file: it fills the module's table. It runs 24 h past the other rows, after their
+  // calls' time and late window, so they are let go first, and ends with one call watched.
+  it('1024 calls watched: a new deferral is refused, none is dropped; past their time and late window they are let go', async () => {
     ON();
-    const start = new Date(NOW.getTime() + 7 * 3600_000);
+    const start = later(24);
+    const due = new Date(start.getTime() + HOUR);
     vi.setSystemTime(start);
     // eslint-disable-next-line no-await-in-loop -- in order, so call-room-0 is the oldest
-    for (let i = 0; i < 1024; i++) await defer(`call-room-${i}`);
-    await expect(defer('call-room-new')).rejects.toThrow('Call not placed');
+    for (let i = 0; i < 1024; i++) await defer(`call-room-${i}`, due);
+    await expect(defer('call-room-new', due)).rejects.toThrow('Call not placed');
     expect(deferred()).toHaveLength(1024);
     expect(lines('crisis_hold_room_full')).toEqual([
       { outcome: 'crisis_hold_room_full', watched: 1024 },
@@ -424,7 +524,11 @@ describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table
     noteCrisisRisk('call-room-0'); // the oldest is still watched
     await settled();
     expect(deferred()[0]?.data.status).toBe('cancelled');
-    vi.setSystemTime(new Date(start.getTime() + 6 * 3600_000 + 60_000));
-    await expect(defer('call-room-late')).resolves.toBeDefined();
+    vi.setSystemTime(new Date(due.getTime() + 12 * HOUR - 60_000));
+    noteCrisisRisk('call-room-1'); // a minute before its window ends: still watched
+    await settled();
+    expect(deferred()[1]?.data.status).toBe('cancelled');
+    vi.setSystemTime(new Date(due.getTime() + 12 * HOUR + 60_000));
+    await expect(defer('call-room-late', new Date(Date.now() + HOUR))).resolves.toBeDefined();
   });
 });

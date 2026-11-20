@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: an outbound call confirmed on a call never dials after that call notes crisis risk (#4187). A deferral of that call is cancelled with the status a user cancel gives, a new one is refused, a deferral with no originating call is never dialed (it stays pending), and a background call checks the call's risk right before it dials. Read by the agent (defer, cancel, background calls) and by the server's dial job. Off: main.
+// on: an outbound call confirmed on a call never dials after that call notes crisis risk (#4187). A deferral of that call is cancelled with the status a user cancel gives, a new one is refused, a deferral with no originating call is never dialed (it stays pending), the dial job cancels a deferral whose call noted risk in its own process, and a background call checks the call's risk right before it dials. A refused deferral is always refused, even when its cancel fails (the doc is then deleted). Read by the agent (defer, cancel, background calls) and by the server's dial job. Off: main.
 export const CRISIS_DIAL_HOLD = {
   default: 'off',
   owner: 'intelligence',
