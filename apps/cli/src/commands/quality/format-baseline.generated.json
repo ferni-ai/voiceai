@@ -7,7 +7,6 @@
   "src/agents/core/errors.ts",
   "src/agents/core/types.ts",
   "src/agents/gce/__tests__/cpu-load.test.ts",
-  "src/agents/gce/fast-join.ts",
   "src/agents/gce/tts-cache-install.ts",
   "src/agents/gce/warmup.ts",
   "src/agents/integrations/__tests__/tool-hum-crisis-pending.test.ts",
