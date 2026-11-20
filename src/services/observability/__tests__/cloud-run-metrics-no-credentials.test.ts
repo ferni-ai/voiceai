@@ -42,7 +42,9 @@ it('reports missing credentials as a reason, with nothing uncaught', async () =>
   try {
     const { readCloudRunMetrics } = await import('../cloud-run-metrics.js');
     const metrics = await readCloudRunMetrics({ projectId: 'demo-no-adc', service: 'svc' });
-    await new Promise((resolve) => setTimeout(resolve, 200)); // let any late throw surface
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 200); // let any late throw surface
+    });
     const reason = 'unavailable: no Google Cloud credentials on this server';
     expect(metrics.missing).toEqual({
       latencyMs: reason,
