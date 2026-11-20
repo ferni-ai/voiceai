@@ -14,8 +14,9 @@
  *   listening"), which counts as both.
  * Acks ("ha", "okay"), a name after a thanks ("thanks, Sam") and "man" may sit
  * around them. Anything else in the turn ("but actually", "night shift was
- * rough", "thanks for asking"), a question, or any risk (farewell-risk.ts)
- * makes it not a wind-down.
+ * rough", "thanks for asking"), a question, or any risk makes it not a
+ * wind-down. Risk fails closed (risky below): the only farewell risk forgiven is
+ * the time word of a plan to call or text someone named ("I'll call him tonight").
  *
  * SIGNOFF_READ_WIDE=on turns it on (off by default).
  *
@@ -78,10 +79,13 @@ const PLAN_OPENERS = [
   "i'm going to",
   'im going to',
 ];
-const PLAN_VERBS = new Set([
-  ...['call', 'text', 'try', 'look', 'check', 'talk', 'think', 'give', 'ask', 'tell', 'email'],
-  ...['message', 'write', 'start', 'reach', 'follow', 'figure', 'see', 'let', 'go'],
-]);
+/**
+ * Plan verbs. No "go", "let", "see", "start", "tell", "check", "write" or "give": each
+ * makes a veiled farewell ("I'll go away", "I'll let go", "I'll see my dad soon", "I'll
+ * write my note"), found by the PR #4271 verifier.
+ */
+const CONTACT_VERBS = ['call', 'text', 'ring', 'phone', 'message', 'email', 'facetime'];
+const PLAN_VERBS = new Set([...CONTACT_VERBS, 'try', 'look', 'talk', 'think', 'ask', 'figure']);
 const MAX_PLAN_WORDS = 8;
 /** Lead-ins that may open any clause: "ha, okay", "yeah that helps". */
 const ACKS = new Set([
@@ -134,17 +138,42 @@ function kindOf(clause: readonly string[], previous: Kind | undefined): Kind | n
   return isName(clause, previous) ? 'name' : null;
 }
 
+const KIN = [
+  ...['mom', 'mum', 'dad', 'brother', 'sister', 'son', 'daughter', 'wife', 'husband'],
+  ...['partner', 'boyfriend', 'girlfriend', 'friend', 'boss', 'grandma', 'grandpa'],
+  ...['aunt', 'uncle', 'cousin', 'parents', 'kids'],
+];
 /**
- * "tonight" and "soon" are risk words on their own (crisis-agreement.ts), so "I'll call him
- * tonight" read as risk. Only a plan clause can hold them here, as its time; the crisis read
- * still sees the whole line ("I'll end it tonight" is never a plan: no such verb, and crisis).
+ * The one clause shape whose time word may clear the risk read: a plan to call or text
+ * someone named, the whole clause. "I'll call him tonight", "I'm gonna text Sam soon",
+ * "I'll call my brother later". The name must be capitalised, and is never a word for God.
  */
-const PLAN_TIMES = /\b(?:tonight|soon)\b/gi;
+const PLAN_TIME = ' (?:tonight|soon|later|tomorrow|in the morning)';
+const OPENER = String.raw`(?:[Ii]'?ll|[Ii] will|[Ii]'?m (?:going to|gonna))`;
+const CONTACT = `(?:${CONTACT_VERBS.join('|')}|FaceTime)`;
+const NAMED = String.raw`(?:him|her|them|my (?:${KIN.join('|')})|(?!(?:God|Jesus|Lord|Heaven)\b)[A-Z][a-z]+)`;
+const CONTACT_PLAN = new RegExp(`^${OPENER} ${CONTACT} ${NAMED}(?:${PLAN_TIME})?$`);
+const TRAILING_TIME = new RegExp(`${PLAN_TIME}$`);
 
-/** Crisis language (crisis-guard.ts, as farewell-risk.ts reads it) or any farewell risk. */
+/**
+ * Risk fails closed: crisis language (crisis-guard.ts, as farewell-risk.ts reads it), or any
+ * farewell risk on the raw line. The one exception: "tonight" and "soon" are risk words on
+ * their own (crisis-agreement.ts), so "Thanks, man. I'll call him tonight" read as risk. When
+ * the only thing farewellRisk flags is the time word ending a CONTACT_PLAN clause, it is not
+ * risk. Taking "tonight" out of any other clause let "I'll go away tonight" through (#4271).
+ */
 function risky(text: string): boolean {
   const crisis = scoreCrisisLanguage(text);
-  return crisis.isCrisis || crisis.severity > 0.3 || farewellRisk(text.replace(PLAN_TIMES, ' '));
+  if (crisis.isCrisis || crisis.severity > 0.3) return true;
+  if (!farewellRisk(text)) return false;
+  const line = text.replace(/[’‘]/g, "'");
+  const plans = line
+    .split(/[.!?,;:]/)
+    .map((c) => c.trim())
+    .filter((c) => CONTACT_PLAN.test(c));
+  if (plans.length === 0) return true;
+  const untimed = plans.reduce((t, plan) => t.replace(plan, plan.replace(TRAILING_TIME, '')), line);
+  return farewellRisk(untimed);
 }
 
 /** The caller's turn is a wind-down with no goodbye word (see the module doc). */
