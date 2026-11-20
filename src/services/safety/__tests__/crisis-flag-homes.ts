@@ -366,3 +366,28 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act on the prompt context the turn's builders hand the model, before the
+ * reply gate runs (the transfer awareness, safety and first-aid injections). The six readers and
+ * SHOWN_ON (the gate's reply) never see that context. This home is open only to a flag whose
+ * named rows drive the real builders on a fictional crisis line, flag off then on, and assert
+ * that on loses no 988 or 911 the builder gave off, but where the owner's rules say otherwise
+ * (an emergency for someone else: 911, no 988).
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const PROMPT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  CRISIS_MEDICAL_911_FIRST: [
+    {
+      file: 'src/agents/processors/injection-builders/__tests__/crisis-medical-911-first.test.ts',
+      rows: [
+        'off: a medical emergency gets the line main gives',
+        'a heart attack: 911 first, no 988',
+        'a medical emergency with self-harm: 911 first, then 988',
+        'never lower: every 911 off is still there on, and every 988 but on a medical emergency alone',
+      ],
+    },
+  ],
+};
