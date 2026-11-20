@@ -86,7 +86,10 @@ export const PINNED_SHOWN_ON: Readonly<Record<string, Shown>> = {
 };
 
 /** The only flags the data file may list as known to lower a reply. */
-export const PINNED_LOWERS_A_REPLY: readonly string[] = ['THIRD_PARTY_SELF_HARM'];
+export const PINNED_LOWERS_A_REPLY: readonly string[] = [
+  'CRISIS_FORGET_EVERYDAY',
+  'THIRD_PARTY_SELF_HARM',
+];
 
 /** What each flag's own sentences must carry, at least (WORDING_NOT_READ.onlyWithFlag). */
 export const PINNED_SAYS: Readonly<Record<string, readonly string[]>> = {
