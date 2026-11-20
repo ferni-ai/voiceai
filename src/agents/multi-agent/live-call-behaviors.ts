@@ -33,7 +33,7 @@ import {
   isOutreachConfirmOn,
   outreachConfirmListeners,
 } from '../../tools/domains/communication/outreach/outreach-confirm.js';
-import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { thirdPartyCall } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import {
@@ -315,7 +315,7 @@ function confirmNote(session: { currentAgent: unknown }, sessionId: string) {
 export function speakerIsAccountOwner(sessionId: string): boolean {
   // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
   if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
-  return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
+  return !thirdPartyCall(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */

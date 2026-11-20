@@ -29,6 +29,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { storeCallContext } from './call-context-cap.js';
 
 const log = createLogger({ module: 'context:proactive-session' });
 
@@ -93,7 +94,7 @@ export interface ProactiveSessionContext {
   movedFrom?: { userId: string; conversationId?: string };
 }
 
-// In-memory store for proactive session contexts (set by outreach engine)
+// Per call, released at call end (releaseCallTypeContexts); capped as a backstop
 const proactiveContexts = new Map<string, ProactiveSessionContext>();
 
 // ============================================================================
@@ -108,7 +109,7 @@ export function setProactiveSessionContext(
   sessionId: string,
   context: ProactiveSessionContext
 ): void {
-  proactiveContexts.set(sessionId, context);
+  storeCallContext(proactiveContexts, sessionId, context, log);
   log.info(
     {
       sessionId,
