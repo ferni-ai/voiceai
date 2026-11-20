@@ -19,13 +19,16 @@ import {
 } from '../calendar/calendar-bridge.js';
 
 // Firestore access via superhuman firestore-utils for proper db instance
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { onReminderChange } from '../data-layer/hooks/index.js';
 import { sendEmail, sendSMS, textHeld } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
 import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 export { userTimeZone } from '../../utils/caller-time-zone.js';
 import { clockTime } from './clock-time.js';
+import {
+  reminderWritesTruthfulOn,
+  saveReminderCancel,
+  saveReminderDoc,
+} from './reminder-persist.js';
 import { settleGuardedText, textThroughGuard } from './reminder-text-guard.js';
 import {
   attributedMessage,
@@ -117,6 +120,7 @@ export interface VoiceMessage {
 
 // In-memory fallback storage for reminders
 const reminderStore = new Map<string, ScheduledReminder>();
+const firestoreDb = async () => (await import('../superhuman/firestore-utils.js')).getFirestoreDb();
 const voiceMessageStore = new Map<string, VoiceMessage>();
 
 // ============================================================================
@@ -176,49 +180,12 @@ export async function createReminder(params: {
   // Store in memory map
   reminderStore.set(reminder.id, reminder);
 
-  // Persist to Firestore for cross-session durability
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (db) {
-      await db
-        .collection('bogle_users')
-        .doc(params.userId)
-        .collection('reminders')
-        .doc(reminder.id)
-        .set(
-          cleanForFirestore({
-            ...reminder,
-            scheduledFor: reminder.scheduledFor.toISOString(),
-            createdAt: reminder.createdAt.toISOString(),
-          })
-        );
-      getLogger().info(
-        { reminderId: reminder.id, userId: params.userId },
-        '📅 Reminder saved to Firestore'
-      );
-
-      // Index to semantic memory
-      void onReminderChange(
-        params.userId,
-        reminder.id,
-        {
-          title: reminder.message,
-          description: reminder.context,
-          scheduledFor: reminder.scheduledFor.toISOString(),
-          recurrence: 'none',
-          priority: undefined,
-          status: reminder.status === 'pending' ? 'pending' : 'completed',
-        },
-        'create'
-      );
-    }
-  } catch (error) {
-    // Firestore not available, using in-memory only
-    getLogger().warn(
-      { error: String(error) },
-      'Firestore not available for reminders, using in-memory'
-    );
+  // Persist to Firestore for cross-session durability (reminder-persist.ts)
+  const write = await saveReminderDoc(reminder, firestoreDb);
+  // REMINDER_WRITES_TRUTHFUL: delivery reads Firestore, so an unsaved reminder never goes off
+  if (write !== 'saved' && reminderWritesTruthfulOn()) {
+    reminderStore.delete(reminder.id);
+    return reminder;
   }
 
   getLogger().info(
@@ -436,23 +403,13 @@ export async function cancelReminder(reminderId: string): Promise<boolean> {
     reminderStore.set(reminderId, reminder);
     getLogger().info({ reminderId }, '❌ Reminder cancelled');
 
-    // Also update in Firestore
-    try {
-      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-      const db = getFirestoreDb();
-      if (db) {
-        await db
-          .collection('bogle_users')
-          .doc(reminder.userId)
-          .collection('reminders')
-          .doc(reminderId)
-          .update({ status: 'cancelled' });
-      }
-    } catch (error) {
-      getLogger().warn(
-        { error: String(error), reminderId },
-        'Failed to update reminder status in Firestore'
-      );
+    // Also update in Firestore. REMINDER_WRITES_TRUTHFUL: a cancel Firestore missed is not one
+    if (
+      (await saveReminderCancel(reminder, firestoreDb)) !== 'saved' &&
+      reminderWritesTruthfulOn()
+    ) {
+      reminder.status = 'pending';
+      return false;
     }
 
     // Also remove from calendar

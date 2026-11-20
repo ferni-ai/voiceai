@@ -21,6 +21,10 @@ import {
   userTimeZone,
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
+import {
+  reminderWrite,
+  reminderWritesTruthfulOn,
+} from '../../../services/scheduling/reminder-persist.js';
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { userReach } from '../../../services/outreach/user-reach.js';
 import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
@@ -66,6 +70,21 @@ async function textAddress(userId: string, askedForText: boolean): Promise<strin
     log.warn({ error: String(error), userId }, 'Could not look up where to text the reminder');
     return null;
   }
+}
+
+/** REMINDER_WRITES_TRUTHFUL: Firestore did not take it, and delivery reads Firestore. */
+const REMINDER_NOT_SAVED =
+  "I couldn't save that reminder, so it won't go off. Want me to try again?";
+
+/** REMINDER_WRITES_TRUTHFUL: the reminder a new time replaces, when cancelling it failed. */
+function stillSet(
+  userId: string,
+  earlier: { id: string; scheduledFor: Date },
+  zone: string | undefined
+): string {
+  return getPendingReminders(userId).some((r) => r.id === earlier.id)
+    ? ` I couldn't cancel the one for ${formatStoredLocalTime(earlier.scheduledFor, zone)}, so that one is still set too.`
+    : '';
 }
 
 const SET_REMINDER_TEXT = `Set a reminder for the user. Supports natural language times like "in 30 minutes", "tomorrow at 2pm", "next Monday morning". The reminder will be delivered via the specified method (defaults to voice message in the next conversation).`;
@@ -176,16 +195,21 @@ const setReminderDef: ToolDefinition = {
             createdBy: ctx.agentId || 'ferni',
             personaId: ctx.agentId,
           });
+          const truthful = reminderWritesTruthfulOn();
+          if (truthful && reminderWrite(reminder) !== 'saved') return REMINDER_NOT_SAVED;
           // Ferni just said "I'll remind you": the delivery job keeps or misses it.
           await recordReminderPromise(ctx.userId, reminder);
 
           // A new time for a reminder set earlier in this call moves it (cancelling
           // also removes its calendar item and releases its promise).
           const earlier = earlierReminderFor(message, opts?.ctx);
+          const replaces = earlier && earlier.id !== reminder.id ? earlier : undefined;
           const moved =
-            earlier && earlier.id !== reminder.id && (await cancelReminder(earlier.id))
-              ? ` It replaces the one for ${formatStoredLocalTime(earlier.scheduledFor, zone)}, which is cancelled.`
-              : '';
+            replaces && (await cancelReminder(replaces.id))
+              ? ` It replaces the one for ${formatStoredLocalTime(replaces.scheduledFor, zone)}, which is cancelled.`
+              : replaces && truthful
+                ? stillSet(ctx.userId, replaces, zone)
+                : '';
           rememberReminderSet(opts?.ctx, { id: reminder.id, message, scheduledFor });
 
           // Read back exactly what was stored: the user's local time, one
@@ -209,6 +233,7 @@ const setReminderDef: ToolDefinition = {
           return `Saved: ${formatStoredLocalTime(scheduledFor, zone)}, one reminder to "${message}", sent ${how}.${moved}${keptInApp}${repeat}`;
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, 'Failed to create reminder');
+          if (reminderWritesTruthfulOn()) return REMINDER_NOT_SAVED; // nothing retries it
           return "I couldn't set that reminder. Let me try again in a moment.";
         }
       },
@@ -306,6 +331,10 @@ const cancelReminderDef: ToolDefinition = {
         if (success) {
           log.info({ reminderId: targetReminder.id }, 'Reminder cancelled');
           return `Done! I cancelled the reminder: "${targetReminder.message}"`;
+        } else if (reminderWritesTruthfulOn() && targetReminder.status === 'pending') {
+          // REMINDER_WRITES_TRUTHFUL: Firestore missed the cancel, so it still goes off.
+          const when = formatStoredLocalTime(targetReminder.scheduledFor, userTimeZone(ctx));
+          return `I couldn't cancel "${targetReminder.message}", so it's still set for ${when}. Want me to try again?`;
         } else {
           return "I couldn't cancel that reminder. It may have already been sent.";
         }
