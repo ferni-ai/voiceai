@@ -182,7 +182,6 @@
   "src/config/__tests__/flag-readers.baseline.json",
   "src/config/__tests__/production-data-guard.test.ts",
   "src/config/__tests__/require-fix-memory-stores.test.ts",
-  "src/config/__tests__/thinking-defaults.test.ts",
   "src/config/__tests__/vertex-flag.test.ts",
   "src/config/gmail-send-flag.ts",
   "src/config/voice-ids.ts",

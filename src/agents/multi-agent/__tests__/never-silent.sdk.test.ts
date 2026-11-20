@@ -18,6 +18,7 @@ import { z } from 'zod';
 import type { RenderedLine } from '../fallback-line-render.js';
 import { FALLBACK_LINES } from '../never-silent.js';
 import { installNeverSilent } from '../never-silent-install.js';
+import { HedgedLLM } from '../../model-provider/hedged-llm.js';
 
 const SAMPLE_RATE = 24_000;
 const VOICE_ID = 'voice-riley-test';
@@ -206,10 +207,14 @@ const open: voice.AgentSession[] = [];
 
 async function harness(
   script: Step[],
-  opts: { mode?: string; crash?: boolean; hangMs?: string } = {}
+  opts: { mode?: string; crash?: boolean; hangMs?: string; wrap?: (m: llm.LLM) => llm.LLM } = {}
 ): Promise<Harness> {
   const ttsModel = new FakeTTS();
-  const session = new voice.AgentSession({ llm: new ScriptedLLM(script), tts: ttsModel });
+  const model = new ScriptedLLM(script);
+  const session = new voice.AgentSession({
+    llm: opts.wrap ? opts.wrap(model) : model,
+    tts: ttsModel,
+  });
   const out = new FakeAudioOutput();
   session.output.audio = out;
   open.push(session);
@@ -336,6 +341,26 @@ describe('never silent: fault injection on a real AgentSession', () => {
     expect(shadow.ttsModel.renders).toEqual([]);
     expect(shadow.ttsModel.requests).toBeGreaterThan(0); // the replies did synthesize
     expect(shadow.ttsModel.requests).toBe(off.ttsModel.requests);
+  });
+
+  // #4230: a model that rejects MINIMAL thinking fails every request with a 400, which the
+  // SDK reports as an 'error' event before ending the stream empty. Through the hedge,
+  // with the backup failing too, the turn still reaches the fallback.
+  it('LLM error on both hedged models: speaks a fallback within the budget', async () => {
+    const hedged = (m: llm.LLM) => new HedgedLLM(m, new ScriptedLLM(['fail']), 50);
+    const h = await harness(['ok', 'fail'], { wrap: hedged, hangMs: '2000' });
+    await h.ask('warm up', 800);
+    const ms = await h.ask('what about tomorrow');
+    expect(ms).not.toBeNull();
+    expect(ms!).toBeLessThan(1500); // from the failed reply, not the 2 s hang clock
+  });
+
+  it('every hedged request failing from the first turn: still a fallback', async () => {
+    const hedged = (m: llm.LLM) => new HedgedLLM(m, new ScriptedLLM(['fail']), 50);
+    const h = await harness(['fail'], { wrap: hedged, hangMs: '2000' });
+    const ms = await h.ask('are you there');
+    expect(ms).not.toBeNull();
+    expect(ms!).toBeLessThan(1500);
   });
 
   it('NEVER_SILENT off: the same failure is silent (the bug this fixes)', async () => {
