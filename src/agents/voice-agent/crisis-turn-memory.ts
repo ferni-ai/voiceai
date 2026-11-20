@@ -17,9 +17,22 @@
  * service's record and its signals, and the bond data message to the client
  * (dispatchEmotionalBondSignal).
  *
+ * CRISIS_HOLD_FOLLOWS_REPLY (off by default): the reply follows the more severe of the reply gate
+ * (personas/crisis-gate.ts) and the pipeline, so the turn handler's writers also hold on a turn only
+ * the gate read as a crisis (replyReadHold, through turnHold and its two writers).
+ *
  * @module voice-agent/crisis-turn-memory
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import {
+  CRISIS_READ_WAIT,
+  readsSettledClean,
+  replyGateTurnSettled,
+} from '../../utils/crisis-memory-hold.js';
+import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
+import { callerTurnKeyOf } from '../shared/caller-turn-count.js';
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetection } from '../processors/types.js';
 
@@ -28,6 +41,97 @@ const log = createLogger({ module: 'CrisisTurnMemory' });
 /** Whether the turn's crisis read replaced the reply, guided it, or gave a soft check-in. */
 export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
   return !crisis || crisis.shouldOverrideLLM || crisis.isCrisis || crisis.softCheck === true;
+}
+
+/** The caller turn whose memory is held: the turn handler's context (turn-handler.ts). */
+export interface CallerTurn {
+  services: { sessionId?: string };
+  userText: string;
+  /** Carries the pusher's name for the turn (callerTurnKeyOf, shared/caller-turn-count.ts). */
+  userData: object;
+}
+
+/** Whether this turn's reads settled with nothing holding the call (crisis-memory-hold.ts). */
+function turnKept({ services, userText, userData }: CallerTurn, gate: boolean): Promise<boolean> {
+  const { sessionId } = services;
+  if (gate) return replyGateTurnSettled(sessionId, callerTurnKeyOf(userData), userText);
+  return sessionId
+    ? readsSettledClean(sessionId, CRISIS_READ_WAIT.settleMs)
+    : Promise.resolve(false);
+}
+
+/**
+ * CRISIS_HOLD_FOLLOWS_REPLY: whether the reply gate's reads hold this turn, asked once and only by
+ * a writer that runs (never blocking the handler); null when the flag is off, as on main.
+ *
+ * Reuses the call's shared hold (utils/crisis-memory-hold.ts), which both engines feed: a pattern
+ * guide or replace and every classifier read that is not a clean none, gave no verdict or failed
+ * hold the call (services/safety/crisis-call-risk.ts). With the gate live (every voice reply runs
+ * it: gatedReply), it waits for the gate's own read of THIS caller turn, named by the pusher's key
+ * and its exact words, and that read's escalation (noteReplyGateTurn): neither the pipeline's read
+ * nor an earlier turn's stands in for it. With the gate off or in shadow, the turn's only read is
+ * the handler's own pipeline read, already started: the call's reads settle. Held when no such
+ * read started or the reads did not settle in time, or a read held the call: fail closed.
+ */
+function replyReadHold(
+  turn: CallerTurn,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): (() => Promise<boolean>) | null {
+  if (!flagOn('CRISIS_HOLD_FOLLOWS_REPLY', env)) return null;
+  const gateLive = resolveCrisisGuardMode(env) === 'live';
+  let held: Promise<boolean> | undefined;
+  return async () =>
+    (held ??= turnKept(turn, gateLive).then(
+      (kept) => !kept,
+      () => true
+    ));
+}
+
+/** A turn's memory hold (turnHold). Calling it says whether the turn's writers hold. */
+export interface TurnHold {
+  (): Promise<boolean>;
+  /** The turn pipeline's own read (crisisReadTurn), for a writer that decides synchronously. */
+  readonly read: boolean;
+  /** CRISIS_HOLD_FOLLOWS_REPLY is on: calling it also waits for the reply gate's read. */
+  readonly waits: boolean;
+}
+
+/** The turn's memory hold: its pipeline read, and with the flag on the reply gate's (replyReadHold). */
+export function turnHold(
+  crisis: CrisisDetection | undefined,
+  turn: CallerTurn,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): TurnHold {
+  const read = crisisReadTurn(crisis);
+  const reply = replyReadHold(turn, env);
+  const held = async (): Promise<boolean> => read || ((await reply?.()) ?? false);
+  return Object.assign(held, { read, waits: reply !== null });
+}
+
+type TurnWriter<T> = (data: T) => Promise<unknown>;
+
+/**
+ * Runs a writer that takes the turn's crisis read as `crisisTurn`, as `fireAndForget(name)`. A hold
+ * that waits sets `crisisTurn` from the reply gate's read too, inside the writer's own task.
+ */
+export function writeInBackground<T extends { crisisTurn: boolean }>(
+  hold: TurnHold,
+  data: T,
+  write: TurnWriter<T>,
+  name: string
+): void {
+  fireAndForget(async () => write(hold.waits ? { ...data, crisisTurn: await hold() } : data), name);
+}
+
+/** writeInBackground, except that a hold that does not wait awaits the writer in place, as on main. */
+export async function writeInPlace<T extends { crisisTurn: boolean }>(
+  hold: TurnHold,
+  data: T,
+  write: TurnWriter<T>,
+  name: string
+): Promise<void> {
+  if (hold.waits) return writeInBackground(hold, data, write, name);
+  await write(data);
 }
 
 /**

@@ -68,6 +68,7 @@ import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
+import { noteReplyGateTurn } from '../../utils/crisis-memory-hold.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
 import {
@@ -263,7 +264,8 @@ export function startCrisisGate(
   const wait = decision.action === 'pass' && !gentle && !reask ? options.readAfter?.() : null;
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
   const scripted = scriptRead(said, detection, decision, at); // CRISIS_SCRIPT_IMMINENT_READ
-  if (!verdictRead) return { decision, escalation: null, reask, read: scripted };
+  const noted = (g: CrisisGateTurn): CrisisGateTurn => noteReplyGateTurn(call, latest, g, env);
+  if (!verdictRead) return noted({ decision, escalation: null, reask, read: scripted });
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
@@ -345,7 +347,7 @@ export function startCrisisGate(
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
   const acted = turnReads ? withTurnReads(verdictRead, readScope, turn, env) : verdictRead;
   const logged = loggedEscalation(acted, (v) => checkin.escalation(v, checkinTurn, escalate));
-  return { decision, escalation: logged, reask };
+  return noted({ decision, escalation: logged, reask });
 }
 
 /** A reply stream that speaks one fixed text. */
