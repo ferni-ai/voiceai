@@ -59,6 +59,7 @@ import {
   type MemoryOnlyRow,
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
+  PRESENCE_SHOWN_ON,
   READ_CACHE_SHOWN_ON,
   TEXT_SHOWN_ON,
   TURN_ROUTING_SHOWN_ON,
@@ -398,6 +399,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         name in SHOWN_ON && 'SHOWN_ON',
         name in LOWERS_A_REPLY && 'LOWERS_A_REPLY',
         NOT_YET_COVERED.includes(name) && 'NOT_YET_COVERED',
+        name in PRESENCE_SHOWN_ON && 'PRESENCE_SHOWN_ON',
         name in MEMORY_ONLY && 'MEMORY_ONLY',
         name in TEXT_SHOWN_ON && 'TEXT_SHOWN_ON',
         name in READ_CACHE_SHOWN_ON && 'READ_CACHE_SHOWN_ON',
@@ -426,6 +428,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
   });
 
   it.each([
+    ['PRESENCE_SHOWN_ON', PRESENCE_SHOWN_ON],
     ['TEXT_SHOWN_ON', TEXT_SHOWN_ON],
     ['READ_CACHE_SHOWN_ON', READ_CACHE_SHOWN_ON],
     ['TURN_ROUTING_SHOWN_ON', TURN_ROUTING_SHOWN_ON],
