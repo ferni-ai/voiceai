@@ -5,4 +5,6 @@ export const HEAVY_CALL_STICKY = {
   default: 'off',
   owner: 'voice',
   kind: 'experiment',
+  expires: '2027-02-18',
+  issue: '#3845',
 } as const satisfies FlagSpec;
