@@ -18,10 +18,17 @@ import {
   type CrisisClassifierInput,
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
-import { companionForRead } from '../crisis-companion-own-line.js';
+import { inputForRead } from '../crisis-companion-own-line.js';
 import { noteConfirmedRisk, resetConfirmedCallRisk } from '../crisis-confirmed-risk.js';
 import { getCrisisResponse } from '../crisis-guard-replies.js';
 import { SEVERITY } from '../crisis-severity.js';
+import { stripSSML } from '../../../utils/text-utils.js';
+
+/** stripSSML as is, watched: a row checks how much of a long line it is handed. */
+vi.mock('../../../utils/text-utils.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../utils/text-utils.js')>();
+  return { ...actual, stripSSML: vi.fn(actual.stripSSML) };
+});
 
 const CALL = 'riley-test-call';
 const LIVE = { CRISIS_CLASSIFIER_MODE: 'live' };
@@ -215,21 +222,20 @@ describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE', () => {
     expect(await turnVerdicts(CALL, PUSHBACK)).toEqual([{ risk: 'none', subject: 'self' }]);
   });
 
-  it('reads a long unpunctuated line in bounded time', () => {
+  it('a 200 KB line is read from its tail: the same result as its last 400 characters', () => {
     noteCrisisRisk(CALL);
-    const line = (words: number) => 'you can always call 988 '.repeat(words);
-    const fastest = (text: string): number => {
-      let best = Infinity;
-      for (let i = 0; i < 5; i++) {
-        const start = performance.now();
-        companionForRead(text, CALL, ON);
-        best = Math.min(best, performance.now() - start);
-      }
-      return best;
-    };
-    const short = fastest(line(800)); // ~19k characters
-    const long = fastest(line(8000)); // ten times longer
-    expect(long).toBeLessThan(Math.max(short, 0.5) * 3);
-    expect(long).toBeLessThan(1000);
+    const tail = 'you can always call 988. Are you safe right now?';
+    const line = `${'you can always call 988 '.repeat(8500)}${tail}`;
+    expect(line.length).toBeGreaterThan(200_000);
+    vi.mocked(stripSSML).mockClear();
+    const shown = (companion: string) =>
+      inputForRead({ latest: 'Okay.', earlier: [], companion }, CALL, ON).companion;
+    const read = shown(line);
+    expect(read).toBe('Are you safe right now?');
+    expect(read).toBe(shown(line.slice(-400)));
+    // the work is bounded too: SSML is stripped from a tail, never from the whole line
+    const handed = vi.mocked(stripSSML).mock.calls.map(([text]) => text.length);
+    expect(handed.length).toBeGreaterThan(0);
+    expect(Math.max(...handed)).toBeLessThanOrEqual(2000);
   });
 });

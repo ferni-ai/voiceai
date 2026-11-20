@@ -18,6 +18,7 @@
  */
 
 import { crisisConfirmedThisCall, crisisRiskNoted } from './crisis-call-risk.js';
+import type { CrisisClassifierInput } from './crisis-classifier.js';
 import { names911, offersCrisisLine } from './crisis-line-speech.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
@@ -30,8 +31,16 @@ function resolveCompanionExcludesOwnLine(env: Env = process.env): boolean {
   return env.CRISIS_COMPANION_EXCLUDES_OWN_LINE?.trim().toLowerCase() === 'on';
 }
 
-/** As much of Ferni's line as the classifier reads (normalizeInput keeps its last 400). */
-const MAX_LINE_CHARS = 400;
+/**
+ * As much of Ferni's line as a crisis read is shown: its end, which LATEST answers. The
+ * classifier keeps this much (normalizeInput), and the strip here counts the same sentences.
+ */
+export const COMPANION_READ_CHARS = 400;
+/**
+ * The raw tail read before SSML is stripped: room for markup around the last 400 characters,
+ * and a bound on the work whatever the line's length.
+ */
+const MAX_RAW_CHARS = COMPANION_READ_CHARS * 5;
 
 /** A sentence that hands the caller a line to call or text, and asks them nothing. */
 const givesCrisisLine = (sentence: string): boolean =>
@@ -42,7 +51,7 @@ const givesCrisisLine = (sentence: string): boolean =>
  * risk noted but not confirmed, and the line gives a crisis line; then without those sentences, or none at all
  * when the line was only that.
  */
-export function companionForRead(
+function companionForRead(
   companion: string | undefined,
   call: string | undefined,
   env: Env = process.env
@@ -50,12 +59,26 @@ export function companionForRead(
   if (!companion || !call || !resolveCompanionExcludesOwnLine(env)) return companion;
   // Only an unconfirmed alarm: once a crisis is confirmed, crisis turns go on for the call.
   if (!crisisRiskNoted(call) || crisisConfirmedThisCall(call)) return companion;
-  const sentences = stripSSML(companion)
+  const sentences = stripSSML(companion.slice(-MAX_RAW_CHARS))
     .trim()
-    .slice(-MAX_LINE_CHARS)
+    .slice(-COMPANION_READ_CHARS)
     .split(/(?<=[.!?])\s+/);
   const kept = sentences.filter((sentence) => !givesCrisisLine(sentence));
   if (kept.length === sentences.length) return companion;
   log.info({ dropped: sentences.length - kept.length }, 'CRISIS_COMPANION_OWN_LINE');
   return kept.join(' ') || undefined;
+}
+
+/**
+ * The input a read of this call is shown: the same input, or a copy with Ferni's line as
+ * companionForRead leaves it. The turn's reads and the confirmed-risk after-check both read
+ * through it, so neither sees Ferni's own crisis line on an unconfirmed call.
+ */
+export function inputForRead(
+  input: CrisisClassifierInput,
+  call: string | undefined,
+  env: Env = process.env
+): CrisisClassifierInput {
+  const companion = companionForRead(input.companion, call, env);
+  return companion === input.companion ? input : { ...input, companion };
 }

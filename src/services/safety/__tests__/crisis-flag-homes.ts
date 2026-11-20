@@ -394,6 +394,7 @@ export const CLASSIFIER_READ_SHOWN_ON: Readonly<Record<string, readonly MemoryOn
         '#3465: "No. Get me Jordan." after the 988 script and "Are you safe right now?" still reads imminent',
         '#3465: a bare name after the imminent script and "Is anyone nearby who can be with you?" still reads imminent',
         "once risk is confirmed, every read sees Ferni's line whole, whatever CRISIS_CONFIRMED_CALL_RISK",
+        'a 200 KB line is read from its tail: the same result as its last 400 characters',
       ],
     },
     {
@@ -402,6 +403,10 @@ export const CLASSIFIER_READ_SHOWN_ON: Readonly<Record<string, readonly MemoryOn
         'prod set: off, the pushback after one alarm keeps crisis guidance; on, it is not',
         'a plan only the classifier reads, after the false alarm, keeps crisis guidance with the flag on',
         'a crisis the patterns confirmed keeps crisis turns for the call with the flag on',
+        "a stripped read that still escalates gets an after-check shown no crisis line of Ferni's",
+        'with the after-check stubbed to none, the same calls are never confirmed: the after-check alone confirmed them',
+        'with CRISIS_CONFIRMED_CALL_RISK on, a true crisis line after the alarm reads as with the flag off',
+        'a true imminent the after-check reads in the caller words still confirms the call',
       ],
     },
   ],

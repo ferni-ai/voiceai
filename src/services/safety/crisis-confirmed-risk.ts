@@ -42,6 +42,7 @@ import {
   type CrisisVerdict,
   type PatternOutcome,
 } from './crisis-classifier.js';
+import { inputForRead } from './crisis-companion-own-line.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -214,12 +215,14 @@ async function afterCheckRead(
 ): Promise<CrisisVerdict | null> {
   const now = Date.now();
   for (const [k, v] of reads) if (now - v.at > READ_TTL_MS) reads.delete(k);
-  const key = JSON.stringify([call, normalizeInput(args.input)]);
+  // CRISIS_COMPANION_EXCLUDES_OWN_LINE: shown what the turn's reads were, keyed on it.
+  const input = inputForRead(args.input, call, env);
+  const key = JSON.stringify([call, normalizeInput(input)]);
   const shared = reads.get(key);
   if (shared) return shared.read;
   const generate = args.generate ?? createGeminiCrisisGenerate();
   const timeout = resolveCrisisClassifierTimeoutMs(env);
-  const read = classifyCrisis(args.input, generate, timeout, AFTER_CHECK_PROMPT).catch(() => null);
+  const read = classifyCrisis(input, generate, timeout, AFTER_CHECK_PROMPT).catch(() => null);
   reads.set(key, { at: now, read });
   return read;
 }

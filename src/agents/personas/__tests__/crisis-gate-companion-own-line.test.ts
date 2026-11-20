@@ -15,7 +15,10 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { resetConfirmedCallRisk } from '../../../services/safety/crisis-confirmed-risk.js';
+import {
+  AFTER_CHECK_PROMPT,
+  resetConfirmedCallRisk,
+} from '../../../services/safety/crisis-confirmed-risk.js';
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
 import { resetImminentAgreement } from '../../../services/safety/crisis-imminent-agreement.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
@@ -132,5 +135,70 @@ describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE through the gate and pipeline', () 
     const on = await call(lines, model(LOCK), ON);
     expect(off[2]).not.toBe('pass');
     expect(on).toEqual(off);
+  });
+});
+
+describe('CRISIS_COMPANION_EXCLUDES_OWN_LINE: the confirmed-risk after-check', () => {
+  /** The after-check reads risk only from Ferni's own line, unless the caller's line has its own. */
+  const checked = (lines: Record<string, Line>, after: Record<string, Risk> = {}) => {
+    const shown: string[] = [];
+    const read = model(lines);
+    const generate: CrisisGenerateFn = async (prompt, content, signal) => {
+      if (prompt !== AFTER_CHECK_PROMPT) return read(prompt, content, signal);
+      const { latest, companion = '' } = JSON.parse(content) as {
+        latest: string;
+        companion?: string;
+      };
+      shown.push(companion);
+      return reply(after[latest] ?? (/\b(?:988|911)\b/.test(companion) ? 'crisis' : 'none'));
+    };
+    return Object.assign(generate, { shown });
+  };
+  it("a stripped read that still escalates gets an after-check shown no crisis line of Ferni's", async () => {
+    // Lane A's variant 2: the pushback, shown less, still reads crisis.
+    const generate = checked({ ...LOCK, [PUSHBACK]: { read: 'crisis', scripted: 'imminent' } });
+    const got = await call(LINES, generate, ON);
+    expect(got[2]).toBe('guide'); // its own read still escalates the turn
+    expect(generate.shown.length).toBeGreaterThan(0);
+    expect(generate.shown.some((c) => /\b(?:988|911)\b/.test(c))).toBe(false);
+    expect(got[3]).toBe('pass'); // not confirmed on Ferni's own line: the call is not locked
+  });
+
+  it('with the after-check stubbed to none, the same calls are never confirmed: the after-check alone confirmed them', async () => {
+    const reads = {
+      ...LOCK,
+      [PUSHBACK]: { read: 'crisis', scripted: 'imminent' },
+    } satisfies Record<string, Line>;
+    const none = checked(reads, { [PUSHBACK]: 'none', [AGAIN]: 'none' });
+    const off = await call(LINES, none, PROD);
+    fresh();
+    const quiet = checked(reads, { [PUSHBACK]: 'none', [AGAIN]: 'none' });
+    const on = await call(LINES, quiet, ON);
+    expect(quiet.shown.length).toBeGreaterThan(0); // the after-check was asked, and read none
+    expect(on).toEqual(['pass', 'replace', 'guide', 'pass']);
+    expect(off[3]).not.toBe('pass'); // flag off, the pushback's own read still sees Ferni's line
+  });
+
+  it('with CRISIS_CONFIRMED_CALL_RISK on, a true crisis line after the alarm reads as with the flag off', async () => {
+    const SAID = "I don't think I can keep going after tonight.";
+    expect(found(SAID)).toBe(false);
+    const lines = [...LINES.slice(0, 2), SAID, AGAIN];
+    const reads = { ...LOCK, [SAID]: { read: 'crisis' } } satisfies Record<string, Line>;
+    const live = { CRISIS_CONFIRMED_CALL_RISK: 'on' };
+    const off = await call(lines, checked(reads, { [SAID]: 'crisis' }), { ...PROD, ...live });
+    fresh();
+    const on = await call(lines, checked(reads, { [SAID]: 'crisis' }), { ...ON, ...live });
+    expect(off[2]).not.toBe('pass');
+    expect(on).toEqual(off); // shown less, the after-check still reads the caller's words
+  });
+
+  it('a true imminent the after-check reads in the caller words still confirms the call', async () => {
+    const PLAN = "I've got the pills counted out for tonight.";
+    expect(found(PLAN)).toBe(false);
+    const lines = [...LINES.slice(0, 2), PLAN, AGAIN];
+    const generate = checked({ ...LOCK, [PLAN]: { read: 'imminent' } }, { [PLAN]: 'imminent' });
+    const got = await call(lines, generate, ON);
+    expect(got[2]).not.toBe('pass');
+    expect(got[3]).not.toBe('pass'); // confirmed: Ferni's line is read whole again
   });
 });

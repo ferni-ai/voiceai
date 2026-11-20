@@ -32,7 +32,7 @@ import {
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
-import { companionForRead } from './crisis-companion-own-line.js';
+import { COMPANION_READ_CHARS, inputForRead } from './crisis-companion-own-line.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
@@ -168,9 +168,6 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
   }
 }
 
-/** The companion's line is context, not the subject: its end is what LATEST answers. */
-const MAX_COMPANION_CHARS = 400;
-
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
 export function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
@@ -186,7 +183,7 @@ export function normalizeInput(input: CrisisClassifierInput): {
   // reply) key the same line alike and share one call.
   const companion = stripSSML(input.companion ?? '')
     .trim()
-    .slice(-MAX_COMPANION_CHARS);
+    .slice(-COMPANION_READ_CHARS); // the companion is context: its end is what LATEST answers
   return companion ? { latest, earlier, companion } : { latest, earlier };
 }
 
@@ -411,8 +408,7 @@ export function startCrisisClassifier(
   const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
   // CRISIS_COMPANION_EXCLUDES_OWN_LINE: what the model is shown. A shared run is keyed on it too,
   // so a read shown less is never another call's read; the turn's own reads keep the input.
-  const companion = companionForRead(input.companion, options.call, env);
-  const shown = companion === input.companion ? input : { ...input, companion };
+  const shown = inputForRead(input, options.call, env);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
