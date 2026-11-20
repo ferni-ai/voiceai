@@ -311,6 +311,17 @@ describe('holdUntilCleared', () => {
     }
   );
 
+  it('CRISIS_GATE_FAIL_CLOSED on: a cleared reply still logs CRISIS_HOLD with the call and turn', async () => {
+    logInfo.mockClear();
+    const hold = holdFor({ CRISIS_GATE_FAIL_CLOSED: 'on' });
+    const out = await collect(
+      hold(streamOf(['Hey'], 30) as never, Promise.resolve(null), AT_CALL, async () => null)
+    );
+    expect(out).toEqual(['Hey']);
+    const [fields] = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_HOLD') ?? [];
+    expect(fields).toEqual({ ...AT_CALL, delayedMs: 0 });
+  });
+
   it.each([{}, { CRISIS_GATE_FAIL_CLOSED: 'off' }])("holdFor(%j) is main's hold", (env) => {
     expect(holdFor(env)).toBe(holdUntilCleared);
   });
