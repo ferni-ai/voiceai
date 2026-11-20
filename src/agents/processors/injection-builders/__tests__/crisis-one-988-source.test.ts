@@ -166,6 +166,8 @@ describe('CRISIS_ONE_988_SOURCE on: the line the shared policy picks, per read',
       ['first-aid', firstAid],
     ];
     const lost: string[] = [];
+    // Each site must give a 988 off on some line, so a stubbed builder can't pass this row.
+    const gave988 = new Set<string>();
     for (const text of [
       OWN,
       IMMINENT,
@@ -181,6 +183,7 @@ describe('CRISIS_ONE_988_SOURCE on: the line the shared policy picks, per read',
         const off = await build(text);
         on();
         const now = await build(text);
+        if (names988(off)) gave988.add(site);
         const themNow = text === EMERGENCY;
         if (names988(off) && !names988(now) && !(themNow && names911(now)))
           lost.push(`${site} ${text}: 988`);
@@ -188,5 +191,6 @@ describe('CRISIS_ONE_988_SOURCE on: the line the shared policy picks, per read',
       }
     }
     expect(lost).toEqual([]);
+    expect([...gave988].sort()).toEqual(sites.map(([site]) => site).sort());
   });
 });
