@@ -47,6 +47,9 @@ export function turnMetricsRow(r: TurnReceipt): BqRow<'turn_metrics'> {
     llm_first_token_ms: t.llmTtftMs,
     tts_first_audio_ms: t.ttsTtfbMs,
     reply_delay_ms: t.firstAudioMs,
+    // An opening "Mm" or a tool-ack clip ("Let me look.") is heard before the reply's own
+    // audio, so on those turns this is what the caller waited, not reply_delay_ms.
+    first_any_audio_ms: r.audio.firstAnyAudioMs,
     commit_to_audio_ms: t.commitToAudioMs,
     prompt_tokens: r.tokens?.prompt ?? null,
     prompt_cached_tokens: r.tokens?.promptCached ?? null,

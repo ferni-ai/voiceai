@@ -389,3 +389,31 @@ export const REPLY_TAIL_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act only when the voice gate's own escalation rejects: an easing step,
+ * or the wait for the read, throws. No call in the reply grid reaches that: its classifier
+ * failures ('throws', 'never') settle as a failed read (a null verdict) on the timeout path, so
+ * SHOWN_ON cannot see these flags. The grid still sets each of them on every call it places and
+ * fails if any reply moves or lowers. This home is open only to a flag whose named rows drive the
+ * real gate (startCrisisGate, gatedReply) with a rejected escalation, flag off then on, and assert
+ * the on reply is never lower: the classifier's own decision, or the check-in with 988, and never
+ * the held model reply where off released it.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for TEXT_SHOWN_ON. What a row asserts is a reviewer's check.
+ */
+export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // The owner's rule (2026-11-15): a rejected crisis escalation fails closed.
+  CRISIS_GATE_FAIL_CLOSED: [
+    {
+      file: 'src/agents/personas/__tests__/crisis-gate-failure.test.ts',
+      rows: [
+        '(a) an easing step throws after an imminent or a crisis read: the decision stands, no held chunk goes out',
+        '(b) a rejection before any verdict: the check-in with 988, no held chunk goes out',
+        'the forced check-in stays on its turn: a later failed read, on the same call or another, gets none, and no env is written',
+        'turns that settle read the same with the flag on as off',
+      ],
+    },
+  ],
+};

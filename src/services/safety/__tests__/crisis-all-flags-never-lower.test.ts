@@ -19,10 +19,11 @@
  * those either be shown at the reply itself (SHOWN_ON, checked by the seventh reader,
  * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
  * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
- * (NOT_YET_COVERED). A flag acting on a text channel or on the turn's tool routing, which neither
- * reader sees, names rows that show it there (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON), and so does a
- * flag acting on the voice reply after the gate (REPLY_TAIL_SHOWN_ON). All of these
- * lists are in crisis-flag-homes.ts.
+ * (NOT_YET_COVERED). A flag acting on a text channel, on the turn's tool routing, or only on a
+ * rejected gate escalation, which neither reader sees, names rows that show it there
+ * (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON), and so does a flag acting on the
+ * voice reply after the gate (REPLY_TAIL_SHOWN_ON). All of these lists are in
+ * crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
@@ -54,6 +55,7 @@ import { getWellbeingProfile } from '../../wellbeing-tracking/index.js';
 import { detectCrisis } from '../crisis-guard.js';
 import { performSafetyCheck } from '../index.js';
 import {
+  GATE_FAILURE_SHOWN_ON,
   MEMORY_ONLY,
   type MemoryOnlyRow,
   NOT_YET_COVERED,
@@ -401,6 +403,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         name in TEXT_SHOWN_ON && 'TEXT_SHOWN_ON',
         name in TURN_ROUTING_SHOWN_ON && 'TURN_ROUTING_SHOWN_ON',
         name in REPLY_TAIL_SHOWN_ON && 'REPLY_TAIL_SHOWN_ON',
+        name in GATE_FAILURE_SHOWN_ON && 'GATE_FAILURE_SHOWN_ON',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
       if (homes.length !== 1) unaccounted.push(`${name}: ${homes.join(', ') || 'nowhere'}`);
@@ -427,6 +430,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     ['TEXT_SHOWN_ON', TEXT_SHOWN_ON],
     ['TURN_ROUTING_SHOWN_ON', TURN_ROUTING_SHOWN_ON],
     ['REPLY_TAIL_SHOWN_ON', REPLY_TAIL_SHOWN_ON],
+    ['GATE_FAILURE_SHOWN_ON', GATE_FAILURE_SHOWN_ON],
   ] as const)('finds each %s row in the test file it names', (_home, home) => {
     const missing = Object.entries(home).flatMap(([name, rows]) =>
       rows.length
