@@ -112,14 +112,15 @@ export async function deleteAlarm(
   ctx: ToolExecutionContext
 ): Promise<string> {
   if (!ctx.userId) return "You don't have any alarms to delete.";
-  const { loadAlarms, deleteAlarm: removeAlarm } = await import(
+  const { loadAlarms, deleteAlarm: removeAlarm, deleteAlarms, alarmSaved } = await import(
     '../../../tools/domains/simple-utilities/alarm-tools.js'
   );
   const alarms = await loadAlarms(ctx.userId);
   if (alarms.length === 0) return "You don't have any alarms to delete.";
   const query = String(args.query || args.time || args.label || 'all').toLowerCase();
   if (query === 'all' || query === 'everything') {
-    for (const alarm of alarms) await removeAlarm(ctx.userId, alarm.id);
+    const kept = await deleteAlarms(ctx.userId, alarms); // ALARM_WRITES_TRUTHFUL
+    if (kept > 0) return `I couldn't delete ${kept} of your ${alarms.length} alarms just now.`;
     return `Deleted all ${alarms.length} alarm${alarms.length > 1 ? 's' : ''}.`;
   }
   const num = parseInt(query, 10);
@@ -133,7 +134,9 @@ export async function deleteAlarm(
         query.includes(a.label.toLowerCase())
     );
   if (!match) return `I couldn't find an alarm matching "${query}".`;
-  await removeAlarm(ctx.userId, match.id);
+  if (!(await alarmSaved(removeAlarm(ctx.userId, match.id)))) {
+    return `I couldn't delete the alarm for ${match.time} just now. It's still set.`;
+  }
   return `Deleted alarm for ${match.time}.`;
 }
 
@@ -143,7 +146,7 @@ export async function snoozeAlarm(
 ): Promise<string> {
   if (!ctx.userId) return "I don't see an alarm that needs snoozing.";
   const minutes = typeof args.minutes === 'number' ? args.minutes : 9;
-  const { loadAlarms, saveAlarm } = await import(
+  const { loadAlarms, saveAlarm, alarmSaved } = await import(
     '../../../tools/domains/simple-utilities/alarm-tools.js'
   );
   const alarms = await loadAlarms(ctx.userId);
@@ -157,6 +160,7 @@ export async function snoozeAlarm(
   if (!recent) return "I don't see an alarm that needs snoozing. Set an alarm first!";
   recent.snoozedUntil = now + minutes * 60 * 1000;
   recent.updatedAt = now;
-  await saveAlarm(ctx.userId, recent);
+  const snoozed = await alarmSaved(saveAlarm(ctx.userId, recent)); // ALARM_WRITES_TRUTHFUL
+  if (!snoozed) return "I couldn't snooze the alarm just now.";
   return `Snoozed for ${minutes} minute${minutes !== 1 ? 's' : ''}. I'll remind you again soon.`;
 }

@@ -11,109 +11,22 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { ALARM_CANT_RING } from './alarm-ring.js';
+import {
+  alarmSaved,
+  deleteAlarm,
+  deleteAlarms,
+  loadAlarms,
+  saveAlarm,
+  type Alarm,
+  type AlarmRepeat,
+} from './alarm-store.js';
 
 const log = getLogger();
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export type AlarmRepeat = 'once' | 'daily' | 'weekdays' | 'weekends' | 'custom';
-
-export interface Alarm {
-  id: string;
-  userId: string;
-  label: string;
-  time: string; // HH:MM in 24-hour format
-  repeat: AlarmRepeat;
-  customDays?: number[]; // 0-6 for Sunday-Saturday
-  enabled: boolean;
-  snoozedUntil?: number; // Timestamp if snoozed
-  createdAt: number;
-  updatedAt: number;
-}
-
-// In-memory fallback
-const alarmStore = new Map<string, Alarm[]>();
 
 // Day name mappings
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORTS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// ============================================================================
-// STORAGE HELPERS
-// ============================================================================
-
-async function loadAlarms(userId: string): Promise<Alarm[]> {
-  try {
-    const db = getFirestoreDb();
-    if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('alarms')
-        .where('enabled', '==', true)
-        .get();
-
-      return snapshot.docs.map(
-        (doc: FirebaseFirestore.QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() }) as Alarm
-      );
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore not available for alarms');
-  }
-
-  // Fallback to in-memory
-  return alarmStore.get(userId) || [];
-}
-
-async function saveAlarm(userId: string, alarm: Alarm): Promise<Alarm> {
-  try {
-    const db = getFirestoreDb();
-    if (db) {
-      const ref = db.collection('bogle_users').doc(userId).collection('alarms').doc(alarm.id);
-      await ref.set(cleanForFirestore(alarm));
-      log.info({ alarmId: alarm.id, userId }, 'Alarm saved to Firestore');
-      return alarm;
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore not available, using in-memory');
-  }
-
-  // Fallback to in-memory
-  const userAlarms = alarmStore.get(userId) || [];
-  const existingIndex = userAlarms.findIndex((a) => a.id === alarm.id);
-  if (existingIndex >= 0) {
-    userAlarms[existingIndex] = alarm;
-  } else {
-    userAlarms.push(alarm);
-  }
-  alarmStore.set(userId, userAlarms);
-
-  return alarm;
-}
-
-async function deleteAlarm(userId: string, alarmId: string): Promise<boolean> {
-  try {
-    const db = getFirestoreDb();
-    if (db) {
-      await db.collection('bogle_users').doc(userId).collection('alarms').doc(alarmId).delete();
-      log.info({ alarmId, userId }, 'Alarm deleted from Firestore');
-      return true;
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore delete failed');
-  }
-
-  // Fallback to in-memory
-  const userAlarms = alarmStore.get(userId) || [];
-  const filtered = userAlarms.filter((a) => a.id !== alarmId);
-  alarmStore.set(userId, filtered);
-  return true;
-}
 
 // ============================================================================
 // TIME PARSING HELPERS
@@ -287,6 +200,16 @@ function generateAlarmId(): string {
   return `alarm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// ALARM_WRITES_TRUTHFUL: what the tools say when an alarm change was not saved
+const ALARM_NOT_SET = "I couldn't save that alarm just now, so it isn't set. Want me to try again?";
+const ALARM_NOT_SNOOZED = "I couldn't snooze the alarm just now.";
+
+/** Deletes one alarm and says `done`, or says the delete was not saved. */
+async function removeOne(userId: string, alarm: Alarm, done: string): Promise<string> {
+  if (await alarmSaved(deleteAlarm(userId, alarm.id))) return done;
+  return `I couldn't delete the alarm for ${formatTimeForSpeech(alarm.time)} just now. It's still set.`;
+}
+
 // ============================================================================
 // SET ALARM TOOL
 // ============================================================================
@@ -339,7 +262,7 @@ const setAlarmDef: ToolDefinition = {
           updatedAt: Date.now(),
         };
 
-        await saveAlarm(ctx.userId, alarm);
+        if (!(await alarmSaved(saveAlarm(ctx.userId, alarm)))) return ALARM_NOT_SET;
 
         log.info({ alarmId: alarm.id, time: parsedTime, repeat: parsedRepeat }, 'Alarm set');
 
@@ -430,8 +353,8 @@ const deleteAlarmDef: ToolDefinition = {
         if (!isNaN(num) && num > 0 && num <= alarms.length) {
           const sorted = [...alarms].sort((a, b) => a.time.localeCompare(b.time));
           const toDelete = sorted[num - 1];
-          await deleteAlarm(ctx.userId, toDelete.id);
-          return `Deleted alarm for ${formatTimeForSpeech(toDelete.time)}.`;
+          const done = `Deleted alarm for ${formatTimeForSpeech(toDelete.time)}.`;
+          return removeOne(ctx.userId, toDelete, done);
         }
 
         // Try to match by time
@@ -439,8 +362,8 @@ const deleteAlarmDef: ToolDefinition = {
         if (parsedTime) {
           const match = alarms.find((a) => a.time === parsedTime);
           if (match) {
-            await deleteAlarm(ctx.userId, match.id);
-            return `Deleted alarm for ${formatTimeForSpeech(match.time)}.`;
+            const done = `Deleted alarm for ${formatTimeForSpeech(match.time)}.`;
+            return removeOne(ctx.userId, match, done);
           }
         }
 
@@ -450,14 +373,15 @@ const deleteAlarmDef: ToolDefinition = {
             a.label.toLowerCase().includes(queryLower) || queryLower.includes(a.label.toLowerCase())
         );
         if (match) {
-          await deleteAlarm(ctx.userId, match.id);
-          return `Deleted alarm "${match.label}" for ${formatTimeForSpeech(match.time)}.`;
+          const done = `Deleted alarm "${match.label}" for ${formatTimeForSpeech(match.time)}.`;
+          return removeOne(ctx.userId, match, done);
         }
 
         // Delete all if "all" is specified
         if (queryLower === 'all' || queryLower === 'everything') {
-          for (const alarm of alarms) {
-            await deleteAlarm(ctx.userId, alarm.id);
+          const kept = await deleteAlarms(ctx.userId, alarms); // ALARM_WRITES_TRUTHFUL
+          if (kept > 0) {
+            return `I couldn't delete ${kept} of your ${alarms.length} alarms just now.`;
           }
           return `Deleted all ${alarms.length} alarm${alarms.length > 1 ? 's' : ''}.`;
         }
@@ -509,7 +433,7 @@ const snoozeAlarmDef: ToolDefinition = {
         const snoozeMs = minutes * 60 * 1000;
         recent.snoozedUntil = now + snoozeMs;
         recent.updatedAt = now;
-        await saveAlarm(ctx.userId, recent);
+        if (!(await alarmSaved(saveAlarm(ctx.userId, recent)))) return ALARM_NOT_SNOOZED;
 
         log.info({ alarmId: recent.id, minutes }, 'Alarm snoozed');
 
@@ -530,4 +454,14 @@ export const alarmToolDefinitions: ToolDefinition[] = [
   snoozeAlarmDef,
 ];
 
-export { setAlarmDef, getAlarmsDef, deleteAlarmDef, snoozeAlarmDef, loadAlarms, saveAlarm, deleteAlarm };
+export {
+  setAlarmDef,
+  getAlarmsDef,
+  deleteAlarmDef,
+  snoozeAlarmDef,
+  loadAlarms,
+  saveAlarm,
+  deleteAlarm,
+};
+export { alarmSaved, deleteAlarms };
+export type { Alarm, AlarmRepeat } from './alarm-store.js';
