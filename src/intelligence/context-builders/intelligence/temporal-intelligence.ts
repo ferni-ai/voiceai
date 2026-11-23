@@ -32,6 +32,7 @@ import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { EdgeCache } from '../../../services/cache/edge-cache.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { flagOn } from '../../../config/env-flag.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -62,13 +63,7 @@ const temporalCache = new EdgeCache<Partial<UserTemporalPatterns>>({
 // ============================================================================
 
 type TimeOfDay =
-  | 'early_morning'
-  | 'morning'
-  | 'midday'
-  | 'afternoon'
-  | 'evening'
-  | 'night'
-  | 'late_night';
+  'early_morning' | 'morning' | 'midday' | 'afternoon' | 'evening' | 'night' | 'late_night';
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
@@ -147,21 +142,21 @@ interface UserTemporalPatterns {
   };
 
   /** Seasonal observations */
-  seasonalMood: {
+  seasonalMood: Array<{
     season: Season;
     moodTrend: 'better' | 'same' | 'worse';
     confidence: number;
-  }[];
+  }>;
 
   /** Special temporal markers */
-  specialDays: {
+  specialDays: Array<{
     type: 'birthday' | 'anniversary' | 'memorial' | 'milestone' | 'custom';
     month: number;
     day: number;
     description: string;
     wantsAcknowledgment: boolean;
     year?: number; // For anniversaries
-  }[];
+  }>;
 }
 
 async function getUserTemporalPatterns(userId: string): Promise<Partial<UserTemporalPatterns>> {
@@ -428,6 +423,8 @@ async function learnTemporalPatternInternal(
     // Update conversation-by-day counter
     const userRef = db.collection('bogle_users').doc(userId);
     const doc = await userRef.get();
+    // A merge here made a user doc with no profile in it (#4293): skip a caller with no doc.
+    if (!doc.exists && flagOn('DEVICE_PROFILE_PARTIAL_REPAIR')) return;
     const docData = doc.data() as Record<string, unknown> | undefined;
     const existingPatterns = (docData?.temporalPatterns as Record<string, unknown>) || {};
 
