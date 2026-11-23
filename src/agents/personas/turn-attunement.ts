@@ -41,6 +41,7 @@ import { ledgerRead } from './attune-ledger.js';
 import { hardNews } from './turn-candor.js';
 import { callerLaughed } from './turn-extras.js';
 import { lengthLearned } from './turn-length.js';
+import { pauseRequestNote } from './pause-request.js';
 import { callerMove, opinionAsk } from './turn-shape.js';
 
 const log = createLogger({ module: 'Attunement' });
@@ -444,8 +445,12 @@ export function attunementNote(
   session: object,
   options: { careful?: boolean; env?: Env } = {}
 ): string {
-  if (!attunementEnabled(options.env) || options.careful) return '';
+  if (options.careful) return '';
   const turns = callerTurns(chatCtx.items);
+  // PAUSE_REQUEST_WAIT=on: "hold on, let me think" gets the moment, not a question (pause-request.ts).
+  const pause = pauseRequestNote(turns.at(-1), options.env);
+  if (pause) return pause;
+  if (!attunementEnabled(options.env)) return '';
   if (turns.length === 0) return '';
   const { userData } = session as { userData?: { voiceEmotion?: VoiceCue } };
   const env = options.env ?? process.env;

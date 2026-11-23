@@ -23,9 +23,6 @@ import { createAdminUser, createUser, signIn } from './support';
 
 /** Findings on main today, by the walk's own wording, each with the #4069 row that fixes it. */
 const KNOWN_DEAD: Record<string, string> = {
-  // Save cash and Update LTV:CAC do nothing with empty inputs, and keep nothing (FO12, FO13)
-  'dead control: finops > Save (2)': 'W7',
-  'dead control: finops > Update LTV:CAC': 'W7',
   // no soul stats route (HL4, HL5)
   'http 404 with no reason shown: human-listening: GET /api/v1/admin/soul/stats': 'W12b',
 };
