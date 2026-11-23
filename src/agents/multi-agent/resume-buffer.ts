@@ -256,18 +256,19 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   }
 }
 
-/** Put a resume buffer in front of the session's audio output (again if the room replaced it). */
+/**
+ * Put a resume buffer in front of the session's audio output (again if the room replaced it).
+ * Returns the session's output, or null when it has none (nothing to put a buffer in front of).
+ */
 export function ensureResumeBuffer(
-  session: { output: { audio: voice.AudioOutput | null } },
+  session: { output?: { audio: voice.AudioOutput | null } },
   log?: (fields: Record<string, unknown>) => void,
   env: Record<string, string | undefined> = process.env
-): void {
-  const audio = session.output.audio;
-  if (!audio || audio instanceof ResumeBufferOutput || !audio.canPause) return;
-  session.output.audio = new ResumeBufferOutput(
-    audio,
-    session,
-    log,
-    env.PLAYOUT_DRIFT_GUARD === 'on'
-  );
+): { audio: voice.AudioOutput | null } | null {
+  const { output } = session;
+  if (!output) return null;
+  const audio = output.audio;
+  if (!audio || audio instanceof ResumeBufferOutput || !audio.canPause) return output;
+  output.audio = new ResumeBufferOutput(audio, session, log, env.PLAYOUT_DRIFT_GUARD === 'on');
+  return output;
 }
