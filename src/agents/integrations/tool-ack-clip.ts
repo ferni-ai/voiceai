@@ -12,7 +12,7 @@
  * @module agents/integrations/tool-ack-clip
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { ACK_CLIP_LINES, ackKindFor, type AckKind } from '../personas/tool-ack-clip-lines.js';
 import { setAckClipTakeover, textLeadInAt } from './tool-ack-clip-registry.js';
@@ -94,7 +94,8 @@ export function attachToolAckClip(
     next[kind] = choice.at + 1;
     deps.noteOpened();
     deps.holdReply(choice.line);
-    log.info({ tool, kind, line: choice.line, afterTurnMs: Date.now() - t.since }, 'TOOL_ACK_CLIP');
+    const afterTurnMs = Date.now() - t.since;
+    log.info({ tool, kind, line: replyForLog(choice.line), afterTurnMs }, 'TOOL_ACK_CLIP');
   };
 
   const onItem = (ev: unknown): void => {

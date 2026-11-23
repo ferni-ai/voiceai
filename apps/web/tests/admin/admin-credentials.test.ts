@@ -74,7 +74,7 @@ describe('admin sections send the signed-in admin token', () => {
     }
   });
 
-  it('FinOps sends the token and keeps a stored admin key out of the URL', async () => {
+  it('FinOps sends the admin token and never a stored admin key', async () => {
     localStorage.setItem('admin_key', 'stored-key');
     const finops = await import('../../src/admin/sections/FinOpsSection.js');
     document.body.innerHTML = await finops.render();
@@ -85,7 +85,7 @@ describe('admin sections send the signed-in admin token', () => {
     for (const [url, init] of calls) {
       expect(url).not.toContain('admin_key');
       expect(header(init, 'Authorization')).toBe('Bearer admin-token');
-      expect(header(init, 'X-Admin-Key')).toBe('stored-key');
+      expect(header(init, 'X-Admin-Key')).toBeUndefined();
     }
   });
 
@@ -151,6 +151,21 @@ describe('Preview voice', () => {
     await previewAgentVoice('peter-john');
 
     expect(revoke).toHaveBeenCalledWith('blob:blocked');
+  });
+
+  it('says why when the server has no voice, without an error in the console', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('', { status: 503 }));
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { toast } = await import('../../src/ui/whisper.ui.js');
+    const shown = vi.spyOn(toast, 'error');
+    const dismissed = vi.spyOn(toast, 'dismiss');
+    const { previewAgentVoice } = await import('../../src/admin/admin-voice-preview.js');
+
+    await previewAgentVoice('peter-john');
+
+    expect(shown).toHaveBeenCalledWith('Voice preview unavailable (HTTP 503)');
+    expect(dismissed).toHaveBeenCalled(); // the "Playing" toast, so the reason is not queued behind it
+    expect(errors).not.toHaveBeenCalled();
   });
 
   it('admin-events no longer calls the missing voice-sample or tts-preview routes', () => {

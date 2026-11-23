@@ -23,11 +23,14 @@
  * session's audio output pause()/resume(). The room output clears its queued
  * audio on pause (room_io/_output.js), so the resume buffer (resume-buffer.ts)
  * sits in front of it and replays what was cleared: the caller hears no gap.
+ * LiveKit's agent state stays 'speaking' through it, so the pause marks the
+ * reply held (shared/playout-hold.ts) for whatever counts playout (#2545).
  *
  * @module agents/multi-agent/barge-in-soft-pause
  */
 import { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
+import { setPlayoutHeld } from '../shared/playout-hold.js';
 import { speechPausedForCaller } from './interruption-config.js';
 import type { LiveCallBehaviorsInput } from './live-call-behaviors.js';
 import { ensureResumeBuffer } from './resume-buffer.js';
@@ -103,9 +106,12 @@ export function liveCallSoftPause(
       const audio = output.output.audio;
       if (!audio?.canPause || !currentReplyInterruptible(session)) return false;
       audio.pause();
+      setPlayoutHeld(session, true);
       return true;
     },
     resume: () => {
+      // Released either way: if LiveKit took the pause over, its agent state now says so.
+      setPlayoutHeld(session, false);
       // LiveKit paused this reply itself in the meantime: its resume or cut owns it.
       if (speechPausedForCaller(session)) return;
       output.output.audio?.resume();

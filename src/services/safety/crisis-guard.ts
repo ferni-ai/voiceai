@@ -26,16 +26,17 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
-import { CALLER_CHECK, callerCheckApplies, withCallerCheck } from './crisis-caller-check.js';
+import {
+  CALLER_CHECK,
+  callerCheckApplies,
+  forThemFirst,
+  withCallerCheck,
+  withCloseDown,
+} from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
-import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
-import {
-  MEANS_NOMINATED,
-  NOT_SAFE_TAGS,
-  notSafeAfterMeans,
-  resolveMeansNominateMode,
-} from './crisis-means-nominate.js';
+import { meansFormsFor, meansInHandRead, type MeansForms } from './crisis-means-in-hand.js';
+import { addNotSafeAnswer, meansNominatedLines, meansReadTags } from './crisis-means-nominate.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
@@ -48,6 +49,7 @@ import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
+  laterImminent,
   PASSIVE_IDEATION_PATTERNS,
   PLAN_OR_MEANS_PATTERNS,
   SESSION_CONTEXT_PATTERNS,
@@ -99,7 +101,10 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
   /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
   meansInHand?: 'off' | 'shadow' | 'live' | 'all';
-  /** Read for CRISIS_MEANS_NOMINATE, and CRISIS_MEANS_IN_HAND when meansInHand is unset; default process.env. */
+  /**
+   * The request's env, default process.env. Read for CRISIS_MEANS_NOMINATE, CRISIS_MEANS_IN_HAND
+   * when meansInHand is unset, and CRISIS_SELF_HARM_911_LINE (crisis-script-lines.ts).
+   */
   env?: Record<string, string | undefined>;
   /**
    * Whether the voice may add the caller check (crisis-caller-check.ts), which replaces the reply.
@@ -113,6 +118,7 @@ export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a 
 
 export { IN_DANGER_NOW }; // its home is crisis-guard-replies.ts
 export { EMERGENCY_SERVICE } from './emergency-number.js'; // for agents/personas/emergency-claim.ts
+export { reachesHelp } from './safety-talk.js'; // agents/personas/told-this-call.ts
 export { applyClassifierVerdict, type ClassifierVerdictLike } from './crisis-classifier-verdict.js';
 
 // CRISIS DETECTION
@@ -126,12 +132,14 @@ interface TextScore {
   contextHit: boolean;
   /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
   softSelf: boolean;
+  /** The caller's own words stand: not negated, recovered or hyperbole only. */
+  hardSelf: boolean;
   /** What this turn counts for in a later turn's session check: its self read as before #2528. */
   sessionSeverity: number;
 }
 
 /** Score one message from its words alone. */
-function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
+function scoreText(text: string, forms: MeansForms): TextScore {
   const indicators: string[] = [];
   let severity = 0;
   let implicitHits = 0;
@@ -148,7 +156,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   let softSelf = false;
   let tierSoft = false;
   let hardSelf = false;
-  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
+  for (const [at, { re, tag, imminent }] of EXPLICIT_CRISIS_PATTERNS.entries()) {
     const match = re.exec(text);
     if (!match) continue;
     const start = match.index;
@@ -172,7 +180,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     } else {
       hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
-      if (imminent) add('imminent_danger', SEVERITY.explicit);
+      if (imminent || laterImminent(text, at + 1)) add('imminent_danger', SEVERITY.explicit);
       break;
     }
   }
@@ -232,10 +240,8 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
     hardSelf = true;
     if (means.tag === 'self_harm') add('self_harm', 0);
     if (forms === 'all') add(`means_form:${means.form}`, 0);
-    const tags = means.nominate
-      ? [MEANS_NOMINATED]
-      : ['explicit_crisis_language', 'imminent_danger'];
-    for (const tag of tags) add(tag, means.nominate ? SEVERITY.passive : SEVERITY.explicit);
+    const level = means.nominate ? SEVERITY.passive : SEVERITY.explicit;
+    for (const tag of meansReadTags(means.nominate)) add(tag, level);
   }
 
   // Someone hurting the caller (K1e), read by abuse-disclosure.ts, the one abuse reader: a
@@ -277,7 +283,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
   // turn before #2528, and still counts as one in a later turn's session check.
   const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
-  return { ...found, softSelf, sessionSeverity };
+  return { ...found, softSelf, hardSelf, sessionSeverity };
 }
 
 /** The caller's own ending words, said or framed: not negated, past, protective or someone else's. */
@@ -300,7 +306,7 @@ function endingOutside(text: string, spans: ReadonlyArray<readonly [number, numb
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
 export const sessionSeverityOf = (message: string): number =>
-  scoreText(normalize(message), meansFormsOf(resolveMeansInHandMode())).sessionSeverity;
+  scoreText(normalize(message), meansFormsFor(undefined)).sessionSeverity;
 
 /** Detect crisis indicators in user message */
 export function detectCrisis(
@@ -309,11 +315,8 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const forms = meansFormsOf(
-    options?.meansInHand ?? resolveMeansInHandMode(options?.env),
-    resolveMeansNominateMode(options?.env)
-  );
-  const score = scoreText(text, forms);
+  const forms = meansFormsFor(options?.meansInHand, options?.env);
+  const score = withCloseDown(text, scoreText(text, forms));
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
@@ -333,12 +336,9 @@ export function detectCrisis(
     subject = 'self';
   }
 
-  // The caller's own "no, i'm not safe" just after a means read sends 911 (Seth 11-11).
-  const readEarlier = (m: string) => scoreText(normalize(m), forms).indicators;
-  if (forms === 'nominate' && notSafeAfterMeans(text, options?.recentMessages ?? [], readEarlier)) {
-    for (const tag of NOT_SAFE_TAGS) if (!indicators.includes(tag)) indicators.push(tag);
-    severity = Math.max(severity, SEVERITY.explicit);
-    subject = 'self';
+  const readEarlier = (m: string) => scoreText(normalize(m), forms).indicators; // Seth 11-11
+  if (addNotSafeAnswer(indicators, forms, text, options?.recentMessages, readEarlier)) {
+    [severity, subject] = [Math.max(severity, SEVERITY.explicit), 'self'];
   }
 
   // Voice amplifies what the words say; on its own it is a reason to check in,
@@ -347,11 +347,15 @@ export function detectCrisis(
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
   // voice: the help for the other person stays, and a gentle check on the caller is added.
+  // Someone close down beside the caller's own words (withCloseDown) gets the same check.
   const callerCheck =
-    options?.voiceCallerCheck !== false &&
-    callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion);
+    score.beside === 'check' ||
+    (options?.voiceCallerCheck !== false &&
+      callerCheckApplies({ subject, softSelf: score.softSelf }, voiceEmotion));
   if (callerCheck) indicators.push(CALLER_CHECK);
-  const emergency = subject === 'third_party' && indicators.includes('third_party_emergency');
+  const emergency =
+    indicators.includes('third_party_emergency') &&
+    (subject === 'third_party' || score.beside === 'check');
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
@@ -378,7 +382,7 @@ export function detectCrisis(
   const imminent = !callerCheck && indicators.includes('imminent_danger');
   const script = emergency
     ? EMERGENCY_FOR_THEM
-    : getCrisisResponse(severity, subject, score.language, imminent);
+    : getCrisisResponse(severity, subject, score.language, imminent, options?.env);
 
   return {
     isCrisis,
@@ -386,7 +390,13 @@ export function detectCrisis(
     indicators,
     subject,
     language: subject ? (score.language ?? 'en') : undefined,
-    suggestedResponse: !isCrisis ? undefined : callerCheck ? withCallerCheck(script) : script,
+    suggestedResponse: !isCrisis
+      ? undefined
+      : score.beside === 'own'
+        ? forThemFirst(script)
+        : callerCheck
+          ? withCallerCheck(script)
+          : script,
   };
 }
 
@@ -426,11 +436,7 @@ The user is worried that someone they know is at risk. Your response MUST:
   if (crisis.indicators.includes('crisis_history')) {
     lines.push('6. They mentioned a past crisis. Ask gently whether any of it is coming back now');
   }
-  if (crisis.indicators.includes(MEANS_NOMINATED)) {
-    lines.push(
-      '6. They named the means or a plan. Ask plainly and warmly whether they are safe right now ("are you safe right now?"), and stay with them'
-    );
-  }
+  lines.push(...meansNominatedLines(crisis.indicators));
   if (crisis.language === 'es') {
     lines.push('7. Reply in Spanish. 988 offers Spanish: call and press 2, or text AYUDA to 988');
   }

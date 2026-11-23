@@ -51,11 +51,12 @@ export const PATHS: Record<string, { env: Record<string, string>; generate?: Cri
 };
 
 let n = 0;
-/** The reply gatedReply streams for a line, said in a voice, on one path. */
+/** The reply gatedReply streams for a line, said in a voice, on one path (gateEnv: more options.env). */
 export async function stubbedGateReply(
   line: string,
   voice: { primary: string; confidence: number; stressLevel?: number } | undefined,
-  path: keyof typeof PATHS
+  path: keyof typeof PATHS,
+  gateEnv: Record<string, string> = {}
 ): Promise<{ text: string; modelCalls: number }> {
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
@@ -86,7 +87,7 @@ export async function stubbedGateReply(
     model as never,
     { wrap: (s: unknown) => s } as never,
     {
-      env: { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_TIMEOUT_MS: '25', ...env },
+      env: { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_TIMEOUT_MS: '25', ...env, ...gateEnv },
       ...(generate ? { generate } : {}),
     }
   );

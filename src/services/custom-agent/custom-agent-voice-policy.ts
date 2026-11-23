@@ -9,7 +9,8 @@
  *
  * An agent may use a stock library voice listed here, or its own clone (only
  * the clone route writes `type: 'cloned'`), and never a retired clone or a
- * persona's voice. Checked when the voice is written and again at runtime.
+ * persona's voice, and never a legend's consented clone once its setting holds
+ * one (personas/roster). Checked when the voice is written and again at runtime.
  *
  * @module services/custom-agent/custom-agent-voice-policy
  */
@@ -24,6 +25,7 @@ import {
   RETIRED_CLONE_VOICE_IDS,
   VOICE_IDS,
 } from '../../config/voice-ids.js';
+import { configuredLegendVoiceIds } from '../../personas/roster/index.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -76,6 +78,7 @@ export function isForbiddenCustomAgentVoiceId(voiceId: string): boolean {
       FERNI_CALM_C_VOICE_ID,
       LESTER_PRO_V3_VOICE_ID,
       ...PERSONA_IDS.map((pid) => getVoiceIdForPersona(pid)),
+      ...configuredLegendVoiceIds(),
     ].map(norm)
   );
   return personaVoices.has(id);

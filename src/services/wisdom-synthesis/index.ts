@@ -416,7 +416,7 @@ Population effectiveness: ${Math.round(top.approach.stats.helpfulRate * 100)}% f
 /**
  * Get population insights for a situation type.
  */
-export function getPopulationInsights(situation: SituationType): {
+function getPopulationInsights(situation: SituationType): {
   topApproaches: Array<{ technique: string; helpfulRate: number }>;
   commonPatterns: string[];
   averageHelpfulness: number;

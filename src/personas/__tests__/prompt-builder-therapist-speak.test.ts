@@ -63,9 +63,6 @@ const ALLOWED: Record<string, Array<[Bucket, string]>> = {
       "/\\b(i understand|that (sounds|must be)|i hear you|that's (hard|tough|difficult))\\b/i.test(lower)",
     ],
   ],
-  'src/intelligence/context-builders/intelligence/semantic-intent-guidance.ts': [
-    ['crisis', '1. Validate their pain: "I hear you. This sounds really hard."'],
-  ],
   'src/agents/personas/turn-shape.ts': [
     [
       'avoid',
@@ -202,7 +199,7 @@ describe('prompt builders: no therapist or host phrases', () => {
   it('scans a real surface', () => {
     const scanned = SCAN.flatMap(files);
     expect(scanned.length).toBeGreaterThan(300);
-    expect(scanned).toContain('src/intelligence/context-builders/session/meta-conversation.ts');
+    expect(scanned).toContain('src/intelligence/context-builders/session/thread-context.ts');
     expect(scanned).toContain('src/personas/bundles/shared/model-base-instructions.md');
   });
 });

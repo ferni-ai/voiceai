@@ -36,6 +36,13 @@ export const meansFormsOf = (
 ): MeansForms =>
   mode === 'live' ? (nominate === 'live' ? 'nominate' : 'live') : mode === 'all' ? 'all' : 'none';
 
+/** One read's forms: `meansInHand`, else CRISIS_MEANS_IN_HAND, with CRISIS_MEANS_NOMINATE. */
+export const meansFormsFor = (
+  meansInHand: MeansInHandMode | 'all' | undefined,
+  env: Record<string, string | undefined> = process.env
+): MeansForms =>
+  meansFormsOf(meansInHand ?? resolveMeansInHandMode(env), resolveMeansNominateMode(env));
+
 /** shadow unless set to off or live. */
 export function resolveMeansInHandMode(
   env: Record<string, string | undefined> = process.env

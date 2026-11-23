@@ -25,7 +25,13 @@ import {
   type CustomAgent,
 } from '../services/custom-agent.service.js';
 import { apiPost } from '../utils/api.js';
-import { applyChatFraming, replyFromAgent, talksAsPastSelf } from '../services/custom-agent-chat.js';
+import {
+  applyChatFraming,
+  replyFromAgent,
+  talksAsPastSelf,
+  toChatHistory,
+  type ChatTurn,
+} from '../services/custom-agent-chat.js';
 
 const log = createLogger('TalkToTwinUI');
 
@@ -377,7 +383,7 @@ async function sendMessage(userMessage: string): Promise<void> {
 
   try {
     const response = talksAsPastSelf(currentAgent)
-      ? await generateTwinResponse(userMessage, twinContext)
+      ? await generateTwinResponse(userMessage, twinContext, toChatHistory(earlier))
       : await replyFromAgent(currentAgent.id, earlier, userMessage, scene);
 
     // Add twin response
@@ -397,19 +403,6 @@ async function sendMessage(userMessage: string): Promise<void> {
   if (messagesContainer) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
-}
-
-async function generateTwinResponse(userMessage: string, context: TwinContext): Promise<string> {
-  // Build system prompt from profile
-  const { profile, recentJournals, keyThemes } = context;
-
-  // Find relevant journal entries
-  const relevantJournals = findRelevantJournals(userMessage, recentJournals);
-
-  // Build response using profile patterns
-  const response = await callTwinAPI(userMessage, profile, relevantJournals, keyThemes);
-
-  return response;
 }
 
 function findRelevantJournals(
@@ -433,16 +426,17 @@ function findRelevantJournals(
     .map((s) => s.journal);
 }
 
-async function callTwinAPI(
+async function generateTwinResponse(
   userMessage: string,
-  profile: TwinProfile,
-  relevantJournals: JournalEntry[],
-  keyThemes: string[]
+  { profile, recentJournals, keyThemes }: TwinContext,
+  // The conversation so far: the server reads it only under TWIN_CONVERSATION_V2
+  history: ChatTurn[]
 ): Promise<string> {
   const response = await apiPost<{ response: string }>('/api/journal/twin-response', {
     userMessage,
+    history,
     profile,
-    relevantJournals: relevantJournals.map((j) => ({
+    relevantJournals: findRelevantJournals(userMessage, recentJournals).map((j) => ({
       content: j.content,
       mood: j.mood,
       date: j.date.toISOString(),

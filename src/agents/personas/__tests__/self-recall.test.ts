@@ -193,11 +193,12 @@ describe('the ledger with FERNI_SELF_RECALL', () => {
 });
 
 describe('the live recall hook with FERNI_SELF_RECALL', () => {
-  const recallWith = async (selfRecall: boolean) => {
+  const recallWith = async (selfRecall: boolean, onCall = true) => {
     const { createMemoryRecall } = await import('../../multi-agent/memory-recall-hook.js');
     const recall = createMemoryRecall({
       userId: 'u',
       userName: 'Dana',
+      sessionId: onCall ? 's-self-hook' : undefined,
       store: { facts: async () => [], summaries: async () => [] },
       ledgerStore: { save: async () => undefined, recent: async () => TOLD },
       checkIns: async () => [],
@@ -209,17 +210,30 @@ describe('the live recall hook with FERNI_SELF_RECALL', () => {
     recall.newTurn();
     return recall;
   };
+  /** The self note for `said`: sent apart from recall's note (takeSelfNote), never inside it. */
+  const selfNoteFor = (recall: Awaited<ReturnType<typeof recallWith>>, said: string) => {
+    expect(recall.noteFor(said) ?? '').not.toContain('[ABOUT YOU:');
+    return recall.takeSelfNote().note;
+  };
 
   it('answers his age from the canon, once per turn', async () => {
     const recall = await recallWith(true);
-    expect(recall.noteFor('How old are you?')).toContain("[ABOUT YOU: You're fifty-seven.");
-    expect(recall.noteFor('How old are you, anyway?')).toBeNull();
+    expect(selfNoteFor(recall, 'How old are you?')).toContain("[ABOUT YOU: You're fifty-seven.");
+    expect(selfNoteFor(recall, 'How old are you, anyway?')).toBeNull();
     recall.newTurn();
-    expect(recall.noteFor("How's that book you were reading?")).toContain('You finished a book');
+    expect(selfNoteFor(recall, "How's that book you were reading?")).toContain(
+      'You finished a book'
+    );
   });
 
   it('adds nothing with the flag off', async () => {
     const recall = await recallWith(false);
     expect(recall.noteFor('How old are you?')).toBeNull();
+    expect(recall.takeSelfNote()).toEqual({ note: null, crisis: false });
+  });
+
+  it('holds it with no call id, as the growth note is held: its risk cannot be read', async () => {
+    const recall = await recallWith(true, false);
+    expect(selfNoteFor(recall, 'How old are you?')).toBeNull();
   });
 });

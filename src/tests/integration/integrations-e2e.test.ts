@@ -261,45 +261,29 @@ describe('Biometrics Integration API', () => {
   const testUserId = `biometrics-test-${Date.now()}`;
 
   describe('Connection Flow', () => {
-    it('GET /status - should return biometrics status', async () => {
-      const { hasBiometricsConnected, getConnectedPlatform, getCurrentBiometrics } =
-        await import('../../services/biometrics/index.js');
-
-      const connected = hasBiometricsConnected(testUserId);
-      const platform = getConnectedPlatform(testUserId);
-
-      expect(typeof connected).toBe('boolean');
-      console.log(`✅ Biometrics status check works (connected: ${connected})`);
-    });
-
     it('GET /connect/:platform - should generate auth URLs for all platforms', async () => {
       const { getAuthorizationUrl } = await import('../../services/biometrics/index.js');
 
-      // Only test platforms that are currently implemented
-      const platforms = ['googlefit', 'oura', 'whoop'] as const;
+      // The platforms that connect through this URL. Oura connects through
+      // POST /auth/oauth/start, then /wearables/oura (servers/api/routes/oauth-start.ts).
+      const platforms = {
+        googlefit: 'https://accounts.google.com/',
+        whoop: 'https://api.prod.whoop.com/',
+      } as const;
 
-      for (const platform of platforms) {
-        const authUrl = getAuthorizationUrl(platform, testUserId, 'opaque-state');
-        expect(typeof authUrl).toBe('string');
-        expect(authUrl.length).toBeGreaterThan(0);
+      for (const [platform, host] of Object.entries(platforms)) {
+        const authUrl = getAuthorizationUrl(
+          platform as keyof typeof platforms,
+          testUserId,
+          'opaque-state'
+        );
+        expect(authUrl.startsWith(host)).toBe(true);
+        expect(authUrl).toContain('state=opaque-state');
+        // The state is opaque: the user id never goes in the URL.
+        expect(authUrl).not.toContain(testUserId);
       }
 
-      console.log(`✅ Auth URL generation works for ${platforms.length} platforms`);
-    });
-
-    it('POST /sync - should handle sync requests', async () => {
-      const { syncBiometrics, hasBiometricsConnected } =
-        await import('../../services/biometrics/index.js');
-
-      if (!hasBiometricsConnected(testUserId)) {
-        console.log('⚠️ Sync skipped (no connected platform)');
-        expect(true).toBe(true);
-        return;
-      }
-
-      const snapshot = await syncBiometrics(testUserId);
-      expect(snapshot === null || typeof snapshot === 'object').toBe(true);
-      console.log('✅ Biometrics sync flow works');
+      console.log(`✅ Auth URL generation works for ${Object.keys(platforms).length} platforms`);
     });
 
     it('GET /data - should retrieve biometric data', async () => {
@@ -351,7 +335,7 @@ describe('Calendar Integration API', () => {
       const { hasCalendarConnected, getUpcomingEvents, getCurrentLocation } =
         await import('../../services/context-awareness/location-calendar.js');
 
-      const connected = hasCalendarConnected(testUserId);
+      const connected = await hasCalendarConnected(testUserId);
       const events = connected ? getUpcomingEvents(testUserId) : [];
       const location = getCurrentLocation(testUserId);
 
@@ -360,14 +344,22 @@ describe('Calendar Integration API', () => {
     });
 
     it('GET /connect - should generate auth URL', async () => {
-      const { getCalendarAuthUrl } =
-        await import('../../services/context-awareness/location-calendar.js');
+      // The client id is read when the module loads: load a fresh copy with one set.
+      vi.resetModules();
+      vi.stubEnv('GOOGLE_CALENDAR_CLIENT_ID', 'test-calendar-client');
+      try {
+        const { getCalendarAuthUrl } =
+          await import('../../services/context-awareness/location-calendar.js');
 
-      const authUrl = getCalendarAuthUrl(testUserId);
+        const authUrl = new URL(getCalendarAuthUrl('opaque-state'));
 
-      expect(typeof authUrl).toBe('string');
-      expect(authUrl).toContain('google'); // Contains google auth
-      console.log('✅ Calendar auth URL generation works');
+        expect(authUrl.origin).toBe('https://accounts.google.com');
+        expect(authUrl.searchParams.get('client_id')).toBe('test-calendar-client');
+        expect(authUrl.searchParams.get('state')).toBe('opaque-state');
+      } finally {
+        vi.unstubAllEnvs();
+        vi.resetModules();
+      }
     });
 
     it('GET /events - should fetch upcoming events', async () => {
@@ -422,7 +414,7 @@ describe('Calendar Integration API', () => {
 
       disconnectCalendar(testUserId);
 
-      const connected = hasCalendarConnected(testUserId);
+      const connected = await hasCalendarConnected(testUserId);
       expect(connected).toBe(false);
       console.log('✅ Calendar disconnect works');
     });

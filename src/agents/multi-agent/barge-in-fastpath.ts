@@ -22,6 +22,7 @@
  * @module agents/multi-agent/barge-in-fastpath
  */
 
+import { withoutTag } from '../group-conversation/turn-label.js';
 import type { SoftPause } from './barge-in-soft-pause.js';
 
 /** Words that on their own signal "go on", not "stop". */
@@ -116,7 +117,7 @@ export function installBackchannelHook(): void {
   (globalThis as { __FERNI_IS_BACKCHANNEL?: (text: string) => boolean }).__FERNI_IS_BACKCHANNEL = (
     text
   ) => {
-    const ws = words(text);
+    const ws = words(withoutTag(text)); // `[unclear] mm` is still a backchannel
     return ws.length <= 4 && isBackchannel(ws);
   };
 }
@@ -162,6 +163,8 @@ export function createBargeInFastPath(deps: {
   clearTimer?: (t: ReturnType<typeof setTimeout>) => void;
   /** BARGE_IN_SOFT_PAUSE=on: sustained speech pauses Ferni until confirmed. */
   softPause?: SoftPause;
+  /** The words of a transcript without its group call turn label (turn-label.ts). */
+  unlabel: (transcript: string) => string;
 }): BargeInFastPath {
   const setTimer = deps.setTimer ?? setTimeout;
   const clearTimer = deps.clearTimer ?? clearTimeout;
@@ -183,6 +186,7 @@ export function createBargeInFastPath(deps: {
     if (timer) clearTimer(timer);
     timer = undefined;
   };
+  /** Logs counts and enums only: never what the caller said (text logs are lengths only). */
   const fire = (fields: Record<string, unknown>): void => {
     if (firedThisReply) return;
     firedThisReply = true;
@@ -326,7 +330,8 @@ export function createBargeInFastPath(deps: {
     },
     onTranscript(event) {
       if (firedThisReply) return;
-      const transcript = (event as { transcript?: string })?.transcript ?? '';
+      const heard = (event as { transcript?: string })?.transcript ?? '';
+      const transcript = deps.unlabel(heard);
       if (pending) {
         const ws = words(transcript);
         const confirm = { transcript, agentSpeaking: true, spokenText };
@@ -342,7 +347,7 @@ export function createBargeInFastPath(deps: {
       const minWords = justResumed ? POST_RESUME_MIN_WORDS : MIN_INTERRUPT_WORDS;
       if (!shouldInterrupt({ transcript, agentSpeaking, spokenText, minWords })) return;
       const extra = justResumed ? { minWords } : {};
-      fire({ reason: 'transcript', transcript, words: words(transcript).length, ...extra });
+      fire({ reason: 'transcript', words: words(transcript).length, chars: transcript.length, ...extra }); // prettier-ignore
     },
   };
 }

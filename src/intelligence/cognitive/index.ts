@@ -12,11 +12,9 @@
 
 // Engine functions
 export {
-  getCognitiveProfile,
   buildConstraints,
   buildCognitiveContext,
   buildCognitivePromptInjection,
-  getCognitiveEngineResult,
   getPersonaQuestion,
   getInsightLeadIn,
   getDisagreementPhrase,
@@ -38,5 +36,4 @@ export type {
   CognitiveContext,
   CognitiveConstraints,
   CognitiveContextInput,
-  CognitiveEngineResult,
 } from './types.js';

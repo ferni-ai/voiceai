@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { adminGet } from '../admin-api.js';
 import { ICONS } from '../icons.js';
 
 const log = createLogger('BusinessMetricsSection');
@@ -57,7 +58,7 @@ interface SubscriptionMetrics {
 // STATE
 // ============================================================================
 
-let refreshInterval: ReturnType<typeof setInterval> | null = null;
+let timers: Array<ReturnType<typeof setInterval>> = []; // stopped by cleanup()
 
 // ============================================================================
 // RENDER
@@ -71,9 +72,9 @@ export function render(): string {
         <div class="header-actions" role="button" tabindex="0">
           <span class="live-indicator" role="status" aria-live="polite" aria-atomic="true">
             <span class="live-dot" aria-hidden="true"></span>
-            <span id="concurrent-count" aria-label="Active users now">0</span> active now
+            <span id="concurrent-count" aria-label="Active users now">--</span> active now
           </span>
-          <button class="btn-secondary" onclick="window.businessMetrics?.refresh()" aria-label="Refresh business metrics">
+          <button class="btn-secondary" data-bm-refresh aria-label="Refresh business metrics">
             <span aria-hidden="true">${ICONS.refresh}</span> Refresh
           </button>
         </div>
@@ -537,39 +538,22 @@ export function render(): string {
 // DATA FETCHING
 // ============================================================================
 
+// Admin-only routes: adminGet sends the admin's credentials and logs failures.
 async function fetchAnalytics(): Promise<AnalyticsSummary | null> {
-  try {
-    const response = await fetch('/api/analytics/summary');
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.data as AnalyticsSummary;
-  } catch (error) {
-    log.error({ error }, 'Failed to fetch analytics');
-    return null;
-  }
+  const result = await adminGet<{ data: AnalyticsSummary }>('/api/analytics/summary');
+  return result.data?.data ?? null;
 }
 
 async function fetchSubscriptionMetrics(): Promise<SubscriptionMetrics | null> {
-  try {
-    const response = await fetch('/api/subscription/metrics');
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data as SubscriptionMetrics;
-  } catch (error) {
-    log.debug({ error }, 'Subscription metrics not available');
-    return null;
-  }
+  const result = await adminGet<SubscriptionMetrics>('/api/subscription/metrics');
+  return result.data ?? null;
 }
 
-async function fetchConcurrent(): Promise<number> {
-  try {
-    const response = await fetch('/api/analytics/concurrent');
-    if (!response.ok) return 0;
-    const data = await response.json();
-    return data.concurrent ?? 0;
-  } catch {
-    return 0;
-  }
+// A failed read shows "--", never 0.
+async function updateConcurrent(): Promise<void> {
+  const result = await adminGet<{ concurrent?: number }>('/api/analytics/concurrent');
+  const el = document.getElementById('concurrent-count');
+  if (el) el.textContent = String(result.data?.concurrent ?? '--');
 }
 
 // ============================================================================
@@ -761,24 +745,13 @@ function updateSubscriptionUI(metrics: SubscriptionMetrics): void {
 
 export async function init(): Promise<void> {
   log.info('Initializing Business Metrics section');
-
-  // Initial fetch
-  await refresh();
-
-  // Set up polling
-  refreshInterval = setInterval(async () => {
-    const concurrent = await fetchConcurrent();
-    const concurrentEl = document.getElementById('concurrent-count');
-    if (concurrentEl) concurrentEl.textContent = concurrent.toString();
-  }, 10000); // Every 10 seconds for concurrent
-
-  // Full refresh every minute
-  setInterval(refresh, 60000);
-
-  // Expose refresh function globally
-  (window as unknown as { businessMetrics: { refresh: () => Promise<void> } }).businessMetrics = {
-    refresh,
-  };
+  cleanup(); // a second init must not stack a second set of polls
+  document.querySelector('[data-bm-refresh]')?.addEventListener('click', () => void refresh());
+  await Promise.all([refresh(), updateConcurrent()]);
+  timers = [
+    setInterval(() => void updateConcurrent(), 10_000),
+    setInterval(() => void refresh(), 60_000),
+  ];
 }
 
 export async function refresh(): Promise<void> {
@@ -797,8 +770,6 @@ export async function refresh(): Promise<void> {
 }
 
 export function cleanup(): void {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
+  for (const timer of timers) clearInterval(timer);
+  timers = [];
 }

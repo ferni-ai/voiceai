@@ -81,9 +81,6 @@ export {
   detectUserEnergy,
   checkIsFirstMeeting,
 } from './first-meeting-magic.js';
-export { acquaintanceDeepeningBuilder } from './acquaintance-deepening.js';
-export { friendshipFloweringBuilder } from './friendship-flowering.js';
-export { trustedAdvisorBuilder } from './trusted-advisor.js';
 
 // ============================================================================
 // CONVENIENCE FUNCTIONS

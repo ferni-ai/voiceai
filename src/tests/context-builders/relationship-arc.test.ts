@@ -539,9 +539,6 @@ describe('relationship-arc/index convenience functions', () => {
 
     // Builders
     expect(typeof index.firstMeetingMagicBuilder).toBe('object');
-    expect(typeof index.acquaintanceDeepeningBuilder).toBe('object');
-    expect(typeof index.friendshipFloweringBuilder).toBe('object');
-    expect(typeof index.trustedAdvisorBuilder).toBe('object');
 
     // Convenience functions
     expect(typeof index.getRelationshipStage).toBe('function');

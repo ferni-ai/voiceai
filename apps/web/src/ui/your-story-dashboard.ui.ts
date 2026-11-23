@@ -12,6 +12,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { timeOfDayGreeting } from '../i18n/time-of-day.js';
 import { prefersReducedMotion } from '../utils/accessibility.js';
 import { t } from '../i18n/index.js';
 import {
@@ -26,8 +27,10 @@ import {
   injectActionsTakenStyles,
   type ActionsTakenData,
 } from './visualizations/builders/actions-taken.js';
+import { toActionsTakenData } from './visualizations/builders/actions-taken-data.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { buildYourStoryStatus, type YourStoryStatus } from './your-story-status.js';
+import { pruneEmptySections, STORY_ROW_STYLES } from './your-story-layout.js';
 
 const log = createLogger('YourStoryDashboard');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -292,7 +295,7 @@ class YourStoryUI {
     const top = el('div', 'your-story__header-top');
     const titleGroup = el('div');
     const title = el('h2', 'your-story__title');
-    title.textContent = this.getTimeGreeting();
+    title.textContent = timeOfDayGreeting(); // the menu header's words (i18n/time-of-day.ts)
     const subtitle = el('p', 'your-story__subtitle');
     subtitle.textContent = t('yourStory.subtitle');
     titleGroup.appendChild(title);
@@ -497,7 +500,7 @@ class YourStoryUI {
     hero.setAttribute('data-viz', 'relationship-network');
     section.appendChild(hero);
 
-    const row = el('div', 'your-story__viz-row');
+    const row = el('div', 'your-story__viz-row your-story__viz-row--stack');
     const loops = el('div', 'your-story__compact-viz');
     loops.id = 'viz-open-loops';
     loops.setAttribute('data-viz', 'open-loops');
@@ -539,6 +542,7 @@ class YourStoryUI {
       if (!vizData) container?.remove();
       else if (container) this.deviceAdapter.render(container as HTMLElement, viz.type, vizData);
     }
+    if (this.panel) pruneEmptySections(this.panel); // a heading over nothing reads as broken
   }
 
   /**
@@ -557,20 +561,8 @@ class YourStoryUI {
         return;
       }
 
-      const data = await response.json();
-
-      // Transform API response to ActionsTakenData format
-      this.actionsData = {
-        recentCare: data.recentCare || [],
-        summary: data.summary || {
-          callsMade: 0,
-          messagesSent: 0,
-          remindersKept: 0,
-          commitmentsFulfilled: 0,
-        },
-        commitmentProgress: data.commitmentProgress || { kept: 0, pending: 0, total: 0 },
-        totalActions: data.totalActions || 0,
-      };
+      // A count the server didn't send stays unknown, never a made-up 0
+      this.actionsData = toActionsTakenData(await response.json());
 
       // Render actions if container exists
       this.renderActionsSection();
@@ -607,13 +599,6 @@ class YourStoryUI {
     buildActionsTaken(container as HTMLElement, this.actionsData, context);
   }
 
-  private getTimeGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour < 12) return t('yourStory.greeting.morning');
-    if (hour < 17) return t('yourStory.greeting.afternoon');
-    return t('yourStory.greeting.evening');
-  }
-
   private injectStyles(): void {
     // Inject shared visualization component styles
     injectVisualizationStyles();
@@ -625,7 +610,9 @@ class YourStoryUI {
     // MA (間) spacing philosophy: breath=8px, pause=13px, rest=21px, silence=34px, meditation=55px
     // Golden ratio typography: sectionTitle=1.5rem, cardTitle=1.0625rem, body=0.9375rem
     // Pixar-inspired easings: spring, playful, organic
-    this.styleElement.textContent = `
+    // Row rules first: nothing above targets .your-story__viz-row and the
+    // narrow-screen rules below still override them.
+    this.styleElement.textContent = `${STORY_ROW_STYLES}
       /* ========================================================================
          YOUR STORY DASHBOARD - Design System Aligned
          Inspired by: MA (間), Golden Ratio, Pixar animation principles
@@ -1228,13 +1215,6 @@ class YourStoryUI {
         overflow: hidden;
         background: var(--color-bg-tertiary, #f9f8f6);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
-      }
-
-      .your-story__viz-row {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem; /* md (16px) */
-        margin-bottom: 1rem;
       }
 
       /* Hero spans full width on desktop grid */

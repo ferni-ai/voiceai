@@ -166,12 +166,18 @@ describe('the unit shards cover the whole suite on a full run', () => {
 
   // #2717 (crisis safety) went green on shard 1 alone; the label that widens it is
   // easy to forget and does not re-run CI once added. Setup's full-tests answers
-  // from the PR's files (which paths count: src/tests/ci/merge-queue-scope.test.ts).
-  it('gives a PR four shards when it touches crisis-safety or memory code', () => {
+  // from the PR's files (which paths count: src/tests/ci/merge-queue-scope.test.ts),
+  // and from the crisis lane's paths, read from autonomy-policy.json at run time.
+  it('gives a PR four shards when it touches crisis-safety or memory code, or any crisis-lane path', () => {
     expect(full?.[1]).toContain("needs.setup.outputs.full-tests == 'true'");
-    expect(setup).toMatch(/^ {6}full-tests: \$\{\{ steps\.risky\.outputs\.matched \}\}$/m);
+    expect(setup).toMatch(
+      /^ {6}full-tests: \$\{\{ steps\.risky\.outputs\.matched == 'true' \|\| steps\.crisis-lane\.outputs\.matched == 'true' \}\}$/m
+    );
     expect(setup).toMatch(
       /^ {8}id: risky\n {8}uses: \.\/\.github\/actions\/pr-changes\n {8}with:\n {10}include: '\^src\/.+'$/m
+    );
+    expect(setup).toMatch(
+      /^ {8}id: crisis-lane\n(?: {8}if: .*\n)? {8}uses: \.\/\.github\/actions\/pr-changes\n {8}with:\n {10}include: \$\{\{ steps\.crisis-lane-paths\.outputs\.include \}\}$/m
     );
   });
 

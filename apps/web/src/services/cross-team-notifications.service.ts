@@ -15,7 +15,7 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
 import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
-import { acknowledgeTeamInsight, parseTeamInsights, toCrossTeamInsight, type CrossTeamInsight, type CrossTeamPriority } from './cross-team-insight-mapper.js';
+import { markTeamInsightToasted, parseTeamInsights, toCrossTeamInsight, type CrossTeamInsight, type CrossTeamPriority } from './cross-team-insight-mapper.js';
 
 const log = createLogger('CrossTeamNotifications');
 
@@ -199,7 +199,7 @@ export function showCrossTeamNotification(insight: CrossTeamInsight): boolean {
 
   // Show the notification
   showOutreach(outreach);
-  void acknowledgeTeamInsight(insight.id);
+  void markTeamInsightToasted(insight.id);
   log.info({ type: insight.type, source: insight.sourcePersona }, '🔔 Showed cross-team notification');
 
   return true;
@@ -211,8 +211,8 @@ export function showCrossTeamNotification(insight: CrossTeamInsight): boolean {
 export function showBestInsight(insights: CrossTeamInsight[]): boolean {
   if (insights.length === 0) return false;
 
-  // Sort by priority and recency
-  const sorted = [...insights].sort((a, b) => {
+  // By priority, then recency; a note already shown as a toast is not toasted again (issue 3945)
+  const sorted = insights.filter((i) => !i.acknowledged).sort((a, b) => {
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
     if (priorityDiff !== 0) return priorityDiff;
@@ -394,7 +394,7 @@ export async function startInsightsPolling(userId: string): Promise<void> {
       // apiGet handles authentication; the server sends TeamInsight, not CrossTeamInsight
       const response = await apiGet<{ insights?: unknown }>(`/api/team-insights?userId=${userId}&limit=5`);
       if (!response.ok || !response.data) return;
-      // The server only returns insights not yet acknowledged; showing one acknowledges it
+      // Showing one marks it toasted (markTeamInsightToasted); showBestInsight skips those
       showBestInsight(parseTeamInsights(response.data.insights, 'cross-team poll').map(toCrossTeamInsight));
     } catch (err) {
       log.debug('Failed to poll insights:', err);

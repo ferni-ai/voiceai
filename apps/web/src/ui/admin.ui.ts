@@ -399,7 +399,7 @@ interface TTSStatsResponse {
   issuesFound: number;
   issueRatePercent: string;
   topPatterns: Array<{ pattern: string; count: number }>;
-  lastIssue: { time: string; timeAgo: string; textPreview: string } | null;
+  lastIssue: { time: string; timeAgo: string; textLength: number; textPreview?: string } | null;
   status: 'healthy' | 'warning' | 'critical';
 }
 
@@ -456,7 +456,7 @@ function renderTTSStatsContent(stats: TTSStatsResponse): string {
         <h4>Last Issue</h4>
         <div class="admin-tts-issue-info">
           <span class="time">${stats.lastIssue.timeAgo}</span>
-          <code class="preview">${escapeHtml(stats.lastIssue.textPreview)}</code>
+          <code class="preview">${escapeHtml(stats.lastIssue.textPreview ?? `[${stats.lastIssue.textLength} chars]`)}</code>
         </div>
       </div>
     `

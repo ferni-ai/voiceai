@@ -5,11 +5,11 @@ description: Deploy the Ferni voice agent to LiveKit Cloud (dev or prod), change
 
 # Deploy the voice agent
 
-| | dev | prod |
-|---|---|---|
-| Project / agent | `ferni-dev` / `CA_siTDMHEba4Fg` | `ferni-prod` / `CA_GeFvEpsNXLSF` |
-| Config | `<repo>/livekit.toml` | `<repo>/livekit.prod-cloud.toml` |
-| What may ship | a commit on `origin/main` | a commit on `origin/main` that has already run on dev |
+|                 | dev                             | prod                                                  |
+| --------------- | ------------------------------- | ----------------------------------------------------- |
+| Project / agent | `ferni-dev` / `CA_siTDMHEba4Fg` | `ferni-prod` / `CA_GeFvEpsNXLSF`                      |
+| Config          | `<repo>/livekit.toml`           | `<repo>/livekit.prod-cloud.toml`                      |
+| What may ship   | a commit on `origin/main`       | a commit on `origin/main` that has already run on dev |
 
 CLI profiles: `ferni-dev` and `ferni-prod` (`lk project list`). The prod LiveKit
 Cloud project's own name is still `test` (subdomain `test-rvg91u1z`), so never
@@ -20,10 +20,12 @@ pick a project by the name `test`. If a profile is missing, add it once with
 Always pass absolute `--project` and `--config` paths. Never print secrets.
 
 ## Deploy (one `&&` chain: any failure stops it)
+
 The room check fails closed: if `lk` can't reach the project (wrong or
 missing profile, bad keys), the chain stops instead of reading the error as
 "no rooms". Never deploy while a room is live; that cuts a caller off.
 Run from a clean checkout of the commit you're deploying, normally `origin/main`:
+
 ```bash
 P=ferni-dev; C=$(git rev-parse --show-toplevel)/livekit.toml   # prod: ferni-prod + livekit.prod-cloud.toml
 LOG=$(mktemp)
@@ -49,6 +51,7 @@ live() { G=$(lk agent versions --project $P --config $C 2>/dev/null | awk -F'│
  && live \
  && echo DEPLOYED $(git rev-parse HEAD)
 ```
+
 - `unable to deploy agent: bufio.Scanner: token too long` at the end is harmless.
 - The check pipes into `grep -q .` instead of `grep -qv`: some greps (ugrep, which Claude Code shells use as `grep`) return 0 for `-qv` on empty input, so a clean deploy read as failed (2026-10-22, both dev and prod).
 - Any other `unable to deploy agent: …` (for example `stream error … INTERNAL_ERROR`)
@@ -73,22 +76,32 @@ live() { G=$(lk agent versions --project $P --config $C 2>/dev/null | awk -F'│
   exception: drop that step knowingly and say why in the PR. Never on prod.
 
 ## Flags and secrets
+
 ```bash
 lk agent update-secrets --project $P --config $C --secrets "FLAG=on" --secrets "OTHER=off"
 ```
+
 - Use one `--secrets` per key; commas don't split.
 - It merges unless you pass `--overwrite`.
 - An empty value is rejected, so use `off`.
 - It restarts the agent, so check rooms are empty first.
 - When turning a flag on in prod, record the change in the PR that added the flag.
+- `CRISIS_SCRIPT_IMMINENT_READ=on` changes the crisis words a caller hears. Before setting it
+  anywhere, the `reviewed:` line in `src/agents/personas/__tests__/crisis-script-words.kept.md`
+  must name a crisis owner (`approvers.crisis` in `scripts/ci/autonomy-policy.json`), and
+  `crisis-script-words.test.ts` must pass on the deployed commit (a stale stamp fails it).
+  `none` means no one has reviewed the words: don't set it.
 
 ## Before promoting to prod: secrets parity
+
 Run the parity check first. It is read-only (`lk agent secrets` + `lk agent logs`):
+
 ```bash
 R=$(git rev-parse --show-toplevel)
 pnpm ops:secrets-parity --dev-project ferni-dev --dev-config $R/livekit.toml \
   --prod-project ferni-prod --prod-config $R/livekit.prod-cloud.toml
 ```
+
 - It compares key names, and values by a per-run HMAC, using each agent's
   `EFFECTIVE_SETTINGS` boot lines (LiveKit never returns secret values). It
   prints names, counts and flag words only, never a value.
@@ -103,22 +116,27 @@ pnpm ops:secrets-parity --dev-project ferni-dev --dev-config $R/livekit.toml \
   Voice ids and flags can't be allowlisted.
 
 ## Roll back
+
 ```bash
 lk agent versions --project $P --config $C        # find the last good version id
 lk agent rollback --project $P --config $C --version <id>
 ```
 
 ## After deploying
+
 Run `scripts/voice-eval/run.sh <dev|prod> long-day <label>` once (skill
 `voice-eval`) and look at the transcript before calling it done.
 
 ## Before promoting dev to prod
+
 Sweep dev (skill `voice-eval`, serially) with every scenario of the last
 release's sweep, including `sweep-crisis-real`. Then run the release check on dev:
+
 ```bash
 node scripts/voice-eval/release-check.mjs dev <candidate-sha> <prod-sha> \
   --candidate <this sweep's dir> --baseline <last release's sweep dir> --out release-check.txt
 ```
+
 Promote only on `RESULT_release_check=PASS` (exit 0) or `PASS_WITH_WAIVER`
 (exit 5), and attach `release-check.txt` to the release PR. A waiver
 (`--accept-known crisis-line-non-crisis:#<open issue>`) needs its WAIVED line

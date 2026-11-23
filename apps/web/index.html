@@ -300,11 +300,13 @@
                 <span class="thinking-dot"></span>
                 <span class="thinking-dot"></span>
               </div>
-              <span class="thinking-text" data-i18n="accessibility.thinking">Thinking</span>
+              <!-- Empty until thinking.ui shows it: no "Thinking" status before any call -->
+              <span class="thinking-text"></span>
             </div>
           </div>
           <h1 id="personaName" class="entrance-name">Ferni</h1>
-          <p id="personaSubtitle" class="entrance-subtitle" data-i18n="team.members.ferni.role">Life Coach</p>
+          <!-- Filled by coach.ui (relationship-stage line); the role lives only in the pill below -->
+          <p id="personaSubtitle" class="entrance-subtitle"></p>
           <!-- Honest AI role label for whoever is speaking (ai-role-label.ui.ts). Kept apart from #personaSubtitle, which changes with the relationship stage. -->
           <div class="ai-companion-label-row entrance-subtitle">
             <span class="ai-companion-label"><span class="ai-companion-label-text" data-i18n="aiLabel.role.lifeCoach">Life coach</span></span>

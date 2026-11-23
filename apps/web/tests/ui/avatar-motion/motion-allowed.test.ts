@@ -1,6 +1,7 @@
 /**
  * avatarMotionAllowed: reduced motion stops every kind; the crisis face hold
- * stops every kind but the calm blink (fe's ruling, 2026-11-11); outside both,
+ * stops every kind but the calm blink (fe's ruling, 2026-11-11) and the
+ * protective lean (Seth's ruling, 2026-11-12); outside both,
  * everything plays.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,6 +26,9 @@ const KINDS: AvatarMotionKind[] = [
   'lidVoice',
   'fullNod',
   'smile',
+  'bodyTurn',
+  'drawCloser',
+  'comfortPulse',
 ];
 
 function setReducedMotion(reduce: boolean): void {
@@ -41,9 +45,9 @@ describe('avatarMotionAllowed', () => {
     expect(KINDS.filter((k) => !avatarMotionAllowed(k))).toEqual([]);
   });
 
-  it('allows only the calm blink while the crisis face is held', () => {
+  it('allows only the calm blink and the protective lean while the crisis face is held', () => {
     holdCrisisFace();
-    expect(KINDS.filter((k) => avatarMotionAllowed(k))).toEqual(['blink']);
+    expect(KINDS.filter((k) => avatarMotionAllowed(k))).toEqual(['blink', 'drawCloser']);
   });
 
   it('allows nothing under reduced motion, held or not', () => {

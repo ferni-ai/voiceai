@@ -15,7 +15,7 @@
  * - Never forgets important dates or follow-ups
  */
 
-import { createLogger } from '../../../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../../../utils/safe-logger.js';
 import { callLLM } from '../../../../services/llm-utils.js';
 import {
   TEMP_REASONING,
@@ -209,7 +209,7 @@ Remember: ${channel === 'text' ? 'Keep it to 1-2 sentences like a real text.' : 
     }
 
     // Fall through to fallback if response is weird
-    log.warn({ response: message }, 'LLM response was invalid, using fallback');
+    log.warn({ response: replyForLog(message) }, 'LLM response was invalid, using fallback');
   } catch (error) {
     log.warn({ error: String(error) }, 'LLM message crafting failed, using fallback');
   }

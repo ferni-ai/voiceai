@@ -31,12 +31,24 @@ import {
 } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
-import { blockedReply, watchBlocked, type BlockedResponse } from './crisis-classifier-blocked.js';
+import {
+  noteReadsDropped,
+  perCallReads,
+  readsLost,
+  resetLostReads,
+  roomFor,
+  scopesOf,
+  SharedRuns,
+} from './crisis-read-room.js';
+import { watchBlocked } from './crisis-classifier-blocked.js';
+import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
+
+export * from './crisis-classifier-gemini.js'; // createGeminiCrisisGenerate, its default model
 
 export type CrisisClassifierMode = 'off' | 'shadow' | 'live';
 
@@ -67,14 +79,10 @@ export type CrisisGenerateFn = (
   signal: AbortSignal
 ) => Promise<string>;
 
-/**
- * Served from the global endpoint only (us-central1 returns 404). On the blind
- * set: 100% recall, 0/60 false positives, 40/40 imminent, p50 535ms, p95 ~0.7s.
- */
-export const DEFAULT_CRISIS_CLASSIFIER_MODEL = 'gemini-3.5-flash-lite';
 /** Above the measured p95; on voice the call overlaps the LLM's own first-token wait. */
 export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1000;
-const MAX_EARLIER_MESSAGES = 5;
+/** The most caller lines a read is given, as context (earlier) or, joined, as one turn. */
+export const MAX_EARLIER_MESSAGES = 5;
 
 export const CRISIS_CLASSIFIER_PROMPT = `You triage suicide and self-harm risk for a voice companion app. Read the caller's LATEST message, using EARLIER messages from the same conversation only as context, and classify the LATEST message.
 
@@ -226,34 +234,6 @@ export async function classifyCrisis(
   }
 }
 
-/** Gemini-backed generate function. Resolves to '' when Gemini is not configured. */
-export function createGeminiCrisisGenerate(
-  model: string = process.env.CRISIS_CLASSIFIER_MODEL || DEFAULT_CRISIS_CLASSIFIER_MODEL
-): CrisisGenerateFn {
-  return async (systemPrompt, userContent, signal) => {
-    const { getGeminiClient } = await import('../../config/gemini-config.js');
-    const client = (await getGeminiClient()) as {
-      models: {
-        generateContent: (req: unknown) => Promise<{ text?: string } & BlockedResponse>;
-      };
-    } | null;
-    if (!client) return '';
-    const response = await client.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts: [{ text: userContent }] }],
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0,
-        maxOutputTokens: 60,
-        responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 0 },
-        abortSignal: signal,
-      },
-    });
-    return blockedReply(response) ?? response.text ?? ''; // CRISIS_CLASSIFIER_BLOCKED_SIGNAL
-  };
-}
-
 /** What the pattern guard decided for the same turn. */
 export type PatternOutcome = 'block' | 'crisis' | 'none';
 
@@ -275,31 +255,19 @@ export interface StartCrisisClassifierOptions {
   call?: string;
   /** Which path reads, the call's turn count, and whether its patterns read someone else. */
   secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
+  readBlocked?: boolean; // CRISIS_SCRIPT_IMMINENT_READ: a scripted turn (crisis-script-imminent.ts)
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
 
 /**
  * One turn can reach the classifier more than once: a preemptive LLM request
- * and the final one, and the background turn handler. Identical input within
- * RECENT_RUN_TTL_MS shares one call. In memory only.
+ * and the final one, and the background turn handler. Identical input and
+ * deadline within RECENT_RUN_TTL_MS share one call. In memory only.
  */
 const RECENT_RUN_TTL_MS = 30_000;
 const RECENT_RUN_MAX = 32;
-const recentRuns = new Map<string, { at: number; run: CrisisClassifierRun }>();
-
-function cachedRun(key: string, now: number): CrisisClassifierRun | null {
-  for (const [k, v] of recentRuns) if (now - v.at > RECENT_RUN_TTL_MS) recentRuns.delete(k);
-  return recentRuns.get(key)?.run ?? null;
-}
-
-function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
-  if (recentRuns.size >= RECENT_RUN_MAX) {
-    const oldest = recentRuns.keys().next().value;
-    if (oldest !== undefined) recentRuns.delete(oldest);
-  }
-  recentRuns.set(key, { at: now, run });
-}
+const recentRuns = new SharedRuns<CrisisClassifierRun>(RECENT_RUN_TTL_MS, RECENT_RUN_MAX);
 
 /**
  * Every read of one turn, from whichever path made it. Same TTL and bound as
@@ -308,7 +276,10 @@ function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
  * different turns ("same." after a pasta story, then after "I don't see the
  * point") never combine.
  */
-const turnReads = new Map<string, { at: number; verdicts: Set<Promise<CrisisVerdict | null>> }>();
+const turnReads = new Map<
+  string,
+  { at: number; scope: string; verdicts: Set<Promise<CrisisVerdict | null>> }
+>();
 
 function turnKey(scope: string, input: CrisisClassifierInput): string {
   const { latest, earlier, companion } = normalizeInput(input);
@@ -339,7 +310,8 @@ function rememberLoose(
   scope: string,
   latest: string,
   now: number,
-  verdict: Promise<CrisisVerdict | null>
+  verdict: Promise<CrisisVerdict | null>,
+  on: boolean
 ): void {
   for (const [k, v] of looseReads) {
     const fresh = v.filter((read) => now - read.at <= RECENT_RUN_TTL_MS);
@@ -347,10 +319,16 @@ function rememberLoose(
     else looseReads.delete(k);
   }
   const reads = looseReads.get(scope) ?? [];
-  if (!looseReads.has(scope) && looseReads.size >= RECENT_RUN_MAX) {
-    const oldest = looseReads.keys().next().value;
-    if (oldest !== undefined) looseReads.delete(oldest);
-  }
+  const room = { scope, max: RECENT_RUN_MAX, on, turnReads: true, now };
+  const out = looseReads.has(scope)
+    ? undefined
+    : roomFor(
+        scopesOf(looseReads, (k) => k),
+        looseReads.size,
+        room
+      );
+  if (out !== undefined) looseReads.delete(out);
+  if (reads.length >= RECENT_RUN_MAX) noteReadsDropped(scope, on, now);
   reads.push({ at: now, text: looseText(latest), verdict });
   looseReads.set(scope, reads.slice(-RECENT_RUN_MAX));
 }
@@ -359,9 +337,10 @@ function rememberRead(
   scope: string,
   input: CrisisClassifierInput,
   now: number,
-  verdict: Promise<CrisisVerdict | null>
+  verdict: Promise<CrisisVerdict | null>,
+  on = false
 ): void {
-  rememberLoose(scope, normalizeInput(input).latest, now, verdict);
+  rememberLoose(scope, normalizeInput(input).latest, now, verdict, on);
   for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
   const key = turnKey(scope, input);
   const reads = turnReads.get(key);
@@ -369,18 +348,22 @@ function rememberRead(
     reads.verdicts.add(verdict);
     return;
   }
-  if (turnReads.size >= RECENT_RUN_MAX) {
-    const oldest = turnReads.keys().next().value;
-    if (oldest !== undefined) turnReads.delete(oldest);
-  }
-  turnReads.set(key, { at: now, verdicts: new Set([verdict]) });
+  const room = { scope, max: RECENT_RUN_MAX, on, turnReads: true, now };
+  const out = roomFor(
+    scopesOf(turnReads, (_k, v) => v.scope),
+    turnReads.size,
+    room
+  );
+  if (out !== undefined) turnReads.delete(out);
+  turnReads.set(key, { at: now, scope, verdicts: new Set([verdict]) });
 }
 
 /**
  * All reads of this turn started so far in this call, each bounded by the
  * classifier timeout: every read under the strict key, plus any other read of
  * the same caller words (loose key) that was not a clear none. A none counts
- * only under the strict key; a crisis or missing read counts under either.
+ * only under the strict key; a crisis or missing read counts under either. A call
+ * whose reads were pushed out (crisis-read-room.ts) gets a missing read too.
  */
 export async function turnVerdicts(
   scope: string,
@@ -396,7 +379,11 @@ export async function turnVerdicts(
     Promise.all([...strict]),
     Promise.all([...new Set(loose)]),
   ]);
-  return [...strictVerdicts, ...looseVerdicts.filter((v) => v === null || v.risk !== 'none')];
+  const reads = [
+    ...strictVerdicts,
+    ...looseVerdicts.filter((v) => v === null || v.risk !== 'none'),
+  ];
+  return readsLost(scope) ? [...reads, null] : reads;
 }
 
 /** For tests: forget shared runs. */
@@ -405,6 +392,7 @@ export function resetCrisisClassifierCache(): void {
   turnReads.clear();
   looseReads.clear();
   resetSecondReadTurns();
+  resetLostReads();
 }
 
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
@@ -413,10 +401,8 @@ export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
 }
 
 /**
- * Start the classifier for one turn, or return null when the mode is off or
- * (in live mode) the patterns already block — the classifier cannot escalate
- * past a block. Every completed run logs one CRISIS_CLASSIFIER record with the
- * verdict and the pattern outcome so agreement can be measured from logs.
+ * One turn's classifier run; null when off, or live on a turn the patterns block unless asked to
+ * read it (readBlocked). Every completed run logs one CRISIS_CLASSIFIER record (verdict, pattern).
  */
 export function startCrisisClassifier(
   input: CrisisClassifierInput,
@@ -425,9 +411,13 @@ export function startCrisisClassifier(
   const env = options.env ?? process.env;
   const mode = resolveCrisisClassifierMode(env);
   if (mode === 'off') return null;
-  if (mode === 'live' && options.pattern === 'block') return notePatternBlock(options.call, env);
+  if (mode === 'live' && options.pattern === 'block' && !options.readBlocked)
+    return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
+  // CRISIS_CLASSIFIER_RUN_PER_CALL (#4005): runs shared within one call only, never with no call
+  // id, a failed run never reused, and a run joined only while it has time left to answer.
+  const on = perCallReads(env);
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
@@ -442,16 +432,21 @@ export function startCrisisClassifier(
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    waitMs,
     second.key,
     ...agreementCacheScope(env, options.call),
+    ...(on ? [options.call] : []),
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
-  const shared = cachedRun(key, startedAt);
-  if (shared) {
+  const cacheable = !on || !!options.call;
+  const shared = cacheable ? recentRuns.get(key, startedAt) : null;
+  const ageMs = shared ? startedAt - shared.at : 0;
+  if (shared && (!on || ageMs < waitMs / 2)) {
     second.note();
-    const verdict = own(shared.verdict);
-    if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
+    if (on) log.info({ mode, ageMs }, 'CRISIS_CLASSIFIER_JOINED');
+    const verdict = own(shared.run.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, verdict, on);
     return { mode, verdict };
   }
 
@@ -478,14 +473,18 @@ export function startCrisisClassifier(
         latencyMs: Date.now() - startedAt,
         noVerdict: v === null,
         ...(plain ? { everydayBackstop: true } : {}),
+        ...(on ? { shared: false } : {}),
       },
       'CRISIS_CLASSIFIER'
     );
     return v;
   });
-  rememberRun(key, startedAt, { mode, verdict });
+  const run = { mode, verdict };
+  if (cacheable) recentRuns.set(key, run, { scope: options.call ?? '', on, now: startedAt });
+  const drop = () => recentRuns.drop(key, run);
+  if (on) verdict.then((v) => v === null && drop(), drop);
   const turn = own(verdict);
-  if (options.scope) rememberRead(options.scope, input, startedAt, turn);
+  if (options.scope) rememberRead(options.scope, input, startedAt, turn, on);
   return { mode, verdict: turn };
 }
 

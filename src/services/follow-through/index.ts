@@ -12,6 +12,7 @@ export {
   isClosed,
   nextOccurrence,
   ASK_ANSWERS,
+  ASK_SPACING_MS,
   ASK_TYPES,
   CLOSE_REASONS,
   EVENT_PRECISIONS,

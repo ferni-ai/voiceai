@@ -13,6 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { writeHeld } from '../../utils/minor-care.js';
+import { couldBePerson, nameAsSaid, personKey } from '../../memory/index.js';
 
 const log = createLogger({ module: 'relationship-network' });
 
@@ -32,13 +33,7 @@ export type RelationshipType =
   | 'complicated'; // It's complicated
 
 export type RelationshipSentiment =
-  | 'very_positive'
-  | 'positive'
-  | 'neutral'
-  | 'tense'
-  | 'negative'
-  | 'complicated'
-  | 'healing';
+  'very_positive' | 'positive' | 'neutral' | 'tense' | 'negative' | 'complicated' | 'healing';
 
 export interface RelationshipPerson {
   id: string;
@@ -131,10 +126,11 @@ export function extractPerson(
         const namePattern = new RegExp(`my\\s+${word}[,\\s]+([A-Za-z]+)`, 'i');
         const nameMatch = transcript.match(namePattern);
 
-        // Only accept as a proper name if it starts with uppercase in original text
-        if (nameMatch && /^[A-Z]/.test(nameMatch[1])) {
+        // A name as said, not a pronoun or verb ("my friend Call"); "my sister grace" stays my sister
+        const named = nameAsSaid(nameMatch?.[1]);
+        if (named) {
           return {
-            name: nameMatch[1],
+            name: named,
             type,
             context: transcript.slice(0, 150),
           };
@@ -155,8 +151,8 @@ export function extractPerson(
   const talkToPattern = /\bi (?:talked to|spoke with|saw|met with|called|texted) ([A-Z][a-z]+)/i;
   const talkMatch = transcript.match(talkToPattern);
   if (talkMatch) {
-    const name = talkMatch[1];
-    if (!['I', 'The', 'A', 'An', 'This', 'That', 'It', 'My', 'We', 'They'].includes(name)) {
+    const name = nameAsSaid(talkMatch[1]);
+    if (name) {
       return {
         name,
         type: 'acquaintance',
@@ -169,8 +165,8 @@ export function extractPerson(
   const saidPattern = /\b([A-Z][a-z]+) (?:said|told me|called me|texted me|asked me)/i;
   const saidMatch = transcript.match(saidPattern);
   if (saidMatch) {
-    const name = saidMatch[1];
-    if (!['I', 'The', 'A', 'An', 'This', 'That', 'It', 'My', 'We', 'They'].includes(name)) {
+    const name = nameAsSaid(saidMatch[1]);
+    if (name) {
       return {
         name,
         type: 'acquaintance',
@@ -186,17 +182,26 @@ export function extractPerson(
  * Extract all names mentioned in a transcript
  *
  * Returns an array of names with their context. This is used by the turn processor
- * to record all person mentions during a conversation.
+ * to record all person mentions during a conversation. A relation said without a name
+ * ("my mom") comes back with its type, so it is filed as family, not acquaintance.
  */
-export function extractNames(transcript: string): Array<{ name: string; context: string }> {
-  const results: Array<{ name: string; context: string }> = [];
+export function extractNames(
+  transcript: string
+): Array<{ name: string; context: string; type?: RelationshipType }> {
+  const results: Array<{ name: string; context: string; type?: RelationshipType }> = [];
   const seen = new Set<string>();
   const contextSnippet = transcript.slice(0, 150);
+  const add = (word: string | undefined): void => {
+    const name = nameAsSaid(word);
+    if (!name || seen.has(name.toLowerCase())) return;
+    results.push({ name, context: contextSnippet });
+    seen.add(name.toLowerCase());
+  };
 
   // 1. First, try extractPerson for relationship words
   const personResult = extractPerson(transcript);
-  if (personResult && !seen.has(personResult.name.toLowerCase())) {
-    results.push({ name: personResult.name, context: personResult.context });
+  if (personResult) {
+    results.push(personResult);
     seen.add(personResult.name.toLowerCase());
   }
 
@@ -204,194 +209,54 @@ export function extractNames(transcript: string): Array<{ name: string; context:
   const relationshipNameRegex =
     /\bmy\s+(mom|mother|dad|father|sister|brother|wife|husband|partner|boyfriend|girlfriend|friend|boss|coworker|colleague|mentor|cousin|aunt|uncle)\s+([A-Z][a-z]+)/gi;
   let match;
-  while ((match = relationshipNameRegex.exec(transcript)) !== null) {
-    const name = match[2];
-    if (!seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
-
-  // Common words to skip (not names)
-  const skipWords = new Set([
-    'the',
-    'a',
-    'an',
-    'this',
-    'that',
-    'it',
-    'my',
-    'we',
-    'they',
-    'he',
-    'she',
-    'you',
-    'i',
-    'with',
-    'said',
-    'told',
-    'asked',
-    'met',
-    'saw',
-    'called',
-    'texted',
-    'spoke',
-    'today',
-    'yesterday',
-    'tomorrow',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-    'sunday',
-    'morning',
-    'afternoon',
-    'evening',
-    'night',
-    'week',
-    'month',
-    'year',
-    'then',
-    'when',
-    'where',
-    'what',
-    'who',
-    'how',
-    'why',
-    'but',
-    'and',
-    'or',
-    'so',
-    'just',
-    'really',
-    'very',
-    'here',
-    'there',
-    'now',
-    'later',
-    'soon',
-    'again',
-    'next',
-    'last',
-    'first',
-    'good',
-    'great',
-    'nice',
-    'new',
-    'old',
-    'some',
-    'many',
-    'few',
-  ]);
+  while ((match = relationshipNameRegex.exec(transcript)) !== null) add(match[2]);
 
   // 3. Extract names in "talked to X" patterns (with or without "I" prefix)
   const talkPattern =
     /\b(?:i\s+)?(?:talked to|spoke with|saw|met with|called|texted)\s+([A-Z][a-z]+)/gi;
-  while ((match = talkPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = talkPattern.exec(transcript)) !== null) add(match[1]);
 
   // 3b. Extract names from "X's name is Y" patterns: "My mom's name is Betty" (NOT "my name is X" - user intro)
   // Only match when there's a possessive before "name" to avoid extracting user's own name
   const nameIsPattern =
     /\b(?:mom|mother|dad|father|sister|brother|wife|husband|partner|friend|boss|colleague)'?s?\s+name\s+is\s+([A-Z][a-z]+)/gi;
-  while ((match = nameIsPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = nameIsPattern.exec(transcript)) !== null) add(match[1]);
 
   // 3c. Extract names from "named X" patterns: "I have a sister named Jane"
   const namedPattern = /\b(?:named|called)\s+([A-Z][a-z]+)/gi;
-  while ((match = namedPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = namedPattern.exec(transcript)) !== null) add(match[1]);
 
   // 3d. Extract names from "X, my Y" patterns: "Alex, my mentor, recommended"
   const xMyYPattern =
     /\b([A-Z][a-z]+),?\s+my\s+(?:friend|mentor|boss|colleague|sister|brother|mom|dad)/gi;
-  while ((match = xMyYPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = xMyYPattern.exec(transcript)) !== null) add(match[1]);
 
   // 4. Extract names in "X said/told me" patterns
   const saidPattern =
     /\b([A-Z][a-z]+)\s+(?:said|told me|called me|texted me|asked me|thinks|thought|suggested|mentioned|wants|wanted)/gi;
-  while ((match = saidPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = saidPattern.exec(transcript)) !== null) add(match[1]);
 
   // 5. Extract names in "X is my Y" patterns: "Sarah is my best friend"
   const isMyPattern =
     /\b([A-Z][a-z]+)\s+is\s+my\s+(?:best\s+)?(?:friend|mom|dad|sister|brother|boss|colleague|mentor|wife|husband|partner)/gi;
-  while ((match = isMyPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = isMyPattern.exec(transcript)) !== null) add(match[1]);
 
   // 6. Extract names in "with X" context: "I went with John", "meeting with Sarah"
   const withPattern =
     /\b(?:with|and)\s+([A-Z][a-z]+)(?:\s+(?:today|yesterday|tomorrow|at|to|for)|\b)/gi;
-  while ((match = withPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = withPattern.exec(transcript)) !== null) add(match[1]);
 
   // 7. Extract names after "Tell X" or "Ask X"
   const tellPattern = /\b(?:tell|ask|call|text|email|visit|meet)\s+([A-Z][a-z]+)/gi;
-  while ((match = tellPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = tellPattern.exec(transcript)) !== null) add(match[1]);
 
-  // 8. Extract names with titles: "Dr. Johnson", "Mr. Smith"
-  const titlePattern = /\b(?:Dr\.|Mr\.|Mrs\.|Ms\.|Prof\.)\s*([A-Z][a-z]+)/gi;
-  while ((match = titlePattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  // 8. Extract names with titles: "Dr. Johnson", "Doctor Patel", "Mr. Smith"
+  const titlePattern = /\b(?:Dr\.|Doctor\b|Mr\.|Mrs\.|Ms\.|Prof\.)\s*([A-Z][a-z]+)/gi;
+  while ((match = titlePattern.exec(transcript)) !== null) add(match[1]);
 
   // 9. Extract names introduced with "introduced me to X"
   const introPattern = /\bintroduced\s+(?:me\s+)?to\s+([A-Z][a-z]+)/gi;
-  while ((match = introPattern.exec(transcript)) !== null) {
-    const name = match[1];
-    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
-      results.push({ name, context: contextSnippet });
-      seen.add(name.toLowerCase());
-    }
-  }
+  while ((match = introPattern.exec(transcript)) !== null) add(match[1]);
 
   return results;
 }
@@ -546,18 +411,21 @@ export async function savePerson(person: RelationshipPerson): Promise<void> {
 export async function recordMention(
   userId: string,
   extracted: { name: string; type: RelationshipType; context: string }
-): Promise<RelationshipPerson> {
+): Promise<RelationshipPerson | null> {
+  // Every writer funnels here: a pronoun, filler or verb is never a person (prod 2026-11-16)
+  if (!couldBePerson(extracted.name)) return null;
   const network = await loadNetwork(userId);
   const sentiment = analyzeSentiment(extracted.context);
 
-  // Find existing person (by name or alias)
+  // Find existing person by name or alias; "Mom", "my mom" and "my mother" are one person
+  const key = personKey(extracted.name);
   const existing = network.find(
-    (p) =>
-      p.name.toLowerCase() === extracted.name.toLowerCase() ||
-      p.aliases.some((a) => a.toLowerCase() === extracted.name.toLowerCase())
+    (p) => personKey(p.name) === key || p.aliases.some((a) => personKey(a) === key)
   );
 
   if (existing) {
+    // A stated relation beats the default the turn processor files names under
+    if (existing.type === 'acquaintance') existing.type = extracted.type;
     existing.mentionCount++;
     existing.lastMentioned = Date.now();
     existing.importance = Math.min(1, existing.importance + 0.02);
@@ -610,6 +478,25 @@ export async function recordMention(
     '👤 New person in network'
   );
   return newPerson;
+}
+
+/**
+ * Record everyone extractNames found in what the caller said. A relation keeps its own type
+ * ("my mom" is family); a bare name is an acquaintance until a relation is stated. Returns
+ * the names stored (non-people are refused by recordMention).
+ */
+export async function recordNamesSaid(
+  userId: string,
+  names: ReturnType<typeof extractNames>
+): Promise<string[]> {
+  const stored: string[] = [];
+  for (const { name, context, type } of names) {
+    // One at a time: two mentions of one person in a turn must find the same record
+    // eslint-disable-next-line no-await-in-loop
+    const person = await recordMention(userId, { name, type: type ?? 'acquaintance', context });
+    if (person) stored.push(person.name);
+  }
+  return stored;
 }
 
 // ============================================================================

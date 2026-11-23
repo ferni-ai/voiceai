@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   callMetrics,
   indexSessions,
+  isRedacted,
   linesOf,
   parseEntries,
   runOf,
@@ -123,6 +124,20 @@ describe('review-calls timeline and metrics', () => {
     expect(run.userSpeech).toEqual([[5000, 5000]]);
     expect(run.notes).toEqual([{ t: 16000, notes: ['drop the garden'] }]);
     expect(run.tools).toEqual([]);
+  });
+
+  it('leaves out replies the agent logged as a length only (prod), keeps the text it has (dev)', () => {
+    const redacted = parseEntries([
+      line(100, '🔍 E2E TRACE [4/4] → TTS', { trace: 'E2E_TTS_OUTPUT', ttsText: '[24 chars]' }),
+      line(200, '🔍 E2E TRACE [4/4] → TTS', { trace: 'E2E_TTS_OUTPUT', ttsText: 'Hello again.' }),
+    ]);
+    expect(isRedacted('[24 chars]')).toBe(true);
+    expect(isRedacted('[0 chars]')).toBe(true);
+    expect(isRedacted('see you in [2 chars]')).toBe(false);
+    expect(isRedacted('Hello again.')).toBe(false);
+    expect(timelineOf({ start: START }, redacted)).toEqual([
+      { t: 200, who: 'agent', text: 'Hello again.' },
+    ]);
   });
 
   it('measures gaps, presence checks, crisis, notes and summary', () => {

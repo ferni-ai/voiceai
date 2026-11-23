@@ -19,6 +19,7 @@ import { appState } from '../state/app.state.js';
 import { getElementById, setText, setClasses, addClass, removeClass } from '../utils/dom.js';
 import { safeAnimate } from '../config/animation-constants.js';
 import { showAiRoleLabel } from './ai-role-label.ui.js';
+import { headerName, subtitleBesideRole } from './persona-header-lines.js';
 import { animateNameHandoff, scrambleReveal } from './kinetic-typography.ui.js';
 import {
   getPersonaAnimationProfile,
@@ -156,9 +157,9 @@ export function initCoachUI(): void {
     
     // 🎭 Subscribe to dynamic Ferni subtitle changes
     subtitleUnsubscribe = relationshipStageService.onSubtitleChange((newSubtitle) => {
-      // Only update if currently showing Ferni
-      if (currentPersonaId === 'ferni' && elements?.subtitle) {
-        scrambleReveal(elements.subtitle, newSubtitle, { duration: 400 });
+      if (currentPersonaId === 'ferni' && elements?.subtitle) { // only while Ferni shows
+        const line = subtitleBesideRole(newSubtitle, appState.get('activePersona'));
+        scrambleReveal(elements.subtitle, line, { duration: 400 });
       }
     });
 
@@ -311,17 +312,16 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
 
   showAiRoleLabel(elements.container.querySelector<HTMLElement>('.ai-companion-label'), persona);
 
-  // 🔤 Animate name change with kinetic typography
-  if (elements.name && elements.name.textContent !== persona.name) {
-    void animateNameHandoff(elements.name, persona.name, { duration: PERSONA_SWAP_MAX_MS - 100 });
+  const name = headerName(persona); // 🔤 kinetic typography on a name change
+  if (elements.name && elements.name.textContent !== name) {
+    void animateNameHandoff(elements.name, name, { duration: PERSONA_SWAP_MAX_MS - 100 });
   } else {
-    setText(elements.name, persona.name);
+    setText(elements.name, name);
   }
   
-  // 🎭 Get subtitle - dynamic for Ferni, static for others
-  const subtitle = persona.id === 'ferni' 
-    ? relationshipStageService.getSubtitle()
-    : persona.subtitle;
+  // 🎭 Subtitle: dynamic for Ferni, static for others, never the role again
+  const own = persona.id === 'ferni' ? relationshipStageService.getSubtitle() : persona.subtitle;
+  const subtitle = subtitleBesideRole(own, persona);
   
   // Fade, not scramble: a scramble rewrites the text (and re-runs layout) every frame
   const subtitleChanged = elements.subtitle.textContent !== subtitle;

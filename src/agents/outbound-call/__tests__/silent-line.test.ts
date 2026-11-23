@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const deleteRoom = vi.hoisted(() => vi.fn(async (_room: string) => undefined));
-vi.mock('../call-control.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../call-control.js')>()),
+vi.mock('../../shared/phone-goodbye.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../shared/phone-goodbye.js')>()),
   deleteRoom,
 }));
 const coordinatedSay = vi.hoisted(() => vi.fn());

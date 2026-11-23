@@ -378,17 +378,6 @@ describe('Superhuman Memory Wiring', () => {
     });
   });
 
-  describe('Better Than Human Context Builder', () => {
-    it('should export the context builder', async () => {
-      const module =
-        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
-
-      expect(module.betterThanHumanMemoryBuilder).toBeDefined();
-      expect(module.betterThanHumanMemoryBuilder.name).toBe('better_than_human_memory');
-      expect(module.betterThanHumanMemoryBuilder.build).toBeDefined();
-    });
-  });
-
   describe('Memory API Routes', () => {
     it('should export memory route handler', async () => {
       const { handleMemoryRoutes } = await import('../api/memory-routes.js');

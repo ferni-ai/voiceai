@@ -11,6 +11,8 @@
 import * as path from 'node:path';
 import type { GateIssue } from './brand-gate.js';
 import type { Source } from './grounding.js';
+import type { JudgeResult } from './judge.js';
+import { DIMENSIONS } from './rubric.js';
 
 /** "em-dash x2, number x1": each rule once, in the order first found. */
 export function ruleCounts(issues: GateIssue[]): string {
@@ -54,6 +56,23 @@ export function rejectedSummary(r: Rejected): string[] {
     `  sources: ${prs.length > 0 ? prs.map((n) => `#${n}`).join(', ') : 'no PRs'}, ${docs} docs`,
     '  The draft and the findings are not printed (this log is public); rerun with --details locally.',
   ];
+}
+
+/**
+ * The judge's scores on the first clean draft and whether a rewrite replaced
+ * it. Scores only: the reasons quote the post.
+ */
+export function reviewSummary(review: { before: JudgeResult; revised: boolean }): string {
+  const { before, revised } = review;
+  const scores = before.verdict
+    ? DIMENSIONS.map((d) => `${d} ${before.verdict!.scores[d].score}`).join(', ')
+    : 'no verdict';
+  const outcome = revised
+    ? 'rewritten once with its notes'
+    : before.status === 'fail' && before.verdict
+      ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
+      : 'kept as drafted';
+  return `Judge before revision: ${before.status} (${scores}); ${outcome}`;
 }
 
 /** The line an accepted draft prints: its title and slug. */

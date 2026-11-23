@@ -13,6 +13,7 @@
 import type { UserProfile } from '../../types/user-profile.js';
 import { awarenessKind, buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
 import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
+import { userTimeZone } from '../../utils/caller-time-zone.js';
 
 /**
  * The profile with the last summaries, life events, goals and concerns about a
@@ -53,6 +54,7 @@ export function injectUserAwareness(opts: {
     isReturningUser,
     userName,
     sessionStartTime,
+    timeZone: userTimeZone({ sessionId }), // this call's zone only, never another call's
   });
   if (facts.length > 0) {
     process.stderr.write(

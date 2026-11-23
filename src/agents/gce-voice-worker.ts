@@ -149,6 +149,7 @@ log('✅ Ops orchestrator started');
 
 // Start Call Quality Monitor (disconnect patterns, connection success rates)
 import { flushBqEvents } from '../services/analytics/bq-events.js';
+import { stopBTHTelemetry } from '../services/better-than-human-validation/index.js';
 import { startCallQualityMonitor } from '../services/analytics/call-quality-monitor.js';
 startCallQualityMonitor({
   connectionSuccessRateWarning: 0.95,
@@ -170,8 +171,6 @@ log('✅ Call quality monitor started');
 
 log('Phase 2: Loading modules');
 const moduleLoadStart = Date.now();
-
-import { initializeLogger } from '@livekit/agents';
 
 // Import extracted GCE modules
 import {
@@ -204,7 +203,7 @@ import { drainTimeoutMs } from './gce/drain.js';
 import { drainMemoryWork } from './gce/drain-memory-work.js';
 import { exitAfterFlush, holdEventLoop } from './gce/exit-worker.js';
 import { startWorkerRecycle } from './gce/worker-recycle.js';
-import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
+import { initializeSdkLogger } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
 
@@ -213,7 +212,7 @@ log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
 // Initialize LiveKit SDK logger: JSON lines when deployed, pretty locally.
 // LOG_LEVEL=debug for verbose turn monitoring and startup logging.
-initializeLogger(sdkLoggerOptions());
+initializeSdkLogger();
 
 // Initialize LiveKit connection module
 initLiveKitConnection(
@@ -349,6 +348,8 @@ const shutdown = async (signal: string): Promise<void> => {
   await drainBatchedMemoryWork(10_000);
   // 6b. Send buffered analytics rows (bq-events.ts; nothing when BQ_EVENTS is off), max 5s
   await flushBqEvents(5_000);
+  // 6c. Send buffered BTH capability events (nothing when BTH_TELEMETRY_FLUSH is off), max 5s
+  await stopBTHTelemetry(5_000);
 
   const metrics = getJobMetrics();
   log('Shutdown complete', {

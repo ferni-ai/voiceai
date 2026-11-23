@@ -138,7 +138,6 @@ import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelli
 import {
   getUnifiedIntelligence,
   markProactiveInsightSurfaced,
-  processTurnLearning,
 } from '../integrations/unified-intelligence-integration.js';
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
@@ -851,6 +850,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Record turn latency for future adaptive calculations
       completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
+    const crisisTurn = crisisReadTurn(result.crisis); // records nothing (crisis-turn-memory.ts)
 
     // Get unified intelligence result (should be ready by now)
     const intelligence = await intelligencePromise;
@@ -1005,13 +1005,13 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
       // ================================================================
       // 💞 BTH: EMOTIONAL BOND DEEPEN - Gratitude or vulnerability shared
-      // Detect when relationship is deepening through vulnerability/gratitude
+      // Relationship deepening through vulnerability/gratitude; never on a crisis turn
       // ================================================================
       const isGratitude = /thank(s| you)|grateful|appreciate/i.test(userText);
       const isVulnerable =
         result.emotional.distressLevel > 0.4 ||
         /i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText);
-      if (isGratitude || isVulnerable) {
+      if (!crisisTurn && (isGratitude || isVulnerable)) {
         fireAndForget(async () => {
           await dispatchEmotionalBondDeepen(sendDataMessage, {
             trigger: isGratitude ? 'gratitude_expressed' : 'vulnerability_shared',
@@ -2199,7 +2199,6 @@ IMPORTANT:
     // ================================================================
     // LEARNING & TRUST RECORDING
     // ================================================================
-    const crisisTurn = crisisReadTurn(result.crisis); // keeps no happy memory (crisis-turn-memory.ts)
     const learningCtx: LearningContext = {
       userId: services.userId ?? null,
       sessionId: services.sessionId,
@@ -2257,7 +2256,7 @@ IMPORTANT:
       try {
         const { recordUnifiedMoment } =
           await import('../../personality/bridge/personality-bridge.js');
-        // Holds the happy moments on a crisis turn; crisis_support and vulnerability still record.
+        // Holds every moment on a crisis turn (crisis-turn-memory.ts).
         const record = momentRecorder(recordUnifiedMoment, crisisTurn);
 
         // Detect shared moments based on emotional intensity and content
@@ -2540,10 +2539,9 @@ IMPORTANT:
     // ================================================================
     fireAndForget(async () => {
       try {
+        if (crisisTurn) return; // no trust milestone of any kind on a crisis turn
         const relMem = getRelationalMemory();
-
-        // Detect and record trust milestones; no gratitude milestone of a crisis turn
-        if (!crisisTurn && /thank(s| you)|grateful|appreciate/i.test(userText)) {
+        if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
           await relMem.addMilestone(services.userId || 'anonymous', {
             type: 'expressed-gratitude',
             description: `User expressed gratitude during turn ${turnNumber}`,
@@ -2601,23 +2599,12 @@ IMPORTANT:
         sessionCount: services.userProfile?.totalConversations,
         relationshipStage: services.userProfile?.relationshipStage,
         mentionedPerson, // V3.1: Enhanced person extraction
+        crisisTurn,
       };
 
-      // Fire-and-forget to not block turn completion
+      // Fire-and-forget to not block turn completion. The only semantic intelligence pass
+      // for the turn: a second one (processTurnLearning) saved every loop twice.
       fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
-
-      // NEW: Unified intelligence turn learning (cross-domain correlation & pattern detection)
-      if (services.userId) {
-        processTurnLearning({
-          userId: services.userId,
-          sessionId: services.sessionId,
-          turnNumber,
-          transcript: userText,
-          emotion: result.emotional.primary,
-          topics: result.analysis.analysis.topics?.detected || [],
-          reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
-        });
-      }
 
       // ================================================================
       // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling
@@ -2636,6 +2623,8 @@ IMPORTANT:
         });
 
         fireAndForget(async () => {
+          // A crisis turn's words reach no capture; no crisis read counts as one (fail closed).
+          if (crisisTurn) return void diag.info('🧠 Turn memory held', { site: 'turn-handler' });
           const captureResult = await fastCapture({
             userId: captureUserId,
             sessionId: services.sessionId,
@@ -2670,8 +2659,6 @@ IMPORTANT:
             persona.id,
             voiceEmotionSnapshot
           );
-
-          // voice-session-store removed during DDD cleanup
 
           // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
           diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {

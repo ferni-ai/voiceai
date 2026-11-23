@@ -1,0 +1,24 @@
+{
+  "first_time": [
+    {
+      "text": "Hey there, it's Seth's twin. What's on your mind?"
+    },
+    {
+      "text": "Hey there. Seth's twin here. What can I tell you about Ferni?"
+    },
+    {
+      "text": "Hey, it's Seth's twin. Honestly, I love talking about this stuff. What do you want to know?"
+    }
+  ],
+  "returning": [
+    {
+      "text": "Hey there, you're back. What's next?"
+    },
+    {
+      "text": "Hey, good to hear from you. So, are we better than human yet?"
+    },
+    {
+      "text": "Hey there. What's working for you, and what's broken?"
+    }
+  ]
+}

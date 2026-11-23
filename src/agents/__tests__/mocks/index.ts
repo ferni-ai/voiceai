@@ -306,26 +306,6 @@ function setupInternalMocks(): void {
     detectVocalCues: vi.fn(() => ({})),
   }));
 
-  // Injection builders
-  vi.doMock('../../processors/injection-builders.js', () => ({
-    buildAdvancedHumanizationInjections: vi.fn(() => ({
-      injections: [],
-      emotionForTTS: null,
-      breathGroupPacing: null,
-      rhythmVariation: null,
-    })),
-    buildAmbientAwarenessInjections: vi.fn(() => []),
-    buildBoundaryCheckInjections: vi.fn(() => []),
-    buildConversationDynamicsInjections: vi.fn(() => []),
-    buildCrossPersonaInsightsInjection: vi.fn(() => []),
-    buildHealthAwarenessInjections: vi.fn(() => []),
-    buildHumanLevelInjections: vi.fn(() => []),
-    buildLifeCoachingInjections: vi.fn(() => []),
-    buildSafetyInjections: vi.fn(() => []),
-    buildScientificCoachingInjections: vi.fn(() => []),
-    buildTrustSystemsInjections: vi.fn(() => []),
-  }));
-
   // Session state
   vi.doMock('../../session/session-state.js', () => ({
     extractPersonalThemes: vi.fn(() => []),

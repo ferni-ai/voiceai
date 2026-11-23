@@ -58,6 +58,13 @@
         { "id": "no-handoff", "metric": "callsWithoutHandoff", "better": "lower", "warn": 0, "fail": 0, "why": "every handoff scenario hands off (TEAM_BY_NEED=on opens Nayan)" }
       ]
     },
+    "talk-through": {
+      "label": "Talking over a handoff", "scenarios": ["handoff-talk-through"],
+      "checks": [
+        { "id": "failed", "metric": "handoffFailed", "better": "lower", "warn": 0, "fail": 0, "why": "HANDOFF_TALK_THROUGH: a caller talking over the goodbye never costs the handoff (10-17 dev A/B: 3 of 3 failed)" },
+        { "id": "goodbye-yield", "metric": "interruptYield", "better": "higher", "warn": 1, "fail": 0.5, "why": "#63: the goodbye stops for the caller, even queued behind the held tool reply (11-13: 'goodbye not stopped' x2)" }
+      ]
+    },
     "play": { "label": "Play", "scenarios": ["play-roleplay", "play-twenty-questions", "play-bit-recall"], "checks": [] },
     "music": {
       "label": "Music", "scenarios": ["music-control", "music-call-ends"],

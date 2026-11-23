@@ -7,13 +7,18 @@ vi.mock('../../../memory/dynamic/async-events-config.js', () => ({
   configureAsyncEvents: track('configureAsyncEvents'),
 }));
 vi.mock('../../../memory/dynamic/index.js', () => ({
-  configureSyncService: track('configureSyncService'),
   startDeepExtractionWorker: track('startDeepExtractionWorker'),
 }));
 vi.mock('../../../memory/knowledge-graph/index.js', () => ({
   initializeKnowledgeCapture: vi.fn(async () => void calls.push('initializeKnowledgeCapture')),
 }));
 vi.mock('../../../services/async-events/index.js', () => ({ memoryAsyncEvents: {} }));
+vi.mock('../../../services/better-than-human-validation/index.js', () => ({
+  startBTHTelemetryIfEnabled: vi.fn(() => {
+    calls.push('startBTHTelemetryIfEnabled');
+    return false;
+  }),
+}));
 vi.mock('../../session/index.js', () => ({
   startRegistryOrphanCleanup: track('startRegistryOrphanCleanup'),
   stopRegistryOrphanCleanup: vi.fn(() => {
@@ -48,10 +53,10 @@ describe('startProcessRuntime', () => {
       'configureAsyncEvents',
       'startDeepExtractionWorker',
       'initializeKnowledgeCapture',
-      'configureSyncService',
       'startOrphanCleanup',
       'startRegistryOrphanCleanup',
       'startClosingTrackerCleanup',
+      'startBTHTelemetryIfEnabled',
     ])
       expect(
         calls.filter((c) => c === name),

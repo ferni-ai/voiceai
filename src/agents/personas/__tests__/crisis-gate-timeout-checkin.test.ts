@@ -72,7 +72,8 @@ async function turn(
   said: string | llm.ChatContext,
   env: Record<string, string>,
   generate: CrisisGenerateFn,
-  modelSays: (ctx: llm.ChatContext) => string = () => 'Sounds good.'
+  modelSays: (ctx: llm.ChatContext) => string = () => 'Sounds good.',
+  userData?: unknown
 ): Promise<Turn> {
   resetCrisisClassifierCache();
   // The turn reminder picks its style lines at random: the same picks on every turn compared.
@@ -80,7 +81,7 @@ async function turn(
   const model = vi.fn(async (ctx: llm.ChatContext) => streamOf(modelSays(ctx)));
   const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
   const ctx = typeof said === 'string' ? request(['user', said]) : said;
-  const reply = await gatedReply(ctx, { userData: undefined }, model as never, opener as never, {
+  const reply = await gatedReply(ctx, { userData }, model as never, opener as never, {
     env,
     generate,
   });
@@ -183,6 +184,8 @@ const GUIDED: ReadonlyArray<readonly [string, Record<string, string>]> = [
   ['i feel unsafe with myself tonight', {}],
   ['i feel unsafe with myself tonight', MEANS_LIVE],
   [PILLS, MEANS_LIVE],
+  // A line the patterns always guided, a check-in line since #3826 heard "wake up" words.
+  ["I hope I don't wake up tomorrow", {}],
 ];
 
 describe('CRISIS_TIMEOUT_CHECKIN: a pattern-guided line whose read failed keeps the 988', () => {
@@ -241,11 +244,8 @@ describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', (
         await unchanged(line, generate);
       });
 
-  it.each([
-    "I hope I don't wake up tomorrow", // the patterns guide
-    'I want to kill myself tonight', // the patterns replace
-  ])('a line the patterns already read stands unchanged: "%s"', async (line) => {
-    await unchanged(line, THROWS);
+  it('a line the patterns replace stands unchanged', async () => {
+    await unchanged('I want to kill myself tonight', THROWS);
   });
 
   it('only the latest caller line counts', async () => {
@@ -264,5 +264,44 @@ describe('CRISIS_TIMEOUT_CHECKIN: everything else reads as with the flag off', (
       ['user', PILLS]
     );
     expect((await turn(latest, ON, THROWS, guidedModel)).spoken).toContain('988');
+  });
+});
+
+/** #3826: the gate hands the check-in the call's earlier lines and its risk before this turn. */
+describe('CRISIS_TIMEOUT_CHECKIN: a plain denial, on a known call', () => {
+  const call = (sessionId: string) => ({ services: { sessionId } });
+  const DENIAL = "i'm not going to hurt myself.";
+  it('is no check-in when nothing on the call carried risk before it', async () => {
+    const on = await turn(DENIAL, ON, THROWS, guidedModel, call('denial-plain'));
+    expect(on.asked.join('')).not.toContain(TIMEOUT_CHECKIN);
+    expect(on.spoken).toBe('Sounds good.');
+  });
+
+  it('keeps the check-in when the denial carries an aside, on the same known call', async () => {
+    const aside = "i'm not going to hurt myself, i promise";
+    const on = await turn(aside, ON, THROWS, guidedModel, call('denial-aside'));
+    expect(on.asked.join('')).toContain(TIMEOUT_CHECKIN);
+    expect(on.spoken).toContain('988');
+  });
+
+  it('keeps the check-in after an earlier caller line with safety words', async () => {
+    const ctx = request(
+      ['user', 'i have a bottle of pills here'],
+      ['assistant', 'I hear you.'],
+      ['user', "i won't take them all."]
+    );
+    const on = await turn(ctx, ON, THROWS, guidedModel, call('denial-earlier'));
+    expect(on.spoken).toContain('988');
+  });
+
+  it('keeps the check-in when risk was noted on the call before this turn', async () => {
+    // An earlier turn the patterns read notes risk on this call.
+    await turn('I want to kill myself tonight', ON, THROWS, guidedModel, call('denial-noted'));
+    const on = await turn(DENIAL, ON, THROWS, guidedModel, call('denial-noted'));
+    expect(on.spoken).toContain('988');
+  });
+
+  it('keeps the check-in when the call is unknown', async () => {
+    expect((await turn(DENIAL, ON, THROWS, guidedModel)).spoken).toContain('988');
   });
 });

@@ -25,7 +25,7 @@ import {
 type NodeReadableStream<T> = ReadableStream<T>;
 type NodeTransformStream<I, O> = TransformStream<I, O>;
 
-import { createLogger } from '../../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../../utils/safe-logger.js';
 import { getTTSWithSpeculation, warmupTTSVoice, speculateTTS } from '../../../services/performance/speculative-tts.js';
 import { isOptimizationEnabled } from './latency-feature-flags.js';
 // ⚡ Import conversational audio cache for instant handoff/banter phrases
@@ -619,7 +619,7 @@ export function createCacheAwareTTSNode(
               metrics.totalSavedLatencyMs += Math.max(0, 300 - hitLatency);
 
               log.info(
-                { text: buffer.slice(0, 50), emotion, sessionId, hitLatencyMs: hitLatency },
+                { text: replyForLog(buffer), emotion, sessionId, hitLatencyMs: hitLatency },
                 '🎯 STREAMING TTS CACHE HIT - full response cached!'
               );
             }
@@ -836,13 +836,13 @@ export function createCacheAwareTTSNode(
     // 🔍 E2E TRACE: Cache miss - handing off to Cartesia TTS
     log.info(
       {
-        text: buffer.slice(0, 50),
+        text: replyForLog(buffer),
         emotion,
         sessionId,
         missLatencyMs: missLatency,
         trace: 'E2E_TTS_CARTESIA',
       },
-      `🔍 E2E TRACE [TTS] Cache miss - calling Cartesia for "${buffer.slice(0, 30)}..."`
+      `🔍 E2E TRACE [TTS] Cache miss - calling Cartesia for ${replyForLog(buffer)}`
     );
 
     // Release reader

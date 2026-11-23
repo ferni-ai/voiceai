@@ -24,13 +24,14 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream, TransformStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import type { ReplyLane } from '../model-provider/lane-request.js';
 import { armedCutReply, wordsOf } from '../shared/cut-reply-history.js';
 import { textOf, withText } from './said-by.js';
 
 const log = createLogger({ module: 'cut-reply-guard' });
 
 type Chunk = llm.ChatChunk | string | object;
-type Model = (request: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>;
+type Model = (request: llm.ChatContext, lane?: ReplyLane) => Promise<ReadableStream<Chunk> | null>;
 
 /** Opening words compared with the cut reply's. */
 export const OPENING_WORDS = 8;
@@ -162,9 +163,9 @@ export function withCutReplyCheck<M extends Model>(
   const services = (session as { userData?: { services?: { sessionId?: string } } }).userData
     ?.services;
   const id = sessionId ?? services?.sessionId;
-  const checked = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
+  const checked: Model = async (request, lane) => {
     const cut = armedCutReply(session);
-    const reply = await model(request);
+    const reply = await model(request, lane); // the gate's lane, on to llmNode (lane-request.ts)
     if (!reply) return reply;
     const clean = dropCutMarks(reply);
     return cut === undefined ? clean : logNearCopy(clean, cut, id);
