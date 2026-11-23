@@ -4,7 +4,7 @@
  * doc and no uid is written; who may call, the 1 KB cap and the hourly limit (#4069).
  */
 import { EventEmitter } from 'node:events';
-import { FieldValue } from '@google-cloud/firestore';
+import { FieldValue, Timestamp } from '@google-cloud/firestore';
 import { describe, expect, it, vi } from 'vitest';
 import { handleSoulStatsRoutes, type SoulStatsDeps } from '../soul-stats-routes.js';
 import { addSoulCounts, soulStatsOn } from '../soul-stats-store.js';
@@ -96,7 +96,11 @@ describe('what is stored', () => {
     ]);
     expect((data.micro_expression as FieldValue).isEqual(FieldValue.increment(3))).toBe(true);
     expect((data.comfort_pulse as FieldValue).isEqual(FieldValue.increment(1))).toBe(true);
-    expect(data.expireAt).toEqual(new Date(Date.UTC(2026, 10, 27, 7, 42))); // 8 days out
+    // Timestamps survive safeSet's cleaner; a Date would be stored as a string,
+    // which a TTL policy never expires and the admin read can't date.
+    expect(data.expireAt).toBeInstanceOf(Timestamp);
+    expect(data.updatedAt).toBeInstanceOf(Timestamp);
+    expect((data.expireAt as Timestamp).toMillis()).toBe(Date.UTC(2026, 10, 27, 7, 42)); // 8 days out
     expect(options).toEqual({ merge: true });
     expect(JSON.stringify(data)).not.toContain('uid-fictional-77');
   });

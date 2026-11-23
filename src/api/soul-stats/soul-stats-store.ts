@@ -6,9 +6,10 @@
  *
  * @module api/soul-stats/soul-stats-store
  */
-import { FieldValue, type Firestore } from '@google-cloud/firestore';
+import { FieldValue, Timestamp, type Firestore } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { withTimeout } from '../../utils/async.js';
+import { safeSet } from '../../utils/safe-firestore.js';
 import { SOUL_COUNT_KEYS, type SoulCounts } from './soul-stats-input.js';
 
 const COLLECTION = 'soul_stats_hourly';
@@ -37,8 +38,14 @@ export async function addSoulCounts(
   const added = SOUL_COUNT_KEYS.filter((k) => counts[k] > 0);
   if (added.length === 0) return false;
   const increments = Object.fromEntries(added.map((k) => [k, FieldValue.increment(counts[k])]));
-  const doc = { ...increments, updatedAt: new Date(now), expireAt: new Date(now + KEEP_MS) };
-  const write = db.collection(COLLECTION).doc(hourId(now)).set(doc, { merge: true });
+  // Timestamps, not Dates: safeSet's cleaner turns a Date into an ISO string, and
+  // a TTL policy never expires a string field.
+  const doc = {
+    ...increments,
+    updatedAt: Timestamp.fromMillis(now),
+    expireAt: Timestamp.fromMillis(now + KEEP_MS),
+  };
+  const write = safeSet(db.collection(COLLECTION).doc(hourId(now)), doc, { merge: true });
   await withTimeout(write, DEADLINE_MS, 'soul_stats_hourly write');
   return true;
 }
