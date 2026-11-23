@@ -72,6 +72,27 @@ describe('the last-call summary line (lastTalkedAbout)', () => {
     );
   });
 
+  it('gives no mark to a time the resolver put before the line was said', () => {
+    vi.stubEnv('MEMORY_TIME_LABELS', 'on');
+    // "in the morning" at 8 pm resolves to that morning; the interview is tomorrow's.
+    const plan = 'USER has a job interview in the morning';
+    const read = (wall: string) =>
+      lastTalkedAbout(false, plan, { at: WED_8PM, now: et(wall), zone: ZONE });
+    expect(read('2026-11-18T20:05')).toBe(`Last time you talked about: ${plan}`);
+    expect(read('2026-11-19T09:00')).toBe(`Last time you talked about: ${plan}`);
+  });
+
+  it('gives a cancelled or called-off plan no mark', () => {
+    vi.stubEnv('MEMORY_TIME_LABELS', 'on');
+    for (const plan of [
+      "Ava's tournament on Saturday got cancelled",
+      'the Saturday tournament was canceled',
+      'the party on Friday is called off',
+    ]) {
+      expect(lastTalkedAbout(false, plan, last)).toBe(`Last time you talked about: ${plan}`);
+    }
+  });
+
   it('reaches the voice-agent user awareness the same way', () => {
     const profile = {
       name: 'Dana',
@@ -136,5 +157,26 @@ describe('when they last talked (lastCallAwareness)', () => {
     const done = lastCallAwareness(last, 'USER went hiking last Saturday', ON).join('\n');
     expect(done).toContain(HOW_DID);
     expect(lastCallAwareness(last, ISSUE_SUMMARY, OFF).join('\n')).toContain(HOW_DID);
+    expect(ahead).toContain('never guess how something went');
+  });
+
+  it('a past-tense plan on its own day already happened, so it is not asked about as to come', () => {
+    const summary = 'USER had a dentist appointment today';
+    const sameDay = { at: et('2026-11-18T13:00'), now: et('2026-11-18T15:00'), zone: ZONE };
+    vi.stubEnv('MEMORY_TIME_LABELS', 'on');
+    expect(lastTalkedAbout(false, summary, sameDay)).toBe(
+      `Last time you talked about: ${summary} [already happened]`
+    );
+    const lines = lastCallAwareness(sameDay, summary, ON).join('\n');
+    expect(lines).toContain(HOW_DID);
+    expect(lines).not.toContain(STILL_TO_COME);
+  });
+
+  it('under an hour ago: the minutes line and the normal rule, no "still coming up" yet', () => {
+    const halfHour = { at: et('2026-11-19T22:30'), now: THU_11PM, zone: ZONE };
+    const lines = lastCallAwareness(halfHour, ISSUE_SUMMARY, ON);
+    expect(lines[0]).toBe('You talked about 30 minutes ago.');
+    expect(lines.join('\n')).toContain(HOW_DID);
+    expect(lines.join('\n')).not.toContain(STILL_TO_COME);
   });
 });

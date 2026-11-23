@@ -17,7 +17,13 @@
  *   snack mom this week" the week holds the Saturday, so only Saturday counts.
  * - A whole-day event is "today" on its day, and "may be over by now" from
  *   6 pm caller-local, not "under way" until midnight.
- * - A recurring time ("every Saturday") is no one event and gets no mark.
+ * - A recurring time ("every Saturday") is no one event and gets no mark,
+ *   nor does a plan that was cancelled or called off.
+ * - A past-tense clause on its own day ("had cleanings today") already
+ *   happened, and is never counted as still ahead.
+ * - A time that ended before the line was said, in a clause not in the past
+ *   tense, gets no mark: "an interview in the morning" said at 8 pm resolves
+ *   to that day's morning, and "already happened" would be wrong.
  * - With no known zone, a gap under a day is said in hours, never as a
  *   calendar day ("yesterday") that UTC may have put wrong.
  *
@@ -29,6 +35,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import * as C from './civil.js';
+import type { Tense } from './civil.js';
 import { eventState } from './event-state.js';
 import {
   CLAUSE_BREAK,
@@ -66,18 +73,34 @@ const RECURRING = new RegExp(
   'i'
 );
 
+/** A plan that will not happen gets no mark. */
+const CALLED_OFF = /\b(?:cancell?ed|called off)\b/i;
+
+/** One clause's time and the tense of its own verbs. */
+interface ClauseTime {
+  time: ResolvedTime;
+  tense: Tense | undefined;
+}
+
 /** Where one resolved time stands at `now`, with the whole-day rule above. */
-function stateOf(t: ResolvedTime, now: number, timeZone?: string): TimeState {
+function stateOf({ time: t, tense }: ClauseTime, now: number, timeZone?: string): TimeState {
   const state = eventState(t, now, timeZone);
+  // "had cleanings today": a past-tense clause has happened once its time began.
+  if (tense === 'past' && state !== 'upcoming') return 'past';
   if (state !== 'ongoing' || t.precision !== 'day') return state;
   const local = C.toNaive(now, C.zoneOrUtc(timeZone));
   return local - C.midnight(local) >= EVENING_HOUR * C.HOUR_MS ? 'today-late' : 'today';
 }
 
 /** One clause's time, if it names exactly one event: read in its own tense. */
-function clauseTime(clause: string, saidAt: number, timeZone?: string): ResolvedTime | undefined {
-  if (RECURRING.test(clause)) return undefined;
-  return resolveTimes(clause, saidAt, timeZone, { tense: sentenceTense(clause) })[0];
+function clauseTime(clause: string, saidAt: number, timeZone?: string): ClauseTime | undefined {
+  if (RECURRING.test(clause) || CALLED_OFF.test(clause)) return undefined;
+  const tense = sentenceTense(clause);
+  const time = resolveTimes(clause, saidAt, timeZone, { tense }).at(0);
+  // Not past tense, yet over before it was said ("in the morning" at 8 pm): the
+  // resolver picked the wrong day, so give no mark rather than "already happened".
+  if (!time || (time.endExclusive <= saidAt && tense !== 'past')) return undefined;
+  return { time, tense };
 }
 
 /** A text with its dated clauses marked, and the states of those marks in order. */
@@ -102,9 +125,13 @@ export function labelTimes(
   const parts = text.split(new RegExp(`(${CLAUSE_BREAK.source})`));
   const times = parts.map((p, i) => (i % 2 === 0 ? clauseTime(p, saidAt, timeZone) : undefined));
   const span = (t: ResolvedTime): number => t.endExclusive - t.start;
-  const holdsShorter = (t: ResolvedTime): boolean =>
+  const holdsShorter = ({ time: t }: ClauseTime): boolean =>
     times.some(
-      (o) => o && span(o) < span(t) && o.start >= t.start && o.endExclusive <= t.endExclusive
+      (c) =>
+        c &&
+        span(c.time) < span(t) &&
+        c.time.start >= t.start &&
+        c.time.endExclusive <= t.endExclusive
     );
   const states: TimeState[] = [];
   const marked = parts.map((part, i) => {
