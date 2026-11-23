@@ -110,6 +110,8 @@ export interface TurnSignals {
   ownStory?: boolean;
   /** SELF_SHARE_WHEN_ASKED=on: asked about him, but a short answer without a story (ferni-state.ts). */
   selfBrief?: boolean;
+  /** SELF_SHARE_STAYS=on: asked about him, he ends on his own thing, no question (self-share-stays.ts). */
+  selfStays?: boolean;
   /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
   recent?: RecentTurns;
   /** TURN_LENGTH=adaptive: this turn needs a real answer, and why (turn-substance.ts). */
