@@ -132,6 +132,9 @@ export function resolveTime(
   return { start: C.toInstant(start, zone), endExclusive: C.toInstant(end, zone), ...rest };
 }
 
+/** Where one clause of a longer text ends: "first round 10-19, final 10-26". */
+export const CLAUSE_BREAK = /[,;!?]|\.(?=\s|$)|\b(?:and|but|then)\b/;
+
 /**
  * Every time a longer text names, one per clause ("first round 10-19, final
  * 10-26"), in the tense the caller gives (tense.ts). Without one each clause
@@ -145,7 +148,7 @@ export function resolveTimes(
   { tense }: { tense?: Tense } = {}
 ): ResolvedTime[] {
   return text
-    .split(/[,;!?]|\.(?=\s|$)|\b(?:and|but|then)\b/)
+    .split(CLAUSE_BREAK)
     .map((clause) => {
       const t = resolveTime(clause, saidAt, callerTimeZone, { tense });
       const unsure = !tense && t?.certainty === 'exact' && t.endExclusive > saidAt;

@@ -72,8 +72,8 @@ export async function runHybridSearchWithTimeout(
     // Fuse the legs that made it, just inside the race, so one late leg (the
     // vector leg, waiting out a 429 backoff) costs its own results, not all.
     legDeadlineMs: Math.max(0, budgetMs - LEG_DEADLINE_MARGIN_MS),
-    // The judge weighs which fact is newer; TURN_MEMORY_TIME_LABELS says when each was said.
-    ...(((rrfScale && turnMemoryRerankOn()) || flagOn('TURN_MEMORY_TIME_LABELS')) && {
+    // The judge weighs which fact is newer; MEMORY_TIME_LABELS says when each was said.
+    ...(((rrfScale && turnMemoryRerankOn()) || flagOn('MEMORY_TIME_LABELS')) && {
       withTimestamps: true,
     }),
   });

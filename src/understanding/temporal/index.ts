@@ -4,6 +4,4 @@
  *
  * @module understanding/temporal
  */
-export { eventState, type EventState } from './event-state.js';
-export { resolveTimes, warmTemporalParser } from './resolve-time.js';
-export { sentenceTense } from './tense.js';
+export { anyStillAhead, labelTimes, memoryTimeLabelsOn, whenSaid } from './memory-time.js';

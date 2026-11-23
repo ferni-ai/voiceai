@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-export const TURN_MEMORY_TIME_LABELS = {
+export const MEMORY_TIME_LABELS = {
   default: 'off',
   owner: 'memory',
   kind: 'experiment',

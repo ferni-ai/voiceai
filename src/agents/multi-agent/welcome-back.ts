@@ -7,11 +7,20 @@
  */
 
 import { isSensitiveThread } from '../../memory/recall/sensitive.js';
+import {
+  anyStillAhead,
+  labelTimes,
+  memoryTimeLabelsOn,
+  whenSaid,
+} from '../../understanding/temporal/index.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
+import { isValidTimeZone } from '../../utils/time-zone.js';
+import type { LastCall } from './teammate-relationship.js';
 
 export { isSensitiveThread };
 
-/** The lines the system prompt gets for when they last talked (agent-setup.ts). */
-export function lastTalkedAwareness(
+/** The lines the system prompt gets for when they last talked, by calendar days. */
+function lastTalkedAwareness(
   daysSince: number,
   env: Record<string, string | undefined> = process.env
 ): string[] {
@@ -47,3 +56,33 @@ const SAME_DAY_AWARENESS =
 
 const LET_THEM_LEAD =
   'Let them lead the start of the call; do not open with what you talked about last time. If you bring it up, ask about one light thing as a short open question ("How did that go?"). Never guess how something went, and never string several people\'s names together.';
+
+/** LET_THEM_LEAD for a last call whose summary names something still ahead. */
+const LET_THEM_LEAD_AHEAD =
+  'Let them lead the start of the call; do not open with what you talked about last time. Something from last time has not happened yet, so if you bring it up, ask about it as still to come ("Is that still coming up?"). Never talk about it as done, and never string several people\'s names together.';
+
+/**
+ * lastTalkedAwareness for the last call itself, in calendar days where the
+ * caller is. With MEMORY_TIME_LABELS (#2530): under an hour ago, or under a
+ * day with no known zone, it says how long ago ("You talked a few minutes
+ * ago."), never a day word that could be wrong; and when the summary names
+ * something still ahead, the example asks about it as to come, not "How did
+ * that go?".
+ */
+export function lastCallAwareness(
+  last: LastCall,
+  summary: string | undefined,
+  env: Record<string, string | undefined> = process.env
+): string[] {
+  const lines = lastTalkedAwareness(calendarDaysSince(last.at, last.now, last.zone), env);
+  if (!memoryTimeLabelsOn(env)) return lines;
+  const [at, now] = [new Date(last.at).getTime(), new Date(last.now).getTime()];
+  const ago = now - at;
+  const dayWordUnsure = !isValidTimeZone(last.zone) && ago < 86_400_000;
+  if (Number.isFinite(ago) && (ago < 3_600_000 || dayWordUnsure)) {
+    lines[0] = `You talked ${whenSaid(at, now, last.zone)}.`;
+  }
+  const ahead =
+    summary !== undefined && anyStillAhead(labelTimes(summary, at, now, last.zone).states);
+  return ahead ? lines.map((l) => l.replace(LET_THEM_LEAD, LET_THEM_LEAD_AHEAD)) : lines;
+}

@@ -58,7 +58,7 @@ describe('runHybridSearchWithTimeout', () => {
     expect((call?.[0] as { totalMs: number }).totalMs).toBeGreaterThanOrEqual(55);
   });
 
-  describe('saved times for the per-turn time labels (TURN_MEMORY_TIME_LABELS, #2530)', () => {
+  describe('saved times for the per-turn time labels (MEMORY_TIME_LABELS, #2530)', () => {
     afterEach(() => vi.unstubAllEnvs());
     const options = async (): Promise<Record<string, unknown>> => {
       hybridSearch.mockClear().mockReturnValueOnce(finishingAfter(1));
@@ -67,12 +67,12 @@ describe('runHybridSearchWithTimeout', () => {
     };
 
     it("asks for each memory's saved time with the flag on", async () => {
-      vi.stubEnv('TURN_MEMORY_TIME_LABELS', 'on');
+      vi.stubEnv('MEMORY_TIME_LABELS', 'on');
       expect((await options()).withTimestamps).toBe(true);
     });
 
     it('does not with it off (and no rerank flags), as on main', async () => {
-      vi.stubEnv('TURN_MEMORY_TIME_LABELS', 'off');
+      vi.stubEnv('MEMORY_TIME_LABELS', 'off');
       expect(await options()).not.toHaveProperty('withTimestamps');
     });
   });

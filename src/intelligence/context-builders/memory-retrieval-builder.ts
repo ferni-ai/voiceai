@@ -191,7 +191,7 @@ export async function buildMemoryRetrievalContext(
       return { injections, memoryContext, surfacedIds };
     }
 
-    // Create memory context injection (time labels: TURN_MEMORY_TIME_LABELS)
+    // Create memory context injection (time labels: MEMORY_TIME_LABELS)
     const prompts = turnMemoryPrompts(memoryContext, { sessionId, userId });
     if (prompts.memory) {
       const injection = createMemoryInjection(prompts.memory, config.injectionPriority);
