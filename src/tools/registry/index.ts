@@ -667,7 +667,7 @@ export function buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult
 // EXPORTS
 // ============================================================================
 
-export { setLateWriteResultPort, type LateWriteResultPort } from './write-results.js';
+export { setLateWriteResultPort } from './write-results.js';
 export {
   ALL_TOOL_DOMAINS,
   assertTool,

@@ -23,7 +23,7 @@ import type { Tool, ToolContext, ToolDefinition } from './types.js';
  * Tools that change something the caller would not want done twice. Crisis, support and
  * human-transfer tools are never listed (write-results.test.ts pins it).
  */
-export const WRITE_RESULT_TOOLS: ReadonlySet<string> = new Set([
+const WRITE_RESULT_TOOLS: ReadonlySet<string> = new Set([
   // reminders
   ...['setReminder', 'cancelReminder', 'cancelRecurringReminder', 'scheduleReminder'],
   ...['createCoordinatedReminder', 'scheduleProactiveReminder'],
@@ -44,7 +44,7 @@ export const WRITE_RESULT_TOOLS: ReadonlySet<string> = new Set([
  * Puts a result that arrived after its run was aborted into the call's chat context. `opts`
  * is the SDK's second execute() argument ({ ctx, toolCallId, abortSignal }).
  */
-export type LateWriteResultPort = (opts: unknown, result: unknown) => void;
+type LateWriteResultPort = (opts: unknown, result: unknown) => void;
 
 let port: LateWriteResultPort | undefined;
 
@@ -66,7 +66,7 @@ export function keepLateWriteResults(def: ToolDefinition): ToolDefinition {
     ...def,
     create: (ctx: ToolContext): Tool => {
       const tool: Tool = def.create(ctx);
-      if ((tool as unknown as Record<symbol, unknown>)[KEPT] === true) return tool;
+      if (typeof tool === 'object' && tool !== null && KEPT in tool) return tool;
       type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
       const execute = (tool as { execute: Execute }).execute.bind(tool);
       const run = async (args: unknown, opts?: unknown): Promise<unknown> => {

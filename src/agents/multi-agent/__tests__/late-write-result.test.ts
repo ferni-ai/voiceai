@@ -13,9 +13,8 @@ import type { ToolContext, ToolDefinition } from '../../../tools/registry/types.
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 const { ToolRegistry, setLateWriteResultPort } = await import('../../../tools/registry/index.js');
-const { keepLateWriteResults, WRITE_RESULT_TOOLS } =
-  await import('../../../tools/registry/write-results.js');
-const { installLateWriteResultPort, keepLateWriteResult } = await import('../late-write-result.js');
+const { keepLateWriteResults } = await import('../../../tools/registry/write-results.js');
+const { installLateWriteResultPort } = await import('../late-write-result.js');
 const { withPairedToolCalls } = await import('../../model-provider/cache-warm.js');
 const { installLiveCallBehaviors } = await import('../live-call-behaviors.js');
 const { SAFETY_TOOLS } = await import('../../personas/unverified-turn-tools.js');
@@ -191,10 +190,10 @@ describe('keepLateWriteResults', () => {
   });
 
   it('a tool off the list, or any crisis, support or human-transfer tool, is returned as is', () => {
-    const lookup = slowWrite('getCalendarToday').def;
-    expect(keepLateWriteResults(lookup)).toBe(lookup);
-    const safety = [...SAFETY_TOOLS, 'sendSupportCall'];
-    expect(safety.filter((id) => WRITE_RESULT_TOOLS.has(id))).toEqual([]);
+    for (const id of ['getCalendarToday', ...SAFETY_TOOLS, 'sendSupportCall']) {
+      const def = slowWrite(id).def;
+      expect(keepLateWriteResults(def)).toBe(def);
+    }
   });
 
   it('re-registering the stored definition adds no second layer', async () => {
@@ -211,7 +210,26 @@ describe('keepLateWriteResults', () => {
   });
 });
 
-describe('keepLateWriteResult (the live call port)', () => {
+/** A listed write returning `result` after its run was aborted, through the installed port. */
+async function lateWrite(opts: object, result: unknown = 'Alarm set.') {
+  Object.assign(process.env, ON);
+  const def: ToolDefinition = {
+    id: 'setAlarm',
+    name: 'setAlarm',
+    description: 'Set an alarm.',
+    domain: 'calendar',
+    create: () =>
+      llm.tool({
+        description: 'Set an alarm.',
+        parameters: z.object({}),
+        execute: async () => result,
+      }),
+  };
+  const aborted = { ...opts, abortSignal: { aborted: true } };
+  return keepLateWriteResults(def).create(ctx).execute({}, aborted);
+}
+
+describe('the live call port (late-write-result.ts)', () => {
   /** A real RunContext on a fake session whose agent holds `items`. */
   function liveRun(items: llm.ChatItem[]) {
     let chat = new llm.ChatContext(items);
@@ -233,16 +251,18 @@ describe('keepLateWriteResult (the live call port)', () => {
   const later = () =>
     llm.ChatMessage.create({ role: 'user', content: ['Never mind'], createdAt: 2000 });
 
-  it('an answered call, a call that is gone, or nothing to record adds nothing', () => {
+  it('an answered call, a call that is gone, or nothing to record adds nothing', async () => {
     const done = llm.FunctionCallOutput.create({ callId: 'c9', output: '"set"', isError: false });
     const answered = liveRun([call(), done]);
-    expect(keepLateWriteResult(answered.opts, 'Alarm set.')).toBe('already recorded');
+    await lateWrite(answered.opts);
     const gone = liveRun([later()]);
-    expect(keepLateWriteResult(gone.opts, 'Alarm set.')).toBe('call gone');
+    await lateWrite(gone.opts);
     const open = liveRun([call(), later()]);
-    expect(keepLateWriteResult(open.opts, new Error('x'))).toBe('nothing to record');
-    expect(keepLateWriteResult({ ctx: {} }, 'Alarm set.')).toBe('not a live run');
+    await lateWrite(open.opts, new Error('x'));
+    await lateWrite(open.opts, null);
+    await expect(lateWrite({ ctx: {} })).resolves.toBe('Alarm set.'); // not a live run
     expect(answered.chat().items).toHaveLength(2);
+    expect(gone.chat().items).toHaveLength(1);
     expect(open.chat().items).toHaveLength(2);
   });
 
@@ -268,12 +288,19 @@ describe('keepLateWriteResult (the live call port)', () => {
     expect(open.chat().items.map((i) => i.type)).toContain('function_call_output');
   });
 
-  it("goes in after its call, before the caller's later words", () => {
-    const open = liveRun([call(), later()]);
-    expect(keepLateWriteResult(open.opts, 'Alarm set for 7.')).toBeNull();
+  it("goes in right after its call, even ahead of a reply from the call's millisecond", async () => {
+    const reply = llm.ChatMessage.create({
+      role: 'assistant',
+      content: ['Sure, setting'],
+      interrupted: true,
+      createdAt: 1000, // the same millisecond as the call
+    });
+    const open = liveRun([call(), reply, later()]);
+    await lateWrite(open.opts, 'Alarm set for 7.');
     expect(open.chat().items.map((i) => i.type)).toEqual([
       'function_call',
       'function_call_output',
+      'message',
       'message',
     ]);
   });
