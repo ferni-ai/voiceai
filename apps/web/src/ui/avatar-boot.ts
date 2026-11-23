@@ -4,8 +4,8 @@
  *
  * Each step keeps the name and delay it had in app.ts, and the deferred steps
  * keep their dynamic imports so the bundle's chunks are unchanged. The caller
- * supplies the runner (the app adapts its safeInit/deferredInit) and how turn
- * following starts (the app needs LiveKit for it; the lab does not).
+ * supplies the runner (the app adapts its safeInit/deferredInit) and how
+ * speaker cues and turn following start.
  */
 import { initAvatarFeedback } from './avatar-feedback.ui.js';
 import { initCoachUI } from './coach.ui.js';
@@ -18,8 +18,10 @@ export interface AvatarBootRunner {
 }
 
 export interface AvatarBootOptions {
-  /** Starts turn following; returns whether turns are active (app: initSpeakerCues + initAvatarTurns). */
-  startTurns: () => boolean | Promise<boolean>;
+  /** Starts speaker cues, before turn following (app: initSpeakerCues). Optional. */
+  startCues?: () => void | Promise<void>;
+  /** Starts turn following; returns whether turns are active (app: initAvatarTurns). */
+  startTurns: () => boolean;
   /** Adds a listener the caller removes on teardown (app: addTrackedListener). Default: target.addEventListener. */
   listen?: (target: EventTarget, type: string, handler: EventListener) => void;
 }
@@ -36,9 +38,12 @@ const STEPS: readonly AvatarBootStep[] = [
     delayMs: 100,
     run: async (opts) => {
       initThinkingUI();
-      const turnsActive = await opts.startTurns(); // turns on unless ferni:avatar-turns=off
-      // gestures need ferni:turn-gestures
-      (await import('./avatar-motion/turn-gestures.js')).initTurnGestures(turnsActive);
+      await opts.startCues?.();
+      // The gestures module loads first, so turns and gestures start back to back with no
+      // gap a turn event could fall into. Turns on unless ferni:avatar-turns=off; gestures
+      // need ferni:turn-gestures.
+      const { initTurnGestures } = await import('./avatar-motion/turn-gestures.js');
+      initTurnGestures(opts.startTurns());
       (await import('./avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     },
   },

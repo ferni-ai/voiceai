@@ -1235,10 +1235,10 @@ class VoiceAIApp {
     });
     // Every deferred avatar init (ThinkingUI, AvatarFeedback ... AmbientLife), shared with the avatar lab
     scheduleAvatar(avatarRunner, {
-      startTurns: async () => {
+      startCues: async () => {
         (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
-        return initAvatarTurns();
       },
+      startTurns: () => initAvatarTurns(),
       listen: (target, type, handler) => this.addTrackedListener(target, type, handler),
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
