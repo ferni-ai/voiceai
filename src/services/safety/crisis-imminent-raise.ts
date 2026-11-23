@@ -17,7 +17,8 @@
  *
  * @module services/safety/crisis-imminent-raise
  */
-import type { Env } from '../../config/env-flag.js';
+import { flagOn, type Env } from '../../config/env-flag.js';
+import type { FlagName } from '../../config/flag-manifest.js';
 import type { Beside } from './crisis-caller-check.js';
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
@@ -38,7 +39,8 @@ export const wordPattern = (source: string, { test = false } = {}): RegExp =>
 
 /** A set of extra patterns, read only when its flag is on. */
 export interface CrisisRaise {
-  on: (env: Env) => boolean;
+  /** The off-by-default flag the set is read behind. */
+  flag: FlagName;
   /** Words that read as the caller's own imminent crisis. */
   imminent: readonly RegExp[];
   /** Words that read as the caller's own explicit crisis, not imminent. */
@@ -82,7 +84,7 @@ export function raiseOwnCrisis<T extends RaisableScore>(
 ): T {
   let raised: { raise: CrisisRaise; imminent: boolean } | undefined;
   for (const raise of raises) {
-    if (!raise.on(env)) continue;
+    if (!flagOn(raise.flag, env)) continue;
     if (standing(text, raise.imminent, raise)) raised = { raise, imminent: true };
     else if (!raised && standing(text, raise.explicit, raise)) raised = { raise, imminent: false };
     if (raised?.imminent) break;

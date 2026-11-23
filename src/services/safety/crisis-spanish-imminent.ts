@@ -114,11 +114,11 @@ function softened(text: string, start: number, end: number): boolean {
 
 /** Whether CRISIS_ES_IMMINENT_911_FIRST is on (read by the Spanish script too). */
 export const spanishImminentOn = (env: Env = process.env): boolean =>
-  flagOn('CRISIS_ES_IMMINENT_911_FIRST', env);
+  flagOn(SPANISH_IMMINENT.flag, env);
 
 /** The Spanish twins, for the shared raise in detectCrisis. */
 export const SPANISH_IMMINENT: CrisisRaise = {
-  on: spanishImminentOn,
+  flag: 'CRISIS_ES_IMMINENT_911_FIRST',
   imminent: IMMINENT,
   explicit: EXPLICIT,
   softened,
