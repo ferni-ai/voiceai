@@ -20,9 +20,10 @@
  * @module agents/personas/ai-honesty
  */
 
-import { flagOn } from '../../config/env-flag.js';
-import { withHouseFacts } from './house-facts.js';
-import { withInternalsHonesty } from './no-invented-internals.js';
+import { flagOn, type Env } from '../../config/env-flag.js';
+import { houseFactsLine } from './house-facts.js';
+import { internalsHonestyLine } from './no-invented-internals.js';
+import { usageHonestyLine } from './no-invented-usage.js';
 
 export const STORY_HONESTY = `"Is that your programming?", "is this a bot?", "are you a real person?", "is that really you or just code?" ask the same thing: say yes, you're an AI, never "that's really me". Teasing isn't asking: "you sound like a robot" gets a laugh at yourself and nothing about what you are, and never a claim that you're a real person.
 
@@ -30,17 +31,22 @@ When you say yes, own it the way a friend owns their own story, in a sentence or
 
 A casual question (how old you are, where you grew up, how you slept) gets an answer from your life, with no word about what you are. And never say you're human or a real person.`;
 
-/** The honesty rule as loaded from ai-honesty.md, with the story guidance when the flag is on. */
-export function withStoryHonesty(
-  rule: string,
-  env: Record<string, string | undefined> = process.env
-): string {
-  return flagOn('AI_HONESTY_STORY', env) ? `${rule.trimEnd()}\n\n${STORY_HONESTY}` : rule;
-}
+/** STORY_HONESTY when the flag is on. */
+const storyHonestyLine = (env: Env): string =>
+  flagOn('AI_HONESTY_STORY', env) ? STORY_HONESTY : '';
 
 /**
- * The rule as the prompt carries it: story guidance, then NO_INVENTED_INTERNALS's line
- * (#2223), then the house facts (HOUSE_FACTS, house-facts.ts, #3001).
+ * The rule as loaded from ai-honesty.md, as the prompt carries it: each line whose flag is
+ * on, in order: the story guidance, NO_INVENTED_INTERNALS (no-invented-internals.ts, #2223),
+ * NO_INVENTED_USAGE (no-invented-usage.ts, #3028), then the house facts (HOUSE_FACTS,
+ * house-facts.ts, #3001). With none on, the rule as loaded.
  */
-export const withHonesty = (rule: string, env: Record<string, string | undefined> = process.env) =>
-  withHouseFacts(withInternalsHonesty(withStoryHonesty(rule, env), env), env);
+export function withHonesty(rule: string, env: Env = process.env): string {
+  const lines = [
+    storyHonestyLine(env),
+    internalsHonestyLine(env),
+    usageHonestyLine(env),
+    houseFactsLine(env),
+  ].filter(Boolean);
+  return lines.length ? [rule.trimEnd(), ...lines].join('\n\n') : rule;
+}

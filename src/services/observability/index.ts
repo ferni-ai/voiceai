@@ -38,9 +38,9 @@ export {
   type SessionCost,
   type UserCostSummary,
   type FinOpsAlert,
-  type FinOpsThresholds,
   PRICING,
 } from './finops.js';
+export type { FinOpsThresholds } from './finops-settings/index.js';
 export {
   errorMetrics,
   type ErrorSnapshot,
