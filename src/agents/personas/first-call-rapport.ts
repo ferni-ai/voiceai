@@ -88,17 +88,10 @@ function agentLines(chatCtx: llm.ChatContext): string[] {
   );
 }
 
-/** The goodbye note; FIRST_CALL_GOODBYE_GROUNDED=on: a callback only on a plan they told us. */
-function goodbyeNote(
-  chatCtx: llm.ChatContext,
-  callerWords: string,
-  env: Env,
-  scriptFree: boolean,
-  userData: unknown
-): string {
+/** The goodbye note; FIRST_CALL_GOODBYE_GROUNDED=on: a callback only if they told one (first-call-goodbye.ts). */
+function goodbyeNote(env: Env, scriptFree: boolean, userData: unknown): string {
   if (firstCallGoodbyeGroundedEnabled(env)) {
-    const { userId } = userData as { userId?: string };
-    return groundedFirstGoodbye(chatCtx, callerWords, userId);
+    return groundedFirstGoodbye((userData as { userId?: string }).userId);
   }
   return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
 }
@@ -129,9 +122,7 @@ export function firstCallNote(
   const rule = flagOn('NAME_GATE_V2', env) ? NAME_PLACEMENT_RULE : '';
   if (leavingNow(callerWords)) {
     // A held turn gets no goodbye note ("no question"); the name rule bars no question, so it stays.
-    const goodbye = held.exitsHeld
-      ? ''
-      : goodbyeNote(chatCtx, callerWords, env, scriptFree, userData);
+    const goodbye = held.exitsHeld ? '' : goodbyeNote(env, scriptFree, userData);
     return [goodbye, rule].filter(Boolean).join(' ');
   }
   const said = agentLines(chatCtx);

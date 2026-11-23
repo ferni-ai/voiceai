@@ -13,21 +13,19 @@
  * up. No word list gates or hints it: happy-exits.ts's plan read caught 3 of 22
  * real upcoming events (none of the interviews, surgeries, recitals or moves)
  * and read "I'm seeing my sister's point" as a plan. Nothing of theirs is
- * quoted. A heavy call (happy-exits.ts heavyCall, or heavy-moment.ts over the
- * whole call, which has "hospice") gets a gentle plain goodbye with nothing to
- * hear about next time. With a topic forgotten on this call (forget.ts) the
- * note says to bring up nothing they asked to forget, without naming it.
+ * quoted. Heaviness is judged by the model too: the word-list readers
+ * (heavyCall, heavy-moment.ts) read half of ordinary first calls as heavy
+ * ("nurse at the hospital", "finals next week", "death metal"). With a topic
+ * forgotten on this call (forget.ts) the note says to bring up nothing they
+ * asked to forget, without naming it. Crisis turns get no goodbye note at all
+ * (first-call-rapport.ts, exits-held.ts).
  *
  * This does not make the teammates' goodbyes sound different from each other.
  *
  * @module agents/personas/first-call-goodbye
  */
 
-import type { llm } from '@livekit/agents';
-
 import { forgottenInProcess } from '../../memory/index.js';
-import { isHeavyMoment } from '../../speech/adaptive-ssml/index.js';
-import { callerTurnsOf, heavyCall } from './happy-exits.js';
 
 const OPEN =
   "They're heading off. Keep the goodbye to one or two short sentences, by name if you know it.";
@@ -35,25 +33,12 @@ const CLOSE = 'No question, and no pitch for the app.';
 
 /** The model judges from the call; nothing gated on a word list. */
 const JUDGED =
-  "Only if they told you about something coming up for them, you may say in your own words that you'd like to hear how it goes next time. Something you asked them about is not something they told you. If they told you of nothing coming up, just a plain, warm goodbye, and never make one up.";
-
-const HEAVY =
-  "They're heading off, and it has been a heavy call. A gentle, plain goodbye in one or two short sentences, by name if you know it: nothing about what's coming up for them and nothing to hear about next time. No question, and no pitch for the app.";
+  "Only if they told you about something coming up for them, you may say in your own words that you'd like to hear how it goes next time. Something you asked them about is not something they told you. If they told you of nothing coming up, just a plain, warm goodbye, and never make one up. If they told you something hard today, like a loss or an illness, keep it gentle and leave out next time.";
 
 const FORGET = 'Bring up nothing they asked you to forget.';
 
-/**
- * The first-call goodbye note, grounded in what the caller said on this call:
- * their lines in the context, and `callerWords` (this reply's) if not there yet.
- */
-export function groundedFirstGoodbye(
-  chatCtx: llm.ChatContext,
-  callerWords: string,
-  userId?: string
-): string {
-  const turns = callerTurnsOf(chatCtx);
-  if (callerWords && turns[turns.length - 1] !== callerWords) turns.push(callerWords);
-  if (heavyCall(turns) || isHeavyMoment(turns, { lookback: turns.length })) return HEAVY;
+/** The first-call goodbye note; the forget line only when a topic was forgotten on this call. */
+export function groundedFirstGoodbye(userId?: string): string {
   const forgot = userId !== undefined && forgottenInProcess(userId).length > 0;
   return [OPEN, JUDGED, forgot ? FORGET : '', CLOSE].filter(Boolean).join(' ');
 }

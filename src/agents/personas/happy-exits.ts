@@ -32,7 +32,7 @@ import type { llm } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { rememberGoodbyePlan } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { callerSaysGoodbye } from '../shared/call-farewell.js';
 import { groundedFirstGoodbyeOn } from './first-call.js';
 import { hardNews } from './turn-candor.js';
@@ -158,10 +158,14 @@ export interface Exit {
 export function happyExitFor(input: ExitInput, env: Env = process.env): Exit {
   if (!happyExitsEnabled(env)) return { note: '', fired: 'none' };
   if (!sayingGoodbye(input.said) && !input.wantsToEnd) return { note: '', fired: 'none' };
-  if (input.careful || heavyCall(input.callerTurns))
-    return { note: `${EXIT} ${HEAVY}`, fired: 'heavy' };
+  const heavy = input.careful || heavyCall(input.callerTurns);
+  // A grounded first call: its note owns heaviness and what's next; no plan kept after a heavy one.
+  if (input.firstCallGrounded) {
+    const kept = heavy ? undefined : mentionedPlan(input.callerTurns);
+    return { note: EXIT, fired: heavy ? 'heavy' : 'simple', ...(kept && { plan: kept }) };
+  }
+  if (heavy) return { note: `${EXIT} ${HEAVY}`, fired: 'heavy' };
   const plan = mentionedPlan(input.callerTurns);
-  if (input.firstCallGrounded) return { note: EXIT, fired: 'simple', ...(plan && { plan }) };
   if (plan && input.rng() < NAME_ODDS)
     return { note: `${EXIT} ${nameIt(plan, input.scriptFree)}`, fired: 'named', plan };
   return { note: `${EXIT} ${SIMPLE}`, fired: 'simple', ...(plan && { plan }) };
