@@ -1,8 +1,9 @@
 /**
  * #4251: a tool built straight from a domain's exported definitions (createDomainExport) gets the
  * guards register() adds, from one shared composition (tool-guards.ts). The user-id guard on that
- * path is behind DOMAIN_EXPORT_USER_ID_GUARD; off, a built tool is the one main builds. Tools are
- * built by the real createDomainExport and ToolRegistry.register(). Every name here is made up.
+ * path is behind DOMAIN_EXPORT_USER_ID_GUARD; off, the exported definition is the object main
+ * exports. Tools are built by the real createDomainExport and ToolRegistry.register(). Every name
+ * here is made up.
  */
 import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +13,7 @@ import type { ToolContext, ToolDefinition } from '../types.js';
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 const { createDomainExport } = await import('../loader.js');
+const { gateOutboundTool } = await import('../outbound-gate.js');
 const { ToolRegistry } = await import('../index.js');
 
 const saved = { ...process.env };
@@ -67,11 +69,29 @@ describe('a tool built from createDomainExport', () => {
     await expect(runAs(out, 'someone-else')).resolves.toEqual({ ranAs: 'someone-else' });
   });
 
-  it('reads the flag each time a tool is built, not when the domain is exported', async () => {
-    const out = exported(defWith().def);
-    await expect(runAs(out, 'someone-else')).resolves.toEqual({ ranAs: 'someone-else' });
+  it('off: the exported list holds the very objects main exports, so identity filters still match', () => {
+    const plain = defWith().def;
+    const outbound = defWith('sendTextMessage').def;
+    const out = createDomainExport('life-planning', [plain, outbound]).definitions;
+    expect(out[0]).toBe(plain); // main exports a non-outbound definition as itself
+    expect(out.filter((d) => d !== plain).map((d) => d.id)).toEqual(['sendTextMessage']);
+    // the outbound one is the gate's own result, as on main: gating it again returns it unchanged
+    expect(out[1] && gateOutboundTool(out[1])).toBe(out[1]);
+    expect(out[1]?.create).not.toBe(outbound.create);
+  });
+
+  it('on: each exported definition is a new, guarded object', () => {
     process.env.DOMAIN_EXPORT_USER_ID_GUARD = 'on';
-    await expect(runAs(out, 'someone-else')).resolves.toEqual({ ranAs: 'riley-test' });
+    const plain = defWith().def;
+    const [out] = createDomainExport('life-planning', [plain]).definitions;
+    expect(out).not.toBe(plain);
+    expect(out?.id).toBe(plain.id);
+  });
+
+  it('reads the flag when the domain is exported, not each time a tool is built', async () => {
+    const out = exported(defWith().def);
+    process.env.DOMAIN_EXPORT_USER_ID_GUARD = 'on';
+    await expect(runAs(out, 'someone-else')).resolves.toEqual({ ranAs: 'someone-else' });
   });
 
   it('gets the outbound gate with the flag off and on: with no live call, nothing is sent', async () => {
@@ -108,9 +128,11 @@ describe('register()', () => {
   it('re-registering a domain-exported definition adds no second layer', async () => {
     process.env.DOMAIN_EXPORT_USER_ID_GUARD = 'on';
     const registry = new ToolRegistry();
-    registry.register(exported(defWith().def));
+    const ex = exported(defWith().def);
+    registry.register(ex);
     const once = registry.get('lookupGoals');
     if (!once) throw new Error('lookupGoals was not registered');
+    expect(once.create).toBe(ex.create); // the export's guard is marked: register() keeps it
     registry.register(once);
     const twice = registry.get('lookupGoals');
     expect(twice?.create).toBe(once.create);

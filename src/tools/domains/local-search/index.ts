@@ -217,8 +217,8 @@ export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
   Promise.resolve(
     definitions.filter(
       (d) =>
-        (d !== pickRestaurantDef || isCoachLocalEnabled()) &&
-        (!callerCityTools.includes(d) || callerCityMemoryOn())
+        (d.id !== pickRestaurantDef.id || isCoachLocalEnabled()) &&
+        (!callerCityTools.some((t) => t.id === d.id) || callerCityMemoryOn())
     )
   );
 

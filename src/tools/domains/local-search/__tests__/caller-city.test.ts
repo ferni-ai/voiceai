@@ -416,3 +416,20 @@ describe('a failed search', () => {
     expect(result).not.toMatch(/Options near/);
   });
 });
+
+describe('DOMAIN_EXPORT_USER_ID_GUARD on (#4251)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('still leaves out the remember and forget tools while REQUIRE_FIX_MEMORY is off', async () => {
+    process.env.REQUIRE_FIX_MEMORY = 'off';
+    vi.stubEnv('DOMAIN_EXPORT_USER_ID_GUARD', 'on');
+    vi.resetModules(); // the flag is read when the domain is exported
+    const mod = await import('../index.js');
+    expect(mod.definitions.map((d) => d.id)).toContain('rememberCallerCity'); // exported, guarded
+    const ids = (await mod.getToolDefinitions()).map((d) => d.id);
+    expect(ids).not.toContain('rememberCallerCity');
+    expect(ids).not.toContain('forgetCallerCity');
+  });
+});

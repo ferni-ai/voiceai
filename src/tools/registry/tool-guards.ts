@@ -7,8 +7,8 @@
  *   session's user id wins over a model-supplied `userId`).
  * - createDomainExport (registry/loader.ts), for code that builds tools straight from a domain's
  *   definitions (the voice session's music-tool recovery, the domain tool executors): the outbound
- *   gate, as on main. DOMAIN_EXPORT_USER_ID_GUARD=on adds the user-id guard too (#4251); off, a
- *   built tool is the very one main builds.
+ *   gate, as on main. DOMAIN_EXPORT_USER_ID_GUARD=on adds the user-id guard too (#4251); off, the
+ *   exported definition is the very object main exports.
  *
  * Both wrappers are idempotent, so a domain-exported definition that is later registered gets no
  * second layer.
@@ -18,7 +18,7 @@
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { gateOutboundTool } from './outbound-gate.js';
-import type { ToolContext, ToolDefinition } from './types.js';
+import type { ToolDefinition } from './types.js';
 import { wrapCreateWithUserIdGuard } from './user-id-guard.js';
 
 /** register(): the outbound gate, then the user-id guard. The one place their order is set. */
@@ -27,13 +27,12 @@ export function guardedCreate(definition: ToolDefinition): ToolDefinition['creat
 }
 
 /**
- * createDomainExport: the outbound gate always; with DOMAIN_EXPORT_USER_ID_GUARD on (read each
- * time a tool is built), every guard register() applies.
+ * createDomainExport: the outbound gate always; with DOMAIN_EXPORT_USER_ID_GUARD on (read when
+ * the domain is exported), every guard register() applies. Off, it returns the gated definition
+ * itself, so a domain that filters its exports by identity sees the objects main gives it.
  */
 export function guardDomainExport(definition: ToolDefinition, env?: Env): ToolDefinition {
   const gated = gateOutboundTool(definition);
-  const guarded = guardedCreate(gated); // the gate is idempotent: gated is not wrapped twice
-  const create = (ctx: ToolContext): ReturnType<ToolDefinition['create']> =>
-    flagOn('DOMAIN_EXPORT_USER_ID_GUARD', env) ? guarded(ctx) : gated.create(ctx);
-  return { ...gated, create };
+  if (!flagOn('DOMAIN_EXPORT_USER_ID_GUARD', env)) return gated;
+  return { ...gated, create: guardedCreate(gated) }; // marked: register() adds no second layer
 }
