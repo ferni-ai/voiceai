@@ -3,6 +3,7 @@
  * non-negative number reads as its default, a fresh read is reused for the TTL and the
  * store is asked again after it, and a store that throws is FinOpsSettingsUnavailableError.
  */
+import { setImmediate } from 'node:timers';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_FINOPS_SETTINGS,
@@ -83,7 +84,9 @@ describe('createFinOpsSettingsService', () => {
       vi.useRealTimers();
     });
     const late = (): Promise<never> =>
-      new Promise((_, reject) => setTimeout(() => reject(new Error('14 UNAVAILABLE')), 40_000));
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('14 UNAVAILABLE')), 40_000);
+      });
     const slow: FinOpsSettingsStore = { read: late, merge: late };
 
     it.each([
@@ -111,7 +114,9 @@ describe('createFinOpsSettingsService', () => {
         );
         await vi.advanceTimersByTimeAsync(40_000); // Firestore finally gives up
         vi.useRealTimers();
-        await new Promise((resolve) => setImmediate(resolve));
+        await new Promise((resolve) => {
+          setImmediate(resolve); // one macrotask: a late unhandledRejection would fire here
+        });
         expect(unhandled).not.toHaveBeenCalled();
       } finally {
         process.off('unhandledRejection', unhandled);
