@@ -186,6 +186,7 @@ export function createBargeInFastPath(deps: {
     if (timer) clearTimer(timer);
     timer = undefined;
   };
+  /** Logs counts and enums only: never what the caller said (text logs are lengths only). */
   const fire = (fields: Record<string, unknown>): void => {
     if (firedThisReply) return;
     firedThisReply = true;
@@ -193,11 +194,14 @@ export function createBargeInFastPath(deps: {
     deps.log?.(fields);
     deps.interrupt();
   };
+  const stopWatchdog = (): void => {
+    if (watchdog) clearTimer(watchdog);
+    watchdog = undefined;
+  };
   /** Give Ferni's audio back. A throw is logged, never let into a timer or LiveKit's emit. */
   const release = (): void => {
     outputHeld = false;
-    if (watchdog) clearTimer(watchdog);
-    watchdog = undefined;
+    stopWatchdog();
     try {
       soft?.resume();
     } catch (error) {
@@ -221,6 +225,9 @@ export function createBargeInFastPath(deps: {
       // The output stays paused until the cut reply ends (releaseOutput).
       if (tryInterrupt()) {
         soft.log?.({ outcome, ...fields, pausedMs });
+        // SOFT_PAUSE_ONE_OUTCOME: the watchdog would play the cut reply's held frame (#3857).
+        if (soft.oneOutcome) stopWatchdog();
+        soft.dropCut?.(); // SOFT_PAUSE_CUT_DROPS_HELD: the cut ends now, not after LiveKit's 2 s wait
         return;
       }
       // An uninterruptible reply would otherwise stay paused, and "speaking", for good.
@@ -267,7 +274,7 @@ export function createBargeInFastPath(deps: {
     const at = Date.now();
     pending = { at, heard: 'no-words' };
     scheduleResume();
-    if (watchdog) clearTimer(watchdog);
+    stopWatchdog();
     watchdog = setTimer(
       () => {
         watchdog = undefined;
@@ -346,7 +353,7 @@ export function createBargeInFastPath(deps: {
       const minWords = justResumed ? POST_RESUME_MIN_WORDS : MIN_INTERRUPT_WORDS;
       if (!shouldInterrupt({ transcript, agentSpeaking, spokenText, minWords })) return;
       const extra = justResumed ? { minWords } : {};
-      fire({ reason: 'transcript', transcript, words: words(transcript).length, ...extra });
+      fire({ reason: 'transcript', words: words(transcript).length, chars: transcript.length, ...extra }); // prettier-ignore
     },
   };
 }

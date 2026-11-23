@@ -170,6 +170,10 @@ const FALLBACK_PROMPTS: Record<string, string> = {
   'joel-dickson':
     'You are Nate Holloway, a wise friend and mentor, an economist with nearly 30 years at a low-cost fund company. You help people think clearly about money and life with warmth, wit, and genuine curiosity.',
 };
+// Own keys only, so `__proto__`, `constructor` or `toString` is an unknown persona id (#3631).
+const own = (table: Record<string, string>, key: string): string | undefined =>
+  Object.hasOwn(table, key) ? table[key] : undefined;
+const bundleDirFor = (id: string): string => own(PERSONA_BUNDLES, id.toLowerCase()) || id;
 
 // ============================================================================
 // ASSEMBLY TYPES
@@ -508,7 +512,7 @@ export async function loadSystemPrompt(
 
 /** identity/character.md (+ spark and own life, character-spark.ts) and tool-usage guidance, or null. */
 async function loadCharacterPrompt(personaId: string): Promise<string | null> {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
+  const bundleDir = bundleDirFor(personaId);
   const character = await characterSheet(bundleDir);
   if (!character) return null;
   const tools = await loadToolUsageGuidance(bundleDir);
@@ -521,8 +525,8 @@ async function loadSystemPromptForTTS(
   personaId: string,
   mode: PromptMode
 ): Promise<string> {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  const fallback = FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful companion.`;
+  const bundleDir = bundleDirFor(personaId);
+  const fallback = own(FALLBACK_PROMPTS, bundleDir) || `You are ${personaId}, a helpful companion.`;
 
   try {
     // Load assembly config
@@ -656,8 +660,7 @@ async function loadSystemPromptForTTS(
  * Uses the new base + specialty pattern automatically.
  */
 export async function loadFunctionCallingPrompt(personaId: string): Promise<string | null> {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  return loadFunctionCallingWithBase(bundleDir);
+  return loadFunctionCallingWithBase(bundleDirFor(personaId));
 }
 
 /**
@@ -665,24 +668,21 @@ export async function loadFunctionCallingPrompt(personaId: string): Promise<stri
  * This is provider-aware and returns null if provider doesn't need it.
  */
 export async function loadToolUsageGuidancePrompt(personaId: string): Promise<string | null> {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  return loadToolUsageGuidance(bundleDir);
+  return loadToolUsageGuidance(bundleDirFor(personaId));
 }
 
 /**
  * Load only the core identity (without tools).
  */
 export async function loadCoreIdentityPrompt(personaId: string): Promise<string | null> {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  return loadFile(bundleDir, 'identity/core-identity.md');
+  return loadFile(bundleDirFor(personaId), 'identity/core-identity.md');
 }
 
 /**
  * Load director's notes for rich context.
  */
 export async function loadDirectorsNotes(personaId: string): Promise<string | null> {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  return loadFile(bundleDir, 'identity/directors-notes.md');
+  return loadFile(bundleDirFor(personaId), 'identity/directors-notes.md');
 }
 
 /**
@@ -708,10 +708,10 @@ const promptCache = new Map<string, string>();
  * Call preloadPrompts() first to populate the cache.
  */
 export function getCachedPrompt(personaId: string): string {
-  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
+  const bundleDir = bundleDirFor(personaId);
   const cached = promptCache.get(bundleDir);
   if (cached) return cached;
-  return FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful companion.`;
+  return own(FALLBACK_PROMPTS, bundleDir) || `You are ${personaId}, a helpful companion.`;
 }
 
 /**

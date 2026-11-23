@@ -239,10 +239,11 @@ export function parseNotes(
     .split('\n')
     .map((l) => l.replace(/^[\s\-*\d.)]+/, '').trim())
     .filter((l) => l && !/^none\b/i.test(l))
+    .filter((l) => !(l.endsWith(':') && flagOn('DIRECTOR_DROPS_HEADINGS'))) // a heading, never a note (#2658)
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
     // Never against a boundary, honesty or tool truth, whatever the flags (director-guard.ts).
-    .filter((l) => !erodesGuard(l, opts.sessionId))
+    .filter((l) => !erodesGuard(l, opts.sessionId, callerSaid(call)))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
     // CALLER_SETS_DEPTH=on: no note that labels their deflection or says "hold space".
     .filter((l) => !(callerSetsDepthOn() && labelsDeflection(l)))

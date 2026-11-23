@@ -70,9 +70,6 @@ export interface CrisisResponseContext {
   /** Persona generating the response */
   personaId: string;
 
-  /** Time of day */
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-
   /** Whether this is the first crisis mention in session */
   isFirstMention: boolean;
 }
