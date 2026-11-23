@@ -20,6 +20,11 @@
 
 import { meansLookback } from './crisis-means-lookback.js';
 import { explicitModifier } from './crisis-modifiers.js';
+import {
+  spanishMeansOn,
+  spanishMeansRead,
+  type SpanishMeansFormName,
+} from './crisis-means-in-hand-es.js';
 
 export type MeansInHandMode = 'off' | 'shadow' | 'live';
 /** Which forms a read uses: none (off, shadow), the live ones, or all of them (the shadow log). */
@@ -266,7 +271,9 @@ export function meansInHandRead(
   softened: ReadonlyArray<readonly [number, number]>,
   forms: MeansForms,
   endingOutside: (spans: ReadonlyArray<readonly [number, number]>) => boolean
-): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null {
+): { tag: 'suicidal' | 'self_harm'; form: MeansFormName | SpanishMeansFormName } | null {
+  // Read before the mode gate, so the crisis census sees the flag; off and shadow still read nothing.
+  const spanish = spanishMeansOn();
   if (forms === 'none') return null;
   const free = freeOf(text, softened);
   const read = (form: MeansForm): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null => {
@@ -301,6 +308,15 @@ export function meansInHandRead(
         .filter(([start, end]) => free(start, end))
     : [];
   if (had.length > 0 && endingOutside(had)) return { tag: 'suicidal', form: 'ending_beside_means' };
+  // CRISIS_ES_MEANS_IN_HAND (#4315): the Spanish twins of the live forms, read as the live ones are.
+  const es = spanish
+    ? spanishMeansRead(
+        text,
+        (s, e) => free(s, e) && explicitModifier(text, s, e, true) === null,
+        said
+      )
+    : null;
+  if (es) return es;
   if (forms !== 'all') return null;
   for (const form of FORMS) {
     const hit = LIVE_FORMS.has(form.name) ? null : read(form);
