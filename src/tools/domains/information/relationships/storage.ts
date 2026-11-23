@@ -5,6 +5,7 @@
  * Uses Firestore when available, falls back to in-memory storage.
  */
 
+import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { removeUndefined } from '../../../../utils/firestore-utils.js';
 import type { Relationship, GiftRecord, ImportantDate } from './types.js';
@@ -43,6 +44,39 @@ async function initFirestore(): Promise<FirebaseFirestore.Firestore | null> {
 
 // In-memory fallback
 const inMemoryRelationships = new Map<string, Map<string, Relationship>>();
+
+/**
+ * A relationship change that did not reach Firestore (#4265). Off: logged, and the change still
+ * goes to the in-memory copy, so the tool says it was saved though the next read (Firestore's)
+ * lacks it. With RELATIONSHIP_WRITES_TRUTHFUL on: the save rejects with the in-memory copy
+ * untouched, and `notSaved` gives the tool a couldn't reply.
+ */
+class RelationshipNotSavedError extends Error {
+  constructor() {
+    super('RELATIONSHIP_WRITES_TRUTHFUL: the relationship change was not saved');
+    this.name = 'RelationshipNotSavedError';
+  }
+}
+
+function failedSave(userId: string, error: unknown): void {
+  if (!flagOn('RELATIONSHIP_WRITES_TRUTHFUL')) {
+    log.error({ userId, error: String(error) }, 'Failed to save relationship to Firestore');
+    return;
+  }
+  log.warn({ userId, reason: 'relationship_write_failed' }, 'RELATIONSHIP_WRITES_TRUTHFUL');
+  throw new RelationshipNotSavedError();
+}
+
+/** Awaits a relationship write: the couldn't reply when it was not saved, else undefined. */
+export async function notSaved(write: Promise<unknown>, name: string): Promise<string | undefined> {
+  try {
+    await write;
+    return undefined;
+  } catch (error) {
+    if (!(error instanceof RelationshipNotSavedError)) throw error;
+    return `I couldn't save that about ${name} just now, so nothing changed. Want me to try again?`;
+  }
+}
 
 // ============================================================================
 // CRUD OPERATIONS
@@ -177,7 +211,7 @@ export async function saveRelationship(
 
       log.info({ userId, relationshipId: id, name: relationship.name }, 'Saved relationship');
     } catch (error) {
-      log.error({ userId, error: String(error) }, 'Failed to save relationship to Firestore');
+      failedSave(userId, error); // RELATIONSHIP_WRITES_TRUTHFUL
     }
   }
 
