@@ -30,6 +30,9 @@ import { importTargets, inPaths, POLICY_PATH, type Policy } from './autonomy-lan
 const rawPolicy = (): Policy => JSON.parse(readFileSync(POLICY_PATH, 'utf8')) as Policy;
 export const symbolsPath = (): string =>
   join(dirname(POLICY_PATH), rawPolicy().lanes.crisis.symbolsFile);
+/** The symbols file's path in the repo, as `git show <ref>:<path>` reads it. */
+export const symbolsInRepo = (): string =>
+  relative(join(dirname(POLICY_PATH), '..', '..'), symbolsPath());
 const git = (root: string, args: string[]): string =>
   execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: 'pipe' });
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
@@ -206,7 +209,7 @@ export function droppedFromScreen(symbols: CrisisSymbols, unscreened: string[]):
  * commit and its base. Undefined when neither is in the clone (a depth-1 checkout).
  */
 export function baseSymbols(root: string): CrisisSymbols | undefined {
-  const file = relative(root, symbolsPath());
+  const file = symbolsInRepo();
   for (const base of [
     ['merge-base', 'HEAD', 'origin/main'],
     ['rev-parse', 'HEAD^1'],
@@ -219,6 +222,68 @@ export function baseSymbols(root: string): CrisisSymbols | undefined {
     }
   }
   return undefined;
+}
+
+/** Why a CI run has no merge base to compare with. The test prints it when it goes red. */
+const NO_BASE = 'no merge base in this checkout: fetch origin/main or check out depth 2';
+
+/** The merge base's symbols, or why there are none: a failure goes red, a skip stays green. */
+export interface BaseRead {
+  symbols?: CrisisSymbols;
+  failure?: string;
+}
+
+type Env = Record<string, string | undefined>;
+
+/** The symbols file at a commit, fetching that one commit when the clone lacks it. */
+function symbolsAt(root: string, sha: string): CrisisSymbols | undefined {
+  const file = symbolsInRepo();
+  const show = (): CrisisSymbols =>
+    JSON.parse(git(root, ['show', `${sha}:${file}`])) as CrisisSymbols;
+  try {
+    return show();
+  } catch {
+    try {
+      git(root, ['fetch', '--quiet', '--depth=1', 'origin', sha]);
+      return show();
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+/**
+ * The merge base for this CI event. CI checks out depth 1 on every event but a pull request,
+ * so the queue's merge_group reads its base from the event payload (`merge_group.base_sha`)
+ * and goes red when that can't be read: it is the last gate before main. A push or a
+ * nightly run is main itself, so it says loudly that it skipped and stays green.
+ */
+export function baseForEvent(
+  root: string,
+  env: Env = process.env,
+  local: (root: string) => CrisisSymbols | undefined = baseSymbols
+): BaseRead {
+  const event = env.GITHUB_EVENT_NAME;
+  if (event === 'merge_group') {
+    let sha: string | undefined;
+    try {
+      const payload = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH ?? '', 'utf8')) as {
+        merge_group?: { base_sha?: string };
+      };
+      sha = payload.merge_group?.base_sha;
+    } catch {
+      // No payload to read: no base.
+    }
+    const symbols = sha && /^[0-9a-f]{40}$/.test(sha) ? symbolsAt(root, sha) : undefined;
+    return symbols
+      ? { symbols }
+      : { failure: `${NO_BASE} (merge_group base_sha ${sha ?? 'missing'})` };
+  }
+  const symbols = local(root);
+  if (symbols) return { symbols };
+  if (event === 'pull_request') return { failure: `${NO_BASE} (pull_request)` };
+  if (event) console.log(`SKIPPED: no merge base on ${event}`);
+  return {};
 }
 
 /**
@@ -236,7 +301,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const current = JSON.parse(readFileSync(symbolsPath(), 'utf8')) as Partial<CrisisSymbols>;
   const previous = [
     ...(current.previouslyScreened ?? current.screened ?? []),
-    ...(baseSymbols(root)?.previouslyScreened ?? []),
+    ...(baseForEvent(root).symbols?.previouslyScreened ?? []),
   ];
   const symbols = crisisSymbols(root, previous);
   if (process.argv.includes('--write')) {
