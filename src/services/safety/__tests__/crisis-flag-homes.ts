@@ -428,12 +428,13 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
  * MINOR_CARE, a sexual-topic hold or a try-first call puts on the turn's tools (toolsForTurn,
  * turn-request.ts). No reply reader sees a tool set. This home is open only to a flag whose named
  * rows drive the real toolsForTurn with the real holds (minor-care.ts, sexual-topic-hold.ts),
- * * flag off then on, and show that every hold that cuts off still cuts on, but where the flag's
- * rule says otherwise (a verified owner whose only hold is their own read still running), and
- * that memory writes still fail closed on that read.
+ * * flag off then on, and show two things: every hold that cuts the tools with the flag off still
+ * cuts them with it on, except where the flag's own rule waives it (a verified owner whose only
+ * hold is their own read still running), and memory writes still fail closed on that read.
  *
  * The census checks that each named file exists and holds each title as an it() or test() call,
- * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ * as for MEMORY_ONLY. It reads plain it() and test() titles only: an it.each or test.each title
+ * (with %s) is not found, so name plain rows here. What a row asserts is a reviewer's check.
  */
 export const CARE_HOLD_TOOLS_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
   PHONE_SAFE_SETTLED_HOLD: [
