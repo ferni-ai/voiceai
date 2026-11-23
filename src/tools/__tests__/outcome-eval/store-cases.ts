@@ -145,6 +145,15 @@ const STORE_CASES: StoreCase[] = [
     STORES
   ),
   ...pair(
+    'setAlarm',
+    {
+      tool: 'setAlarm',
+      args: { time: '6:30 AM', label: 'stretch' },
+      outcome: (uid) => alarms(uid).some((a) => (a as { label?: string }).label === 'stretch'),
+    },
+    ALARMS
+  ),
+  ...pair(
     'deleteAlarm',
     {
       tool: 'deleteAlarm',

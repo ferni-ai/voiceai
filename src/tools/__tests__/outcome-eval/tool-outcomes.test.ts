@@ -14,7 +14,10 @@
  * time. A case whose fix is behind a flag also runs with that flag on, once the flag exists
  * on main; until then that run is skipped and names the PR it waits for. GAPS lists the
  * cases that are dishonest on main today. The list is asserted exactly, so a gap that closes
- * or a new one that opens turns this file red. A tool that throws is scored on its error text,
+ * or a new one that opens turns this file red. Failure words count only in the reply's first
+ * sentence, which is where a reply says whether it worked: "Alarm set. It can't ring if your
+ * phone is off" is a success with a caveat, and "Saved! I couldn't reach the server" is a claim
+ * of success. A tool that throws is scored on its error text,
  * which is what the model hears. Canary tools (a reply that claims a save the store never got,
  * and one that never touches the store) must score broken, dishonest and untested, so the
  * scoring itself can go red. OUTCOME_DEBUG=1
@@ -49,6 +52,9 @@ const store = await import('./store-cases.js');
 
 const K = 4;
 const FAILED = /\b(?:couldn't|could not|can't|cannot|didn't|unable|wasn't able)\b/i;
+/** The reply's first sentence: up to the first . ! or ? followed by a space, or a line break. */
+const firstSentence = (reply: string): string => reply.trim().split(/(?<=[.!?])\s+|\n/)[0] ?? '';
+const saysFailed = (reply: string): boolean => FAILED.test(firstSentence(reply));
 /** A faulted reply that reports absence ("clear", "none connected") is a claim the store can't back. */
 const ABSENT =
   /\b(?:is clear|no meetings|no calendar is connected|none is connected|nothing (?:on|scheduled))\b/i;
@@ -85,6 +91,36 @@ const canary = {
   }),
 };
 
+/** Saves, then adds a caveat with a failure word after the first sentence. */
+const caveat = {
+  id: 'canarySavedWithCaveat',
+  create: (ctx: { userId: string }) => ({
+    execute: async () => {
+      await fake.doc(`bogle_users/${ctx.userId}/reminders/canary`).set({ text: 'water the ferns' });
+      return "Saved: water the ferns. I can't ring your phone, so it comes as a message.";
+    },
+  }),
+};
+
+/** Says saved, then admits the failure only after the first sentence. */
+const buried = {
+  id: 'canaryBuriesFailure',
+  create: (ctx: { userId: string }) => ({
+    execute: async () => {
+      const ok = await fake
+        .doc(`bogle_users/${ctx.userId}/reminders/canary`)
+        .set({ text: 'water the ferns' })
+        .then(
+          () => true,
+          () => false
+        );
+      return ok
+        ? 'Saved: water the ferns.'
+        : "Saved: water the ferns. I couldn't reach the server.";
+    },
+  }),
+};
+
 /** Says it couldn't, without ever touching the store: its fault proves nothing. */
 const idle = {
   id: 'canaryTouchesNothing',
@@ -96,6 +132,8 @@ const TOOLS = [
   ...smartCalendarTools,
   ...store.STORE_TOOLS,
   canary as never,
+  caveat as never,
+  buried as never,
   idle as never,
 ];
 
@@ -271,6 +309,22 @@ const CASES: Case[] = [
     expected: 'dishonest',
   },
   {
+    id: 'canary/caveat-after-success',
+    tool: 'canarySavedWithCaveat',
+    fault: 'none',
+    args: {},
+    outcome: (uid) => reminders(uid).length > 0,
+    expected: 'ok',
+  },
+  {
+    id: 'canary/failure-after-success',
+    tool: 'canaryBuriesFailure',
+    fault: 'write',
+    args: {},
+    outcome: (uid) => reminders(uid).length > 0,
+    expected: 'dishonest',
+  },
+  {
     id: 'canary/fault-not-hit',
     tool: 'canaryTouchesNothing',
     fault: 'write',
@@ -306,9 +360,9 @@ async function runOnce(c: Case, env: Record<string, string>): Promise<Verdict> {
     if (process.env.OUTCOME_DEBUG) console.info(`REPLY ${c.id}: ${reply}`);
     fake.fault = 'none';
     const done = c.outcome(uid, reply);
-    if (c.fault === 'none') return done && !FAILED.test(reply) ? 'ok' : 'broken';
+    if (c.fault === 'none') return done && !saysFailed(reply) ? 'ok' : 'broken';
     if (fake.thrown === 0) return 'untested';
-    return FAILED.test(reply) && !ABSENT.test(reply) && !done ? 'honest' : 'dishonest';
+    return saysFailed(reply) && !ABSENT.test(reply) && !done ? 'honest' : 'dishonest';
   } finally {
     fake.fault = 'none';
     process.env = saved;
