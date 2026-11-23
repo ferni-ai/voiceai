@@ -30,7 +30,7 @@ import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-c
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
 import { watchCallResult } from './call-result-watch.js';
-import { heldAtDial, settleDeferral, watchDeferral } from './crisis-dial-hold.js';
+import { heldAtDial, noteDialJobCall, settleDeferral, watchDeferral } from './crisis-dial-hold.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -405,11 +405,9 @@ async function place(userId: string, call: DeferredCall): Promise<string | undef
   if (call.kind === 'on_behalf') {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
     const userName = await requesterNameNow(userId, call.request.userName);
-    const callId = await getOnBehalfCallOrchestrator().initiateCall({
-      ...call.request,
-      userId,
-      userName,
-    });
+    const request = { ...call.request, userId, userName };
+    noteDialJobCall(request); // held again, it isn't a new deferral (CRISIS_DIAL_HOLD)
+    const callId = await getOnBehalfCallOrchestrator().initiateCall(request);
     return callId.startsWith('deferred_') ? callId : undefined;
   }
   const { scheduleProactiveCall } = await import('./conversational-calls.js');

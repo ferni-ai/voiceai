@@ -92,7 +92,7 @@ vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
   getFirestoreDb: () => db(),
 }));
 vi.mock('../user-contact.js', () => ({ getUserContactInfo: async () => ({}) }));
-const initiateCall = vi.hoisted(() => vi.fn(async () => 'call_rang'));
+const initiateCall = vi.hoisted(() => vi.fn(async (_request?: object) => 'call_rang'));
 vi.mock('../on-behalf-call-orchestrator.js', () => ({
   getOnBehalfCallOrchestrator: () => ({ initiateCall }),
 }));
@@ -541,6 +541,48 @@ describe('CRISIS_DIAL_HOLD: the deferral write, a claimed call, and a full table
     vi.setSystemTime(AFTER);
     expect(await executeDueDeferredCalls({ limit: 50 })).toMatchObject({ placed: 32 });
     expect(initiateCall).toHaveBeenCalledTimes(32); // 31 of A's, B's one; never the refused one
+  });
+
+  /**
+   * The dial job places `origin`'s held call, and the orchestrator holds it again (still out of
+   * hours), as on-behalf-call-orchestrator.ts does through holdForCallHours → deferCall.
+   */
+  const heldAgainAt = (userId: string, at: Date) =>
+    initiateCall.mockImplementationOnce(async (request?: object) => {
+      const call = { kind: 'on_behalf', request };
+      return (await deferCall(userId, call as never, { ...decision, at } as never)).id;
+    });
+  /** A deferral made before this agent watched it (flag off then, or a restart since). */
+  const unwatched = async (userId: string, origin: string) => {
+    vi.stubEnv('CRISIS_DIAL_HOLD', 'off');
+    await deferAs(userId, origin);
+    ON();
+  };
+
+  it('requester at the cap: the dial job holding a call again is accepted and dials once; a new deferral is refused', async () => {
+    await unwatched('u-again', 'call-again');
+    // eslint-disable-next-line no-await-in-loop -- in order
+    for (let i = 0; i < 32; i++) await deferAs('u-again', `call-again-${i}`, later(5));
+    vi.setSystemTime(AFTER);
+    heldAgainAt('u-again', later(3));
+    expect(await executeDueDeferredCalls()).toMatchObject({ rescheduled: 1, failed: 0 });
+    expect(lines('crisis_hold_user_full')).toEqual([]);
+    expect(deferred().filter((r) => r.data.status === 'pending')).toHaveLength(33);
+    await expect(deferAs('u-again', 'call-again-new', later(5))).rejects.toThrow('Call not placed');
+    expect(lines('crisis_hold_user_full')).toHaveLength(1);
+    vi.setSystemTime(new Date(later(3).getTime() + 60_000));
+    expect(await executeDueDeferredCalls()).toMatchObject({ placed: 1, failed: 0 });
+    await expect(initiateCall.mock.results[1]?.value).resolves.toBe('call_rang'); // the one ring
+    expect(initiateCall).toHaveBeenCalledTimes(2);
+  });
+
+  it('the dial job holding a call again still has its watch time checked: a bad one is refused', async () => {
+    await unwatched('u-again-bad', 'call-again-bad');
+    vi.setSystemTime(AFTER);
+    heldAgainAt('u-again-bad', new Date(Number.NaN));
+    expect(await executeDueDeferredCalls()).toMatchObject({ rescheduled: 0, failed: 1 });
+    expect(lines('crisis_hold_bad_until')).toHaveLength(1);
+    expect(deferred().filter((r) => r.data.status === 'pending')).toHaveLength(0);
   });
 
   // Last in the file: it fills the module's table. It runs 72 h past the other rows, after their

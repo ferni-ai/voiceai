@@ -16,7 +16,9 @@
  * - A call is watched until its last deferral can no longer dial (its time plus the dial job's
  *   late window). A deferral is refused rather than left unwatched when CALL_ROOM calls are still
  *   watched, when its requester already has USER_ROOM watched calls (so one requester can't use up
- *   the room), or when its watch time is not a time within WATCH_HORIZON_MS.
+ *   the room), or when its watch time is not a time within WATCH_HORIZON_MS. The rooms limit new
+ *   deferrals only: the dial job holding a call again (still out of hours) is never refused by
+ *   one, or that call would be lost; its watch time is still checked.
  * - The dial job never dials a deferral with no originating call (it stays pending), nor one whose
  *   call noted risk in this process (it is cancelled): heldAtDial.
  *
@@ -58,12 +60,17 @@ const deferredOn = new Map<string, { userId: string; until: number }>();
  * theirs are let go (at most CALL_ROOM to look at). The refusal when it can't be watched: the
  * call stays watched as it was.
  */
-function remember(origin: string, userId: string, until: number): Refusal | undefined {
+function remember(
+  origin: string,
+  userId: string,
+  until: number,
+  heldAgain: boolean
+): Refusal | undefined {
   const now = Date.now();
   if (!Number.isFinite(until) || until > now + WATCH_HORIZON_MS) return 'crisis_hold_bad_until';
   for (const [call, watch] of deferredOn) if (watch.until < now) deferredOn.delete(call);
   const kept = deferredOn.get(origin);
-  if (!kept) {
+  if (!kept && !heldAgain) {
     if (deferredOn.size >= CALL_ROOM) return 'crisis_hold_room_full';
     let mine = 0;
     for (const watch of deferredOn.values()) if (watch.userId === userId) mine++;
@@ -71,6 +78,14 @@ function remember(origin: string, userId: string, until: number): Refusal | unde
   }
   deferredOn.set(origin, { userId, until: Math.max(kept?.until ?? 0, until) });
   return undefined;
+}
+
+/** Requests the dial job is placing: held again, they are not new deferrals (no room cap). */
+const placing = new WeakSet<object>();
+
+/** The dial job is placing `request` (deferred-calls.ts place): see `remember`. */
+export function noteDialJobCall(request: object): void {
+  placing.add(request);
 }
 
 /** The parts of a deferral, written or stored, this module reads. */
@@ -111,7 +126,9 @@ export function watchDeferral(
     log.info({ outcome: 'crisis_hold_at_dial', at: 'defer' }, 'CRISIS_DIAL_HOLD');
     throw new DialHeld();
   }
-  const refused = remember(origin, userId, until);
+  const { request } = call;
+  const heldAgain = typeof request === 'object' && request !== null && placing.has(request);
+  const refused = remember(origin, userId, until, heldAgain);
   if (refused) {
     log.warn({ outcome: refused, watched: deferredOn.size }, 'CRISIS_DIAL_HOLD');
     throw new DialHeld();

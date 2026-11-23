@@ -42,7 +42,13 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 // Risk noted on a call, reads in flight aside: the outreach gate holds outbound (consent-send.ts).
-export { crisisReadInFlight, crisisRiskNoted, crisisRiskThisCall } from './crisis-call-risk.js';
+// Note risk on a call: the reply gate's fail-closed settle (crisis-gate-failure.ts).
+export {
+  crisisReadInFlight,
+  crisisRiskNoted,
+  crisisRiskThisCall,
+  noteCrisisRisk,
+} from './crisis-call-risk.js';
 // A crisis pattern holds the call's memory before capture (transcript-handler.ts).
 export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
 // The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
@@ -276,15 +282,10 @@ export function performSafetyCheck(
   // 4. Generate response if needed
   let response: CrisisResponseContent | null = null;
   if (detection.detected && detection.primary) {
-    const hour = new Date().getHours();
-    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
-      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-
     response = generateCrisisResponse({
       signal: detection.primary,
       userName,
       personaId,
-      timeOfDay,
       isFirstMention: sessionSignals.length === 0,
     });
   }
