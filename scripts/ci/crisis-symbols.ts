@@ -21,7 +21,7 @@
  */
 import { execFileSync } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import ts from 'typescript';
 import { importTargets, inPaths, POLICY_PATH, type Policy } from './autonomy-lanes.ts';
@@ -30,6 +30,8 @@ import { importTargets, inPaths, POLICY_PATH, type Policy } from './autonomy-lan
 const rawPolicy = (): Policy => JSON.parse(readFileSync(POLICY_PATH, 'utf8')) as Policy;
 export const symbolsPath = (): string =>
   join(dirname(POLICY_PATH), rawPolicy().lanes.crisis.symbolsFile);
+const git = (root: string, args: string[]): string =>
+  execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: 'pipe' });
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST = /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 
@@ -165,7 +167,7 @@ export function ownDeclarations(file: string, text: string): string[] {
  */
 export function crisisSymbols(root: string, previous: string[] = []): CrisisSymbols {
   const { paths, alwaysScreen } = rawPolicy().lanes.crisis;
-  const sources = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+  const sources = git(root, ['ls-files', '-z'])
     .split('\0')
     .filter((f) => SOURCE.test(f) && !TEST.test(f));
   const text = (f: string) => readFileSync(join(root, f), 'utf8');
@@ -198,10 +200,44 @@ export function droppedFromScreen(symbols: CrisisSymbols, unscreened: string[]):
   );
 }
 
+/**
+ * The symbols file as committed at the merge base with main: `git merge-base HEAD
+ * origin/main`, or HEAD^1 on a pull request's merge commit, where CI fetches only that
+ * commit and its base. Undefined when neither is in the clone (a depth-1 checkout).
+ */
+export function baseSymbols(root: string): CrisisSymbols | undefined {
+  const file = relative(root, symbolsPath());
+  for (const base of [
+    ['merge-base', 'HEAD', 'origin/main'],
+    ['rev-parse', 'HEAD^1'],
+  ]) {
+    try {
+      const ref = git(root, base).trim();
+      return JSON.parse(git(root, ['show', `${ref}:${file}`])) as CrisisSymbols;
+    } catch {
+      // That ref isn't in this clone: try the next.
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Names screened at the merge base that the snapshot no longer lists. The test derives the
+ * snapshot from itself, so a merge of the generated file that drops a historical name
+ * (one no longer exported) would otherwise pass. `--write` restores them.
+ */
+export function lostFromHistory(symbols: CrisisSymbols, base: CrisisSymbols): string[] {
+  const kept = new Set(symbols.previouslyScreened);
+  return base.previouslyScreened.filter((n) => !kept.has(n));
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
   const current = JSON.parse(readFileSync(symbolsPath(), 'utf8')) as Partial<CrisisSymbols>;
-  const previous = current.previouslyScreened ?? current.screened ?? [];
+  const previous = [
+    ...(current.previouslyScreened ?? current.screened ?? []),
+    ...(baseSymbols(root)?.previouslyScreened ?? []),
+  ];
   const symbols = crisisSymbols(root, previous);
   if (process.argv.includes('--write')) {
     writeFileSync(symbolsPath(), `${JSON.stringify(symbols, null, 2)}\n`);

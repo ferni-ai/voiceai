@@ -8,9 +8,11 @@ import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import { classify, loadPolicy } from '../autonomy-lanes.js';
 import {
+  baseSymbols,
   builtInNames,
   crisisSymbols,
   droppedFromScreen,
+  lostFromHistory,
   ownDeclarations,
   symbolsPath,
   type CrisisSymbols,
@@ -86,6 +88,18 @@ describe('crisis symbols', () => {
     // This test parses the whole source tree a second time (about 2 s idle); the 20 s
     // default timed out on a loaded CI shard, so it gets headroom without asserting less.
   }, 120_000);
+
+  it('a merge of the symbols file keeps every name screened at the merge base', () => {
+    // The rows above derive the snapshot from itself, so a hand-resolved conflict that
+    // drops a name no longer exported passes them all. The merge base's list can't be.
+    const base = baseSymbols(ROOT);
+    // A pull request's merge commit always has its base; only a depth-1 checkout has none.
+    if (process.env.GITHUB_EVENT_NAME === 'pull_request') expect(base).toBeDefined();
+    // On failure: node --experimental-strip-types scripts/ci/crisis-symbols.ts --write
+    if (base) expect(lostFromHistory(committed, base)).toEqual([]);
+    const [first, ...rest] = committed.previouslyScreened;
+    expect(lostFromHistory({ ...committed, previouslyScreened: rest }, committed)).toEqual([first]);
+  });
 
   it('only real declarations elsewhere make a crisis name ambiguous', () => {
     const file = 'src/agents/processors/turn-processor/index.ts';
