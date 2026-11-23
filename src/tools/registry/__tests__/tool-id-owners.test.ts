@@ -10,7 +10,12 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { llm } from '@livekit/agents';
+import { z } from 'zod';
 import { buildAgentTools } from '../../builder.js';
+import { fakeEmbedder } from '../../retrieval/__tests__/fake-embedder.js';
+import { DenseToolIndex } from '../../retrieval/dense-index.js';
+import { TurnToolRetrieval } from '../../retrieval/turn-tool-retrieval.js';
 import { loadIntentManual } from '../../retrieval/dense-index.js';
 import { ToolRegistry, toolRegistry } from '../index.js';
 import { autoRegisterAllDomains, loadToolDomain } from '../loader.js';
@@ -50,6 +55,10 @@ const OWNERS: Record<string, { owner: string; other: string; becomes: string }> 
 /** Two domains, one tool: both definitions build the tool travel/travel.ts makes. */
 const TRAVEL_COPIES = ['getSavedTrips', 'planTrip', 'searchFlights', 'searchHotels'];
 
+const here = dirname(fileURLToPath(import.meta.url));
+const manualOnDisk = (): Record<string, { domain: string }> =>
+  JSON.parse(readFileSync(join(here, '../../retrieval/intent-manual.generated.json'), 'utf8'))
+    .tools;
 const defs: ToolDefinition[] = [];
 
 beforeAll(async () => {
@@ -153,13 +162,9 @@ describe('getQuickStatus', () => {
 });
 
 describe('by-name lists name the tool they mean', () => {
-  const here = dirname(fileURLToPath(import.meta.url));
   const peter = JSON.parse(
     readFileSync(join(here, '../../../personas/bundles/peter-john/persona.manifest.json'), 'utf8')
   ) as { tools: { optional: string[] } };
-  const manualOnDisk = (): Record<string, { domain: string }> =>
-    JSON.parse(readFileSync(join(here, '../../retrieval/intent-manual.generated.json'), 'utf8'))
-      .tools;
   const NOTHING = { tools: {}, skipped: [], warnings: [] } as unknown as ToolSetResult;
 
   /** The spec buildAgentTools hands the registry for Peter's manifest. */
@@ -195,24 +200,86 @@ describe('by-name lists name the tool they mean', () => {
     expect(loadIntentManual().tools).toEqual(manualOnDisk());
   });
 
-  it("on: a manual entry for a tool that took a new id moves to it, and meets that tool's domain", () => {
+  it('on: each contested entry sits under the tool it is about, and the other tool gets its own', () => {
     process.env.TOOL_ID_OWNERS = 'on';
     const disk = manualOnDisk();
     const { tools } = loadIntentManual();
-    const moved = Object.entries(OWNERS).filter(([id, o]) => disk[id]?.domain === o.other);
-    expect(moved.map(([id]) => id)).toEqual([
+    const misfiled = Object.entries(OWNERS).filter(([id, o]) => disk[id]?.domain === o.other);
+    expect(misfiled.map(([id]) => id)).toEqual([
       'checkValuesAlignment',
       'listDevices',
       'remindThesis',
     ]);
-    for (const [id, o] of moved) {
-      expect(tools[o.becomes], id).toEqual(disk[id]);
-      expect(tools[id], id).toBeUndefined();
+    // Read from each entry's text: the first two are about the owner's tool, the third research's.
+    const about = {
+      checkValuesAlignment: 'owner',
+      listDevices: 'owner',
+      remindThesis: 'other',
+    } as const;
+    for (const [id, o] of misfiled) {
+      const [kept, made] =
+        about[id as keyof typeof about] === 'owner' ? [id, o.becomes] : [o.becomes, id];
+      expect(tools[kept], id).toEqual({ ...disk[id], domain: kept === id ? o.owner : o.other });
+      // The other tool's entry is its definition's own description, not new prose.
+      const def = defs.find((d) => d.id === id && d.domain === (made === id ? o.owner : o.other))!;
+      expect(tools[made], id).toEqual({
+        domain: def.domain,
+        description: def.description,
+        queries: [def.description],
+      });
     }
-    expect(Object.keys(tools).length).toBe(Object.keys(disk).length);
+    expect(Object.keys(tools).length).toBe(Object.keys(disk).length + 3);
     const [registry] = both();
     for (const [id, o] of Object.entries(OWNERS))
       for (const k of [id, o.becomes].filter((key) => tools[key]))
         expect(registry.get(k)?.domain, k).toBe(tools[k]!.domain);
+  });
+});
+
+describe('findTools reaches each tool of a contested pair', () => {
+  const PAIRS = ['checkValuesAlignment', 'listDevices', 'remindThesis'];
+  const fn = (name: string) =>
+    llm.tool({ name, description: name, parameters: z.object({}), execute: async () => 'ok' });
+  /** Retrieval over a manual's entries for the 3 pairs, with both tools of each pair loaded. */
+  async function retrieval(tools = loadIntentManual().tools): Promise<TurnToolRetrieval> {
+    const ids = PAIRS.flatMap((id) => [id, OWNERS[id]!.becomes]);
+    const manual = {
+      tools: Object.fromEntries(ids.filter((id) => tools[id]).map((id) => [id, tools[id]!])),
+    };
+    const embedder = fakeEmbedder(4096);
+    const index = await DenseToolIndex.build(manual, embedder);
+    const r = new TurnToolRetrieval({
+      sessionId: 's',
+      embedder,
+      index: async () => index,
+      domainOf: (t) => manual.tools[t]?.domain,
+    });
+    r.withoutPick(new llm.ToolContext(ids.map(fn)));
+    return r;
+  }
+  const first = async (r: TurnToolRetrieval, need: string): Promise<string | undefined> =>
+    (await r.find(need, 1))[0]?.name;
+  // Each request is worded from its tool's own description. The fake embedder matches words,
+  // so these prove each tool is in the index under its own id and wins its own request, not
+  // how well the live embedder ranks paraphrases.
+  const NEEDS: Array<[need: string, want: string]> = [
+    ['evaluate how my options align with my core values', 'checkValuesAlignment'],
+    ['gently surface it when my actions contradict my stated values', 'flagValuesConflict'],
+    ['list my smart home devices and their status', 'listDevices'],
+    ['show all connected devices', 'listMyDevices'],
+    ["I'm struggling and doubting and want to quit: recall my original why", 'remindThesis'],
+    ['remind me why I bought this stock', 'remindStockThesis'],
+  ];
+
+  it.each(NEEDS)('on: "%s" reaches %s', async (need, want) => {
+    process.env.TOOL_ID_OWNERS = 'on';
+    expect(await first(await retrieval(), need)).toBe(want);
+  });
+
+  it('off: each request finds what it finds over the file as written', async () => {
+    const [loaded, disk] = [await retrieval(), await retrieval(manualOnDisk() as never)];
+    for (const [need] of NEEDS)
+      expect(await first(loaded, need), need).toBe(await first(disk, need));
+    for (const id of PAIRS) expect(loadIntentManual().tools[OWNERS[id]!.becomes]).toBeUndefined();
   });
 });

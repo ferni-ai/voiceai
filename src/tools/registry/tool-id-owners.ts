@@ -80,19 +80,73 @@ export function namedToolLists(
   };
 }
 
+interface ManualEntry {
+  domain: string;
+  description: string;
+  queries: string[];
+}
+
 /**
- * The intent manual (what findTools searches) keys each entry by id and says which domain's
- * tool it describes. Flag on, an entry for a tool that took a new id moves to that id, so a
- * search for the stock thesis finds research's tool and not life-thesis's under its old id.
+ * The intent manual has one entry per id, built before ids had owners, and 3 contested ids'
+ * entries name the other domain. Each entry's description and example requests say which
+ * tool it is about: checkValuesAlignment's (options against your values) and listDevices'
+ * (smart-home devices) are the owner's, remindThesis's (why you bought a stock) is research's.
+ * The tool the entry is not about gets one from its definition's description, copied here (a
+ * row pins that each still matches its definition).
  */
-export function ownedManualEntries<T extends { domain: string }>(
-  tools: Record<string, T>,
+const MANUAL_FIXES: Readonly<
+  Record<
+    string,
+    { owner: ToolDomain; other: ToolDomain; entryIsAbout: 'owner' | 'other'; otherText: string }
+  >
+> = {
+  checkValuesAlignment: {
+    owner: 'decisions',
+    other: 'proactive',
+    entryIsAbout: 'owner',
+    otherText: 'Gently surface when actions might contradict stated values',
+  },
+  listDevices: {
+    owner: 'home',
+    other: 'simple-utilities',
+    entryIsAbout: 'owner',
+    otherText: 'Show all connected devices',
+  },
+  remindThesis: {
+    owner: 'life-thesis',
+    other: 'research',
+    entryIsAbout: 'other',
+    otherText: `Recall someone's original "why" when they're struggling, doubting, or want to quit.`,
+  },
+};
+
+/**
+ * The intent manual (what findTools and per-turn retrieval search). Flag on, each of those 3
+ * entries sits under the id of the tool it is about, with that tool's domain, and the other
+ * tool of the pair gets an entry from its own description, so a search can reach either.
+ * Flag off, the file as written.
+ */
+export function ownedManualEntries(
+  tools: Record<string, ManualEntry>,
   env: Env = process.env
-): Record<string, T> {
-  return Object.fromEntries(
-    Object.entries(tools).map(([id, entry]) => [
-      toolIdIn(entry.domain as ToolDomain, id, env),
-      entry,
-    ])
-  );
+): Record<string, ManualEntry> {
+  const out = { ...tools };
+  for (const [id, fix] of Object.entries(MANUAL_FIXES)) {
+    const entry = tools[id];
+    const newId = toolIdIn(fix.other, id, env);
+    if (!entry || newId === id) continue;
+    const own = (domain: ToolDomain): ManualEntry => ({
+      domain,
+      description: fix.otherText,
+      queries: [fix.otherText],
+    });
+    if (fix.entryIsAbout === 'owner') {
+      out[id] = { ...entry, domain: fix.owner };
+      out[newId] = own(fix.other);
+    } else {
+      out[newId] = { ...entry, domain: fix.other };
+      out[id] = own(fix.owner);
+    }
+  }
+  return out;
 }
