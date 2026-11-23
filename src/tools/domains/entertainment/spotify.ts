@@ -29,7 +29,7 @@ import {
 } from '../../../services/identity/spotify-auth.js';
 import { findTrack as findItunesTrack } from '../../../services/itunes.js';
 import { getMusicReaction, shouldReactToMusic } from '../../../speech/music-reactions.js';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../../utils/safe-logger.js';
 import { getMusicCommentary, hasArtistInfo } from './music-commentary.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -546,9 +546,10 @@ async function spotifyRequest(
   const maxRetries = options?.maxRetries ?? 3;
   let lastError: Error | null = null;
 
+  const path = endpoint.split('?')[0]; // a search's query string holds the caller's words
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      getLogger().info({ endpoint, method, attempt, maxRetries }, '🎵 Spotify API request');
+      getLogger().info({ endpoint: path, method, attempt, maxRetries }, '🎵 Spotify API request');
 
       // Force token refresh on retry after auth errors
       const token = await getAccessToken(options?.forceRefresh || attempt > 1);
@@ -558,7 +559,6 @@ async function spotifyRequest(
       }
 
       const url = `${SPOTIFY_API_BASE}${endpoint}`;
-
       const response = await fetch(url, {
         method,
         headers: {
@@ -701,7 +701,7 @@ async function searchTracks(query: string, limit = 5): Promise<string> {
 
     return `Found these tracks:\n${trackList}\n\nWant me to play one?`;
   } catch (error) {
-    getLogger().error({ error, query }, 'Spotify search error');
+    getLogger().error({ error, query: replyForLog(query) }, 'Spotify search error');
     return "I'm having trouble searching Spotify right now.";
   }
 }
@@ -744,7 +744,7 @@ export async function searchTracksWithPreviews(
 
     return tracksWithPreviews;
   } catch (error) {
-    getLogger().debug({ error, query }, 'Spotify search for previews failed');
+    getLogger().debug({ error, query: replyForLog(query) }, 'Spotify search for previews failed');
     return [];
   }
 }
@@ -755,7 +755,7 @@ export async function searchTracksWithPreviews(
  */
 async function playViaItunesFallback(query: string): Promise<string> {
   const log = getLogger();
-  log.info({ query }, '🎵 Attempting iTunes fallback');
+  log.info({ query: replyForLog(query) }, '🎵 Attempting iTunes fallback');
 
   try {
     const itunesResult = await findItunesTrack(query);
@@ -792,7 +792,7 @@ async function playViaItunesFallback(query: string): Promise<string> {
 
     return `Found "${track.name}" but had trouble playing it. Try again?`;
   } catch (error) {
-    log.error({ error, query }, '🎵 iTunes fallback failed');
+    log.error({ error, query: replyForLog(query) }, '🎵 iTunes fallback failed');
     return `Couldn't play "${query}" right now. Maybe try again in a moment?`;
   }
 }
@@ -810,13 +810,13 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
 
   // 🐛 FIX: Check if music is enabled FIRST before doing anything
   if (!isMusicEnabled()) {
-    log.warn({ query }, '🎵 [Spotify] Music feature is disabled (MUSIC_ENABLED=false)');
+    log.warn({ query: replyForLog(query) }, '🎵 [Spotify] Music disabled (MUSIC_ENABLED=false)');
     return `I'd love to play "${query}" for you, but music playback is currently disabled. Let's keep chatting instead!`;
   }
 
   log.info(
     {
-      query,
+      query: replyForLog(query),
       streamIntoCallOverride,
       globalStreamIntoCall: streamIntoCall,
       willStreamIntoCall: streamIntoCallOverride ?? streamIntoCall,
@@ -952,7 +952,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       }
 
       // If no Spotify preview, try iTunes fallback
-      getLogger().info({ query }, '🎵 No Spotify preview, trying iTunes');
+      getLogger().info({ query: replyForLog(query) }, '🎵 No Spotify preview, trying iTunes');
       return await playViaItunesFallback(query);
     }
 
@@ -1024,7 +1024,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
 
     if (errorMsg.includes('PREMIUM_REQUIRED')) {
       // Auto-fallback to iTunes
-      getLogger().info({ query }, '🎵 Premium required - falling back to iTunes');
+      log.info({ query: replyForLog(query) }, '🎵 Premium required - falling back to iTunes');
       return await playViaItunesFallback(query);
     }
 
@@ -1036,7 +1036,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       return 'Spotify is asking me to slow down. Let me try again in a few seconds, or I can play through iTunes!';
     }
 
-    getLogger().error({ error, query }, 'Spotify play error');
+    getLogger().error({ error, query: replyForLog(query) }, 'Spotify play error');
     return "I'm having trouble with Spotify. Would you like me to play through iTunes instead?";
   }
 }
@@ -1342,12 +1342,12 @@ export function createSpotifyTools() {
         query: z.string().describe('Song, artist, genre, or search query'),
       }),
       execute: async ({ query }) => {
-        getLogger().info({ query }, 'TOOL: playMusic CALLED');
+        getLogger().info({ query: replyForLog(query) }, 'TOOL: playMusic CALLED');
         if (!checkConfigured()) {
           return "Spotify isn't connected right now. Would you like to talk about something else?";
         }
         const result = await playMusic(query);
-        getLogger().info({ result: result.slice(0, 100) }, 'TOOL: playMusic RESULT');
+        getLogger().info({ result: replyForLog(result, 100) }, 'TOOL: playMusic RESULT');
         return result;
       },
     }),
@@ -1490,7 +1490,7 @@ export function createSpotifyTools() {
       }),
       execute: async ({ query }) => {
         if (!checkConfigured()) return "Spotify isn't connected for previews.";
-        getLogger().info({ query }, 'Playing preview in call');
+        getLogger().info({ query: replyForLog(query) }, 'Playing preview in call');
         return playMusic(query, true); // Force stream into call mode
       },
     }),

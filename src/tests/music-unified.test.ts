@@ -22,20 +22,11 @@ vi.mock('fs', () => ({
 }));
 
 // Mock external dependencies
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('./helpers/real-reply-for-log.js');
+  const logger = () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() });
+  return { getLogger: logger, createLogger: logger, ...(await realReplyForLog()) };
+});
 
 // ============================================================================
 // MUSIC PROVIDER ROUTING TESTS

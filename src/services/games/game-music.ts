@@ -6,7 +6,7 @@
  */
 
 import { getMusicPlayer, type MusicTrack } from '../../audio/music-player.js';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { findTrack, searchItunes, type iTunesTrack } from '../itunes.js';
 
 const log = getLogger();
@@ -59,7 +59,7 @@ async function rateLimitedSearch(query: string): Promise<SearchResult> {
   // Check cache first
   const cached = searchCache.get(query);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    log.debug({ query }, '🎮 Cache hit for search');
+    log.debug({ query: replyForLog(query) }, '🎮 Cache hit for search');
     return cached.result;
   }
 
@@ -112,7 +112,7 @@ async function searchSongDirect(query: string): Promise<SearchResult> {
     const isRateLimitError = errorMessage.includes('429') || errorMessage.includes('rate limit');
 
     log.error(
-      { error: errorMessage, query, isNetworkError, isRateLimitError },
+      { error: errorMessage, query: replyForLog(query), isNetworkError, isRateLimitError },
       '🎮 Failed to search song'
     );
 
@@ -181,7 +181,7 @@ export async function searchSong(query: string, useFallback = true): Promise<Sea
     const result = await rateLimitedSearch(query);
 
     if (!result.found && useFallback) {
-      log.warn({ query }, '🎮 iTunes search failed, using fallback');
+      log.warn({ query: replyForLog(query) }, '🎮 iTunes search failed, using fallback');
       const fallback = getFallbackSong();
       return {
         found: true,
@@ -191,7 +191,7 @@ export async function searchSong(query: string, useFallback = true): Promise<Sea
 
     return result;
   } catch (error) {
-    log.error({ error, query }, '🎮 Search failed completely');
+    log.error({ error, query: replyForLog(query) }, '🎮 Search failed completely');
 
     if (useFallback) {
       const fallback = getFallbackSong();
@@ -335,7 +335,7 @@ export async function getRandomGameSongs(
           }
           return null;
         } catch (error) {
-          log.debug({ error, query }, '🎮 Search failed for query');
+          log.debug({ error, query: replyForLog(query) }, '🎮 Search failed for query');
           return null;
         }
       })

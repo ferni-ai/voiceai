@@ -8,7 +8,7 @@
  */
 
 import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { createLogger, getLogger } from '../../utils/safe-logger.js';
+import { createLogger, getLogger, replyForLog } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'iTunes' });
 import { isDebugEnabled } from '../../config/feature-flags.js';
@@ -87,16 +87,19 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
   // Check circuit breaker first
   if (!itunesCircuitBreaker.canRequest()) {
     log.warn(
-      { query, circuitState: 'OPEN' },
+      { query: replyForLog(query), circuitState: 'OPEN' },
       '🎵 [DIAG] iTunes circuit breaker is OPEN - skipping request! Music search will fail.'
     );
     return { resultCount: 0, results: [] };
   }
 
-  log.info({ query, circuitState: 'CLOSED' }, '🎵 [DIAG] iTunes circuit breaker allows request');
+  log.info(
+    { query: replyForLog(query), circuitState: 'CLOSED' },
+    '🎵 [DIAG] iTunes circuit breaker allows request'
+  );
 
   if (DEBUG_ITUNES) log.debug('searchItunes called', { query, limit, url });
-  log.info({ query, limit }, 'iTunes API searching');
+  log.info({ query: replyForLog(query), limit }, 'iTunes API searching');
 
   try {
     const data = await itunesCircuitBreaker.execute(async () => {
@@ -133,7 +136,7 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
       });
     getLogger().info(
       {
-        query,
+        query: replyForLog(query),
         resultCount: data.resultCount,
         firstResult: data.results[0]?.trackName,
         hasPreview: !!data.results[0]?.previewUrl,
@@ -144,10 +147,10 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
     return data;
   } catch (error) {
     if (error instanceof CircuitOpenError) {
-      log.debug({ query }, 'iTunes circuit breaker opened');
+      log.debug({ query: replyForLog(query) }, 'iTunes circuit breaker opened');
       return { resultCount: 0, results: [] };
     }
-    log.error({ error, query, url }, 'iTunes API exception');
+    log.error({ error, query: replyForLog(query), url: replyForLog(url) }, 'iTunes API exception');
     return { resultCount: 0, results: [] };
   }
 }
@@ -161,7 +164,7 @@ export async function findTrack(query: string): Promise<MusicSearchResult> {
   // If circuit is open, return a more informative error message
   if (!itunesCircuitBreaker.canRequest()) {
     log.warn(
-      { query, circuitState: 'OPEN' },
+      { query: replyForLog(query), circuitState: 'OPEN' },
       '🎵 [DIAG] iTunes circuit breaker OPEN - returning service unavailable message'
     );
     return {

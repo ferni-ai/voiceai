@@ -15,10 +15,14 @@ const { mockLogger } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => mockLogger,
-  getLogger: () => mockLogger,
-}));
+vi.mock('../../../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('../../../tests/helpers/real-reply-for-log.js');
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+    ...(await realReplyForLog()),
+  };
+});
 
 vi.mock('../../../utils/circuit-breaker.js', () => ({
   getCircuitBreaker: () => ({
