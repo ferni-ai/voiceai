@@ -119,6 +119,7 @@ import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
 import { handleGuestInviteRoutes } from '../../api/guest-invite-routes.js';
 import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
+import { handleSoulStatsRoutes } from '../../api/soul-stats/soul-stats-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -739,10 +740,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
 
     // GDPR routes
-    if (pathname.startsWith('/api/gdpr')) {
-      const handled = await handleGDPRRoutes(req, res, pathname);
-      if (handled) return;
-    }
+    if (pathname.startsWith('/api/gdpr') && (await handleGDPRRoutes(req, res, pathname))) return;
 
     // Trust journey routes
     if (pathname.startsWith('/api/trust-journey')) {
@@ -857,6 +855,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (await handleReplyReportRoutes(req, res, pathname)) return;
     if (await handleGuestInviteRoutes(req, res, pathname)) return;
     if (await handleCallTelemetryRoutes(req, res, pathname)) return;
+    if (await handleSoulStatsRoutes(req, res, pathname)) return; // SOUL_STATS
     if (pathname.startsWith('/api/brand') && (await handleBrandRoutes(req, res, pathname))) return;
 
     // Design tokens routes (public - for dynamic theming)
