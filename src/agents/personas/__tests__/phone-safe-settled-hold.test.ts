@@ -34,6 +34,16 @@ vi.mock('../../../utils/safe-logger.js', async (orig) => {
   };
 });
 
+// A model whose tools can't change mid-session (tool-updater.ts) when `unsafe` is set.
+const midSession = vi.hoisted(() => ({ unsafe: false }));
+vi.mock('../../shared/tool-updater.js', async (orig) => {
+  const real = await orig<typeof import('../../shared/tool-updater.js')>();
+  return {
+    ...real,
+    isMidSessionToolUpdateSafe: () => !midSession.unsafe && real.isMidSessionToolUpdateSafe(),
+  };
+});
+
 import { toolsForTurn, type TurnToolsState } from '../turn-request.js';
 import { phoneSafeTool } from '../../shared/phone-safe-tools.js';
 import { DOMAIN_TOOL_IDS } from '../../shared/domain-tool-ids.generated.js';
@@ -84,14 +94,19 @@ function agentWith(ctx: llm.ToolContext) {
 }
 
 let n = 0;
-/** A call: its session, agent and per-agent tool state; turn() runs toolsForTurn as llmNode does. */
-function call(opts: { owner: boolean; userId?: string }) {
+/**
+ * A call: its session, agent and per-agent tool state; turn() runs toolsForTurn as llmNode does.
+ * `userId: null`: a session with no user id.
+ */
+function call(opts: { owner: boolean; userId?: string | null }) {
   const sessionId = `settled-hold-${++n}`;
   const userId = opts.userId ?? `uid-riley-test-${n}`;
   if (opts.owner) rememberDispatchIdentity(sessionId, 'web_auth', '{}'); // a signed-in web owner
   const agent = agentWith(catalog());
   const state: TurnToolsState = { loggedLockedHandoffs: false, agent };
-  const session = { userData: { userId, services: { sessionId } } };
+  const session = {
+    userData: { userId: opts.userId === null ? undefined : userId, services: { sessionId } },
+  };
   const turn = async (): Promise<string[]> => {
     const chat = llm.ChatContext.empty();
     chat.addMessage({ role: 'user', content: SAID });
@@ -106,6 +121,7 @@ const logged = (msg: string) => logs.filter((l) => l.msg === msg);
 
 beforeEach(() => {
   logs.length = 0;
+  midSession.unsafe = false;
   resetMinorCare();
   resetSexualTopicHold();
   vi.stubEnv('MINOR_CARE', 'on');
@@ -250,4 +266,48 @@ describe('PHONE_SAFE_SETTLED_HOLD never loosens a settled hold', () => {
       expect(logged(CUT_ON).map((l) => l.fields.reason)).toEqual([reason]);
     }
   );
+});
+
+describe('PHONE_SAFE_SETTLED_HOLD: what still holds a cut', () => {
+  beforeEach(() => vi.stubEnv(FLAG, 'on'));
+
+  it.each([
+    ['minor-care', (id: string) => holdSession(id)],
+    ['sexual-topic', (id: string) => holdForSexualTopic(id, undefined)],
+  ] as const)(
+    'a verified owner with no user id, a settled %s hold and a read running: cut, that reason named',
+    async (reason, set) => {
+      const c = call({ owner: true, userId: null });
+      set(c.sessionId);
+      beginSexualRead(c.sessionId, undefined);
+      expect(offersNone(await c.turn())).toBe(true);
+      expect(logged(CUT_ON).map((l) => l.fields.reason)).toEqual([reason]);
+    }
+  );
+
+  it("tools don't come back while the model can't change them mid-session, then come back once", async () => {
+    const c = call({ owner: false });
+    const read = beginSexualRead(c.sessionId, c.userId);
+    expect(offersNone(await c.turn())).toBe(true);
+    read.end();
+    rememberDispatchIdentity(c.sessionId, 'web_auth', '{}'); // now a verified owner
+    midSession.unsafe = true;
+    await c.turn();
+    expect(Object.keys(c.agent.toolCtx.functionTools)).toHaveLength(SAFE);
+    expect(logged(BACK)).toEqual([]);
+    midSession.unsafe = false;
+    expect(offersAccountTools(await c.turn())).toBe(true);
+    expect(logged(BACK)).toHaveLength(1);
+  });
+
+  it('a caller who is not a verified owner gets no tools back after the read ends', async () => {
+    const c = call({ owner: false });
+    const read = beginSexualRead(c.sessionId, c.userId);
+    expect(offersNone(await c.turn())).toBe(true);
+    read.end();
+    expect(memoryHeld(c.sessionId)).toBe(false); // nothing holds the call any more
+    expect(offersNone(await c.turn())).toBe(true);
+    expect(Object.keys(c.agent.toolCtx.functionTools)).toHaveLength(SAFE);
+    expect(logged(BACK)).toEqual([]);
+  });
 });

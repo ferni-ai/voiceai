@@ -422,3 +422,30 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that change which tools a held caller's agent keeps: the phone-safe cut that
+ * MINOR_CARE, a sexual-topic hold or a try-first call puts on the turn's tools (toolsForTurn,
+ * turn-request.ts). No reply reader sees a tool set. This home is open only to a flag whose named
+ * rows drive the real toolsForTurn with the real holds (minor-care.ts, sexual-topic-hold.ts),
+ * * flag off then on, and show that every hold that cuts off still cuts on, but where the flag's
+ * rule says otherwise (a verified owner whose only hold is their own read still running), and
+ * that memory writes still fail closed on that read.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const CARE_HOLD_TOOLS_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  PHONE_SAFE_SETTLED_HOLD: [
+    {
+      file: 'src/agents/personas/__tests__/phone-safe-settled-hold.test.ts',
+      rows: [
+        'a verified owner with a read running: cut, still cut after the read ends, logged as phone-recognised',
+        'a verified owner with a read running keeps every tool; memory still waits on the read',
+        'a verified owner whose call a sexual-topic hold covers: cut, logged with that reason, and it stays',
+        'a caller who is not a verified owner, with a read running: cut as before, the reason named',
+        'a caller who is not a verified owner gets no tools back after the read ends',
+      ],
+    },
+  ],
+};
