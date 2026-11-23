@@ -73,6 +73,7 @@ import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
+import { earlierCallNote } from '../personas/earlier-call-honest.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -352,7 +353,6 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
-    stableBase = baseInstructions;
 
     // DATE/TIME AWARENESS: in the model-level instructions so the agent knows the date and
     // time from the VERY FIRST MOMENT (including greeting)
@@ -369,8 +369,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
     const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
-    modelBaseInstructions =
-      baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
+    stableBase = baseInstructions + earlierCallNote(outboundPartiesFor(sessionId)); // cached prefix
+    modelBaseInstructions = stableBase + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : await readProfile();
