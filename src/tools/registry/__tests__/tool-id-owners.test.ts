@@ -6,11 +6,21 @@
  * registry are captured. They are then registered into fresh registries in load order and in
  * reverse, with the flag off (as on main: the winner follows the order) and on.
  */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { buildAgentTools } from '../../builder.js';
+import { loadIntentManual } from '../../retrieval/dense-index.js';
 import { ToolRegistry, toolRegistry } from '../index.js';
 import { autoRegisterAllDomains, loadToolDomain } from '../loader.js';
 import { ownedDefinition } from '../tool-id-owners.js';
-import { ALL_TOOL_DOMAINS, type ToolDefinition } from '../types.js';
+import {
+  ALL_TOOL_DOMAINS,
+  type ToolDefinition,
+  type ToolSetResult,
+  type ToolSetSpec,
+} from '../types.js';
 
 /** Contested id -> its owner, and the id the other domain's tool takes. */
 const OWNERS: Record<string, { owner: string; other: string; becomes: string }> = {
@@ -139,5 +149,70 @@ describe('getQuickStatus', () => {
     const ours = defs.filter((d) => d.id === 'getQuickStatus');
     expect(ours.map((d) => d.domain)).toEqual(['information']);
     expect(ours[0]!.description).toMatch(/^Ultra-brief status check/);
+  });
+});
+
+describe('by-name lists name the tool they mean', () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const peter = JSON.parse(
+    readFileSync(join(here, '../../../personas/bundles/peter-john/persona.manifest.json'), 'utf8')
+  ) as { tools: { optional: string[] } };
+  const manualOnDisk = (): Record<string, { domain: string }> =>
+    JSON.parse(readFileSync(join(here, '../../retrieval/intent-manual.generated.json'), 'utf8'))
+      .tools;
+  const NOTHING = { tools: {}, skipped: [], warnings: [] } as unknown as ToolSetResult;
+
+  /** The spec buildAgentTools hands the registry for Peter's manifest. */
+  const peterSpec = async (): Promise<ToolSetSpec> => {
+    const build = vi.spyOn(toolRegistry, 'buildToolSet').mockReturnValue(NOTHING);
+    try {
+      await buildAgentTools('peter-john', { manifest: peter as never, skipRegistryInit: true });
+      return build.mock.calls[0]![0];
+    } finally {
+      build.mockRestore();
+    }
+  };
+
+  it("off: Peter's optional tools are main's list, remindThesis included", async () => {
+    expect(peter.tools.optional).toContain('remindStockThesis');
+    const { optional } = await peterSpec();
+    expect(optional).toEqual(
+      peter.tools.optional.map((n) => (n === 'remindStockThesis' ? 'remindThesis' : n))
+    );
+  });
+
+  it("on: Peter is offered research's stock-thesis tool and no life-thesis tool", async () => {
+    process.env.TOOL_ID_OWNERS = 'on';
+    const { optional = [] } = await peterSpec();
+    for (const registry of both()) {
+      const offered = optional.flatMap((id) => registry.get(id) ?? []);
+      expect(offered.find((d) => d.id === 'remindStockThesis')?.domain).toBe('research');
+      expect(offered.filter((d) => d.domain === 'life-thesis').map((d) => d.id)).toEqual([]);
+    }
+  });
+
+  it('off: the intent manual is the file as written', () => {
+    expect(loadIntentManual().tools).toEqual(manualOnDisk());
+  });
+
+  it("on: a manual entry for a tool that took a new id moves to it, and meets that tool's domain", () => {
+    process.env.TOOL_ID_OWNERS = 'on';
+    const disk = manualOnDisk();
+    const { tools } = loadIntentManual();
+    const moved = Object.entries(OWNERS).filter(([id, o]) => disk[id]?.domain === o.other);
+    expect(moved.map(([id]) => id)).toEqual([
+      'checkValuesAlignment',
+      'listDevices',
+      'remindThesis',
+    ]);
+    for (const [id, o] of moved) {
+      expect(tools[o.becomes], id).toEqual(disk[id]);
+      expect(tools[id], id).toBeUndefined();
+    }
+    expect(Object.keys(tools).length).toBe(Object.keys(disk).length);
+    const [registry] = both();
+    for (const [id, o] of Object.entries(OWNERS))
+      for (const k of [id, o.becomes].filter((key) => tools[key]))
+        expect(registry.get(k)?.domain, k).toBe(tools[k]!.domain);
   });
 });

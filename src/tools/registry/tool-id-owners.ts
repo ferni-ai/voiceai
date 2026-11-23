@@ -50,3 +50,49 @@ export function ownedDefinition(
   if (registered.has(id)) getLogger().debug({ toolId: id }, 'Tool re-registered (parallel init)');
   return id === definition.id ? definition : { ...definition, id };
 }
+
+/** A taken id -> the id it shared on main. */
+const SHARED_ID: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(RENAMES).flatMap((ids) => Object.entries(ids ?? {}).map(([id, to]) => [to, id]))
+);
+
+interface NamedToolLists {
+  required?: readonly string[];
+  optional?: readonly string[];
+  forbidden?: readonly string[];
+}
+
+/**
+ * A persona manifest's tool lists name the tool they mean by the id it has with the flag on
+ * (Peter's stock-thesis tool is remindStockThesis). Flag off, such a name reads as the id it
+ * shared on main, so the lists build what main built.
+ */
+export function namedToolLists(
+  lists: NamedToolLists = {},
+  env: Env = process.env
+): { required: string[]; optional: string[]; forbidden: string[] } {
+  const ids = (names: readonly string[] = []): string[] =>
+    names.map((name) => (toolIdOwnersOn(env) ? name : (SHARED_ID[name] ?? name)));
+  return {
+    required: ids(lists.required),
+    optional: ids(lists.optional),
+    forbidden: ids(lists.forbidden),
+  };
+}
+
+/**
+ * The intent manual (what findTools searches) keys each entry by id and says which domain's
+ * tool it describes. Flag on, an entry for a tool that took a new id moves to that id, so a
+ * search for the stock thesis finds research's tool and not life-thesis's under its old id.
+ */
+export function ownedManualEntries<T extends { domain: string }>(
+  tools: Record<string, T>,
+  env: Env = process.env
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(tools).map(([id, entry]) => [
+      toolIdIn(entry.domain as ToolDomain, id, env),
+      entry,
+    ])
+  );
+}
