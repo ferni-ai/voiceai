@@ -141,7 +141,9 @@ describe('AgentFlagsSection', () => {
   it('shows the dev-only notice when the server answers 404', async () => {
     serve({ '/api/v1/admin/agent-flags': () => json({ error: 'Not found' }, 404) });
     const root = await mount();
-    expect(root.textContent).toContain('Agent flags can only be changed on the dev admin server.');
+    expect(root.textContent).toContain(
+      'Agent flags unavailable (HTTP 404): they can only be changed on the dev admin server.'
+    );
     expect(root.querySelector('select')).toBeNull();
   });
 
@@ -566,7 +568,7 @@ describe('AgentFlagsSection', () => {
     const section = await import('../../src/admin/sections/AgentFlagsSection.js');
     fetchMock.mockImplementationOnce(async () => json({ error: 'down' }, 500));
     document.body.innerHTML = await section.render(); // the header Refresh, and it fails
-    expect(document.body.textContent).toContain('Could not load agent flags (HTTP 500).');
+    expect(document.body.textContent).toContain('Agent flags unavailable (HTTP 500).');
     serve({ [GET]: () => json(OLD_WORKER), [ROOMS]: () => json({ rooms: [] }) });
     const root = await mount();
     expect(rowOf(root, 'SOUND_CONDUCTOR')?.classList.contains('af-row--unconfirmed')).toBe(true);

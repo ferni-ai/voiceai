@@ -48,6 +48,8 @@ export const BQ_TABLES = {
     user_kind: S, eou_delay_ms: I, commit_to_audio_ms: I, prompt_tokens: I,
     prompt_cached_tokens: I, model: S, lane: S, tools_offered: I, preemptive: S,
     pause_hold_ms: I, barge_in_source: S, reply_chars: I,
+    // first audio of any kind: an opening or tool-ack clip counts, reply_delay_ms doesn't
+    first_any_audio_ms: I,
   },
   followthrough_outcomes: {
     event_ts: T, env: S, user_hash: S, item_hash: S, item_kind: S, outcome: S,

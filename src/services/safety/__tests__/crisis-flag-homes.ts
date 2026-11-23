@@ -330,6 +330,34 @@ export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> =
 };
 
 /**
+ * Crisis-lane flags that change only which short-lived crisis reads are shared or kept (the
+ * classifier's shared runs and turn reads, the adjudicator's shared runs), never what a read
+ * says. The six readers and SHOWN_ON read each turn fresh, so they never see one call's reads
+ * meet another's. This home is open only to a flag whose named rows drive the real
+ * startCrisisClassifier / turnVerdicts / startCrisisAdjudicator, flag off then on, and show
+ * that with it on a read is never borrowed across calls, a failed read is never shared, and a
+ * call whose reads were pushed out gets a missing read (which escalates), never fewer reads.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const READ_CACHE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  CRISIS_CLASSIFIER_RUN_PER_CALL: [
+    {
+      file: 'src/services/safety/__tests__/crisis-classifier-run-per-call.test.ts',
+      rows: [
+        'two calls with the same words: off shares one run, on gives each call its own read',
+        'a failed read is never shared: the next request on the call gets its own read',
+        "twin lines never push out a call's turn reads: off loses them, on keeps both",
+        'a call whose reads were pushed out gets a missing read, so a lone crisis read never eases',
+        '40 other calls: off pushes out the first call (no missing read added), on keeps it',
+        'more pushed-out calls than can be named: every call gets a missing read',
+      ],
+    },
+  ],
+};
+
+/**
  * Crisis-lane flags that act on the turn's tool routing, before the reply gate runs: a tool a
  * router runs on its own, and the direct tool reply that skips the reply model. The six readers
  * and SHOWN_ON (the gate's reply) never see that step. This home is open only to a flag whose
@@ -372,6 +400,34 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
       rows: [
         'flag on, FTIS on: a crisis only the classifier reads runs no tool through the transcript handler',
         'flag on, FTIS on: no crisis read of the turn starts, so no tool runs (fail closed)',
+      ],
+    },
+  ],
+};
+
+/**
+ * Crisis-lane flags that act only when the voice gate's own escalation rejects: an easing step,
+ * or the wait for the read, throws. No call in the reply grid reaches that: its classifier
+ * failures ('throws', 'never') settle as a failed read (a null verdict) on the timeout path, so
+ * SHOWN_ON cannot see these flags. The grid still sets each of them on every call it places and
+ * fails if any reply moves or lowers. This home is open only to a flag whose named rows drive the
+ * real gate (startCrisisGate, gatedReply) with a rejected escalation, flag off then on, and assert
+ * the on reply is never lower: the classifier's own decision, or the check-in with 988, and never
+ * the held model reply where off released it.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for TEXT_SHOWN_ON. What a row asserts is a reviewer's check.
+ */
+export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // The owner's rule (2026-11-15): a rejected crisis escalation fails closed.
+  CRISIS_GATE_FAIL_CLOSED: [
+    {
+      file: 'src/agents/personas/__tests__/crisis-gate-failure.test.ts',
+      rows: [
+        '(a) an easing step throws after an imminent or a crisis read: the decision stands, no held chunk goes out',
+        '(b) a rejection before any verdict: the check-in with 988, no held chunk goes out',
+        'the forced check-in stays on its turn: a later failed read, on the same call or another, gets none, and no env is written',
+        'turns that settle read the same with the flag on as off',
       ],
     },
   ],
