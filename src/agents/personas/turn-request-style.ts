@@ -166,8 +166,8 @@ function withOwnStory(
   if (ownStory === undefined) return signals;
   // SELF_SHARE_WHEN_ASKED=on: asked about him, a short answer and no story (self-share-asked.ts).
   const selfBrief = brief === true ? { selfBrief: true } : {};
-  // SELF_SHARE_STAYS=on: asked about him, he stays on his own thing, no question back.
-  const selfStays = stays ? { selfStays: true } : {};
+  // SELF_SHARE_STAYS=on: asked about him, no turn-back question (a follow-up's note is the model's call).
+  const selfStays = stays === 'asked' || stays === 'no_detail' ? { selfStays: true } : {};
   const base = signals ?? regexSignals(said, callerMove(said));
   return { ...base, ownStory, ...selfBrief, ...selfStays };
 }

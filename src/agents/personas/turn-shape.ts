@@ -211,6 +211,9 @@ export const QUESTION_LINE = {
   /** FERNI_STATE=on: a word about himself is followed by turning to them. */
   noneUnlessOwn:
     'No question this time, unless you said something about yourself: then end by asking them one about their world.',
+  /** SELF_SHARE_STAYS=on, asked about him: no turn-back, but a check-in if they sound low. */
+  stays:
+    'No question back this time, unless something they said sounds low or hard: then check on them.',
 };
 
 /**
@@ -225,7 +228,7 @@ function noQuestion(ownStory: boolean | undefined): string {
 /** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
 function noQuestionFor(sig: TurnSignals): string {
   if (sig.exitsHeld) return ''; // a turn whose exits are held bars no question (exits-held.ts)
-  if (sig.selfStays) return QUESTION_LINE.none; // SELF_SHARE_STAYS: no "then ask them one"
+  if (sig.selfStays) return QUESTION_LINE.stays; // SELF_SHARE_STAYS: no "then ask them one"
   return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
 }
 

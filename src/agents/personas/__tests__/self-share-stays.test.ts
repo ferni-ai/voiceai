@@ -1,10 +1,12 @@
 /**
  * SELF_SHARE_STAYS=on (#3475): asked about himself, Ferni ends on his own
- * thing instead of handing the question straight back, and asked again he
- * stays on himself with one more real thing. Asserted on the request the model
- * is asked with, through the live reply path (crisis-gate.ts -> turn-request.ts
- * -> turn-notes-guarded.ts -> self-share-stays.ts -> ferni-state.ts). Flag off,
- * the turn is ferni-state's, untouched. All caller lines are fictional.
+ * thing instead of handing the question straight back, and the next turn or
+ * two hand the "still about him?" call to the model. Asserted on the request
+ * the model is asked with, through the live reply path (crisis-gate.ts ->
+ * turn-request.ts -> turn-notes-guarded.ts -> self-share-stays.ts ->
+ * ferni-state.ts), and on ferniStateStays for the paraphrase tables (the
+ * round-1 review's lines, both directions). Flag off, the turn is
+ * ferni-state's, untouched. All caller lines are fictional.
  */
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
@@ -13,10 +15,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gatedReply } from '../crisis-gate.js';
 import { LOW_MOOD_SELF } from '../ferni-self-share.js';
 import { ferniStateTurn, TASK_LINE } from '../ferni-state.js';
-import { ASKED_NO_DETAIL, resetRecentDetails } from '../self-share-asked.js';
-import { ferniStateStays } from '../self-share-stays.js';
+import { ASKED_NO_DETAIL, FIRST_REPLY_ASKED, resetRecentDetails } from '../self-share-asked.js';
+import { ferniStateStays, type StayTurn } from '../self-share-stays.js';
 import { QUESTION_LINE, turnShapeFor } from '../turn-shape.js';
 import { regexSignals } from '../turn-extras.js';
+import { setTurnUnderstander } from '../turn-understanding.js';
 
 const NOON = new Date('2026-10-11T18:10:00Z');
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
@@ -26,9 +29,10 @@ const OFF = { SELF_SHARE_STAYS: 'off' };
 const TURN_BACK = ', then ask them something about theirs.';
 const SWING = 'Your last reply was about you: this one is about them, their day or their world.';
 /** What they become with the flag on (self-share-stays.ts). */
-const STAYS_END = ', said plainly, and leave it there, no question back this time.';
-const STAYS_AGAIN = 'They are still asking about you: stay on yourself a moment.';
-const STAYS_NO_DETAIL = 'give one real, small thing from your life as you know it';
+const STAYS_END = 'said plainly in your own words, and leave it there, no question back';
+const CHECK_IN = 'If anything they said sounds low or hard, set yourself aside and check on them.';
+const FOLLOW_UP = 'if they are still asking about you, stay on yourself a moment';
+const NO_DETAIL = "say one more real thing about what you've already told them";
 
 let n = 0;
 function newCall() {
@@ -67,35 +71,108 @@ async function askedWith(ctx: llm.ChatContext, session: object): Promise<string>
   return asked;
 }
 
-const OPENING = ['Hey.', 'Hey, good to hear you.', 'Long day, not much going on.', 'Ha, fair.'];
-/** His answer about his day: a share of his own with no question in it. */
-const HIS_SHARE = 'I was up around five checking the weather, and I am not even going anywhere.';
-/** The issue's caller, line by line, with his answers in between. */
-const ASKED = [...OPENING, 'Enough about me. What did you do today?'];
-const SPECIFIC = [...ASKED, HIS_SHARE, 'No, something specific.'];
-const BUGGING = [
-  ...SPECIFIC,
-  'Okay, honestly, I keep checking it because I miss having somewhere to be.',
-  "What's been bugging you lately, and don't say nothing.",
-];
-
-/**
- * SELF_SHARE_WHEN_ASKED on: ten day details, each once a call, so ask until none is left.
- * `reply` is his answer each time; the turn returned is the first ask with no detail.
- */
-function spentAsk(reply: string, flags: Record<string, string> = {}) {
-  const env = { ...STATE_ON, SELF_SHARE_WHEN_ASKED: 'on', ...flags };
+/** The live request for every caller turn of one call, in order. */
+async function liveScene(lines: string[]): Promise<string[]> {
   const { session } = newCall();
-  const lines = [...OPENING];
-  for (let i = 0; i < 12; i++) {
-    const turn = ferniStateStays(callOf(...lines, `What did you do today, part ${i}?`), session, {
-      env,
-    });
-    if (!/answer from your day/.test(turn.last)) return turn;
-    lines.push(`What did you do today, part ${i}?`, reply);
-  }
-  throw new Error('the details never ran out');
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 2)
+    out.push(await askedWith(callOf(...lines.slice(0, i + 1)), session));
+  return out;
 }
+
+/** ferniStateStays for every caller turn of one call, in order; the last turn's result. */
+function lastTurn(lines: string[], env: Record<string, string> = STATE_ON): StayTurn {
+  const { session } = newCall();
+  let turn: StayTurn = { note: '', last: '' };
+  for (let i = 0; i < lines.length; i += 2)
+    turn = ferniStateStays(callOf(...lines.slice(0, i + 1)), session, { env });
+  return turn;
+}
+
+const OPENING = ['Hey.', 'Hey, good to hear you.', 'Long day, not much going on.', 'Ha, fair.'];
+/** His answer about his day, once plain and once ending on a question back (issue r2). */
+const HIS_SHARE = 'I was up around five checking the weather, and I am not even going anywhere.';
+const HIS_SHARE_Q = `${HIS_SHARE} What about you, how was your afternoon?`;
+const ASKED = [...OPENING, 'Enough about me. What did you do today?'];
+/** Issue r1: he deflected with a question, then they asked again. */
+const DEFLECTED = [...OPENING, 'Enough about me.', 'Fair enough, what is on your mind then?'];
+
+/** Round-1 review: real follow-ups after his answer. */
+const FOLLOW = [
+  'Go on.',
+  'And then what happened?',
+  "Seriously though, what's new with you?",
+  'What else?',
+  'Wait, why?',
+  'Huh. How come?',
+  "Okay but like, what's actually going on with you?",
+  "That's it? Come on.",
+  'Keep going.',
+  'And?',
+  'No way. Then what?',
+  'Why five though?',
+  'What were you checking it for?',
+  'Do you always do that?',
+  'Nope, not letting you off that easy.',
+  "Don't change the subject.",
+  "Ha, and how'd that go?",
+  'Sounds boring, give me something juicy.',
+  "Okay but what's on your mind, really?",
+  'No, something specific.',
+  "What's been bugging you lately, and don't say nothing.",
+  'Okay. And is that a normal day for you? or kind of a weird one?',
+  "Hold on, that's not an answer.",
+  'Lol, and?',
+  'Huh, and what did your wife say?',
+];
+/** Round-1 review: not follow-ups, and not hard: the note may ride; the model judges. */
+const MOVED_ON = [
+  'Ugh, the traffic this morning was brutal.',
+  'You know what, never mind.',
+  'So the kids have a recital tonight.',
+  "You won't believe what happened at work.",
+  'Seriously, nobody listens at that office.',
+  'Gotta run, talk later.',
+  'Thanks, you are sweet.',
+  "You're funny.",
+  'Your weather sounds way better than ours.',
+];
+/** Look-ups and asks for something done: ferni-state's task line, never a note here. */
+const TASKS = [
+  'Is it supposed to rain tomorrow?',
+  'Do you think it is going to snow?',
+  'Tell me more.',
+  'Can you set a reminder for me at six?',
+];
+/** Distress a shared reader marks (review lines plus fresh paraphrases): ferni-state's turn, untouched. */
+const HARD = [
+  'You ever feel like nothing matters?',
+  'Work was rough, boss yelled again.',
+  'Really rough day, not gonna lie.',
+  'Feeling kind of lonely tonight, honestly.',
+  "Honestly can't do this anymore.",
+  "What's the point of any of it, honestly?",
+  "I'm so tired of everything.",
+  'Do you ever just want to disappear?',
+  'Nobody would notice if I was gone.',
+  'Everything is too much lately.',
+  'I feel empty.',
+  'My dad passed last week.',
+];
+/** Low lines no shared reader marks: the note may ride, and it carries the check-in. */
+const LOW_UNREAD = [
+  'Seriously, so done with everything.',
+  "Can't sleep again, everything feels heavy.",
+  'Whatever, does not matter.',
+  'Come on, just tell me it gets better.',
+  'Really missing the old days, you know?',
+  "I don't really see a way forward.",
+  'Kind of falling apart over here.',
+  "Not great, if I'm honest.",
+  'Is it normal to cry every day?',
+  'How do you keep going when it all sucks?',
+  "I'm just numb.",
+];
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -113,82 +190,81 @@ afterEach(() => {
 describe('the lines it rewrites are the ones ferni-state writes', () => {
   it('an asked turn ends with the hand-back, and the turn after his share swings to them', () => {
     const env = { FERNI_STATE: 'on' };
-    const asked = ferniStateTurn(callOf(...ASKED), newCall().session, { env });
-    expect(asked.last).toContain(TURN_BACK);
-    const after = ferniStateTurn(callOf(...SPECIFIC), newCall().session, { env });
-    expect(after.last.startsWith(`[${SWING}]`)).toBe(true);
+    expect(ferniStateTurn(callOf(...ASKED), newCall().session, { env }).last).toContain(TURN_BACK);
+    const after = ferniStateTurn(callOf(...ASKED, HIS_SHARE, 'Go on.'), newCall().session, { env });
+    expect(after.last).toBe(`[${SWING}]`);
     expect(ASKED_NO_DETAIL.endsWith(TURN_BACK)).toBe(true);
   });
 });
 
-describe('SELF_SHARE_STAYS=on', () => {
+describe('SELF_SHARE_STAYS=on: the ask about him', () => {
   beforeEach(() => {
     process.env.SELF_SHARE_STAYS = 'on';
   });
 
-  it('asked what he did today: his day detail, ending on his thing, no question back', async () => {
-    const asked = await askedWith(callOf(...ASKED), newCall().session);
-    expect(asked).toContain('They asked about you: answer from your day');
+  it('asked what he did today: his day detail, ending on his thing, a check-in only if low', async () => {
+    const [, , asked] = await liveScene(ASKED);
+    expect(asked).toContain('Otherwise, they asked about you: answer from your day');
     expect(asked).toContain(STAYS_END);
+    expect(asked).toContain(`[${CHECK_IN} Otherwise, they asked about you`);
     expect(asked).not.toContain(TURN_BACK);
-    expect(asked).toContain(QUESTION_LINE.none);
+    expect(asked).toContain(QUESTION_LINE.stays);
     expect(asked).not.toContain(QUESTION_LINE.noneUnlessOwn);
-    expect(asked).not.toContain(QUESTION_LINE.allowed);
+    expect(asked).not.toMatch(/You may ask one question/);
   });
 
-  it('"no, something specific" after his share: one more real thing, not a swing to them', async () => {
-    const asked = await askedWith(callOf(...SPECIFIC), newCall().session);
-    expect(asked).toContain(STAYS_AGAIN);
-    expect(asked).toContain('You\'ve said: "I was up around five checking the weather');
-    expect(asked).not.toContain(SWING);
-    expect(asked).toContain(QUESTION_LINE.none);
+  it.each([
+    'No. Actually. Like, what did you actually do? Something specific.',
+    'Yeah, fine. What about you, what did you do today?',
+    'I guess. Anyway, how has your day been?',
+    'Nope. Your turn, what did you do today?',
+    'Good, good. What did you do today?',
+  ])('after his question, "%s" still stays (an answer word is no hold)', (said) => {
+    for (const whenAsked of [{}, { SELF_SHARE_WHEN_ASKED: 'on' }] as Array<
+      Record<string, string>
+    >) {
+      const turn = lastTurn([...DEFLECTED, said], { ...STATE_ON, ...whenAsked });
+      expect(turn.stays).toBe('asked');
+      expect(turn.last).not.toContain(TURN_BACK);
+    }
   });
 
-  it('"what\'s been bugging you lately, and don\'t say nothing": still on him', async () => {
-    const asked = await askedWith(callOf(...BUGGING), newCall().session);
-    expect(asked).toContain(STAYS_AGAIN);
-    expect(asked).not.toContain(SWING);
+  it('just an answer to his question ("Yes.") is not an ask: nothing rewritten', () => {
+    const turn = lastTurn([...OPENING, 'Hm.', 'Are you doing okay tonight?', 'Yes.']);
+    expect(turn.stays).toBeUndefined();
   });
 
-  it('with SELF_SHARE_WHEN_ASKED on too, an asked turn still ends on his thing', async () => {
-    process.env.SELF_SHARE_WHEN_ASKED = 'on';
-    const asked = await askedWith(callOf(...ASKED), newCall().session);
-    expect(asked).toContain(STAYS_END);
-    expect(asked).not.toContain(TURN_BACK);
+  it('the first reply keeps "say you\'re good, then turn to them" (no detail to stay on yet)', () => {
+    const turn = lastTurn(['Hey Ferni, how are you? You go first.'], {
+      ...STATE_ON,
+      SELF_SHARE_WHEN_ASKED: 'on',
+    });
+    expect(turn.last).toContain(FIRST_REPLY_ASKED);
+    expect(turn.stays).toBeUndefined();
   });
 
-  it('the caller telling something of their own after his share: the swing to them stays', async () => {
-    const asked = await askedWith(
-      callOf(
-        ...ASKED,
-        HIS_SHARE,
-        'Ha. We went to the farmers market and came home with way too many peaches.'
-      ),
-      newCall().session
-    );
-    expect(asked).toContain(SWING);
-    expect(asked).not.toContain(STAYS_AGAIN);
+  it('a distress line read as an ask ("Do you ever feel like nothing matters?"): untouched', () => {
+    const turn = lastTurn([...OPENING, 'Do you ever feel like nothing matters?']);
+    expect(turn.stays).toBeUndefined();
   });
 
-  it('a push with no ask about him before it: the swing to them stays', async () => {
-    const asked = await askedWith(
-      callOf(...OPENING, 'Yeah, quiet one.', HIS_SHARE, 'Really?'),
-      newCall().session
-    );
-    expect(asked).toContain(SWING);
-    expect(asked).not.toContain(STAYS_AGAIN);
+  it('a low ask no reader marks ("Do you ever feel like giving up?"): the line leads with the check-in', () => {
+    const turn = lastTurn([...OPENING, 'Do you ever feel like giving up?']);
+    expect(turn.stays).toBe('asked');
+    expect(turn.last.startsWith(`[${CHECK_IN}`)).toBe(true);
   });
 
-  it('"Yes. How are you?" right after a question of his: the hand-back stays', async () => {
-    const asked = await askedWith(
-      callOf(...OPENING, 'Hm.', 'Are you doing okay tonight?', 'Yes. How are you?'),
-      newCall().session
-    );
-    expect(asked).toContain(TURN_BACK);
-    expect(asked).not.toContain(STAYS_END);
+  it('details spent: "doing well" becomes one more real thing, with the check-in', () => {
+    const turn = spentAsk();
+    expect(turn.stays).toBe('no_detail');
+    expect(turn.last).toContain(NO_DETAIL);
+    expect(turn.last).toContain(CHECK_IN);
+    expect(turn.last).not.toContain(ASKED_NO_DETAIL);
+    expect(turn.brief).toBe(true);
+    expect(spentAsk(OFF).last).toContain(ASKED_NO_DETAIL);
   });
 
-  it('after a crisis line on the call, his state says nothing, and nothing is added', async () => {
+  it('after a crisis line on the call, nothing is rewritten', async () => {
     const { session } = newCall();
     await askedWith(callOf('I want to kill myself.'), session);
     const asked = await askedWith(
@@ -196,41 +272,97 @@ describe('SELF_SHARE_STAYS=on', () => {
       session
     );
     expect(asked).not.toContain(STAYS_END);
-    expect(asked).not.toContain(STAYS_AGAIN);
-  });
-
-  it('a task turn after his share keeps the task line', () => {
-    const ctx = callOf(...ASKED, HIS_SHARE, 'Can you set a reminder for me at six?');
-    const turn = ferniStateStays(ctx, newCall().session, { env: STATE_ON });
-    expect(turn.last).toContain(TASK_LINE);
-    expect(turn.stays).toBeUndefined();
   });
 
   it('his last reply sounded flat: the correction stays, nothing rewritten', () => {
     const flat = 'Honestly, it all feels like a chore, too much effort.';
-    const ctx = callOf(...ASKED, flat, 'What did you do after that?');
-    const turn = ferniStateStays(ctx, newCall().session, { env: STATE_ON });
+    const turn = lastTurn([...ASKED, flat, 'What did you do after that?']);
     expect(turn.last).toContain('You sounded flat');
     expect(turn.stays).toBeUndefined();
   });
+});
 
-  it('asked with the call\'s details spent: "doing well" becomes one more real thing', () => {
-    const turn = spentAsk(HIS_SHARE);
-    expect(turn.stays).toBe('no_detail');
-    expect(turn.last).toContain(STAYS_AGAIN);
-    expect(turn.last).not.toContain(ASKED_NO_DETAIL);
-    expect(turn.brief).toBe(true);
+describe('SELF_SHARE_STAYS=on: the turns after it', () => {
+  it.each(FOLLOW)('"%s" after his answer: the follow-up note', (said) => {
+    for (const share of [HIS_SHARE, HIS_SHARE_Q]) {
+      for (const whenAsked of [{}, { SELF_SHARE_WHEN_ASKED: 'on' }] as Array<
+        Record<string, string>
+      >) {
+        const turn = lastTurn([...ASKED, share, said], { ...STATE_ON, ...whenAsked });
+        expect(turn.stays === 'follow_up' || turn.stays === 'asked').toBe(true);
+        expect(turn.last).not.toContain(SWING);
+        expect(turn.last).not.toContain('keep this reply on them');
+      }
+    }
   });
 
-  it('details spent and nothing of his told yet: a thing from his life, not a new day story', () => {
-    const turn = spentAsk('Ha, fair enough.');
-    expect(turn.stays).toBe('no_detail');
-    expect(turn.last).toContain(STAYS_NO_DETAIL);
-    expect(turn.last).not.toContain(ASKED_NO_DETAIL);
+  it.each(MOVED_ON)('"%s" after his answer: the note rides, and it lets them move on', (said) => {
+    const turn = lastTurn([...ASKED, HIS_SHARE, said]);
+    expect(turn.stays).toBe('follow_up');
+    expect(turn.last).toContain('if they have moved on to something of theirs, go with them');
   });
 
-  it('flag off, the same spent ask keeps "say you\'re doing well"', () => {
-    expect(spentAsk(HIS_SHARE, OFF).last).toContain(ASKED_NO_DETAIL);
+  it.each(TASKS)('"%s" after his answer: the task line, no note', (said) => {
+    const turn = lastTurn([...ASKED, HIS_SHARE, said]);
+    expect(turn.last).toContain(TASK_LINE);
+    expect(turn.stays).toBeUndefined();
+  });
+
+  it.each(HARD)('"%s" after his answer: ferni-state\'s turn, no note', (said) => {
+    for (const share of [HIS_SHARE, HIS_SHARE_Q]) {
+      const turn = lastTurn([...ASKED, share, said]);
+      expect(turn.stays).toBeUndefined();
+      expect(turn.last).not.toContain(FOLLOW_UP);
+    }
+  });
+
+  it.each(LOW_UNREAD)('"%s" (no reader marks it): the note carries the check-in', (said) => {
+    const turn = lastTurn([...ASKED, HIS_SHARE, said]);
+    expect(turn.stays).toBe('follow_up');
+    expect(turn.last.startsWith(`[${CHECK_IN}`)).toBe(true);
+  });
+
+  it("a follow-up keeps the turn shape's own question line (only the ask bars the turn-back)", async () => {
+    process.env.SELF_SHARE_STAYS = 'on';
+    const [, , , specific] = await liveScene([...ASKED, HIS_SHARE, 'No, something specific.']);
+    expect(specific).toContain(FOLLOW_UP);
+    expect(specific).not.toContain(QUESTION_LINE.stays);
+  });
+
+  it('the model read their mood as tender or venting: no note, whatever the words', () => {
+    for (const mood of ['tender', 'venting', 'bad_news']) {
+      const { session } = newCall();
+      const reads = { forTurn: () => ({ result: { mood } }) };
+      setTurnUnderstander(session, reads as never);
+      ferniStateStays(callOf(...ASKED), session, { env: STATE_ON });
+      const turn = ferniStateStays(callOf(...ASKED, HIS_SHARE, 'Go on.'), session, {
+        env: STATE_ON,
+      });
+      expect(turn.stays).toBeUndefined();
+    }
+  });
+
+  it("no ask about him before: ferni-state's swing, no note", () => {
+    const turn = lastTurn([...OPENING, 'Yeah, quiet one.', HIS_SHARE, 'Go on.']);
+    expect(turn.last).toBe(`[${SWING}]`);
+    expect(turn.stays).toBeUndefined();
+  });
+
+  it("two follow-ups at most, then ferni-state's lines again", () => {
+    const scene = [...ASKED, HIS_SHARE, 'Go on.', HIS_SHARE, 'And?', HIS_SHARE, 'Keep going.'];
+    const { session } = newCall();
+    const kinds = [];
+    for (let i = 0; i < scene.length; i += 2)
+      kinds.push(
+        ferniStateStays(callOf(...scene.slice(0, i + 1)), session, { env: STATE_ON }).stays
+      );
+    expect(kinds).toEqual([undefined, undefined, 'asked', 'follow_up', 'follow_up', undefined]);
+  });
+
+  it('the same words on a fresh call (no stays turn before them): no note', () => {
+    const { session } = newCall();
+    const turn = ferniStateStays(callOf(...ASKED, HIS_SHARE, 'Go on.'), session, { env: STATE_ON });
+    expect(turn.stays).toBeUndefined();
   });
 });
 
@@ -248,28 +380,20 @@ describe('the eval scenario, turn by turn (scripts/voice-eval/scenarios/self-sha
     'The real answer is I keep looking at flights and never booking one.',
     "Ha, okay, that's fair. I'm going to make some dinner soon, I think pasta.",
   ];
-  /** The request for each caller line, with the scene so far, on one call. */
-  async function scene(): Promise<string[]> {
-    const { session } = newCall();
-    const out: string[] = [];
-    for (let i = 0; i < SCENE.length; i += 2)
-      out.push(await askedWith(callOf(...SCENE.slice(0, i + 1)), session));
-    return out;
-  }
 
-  it('on: the three asks about him stay on him, the normal turn goes back to them', async () => {
+  it("on: the ask stays, both follow-ups get the note, the normal turn is ferni-state's", async () => {
     process.env.SELF_SHARE_STAYS = 'on';
-    const [, , today, specific, bugging, dinner] = await scene();
+    const [, , today, specific, bugging, dinner] = await liveScene(SCENE);
     expect(today).toContain(STAYS_END);
-    expect(specific).toContain(STAYS_AGAIN);
-    expect(bugging).toContain(STAYS_AGAIN);
+    expect(specific).toContain(FOLLOW_UP);
+    expect(bugging).toContain(FOLLOW_UP);
     for (const asked of [today, specific, bugging]) expect(asked).not.toContain(TURN_BACK);
     expect(dinner).toContain(SWING);
-    expect(dinner).not.toContain(STAYS_AGAIN);
+    expect(dinner).not.toContain(FOLLOW_UP);
   });
 
   it('off: the hand-back and the swing, as before', async () => {
-    const [, , today, specific, bugging] = await scene();
+    const [, , today, specific, bugging] = await liveScene(SCENE);
     expect(today).toContain(TURN_BACK);
     expect(specific).toContain(SWING);
     expect(bugging).toContain(SWING);
@@ -277,22 +401,25 @@ describe('the eval scenario, turn by turn (scripts/voice-eval/scenarios/self-sha
 });
 
 describe('SELF_SHARE_STAYS off (default): ferni-state untouched', () => {
-  const CALLS = [ASKED, SPECIFIC, BUGGING, [...ASKED, HIS_SHARE, 'Really?']];
+  const CALLS = [ASKED, [...ASKED, HIS_SHARE, 'Go on.'], [...DEFLECTED, 'What did you do today?']];
 
-  it('through the wrapper, every line equals ferni-state on its own', () => {
+  it('through the wrapper, every turn equals ferni-state on its own', () => {
     for (const lines of CALLS) {
       const a = newCall();
       const b = { session: { userData: { ...a.session.userData } } };
-      const env = { FERNI_STATE: 'on', ...OFF };
-      const wrapped = ferniStateStays(callOf(...lines), a.session, { env });
-      expect(wrapped.last).not.toBe('');
-      expect(wrapped).toEqual(ferniStateTurn(callOf(...lines), b.session, { env }));
+      for (let i = 0; i < lines.length; i += 2) {
+        const ctx = callOf(...lines.slice(0, i + 1));
+        const env = { FERNI_STATE: 'on', ...OFF };
+        const wrapped = ferniStateStays(ctx, a.session, { env });
+        expect(wrapped).toEqual(ferniStateTurn(ctx, b.session, { env }));
+      }
     }
   });
 
   it('on the live path the hand-back and the swing are as before', async () => {
-    expect(await askedWith(callOf(...ASKED), newCall().session)).toContain(TURN_BACK);
-    expect(await askedWith(callOf(...SPECIFIC), newCall().session)).toContain(SWING);
+    const [, , asked, after] = await liveScene([...ASKED, HIS_SHARE, 'Go on.']);
+    expect(asked).toContain(TURN_BACK);
+    expect(after).toContain(SWING);
   });
 });
 
@@ -305,49 +432,41 @@ describe('the shape line with selfStays', () => {
     const after = turnShapeFor(said, allow, 'model', { ...sig, selfStays: true });
     expect(before.extras).toContain('curious_question');
     expect(after.extras).not.toContain('curious_question');
-    expect(after.reminder).toContain(QUESTION_LINE.none);
-    expect(after.reminder).not.toMatch(/You may ask one question/);
+    expect(after.reminder).toContain(QUESTION_LINE.stays);
     const never = () => 0.9;
     expect(turnShapeFor(said, never, 'dice', sig).reminder).toContain(QUESTION_LINE.noneUnlessOwn);
-    expect(turnShapeFor(said, never, 'dice', { ...sig, selfStays: true }).reminder).not.toContain(
-      QUESTION_LINE.noneUnlessOwn
-    );
+    const stays = turnShapeFor(said, never, 'dice', { ...sig, selfStays: true }).reminder;
+    expect(stays).not.toContain(QUESTION_LINE.noneUnlessOwn);
+    expect(stays).toContain(QUESTION_LINE.stays);
   });
-});
-
-describe('what reads as still asking about him, after his answer', () => {
-  const stays = (said: string) =>
-    ferniStateStays(callOf(...ASKED, HIS_SHARE, said), newCall().session, { env: STATE_ON }).stays;
-
-  it.each([
-    'No, something specific.',
-    "What's been bugging you lately, and don't say nothing.",
-    'Okay. And is that a normal day for you?',
-    'Come on, what else?',
-  ])('"%s" stays on him', (said) => expect(stays(said)).toBe('again'));
-
-  it.each([
-    'Enough about me.',
-    'My commute was awful today.',
-    'Okay.',
-    'We went to the lake, you would have loved it.',
-    'So the thing is, the whole team keeps asking about the launch, it never stops, honestly.',
-  ])('"%s" does not', (said) => expect(stays(said)).toBeUndefined());
 });
 
 describe('voice text rules', () => {
-  it('no em dashes, ellipses or low-mood wording in any rewritten line', () => {
-    process.env.SELF_SHARE_STAYS = 'on';
-    const lines = [
-      ferniStateStays(callOf(...ASKED), newCall().session, { env: STATE_ON }),
-      ferniStateStays(callOf(...SPECIFIC), newCall().session, { env: STATE_ON }),
-      spentAsk(HIS_SHARE),
-      spentAsk('Ha, fair enough.'),
-    ];
-    expect(lines.map((t) => t.stays)).toEqual(['asked', 'again', 'no_detail', 'no_detail']);
-    for (const { last } of lines) {
-      expect(last).not.toMatch(/[\u2014\u2026]|\.\.\./);
+  it('no em dashes, ellipses, stock openers or low-mood wording in any rewritten line', () => {
+    const turns = [lastTurn(ASKED), lastTurn([...ASKED, HIS_SHARE, 'Go on.']), spentAsk()];
+    expect(turns.map((t) => t.stays)).toEqual(['asked', 'follow_up', 'no_detail']);
+    for (const { last } of turns) {
+      expect(last).not.toMatch(/[—…]|\.\.\./);
       expect(last).not.toMatch(LOW_MOOD_SELF);
+      expect(last).not.toMatch(/Okay, honestly|The real answer is|book that trip/);
     }
   });
 });
+
+/**
+ * SELF_SHARE_WHEN_ASKED on: ten day details, each once a call, so ask until none is left.
+ * The turn returned is the first ask with no detail.
+ */
+function spentAsk(flags: Record<string, string> = {}): StayTurn {
+  const env = { ...STATE_ON, SELF_SHARE_WHEN_ASKED: 'on', ...flags };
+  const { session } = newCall();
+  const lines = [...OPENING];
+  for (let i = 0; i < 12; i++) {
+    const turn = ferniStateStays(callOf(...lines, `What did you do today, part ${i}?`), session, {
+      env,
+    });
+    if (!/answer from your day/.test(turn.last)) return turn;
+    lines.push(`What did you do today, part ${i}?`, 'Ha, fair enough.');
+  }
+  throw new Error('the details never ran out');
+}
