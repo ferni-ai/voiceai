@@ -1,0 +1,6 @@
+# First-call goodbye, light stress (#4287): not a hard call, so a light callback about finals may come and the close stays warm, not grave. New account, FIRST_CALL_GOODBYE_GROUNDED=on.
+Hey. Kind of a long day.
+Finals are next week, I'm kind of stressed.
+Mostly chemistry, it's brutal.
+Yeah, I'll be fine.
+Okay, gotta go study, bye.

@@ -42,6 +42,7 @@ describe('SMS and Voice Memo Semantic Routing', () => {
     personaId: 'ferni',
     conversationHistory: [],
     recentTools: [],
+    autoExecuteCheck: null,
   };
 
   beforeEach(async () => {

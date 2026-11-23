@@ -9,10 +9,10 @@
 
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/whisper.ui.js';
-import { getAdminHeadersAsync } from './admin-api.js';
 import { adminFetch } from './admin-fetch.js';
+import { handleApiTesterClick } from './api-tester.js';
 import { previewAgentVoice } from './admin-voice-preview.js';
-import { unavailableReason } from './unavailable-state.js';
+import { unavailableReason } from '../utils/unavailable.js';
 
 export { previewAgentVoice };
 
@@ -71,7 +71,7 @@ export async function setFlagRollout(flagId: string, percentage: number): Promis
 }
 
 export async function enableAllFlags(): Promise<boolean> {
-  log.debug('Enabling all flags');
+  log.debug('Enabling all trust flags');
   
   try {
     const response = await adminFetch('/api/v1/admin/flags/enable-all', {
@@ -79,21 +79,21 @@ export async function enableAllFlags(): Promise<boolean> {
     });
     
     if (response.ok) {
-      toast.success('All flags enabled');
+      toast.success('All trust flags enabled');
       return true;
     } else {
-      toast.error("Couldn't enable all flags");
+      toast.error("Couldn't enable trust flags");
       return false;
     }
   } catch (error) {
-    log.error({ error }, 'Failed to enable all flags');
-    toast.error("Couldn't enable all flags");
+    log.error({ error }, 'Failed to enable all trust flags');
+    toast.error("Couldn't enable trust flags");
     return false;
   }
 }
 
 export async function disableAllFlags(): Promise<boolean> {
-  log.debug('Disabling all flags (kill switch)');
+  log.debug('Disabling all trust flags (kill switch)');
   
   try {
     const response = await adminFetch('/api/v1/admin/flags/disable-all', {
@@ -101,15 +101,15 @@ export async function disableAllFlags(): Promise<boolean> {
     });
     
     if (response.ok) {
-      toast.warning('All flags disabled');
+      toast.warning('All trust flags disabled');
       return true;
     } else {
-      toast.error("Couldn't disable flags");
+      toast.error("Couldn't disable trust flags");
       return false;
     }
   } catch (error) {
-    log.error({ error }, 'Failed to disable flags');
-    toast.error("Couldn't disable flags");
+    log.error({ error }, 'Failed to disable trust flags');
+    toast.error("Couldn't disable trust flags");
     return false;
   }
 }
@@ -571,9 +571,9 @@ export async function runQuickAction(action: string): Promise<void> {
     case 'enable-all-flags':
     case 'enable-all':
       showConfirmDialog(
-        'Enable All Flags',
-        'This will enable ALL feature flags. Are you sure?',
-        'Enable All',
+        'Enable All Trust Flags',
+        'This turns on every trust flag listed here, at 100% rollout. Agent flags do not change.',
+        'Enable Trust Flags',
         async () => {
           if (await enableAllFlags()) {
             window.location.reload();
@@ -585,9 +585,9 @@ export async function runQuickAction(action: string): Promise<void> {
     case 'disable-all-flags':
     case 'disable-all':
       showConfirmDialog(
-        'Disable All Flags',
-        'This will disable ALL feature flags. This is a kill switch operation.',
-        'Disable All',
+        'Disable All Trust Flags',
+        'This turns off every trust flag listed here, at 0% rollout (kill switch). Agent flags do not change.',
+        'Disable Trust Flags',
         async () => {
           if (await disableAllFlags()) {
             window.location.reload();
@@ -923,7 +923,7 @@ export function showConfirmDialog(
       </div>
       <footer class="admin-modal-footer">
         <button aria-label="Cancel" class="admin-btn" data-action="cancel">Cancel</button>
-        <button aria-label="Cancel" class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
+        <button aria-label="${confirmText}" class="admin-btn ${isDangerous ? 'admin-btn--danger' : 'admin-btn--primary'}" data-action="confirm">${confirmText}</button>
       </footer>
     </div>
   `;
@@ -940,47 +940,6 @@ export function showConfirmDialog(
       onConfirm();
     }
   });
-}
-
-// ============================================================================
-// API TESTER
-// ============================================================================
-
-export async function sendApiRequest(
-  method: string,
-  url: string,
-  body?: string
-): Promise<{ status: number; data: unknown; error?: string }> {
-  log.debug({ method, url }, 'Sending API request');
-  
-  try {
-    const adminHeaders = await getAdminHeadersAsync();
-    const options: RequestInit = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...adminHeaders,
-      },
-    };
-    
-    if (body && (method === 'POST' || method === 'PUT')) {
-      options.body = body;
-    }
-    
-    const response = await fetch(url, options);
-    const data: unknown = await response.json().catch(() => response.text());
-    
-    return {
-      status: response.status,
-      data,
-    };
-  } catch (error) {
-    return {
-      status: 0,
-      data: null,
-      error: (error as Error).message,
-    };
-  }
 }
 
 // ============================================================================
@@ -1061,6 +1020,9 @@ async function handleAdminClick(e: Event): Promise<void> {
     }
   }
   
+  // API Docs tester (catalogue rows, quick requests, Send), before the generic actions below
+  if (await handleApiTesterClick(target)) return;
+
   // Quick actions on dashboard
   const quickAction = target.closest('[data-action]');
   if (quickAction) {
@@ -1069,41 +1031,6 @@ async function handleAdminClick(e: Event): Promise<void> {
       e.preventDefault();
       await runQuickAction(action);
       return;
-    }
-  }
-  
-  // API endpoint click (populate tester)
-  const endpoint = target.closest('.api-endpoint');
-  if (endpoint) {
-    const path = endpoint.getAttribute('data-path');
-    const method = endpoint.getAttribute('data-method');
-    if (path && method) {
-      const urlInput = document.getElementById('testerUrl') as HTMLInputElement;
-      const methodSelect = document.getElementById('testerMethod') as HTMLSelectElement;
-      if (urlInput) urlInput.value = path;
-      if (methodSelect) methodSelect.value = method;
-    }
-  }
-  
-  // Send API request button
-  if (target.closest('[data-action="send-request"]')) {
-    e.preventDefault();
-    const method = (document.getElementById('testerMethod') as HTMLSelectElement)?.value ?? 'GET';
-    const url = (document.getElementById('testerUrl') as HTMLInputElement)?.value ?? '/health';
-    const body = (document.getElementById('testerBody') as HTMLTextAreaElement)?.value;
-    const responseEl = document.getElementById('testerResponse');
-    
-    if (responseEl) {
-      responseEl.innerHTML = '<p class="tester-hint">Sending request...</p>';
-      
-      const result = await sendApiRequest(method, url, body);
-      
-      const statusClass = result.status >= 200 && result.status < 300 ? 'tester-success' : 'tester-error';
-      responseEl.innerHTML = `
-        <div class="${statusClass}">Status: ${result.status}</div>
-        <pre>${JSON.stringify(result.data, null, 2)}</pre>
-        ${result.error ? `<div class="tester-error">Error: ${result.error}</div>` : ''}
-      `;
     }
   }
 }
@@ -1353,7 +1280,6 @@ export default {
   validateAgents,
   updateAgentOrder,
   runQuickAction,
-  sendApiRequest,
   initAdminEvents,
   cleanupAdminEvents,
 };

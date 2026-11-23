@@ -24,6 +24,7 @@ export default defineConfig({
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 5'] } },
+    // The admin portal is not a phone UI
+    { name: 'mobile', use: { ...devices['Pixel 5'] }, testIgnore: '**/admin-portal.spec.ts' },
   ],
 });

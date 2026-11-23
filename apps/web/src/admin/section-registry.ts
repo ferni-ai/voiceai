@@ -38,6 +38,7 @@ export interface AdminSection {
   cleanup?: () => void;
 }
 
+const businessMetrics = async () => import('./sections/BusinessMetricsSection.js');
 const semanticRouting = async () => import('./sections/SemanticRoutingSection.js');
 const bthValidation = async () => import('./sections/BTHValidationSection.js');
 const blindEvaluation = async () => import('./sections/BlindEvaluationPanel.js');
@@ -61,7 +62,9 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ICON_CHART,
     description: 'DAU/WAU/MAU, MRR, churn',
     badge: 'NEW',
-    component: async () => (await import('./sections/BusinessMetricsSection.js')).render(),
+    component: async () => (await businessMetrics()).render(),
+    setup: async () => (await businessMetrics()).init(),
+    cleanup: () => void businessMetrics().then((s) => s.cleanup()),
   },
   {
     id: 'semantic-routing',
@@ -172,6 +175,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description: 'Infrastructure health & metrics',
     badge: 'NEW',
     component: async () => (await import('./sections/OperationsSection.js')).render(),
+    setup: async (root) => (await import('./sections/OperationsSection.js')).setupEvents(root),
   },
   {
     id: 'diagnostics',

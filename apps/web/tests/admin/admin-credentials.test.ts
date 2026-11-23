@@ -153,6 +153,21 @@ describe('Preview voice', () => {
     expect(revoke).toHaveBeenCalledWith('blob:blocked');
   });
 
+  it('says why when the server has no voice, without an error in the console', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('', { status: 503 }));
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { toast } = await import('../../src/ui/whisper.ui.js');
+    const shown = vi.spyOn(toast, 'error');
+    const dismissed = vi.spyOn(toast, 'dismiss');
+    const { previewAgentVoice } = await import('../../src/admin/admin-voice-preview.js');
+
+    await previewAgentVoice('peter-john');
+
+    expect(shown).toHaveBeenCalledWith('Voice preview unavailable (HTTP 503)');
+    expect(dismissed).toHaveBeenCalled(); // the "Playing" toast, so the reason is not queued behind it
+    expect(errors).not.toHaveBeenCalled();
+  });
+
   it('admin-events no longer calls the missing voice-sample or tts-preview routes', () => {
     const src = readFileSync(resolve(__dirname, '../../src/admin/admin-events.ts'), 'utf8');
     expect(src).not.toContain('/voice-sample');

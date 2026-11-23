@@ -27,6 +27,7 @@ import {
   type ErasureKeys,
 } from './erasure-keys.js';
 import { erasureErrorCode } from './erasure-step.js';
+import type { SignInHold } from './erasure-sign-in-hold.js';
 import { eraseStore, holdsUser } from './erase-store.js';
 import {
   ERASED_STORES,
@@ -124,7 +125,8 @@ export async function eraseUserRecord(
   userId: string,
   firestore?: Db,
   stores: readonly OwnedStore[] = ERASED_STORES,
-  keyed: readonly KeyedStore[] = KEYED_STORES
+  keyed: readonly KeyedStore[] = KEYED_STORES,
+  options: EraseOptions = {}
 ): Promise<void> {
   assertErasableUserId(userId);
   // Outreach held in memory goes before and after the sweep, refused from then on (a live session)
@@ -139,7 +141,7 @@ export async function eraseUserRecord(
   if (flagOn('BQ_ERASURE')) await queueBqErasure(db, [userId, ...linked]);
   // The records this erasure deletes are marked before anything goes
   if (stores.some((store) => storeLabel(store) === `${USER_RECORDS_COLLECTION}/{uid}`))
-    await markErasing(db, [userId, ...linked]);
+    await markErasing(db, [userId, ...linked], options.signIns);
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
@@ -175,6 +177,14 @@ export async function eraseUserRecord(
   await eraseUserOutreachData(userId);
 }
 
+export interface EraseOptions {
+  /**
+   * The data only, the account kept (DELETE /api/export/all): the sign-ins are held while
+   * the erasure runs, not refused for good; the caller releases them when it ends (#3292)
+   */
+  signIns?: SignInHold;
+}
+
 /**
  * Marks each record `erasing` (utils/erasing-mark.ts) before anything is deleted. A write still running for the
  * person (a live call's team insight, insight-store.ts) reads the record in its own
@@ -183,10 +193,15 @@ export async function eraseUserRecord(
  * (erasure-keys.ts). One update, which needs the record to exist: a write that read the
  * record before the mark either lands first (and is erased with the rest) or is retried
  * and finds the mark. A record that doesn't exist isn't created. Any other failure fails
- * the erasure before anything is deleted.
+ * the erasure before anything is deleted. Their tokens stop working here now: held while
+ * the account is kept (signIns), else for good.
  */
-async function markErasing(db: Db, userIds: readonly string[]): Promise<void> {
-  for (const uid of userIds) invalidateAccount(uid, 'gone'); // their tokens stop working here now
+async function markErasing(
+  db: Db,
+  userIds: readonly string[],
+  signIns?: SignInHold
+): Promise<void> {
+  if (!signIns?.hold(userIds)) for (const uid of userIds) invalidateAccount(uid, 'gone');
   const mark = erasingMark();
   await Promise.all(
     userIds.map(async (uid) =>

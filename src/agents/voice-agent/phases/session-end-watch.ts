@@ -13,6 +13,9 @@
  * deletes the room and the agent's connection closes. That is 'caller_left', not
  * the agent losing the room (prod 2026-10-17..18: 5 of 6 'room.disconnected'
  * endings came 2.5-3 s after the caller's own "Participant left").
+ *
+ * IDLE_END_CHECKIN (idle-checkin.ts) passes `idleCheckIn`: windowMs before the idle end Ferni
+ * checks in once, and the caller then has windowMs to answer. Without it the idle end is as above.
  */
 
 import { roomDisconnectEndReason } from '../../../services/analytics/call-end-reason.js';
@@ -26,6 +29,8 @@ type Listener = (...args: unknown[]) => void;
 /** The slice of a LiveKit Room this needs, so tests can pass a fake. */
 export interface WatchedRoom {
   isConnected: boolean;
+  /** The agent's own participant: its voice is not the caller's (IDLE_END_CHECKIN). */
+  localParticipant?: { identity: string };
   remoteParticipants: { size: number };
   on(event: string, listener: Listener): unknown;
   off(event: string, listener: Listener): unknown;
@@ -38,9 +43,109 @@ export interface SessionEndOptions {
   maxReason?: string;
   emptyGraceMs?: number;
   pollMs?: number;
+  idleCheckIn?: IdleCheckIn;
+}
+
+type IdleCheckInOutcome = 'resumed' | 'ended' | 'skipped_crisis' | 'skipped_blocked';
+
+/** One spoken check-in before the idle end (IDLE_END_CHECKIN, idle-checkin.ts). */
+export interface IdleCheckIn {
+  /** How long before the idle end the check-in comes, and how long the caller then has. */
+  windowMs: number;
+  /** The call is in a crisis state: no check-in, and it ends as it would without one. */
+  crisis: () => boolean;
+  /** Says the check-in, the caller quiet for callerQuietMs; false when nothing was said. */
+  speak: (callerQuietMs: number) => boolean;
+  onOutcome: (outcome: IdleCheckInOutcome) => void;
+}
+
+/** A hook that throws: the crisis read counts as crisis, the check-in as not said. */
+function safely(read: () => boolean, onThrow: boolean): boolean {
+  try {
+    return read();
+  } catch {
+    return onThrow;
+  }
+}
+
+/**
+ * IDLE_END_CHECKIN over one call, asked on each poll: 'end', 'hold' (the check-in's window is
+ * running) or 'pass' (the usual idle rule decides). Checks in at most once a call.
+ */
+function idleCheckInClock(checkIn: IdleCheckIn, idleMs: number) {
+  let spent = false;
+  let checkedInAt: number | null = null;
+  const skip = (outcome: IdleCheckInOutcome): 'pass' => {
+    checkIn.onOutcome(outcome);
+    return 'pass';
+  };
+  return (now: number, lastActivityMs: number, lastCallerMs: number): 'end' | 'hold' | 'pass' => {
+    if (checkedInAt === null) {
+      if (spent || now - lastActivityMs < idleMs - checkIn.windowMs) return 'pass';
+      spent = true;
+      if (safely(checkIn.crisis, true)) return skip('skipped_crisis');
+      if (!safely(() => checkIn.speak(now - lastCallerMs), false)) return skip('skipped_blocked');
+      checkedInAt = now;
+      return 'hold';
+    }
+    if (lastCallerMs > checkedInAt) {
+      checkedInAt = null; // they answered: the usual idle clock from here, no second check-in
+      return skip('resumed');
+    }
+    if (safely(checkIn.crisis, true)) {
+      checkedInAt = null; // crisis since the check-in: the usual idle rule, never an earlier end
+      return 'pass';
+    }
+    if (now - checkedInAt < checkIn.windowMs) return 'hold';
+    checkIn.onOutcome('ended');
+    return 'end';
+  };
 }
 
 const ACTIVITY_EVENTS = ['dataReceived', 'participantConnected', 'trackSubscribed'] as const;
+
+/** How long the call has gone without a sign of life; stop() removes the listeners. */
+export interface CallActivity {
+  quietMs: () => number;
+  /** The same, not counting the agent's own voice (IDLE_END_CHECKIN). */
+  callerQuietMs: () => number;
+  stop: () => void;
+}
+
+/**
+ * The idle clock's signs of life, for both call paths: someone speaking (LiveKit active
+ * speakers, which covers the caller and the agent), a data message, a participant or track
+ * arriving. The clock starts now.
+ */
+export function watchCallActivity(
+  room: Pick<WatchedRoom, 'on' | 'off' | 'localParticipant'>
+): CallActivity {
+  let lastActivityMs = Date.now();
+  let lastCallerMs = lastActivityMs;
+  const touch = (): void => {
+    lastActivityMs = Date.now();
+    lastCallerMs = lastActivityMs;
+  };
+  const agentVoice = (speaker: unknown): boolean => {
+    const self = room.localParticipant?.identity;
+    return self !== undefined && (speaker as { identity?: unknown } | null)?.identity === self;
+  };
+  const onSpeakers = (speakers: unknown): void => {
+    if (!Array.isArray(speakers) || speakers.length === 0) return;
+    lastActivityMs = Date.now();
+    if (!speakers.every(agentVoice)) lastCallerMs = lastActivityMs;
+  };
+  room.on('activeSpeakersChanged', onSpeakers);
+  for (const event of ACTIVITY_EVENTS) room.on(event, touch);
+  return {
+    quietMs: () => Date.now() - lastActivityMs,
+    callerQuietMs: () => Date.now() - lastCallerMs,
+    stop: () => {
+      room.off('activeSpeakersChanged', onSpeakers);
+      for (const event of ACTIVITY_EVENTS) room.off(event, touch);
+    },
+  };
+}
 
 /** Resolves with why the call ended: room.disconnected or room.closed, room.!isConnected, caller_left, empty_room, idle or max_duration (or options.maxReason). */
 export function waitForSessionEnd(
@@ -54,14 +159,7 @@ export function waitForSessionEnd(
   return new Promise<string>((resolve) => {
     let settled = false;
     let emptySinceMs: number | null = null;
-    let lastActivityMs = Date.now();
-
-    const touch = (): void => {
-      lastActivityMs = Date.now();
-    };
-    const onSpeakers = (speakers: unknown): void => {
-      if (Array.isArray(speakers) && speakers.length > 0) touch();
-    };
+    const activity = watchCallActivity(room);
     const lost = (reason: string): string => (emptySinceMs === null ? reason : 'caller_left');
     const onDisconnected = (reason?: unknown): void =>
       finish(lost(roomDisconnectEndReason(reason)));
@@ -76,15 +174,14 @@ export function waitForSessionEnd(
       clearTimeout(cap);
       room.off('disconnected', onDisconnected);
       room.off('participantDisconnected', onParticipantLeft);
-      room.off('activeSpeakersChanged', onSpeakers);
-      for (const event of ACTIVITY_EVENTS) room.off(event, touch);
+      activity.stop();
       resolve(reason);
     };
 
     room.on('disconnected', onDisconnected);
     room.on('participantDisconnected', onParticipantLeft);
-    room.on('activeSpeakersChanged', onSpeakers);
-    for (const event of ACTIVITY_EVENTS) room.on(event, touch);
+
+    const checkIn = options.idleCheckIn && idleCheckInClock(options.idleCheckIn, idleMs);
 
     const poll = setInterval(() => {
       if (!room.isConnected) return finish(lost('room.!isConnected'));
@@ -94,7 +191,11 @@ export function waitForSessionEnd(
       } else {
         emptySinceMs = null;
       }
-      if (Date.now() - lastActivityMs >= idleMs) finish('idle');
+      const now = Date.now();
+      const step =
+        checkIn?.(now, now - activity.quietMs(), now - activity.callerQuietMs()) ?? 'pass';
+      if (step === 'end') return finish('idle');
+      if (step === 'pass' && activity.quietMs() >= idleMs) finish('idle');
     }, options.pollMs ?? 1_000);
 
     const cap = setTimeout(() => finish(options.maxReason ?? 'max_duration'), maxMs);

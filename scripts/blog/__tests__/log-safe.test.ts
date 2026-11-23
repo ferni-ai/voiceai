@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GateIssue } from '../brand-gate.js';
 import type { DraftResult } from '../draft.js';
 import { REJECTED } from '../exit-codes.js';
-import { linkCount, ruleCounts } from '../log-safe.js';
+import type { JudgeResult } from '../judge.js';
+import { linkCount, reviewSummary, ruleCounts } from '../log-safe.js';
 import { unsafeOutput } from '../untrusted-text.js';
 
 // The drafter and the gate run in a public Actions log. These tests run the
@@ -194,7 +195,7 @@ describe('draft-post.ts on a written draft', () => {
     reviseEnabled.mockReturnValue(false);
   });
 
-  it("prints the judge's scores before a rewrite, never its reasons", async () => {
+  it("prints the judge's scores before and after a rewrite and the gate's rule names, never its reasons", async () => {
     const reason = `It quotes the post: "${MARKER}"`;
     const scores = Object.fromEntries(
       ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'].map((d) => [
@@ -215,15 +216,26 @@ describe('draft-post.ts on a written draft', () => {
             verdict: { scores, summary: MARKER } as never,
             failures: ['craft 3 (needs 4)'],
           },
+          after: {
+            status: 'pass',
+            model: 'judge',
+            verdict: {
+              scores: { ...scores, craft: { score: 4, reason } },
+              summary: MARKER,
+            } as never,
+            failures: [],
+          },
           revised: true,
         },
+        gateRetry: ['repetition', 'em-dash'],
       })
     );
     await run('draft-post.ts', ['--type', 'building-in-public']);
 
     expect(lines).toEqual([
       'Wrote "Better memory" (slug better-memory)',
-      'Judge before revision: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 3); rewritten once with its notes',
+      'Brand gate sent the first draft back once (repetition, em-dash); the retry passed',
+      'Judge before revision: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 3); judge on the rewrite: pass (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 4); rewritten once with its notes, and the rewrite is kept',
     ]);
     expect(lines.join('\n')).not.toContain(MARKER);
   });
@@ -319,5 +331,43 @@ describe('the summaries', () => {
   it('counts links in the body only, once each', () => {
     const body = '[a](https://x.example/1) <https://x.example/2> www.x.example/3 [b](/blog/c/)';
     expect(linkCount(`---\nsources:\n  - "https://github.com/a"\n---\n${body}`)).toBe(4);
+  });
+});
+
+describe('reviewSummary', () => {
+  const judged = (status: 'pass' | 'fail', craft: number): JudgeResult => ({
+    status,
+    model: 'judge',
+    verdict: {
+      scores: Object.fromEntries(
+        ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'].map((d) => [
+          d,
+          { score: d === 'craft' ? craft : 4, reason: 'quotes the post' },
+        ])
+      ),
+      summary: 'quotes the post',
+    } as JudgeResult['verdict'],
+    failures: [],
+  });
+
+  it('says when a rewrite scored no better and the first draft stands', () => {
+    expect(
+      reviewSummary({ before: judged('fail', 3), after: judged('fail', 2), revised: false })
+    ).toBe(
+      'Judge before revision: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 3); judge on the rewrite: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 2); rewritten once with its notes, but the rewrite scored no better, so the first draft stands'
+    );
+  });
+
+  it("says when the judge couldn't score the rewrite", () => {
+    const after: JudgeResult = { status: 'error', model: 'judge', failures: ['overloaded'] };
+    expect(reviewSummary({ before: judged('fail', 3), after, revised: false })).toMatch(
+      /judge on the rewrite: error \(no verdict\); rewritten once with its notes, but the judge couldn't score the rewrite, so the first draft stands$/
+    );
+  });
+
+  it('says when the judge passed the draft and nothing was rewritten', () => {
+    expect(reviewSummary({ before: judged('pass', 4), revised: false })).toBe(
+      'Judge before revision: pass (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 4); kept as drafted'
+    );
   });
 });
