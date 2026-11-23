@@ -28,7 +28,6 @@
   "src/agents/multi-agent/self-voice-gate/__tests__/reference-tap.test.ts",
   "src/agents/multi-agent/turn-intelligence.ts",
   "src/agents/personas/__tests__/action-claim-guard-spacing.test.ts",
-  "src/agents/personas/__tests__/ai-honesty.test.ts",
   "src/agents/personas/__tests__/ferni-own-life-canon.test.ts",
   "src/agents/personas/__tests__/fixtures/name-gate-main.json",
   "src/agents/personas/__tests__/friend-tease.test.ts",
