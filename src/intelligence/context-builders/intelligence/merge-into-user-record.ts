@@ -15,6 +15,7 @@
 
 import { flagOn } from '../../../config/env-flag.js';
 import { isErasedOrErasing } from '../../../utils/erasing-mark.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 type Stored = Record<string, unknown> | undefined;
 
@@ -27,13 +28,13 @@ export async function mergeIntoUserRecord(
   const ref = db.collection('bogle_users').doc(userId);
   if (!flagOn('LEARNING_OWNER_GATE')) {
     const doc = await ref.get();
-    await ref.set(update(doc.data() as Stored), { merge: true });
+    await ref.set(cleanForFirestore(update(doc.data() as Stored)), { merge: true });
     return true;
   }
   return db.runTransaction(async (tx) => {
     const record = await tx.get(ref);
     if (isErasedOrErasing(record)) return false;
-    tx.set(ref, update(record.data() as Stored), { merge: true });
+    tx.set(ref, cleanForFirestore(update(record.data() as Stored)), { merge: true });
     return true;
   });
 }
