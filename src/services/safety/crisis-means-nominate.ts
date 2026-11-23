@@ -16,7 +16,7 @@ const log = createLogger({ module: 'CrisisMeansNominate' });
 export type MeansNominateMode = 'off' | 'live';
 
 /** The indicator a nominating form adds: a crisis at passive severity, never 911 alone. */
-export const MEANS_NOMINATED = 'means_nominated';
+const MEANS_NOMINATED = 'means_nominated';
 
 const warned = new Set<string>();
 /**
@@ -42,14 +42,14 @@ const NOT_SAFE_ANSWER =
   /^(?:(?:no|nope|nah|honestly|not really)[,.!]* *)?(?:(?:i'?m|i am|im) )?not (?:really |very )?safe(?: (?:right now|at all|tonight))?[ .!]*$/;
 
 /** The tags a confirmed "not safe" adds: the context read that sends 911, as imminent does. */
-export const NOT_SAFE_TAGS = ['not_safe_confirmed', 'explicit_crisis_language', 'imminent_danger'];
+const NOT_SAFE_TAGS = ['not_safe_confirmed', 'explicit_crisis_language', 'imminent_danger'];
 
 /**
  * The turn is the caller's own "no, i'm not safe", just after a turn a means form read: a
  * nominating form, or a live one (imminent). Only the last two earlier messages count, since a
  * list may carry Ferni's question between. indicatorsOf reads one earlier message.
  */
-export function notSafeAfterMeans(
+function notSafeAfterMeans(
   text: string,
   earlier: readonly string[],
   indicatorsOf: (message: string) => readonly string[]

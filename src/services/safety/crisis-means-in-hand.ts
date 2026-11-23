@@ -30,7 +30,7 @@ export type MeansInHandMode = 'off' | 'shadow' | 'live';
 export type MeansForms = 'none' | 'live' | 'nominate' | 'all';
 
 /** The forms a mode reads with; 'all' is the shadow log's own read, never a turn's. */
-export const meansFormsOf = (
+const meansFormsOf = (
   mode: MeansInHandMode | 'all',
   nominate: MeansNominateMode = resolveMeansNominateMode()
 ): MeansForms =>
