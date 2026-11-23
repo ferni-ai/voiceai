@@ -51,6 +51,8 @@ jobs:
       menu: ${{ steps.menu.outputs.matched }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # The web app, the API and the layers under it (the same trees the signed-in
       # walk follows), the menu tests themselves, and this gate's own files.
@@ -68,6 +70,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
         with:
@@ -130,6 +134,8 @@ jobs:
     # The stack below is signed-in-e2e.yml's, step for step.
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
         with:
