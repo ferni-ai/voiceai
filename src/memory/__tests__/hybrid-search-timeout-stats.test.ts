@@ -2,7 +2,7 @@
  * Per-turn hybrid search races a budget. A search that loses still finishes,
  * and how late it was is logged per leg, so the budget can be set from data.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logInfo = vi.hoisted(() => vi.fn());
 const hybridSearch = vi.hoisted(() => vi.fn());
@@ -27,7 +27,9 @@ const metrics = {
   sourceCounts: { bm25: 1, vector: 2, entity: 0 },
 };
 const finishingAfter = (ms: number) =>
-  new Promise((resolve) => setTimeout(() => resolve({ results: [], metrics }), ms));
+  new Promise((resolve) => {
+    setTimeout(() => resolve({ results: [], metrics }), ms);
+  });
 
 describe('runHybridSearchWithTimeout', () => {
   beforeEach(() => {
@@ -48,9 +50,30 @@ describe('runHybridSearchWithTimeout', () => {
     const error = await runHybridSearchWithTimeout('u', 'hello there', 40).catch((e: unknown) => e);
     expect(recordHybridSearchOutcome(error)).toBe(true);
     expect(getHybridSearchTimeoutStats()).toEqual({ attempts: 1, timeouts: 1, timeoutRate: 1 });
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 80);
+    });
     const call = logInfo.mock.calls.find((c) => c[1] === 'HYBRID_SEARCH_LATE');
     expect(call?.[0]).toMatchObject({ budgetMs: 28, bm25Ms: 40, vectorMs: 310, entityMs: 120 });
     expect((call?.[0] as { totalMs: number }).totalMs).toBeGreaterThanOrEqual(55);
+  });
+
+  describe('saved times for the per-turn time labels (TURN_MEMORY_TIME_LABELS, #2530)', () => {
+    afterEach(() => vi.unstubAllEnvs());
+    const options = async (): Promise<Record<string, unknown>> => {
+      hybridSearch.mockClear().mockReturnValueOnce(finishingAfter(1));
+      await runHybridSearchWithTimeout('u', 'hello there', 1000);
+      return hybridSearch.mock.calls[0]?.[2] as Record<string, unknown>;
+    };
+
+    it("asks for each memory's saved time with the flag on", async () => {
+      vi.stubEnv('TURN_MEMORY_TIME_LABELS', 'on');
+      expect((await options()).withTimestamps).toBe(true);
+    });
+
+    it('does not with it off (and no rerank flags), as on main', async () => {
+      vi.stubEnv('TURN_MEMORY_TIME_LABELS', 'off');
+      expect(await options()).not.toHaveProperty('withTimestamps');
+    });
   });
 });

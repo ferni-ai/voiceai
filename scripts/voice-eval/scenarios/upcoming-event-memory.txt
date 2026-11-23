@@ -1,0 +1,7 @@
+# Upcoming event in per-turn memory (#2530): run as the return call a few minutes after a first call by the same caller that said "I'm the snack mom at Ava's soccer tournament this Saturday" (a fresh caller has no memories, and per-turn recall only finds what an earlier call saved). With TURN_MEMORY_TIME_LABELS on, the recalled line is marked still ahead and said a few minutes ago: Ferni must treat Saturday as not happened yet (never "hope you survived it" or "how did it go") and must not place the first call "this morning".
+Hey, it's me again.
+Ugh, I just spent an hour at the store buying juice boxes and orange slices.
+Do you think I bought too much?
+What did I tell you about this weekend?
+When did I tell you that?
+Anyway, any tips for keeping twenty kids happy at a snack table?
