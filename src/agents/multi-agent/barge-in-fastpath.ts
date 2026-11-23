@@ -194,11 +194,14 @@ export function createBargeInFastPath(deps: {
     deps.log?.(fields);
     deps.interrupt();
   };
+  const stopWatchdog = (): void => {
+    if (watchdog) clearTimer(watchdog);
+    watchdog = undefined;
+  };
   /** Give Ferni's audio back. A throw is logged, never let into a timer or LiveKit's emit. */
   const release = (): void => {
     outputHeld = false;
-    if (watchdog) clearTimer(watchdog);
-    watchdog = undefined;
+    stopWatchdog();
     try {
       soft?.resume();
     } catch (error) {
@@ -222,6 +225,8 @@ export function createBargeInFastPath(deps: {
       // The output stays paused until the cut reply ends (releaseOutput).
       if (tryInterrupt()) {
         soft.log?.({ outcome, ...fields, pausedMs });
+        // SOFT_PAUSE_ONE_OUTCOME: the watchdog would play the cut reply's held frame (#3857).
+        if (soft.oneOutcome) stopWatchdog();
         return;
       }
       // An uninterruptible reply would otherwise stay paused, and "speaking", for good.
@@ -268,7 +273,7 @@ export function createBargeInFastPath(deps: {
     const at = Date.now();
     pending = { at, heard: 'no-words' };
     scheduleResume();
-    if (watchdog) clearTimer(watchdog);
+    stopWatchdog();
     watchdog = setTimer(
       () => {
         watchdog = undefined;

@@ -73,12 +73,9 @@ export function houseFactsPrompt(facts: HouseFacts): string {
   return `Facts about Ferni itself. The app and the company are called Ferni. ${site} To add or verify a phone number: ${WHERE_TO_ADD_NUMBER} ${texts} ${email} Never make up a web address, email address, phone number or company name for Ferni, its texts or its emails: if it isn't here, say you don't have it in front of you.`;
 }
 
-/** The honesty rule, with the house facts after it when the flag is on. */
-export function withHouseFacts(rule: string, env: Env = process.env): string {
-  return houseFactsEnabled(env)
-    ? `${rule.trimEnd()}\n\n${houseFactsPrompt(houseFacts(env))}`
-    : rule;
-}
+/** The house facts when the flag is on, for the honesty rule (ai-honesty.ts withHonesty). */
+export const houseFactsLine = (env: Env = process.env): string =>
+  houseFactsEnabled(env) ? houseFactsPrompt(houseFacts(env)) : '';
 
 /**
  * Length of the first whole sentence in the text, with its trailing space; 0 if none

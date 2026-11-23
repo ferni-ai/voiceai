@@ -158,6 +158,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // FinOps settings, MRR, cash, CAC, churn, thresholds (observability/finops-settings): server only
+    match /finops_settings/{doc} {
+      allow read, write: if false;
+    }
+
     // ============================================================================
     // PHONE LOOKUP INDEX (for cross-device identification)
     // Stores hashed phone -> userId mappings

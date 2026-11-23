@@ -62,17 +62,32 @@ export function rejectedSummary(r: Rejected): string[] {
  * The judge's scores on the first clean draft and whether a rewrite replaced
  * it. Scores only: the reasons quote the post.
  */
-export function reviewSummary(review: { before: JudgeResult; revised: boolean }): string {
-  const { before, revised } = review;
-  const scores = before.verdict
-    ? DIMENSIONS.map((d) => `${d} ${before.verdict!.scores[d].score}`).join(', ')
-    : 'no verdict';
+export function reviewSummary(review: {
+  before: JudgeResult;
+  after?: JudgeResult;
+  revised: boolean;
+}): string {
+  const { before, after, revised } = review;
+  const scores = (r: JudgeResult) =>
+    r.verdict
+      ? `${r.status} (${DIMENSIONS.map((d) => `${d} ${r.verdict!.scores[d].score}`).join(', ')})`
+      : `${r.status} (no verdict)`;
   const outcome = revised
-    ? 'rewritten once with its notes'
-    : before.status === 'fail' && before.verdict
-      ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
-      : 'kept as drafted';
-  return `Judge before revision: ${before.status} (${scores}); ${outcome}`;
+    ? 'rewritten once with its notes, and the rewrite is kept'
+    : after && !after.verdict
+      ? "rewritten once with its notes, but the judge couldn't score the rewrite, so the first draft stands"
+      : after
+        ? 'rewritten once with its notes, but the rewrite scored no better, so the first draft stands'
+        : before.status === 'fail' && before.verdict
+          ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
+          : 'kept as drafted';
+  const rewrite = after ? `; judge on the rewrite: ${scores(after)}` : '';
+  return `Judge before revision: ${scores(before)}${rewrite}; ${outcome}`;
+}
+
+/** Which gate rules sent the first draft back, by name only: the findings quote the post. */
+export function gateRetrySummary(rules: string[]): string {
+  return `Brand gate sent the first draft back once (${rules.join(', ')}); the retry passed`;
 }
 
 /** The line an accepted draft prints: its title and slug. */
