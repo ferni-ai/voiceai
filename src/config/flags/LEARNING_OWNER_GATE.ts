@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-export const DEVICE_PROFILE_PARTIAL_REPAIR = {
+export const LEARNING_OWNER_GATE = {
   default: 'off',
   owner: 'memory',
   kind: 'experiment',

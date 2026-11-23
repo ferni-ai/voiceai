@@ -21,7 +21,7 @@ import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import { conversationDaysFor } from './conversation-days.js';
 import { forgetCallStartReads, readUserRootOnce } from '../../utils/call-start-reads.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
-import { storedProfileOrThrow } from './partial-profile-repair.js';
+import { invalidStoredProfile } from './profile-read-failure.js';
 import { notStored } from './profile-save-guard.js';
 import { writeProfileUnlessErased, type ProfileWriteDb } from './profile-write-unless-erased.js';
 import {
@@ -212,7 +212,8 @@ export class FirestoreStore extends MemoryStore {
     const [data, days] = await readUserRootOnce(userId, docRef, conversationDaysFor);
     if (!data) return null;
     const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
-    return storedProfileOrThrow(userId, hydrated); // flag on: a doc lacking only `id` is repaired
+    if (isValidUserProfile(hydrated)) return hydrated;
+    throw invalidStoredProfile(userId, hydrated);
   }
 
   async saveProfile(profile: UserProfile): Promise<void> {
@@ -234,6 +235,7 @@ export class FirestoreStore extends MemoryStore {
 
   async deleteProfile(userId: string): Promise<boolean> {
     const db = await this.ensureInitialized();
+
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       await docRef.delete();
@@ -247,6 +249,7 @@ export class FirestoreStore extends MemoryStore {
 
   async hasProfile(userId: string): Promise<boolean> {
     const db = await this.ensureInitialized();
+
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       const doc = await docRef.get();
@@ -259,9 +262,7 @@ export class FirestoreStore extends MemoryStore {
 
   async findProfileByLinkedIdentifier(candidates: readonly string[]): Promise<UserProfile | null> {
     const db = await this.ensureInitialized();
-    return queryProfileByLinkedIdentifier(db, this.USERS_COLLECTION, candidates, (d) =>
-      this.hydrateData(d)
-    );
+    return queryProfileByLinkedIdentifier(db, this.USERS_COLLECTION, candidates, (d) => this.hydrateData(d));
   }
 
   async listProfiles(options?: QueryOptions): Promise<UserProfile[]> {

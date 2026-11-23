@@ -86,7 +86,7 @@ const READ_FAILURE_TEXT = /timed? ?out|deadline|unavailable|initiali[sz]|ECONN|s
  */
 export function isProfileReadFailure(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const { code } = error as { code?: unknown };
+  const code = (error as { code?: unknown }).code;
   if (typeof code === 'number' || (typeof code === 'string' && code !== '')) return true;
   return READ_FAILURE_NAMES.has(error.name) || READ_FAILURE_TEXT.test(error.message);
 }
@@ -119,15 +119,7 @@ export async function unsavedStandIn(
  * Token fields are left out (saveProfile never writes them, so the stored ones stay).
  */
 export async function repairedProfile(error: InvalidStoredProfileError): Promise<UserProfile> {
-  return repairStoredDoc(error.userId, storedDocs.get(error) ?? {});
-}
-
-/** The one repair: defaults underneath, the stored doc on top, `id` set, token fields left out. */
-export async function repairStoredDoc(
-  userId: string,
-  doc: Record<string, unknown>
-): Promise<UserProfile> {
-  const stored = withoutProfileTokenFields(doc);
+  const stored = withoutProfileTokenFields(storedDocs.get(error) ?? {});
   const { createUserProfile } = await import('../../types/user-profile.js');
-  return { ...createUserProfile(userId), ...stored, id: userId } as UserProfile;
+  return { ...createUserProfile(error.userId), ...stored, id: error.userId } as UserProfile;
 }

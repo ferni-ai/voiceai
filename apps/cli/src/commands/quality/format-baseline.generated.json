@@ -277,6 +277,7 @@
   "src/memory/signals/llm-signal-extractor.ts",
   "src/memory/signals/superhuman-signal-router.ts",
   "src/memory/storage/__tests__/linked-identifier-lookup.test.ts",
+  "src/memory/storage/firestore-store.ts",
   "src/memory/unified-store/__tests__/facade.test.ts",
   "src/memory/unified-store/__tests__/memory-adapter.test.ts",
   "src/memory/unified-store/__tests__/search-filters.test.ts",

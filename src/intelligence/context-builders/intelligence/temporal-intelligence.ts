@@ -32,7 +32,7 @@ import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { EdgeCache } from '../../../services/cache/edge-cache.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { flagOn } from '../../../config/env-flag.js';
+import { mergeIntoUserRecord } from './merge-into-user-record.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -421,33 +421,28 @@ async function learnTemporalPatternInternal(
     const temporal = getCurrentTemporalContext();
 
     // Update conversation-by-day counter
-    const userRef = db.collection('bogle_users').doc(userId);
-    const doc = await userRef.get();
-    // A merge here made a user doc with no profile in it (#4293): skip a caller with no doc.
-    if (!doc.exists && flagOn('DEVICE_PROFILE_PARTIAL_REPAIR')) return;
-    const docData = doc.data() as Record<string, unknown> | undefined;
-    const existingPatterns = (docData?.temporalPatterns as Record<string, unknown>) || {};
+    const written = await mergeIntoUserRecord(db, userId, (docData) => {
+      const existingPatterns = (docData?.temporalPatterns as Record<string, unknown>) || {};
 
-    const dayPatternsData = existingPatterns.dayPatterns as Record<string, unknown> | undefined;
-    const dayStats = (dayPatternsData?.conversationsByDay as Record<string, number>) || {};
-    dayStats[temporal.dayOfWeek] = (dayStats[temporal.dayOfWeek] || 0) + 1;
+      const dayPatternsData = existingPatterns.dayPatterns as Record<string, unknown> | undefined;
+      const dayStats = (dayPatternsData?.conversationsByDay as Record<string, number>) || {};
+      dayStats[temporal.dayOfWeek] = (dayStats[temporal.dayOfWeek] || 0) + 1;
 
-    // Determine most active time
-    const timeStats = (existingPatterns.timeStats as Record<string, number>) || {};
-    timeStats[temporal.timeOfDay] = (timeStats[temporal.timeOfDay] || 0) + 1;
+      // Determine most active time
+      const timeStats = (existingPatterns.timeStats as Record<string, number>) || {};
+      timeStats[temporal.timeOfDay] = (timeStats[temporal.timeOfDay] || 0) + 1;
 
-    // Find peak time
-    let mostActive: TimeOfDay = 'morning';
-    let maxCount = 0;
-    for (const [time, count] of Object.entries(timeStats)) {
-      if ((count as number) > maxCount) {
-        mostActive = time as TimeOfDay;
-        maxCount = count as number;
+      // Find peak time
+      let mostActive: TimeOfDay = 'morning';
+      let maxCount = 0;
+      for (const [time, count] of Object.entries(timeStats)) {
+        if ((count as number) > maxCount) {
+          mostActive = time as TimeOfDay;
+          maxCount = count as number;
+        }
       }
-    }
 
-    await userRef.set(
-      cleanForFirestore({
+      return cleanForFirestore({
         temporalPatterns: {
           ...existingPatterns,
           dayPatterns: {
@@ -462,9 +457,9 @@ async function learnTemporalPatternInternal(
           },
           lastUpdated: new Date(),
         },
-      }),
-      { merge: true }
-    );
+      });
+    });
+    if (!written) return; // LEARNING_OWNER_GATE: no record, or an erased or erasing one
 
     log.debug(
       { userId, timeOfDay: temporal.timeOfDay, dayOfWeek: temporal.dayOfWeek },
