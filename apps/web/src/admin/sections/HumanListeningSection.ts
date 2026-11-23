@@ -13,8 +13,8 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { soulStatsService, initSoulStats } from '../../services/soul-stats.service.js';
 import { getAdminHeadersAsync } from '../admin-api.js';
+import { loadSoulStats, renderSoulStats } from './soul-stats-panel.js';
 import {
   ICON_ACTIVITY,
   ICON_INFO,
@@ -86,12 +86,11 @@ interface LiveSession {
 export async function render(): Promise<string> {
   log.debug('Rendering human listening section');
 
-  // Initialize and fetch all data
-  initSoulStats();
+  // Fetch all data
   const metrics = await fetchMetrics();
   const signals = await fetchRecentSignals();
   const liveSessions = await fetchLiveSessions();
-  const soulStats = await soulStatsService.fetchFromServer();
+  const soulStats = await loadSoulStats();
 
   return `
     <div class="human-listening-section">
@@ -185,24 +184,7 @@ export async function render(): Promise<string> {
           ${renderSoulResponse('Voice Tremor', 'Anticipatory Shimmer', 'Subtle shimmer shows recognition', 'playAnticipation("concerned")')}
         </div>
 
-        <div class="soul-response-stats">
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.microExpressions24h === 0 ? ' soul-stat-value--pending' : ''}" id="soulMicroExpressions">${soulStats.microExpressions24h || '--'}</div>
-            <div class="soul-stat-label">Micro-Expressions (24h)</div>
-          </div>
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.protectiveModes === 0 ? ' soul-stat-value--pending' : ''}" id="soulProtectiveModes">${soulStats.protectiveModes || '--'}</div>
-            <div class="soul-stat-label">Protective Modes</div>
-          </div>
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.comfortPulses === 0 ? ' soul-stat-value--pending' : ''}" id="soulComfortPulses">${soulStats.comfortPulses || '--'}</div>
-            <div class="soul-stat-label">Comfort Pulses</div>
-          </div>
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.memorySparks === 0 ? ' soul-stat-value--pending' : ''}" id="soulMemorySparks">${soulStats.memorySparks || '--'}</div>
-            <div class="soul-stat-label">Memory Sparks</div>
-          </div>
-          <p class="soul-stats-note">${soulStats.lastUpdated ? `Last updated: ${formatTime(soulStats.lastUpdated)}` : 'Stats update every conversation - see Avatar Soul Lab for live testing'}</p>
+        <div class="soul-response-stats">${renderSoulStats(soulStats, formatTime)}
         </div>
 
         <a href="#avatar-soul" class="soul-link" data-navigate="avatar-soul">
@@ -608,11 +590,6 @@ export async function render(): Promise<string> {
         font-weight: 700;
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         color: var(--persona-primary, #4a6741);
-      }
-
-      .soul-stat-value--pending {
-        color: var(--color-text-muted, #756A5E);
-        opacity: 0.5;
       }
 
       .soul-stat-label {

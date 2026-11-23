@@ -153,6 +153,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Hourly avatar soul counts, no uid (api/soul-stats, SOUL_STATS): server only
+    match /soul_stats_hourly/{hour} {
+      allow read, write: if false;
+    }
+
     // FinOps settings, MRR, cash, CAC, churn, thresholds (observability/finops-settings): server only
     match /finops_settings/{doc} {
       allow read, write: if false;
