@@ -3,7 +3,8 @@ import type { FlagSpec } from '../flag-spec.js';
 // on: a calendar event whose Firestore write failed (or had no Firestore) is not kept, and the create
 // tool says it couldn't create it; a delete whose write failed is undone and reported false, so the
 // tool says it couldn't delete it; an update whose write failed is rolled back to the old event and the
-// update tool says it couldn't (services/calendar/calendar-event-persist.ts). Off: the failure is logged,
+// update tool says it couldn't; changes to one event run one at a time
+// (services/calendar/calendar-event-persist.ts). Off: the failure is logged,
 // the change stays in memory only, and the tools say saved / removed / updated, as before.
 
 export const CALENDAR_WRITES_TRUTHFUL = {

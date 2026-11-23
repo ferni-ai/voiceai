@@ -16,7 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordCalendarSignal } from '../data-layer/domain-signals.js';
 import { withOutlookEvents } from './providers/outlook-state.js';
-import { deleteEventDoc, saveEventDoc } from './calendar-event-persist.js';
+import { deleteEventDoc, oneChangeAtATime, saveEventDoc } from './calendar-event-persist.js';
 import type {
   CalendarEvent,
   CalendarProvider,
@@ -307,9 +307,17 @@ export async function createEvent(
 }
 
 /**
- * Update an existing event
+ * Update an existing event (CALENDAR_WRITES_TRUTHFUL: one change to an event at a time)
  */
-export async function updateEvent(
+export function updateEvent(
+  userId: string,
+  eventId: string,
+  updates: UpdateEventInput
+): Promise<CalendarEvent | null> {
+  return oneChangeAtATime(`${userId}/${eventId}`, () => applyUpdate(userId, eventId, updates));
+}
+
+async function applyUpdate(
   userId: string,
   eventId: string,
   updates: UpdateEventInput
@@ -345,9 +353,13 @@ export async function updateEvent(
 }
 
 /**
- * Delete an event
+ * Delete an event (CALENDAR_WRITES_TRUTHFUL: one change to an event at a time)
  */
-export async function deleteEvent(userId: string, eventId: string): Promise<boolean> {
+export function deleteEvent(userId: string, eventId: string): Promise<boolean> {
+  return oneChangeAtATime(`${userId}/${eventId}`, () => applyDelete(userId, eventId));
+}
+
+async function applyDelete(userId: string, eventId: string): Promise<boolean> {
   await loadUserData(userId);
 
   const events = eventCache.get(userId);
@@ -758,8 +770,11 @@ export async function getWeekOverview(
 
 /** True when the event may be kept (CALENDAR_WRITES_TRUTHFUL: only if the write saved). */
 const persistEvent = (userId: string, event: CalendarEvent): Promise<boolean> =>
-  saveEventDoc(getFirestore, getUserEventsCollection(userId), userId, event, () =>
-    cleanForFirestore(eventToStored(event))
+  saveEventDoc(getFirestore, userId, event, (firestore) =>
+    firestore
+      .collection(getUserEventsCollection(userId))
+      .doc(event.id)
+      .set(cleanForFirestore(eventToStored(event)))
   );
 
 /** True when the delete may stand (CALENDAR_WRITES_TRUTHFUL: not if the delete write failed). */

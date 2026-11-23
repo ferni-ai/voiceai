@@ -9,7 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const db = vi.hoisted(() => ({ failWrites: false, docs: new Map<string, object>() }));
+const db = vi.hoisted(() => ({ failWrites: false, failNext: 0, docs: new Map<string, object>() }));
 
 vi.mock('../../../utils/shared-firestore.js', () => ({
   sharedFirestore: () => ({
@@ -21,7 +21,7 @@ vi.mock('../../../utils/shared-firestore.js', () => ({
       }),
       doc: (id: string) => ({
         set: async (data: object) => {
-          if (db.failWrites) throw new Error('unavailable');
+          if (db.failWrites || db.failNext-- > 0) throw new Error('unavailable');
           db.docs.set(`${path}/${id}`, data);
         },
         delete: async () => {
@@ -84,7 +84,11 @@ const stored = (uid: string) =>
 afterEach(() => {
   delete process.env.CALENDAR_WRITES_TRUTHFUL;
   db.failWrites = false;
+  db.failNext = 0;
 });
+const inTwoDays = () => new Date(Date.now() + 2 * 86_400_000);
+const recovery = () => ({ durationMinutes: 45, startTime: inTwoDays().toISOString() });
+const storedDoc = (uid: string) => db.docs.get(`users/${uid}/calendar_events/evt_seed`);
 
 describe('CALENDAR_WRITES_TRUTHFUL off (== main)', () => {
   it('a failed create says saved and keeps the event in memory only', async () => {
@@ -110,7 +114,14 @@ describe('CALENDAR_WRITES_TRUTHFUL off (== main)', () => {
     expect(stored(uid)).toHaveLength(1);
   });
 
-  it('a failed update says updated and keeps the new time in memory only', async () => {
+  it('a failed recovery block says done', async () => {
+    const uid = person();
+    seedConnected(uid);
+    db.failWrites = true;
+    expect(await tool('blockRecoveryTime', uid, recovery())).toMatch(/^Done! I've blocked/);
+  });
+
+  it('a failed update says updated and keeps the new title in memory only', async () => {
     const uid = person();
     seedConnected(uid);
     seedEvent(uid);
@@ -155,6 +166,34 @@ describe('CALENDAR_WRITES_TRUTHFUL on', () => {
     expect((db.docs.get(`users/${uid}/calendar_events/evt_seed`) as { title: string }).title).toBe(
       'Dentist follow-up'
     );
+  });
+
+  it('a failed recovery block says it could not, and nothing is kept', async () => {
+    process.env.CALENDAR_WRITES_TRUTHFUL = 'on';
+    const uid = person();
+    seedConnected(uid);
+    db.failWrites = true;
+    const reply = await tool('blockRecoveryTime', uid, recovery());
+    expect(reply).toMatch(/^I couldn't create the recovery block/);
+    db.failWrites = false;
+    expect(await getEventsForDay(uid, inTwoDays())).toEqual([]);
+  });
+
+  it('two updates at once: the failed one is not saved by the other; cache and store agree', async () => {
+    process.env.CALENDAR_WRITES_TRUTHFUL = 'on';
+    const uid = person();
+    seedConnected(uid);
+    seedEvent(uid);
+    db.failNext = 1; // the first update's write fails, the second's saves
+    const [a, b] = await Promise.all([
+      tool('updateCalendarEvent', uid, rename),
+      tool('updateCalendarEvent', uid, { eventId: 'evt_seed', location: 'Room 4' }),
+    ]);
+    expect(a).toMatch(/^Couldn't update that event/);
+    expect(b).toMatch(/^Updated\. Dentist checkup/);
+    const want = { title: 'Dentist checkup', location: 'Room 4' };
+    expect(storedDoc(uid)).toMatchObject(want);
+    expect(await getEventById(uid, 'evt_seed')).toMatchObject(want);
   });
 
   it('a create that saves says saved, and the event is stored', async () => {
@@ -220,7 +259,7 @@ describe('CALENDAR_WRITES_TRUTHFUL on', () => {
     process.env.CALENDAR_WRITES_TRUTHFUL = 'on';
     const event = { id: 'evt_x', title: 'x', startTime: new Date(), endTime: new Date() };
     const none = async () => null;
-    expect(await saveEventDoc(none, 'p', 'u', event as never, () => ({}) as never)).toBe(false);
+    expect(await saveEventDoc(none, 'u', event as never, async () => undefined)).toBe(false);
     expect(calendarWriteSaved(event as never)).toBe(false);
     expect(await deleteEventDoc(none, 'p', 'evt_x')).toBe(true);
     delete process.env.CALENDAR_WRITES_TRUTHFUL;

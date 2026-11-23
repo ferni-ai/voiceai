@@ -1515,7 +1515,7 @@ const blockRecoveryTimeDef: ToolDefinition = {
 
         const createdEvent = await createEvent(userId, eventInput);
 
-        if (!createdEvent) {
+        if (!createdEvent || !calendarWriteSaved(createdEvent)) {
           return "I couldn't create the recovery block. Would you like me to try a different time?";
         }
 

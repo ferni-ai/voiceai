@@ -25,38 +25,34 @@ import type { CalendarEvent } from './types.js';
 
 /** The part of Firestore these writes use (the store hands in its own client). */
 interface EventsDb {
-  collection(path: string): {
-    doc(id: string): { set(data: object): Promise<unknown>; delete(): Promise<unknown> };
-  };
+  collection(path: string): { doc(id: string): { delete(): Promise<unknown> } };
 }
-type EventsDbGetter = () => Promise<EventsDb | null>;
+type EventsDbGetter<Db = EventsDb> = () => Promise<Db | null>;
 
 /**
- * Write `event` (its stored, cleaned document) to `path`. True when the event may be kept: always with the flag off (as
- * before), else only when the write saved.
+ * Save `event` with `write` (the store's own cleaned set). True when the event may be kept:
+ * always with the flag off (as before), else only when the write saved.
  */
-export async function saveEventDoc(
-  db: EventsDbGetter,
-  path: string,
+export async function saveEventDoc<Db>(
+  db: EventsDbGetter<Db>,
   userId: string,
   event: CalendarEvent,
-  stored: () => object
+  write: (firestore: Db) => Promise<unknown>
 ): Promise<boolean> {
-  return recordCalendarWrite(event, await writeEvent(db, path, userId, event, stored));
+  return recordCalendarWrite(event, await writeEvent(db, userId, event, write));
 }
 
-async function writeEvent(
-  db: EventsDbGetter,
-  path: string,
+async function writeEvent<Db>(
+  db: EventsDbGetter<Db>,
   userId: string,
   event: CalendarEvent,
-  stored: () => object
+  write: (firestore: Db) => Promise<unknown>
 ): Promise<CalendarWrite> {
   const firestore = await db();
   if (!firestore) return 'no-db';
   let result: CalendarWrite = 'failed';
   try {
-    await firestore.collection(path).doc(event.id).set(stored());
+    await write(firestore);
     result = 'saved';
     // Index to semantic memory for calendar awareness
     void onCalendarEventChange(
@@ -79,6 +75,25 @@ async function writeEvent(
     getLogger().error({ error: String(error), eventId: event.id }, 'Failed to persist event');
   }
   return result;
+}
+
+const queues = new Map<string, Promise<unknown>>();
+
+/**
+ * With the flag on, changes to one event run one at a time, so each is built from the state
+ * the one before it left (a failed change rolled back, a saved one kept), never from another
+ * change still in flight. Off, `run` starts at once, as before.
+ */
+export function oneChangeAtATime<T>(key: string, run: () => Promise<T>): Promise<T> {
+  if (!calendarWritesTruthfulOn()) return run();
+  const next = (queues.get(key) ?? Promise.resolve()).then(run, run);
+  const settled = next.then(
+    () => undefined,
+    () => undefined
+  );
+  queues.set(key, settled);
+  void settled.then(() => queues.get(key) === settled && queues.delete(key));
+  return next;
 }
 
 /**
