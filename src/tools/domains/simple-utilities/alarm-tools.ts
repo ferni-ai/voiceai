@@ -14,6 +14,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { ALARM_CANT_RING } from './alarm-ring.js';
+import { alarmOneShape, storedAlarms } from './alarm-shape.js';
 
 const log = getLogger();
 
@@ -51,13 +52,10 @@ async function loadAlarms(userId: string): Promise<Alarm[]> {
   try {
     const db = getFirestoreDb();
     if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('alarms')
-        .where('enabled', '==', true)
-        .get();
-
+      const alarms = db.collection('bogle_users').doc(userId).collection('alarms');
+      const parse = { time: parseAlarmTime, repeat: parseRepeatPattern }; // ALARM_ONE_SHAPE, #4316
+      if (alarmOneShape()) return storedAlarms((await alarms.get()).docs, parse);
+      const snapshot = await alarms.where('enabled', '==', true).get();
       return snapshot.docs.map(
         (doc: FirebaseFirestore.QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() }) as Alarm
       );
@@ -316,44 +314,38 @@ const setAlarmDef: ToolDefinition = {
           .optional()
           .describe('Optional label for the alarm (e.g., "Wake up", "Take medicine")'),
       }),
-      execute: async ({ time, repeat = 'once', label }) => {
-        const { time: parsedTime, error: timeError } = parseAlarmTime(time);
-        if (timeError) {
-          return timeError;
-        }
-
-        const { repeat: parsedRepeat, customDays, error: repeatError } = parseRepeatPattern(repeat);
-        if (repeatError) {
-          return repeatError;
-        }
-
-        const alarm: Alarm = {
-          id: generateAlarmId(),
-          userId: ctx.userId,
-          label: label || 'Alarm',
-          time: parsedTime,
-          repeat: parsedRepeat,
-          customDays,
-          enabled: true,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-
-        await saveAlarm(ctx.userId, alarm);
-
-        log.info({ alarmId: alarm.id, time: parsedTime, repeat: parsedRepeat }, 'Alarm set');
-
-        // Build response
-        const timeDisplay = formatTimeForSpeech(parsedTime);
-        const repeatDisplay = formatRepeatForSpeech(alarm);
-
-        const when =
-          alarm.repeat === 'once' ? timeDisplay : `${timeDisplay}, repeating ${repeatDisplay}`;
-        return `Saved an alarm for ${when}${label ? ` ("${label}")` : ''}. ${ALARM_CANT_RING}`;
-      },
+      execute: async ({ time, repeat = 'once', label }) =>
+        createAlarm(ctx.userId, { time, repeat, label }),
     });
   },
 };
+
+/** The one alarm-save path: the voice tool, and the chat path with ALARM_ONE_SHAPE on (#4316). */
+export async function createAlarm(
+  userId: string,
+  { time, repeat = 'once', label }: { time: string; repeat?: string; label?: string }
+): Promise<string> {
+  const { time: parsedTime, error: timeError } = parseAlarmTime(time);
+  if (timeError) return timeError;
+  const { repeat: parsedRepeat, customDays, error: repeatError } = parseRepeatPattern(repeat);
+  if (repeatError) return repeatError;
+  const alarm: Alarm = {
+    id: generateAlarmId(),
+    userId,
+    label: label || 'Alarm',
+    time: parsedTime,
+    repeat: parsedRepeat,
+    customDays,
+    enabled: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  await saveAlarm(userId, alarm);
+  log.info({ alarmId: alarm.id, time: parsedTime, repeat: parsedRepeat }, 'Alarm set');
+  const [display, repeats] = [formatTimeForSpeech(parsedTime), formatRepeatForSpeech(alarm)];
+  const when = alarm.repeat === 'once' ? display : `${display}, repeating ${repeats}`;
+  return `Saved an alarm for ${when}${label ? ` ("${label}")` : ''}. ${ALARM_CANT_RING}`;
+}
 
 // ============================================================================
 // GET ALARMS TOOL
