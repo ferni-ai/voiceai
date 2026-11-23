@@ -306,6 +306,8 @@ async function unionOverFlagSets(base: Record<string, string | undefined>): Prom
       .join(' ');
     const restore = withEnv({ ...base, ...flags });
     try {
+      // process.env is global, so the flag sets run one at a time.
+      // eslint-disable-next-line no-await-in-loop
       const m = await measuredSets();
       for (const [p, set] of Object.entries(m.sets)) {
         out.sets[p] = new Set([...(out.sets[p] ?? []), ...set]);
