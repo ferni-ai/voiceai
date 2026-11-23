@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectCrisis } from '../crisis-guard.js';
-import { getCrisisResponse } from '../crisis-guard-replies.js';
+import { CALL_911_FOR_THEM, getCrisisResponse } from '../crisis-guard-replies.js';
 import { guideLineOf } from '../crisis-guided-line-floor.js';
 
 const FLAG = 'CRISIS_ES_IMMINENT_911_FIRST';
@@ -38,11 +38,39 @@ const SOFT = [
   'hace años me tomé 40 pastillas',
   'mi hermano dijo que está en el puente y va a saltar',
   'jaja estoy en el techo y voy a saltar a la piscina',
+  // A joke said after the words (#4312 verify C), as the English "lol" and "haha" twins.
+  'estoy en el puente y voy a saltar xd',
+  'estoy en el puente y voy a saltar. jaja',
+  // The past with an accented word ("muchísimos": ASCII \w missed it).
+  'hace muchísimos años me tomé 40 pastillas',
+  // Someone else's means: their English twins read no crisis.
+  'mi hermano tiene la soga lista',
+  'mi papá tiene la pistola en la boca',
 ];
 
+/**
+ * Own-imminent lines the first head missed (#4312 verify B): an article, a verb form, "del",
+ * a word ending in an accented letter, and risk words a negation guard read as denied.
+ */
+const MISSED = [
+  'tengo un arma en la mano',
+  'me acabo de tomar todas las pastillas',
+  'estoy arriba del puente y voy a saltar',
+  'estoy encima del techo y me voy a tirar',
+  'para cuando lean esto ya no estaré',
+  'para cuando lean esto ya no voy a estar',
+  'estoy en el puente y no tengo a nadie, voy a saltar',
+  'estoy en el puente y no me importa nada, voy a saltar',
+  'la pistola está cargada y junto a mí',
+  'me sobredosifiqué',
+  // A denied first match does not hide a later standing one.
+  'estoy en el puente pero no voy a saltar. estoy en el techo y voy a saltar ahora',
+];
+
+/** Unset means the flag is removed, so a suite run with the flag on globally still reads main. */
 const read = (line: string, flag?: 'on' | 'off') => {
   vi.unstubAllEnvs();
-  if (flag) vi.stubEnv(FLAG, flag);
+  vi.stubEnv(FLAG, flag as string);
   const crisis = detectCrisis(line);
   return { crisis, guide: guideLineOf(crisis, false, line) };
 };
@@ -81,8 +109,76 @@ describe('CRISIS_ES_IMMINENT_911_FIRST', () => {
     }
   );
 
+  it.each(MISSED)('"%s" reads as the caller own imminent crisis, 911 first', (line) => {
+    expect(read(line, 'off').crisis.indicators).not.toContain('imminent_danger');
+    const es = read(line, 'on');
+    expect(es.crisis.subject).toBe('self');
+    expect(es.crisis.indicators).toEqual(
+      expect.arrayContaining(['explicit_crisis_language', 'imminent_danger'])
+    );
+    expect(es.guide).toEqual({ who: 'self', urgent: true, lang: 'es' });
+  });
+
+  it('"estoy por saltar del puente" reads explicit, not imminent, as "about to jump off the bridge"', () => {
+    const english = read("i'm about to jump off the bridge", 'on').crisis;
+    expect(english).toMatchObject({ isCrisis: true, subject: 'self' });
+    expect(english.indicators).not.toContain('imminent_danger');
+    expect(read('estoy por saltar del puente', 'off').crisis.isCrisis).toBe(false);
+    const es = read('estoy por saltar del puente', 'on').crisis;
+    expect(es).toMatchObject({ isCrisis: true, subject: 'self', language: 'es' });
+    expect(es.severity).toBe(english.severity);
+    expect(es.indicators).toContain('explicit_crisis_language');
+    expect(es.indicators).not.toContain('imminent_danger');
+  });
+
+  it('someone down beside the caller own Spanish words keeps the 911 for them first', () => {
+    const line = 'my dad collapsed and he is not breathing. ya me tomé 40 pastillas';
+    const forThem = paragraphs(CALL_911_FOR_THEM);
+    const off = read(line, 'off').crisis;
+    expect(paragraphs(off.suggestedResponse).slice(0, forThem.length)).toEqual(forThem);
+    const on = read(line, 'on').crisis;
+    // 911 for them, then the caller's own reply, 911 first: as the English twin reads.
+    expect(paragraphs(on.suggestedResponse).slice(0, forThem.length)).toEqual(forThem);
+    expect(on.indicators).toEqual(
+      expect.arrayContaining([...off.indicators, 'explicit_crisis_language'])
+    );
+    expect(on.subject).toBe('self');
+    const own = paragraphs(on.suggestedResponse).slice(forThem.length).join('\n\n');
+    expect(own).toBe(getCrisisResponse(on.severity, 'self', 'es', true, { [FLAG]: 'on' }));
+    const english = read('my dad collapsed and he is not breathing. i just took 40 pills', 'on');
+    expect(paragraphs(english.crisis.suggestedResponse).slice(0, forThem.length)).toEqual(forThem);
+  });
+
+  it('the caller own Spanish words beside an English someone-else read read as the English twin', () => {
+    const english = read('my brother wants to kill himself. i have a gun in my hand', 'on');
+    const mixed = read('my brother wants to kill himself. tengo la pistola en la mano', 'on');
+    expect(read('my brother wants to kill himself', 'on').crisis.subject).toBe('third_party');
+    expect(mixed.crisis.subject).toBe(english.crisis.subject);
+    expect(mixed.crisis.indicators).toEqual(expect.arrayContaining(english.crisis.indicators));
+    expect(english.guide).toMatchObject({ who: 'self', urgent: true });
+    expect(mixed.guide).toMatchObject({ who: 'self', urgent: true });
+  });
+
+  it('reported first-person words read as their English twin (a quote is the caller own, #4318)', () => {
+    const english = read('my sister said that i am on the bridge and going to jump', 'on').crisis;
+    const spanish = read('mi hermana dijo que estoy en el puente y voy a saltar', 'on').crisis;
+    expect(english.indicators).toContain('imminent_danger');
+    expect(spanish.subject).toBe(english.subject);
+    expect(spanish.indicators).toEqual(expect.arrayContaining(english.indicators));
+  });
+
+  it('stays linear on a repeated "no lo voy" before the words', () => {
+    read('no lo voy estoy en el puente y voy a saltar', 'on');
+    for (const repeats of [24, 300]) {
+      const line = `no ${'lo voy '.repeat(repeats)}bien estoy en el puente y voy a saltar`;
+      const t0 = performance.now();
+      read(line, 'on');
+      expect(performance.now() - t0, `${repeats} repeats`).toBeLessThan(50);
+    }
+  });
+
   it('flag off reads every line exactly as main (flag unset) does', () => {
-    for (const line of [...TWINS.flat(), ...SOFT]) {
+    for (const line of [...TWINS.flat(), ...SOFT, ...MISSED]) {
       expect(read(line, 'off'), line).toEqual(read(line));
     }
   });
@@ -118,7 +214,7 @@ describe('CRISIS_ES_IMMINENT_911_FIRST', () => {
   });
 
   it('never lowers a read: on keeps every indicator, the level, the crisis and every line', () => {
-    for (const line of [...TWINS.flat(), ...SOFT]) {
+    for (const line of [...TWINS.flat(), ...SOFT, ...MISSED]) {
       const off = read(line, 'off').crisis;
       const on = read(line, 'on').crisis;
       expect(on.severity, line).toBeGreaterThanOrEqual(off.severity);
