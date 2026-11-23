@@ -24,11 +24,15 @@ import type { llm } from '@livekit/agents';
 
 import { accountName, nameSaidOnCall } from './caller-name-known.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { leavingNow } from '../shared/call-farewell.js';
 import { NAME_PLACEMENT_RULE } from './name-gate.js';
-import { firstCallGoodbyeGroundedEnabled, groundedFirstGoodbye } from './first-call-goodbye.js';
+import {
+  firstCallGoodbyeGroundedEnabled,
+  firstCallRapportEnabled,
+  isFirstCall,
+} from './first-call.js';
+import { groundedFirstGoodbye } from './first-call-goodbye.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -62,19 +66,12 @@ const NAME_SWAP_REPLIES = 4;
 const NAME_ASKED =
   /\b(your name|what should i call you|who am i talking to|didn'?t (catch|get) your name)\b/i;
 
-export function firstCallRapportEnabled(env: Env = process.env): boolean {
-  return flagOn('FIRST_CALL_RAPPORT', env);
-}
-
 export function firstCallIntroEnabled(env: Env = process.env): boolean {
   return flagOn('FIRST_CALL_INTRO', env);
 }
 
-/** A known account on its first conversation. */
-export function isFirstCall(userData: unknown): boolean {
-  const u = userData as { isReturningUser?: unknown; userId?: unknown } | undefined;
-  return u?.isReturningUser === false && isMemberIdentity(u.userId as string | undefined);
-}
+// Read by the other first-call notes from here (first-call.ts holds it).
+export { isFirstCall } from './first-call.js';
 
 /**
  * The call already has their name: the account's (no placeholder such as "the
@@ -96,9 +93,13 @@ function goodbyeNote(
   chatCtx: llm.ChatContext,
   callerWords: string,
   env: Env,
-  scriptFree: boolean
+  scriptFree: boolean,
+  userData: unknown
 ): string {
-  if (firstCallGoodbyeGroundedEnabled(env)) return groundedFirstGoodbye(chatCtx, callerWords);
+  if (firstCallGoodbyeGroundedEnabled(env)) {
+    const { userId } = userData as { userId?: string };
+    return groundedFirstGoodbye(chatCtx, callerWords, userId);
+  }
   return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
 }
 
@@ -128,7 +129,9 @@ export function firstCallNote(
   const rule = flagOn('NAME_GATE_V2', env) ? NAME_PLACEMENT_RULE : '';
   if (leavingNow(callerWords)) {
     // A held turn gets no goodbye note ("no question"); the name rule bars no question, so it stays.
-    const goodbye = held.exitsHeld ? '' : goodbyeNote(chatCtx, callerWords, env, scriptFree);
+    const goodbye = held.exitsHeld
+      ? ''
+      : goodbyeNote(chatCtx, callerWords, env, scriptFree, userData);
     return [goodbye, rule].filter(Boolean).join(' ');
   }
   const said = agentLines(chatCtx);

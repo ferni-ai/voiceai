@@ -32,8 +32,9 @@ import type { llm } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { rememberGoodbyePlan } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callerSaysGoodbye } from '../shared/call-farewell.js';
+import { groundedFirstGoodbyeOn } from './first-call.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
@@ -137,6 +138,12 @@ export interface ExitInput {
   rng: () => number;
   /** SCRIPT_FREE_REMINDER=on (script-free.ts). */
   scriptFree?: boolean;
+  /**
+   * A first call whose goodbye note is grounded (FIRST_CALL_GOODBYE_GROUNDED,
+   * first-call-goodbye.ts): that note says whether to name what's next, so this
+   * one keeps only the warm, no-question exit. Set by happyExitNote.
+   */
+  firstCallGrounded?: boolean;
 }
 
 export interface Exit {
@@ -154,6 +161,7 @@ export function happyExitFor(input: ExitInput, env: Env = process.env): Exit {
   if (input.careful || heavyCall(input.callerTurns))
     return { note: `${EXIT} ${HEAVY}`, fired: 'heavy' };
   const plan = mentionedPlan(input.callerTurns);
+  if (input.firstCallGrounded) return { note: EXIT, fired: 'simple', ...(plan && { plan }) };
   if (plan && input.rng() < NAME_ODDS)
     return { note: `${EXIT} ${nameIt(plan, input.scriptFree)}`, fired: 'named', plan };
   return { note: `${EXIT} ${SIMPLE}`, fired: 'simple', ...(plan && { plan }) };
@@ -189,7 +197,9 @@ export function happyExitNote(
   env: Env = process.env,
   remember: Remember = async (userId, plan) => rememberGoodbyePlan(userId, plan)
 ): string {
-  const exit = happyExitFor(input, env);
+  const { userData } = session as { userData?: unknown };
+  const firstCallGrounded = groundedFirstGoodbyeOn(userData, env);
+  const exit = happyExitFor({ ...input, firstCallGrounded }, env);
   if (exit.fired === 'none') {
     const short = shortGoodbyeNote(input.said, env);
     if (short) log.info('SHORT_GOODBYE');

@@ -117,3 +117,6 @@ export {
   type StressAdaptation,
   type StressReading,
 } from './stress-adaptation.js';
+
+// Hard news anywhere in the caller's latest turns (heavy-moment.ts).
+export { isHeavyMoment } from './heavy-moment.js';
