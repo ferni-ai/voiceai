@@ -27,8 +27,14 @@ import {
 /** A solo call's transcript: no group call turn label to take off (turn-label.ts). */
 const asSaid = (transcript: string): string => transcript;
 const FERNI_SAYS = 'so for her birthday I was thinking a trail day by the lake';
+/** A held output the decision never released is resumed this long after the pause. */
+const WATCHDOG_MS = SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS + SOFT_PAUSE_WATCHDOG_EXTRA_MS;
 
-function call(flag: string | undefined, env: Record<string, string> = {}) {
+function call(
+  flag: string | undefined,
+  env: Record<string, string> = {},
+  setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>
+) {
   const interrupt = vi.fn();
   const pause = vi.fn(() => true);
   const resume = vi.fn();
@@ -37,7 +43,7 @@ function call(flag: string | undefined, env: Record<string, string> = {}) {
     { BARGE_IN_SOFT_PAUSE: flag, ...env },
     { pause, resume, log: (fields) => decisions.push(fields) }
   );
-  const fp = createBargeInFastPath({ interrupt, softPause, unlabel: asSaid });
+  const fp = createBargeInFastPath({ interrupt, softPause, unlabel: asSaid, setTimer });
   /** Ferni starts a reply and the caller talks over it for the sustained-speech time. */
   const talkOver = () => {
     fp.onAgentState({ newState: 'speaking' });
@@ -352,6 +358,81 @@ describe('BARGE_IN_SOFT_PAUSE on', () => {
   });
 });
 
+/**
+ * #3857 (dev, flag on): the model cut a pause at 1041 ms, then the watchdog logged the same pause
+ * resumed at 2901 ms and let ~31 ms of the cut reply out while the caller was still talking.
+ */
+describe('SOFT_PAUSE_ONE_OUTCOME', () => {
+  /** Paused, then cut by the barge-in model at 1041 ms; the cut reply has not ended yet. */
+  function cutByModel(flag: string) {
+    const c = call('on', { SOFT_PAUSE_ONE_OUTCOME: flag });
+    c.talkOver();
+    vi.advanceTimersByTime(1041);
+    c.fp.onOverlapDecision({ isInterruption: true });
+    expect(c.interrupt).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(WATCHDOG_MS); // well past the watchdog
+    return c;
+  }
+
+  it('on: a cut pause gets one outcome, and its output is not released until the reply ends', () => {
+    const c = cutByModel('on');
+    expect(c.decisions).toEqual([{ outcome: 'interrupted', why: 'model', pausedMs: 1041 }]);
+    expect(c.resume).not.toHaveBeenCalled();
+    c.fp.onAgentState({ newState: 'listening' }); // the cut reply ends
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    expect(c.decisions).toHaveLength(1);
+  });
+
+  it('off: the watchdog logs a second outcome and releases the output mid-cut (as before)', () => {
+    for (const flag of ['off', '']) {
+      const c = cutByModel(flag);
+      expect(c.decisions).toEqual([
+        { outcome: 'interrupted', why: 'model', pausedMs: 1041 },
+        { outcome: 'resumed', why: 'watchdog', pausedMs: WATCHDOG_MS },
+      ]);
+      expect(c.resume).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('on: a pause with no words still resumes, once', () => {
+    const c = call('on', { SOFT_PAUSE_ONE_OUTCOME: 'on' });
+    c.talkOver();
+    vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS);
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(WATCHDOG_MS);
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    expect(c.interrupt).not.toHaveBeenCalled();
+    expect(c.decisions).toEqual([
+      { outcome: 'resumed', why: 'no-words', after: 'window', pausedMs: SOFT_PAUSE_CONFIRM_MS },
+    ]);
+  });
+
+  it('on: a pause no decision ever reaches is still resumed by the watchdog', () => {
+    // Only the sustained-speech timer and the watchdog run: the decision timer is lost.
+    const someTimersLost = (fn: () => void, ms: number) =>
+      setTimeout(ms === SUSTAINED_SPEECH_MS || ms === WATCHDOG_MS ? fn : () => undefined, ms);
+    const c = call('on', { SOFT_PAUSE_ONE_OUTCOME: 'on' }, someTimersLost);
+    c.talkOver();
+    vi.advanceTimersByTime(WATCHDOG_MS - 1);
+    expect(c.resume).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    expect(c.decisions).toEqual([{ outcome: 'resumed', why: 'watchdog', pausedMs: WATCHDOG_MS }]);
+  });
+
+  it('on: a cut that fails still resumes at once', () => {
+    const c = call('on', { SOFT_PAUSE_ONE_OUTCOME: 'on' });
+    c.interrupt.mockReturnValue(false);
+    c.talkOver();
+    c.fp.onOverlapDecision({ isInterruption: true });
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(WATCHDOG_MS);
+    expect(c.decisions).toEqual([
+      { outcome: 'resumed', why: 'cut-failed', confirmedBy: 'model', pausedMs: 0 },
+    ]);
+  });
+});
+
 describe('soft pause settings', () => {
   it('reads BARGE_IN_SOFT_PAUSE_CONFIRM_MS within bounds, else 1200', () => {
     expect(softPauseConfirmMs({})).toBe(1200);
@@ -518,6 +599,27 @@ describe('a live call', () => {
     c.emit('agent_state_changed', { newState: 'listening' });
     expect(playoutHeld(c.session)).toBe(false);
   });
+
+  it.each([
+    ['on', ['pause'], true],
+    ['off', ['pause', 'resume'], false],
+  ])(
+    'SOFT_PAUSE_ONE_OUTCOME=%s: a cut reply that has not ended yet gets room calls %j',
+    (flag, roomCalls, held) => {
+      vi.stubEnv('SOFT_PAUSE_ONE_OUTCOME', flag);
+      const c = liveCall('on');
+      c.emit('agent_state_changed', { newState: 'speaking' });
+      c.emit('user_state_changed', { newState: 'speaking' });
+      vi.advanceTimersByTime(SUSTAINED_SPEECH_MS + 1041);
+      c.emit(voice.AgentSessionEventTypes.OverlappingSpeech, { isInterruption: true });
+      vi.advanceTimersByTime(WATCHDOG_MS);
+      expect(c.room.calls).toEqual(roomCalls);
+      expect(playoutHeld(c.session)).toBe(held);
+      c.emit('agent_state_changed', { newState: 'listening' }); // the cut reply ends
+      expect(c.room.calls).toEqual(['pause', 'resume']);
+      expect(playoutHeld(c.session)).toBe(false);
+    }
+  );
 
   it.each([
     ['on', 1],

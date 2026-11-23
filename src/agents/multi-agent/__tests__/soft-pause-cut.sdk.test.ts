@@ -74,9 +74,12 @@ async function dropThenCut(out: ResumeBufferOutput, task: ForwardTask) {
 }
 
 /** Ferni mid-reply when the soft pause stops him. */
-async function pausedMidReply(driftGuard = false) {
+async function pausedMidReply(
+  driftGuard = false,
+  log: (fields: Record<string, unknown>) => void = () => undefined
+) {
   const room: RoomOutput = roomOutput();
-  const out = new ResumeBufferOutput(room, {}, () => undefined, driftGuard);
+  const out = new ResumeBufferOutput(room, {}, log, driftGuard);
   const task = speak(out, 3000);
   await sleep(400);
   out.pause();
@@ -145,6 +148,31 @@ describe('a reply cut while a soft pause holds it', () => {
     await room.audioSource.waitForPlayout();
     expect(ev.interrupted).toBe(false);
     expect(Math.abs(room.audioSource.heardMs() - 3000)).toBeLessThanOrEqual(8);
+  });
+
+  it('a second drop on the same pause changes nothing, and the next reply still ends the drop', async () => {
+    vi.stubEnv('BARGE_IN_FAST_STOP', 'on');
+    const events: unknown[] = [];
+    const { room, out, task, sentAtPause } = await pausedMidReply(false, (f) =>
+      events.push(f.event)
+    );
+    const cuts = (): number => (out as unknown as { cuts: number }).cuts;
+    const cutsBefore = cuts();
+    out.dropCutReply();
+    expect(cuts()).toBe(cutsBefore + 1);
+    out.dropCutReply(); // a second 'interrupted' decision on the same pause
+    expect(cuts()).toBe(cutsBefore + 1);
+    expect(events.filter((e) => e === 'cut_dropped')).toHaveLength(1);
+    await sleep(REPLY_TASK_LAG_MS);
+    const ev = await cut(out, task);
+    expect(ev.interrupted).toBe(true);
+    expect(room.audioSource.framesSent - sentAtPause).toBe(0);
+    out.resume(); // the next reply's playout launch
+    const heardBefore = room.audioSource.heardMs();
+    await speak(out, 600).result;
+    const next = await out.waitForPlayout();
+    expect(next.interrupted).toBe(false);
+    expect(Math.abs(room.audioSource.heardMs() - heardBefore - 600)).toBeLessThanOrEqual(8);
   });
 
   it('a drop with no pause open does nothing', async () => {

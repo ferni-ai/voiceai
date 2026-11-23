@@ -52,6 +52,8 @@ export interface SoftPause {
   dropCut?: () => void;
   confirmMs: number;
   graceMs: number;
+  /** SOFT_PAUSE_ONE_OUTCOME=on: a pause decided 'interrupted' clears its watchdog (#3857). */
+  oneOutcome?: boolean;
   /** One line per decision: BARGE_IN_SOFT_PAUSE {outcome, why, pausedMs}. */
   log?: (fields: Record<string, unknown>) => void;
 }
@@ -71,10 +73,15 @@ export function softPauseGraceMs(env: Env = process.env): number {
 /** The soft pause when BARGE_IN_SOFT_PAUSE=on, else undefined (the fast path interrupts). */
 export function softPauseFromEnv(
   env: Env,
-  io: Omit<SoftPause, 'confirmMs' | 'graceMs'>
+  io: Omit<SoftPause, 'confirmMs' | 'graceMs' | 'oneOutcome'>
 ): SoftPause | undefined {
   if (env.BARGE_IN_SOFT_PAUSE !== 'on') return undefined;
-  return { ...io, confirmMs: softPauseConfirmMs(env), graceMs: softPauseGraceMs(env) };
+  return {
+    ...io,
+    confirmMs: softPauseConfirmMs(env),
+    graceMs: softPauseGraceMs(env),
+    oneOutcome: flagOn('SOFT_PAUSE_ONE_OUTCOME', env),
+  };
 }
 
 type Handler = (...args: unknown[]) => void;

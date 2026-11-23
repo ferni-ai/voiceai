@@ -27,6 +27,7 @@ import {
   createWorkflow,
   updateWorkflow,
   deleteWorkflow,
+  unsavedReply, // STORE_WRITES_TRUTHFUL
   type Workflow,
   type WorkflowTrigger,
 } from '../../../services/stores/workflow-store.js';
@@ -200,7 +201,7 @@ async function createRoutineFromVoice(
     return RESPONSES.routineCreated(name);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to create routine');
-    return RESPONSES.error;
+    return unsavedReply(error) ?? RESPONSES.error;
   }
 }
 
@@ -297,13 +298,11 @@ async function toggleRoutine(
       : RESPONSES.routineResumed(routine.name);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to toggle routine');
-    return RESPONSES.error;
+    return unsavedReply(error) ?? RESPONSES.error;
   }
 }
 
-/**
- * Delete a routine
- */
+/** Delete a routine */
 async function removeRoutine(ctx: ToolContext, params: { routineName: string }): Promise<string> {
   const userId = ctx.userId;
   if (!userId) {
@@ -325,7 +324,7 @@ async function removeRoutine(ctx: ToolContext, params: { routineName: string }):
     return RESPONSES.routineDeleted(routine.name);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to delete routine');
-    return RESPONSES.error;
+    return unsavedReply(error) ?? RESPONSES.error;
   }
 }
 
