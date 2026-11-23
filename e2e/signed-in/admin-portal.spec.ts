@@ -22,11 +22,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createAdminUser, createUser, signIn } from './support';
 
 /** Findings on main today, by the walk's own wording, each with the #4069 row that fixes it. */
-const KNOWN_DEAD: Record<string, string> = {
-  // Save cash and Update LTV:CAC do nothing with empty inputs, and keep nothing (FO12, FO13)
-  'dead control: finops > Save (2)': 'W7',
-  'dead control: finops > Update LTV:CAC': 'W7',
-};
+const KNOWN_DEAD: Record<string, string> = {};
 
 /** console.error lines that are not a portal fault, each with why. */
 const CONSOLE_ALLOWED: { pattern: RegExp; why: string }[] = [
