@@ -441,7 +441,7 @@ async function execute(
     const recipient = args.recipient as string;
     const which = (args.which as string) || recipient || itemId;
 
-    log.info({ which, userId }, '❌ Canceling scheduled item');
+    log.info({ whichLength: which?.length ?? 0, userId }, '❌ Canceling scheduled item');
 
     try {
       const { getPendingReminders, cancelReminder } = await loadScheduler();

@@ -9,6 +9,7 @@
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { lengthsOf } from '../../../utils/log-lengths.js';
 import { z } from 'zod';
 import { recordUsage, getTimerFollowUp, getUserPatterns } from './pattern-intelligence.js';
 import { updateTimerPreferences } from './persistence.js';
@@ -69,13 +70,13 @@ const setTimerDef: ToolDefinition = {
               // Get personalized follow-up message for logging
               const followUpMsg = getTimerFollowUp(userId);
               getLogger().info(
-                { userId, label: timerLabel, followUp: followUpMsg },
+                { userId, ...lengthsOf({ label: timerLabel, followUp: followUpMsg }) },
                 '⏰ Timer finished!'
               );
             })
             .catch((err) => {
               getLogger().warn(
-                { error: String(err), userId, label: timerLabel },
+                { error: String(err), userId, ...lengthsOf({ label: timerLabel }) },
                 '⏰ Timer completion callback failed'
               );
             });
