@@ -262,19 +262,33 @@ describe('findTools reaches each tool of a contested pair', () => {
   // Each request is worded from its tool's own description. The fake embedder matches words,
   // so these prove each tool is in the index under its own id and wins its own request, not
   // how well the live embedder ranks paraphrases.
-  const NEEDS: Array<[need: string, want: string]> = [
-    ['evaluate how my options align with my core values', 'checkValuesAlignment'],
-    ['gently surface it when my actions contradict my stated values', 'flagValuesConflict'],
-    ['list my smart home devices and their status', 'listDevices'],
-    ['show all connected devices', 'listMyDevices'],
-    ["I'm struggling and doubting and want to quit: recall my original why", 'remindThesis'],
-    ['remind me why I bought this stock', 'remindStockThesis'],
+  const NEEDS: Array<[need: string, want: string, domain: string]> = [
+    ['evaluate how my options align with my core values', 'checkValuesAlignment', 'decisions'],
+    [
+      'gently surface it when my actions contradict my stated values',
+      'flagValuesConflict',
+      'proactive',
+    ],
+    ['list my smart home devices and their status', 'listDevices', 'home'],
+    ['show all connected devices', 'listMyDevices', 'simple-utilities'],
+    [
+      "I'm struggling and doubting and want to quit: recall my original why",
+      'remindThesis',
+      'life-thesis',
+    ],
+    ['remind me why I bought this stock', 'remindStockThesis', 'research'],
   ];
 
-  it.each(NEEDS)('on: "%s" reaches %s', async (need, want) => {
-    process.env.TOOL_ID_OWNERS = 'on';
-    expect(await first(await retrieval(), need)).toBe(want);
-  });
+  it.each(NEEDS)(
+    'on: "%s" reaches %s, %s\'s tool, in both load orders',
+    async (need, want, domain) => {
+      process.env.TOOL_ID_OWNERS = 'on';
+      const found = await first(await retrieval(), need);
+      expect(found).toBe(want);
+      // The name it returns is the one the agent loads and runs: that domain's definition.
+      for (const registry of both()) expect(registry.get(found!)?.domain, need).toBe(domain);
+    }
+  );
 
   it('off: each request finds what it finds over the file as written', async () => {
     const [loaded, disk] = [await retrieval(), await retrieval(manualOnDisk() as never)];
