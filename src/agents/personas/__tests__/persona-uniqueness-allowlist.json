@@ -42,5 +42,21 @@
   {
     "sentence": "It's never something the person said, and you never mention it.",
     "reason": "Director-note contract: no persona attributes a private note to the caller or reveals it on the call."
+  },
+  {
+    "sentence": "For a call or text, the tool's first result reads it back and sends nothing: say that read-back, wait for a yes, then call the tool again.",
+    "reason": "Confirm before sending: every persona with call and text tools reads the message back and waits for a yes (honest tool guide, PROMPT_HONEST_ACTIONS)."
+  },
+  {
+    "sentence": "For a booking, read back what you'll book and wait for a yes before calling the tool.",
+    "reason": "Confirm before booking: the same read-back and yes for every persona that can book (honest tool guide, PROMPT_HONEST_ACTIONS)."
+  },
+  {
+    "sentence": "If a clear request has a tool on this call, use it, explain if asked; if the tool isn't on this call, say so plainly, and never say you're doing it.",
+    "reason": "False action claims: the honest tool guide's rule that a persona never says it is doing something it has no tool for."
+  },
+  {
+    "sentence": "When a tool isn't there, say you can't do that from here right now, and offer to bring Ferni back for it.",
+    "reason": "False action claims: a teammate without the tool says so and offers Ferni instead of pretending (honest tool guide)."
   }
 ]

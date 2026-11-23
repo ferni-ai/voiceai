@@ -6,13 +6,14 @@
  * character file, so the teammates read as one author with the names swapped.
  *
  * What is measured: the prompt the real loader builds, loadSystemPrompt
- * (prompt-loader.ts) in PROMPT_MODE=character, as dev and prod run. ENV below
- * turns on the flags that add persona-owned files to that prompt (the spark
- * and own-life sheets) and keeps off the ones that inject text from code.
- * Sentences found in bundles/shared/* are subtracted: one copy loaded for
- * everyone by design. Only sentences that appear in the persona's own bundle
- * files are kept, so prompt text injected by code (persona .ts builders,
- * withCanonFacts, troubles-talk) is out of scope.
+ * (prompt-loader.ts) in PROMPT_MODE=character, as dev and prod run. BASE_ENV
+ * matches dev's boot settings; FLAG_SETS takes the union over the two flags
+ * that swap persona-owned files (PERSONA_SPARK, PROMPT_HONEST_ACTIONS), so the
+ * gate holds whichever way either is set. Sentences found in bundles/shared/*
+ * are subtracted: one copy loaded for everyone by design. Only sentences that
+ * appear in the persona's own bundle files are kept, so prompt text injected
+ * by code (persona .ts builders, withCanonFacts, troubles-talk) is out of
+ * scope, and a test fails if any loaded sentence is neither owned nor shared.
  *
  * The metric: a persona's sentences of 10+ words (normalised, deduplicated)
  * that also appear in another persona's measured prompt. Sentences in
@@ -51,11 +52,11 @@ const GOAL_PCT = 5;
 
 /** Shared-sentence count per persona, pinned on 2026-11-23. */
 const SHARED_PINS: Record<string, number> = {
-  'alex-chen': 23,
+  'alex-chen': 22,
   ferni: 18,
   'joel-dickson': 9,
   'john-bogle': 9,
-  'jordan-taylor': 23,
+  'jordan-taylor': 22,
   'maya-santos': 24,
   'nayan-patel': 21,
   'peter-john': 23,
@@ -64,15 +65,33 @@ const SHARED_PINS: Record<string, number> = {
 
 const MIN_WORDS = 10;
 
-/** The character-mode prompt with every persona-owned sheet and no code-injected text. */
-const ENV: Record<string, string | undefined> = {
+/**
+ * The character-mode prompt as dev runs it (boot EFFECTIVE_SETTINGS, 2026-11-23):
+ * slip guard on, code-injected canon facts and troubles talk off, the cascade
+ * pipeline (getModelProvider caches it and it decides whether tool guidance loads).
+ */
+const BASE_ENV: Record<string, string | undefined> = {
   PROMPT_MODE: 'character',
-  PERSONA_SPARK: 'on',
+  VOICE_PIPELINE: 'cartesia-cascade',
   FERNI_PERSONA_SLIP_GUARD: 'on',
   PERSONA_CANON_FACTS: undefined,
   TROUBLES_TALK: undefined,
-  PROMPT_HONEST_ACTIONS: undefined,
 };
+
+/**
+ * Two flags swap persona-owned files in or out: PERSONA_SPARK (the spark sheets;
+ * off, joel and john have no sheet and load their full prompt) and
+ * PROMPT_HONEST_ACTIONS (tool-usage-guidance.honest.md instead of the plain one).
+ * A persona's measured text is the union over all four settings, so the gate
+ * covers what dev loads today (spark off, honest on) and stays honest when
+ * either flag flips, on dev or prod.
+ */
+const FLAG_SETS: ReadonlyArray<Record<string, string>> = [
+  { PERSONA_SPARK: 'off', PROMPT_HONEST_ACTIONS: 'on' },
+  { PERSONA_SPARK: 'on', PROMPT_HONEST_ACTIONS: 'on' },
+  { PERSONA_SPARK: 'on', PROMPT_HONEST_ACTIONS: 'off' },
+  { PERSONA_SPARK: 'off', PROMPT_HONEST_ACTIONS: 'off' },
+];
 
 interface AllowEntry {
   sentence: string;
@@ -247,15 +266,58 @@ function ratchetBreak(persona: string, shared: number, pin: number | undefined):
   return null;
 }
 
+/** Loaded sentences from neither the persona's own files nor shared/: text the metric can't see. */
+function droppedSentences(loaded: string, own: string, shared: ReadonlySet<string>): string[] {
+  const mine = sentences(own);
+  return [...sentences(loaded)].filter((s) => !mine.has(s) && !shared.has(s));
+}
+
+interface Measured {
+  sets: Record<string, Set<string>>;
+  /** persona -> loaded sentences the owned/shared split could not place. */
+  dropped: Record<string, string[]>;
+}
+
 /** What the model sees of each persona's own text: loaded, theirs, and not from shared/. */
-async function measuredSets(): Promise<Record<string, Set<string>>> {
+async function measuredSets(): Promise<Measured> {
   const measured = await Promise.all(
     personas().map(async (p) => {
       const loaded = await loadSystemPrompt(p);
-      return [p, ownedSentences(loaded, folderText(join(BUNDLES, p)), sharedSentences)] as const;
+      const own = folderText(join(BUNDLES, p));
+      return [
+        p,
+        ownedSentences(loaded, own, sharedSentences),
+        droppedSentences(loaded, own, sharedSentences),
+      ] as const;
     })
   );
-  return Object.fromEntries(measured);
+  return {
+    sets: Object.fromEntries(measured.map(([p, set]) => [p, set])),
+    dropped: Object.fromEntries(measured.map(([p, , d]) => [p, d])),
+  };
+}
+
+/** Per persona, the union of its measured sentences under every flag set. */
+async function unionOverFlagSets(base: Record<string, string | undefined>): Promise<Measured> {
+  const out: Measured = { sets: {}, dropped: {} };
+  for (const flags of FLAG_SETS) {
+    const tag = Object.entries(flags)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(' ');
+    const restore = withEnv({ ...base, ...flags });
+    try {
+      const m = await measuredSets();
+      for (const [p, set] of Object.entries(m.sets)) {
+        out.sets[p] = new Set([...(out.sets[p] ?? []), ...set]);
+      }
+      for (const [p, d] of Object.entries(m.dropped)) {
+        out.dropped[p] = [...(out.dropped[p] ?? []), ...d.map((s) => `[${tag}] ${s}`)];
+      }
+    } finally {
+      restore();
+    }
+  }
+  return out;
 }
 
 const allowEntries = JSON.parse(readFileSync(ALLOWLIST_FILE, 'utf8')) as AllowEntry[];
@@ -275,24 +337,16 @@ function withEnv(env: Record<string, string | undefined>): () => void {
 
 describe('persona uniqueness (#1430)', () => {
   let sets: Record<string, Set<string>> = {};
+  let dropped: Record<string, string[]> = {};
   let rows: Uniqueness[] = [];
   let fullRows: Uniqueness[] = [];
 
   beforeAll(async () => {
-    const restoreFull = withEnv({ ...ENV, PROMPT_MODE: undefined });
-    try {
-      fullRows = measure(await measuredSets(), allow);
-    } finally {
-      restoreFull();
-    }
-    const restore = withEnv(ENV);
-    try {
-      sets = await measuredSets();
-      rows = measure(sets, allow);
-    } finally {
-      restore();
-    }
-  }, 60_000);
+    const full = await unionOverFlagSets({ ...BASE_ENV, PROMPT_MODE: undefined });
+    fullRows = measure(full.sets, allow);
+    ({ sets, dropped } = await unionOverFlagSets(BASE_ENV));
+    rows = measure(sets, allow);
+  }, 120_000);
 
   afterAll(() => {
     process.stdout.write(
@@ -311,6 +365,11 @@ describe('persona uniqueness (#1430)', () => {
   it('measures the loaded prompt of every persona', () => {
     expect(rows.map((r) => r.persona)).toEqual(personas());
     for (const r of rows) expect(r.sentences, r.persona).toBeGreaterThan(0);
+  });
+
+  it('places every loaded sentence as owned or shared, so nothing escapes the count', () => {
+    // A loader reformat or new code-injected text would otherwise silently undercount.
+    for (const p of personas()) expect(dropped[p] ?? [], p).toEqual([]);
   });
 
   it('pins every persona', () => {
