@@ -43,9 +43,12 @@ import {
 import { watchBlocked } from './crisis-classifier-blocked.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
+import { verdictOutcome, type PatternOutcome } from './crisis-verdict-outcome.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { callTurnOf } from '../../utils/call-turn.js';
+
+export { verdictOutcome, type PatternOutcome } from './crisis-verdict-outcome.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -235,9 +238,6 @@ export async function classifyCrisis(
   }
 }
 
-/** What the pattern guard decided for the same turn. */
-export type PatternOutcome = 'block' | 'crisis' | 'none';
-
 export interface CrisisClassifierRun {
   mode: 'shadow' | 'live';
   verdict: Promise<CrisisVerdict | null>;
@@ -394,11 +394,6 @@ export function resetCrisisClassifierCache(): void {
   looseReads.clear();
   resetSecondReadTurns();
   resetLostReads();
-}
-
-export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
-  if (verdict.risk === 'none') return 'none';
-  return verdict.risk === 'imminent' && verdict.subject === 'self' ? 'block' : 'crisis';
 }
 
 /**
