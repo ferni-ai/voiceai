@@ -1,7 +1,5 @@
 /**
- * Memory Domain Tool Executor
- *
- * Handles all memory-related tools: rememberAboutUser, recallFromMemory,
+ * Memory Domain Tool Executor: all memory-related tools, rememberAboutUser, recallFromMemory,
  * updateMemory, forgetMemory, getRelationshipSummary, reinforceMemory
  *
  * @module agents/shared/tool-executors/memory-executor
@@ -12,6 +10,7 @@ import { loadRecallForgetGuard } from './recall-forget-guard.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { callerHeld } from '../../../utils/minor-care.js'; // MINOR_CARE: user's hold too (chat)
 import { announceMemorySaved } from '../../../tools/domains/memory/memory-saved.js';
+import { keepChatFactForRecall } from './chat-remember-to-recall.js'; // CHAT_REMEMBER_TO_RECALL
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -121,6 +120,7 @@ async function execute(
           .add(cleanForFirestore(memoryDoc));
         const { sessionId, userId } = ctx; // memory_saved only after the store resolved
         void announceMemorySaved({ sessionId, userId, id: stored.id, fact, category });
+        await keepChatFactForRecall(ctx.userId, { fact, memoryId: stored.id, category, sessionId }); // #2518
 
         // Index in vector store
         try {
