@@ -88,7 +88,7 @@ const LINES = {
     UNASKED,
   ],
   askedLowFirst: `${LOW_FIRST} Otherwise, they asked about you: answer from your day`,
-  end: ', said plainly in your own words, and leave it there, no question back. End on your own thing ("and that was my morning"), not on "what about you?"',
+  end: ', said plainly in your own words, and leave it there, no question back. End on your own thing, not on a question about theirs.',
   noDetail: `${LOW_FIRST} Otherwise, they asked about you: say one more real thing about what you've already told them, or how you honestly are right now, not a new story of your day, in a sentence or two, and leave it there, no question back.`,
   followUp: `${LOW_FIRST} Otherwise, you were just telling them about yourself: if they are still asking about you, stay on yourself a moment, one more real thing about what you already told them, plainly, with no question back; if they have moved on to something of theirs, go with them, this reply is about them.`,
 } as const;
@@ -102,15 +102,32 @@ type StayKind = 'asked' | 'no_detail' | 'follow_up';
 /** The turn, and which rewrite it got (asked/no_detail: turn-shape.ts then bars the turn-back). */
 export type StayTurn = StateTurn & { stays?: StayKind };
 
-/** Per call: the caller's words on each stays turn, and how many follow-ups deep it was (0: the ask). */
+/**
+ * Per call: each stays turn, keyed by its position among the caller's turns
+ * and its words, and how many follow-ups deep it was (0: the ask). Position,
+ * so the same words later in the call ("Ha.") never count as a stays turn;
+ * words too, so a trimmed history that shifts positions can't match by chance.
+ * A second read of the same turn finds the same previous entry.
+ */
 const stayed = new WeakMap<object, Map<string, number>>();
 
-function remember(session: object, said: string, depth: number): void {
-  const turns = stayed.get(session) ?? new Map<string, number>();
-  turns.delete(said);
-  turns.set(said, depth);
-  if (turns.size > REMEMBERED) turns.delete(turns.keys().next().value as string);
-  stayed.set(session, turns);
+function turnKey(turns: readonly string[], at: number): string {
+  return `${at}:${turns[at] ?? ''}`;
+}
+
+/** How many follow-ups deep the caller's previous turn was, if it was a stays turn. */
+function depthBefore(session: object, turns: readonly string[]): number | undefined {
+  return turns.length < 2 ? undefined : stayed.get(session)?.get(turnKey(turns, turns.length - 2));
+}
+
+/** Records the caller's latest turn as a stays turn. */
+function remember(session: object, turns: readonly string[], depth: number): void {
+  const key = turnKey(turns, turns.length - 1);
+  const seen = stayed.get(session) ?? new Map<string, number>();
+  seen.delete(key);
+  seen.set(key, depth);
+  if (seen.size > REMEMBERED) seen.delete(seen.keys().next().value as string);
+  stayed.set(session, seen);
 }
 
 /** Any shared reader of distress marks their words: then nothing here applies. */
@@ -156,11 +173,10 @@ export function ferniStateStays(
   const turns = callerTurnsOf(chatCtx);
   const said = turns[turns.length - 1] ?? '';
   if (soundsHard(said, understandingFor(session, said)?.mood)) return turn;
-  const previous = turns[turns.length - 2];
-  const before = previous === undefined ? undefined : stayed.get(session)?.get(previous);
+  const before = depthBefore(session, turns);
   const done = rewrite(turn.last, before);
   if (!done) return turn;
-  remember(session, said, done.kind === 'follow_up' ? (before ?? 0) + 1 : 0);
+  remember(session, turns, done.kind === 'follow_up' ? (before ?? 0) + 1 : 0);
   log.info({ sessionId, kind: done.kind }, 'SELF_SHARE_STAYS');
   return { ...turn, last: done.last, stays: done.kind };
 }

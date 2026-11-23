@@ -359,6 +359,66 @@ describe('SELF_SHARE_STAYS=on: the turns after it', () => {
     expect(kinds).toEqual([undefined, undefined, 'asked', 'follow_up', 'follow_up', undefined]);
   });
 
+  it('the same words again later in the call are not a stays turn (review round 2)', () => {
+    const scene = [
+      ...ASKED,
+      HIS_SHARE,
+      'Ha.',
+      'Ha, yeah, a little silly.',
+      'So my car broke down on the way home.',
+      'Oh no, where did it stop on you?',
+      'Right by the gas station on Elm, of all places.',
+      'Well, at least that is close to help.',
+      'The tow truck took an hour to show up.',
+      'An hour, that is a long wait.',
+      'The guy said it is the alternator.',
+      'Okay, so that is fixable at least.',
+      'Should be ready Thursday, they said.',
+      'Thursday is not too bad.',
+      'Ha.',
+      'Ha, yeah.',
+      'Anyway, I have to pick up the kids from practice soon.',
+    ];
+    const { session } = newCall();
+    const turns: StayTurn[] = [];
+    for (let i = 0; i < scene.length; i += 2)
+      turns.push(ferniStateStays(callOf(...scene.slice(0, i + 1)), session, { env: STATE_ON }));
+    const kinds = turns.map((t) => t.stays);
+    expect(kinds.slice(2, 4)).toEqual(['asked', 'follow_up']);
+    const kids = turns[turns.length - 1];
+    expect(kids.stays).toBeUndefined();
+    // ferni-state's own line rides; keyed by words alone, the old "Ha." made this a follow-up.
+    expect(kids.last).toContain("They're telling you something of theirs");
+    expect(kids.last).not.toContain(FOLLOW_UP);
+  });
+
+  it('reading the same follow-up turn twice gives the same note', () => {
+    const scene = [...ASKED, HIS_SHARE, 'Go on.'];
+    const { session } = newCall();
+    const kinds = [];
+    for (let i = 0; i < scene.length; i += 2)
+      kinds.push(
+        ferniStateStays(callOf(...scene.slice(0, i + 1)), session, { env: STATE_ON }).stays
+      );
+    kinds.push(ferniStateStays(callOf(...scene), session, { env: STATE_ON }).stays);
+    expect(kinds).toEqual([undefined, undefined, 'asked', 'follow_up', 'follow_up']);
+  });
+
+  it('a trimmed history that shifts positions fails closed: no note from a stale entry', () => {
+    const scene = [...ASKED, HIS_SHARE, 'Go on.'];
+    const { session } = newCall();
+    for (let i = 0; i < scene.length; i += 2)
+      ferniStateStays(callOf(...scene.slice(0, i + 1)), session, { env: STATE_ON });
+    // The first exchange dropped: the ask now sits where 'Go on.' was remembered.
+    const trimmed = [
+      ...scene.slice(2),
+      'Ha, keep going then.',
+      'Anyway, the kids have practice tonight.',
+    ];
+    const turn = ferniStateStays(callOf(...trimmed), session, { env: STATE_ON });
+    expect(turn.stays).toBeUndefined();
+  });
+
   it('the same words on a fresh call (no stays turn before them): no note', () => {
     const { session } = newCall();
     const turn = ferniStateStays(callOf(...ASKED, HIS_SHARE, 'Go on.'), session, { env: STATE_ON });
@@ -448,7 +508,9 @@ describe('voice text rules', () => {
     for (const { last } of turns) {
       expect(last).not.toMatch(/[—…]|\.\.\./);
       expect(last).not.toMatch(LOW_MOOD_SELF);
-      expect(last).not.toMatch(/Okay, honestly|The real answer is|book that trip/);
+      expect(last).not.toMatch(
+        /Okay, honestly|The real answer is|book that trip|that was my morning/
+      );
     }
   });
 });
