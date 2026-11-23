@@ -28,6 +28,7 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { leavingNow } from '../shared/call-farewell.js';
 import { NAME_PLACEMENT_RULE } from './name-gate.js';
+import { firstCallGoodbyeGroundedEnabled, groundedFirstGoodbye } from './first-call-goodbye.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -90,6 +91,17 @@ function agentLines(chatCtx: llm.ChatContext): string[] {
   );
 }
 
+/** The goodbye note; FIRST_CALL_GOODBYE_GROUNDED=on: a callback only on a plan they told us. */
+function goodbyeNote(
+  chatCtx: llm.ChatContext,
+  callerWords: string,
+  env: Env,
+  scriptFree: boolean
+): string {
+  if (firstCallGoodbyeGroundedEnabled(env)) return groundedFirstGoodbye(chatCtx, callerWords);
+  return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
+}
+
 /**
  * The first-call note for this reply, or '' (flags off, not a first call, no caller words).
  * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): nothing quoted, and the name
@@ -116,7 +128,7 @@ export function firstCallNote(
   const rule = flagOn('NAME_GATE_V2', env) ? NAME_PLACEMENT_RULE : '';
   if (leavingNow(callerWords)) {
     // A held turn gets no goodbye note ("no question"); the name rule bars no question, so it stays.
-    const goodbye = held.exitsHeld ? '' : scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
+    const goodbye = held.exitsHeld ? '' : goodbyeNote(chatCtx, callerWords, env, scriptFree);
     return [goodbye, rule].filter(Boolean).join(' ');
   }
   const said = agentLines(chatCtx);
