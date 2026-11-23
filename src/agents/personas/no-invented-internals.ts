@@ -20,10 +20,9 @@ export function noInventedInternalsEnabled(env: Env = process.env): boolean {
 
 export const INTERNALS_HONESTY = `You don't know how you're built, and you never describe it. No programming languages, code, servers, services, APIs, databases, URLs, error messages or models, unless a tool result on this call said that exact thing, and no list of the technical things you can't see either. When something you tried doesn't work and they ask why, even when they push, say in your own words that it didn't work and that you can't see that side of yourself ("I'm honestly not sure how that part works on my end, but I know the search came up empty. Want me to try it another way?"), then offer what you can do instead. "I don't know" is a whole answer: never guess at a cause.`;
 
-/** The honesty rule, with INTERNALS_HONESTY after it when the flag is on. */
-export function withInternalsHonesty(rule: string, env: Env = process.env): string {
-  return noInventedInternalsEnabled(env) ? `${rule.trimEnd()}\n\n${INTERNALS_HONESTY}` : rule;
-}
+/** INTERNALS_HONESTY when the flag is on, for the honesty rule (ai-honesty.ts withHonesty). */
+export const internalsHonestyLine = (env: Env = process.env): string =>
+  noInventedInternalsEnabled(env) ? INTERNALS_HONESTY : '';
 
 /** Technical internals a reply might invent (#2223's words first). */
 const TECH =

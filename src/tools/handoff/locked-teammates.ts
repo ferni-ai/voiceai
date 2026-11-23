@@ -54,6 +54,7 @@ import type { UnlockView } from './locked-handoffs.js';
 import { crisisGuidedTurn } from '../../services/safety/index.js';
 import { lastAgentWordsIn } from './chief-of-staff-note.js';
 import { teammateHeardAs, type AliasNoteContext } from './teammate-names.js';
+import { withPronouns } from './teammate-pronouns.js';
 
 export const ASK_FOR_TEAMMATE = 'askForTeammate';
 
@@ -161,9 +162,10 @@ export function teamStatusNote(view: UnlockView, callerWords = ''): string {
       `Say warmly and briefly that ${names} ${asked.length > 1 ? "aren't" : "isn't"} available to them yet, help them yourself, and never offer, promise or start a transfer.`
     );
   }
+  // TEAMMATE_PRONOUNS=on: "Ferni (he/him)", from the canon (teammate-pronouns.ts)
   const open = TEAM_MEMBERS.filter(
     (m) => !isSpeaker(m.memberId, view) && isOpen(m.memberId, view)
-  ).map((m) => m.displayName);
+  ).map((m) => withPronouns(m.memberId, m.displayName));
   if (open.length === 0)
     return "None of your teammates are available to this caller yet; don't bring them up.";
   const line = `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} available to this caller; don't bring up the others.`;

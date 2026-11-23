@@ -12,7 +12,7 @@ import { existingPosts, slugify, type ExistingPost } from './existing-posts.js';
 import { renderPack, sourceList, type GhRunner, type Source } from './grounding.js';
 import type { DraftModel } from './model.js';
 import { getPostType, type PostType } from './post-types.js';
-import { editorNotes, type JudgeResult } from './judge.js';
+import { editorNotes, rewriteIsBetter, type JudgeResult } from './judge.js';
 import { buildPrompt, parseDraft, revisePrompt, type DraftText } from './prompt.js';
 import { characterLabel, focusLetter, letterAuthor, pickPersona } from './team-letter.js';
 import { NEEDS_PRS, collectSources } from './type-sources.js';
@@ -64,8 +64,19 @@ export interface DraftResult {
   title?: string;
   markdown?: string;
   issues: GateIssue[];
-  /** The judge's verdict on the first clean draft, and whether a rewrite replaced it. */
-  review?: { before: JudgeResult; revised: boolean };
+  /**
+   * The judge's verdict on the first clean draft, its verdict on the rewrite
+   * when there was one, and whether the rewrite replaced the draft.
+   */
+  review?: Review;
+  /** The gate rules a first draft failed when a retry then passed; for the log. */
+  gateRetry?: Array<GateIssue['rule']>;
+}
+
+export interface Review {
+  before: JudgeResult;
+  after?: JudgeResult;
+  revised: boolean;
 }
 
 interface PostMeta {
@@ -224,23 +235,29 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   const model = deps.model;
   /**
    * One rewrite against the judge's notes. The rewrite must pass the same
-   * brand gate; if it doesn't, or the judge passed the draft or gave no
-   * verdict, the draft stands. The workflow's judge step scores what's kept.
+   * brand gate and then score better with the judge (rewriteIsBetter); if
+   * it doesn't, or the judge passed the draft or gave no verdict, the draft
+   * stands. The workflow's judge step scores what's kept.
    */
-  const reviseOnce = async (draft: DraftText, markdown: string) => {
-    if (!deps.review) return { draft, markdown };
-    let before: JudgeResult;
+  const judge = async (review: NonNullable<DraftDeps['review']>, markdown: string) => {
     try {
-      before = await deps.review(markdown, gate.sourceText);
+      return await review(markdown, gate.sourceText);
     } catch (error) {
       // The rewrite is optional: a judge that can't run leaves the draft as it is.
-      before = { status: 'error', model: 'unknown', failures: [`judge failed: ${String(error)}`] };
+      const failures = [`judge failed: ${String(error)}`];
+      return { status: 'error', model: 'unknown', failures } satisfies JudgeResult;
     }
+  };
+  const reviseOnce = async (draft: DraftText, markdown: string) => {
+    if (!deps.review) return { draft, markdown };
+    const before = await judge(deps.review, markdown);
     result.review = { before, revised: false };
     const notes = editorNotes(before);
     if (before.status !== 'fail' || notes.length === 0) return { draft, markdown };
     const again = await attempt(revisePrompt(result.prompt, draft, notes), model, render, gate);
     if (!again.draft || !again.markdown || again.issues.length > 0) return { draft, markdown };
+    result.review.after = await judge(deps.review, again.markdown);
+    if (!rewriteIsBetter(before, result.review.after)) return { draft, markdown };
     result.review.revised = true;
     return { draft: again.draft, markdown: again.markdown };
   };
@@ -265,6 +282,8 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
         path: file,
         title: kept.draft.title,
         markdown: kept.markdown,
+        // A retry passed: name the rules the first draft failed, for the log.
+        ...(n > 1 && { gateRetry: [...new Set(result.issues.map((i) => i.rule))] }),
       };
     }
     Object.assign(result, { issues, markdown, prompt: ask(issues) });

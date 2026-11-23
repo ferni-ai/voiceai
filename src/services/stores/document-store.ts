@@ -19,6 +19,7 @@ import {
   saveLifeAutomationData,
   isFirestoreAvailable,
 } from './firestore-life-adapter.js';
+import { notSaved } from './store-write-truth.js'; // STORE_WRITES_TRUTHFUL
 
 const log = createLogger({ module: 'document-store' });
 
@@ -300,12 +301,7 @@ export async function saveDocumentData(userId: string, data: Partial<DocumentDat
         lastUpdated: (updated.lastUpdated as Date).toISOString(),
       };
       const result = await saveLifeAutomationData(userId, 'documents', firestoreData);
-      if (!result.success) {
-        log.warn(
-          { userId, error: result.error },
-          'Failed to save to Firestore, data in memory only'
-        );
-      }
+      if (!result.success) notSaved(log, documentStorage, 'documents', { userId, result });
     }
 
     log.debug({ userId }, 'Document data saved');

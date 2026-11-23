@@ -16,6 +16,7 @@ import * as path from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import { notifySpotifyAvailabilityChange } from './spotify-availability.js';
 
 // File to store tokens (gitignored)
 const TOKEN_FILE = path.join(process.cwd(), '.spotify-tokens.json');
@@ -53,7 +54,6 @@ let refreshInProgress: Promise<TokenData | null> | null = null;
 // CIRCUIT BREAKER FOR REPEATED FAILURES
 // ============================================================================
 
-// Use the centralized circuit breaker utility
 const spotifyCircuitBreaker = getCircuitBreaker('spotify-token-refresh', {
   failureThreshold: 3,
   resetTimeout: 60 * 1000, // 1 minute
@@ -137,6 +137,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
       if (errorData.error === 'invalid_grant') {
         revokedRefreshToken = refreshToken;
         getLogger().warn({ description: errorData.error_description }, '🎵 Spotify refresh token revoked; Spotify off until a new token is configured');
+        notifySpotifyAvailabilityChange();
         return null;
       }
       getLogger().error({ error: errorData.error, description: errorData.error_description }, 'Spotify token refresh failed');
@@ -160,7 +161,6 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
       scope: data.scope || '',
     };
 
-    // Save to file for persistence
     saveTokens(tokens);
     cachedTokens = tokens;
 
@@ -182,7 +182,6 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
  * @param forceRefresh - Force a token refresh even if current token appears valid
  */
 export async function getSpotifyAccessToken(forceRefresh = false): Promise<string | null> {
-  // Check circuit breaker first
   if (!spotifyCircuitBreaker.canRequest()) {
     getLogger().warn('🎵 Spotify circuit breaker is OPEN - skipping request');
     return null;
@@ -396,6 +395,7 @@ export function storeSpotifyTokens(
   cachedTokens = tokens;
 
   getLogger().info('New Spotify tokens stored');
+  notifySpotifyAvailabilityChange();
 }
 
 /**
