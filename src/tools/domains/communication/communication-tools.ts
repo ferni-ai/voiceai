@@ -660,13 +660,7 @@ export function createCommunicationTools() {
         if (email) updates.push(`email: ${sanitizeEmailForLog(email)}`);
         if (preferredMethod) updates.push(`preferred method: ${preferredMethod}`);
 
-        getLogger().info(
-          {
-            phone: phone ? sanitizePhoneForLog(phone) : undefined,
-            email: email ? sanitizeEmailForLog(email) : undefined,
-          },
-          '📇 Contact info saved'
-        );
+        getLogger().info({ hasPhone: !!phone, hasEmail: !!email }, '📇 Contact info saved');
 
         return `Perfect! I've saved your contact info: ${updates.join(', ')}. I'll use this for reminders and messages.`;
       },

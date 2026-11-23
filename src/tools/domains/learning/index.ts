@@ -530,7 +530,7 @@ const trackBooksReadDef: ToolDefinition = {
         rating: z.number().optional().describe('Rating 1-5'),
       }),
       execute: async ({ action, title, author, keyTakeaways, rating }) => {
-        getLogger().info({ agentId: ctx.agentId, action, title }, 'Tracking books');
+        getLogger().info({ agentId: ctx.agentId, action, titleLength: title?.length }, 'Book log');
 
         let response = '';
 

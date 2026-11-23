@@ -342,7 +342,7 @@ const createTimeCapsuleDef: ToolDefinition = {
         yearsAhead: z.string().describe('How far in the future to open'),
       }),
       execute: async ({ recipient, yearsAhead }) => {
-        getLogger().info({ agentId: ctx.agentId, yearsAhead }, 'Creating time capsule');
+        getLogger().info({ agentId: ctx.agentId, aheadLength: yearsAhead.length }, 'Time capsule');
 
         let response = `**Time Capsule for ${recipient.replace('-', ' ')} - to open in ${yearsAhead}**\n\n`;
         response += `What do you want to preserve for the future?\n\n`;

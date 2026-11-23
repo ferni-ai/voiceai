@@ -28,7 +28,9 @@ const cap = vi.hoisted(() => {
         return () => node();
       },
     });
-  return { calls, logger, db: node() };
+  // TMDB answers nothing by default; a row can make it throw.
+  const tmdb = { get: async (): Promise<unknown> => null };
+  return { calls, logger, db: node(), tmdb };
 });
 
 /** Invented caller words: if any log field holds this, the words reached the logger. */
@@ -52,6 +54,33 @@ vi.mock('../../../../services/calendar/calendar-service.js', async (importOrigin
   isConnected: vi.fn(async () => false),
 }));
 
+vi.mock('../../../../tools/domains/entertainment/tmdb-client.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  tmdbGet: async () => cap.tmdb.get(),
+}));
+vi.mock('../../../../services/user-events/index.js', () => ({ broadcastUserEvent: vi.fn() }));
+vi.mock(
+  '../../../../services/contacts/contact-relationship-service.js',
+  async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    searchContacts: vi.fn(async () => [
+      { name: 'Riley Neighbour', phone: '+15555550123', email: 'riley.neighbour@example.test' },
+    ]),
+  })
+);
+vi.mock('../../../../services/outreach/voice-synthesis.js', () => ({
+  isVoiceSynthesisAvailable: () => true,
+  generateVoiceMessage: vi.fn(async () => ({ audioUrl: 'https://media.example.test/v.mp3' })),
+}));
+vi.mock('../../../../services/communication-service.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  directSendHeld: vi.fn(async () => false),
+  // The real sendEmail answers with the masked address and the subject.
+  sendEmail: vi.fn(
+    async (_to: string, subject: string) => `Email sent to ri***@example.test: "${subject}"`
+  ),
+}));
+
 const { executeLegacyFallback } = await import('../legacy-fallback-executor.js');
 const { openclawExecutor } = await import('../openclaw-executor.js');
 const { createCommunicationCoachingTools } =
@@ -70,6 +99,9 @@ const { saveVoiceMemoDef } =
 const smartHome = await import('../../../../tools/domains/smart-home/index.js');
 const stories = await import('../../../../tools/domains/stories/index.js');
 const { createSharedGoal } = await import('../../../../tools/handoff/team-coordination/core.js');
+const { createMovieTools } = await import('../../../../tools/domains/entertainment/movies.js');
+const { navigationToolDefinitions } =
+  await import('../../../../tools/domains/ui-navigation/navigation-tools.js');
 
 const USER = 'riley-test-1';
 const ctx = { userId: USER };
@@ -84,6 +116,8 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  cap.tmdb.get = async () => null;
 });
 
 const quietly = async (run: () => unknown): Promise<void> => {
@@ -286,13 +320,13 @@ describe('memo, home, story and team tools log no caller words (#4322)', () => {
     nothingNamed('🍽️ Announcing dinner', { messageLength: WORDS.length });
   });
 
-  it('a time capsule: no recipient', async () => {
+  it('a time capsule: no recipient, how far ahead as a length', async () => {
     await tool(stories.definitions, 'createTimeCapsule', {
       recipient: 'children',
-      yearsAhead: '5',
+      yearsAhead: WORDS,
     });
-    nothingNamed('Creating time capsule', { yearsAhead: '5' });
-    const line = cap.calls.find((c) => c.msg === 'Creating time capsule');
+    nothingNamed('Time capsule', { aheadLength: WORDS.length });
+    const line = cap.calls.find((c) => c.msg === 'Time capsule');
     expect(line?.fields).not.toHaveProperty('recipient');
   });
 
@@ -308,5 +342,107 @@ describe('memo, home, story and team tools log no caller words (#4322)', () => {
     const line = cap.calls.find((c) => c.msg === '🤝 Shared goal created (persisted)');
     expect(JSON.stringify(line?.fields)).not.toContain(title);
     expect(line?.fields).toMatchObject({ titleLength: title.length });
+  });
+});
+
+/** No captured call holds the contact's phone or address, masked or not. */
+function noContactDetails(): void {
+  for (const c of cap.calls) {
+    const text = JSON.stringify(c.fields) ?? '';
+    expect(text).not.toContain('0123');
+    expect(text).not.toContain('example.test');
+  }
+}
+
+describe('contact, panel, catalog and send lines log no caller words (#4322 round 3)', () => {
+  it('saving contact info: whether a phone and an email came, never a masked copy', async () => {
+    const args = { phone: '+15555550123', email: 'riley.neighbour@example.test' };
+    const withProfile = { ctx: { userData: { userId: USER, userProfile: {} } } };
+    await legacyTool(createCommunicationTools(), 'saveContactInfo', args, withProfile);
+    nothingNamed('📇 Contact info saved', { hasPhone: true, hasEmail: true });
+    noContactDetails();
+  });
+
+  it('a panel the app does not know: the phrase as a length', async () => {
+    await tool(navigationToolDefinitions, 'openPanel', { panel: WORDS });
+    nothingNamed('🧭 Unknown panel requested', { requestedLength: WORDS.length });
+  });
+
+  it('a panel it opens: the panel id, the phrase as a length', async () => {
+    const panel = `${WORDS} memory lane`;
+    await tool(navigationToolDefinitions, 'openPanel', { panel });
+    nothingNamed('🧭 Opening panel via voice', { requestedLength: panel.length });
+  });
+
+  it.each([
+    ['getMovieInfo', '🎬 Movie info tool called'],
+    ['getMovieInfo', '🎬 Looking up movie'],
+    ['getMovieShowtimes', '🎬 Showtimes tool called'],
+    ['getMovieShowtimes', '🎬 Getting showtimes'],
+    ['getWhereToWatch', '🎬 Where to watch tool called'],
+  ])('%s, line %s: the asked-for title as a length, before any lookup', async (name, msg) => {
+    await legacyTool(createMovieTools(), name, { title: WORDS, location: 'riley test town' });
+    nothingNamed(msg, { titleLength: WORDS.length });
+  });
+
+  it('a TMDB search that throws: the query as a length', async () => {
+    cap.tmdb.get = async () => Promise.reject(new Error('tmdb down'));
+    await legacyTool(createMovieTools(), 'getMovieInfo', {
+      title: WORDS,
+    });
+    nothingNamed('🎬 TMDB exception', { queryLength: WORDS.length });
+  });
+
+  it('logging a book: the title as a length', async () => {
+    await tool(learning.definitions, 'trackBooksRead', { action: 'log', title: WORDS });
+    nothingNamed('Book log', { action: 'log', titleLength: WORDS.length });
+  });
+
+  it('a chat logMood: the mood as a length', async () => {
+    await quietly(() => executeLegacyFallback('logMood', { mood: WORDS, intensity: 3 }, ctx));
+    nothingNamed('😊 Mood noted', { moodLength: WORDS.length, intensity: 3 });
+  });
+});
+
+describe('chat fallback sends log no contact (#4322 round 3)', () => {
+  beforeEach(() => {
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC-riley-test');
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'riley-test-token');
+    vi.stubEnv('TWILIO_PHONE_NUMBER', '+15555550100');
+  });
+
+  it('a text: no contact name on the request, a recipient flag on the send', async () => {
+    gateway(async () => new Response(JSON.stringify({ sid: 'SM-riley-test' })));
+    await executeLegacyFallback('sendSMS', { contactName: CONTACT, message: WORDS }, ctx);
+    nothingNamed('📱 Text message requested', { userId: USER });
+    nothingNamed('📱 SMS sent', { sid: 'SM-riley-test', hasRecipient: true });
+    noContactDetails();
+  });
+
+  it('a voice message: no contact name on the request, a recipient flag on the send', async () => {
+    gateway(async () => new Response(JSON.stringify({ sid: 'MM-riley-test' })));
+    await executeLegacyFallback('sendVoiceMessage', { contactName: CONTACT, message: WORDS }, ctx);
+    nothingNamed('🎤 Voice message requested', { userId: USER });
+    nothingNamed('📱 Voice message sent via MMS', { sid: 'MM-riley-test', hasRecipient: true });
+    noContactDetails();
+  });
+
+  it("a refused text or voice message: Twilio's status, never its body", async () => {
+    const body = 'The To number +15555550123 is not a valid mobile number';
+    gateway(async () => new Response(body, { status: 400 }));
+    await executeLegacyFallback('sendSMS', { contactName: CONTACT, message: WORDS }, ctx);
+    nothingNamed('📱 SMS send failed', { status: 400 });
+    await executeLegacyFallback('sendVoiceMessage', { contactName: CONTACT, message: WORDS }, ctx);
+    nothingNamed('📱 MMS send failed', { status: 400 });
+    noContactDetails();
+  });
+
+  it('an email: no contact name, no address, the send result as a length', async () => {
+    const args = { contactName: CONTACT, subject: WORDS, message: WORDS };
+    await executeLegacyFallback('sendEmail', args, ctx);
+    nothingNamed('📧 Email requested', { userId: USER });
+    const result = `Email sent to ri***@example.test: "${WORDS}"`;
+    nothingNamed('📧 Email sent', { hasRecipient: true, resultLength: result.length });
+    noContactDetails();
   });
 });

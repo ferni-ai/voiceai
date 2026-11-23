@@ -166,7 +166,10 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
           const panelId = parsePanel(panel);
 
           if (!panelId) {
-            log.warn({ userId: ctx.userId, requested: panel }, '🧭 Unknown panel requested');
+            log.warn(
+              { userId: ctx.userId, requestedLength: panel.length },
+              '🧭 Unknown panel requested'
+            );
             return `I'm not sure which panel you mean by "${panel}". You can ask me to show things like "my story", "memory lane", "calendar", "music dashboard", or "settings".`;
           }
 
@@ -185,7 +188,7 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
 
           const label = getPanelLabel(panelId);
           log.info(
-            { userId: ctx.userId, panelId, label, requested: panel },
+            { userId: ctx.userId, panelId, label, requestedLength: panel.length },
             '🧭 Opening panel via voice'
           );
 
