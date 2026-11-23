@@ -13,14 +13,25 @@
  * context builders) behave as before for that one read. Off, the failure is
  * logged and cached exactly as before.
  *
+ * Each tool read carries its own marker (AsyncLocalStorage), and a failed load
+ * marks only the read whose own async chain ran it, for that person. Two reads at
+ * once (getCalendarToday and getCalendarWeek in one turn) each get their own load
+ * outcome: neither clears nor consumes the other's.
+ *
  * @module calendar/calendar-load-state
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { CALENDAR_UNCHECKED } from './not-connected-copy.js';
 
-/** People whose calendar load failed since a tool's read began. */
-const unread = new Set<string>();
+/** One tool read: whose calendar it reads, and whether a load it ran failed. */
+interface ReadMarker {
+  readonly userId: string;
+  failed: boolean;
+}
+
+const currentRead = new AsyncLocalStorage<ReadMarker>();
 
 function calendarLoadFailHonestOn(env: NodeJS.ProcessEnv = process.env): boolean {
   return flagOn('CALENDAR_LOAD_FAIL_HONEST', env);
@@ -33,22 +44,23 @@ function calendarLoadFailHonestOn(env: NodeJS.ProcessEnv = process.env): boolean
 export function calendarLoadFailed(userId: string, error: unknown): boolean {
   getLogger().error({ error: String(error), userId }, 'Failed to load user calendar data');
   if (!calendarLoadFailHonestOn()) return false;
-  unread.add(userId);
+  const read = currentRead.getStore();
+  if (read?.userId === userId) read.failed = true;
   return true;
 }
 
 /**
- * A calendar tool's read: what `run` says, or CALENDAR_UNCHECKED when a calendar
- * load failed while it ran (flag on). Off, `run` alone.
+ * A calendar tool's read: what `run` says, or CALENDAR_UNCHECKED when a load of
+ * this person's calendar that `run` itself made failed (flag on). Off, `run` alone.
  */
 export async function readOrUnchecked<T>(
   userId: string,
   run: () => Promise<T>
 ): Promise<T | string> {
   if (!calendarLoadFailHonestOn()) return run();
-  unread.delete(userId);
-  const out = await run();
-  if (!unread.delete(userId)) return out;
+  const read: ReadMarker = { userId, failed: false };
+  const out = await currentRead.run(read, run);
+  if (!read.failed) return out;
   getLogger().warn({ userId }, 'CALENDAR_UNREAD: a calendar read hit a failed load');
   return CALENDAR_UNCHECKED;
 }

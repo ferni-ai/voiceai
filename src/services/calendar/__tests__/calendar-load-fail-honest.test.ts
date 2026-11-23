@@ -54,13 +54,17 @@ const { calendarLoadFailed, readOrUnchecked } = await import('../calendar-load-s
 type Exec = { execute: (p: unknown, o: unknown) => Promise<unknown> };
 const CLEAR = 'Your calendar is clear today. No meetings scheduled.';
 
-async function today(userId: string): Promise<unknown> {
-  const def = smartCalendarTools.find((d) => d.id === 'getCalendarToday')!;
+async function smart(id: string, userId: string): Promise<unknown> {
+  const def = smartCalendarTools.find((d) => d.id === id)!;
   return (def.create({ userId } as never) as Exec).execute({}, {});
 }
+const today = (userId: string): Promise<unknown> => smart('getCalendarToday', userId);
 
-/** A gated tool whose body reads the real store, then answers as it would with nothing listed. */
-async function gatedRun(id: string, userId: string): Promise<unknown> {
+/**
+ * A gated tool whose body reads the real store, waits for `hold` when given, then answers as it
+ * would with nothing listed.
+ */
+async function gatedRun(id: string, userId: string, hold?: Promise<void>): Promise<unknown> {
   const reply =
     id === 'getUnifiedSchedule' ? 'Your schedule is clear today.' : 'Saved "Dentist checkup".';
   const def = {
@@ -68,6 +72,7 @@ async function gatedRun(id: string, userId: string): Promise<unknown> {
     create: () => ({
       execute: async () => {
         await getEventsForDay(userId, new Date());
+        await hold;
         return reply;
       },
     }),
@@ -138,9 +143,56 @@ describe('CALENDAR_LOAD_FAIL_HONEST on', () => {
 
   it('a failure for one person does not mark another person unread', async () => {
     process.env.CALENDAR_LOAD_FAIL_HONEST = 'on';
-    expect(calendarLoadFailed('uid-riley-test-on-00000000004', new Error('x'))).toBe(true);
-    const other = await readOrUnchecked('uid-riley-test-on-00000000005', async () => 'listed');
+    // The other person's load fails inside this read, so only a per-person marker keeps it out.
+    const other = await readOrUnchecked('uid-riley-test-on-00000000005', async () => {
+      expect(calendarLoadFailed('uid-riley-test-on-00000000004', new Error('x'))).toBe(true);
+      return 'listed';
+    });
     expect(other).toBe('listed');
+  });
+
+  // Parallel tool calls in one turn. The week view loads day by day, so its last failure comes after
+  // today's read answers; two single-load reads are the order in which a shared entry said "clear".
+  it.each([
+    ['getCalendarToday', 'getCalendarToday'],
+    ['getCalendarToday', 'getCalendarWeek'],
+  ])('two reads at once on a failed load (%s, %s): neither says clear', async (a, b) => {
+    process.env.CALENDAR_LOAD_FAIL_HONEST = 'on';
+    const uid = `uid-riley-test-on-0000009-${b}`;
+    expect(await Promise.all([smart(a, uid), smart(b, uid)])).toEqual([
+      CALENDAR_UNCHECKED,
+      CALENDAR_UNCHECKED,
+    ]);
+  });
+
+  it('a read that starts after another hit the failure, before it answers: both unchecked', async () => {
+    process.env.CALENDAR_LOAD_FAIL_HONEST = 'on';
+    const uid = 'uid-riley-test-on-00000000010';
+    let release = (): void => {};
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const first = gatedRun('getUnifiedSchedule', uid, hold); // fails its load, then waits
+    await vi.waitFor(() => expect(db.gets).toBeGreaterThan(0));
+    const second = await gatedRun('getUnifiedSchedule', uid);
+    release();
+    expect([await first, second]).toEqual([CALENDAR_UNCHECKED, CALENDAR_UNCHECKED]);
+  });
+
+  it('each read gets its own load outcome: a concurrent read whose load worked is not unchecked', async () => {
+    process.env.CALENDAR_LOAD_FAIL_HONEST = 'on';
+    const uid = 'uid-riley-test-on-00000000011';
+    let release = (): void => {};
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const first = gatedRun('getUnifiedSchedule', uid, hold); // fails its load, then waits
+    await vi.waitFor(() => expect(db.gets).toBeGreaterThan(0));
+    db.fail = false;
+    const second = await today(uid);
+    release();
+    expect(await first).toBe(CALENDAR_UNCHECKED);
+    expect(second).toMatch(/Dentist checkup/);
   });
 
   it('a failure left over from before a read began does not taint it', async () => {
