@@ -227,6 +227,7 @@ export function createBargeInFastPath(deps: {
         soft.log?.({ outcome, ...fields, pausedMs });
         // SOFT_PAUSE_ONE_OUTCOME: the watchdog would play the cut reply's held frame (#3857).
         if (soft.oneOutcome) stopWatchdog();
+        soft.dropCut?.(); // SOFT_PAUSE_CUT_DROPS_HELD: the cut ends now, not after LiveKit's 2 s wait
         return;
       }
       // An uninterruptible reply would otherwise stay paused, and "speaking", for good.

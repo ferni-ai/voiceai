@@ -60,6 +60,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe('BARGE_IN_SOFT_PAUSE off', () => {
@@ -619,6 +620,33 @@ describe('a live call', () => {
       expect(playoutHeld(c.session)).toBe(false);
     }
   );
+
+  it.each([
+    ['on', 1],
+    ['off', 0],
+  ])('SOFT_PAUSE_CUT_DROPS_HELD=%s: a cut decision drops the held reply %i time(s)', (flag, n) => {
+    vi.stubEnv('SOFT_PAUSE_CUT_DROPS_HELD', flag);
+    const drop = vi.spyOn(ResumeBufferOutput.prototype, 'dropCutReply');
+    const c = liveCall('on');
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+    expect(drop).not.toHaveBeenCalled();
+    c.emit(voice.AgentSessionEventTypes.OverlappingSpeech, { isInterruption: true });
+    expect(c.session.interrupt).toHaveBeenCalledTimes(1);
+    expect(drop).toHaveBeenCalledTimes(n);
+  });
+
+  it('SOFT_PAUSE_CUT_DROPS_HELD=on: a pause that resumes drops nothing', () => {
+    vi.stubEnv('SOFT_PAUSE_CUT_DROPS_HELD', 'on');
+    const drop = vi.spyOn(ResumeBufferOutput.prototype, 'dropCutReply');
+    const c = liveCall('on');
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS + SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS);
+    expect(c.room.calls).toEqual(['pause', 'resume']);
+    expect(drop).not.toHaveBeenCalled();
+  });
 
   it("flag on: a reply that isn't paused is never marked held", () => {
     const c = liveCall('on', { allowInterruptions: false });
