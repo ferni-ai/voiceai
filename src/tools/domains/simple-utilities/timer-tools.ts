@@ -9,7 +9,7 @@
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { lengthsOf } from '../../../utils/log-lengths.js';
+import { lengthsOf } from '../../../utils/reply-for-log.js';
 import { z } from 'zod';
 import { recordUsage, getTimerFollowUp, getUserPatterns } from './pattern-intelligence.js';
 import { updateTimerPreferences } from './persistence.js';

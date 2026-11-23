@@ -342,7 +342,7 @@ const createTimeCapsuleDef: ToolDefinition = {
         yearsAhead: z.string().describe('How far in the future to open'),
       }),
       execute: async ({ recipient, yearsAhead }) => {
-        getLogger().info({ agentId: ctx.agentId, recipient, yearsAhead }, 'Creating time capsule');
+        getLogger().info({ agentId: ctx.agentId, yearsAhead }, 'Creating time capsule');
 
         let response = `**Time Capsule for ${recipient.replace('-', ' ')} - to open in ${yearsAhead}**\n\n`;
         response += `What do you want to preserve for the future?\n\n`;
@@ -494,7 +494,7 @@ const recordOralHistoryDef: ToolDefinition = {
           .describe('Purpose of the recording'),
       }),
       execute: async ({ subject, purpose }) => {
-        getLogger().info({ agentId: ctx.agentId, subject, purpose }, 'Recording oral history');
+        getLogger().info({ agentId: ctx.agentId, purpose }, 'Recording oral history');
 
         let response = `**Recording Oral History: ${subject}**\n\n`;
         response += `Purpose: ${purpose.replace('-', ' ')}\n\n`;

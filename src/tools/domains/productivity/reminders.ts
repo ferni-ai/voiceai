@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { lengthsOf } from '../../../utils/log-lengths.js';
+import { lengthsOf } from '../../../utils/reply-for-log.js';
 import {
   createReminder,
   getPendingReminders,

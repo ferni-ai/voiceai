@@ -609,7 +609,7 @@ export function createCommunicationTools() {
         });
 
         getLogger().info(
-          { title, scheduledTime, durationMinutes: duration },
+          { titleLength: title.length, scheduledTime, durationMinutes: duration },
           '📅 Calendar event created'
         );
 

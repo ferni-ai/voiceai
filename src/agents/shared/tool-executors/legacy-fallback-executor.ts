@@ -1369,7 +1369,7 @@ export async function executeLegacyFallback(
       return 'I need to know who you are to schedule events. Try saying your name first.';
     }
 
-    log.info({ title, when, duration, userId: ctx.userId }, '📅 Scheduling event via voice');
+    log.info({ titleLength: title?.length, duration, userId: ctx.userId }, '📅 Scheduling event');
 
     if (!title) {
       return 'What would you like to schedule?';
@@ -1941,7 +1941,7 @@ export async function executeLegacyFallback(
       date?: string;
       duration?: number;
     };
-    log.info({ title, startTime, date }, '📅 Creating event via alias');
+    log.info({ hasTitle: !!title, hasDate: !!(startTime || date) }, '📅 Creating event via alias');
     return executeLegacyFallback(
       'scheduleevent',
       { title, when: startTime || date, duration: duration || 30 },

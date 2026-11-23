@@ -217,7 +217,7 @@ export const saveVoiceMemoDef: ToolDefinition = {
       }),
       execute: async ({ title, transcript, tags }) => {
         const userId = ctx.userId;
-        log.info({ userId, title }, '🎤 Saving voice memo');
+        log.info({ userId, titleLength: title?.length }, '🎤 Saving voice memo');
 
         try {
           const memo: VoiceMemo = {

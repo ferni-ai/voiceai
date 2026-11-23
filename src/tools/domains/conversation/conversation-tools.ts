@@ -626,10 +626,10 @@ export function createConversationTools() {
 
         getLogger().info(
           {
-            confirmedName,
+            hasName: !!confirmedName,
             isSamePerson,
             createNewProfile,
-            relationship,
+            hasRelationship: !!relationship,
             sessionId,
           },
           '🔐 Caller identity confirmation'
@@ -657,12 +657,8 @@ export function createConversationTools() {
 
         if (createNewProfile && userData.services) {
           // Store relationship info if provided
-          const noteForProfile = relationship
-            ? `Calling from another user's phone. Relationship: ${relationship}`
-            : "Calling from another user's phone";
-
           getLogger().info(
-            { confirmedName, relationship, note: noteForProfile },
+            { hasName: !!confirmedName, hasRelationship: !!relationship },
             '📱 Creating context for borrowed phone caller'
           );
 

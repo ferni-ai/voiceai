@@ -14,7 +14,7 @@
 
 import { ALARM_CANT_RING } from '../../../tools/domains/simple-utilities/alarm-ring.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { lengthsOf } from '../../../utils/log-lengths.js';
+import { lengthsOf } from '../../../utils/reply-for-log.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 import {
@@ -794,7 +794,7 @@ async function execute(
   if (fnLower === 'addjournal') {
     const entry = args.entry as string;
     const mood = args.mood as string;
-    log.info({ mood, userId: ctx.userId }, '📔 Journal entry');
+    log.info({ ...lengthsOf({ mood }), userId: ctx.userId }, '📔 Journal entry');
 
     if (!entry) {
       return 'What would you like to journal about?';
