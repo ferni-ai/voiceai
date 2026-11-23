@@ -133,7 +133,7 @@ describe('when they last talked (lastCallAwareness)', () => {
       undefined,
       ON
     );
-    expect(lines[0]).toBe('You talked a few minutes ago.');
+    expect(lines[0]).toBe('Your last call was a few minutes ago.');
     const threeHours = { at: et('2026-11-19T20:00'), now: THU_11PM, zone: ZONE };
     expect(lastCallAwareness(threeHours, undefined, ON)[0]).toBe('You talked earlier today.');
   });
@@ -144,7 +144,7 @@ describe('when they last talked (lastCallAwareness)', () => {
       undefined,
       ON
     );
-    expect(lines[0]).toBe('You talked about 2 hours ago.');
+    expect(lines[0]).toBe('Your last call was about 2 hours ago.');
     const known = { at: et('2026-11-19T18:00'), now: et('2026-11-19T20:00'), zone: ZONE };
     expect(lastCallAwareness(known, undefined, ON)[0]).toBe('You talked earlier today.');
   });
@@ -172,11 +172,28 @@ describe('when they last talked (lastCallAwareness)', () => {
     expect(lines).not.toContain(STILL_TO_COME);
   });
 
-  it('under an hour ago: the minutes line and the normal rule, no "still coming up" yet', () => {
+  it('under an hour ago with a plan still ahead: never "How did that go?", no "still coming up" yet', () => {
+    // Dev 2026-11-23: two minutes after "tournament this Saturday", the normal rule's
+    // example led to "How did the snack mom duty end up going?".
     const halfHour = { at: et('2026-11-19T22:30'), now: THU_11PM, zone: ZONE };
-    const lines = lastCallAwareness(halfHour, ISSUE_SUMMARY, ON);
-    expect(lines[0]).toBe('You talked about 30 minutes ago.');
-    expect(lines.join('\n')).toContain(HOW_DID);
-    expect(lines.join('\n')).not.toContain(STILL_TO_COME);
+    const lines = lastCallAwareness(halfHour, ISSUE_SUMMARY, ON).join('\n');
+    expect(lines).toMatch(/^Your last call was about 30 minutes ago\./);
+    expect(lines).not.toContain(HOW_DID);
+    expect(lines).not.toContain(STILL_TO_COME);
+    expect(lines).toContain('never ask how it went');
+    expect(lastCallAwareness(halfHour, ISSUE_SUMMARY, OFF).join('\n')).toContain(HOW_DID);
+  });
+
+  it('under an hour ago with nothing ahead keeps the normal rule', () => {
+    const halfHour = { at: et('2026-11-19T22:30'), now: THU_11PM, zone: ZONE };
+    const lines = lastCallAwareness(halfHour, 'USER went hiking last Saturday', ON).join('\n');
+    expect(lines).toContain(HOW_DID);
+  });
+
+  it('the minutes line names the last call, so it cannot be read as this call', () => {
+    const twoMin = { at: et('2026-11-19T22:58'), now: THU_11PM, zone: ZONE };
+    const first = lastCallAwareness(twoMin, undefined, ON)[0] ?? '';
+    expect(first).toMatch(/^Your last call was /);
+    expect(first).not.toMatch(/^You talked /);
   });
 });
