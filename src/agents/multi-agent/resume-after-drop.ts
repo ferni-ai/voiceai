@@ -23,6 +23,9 @@
  * A turn read that comes back full (MAX_TURNS_READ) may have stopped short of the newest
  * turns, where a crisis is likeliest, so that call resumes nothing either.
  *
+ * With FORGET_EVERY_READER on, a turn about a topic the caller asked to forget is left out of
+ * both replays, and an unreadable forget list keeps none (restored-turns-remembered.ts, #2762).
+ *
  * @module agents/multi-agent/resume-after-drop
  */
 
@@ -41,6 +44,7 @@ import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { openingNotice } from '../shared/ai-notice.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
+import { rememberedTurns } from './restored-turns-remembered.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
 
@@ -111,9 +115,10 @@ export async function findDroppedCall(
   const ageMs = now - new Date(last.timestamp).getTime();
   if (!(ageMs <= RESUME_WINDOW_MS) || ageMs < -CLOCK_SKEW_MS) return undefined;
   if (callerLinesReadAsRisk(turns)) return undefined; // read as risk: nothing resumed
+  const kept = await rememberedTurns(userId, turns, 'resume-after-drop'); // forgotten: left out
   return {
     conversationId: previous.id,
-    turns: turns.slice(-RESTORED_TURNS),
+    turns: kept.slice(-RESTORED_TURNS),
     secondsAgo: Math.max(0, Math.round(ageMs / 1000)),
   };
 }
@@ -204,6 +209,25 @@ export const MOVED_WINDOW_MS = 5 * 60_000;
 export const MOVED_TURNS = 6;
 
 /**
+ * The moved-from call's last turns that go back: none when its last turn is stale or a hold
+ * was set while they were read, any about a forgotten topic left out, null when read as risk.
+ */
+async function movedTurns(
+  sessionId: string,
+  userId: string,
+  read: ConversationTurn[],
+  now: number
+): Promise<ConversationTurn[] | null> {
+  const all = read.filter((t) => t.content?.trim());
+  const last = all.at(-1);
+  const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
+  if (!fresh) return [];
+  if (callerLinesReadAsRisk(all)) return null;
+  const kept = await rememberedTurns(userId, all, 'call-me-moved'); // forgotten: left out
+  return memoryHeld(sessionId) ? [] : kept.slice(-MOVED_TURNS); // held while read
+}
+
+/**
  * A "call me" from the app (CALL_ME_MOVES_TO_PHONE): the signed dispatch names
  * that call's conversation (ids only); its last turns are read from the
  * caller's own memory store and go into this phone call's history. Returns
@@ -237,11 +261,8 @@ export async function restoreMovedTurns(
   const got = await Promise.race([read, late]);
   clearTimeout(timer);
   if (got.length >= MAX_TURNS_READ) return { moved: true, turns: 0 }; // full: newest may be unread
-  const all = got.filter((t) => t.content?.trim());
-  const last = all.at(-1);
-  const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
-  if (fresh && callerLinesReadAsRisk(all)) return { moved: true, turns: 0 }; // read as risk
-  const turns = fresh && !memoryHeld(sessionId) ? all.slice(-MOVED_TURNS) : []; // held while read
+  const turns = await movedTurns(sessionId, from.userId, got, now);
+  if (!turns) return { moved: true, turns: 0 }; // read as risk
   if (agent && turns.length) await restoreTurns(agent, turns, MOVED_NOTE);
   log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE moved call');
   return { moved: true, turns: turns.length };

@@ -4,7 +4,8 @@ import type { FlagSpec } from '../flag-spec.js';
 // the prompt, not only recall's: the caller profile in the system prompt, greeting and single-agent
 // awareness (last summaries, life events, goals, concerns), the handoff summary, the relationship
 // tool, the BM25 and entity search legs, UnifiedStore.recall, entity proactive surfacing, and
-// recall notes already in the chat, re-checked each turn (forget-every-reader.ts).
+// recall notes already in the chat, re-checked each turn (forget-every-reader.ts), and the earlier
+// turns a resumed or moved call replays (restored-turns-remembered.ts: fresh read, fails closed).
 // Do not turn on before #2623 lands: on main the readers' last-known topics fallback has no age
 // bound, so a timed-out read could serve a list missing a topic forgotten in another process.
 export const FORGET_EVERY_READER = {
