@@ -185,7 +185,7 @@ export async function recordPartnerFeedback(ctx: Ctx): Promise<Answer> {
     if (rated >= MAX_PARTNERS_RATED_PER_USER) {
       return json(429, { error: 'Too many partners rated' });
     }
-    const skip = partnerVoteSkip({ uid, ...ctx.voter }, partnerId);
+    const skip = partnerVoteSkip({ ...ctx.voter, uid }, partnerId);
     // Not booked, so it can still count once they have used the partner. An anonymous or
     // unverified vote is booked like any other (even the 429 answers the same) but moves nothing.
     if (skip === 'no_interaction') return thanks();
