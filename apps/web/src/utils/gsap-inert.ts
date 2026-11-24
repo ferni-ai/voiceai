@@ -2,8 +2,8 @@
  * An inert stand-in for GSAP, used when the CDN script didn't load (#3273).
  *
  * Nothing moves, but each tween still ends: after its duration (plus delay) it writes its end
- * opacity, autoAlpha, display and visibility on elements (and its end numbers on plain objects),
- * then calls onUpdate once and onComplete. So a flow that waits on onComplete, such as hiding a
+ * opacity and display on elements (and its end numbers on plain objects), then calls onUpdate
+ * once and onComplete. So a flow that waits on onComplete, such as hiding a
  * panel after it fades, still finishes, and a loop that restarts from onComplete keeps its pace.
  * A timeline runs its steps in order, ignoring positions, then its own onComplete. A tween or
  * timeline with `repeat: -1` never completes, as in GSAP. kill() and killTweensOf() cancel the
@@ -14,12 +14,11 @@ import type { gsap as GsapType } from 'gsap';
 type Vars = Record<string, unknown>;
 type Fn = (...args: unknown[]) => void;
 
-const ELEMENT_KEYS = ['opacity', 'display', 'visibility'] as const;
+const ELEMENT_KEYS = ['opacity', 'display'] as const;
 
 function targetsOf(targets: unknown): unknown[] {
-  if (typeof targets === 'string') return Array.from(document.querySelectorAll(targets));
   if (Array.isArray(targets)) return targets.flatMap(targetsOf);
-  if (targets instanceof NodeList || targets instanceof HTMLCollection) return Array.from(targets);
+  if (targets instanceof NodeList) return Array.from(targets);
   return targets == null ? [] : [targets];
 }
 
@@ -33,11 +32,6 @@ function applyEnd(targets: unknown[], vars: Vars): void {
         if (typeof value === 'number' || typeof value === 'string') {
           style.setProperty(key, String(value));
         }
-      }
-      const alpha = vars.autoAlpha;
-      if (typeof alpha === 'number') {
-        style.opacity = String(alpha);
-        style.visibility = alpha === 0 ? 'hidden' : 'inherit';
       }
     } else if (target && typeof target === 'object') {
       const record = target as Record<string, unknown>;
@@ -74,10 +68,7 @@ class InertTween {
     live.delete(this);
     applyEnd(this.targets, this.vars);
     (this.vars.onUpdate as Fn | undefined)?.();
-    const params: unknown[] = Array.isArray(this.vars.onCompleteParams)
-      ? (this.vars.onCompleteParams as unknown[])
-      : [];
-    (this.vars.onComplete as Fn | undefined)?.(...params);
+    (this.vars.onComplete as Fn | undefined)?.();
   }
 
   private schedule(seconds: number): void {
@@ -92,15 +83,6 @@ class InertTween {
     this.timer = null;
     return this;
   }
-  pause(): this {
-    return this.kill();
-  }
-  play(): this {
-    return this;
-  }
-  resume(): this {
-    return this;
-  }
 }
 
 type Step = { seconds: number; run: () => void };
@@ -108,15 +90,13 @@ type Step = { seconds: number; run: () => void };
 class InertTimeline {
   private readonly steps: Step[] = [];
   private timers: ReturnType<typeof setTimeout>[] = [];
-  private started = false;
 
+  /** Steps added in the same tick as the timeline run once that tick ends. */
   constructor(private readonly vars: Vars = {}) {
-    if (!vars.paused) this.timers.push(setTimeout(() => this.start(), 0));
+    this.timers.push(setTimeout(() => this.start(), 0));
   }
 
   private start(): void {
-    if (this.started) return;
-    this.started = true;
     let at = 0;
     for (const step of this.steps) {
       at += step.seconds;
@@ -132,9 +112,6 @@ class InertTimeline {
   }
   to(targets: unknown, vars: Vars): this {
     return this.step(new InertTween(targets, vars, false));
-  }
-  from(targets: unknown, vars: Vars): this {
-    return this.step(new InertTween(targets, timingOnly(vars), false));
   }
   fromTo(targets: unknown, _from: Vars, to: Vars): this {
     return this.to(targets, to);
@@ -154,22 +131,11 @@ class InertTimeline {
   kill(): this {
     this.timers.forEach(clearTimeout);
     this.timers = [];
-    this.started = true;
     return this;
-  }
-  pause(): this {
-    return this.started ? this.kill() : this;
-  }
-  play(): this {
-    this.start();
-    return this;
-  }
-  resume(): this {
-    return this.play();
   }
 }
 
-const TIMING = ['duration', 'delay', 'repeat', 'onUpdate', 'onComplete', 'onCompleteParams'];
+const TIMING = ['duration', 'delay', 'repeat', 'onUpdate', 'onComplete'];
 /** A from() tween ends where the element already is, so it keeps only its timing and callbacks. */
 const timingOnly = (vars: Vars): Vars =>
   Object.fromEntries(TIMING.filter((key) => key in vars).map((key) => [key, vars[key]]));
@@ -195,9 +161,8 @@ export function createInertGsap(): typeof GsapType {
     isTweening: (target: unknown) => [...live].some((tween) => tween.targets.includes(target)),
     defaults: noop,
     config: noop,
-    registerPlugin: noop,
-    ticker: { fps: noop, add: noop, remove: noop, lagSmoothing: noop },
-    globalTimeline: { pause: noop, resume: noop, clear: noop },
+    ticker: { fps: noop },
+    globalTimeline: { pause: noop, resume: noop },
   };
   return inert as unknown as typeof GsapType;
 }

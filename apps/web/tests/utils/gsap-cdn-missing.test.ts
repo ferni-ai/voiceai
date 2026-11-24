@@ -102,10 +102,36 @@ describe('gsap-setup without the CDN global', () => {
       .set(el, { opacity: 0 })
       .to(el, { opacity: 0.5, duration: 0.2 })
       .call(() => order.push(`call ${el.style.opacity}`))
-      .to(el, { autoAlpha: 1, duration: 0.2 });
+      .to(el, { opacity: 1, duration: 0.2 });
     vi.advanceTimersByTime(1_000);
     expect(order).toEqual(['call 0.5', 'done 1']);
-    expect(el.style.visibility).toBe('inherit');
+  });
+
+  it("a tween added to a timeline ends once, as the timeline's step", async () => {
+    const gsap = await setupGsap();
+    const el = document.createElement('div');
+    const onComplete = vi.fn();
+    gsap.timeline().add(gsap.to(el, { opacity: 0, duration: 0.2, onComplete }));
+    vi.advanceTimersByTime(2_000);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tween on a plain object ends at its end numbers, then onUpdate once', async () => {
+    const gsap = await setupGsap();
+    const posture = { y: 0, scale: 1, label: 'rest' };
+    const seen: number[] = [];
+    gsap.to(posture, {
+      y: 5,
+      scale: 1.2,
+      label: 'lifted',
+      duration: 0.3,
+      onUpdate: () => seen.push(posture.y),
+    });
+    vi.advanceTimersByTime(299);
+    expect(posture.y).toBe(0);
+    vi.advanceTimersByTime(1);
+    expect(posture).toEqual({ y: 5, scale: 1.2, label: 'rest' }); // only numbers move
+    expect(seen).toEqual([5]);
   });
 
   it('kill, killTweensOf and repeat: -1 cancel the pending end, as in GSAP', async () => {
