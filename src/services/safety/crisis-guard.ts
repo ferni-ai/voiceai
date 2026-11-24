@@ -29,12 +29,13 @@ import { ABUSE_INDICATOR, abuseDisclosure } from './abuse-disclosure.js';
 import {
   CALLER_CHECK,
   callerCheckApplies,
+  emergencyForThem,
   forThemFirst,
   withCallerCheck,
   withCloseDown,
 } from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
-import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
+import { getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
@@ -43,7 +44,7 @@ import {
   replacesReply,
   SEVERITY,
 } from './crisis-severity.js';
-import { thirdPartyEmergency } from './crisis-third-person.js';
+import { downInSpanish, thirdPartyEmergency } from './crisis-third-person.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -276,6 +277,7 @@ function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextSc
       add(tag, SEVERITY.explicit);
     subject = 'third_party';
   }
+  if (downInSpanish(text)) language ??= 'es'; // someone down, said in Spanish (#4060)
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
   // A worry about someone else beside the caller's own softened tier words was the caller's own
@@ -375,7 +377,7 @@ export function detectCrisis(
   // A caller-check read always gets the help for them, never the caller's own imminent script.
   const imminent = !callerCheck && indicators.includes('imminent_danger');
   const script = emergency
-    ? EMERGENCY_FOR_THEM
+    ? emergencyForThem(score.language)
     : getCrisisResponse(severity, subject, score.language, imminent, options?.env);
 
   return {
@@ -387,7 +389,7 @@ export function detectCrisis(
     suggestedResponse: !isCrisis
       ? undefined
       : score.beside === 'own'
-        ? forThemFirst(script)
+        ? forThemFirst(script, score.language)
         : callerCheck
           ? withCallerCheck(script)
           : script,

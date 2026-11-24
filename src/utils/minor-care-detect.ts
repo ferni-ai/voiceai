@@ -4,6 +4,9 @@
  *
  * @module utils/minor-care-detect
  */
+import { spanishReadersOn } from './fold-spanish.js';
+import { statesUnder18Es } from './minor-care-detect-es.js';
+
 const WORD_AGES: Record<string, number> = {
   six: 6,
   seven: 7,
@@ -181,6 +184,8 @@ export function statesUnder18(text: string, asked?: string): boolean {
   // Any laugh or take-back: "im 15 lol kidding", "im fifteen i mean fifty". Laughs after an age
   // are mostly jokes (#3098 r2: 22 adult jokes flagged), so "I'm fourteen lol" is a known miss.
   if (LAUGH.test(t) || RETRACTED.test(t)) return false;
+  // Spanish ages and "soy menor de edad" (#4060), read only with the flag on.
+  if (spanishReadersOn() && statesUnder18Es(t)) return true;
   const aboutAge = askedAboutAge(asked) || AGE_WORDS.test(t);
   return (
     // A miss stores a child's details; a false hold costs an adult one call's memory.

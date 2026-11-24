@@ -16,13 +16,30 @@
  * @module CrisisCallerCheck
  */
 
-import { CALL_911_FOR_THEM, TALK_TO_988 } from './crisis-guard-replies.js';
+import { spanishReadersOn } from '../../utils/fold-spanish.js';
+import {
+  CALL_911_FOR_THEM,
+  CALL_911_FOR_THEM_ES,
+  EMERGENCY_FOR_THEM,
+  EMERGENCY_FOR_THEM_ES,
+  TALK_TO_988,
+} from './crisis-guard-replies.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
   MODERATE_DISTRESS_VOICE_EMOTIONS,
   SEVERITY,
 } from './crisis-severity.js';
 import { someoneCloseWentDown, spokeOfSelf, thirdPartyEmergency } from './crisis-third-person.js';
+
+/** Spanish help for someone down: a Spanish read, with CRISIS_SPANISH_READERS on. Else English, as before. */
+const spanishForThem = (language: 'en' | 'es' | undefined): boolean =>
+  language === 'es' && spanishReadersOn();
+/** The help for someone down, in the caller's language. */
+export const emergencyForThem = (language: 'en' | 'es' | undefined): string =>
+  spanishForThem(language) ? EMERGENCY_FOR_THEM_ES : EMERGENCY_FOR_THEM;
+/** The 911 for them that leads a caller's own reply, in the caller's language. */
+export const call911ForThem = (language: 'en' | 'es' | undefined): string =>
+  spanishForThem(language) ? CALL_911_FOR_THEM_ES : CALL_911_FOR_THEM;
 
 /** Marks a third-party read whose replaced reply adds the caller's own 988 line. */
 export const CALLER_CHECK = 'caller_check';
@@ -48,8 +65,9 @@ export function callerCheckApplies(
 /** A replaced reply with the caller check after it: the reply first, then the caller's 988 line. */
 export const withCallerCheck = (reply: string): string => `${reply}\n\n${TALK_TO_988}`;
 
-/** A caller's own reply with the 911 for them before it: someone close is down, and so is the caller. */
-export const forThemFirst = (reply: string): string => `${CALL_911_FOR_THEM}\n\n${reply}`;
+/** A caller's own reply with the 911 for them before it, in their language: someone close is down, and so is the caller. */
+export const forThemFirst = (reply: string, language?: 'en' | 'es'): string =>
+  `${call911ForThem(language)}\n\n${reply}`;
 
 /**
  * Beside someone close going down, what the caller said of their own safety (owner, 2026-11-07):

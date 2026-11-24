@@ -153,6 +153,7 @@
 /src/tools/registry/loader.ts @sethdford
 /src/tools/semantic-router/tool-definitions/index.ts @sethdford
 /src/utils/safety-whole-word.ts @sethdford
+/src/utils/fold-spanish.ts @sethdford
 /src/utils/dialable-number.ts @sethdford
 /src/agents/personas/exits-held.ts @sethdford
 /src/tools/domains/proactive/outreach/owner-message-content.ts @sethdford
