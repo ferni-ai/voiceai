@@ -23,7 +23,7 @@
 
 import type { HumorStyle, PersonaConfig, SpeechCharacteristics } from '../../personas/types.js';
 import { buildLiveCustomAgentPrompt } from './custom-agent-live-prompt.js';
-import { cleanOwnerList, cleanOwnerText } from './custom-agent-owner-text.js';
+import { cleanOwnerList, cleanOwnerText, sanitizeOwnerText } from './custom-agent-owner-text.js';
 import { DEFAULT_COMMUNICATION, DEFAULT_KNOWLEDGE } from './custom-agent-runtime-service.js';
 import {
   isStockCustomAgentVoiceId,
@@ -80,7 +80,7 @@ function speech(s: SpeechCharacteristics | undefined): SpeechCharacteristics {
 
 /** `loaded` (customAgentToPersonaConfig's output) as an allowlisted, sanitized live-call persona. */
 export function liveCallPersona(loaded: PersonaConfig): PersonaConfig {
-  const id = cleanOwnerText(loaded.id, 80);
+  const id = sanitizeOwnerText(loaded.id, 80);
   const name = cleanOwnerText(loaded.displayName || loaded.name, NAME_MAX) || 'your character';
   const stored = loaded.voice?.voiceId;
   const voiceId = isStockCustomAgentVoiceId(stored) ? stored : SAFE_DEFAULT_CUSTOM_AGENT_VOICE_ID;

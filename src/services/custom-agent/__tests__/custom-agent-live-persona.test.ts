@@ -165,15 +165,15 @@ describe('liveCallPersona: names as they are spoken (#2869)', () => {
   const named = (displayName: string) =>
     liveCallPersona(customAgentToPersonaConfig(liveAgent({ name: displayName, displayName })));
 
-  it('speaks an ampersand as typed, and escapes it only inside the profile block', () => {
+  it('speaks an ampersand as typed, in the persona and the profile block alike', () => {
     const persona = named('Tom & Jerry');
     expect(persona.name).toBe('Tom & Jerry');
     expect(persona.displayName).toBe('Tom & Jerry');
     expect(persona.identity.selfReference).toBe('Tom & Jerry');
     expect(persona.description).toBe('Tom & Jerry, a character the caller created.');
     const p = persona.systemPrompt;
-    expect(p).toContain('name: Tom &amp; Jerry');
-    expect(p).not.toContain('Tom & Jerry');
+    expect(p).toContain('name: Tom & Jerry');
+    expect(p).not.toContain('&amp;');
     expect(p.split(PROFILE_OPEN)).toHaveLength(2);
     expect(p.split(PROFILE_CLOSE)).toHaveLength(2);
   });
