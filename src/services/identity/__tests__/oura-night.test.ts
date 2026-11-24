@@ -269,6 +269,21 @@ describe('when there is nothing to say', () => {
     expect(await getOuraNight('u1', undefined, NOW)).toEqual({ status: 'unavailable' });
   });
 
+  it.each([
+    [
+      'daily_sleep failed, sleep empty',
+      { daily_sleep: { status: 503 }, sleep: { body: { data: [] } } },
+    ],
+    [
+      'sleep failed, daily_sleep empty',
+      { daily_sleep: { body: { data: [] } }, sleep: { status: 503 } },
+    ],
+  ])('%s: unavailable, not "no sleep recorded"', async (_label, replies) => {
+    oura({ ...replies, daily_readiness: { body: { data: [] } } });
+    expect(await getOuraNight('u1', undefined, NOW)).toEqual({ status: 'unavailable' });
+    expect(await getOuraNight('u1', '2026-10-25', NOW)).toEqual({ status: 'unavailable' });
+  });
+
   it.each(['not_connected', 'needs_reauth', 'unavailable'] as const)(
     '%s: says so and never calls Oura',
     async (status) => {
