@@ -237,7 +237,7 @@ function buildTurnReminder(
       owner: nameOwner(session, crisis),
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
-    safe.teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
+    safe.teamByNeedNote(view.currentAgentId, words, agentWordsIn(chatCtx.items), crisis),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
     safe.chiefOfStaffNote(
       view.currentAgentId ?? 'ferni',

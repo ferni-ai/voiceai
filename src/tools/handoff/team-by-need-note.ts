@@ -19,10 +19,11 @@
  * @module tools/handoff/team-by-need-note
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { ALIAS_TO_CANONICAL } from '../../personas/persona-ids.js';
 import { chiefOfStaffWhen } from './chief-of-staff-note.js';
-import { isMayaHabitTalk, MAYA_ID } from './maya-habit-need.js';
+import { isMayaHabitTalk, MAYA_ID, mayaHeldBack } from './maya-habit-need.js';
 import { withPronouns } from './teammate-pronouns.js';
 
 interface Teammate {
@@ -103,14 +104,24 @@ const alreadyOffered = (name: string, agentWords: string): boolean =>
 /**
  * The team line for one request; '' while TEAM_BY_NEED is off.
  *
- * @param speaker - the persona answering (it isn't offered to itself)
+ * @param speaker - the persona answering (it isn't offered to itself); Ferni when unknown
  * @param callerWords - what the caller said since the agent last spoke
  * @param agentWords - what the agents have said on this call, to offer each teammate once
+ * @param crisis - a crisis turn: MAYA_HABIT_TRIGGERS=on sends no team line at all
  */
-export function teamByNeedNote(speaker: string, callerWords: string, agentWords = ''): string {
+export function teamByNeedNote(
+  speaker: string | undefined,
+  callerWords: string,
+  agentWords = '',
+  crisis = false
+): string {
   if (!isTeamByNeedEnabled()) return '';
-  const self = canonical(speaker);
+  // MAYA_HABIT_TRIGGERS=on: crisis guidance wins; no teammate is offered (maya-habit-need.ts)
+  if (crisis && flagOn('MAYA_HABIT_TRIGGERS')) return '';
+  const self = canonical(speaker ?? 'ferni');
   const words = callerWords.toLowerCase();
+  // MAYA_HABIT_TRIGGERS=on: grief, crisis or substance words never bring up Maya
+  const heldBack = mayaHeldBack(words);
   // ALEX_CHIEF_OF_STAFF=on: Alex is named for planning too (chief-of-staff-note.ts)
   const team = BY_NEED_TEAMMATES.filter((m) => m.id !== self).map((m) => ({
     ...m,
@@ -128,8 +139,12 @@ export function teamByNeedNote(speaker: string, callerWords: string, agentWords 
     'Offer one only when what the caller needs clearly matches, at most once a call each; ask before transferring, and never push.',
   ];
   const fits =
-    team.find((m) => m.need?.test(words) && !alreadyOffered(m.name, agentWords)) ??
-    habitTalkFitsMaya(team, words, agentWords);
+    team.find(
+      (m) =>
+        m.need?.test(words) &&
+        !alreadyOffered(m.name, agentWords) &&
+        !(heldBack && m.id === MAYA_ID)
+    ) ?? habitTalkFitsMaya(team, words, agentWords);
   if (fits) {
     parts.push(
       `What they just said fits ${fits.name}: if it helps, ask whether they'd like ${fits.name} to join.`
