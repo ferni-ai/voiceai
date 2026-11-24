@@ -25,8 +25,9 @@
  * "They" after "Maya and Alex" is theirs, and a "they" after "someone" or "people" is that
  * person's. A teammate addressed by name inside a quote ("'Maya, not everything needs a
  * system.' He's right.") is not who the pronoun means, and a capitalised word mid-sentence
- * ("Daniel", "Mom", "Red Sox") ends the teammate's reach. Lines where the pronoun after a
- * name means something else are listed by exact text in NOT_THE_TEAMMATE.
+ * ("Daniel", "Mom", "Red Sox") ends the teammate's reach; a capital starting a sentence does
+ * not, and SSML tags are dropped first so "<break .../>Should" starts one. Lines where the
+ * pronoun after a name means something else are listed by exact text in NOT_THE_TEAMMATE.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -92,7 +93,11 @@ function misgendered(
   scope: Scope = 'all',
   who?: string
 ): Array<{ name: string; word: string }> {
-  const text = line.replace(VOCATIVE, (_m, open: string | undefined) => open ?? '');
+  // SSML and other markup ("<break time=\"200ms\"/>Should I", "<emphasis>") is not speech:
+  // left in, "/>" hides that the next word starts a sentence and ends the name's reach.
+  const text = line
+    .replace(/<[^<>]*>/g, ' ')
+    .replace(VOCATIVE, (_m, open: string | undefined) => open ?? '');
   const tokens = [...text.matchAll(/[a-z]+(?:['\u2019][a-z]+)?/gi)].map((m) => ({
     w: bare(m[0].replace('\u2019', "'")),
     // "Daniel", "Mom", "Red Sox" mid-sentence: someone (or something) else is now meant
@@ -386,6 +391,66 @@ describe('teammate pronouns', () => {
       []
     );
     expect(wrongPronouns("Maya called me out. Said 'Alex, slow down.' She was right.")).toEqual([]);
+  });
+
+  it('reads past SSML: every wrong line of team-dynamics.ts on main (63651f21b4) is flagged', () => {
+    // The 14 lines main called Alex and Jordan "they" in. A tag before a sentence used to
+    // hide that sentence's start, so the capital after it ended the name's reach.
+    const MAIN_TEAM_DYNAMICS: Array<[number, string, string[]]> = [
+      [
+        53,
+        'I trust Alex completely. <break time="200ms"/>When they handle something, it\'s handled.',
+        ['they'],
+      ],
+      [
+        54,
+        'Alex will take care of you. <break time="200ms"/>Seriously, they\'re the best.',
+        ['they'],
+      ],
+      [
+        63,
+        'You want enthusiasm? <break time="200ms"/>Jordan\'s got it. <break time="150ms"/>They genuinely love planning.',
+        ['they'],
+      ],
+      [64, 'Jordan\'s the best. <break time="200ms"/>They\'ll make this fun, I promise.', ['they']],
+      [
+        85,
+        'Jordan\'s got energy! <break time="200ms"/>Planning type. <break time="150ms"/>You\'ll like them.',
+        ['them'],
+      ],
+      [
+        105,
+        'Jordan\'s energy is contagious. <break time="200ms"/>Planning becomes fun with them.',
+        ['them'],
+      ],
+      [
+        119,
+        'Alex is SO efficient. <break time="200ms"/>In a good way. <break time="150ms"/>They\'ll handle it.',
+        ['they'],
+      ],
+      [161, 'Alex can help with this! <break time="200ms"/>Let me bring them in.', ['them']],
+      [169, 'Jordan is going to LOVE this! <break time="200ms"/>Let me bring them in.', ['them']],
+      [
+        194,
+        'Jordan\'s excited for you! <break time="200ms"/>They told me about your plans.',
+        ['they'],
+      ],
+      [278, 'Alex could handle this. <break time="200ms"/>Want me to bring them in?', ['them']],
+      [279, 'Sounds like an Alex question. <break time="200ms"/>Should I get them?', ['them']],
+      [
+        286,
+        'Jordan would love to help with this! <break time="200ms"/>Want me to get them?',
+        ['them'],
+      ],
+      [287, 'Ooh, this is Jordan\'s thing! <break time="200ms"/>Should I bring them in?', ['them']],
+    ];
+    for (const [row, line, words] of MAIN_TEAM_DYNAMICS) {
+      expect(wrongPronouns(line), `team-dynamics.ts:${row}`).toEqual(words);
+    }
+    expect(wrongPronouns('Jordan\'s excited! <break time="200ms"/>She told me.')).toEqual([]);
+    expect(wrongPronouns('Alex? <emphasis level="strong">Yes.</emphasis> She\'s on it.')).toEqual([
+      'she',
+    ]);
   });
 
   it('checks only he and she outside the team files: "they" there is the caller', () => {
