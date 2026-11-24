@@ -30,8 +30,18 @@ import type { CivilTime, RuleContext } from './civil.js';
 /** Not after a count ("a week before", "two weeks before"): that names one day. */
 const WEEK_AROUND =
   /(?<!\b(?:a|an|one|two|three|four|\d{1,2}) )\b(?:the )?week (before|after|following) (.+)$/;
-/** "after next" / "before last", whatever follows them read as no day. */
-const ONWARD: Record<string, RegExp> = { after: /^next\b/, before: /^last\b/ };
+/**
+ * What may follow a bare "after next" / "before last": the end, punctuation,
+ * or a word that starts a new phrase ("for dinner", "and then"). Anything
+ * else ("next semester", "next payday") may be the day itself, so it is not
+ * read as the bare week.
+ */
+const BARE_END =
+  '(?:\\s*(?:$|[,.;:!?])|\\s+(?:for|to|at|and|or|so|with|because|i|we|you|he|she|they|it)\\b)';
+const ONWARD: Record<string, RegExp> = {
+  after: new RegExp(`^next${BARE_END}`),
+  before: new RegExp(`^last${BARE_END}`),
+};
 /**
  * A unit and a direction side by side ("weeks before", "a month after"). Not
  * rules.ts MODIFIER: that one counts a bare "week", which would take "next

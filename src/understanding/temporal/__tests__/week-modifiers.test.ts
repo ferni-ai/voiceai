@@ -231,3 +231,27 @@ describe('#2499 round 1: the guard needs a unit and a direction side by side', (
     ]);
   });
 });
+
+describe('#2499 verifier: an unread noun after "next" / "last" is not the bare week', () => {
+  it.each([
+    'the week after next semester',
+    'the week after next payday',
+    'the week after next term',
+    'the week after next holiday',
+    'the week after next school break',
+    'the week before last semester',
+  ])('"%s" is not the bare week, and never exact', (phrase) => {
+    const r = resolveTime(phrase, THU, NY);
+    expect(r?.canonical ?? 'null').not.toMatch(/^week=(?:after_next|before_last)$/);
+    expect(r?.certainty ?? 'null').not.toBe('exact');
+  });
+
+  it.each(['the week after next, ok?', 'the week after next and then'])(
+    '"%s" keeps the bare week after next',
+    (phrase) => {
+      const r = must(phrase, THU);
+      expect(read(r)).toEqual(['2026-11-02', '2026-11-09', 'week', 'assumed']);
+      expect(r.canonical).toBe('week=after_next');
+    }
+  );
+});
