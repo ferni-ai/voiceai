@@ -1,19 +1,35 @@
 /**
- * Intro lines use each teammate's pronouns from persona-pronouns.ts (#1431).
+ * Teammates are called by their pronouns from persona-pronouns.ts (#1431). The one checker
+ * for teammate pronouns in persona content (it replaces ferni-pronouns.test.ts).
  *
  * The coordinator's intro lines called Alex "they" ("Let me get Alex - they're amazing
- * at this") while the canon says he, and the shared handoff lines called Jordan "them"
- * and Alex "she". A caller heard one teammate called three things. So every line that
- * introduces, suggests or hands to a teammate is checked against getPersonaPronouns:
- * a line that names one teammate may only use that teammate's pronouns after the name.
+ * at this") while the canon says he, the shared handoff lines called Jordan "them" and
+ * Alex "she", and teammates' lines called Ferni "she". A caller heard one teammate called
+ * three things. Each third-person pronoun is checked against the teammate named last
+ * before it (getPersonaPronouns), so a line naming two teammates checks each pronoun
+ * against the nearer name. Under a teammate's own key ("alex": [...] in team-stories.json,
+ * "suggest_jordan" in predictive-intelligence.json) that teammate is named from the start.
  * Change a pronoun in persona-pronouns.ts and this fails until the lines follow it.
  *
- * The lines: the manifests' handoff and team phrases, the bundles' handoff setups and
- * team-coordination phrases, and the string literals of the code that speaks handoffs
- * (banter, team dynamics, team config fallbacks, the handoff tools, team unlocks).
+ * What it scans, exactly:
+ * - every pronoun, in the manifests' handoff and team phrases; each bundle's
+ *   team-coordination.json, team-awareness.json and team-stories.json; the suggest_*
+ *   entries of predictive-intelligence.json; and the string literals of the CODE files
+ *   below (banter, team dynamics and chemistry, team config, the persona agents, the
+ *   handoff tools, team unlocks, coordinator insights, handoff intelligence, team
+ *   engagement);
+ * - he/she/him/her/his/himself/herself only, in every other content/behaviors/*.json of
+ *   every bundle (there "they" is nearly always the caller, so it is not checked);
+ * - he/she/him/her/his/himself/herself after Ferni's name, on every line of every .json and
+ *   .md file under the bundles (what ferni-pronouns.test.ts checked).
+ * "They" after "Maya and Alex" is theirs, and a "they" after "someone" or "people" is that
+ * person's. A teammate addressed by name inside a quote ("'Maya, not everything needs a
+ * system.' He's right.") is not who the pronoun means, and a capitalised word mid-sentence
+ * ("Daniel", "Mom", "Red Sox") ends the teammate's reach. Lines where the pronoun after a
+ * name means something else are listed by exact text in NOT_THE_TEAMMATE.
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
@@ -34,37 +50,80 @@ const NAMES: Record<string, string> = {
   nate: 'joel-dickson',
 };
 
-const THIRD_PERSON: Record<string, 'subject' | 'object' | 'possessive'> = {
-  he: 'subject',
-  she: 'subject',
-  they: 'subject',
-  him: 'object',
-  them: 'object',
-  his: 'possessive',
-  their: 'possessive',
-  her: 'object', // object or possessive: both are "her"
-  himself: 'object',
-  herself: 'object',
-  themselves: 'object',
-};
+const THIRD_PERSON = new Set([
+  'he',
+  'she',
+  'they',
+  'him',
+  'them',
+  'his',
+  'their',
+  'her',
+  'himself',
+  'herself',
+  'themselves',
+]);
+const GENDERED = new Set(['he', 'she', 'him', 'his', 'her', 'himself', 'herself']);
+/** "They" after "Maya and Alex" is both of them. */
+const PLURAL = new Set(['they', 'them', 'their', 'themselves']);
+/** After these, "they" is that person ("Maya helped someone. By the end they were laughing"). */
+const SOMEONE = new Set(['someone', 'somebody', 'people', 'everyone', 'anyone']);
+
+type Scope = 'all' | 'gendered';
 
 /** "he's" → "he", "Alex's" → "alex". */
 const bare = (word: string): string => word.toLowerCase().replace(/'(s|ll|re|ve|d)$/, '');
 
+const isName = (w: string | undefined): w is string => w !== undefined && Object.hasOwn(NAMES, w);
+
+/** A name said to someone in a quote ("'Alex, sometimes...", "..., Maya.'") names no one. */
+const VOCATIVE = new RegExp(
+  `(['"‘“]\\s*)(${Object.keys(NAMES).join('|')}),|,\\s*(${Object.keys(NAMES).join('|')})(?=[.!?'"’”])`,
+  'gi'
+);
+
 /**
- * Pronouns in `line` that don't belong to the one teammate it names, after the name.
- * Empty when the line names no teammate or more than one (it can't say whose they are).
+ * Pronouns in `line` that don't belong to the teammate named last before them.
+ *
+ * @param who - the teammate the line is about before it names anyone (its JSON key)
  */
-function wrongPronouns(line: string): string[] {
-  const words = (line.match(/[a-z]+(?:['’][a-z]+)?/gi) ?? []).map((w) => bare(w.replace('’', "'")));
-  const named = [...new Set(words.filter((w) => Object.hasOwn(NAMES, w)))];
-  if (named.length !== 1) return [];
-  const { subject, object, possessive } = getPersonaPronouns(NAMES[named[0]]);
-  const own = new Set([subject, object, possessive, `${object}self`, `${object}selves`]);
-  return words
-    .slice(words.indexOf(named[0]) + 1)
-    .filter((w) => Object.hasOwn(THIRD_PERSON, w) && !own.has(w));
+function misgendered(
+  line: string,
+  scope: Scope = 'all',
+  who?: string
+): Array<{ name: string; word: string }> {
+  const text = line.replace(VOCATIVE, (_m, open: string | undefined) => open ?? '');
+  const tokens = [...text.matchAll(/[a-z]+(?:['\u2019][a-z]+)?/gi)].map((m) => ({
+    w: bare(m[0].replace('\u2019', "'")),
+    // "Daniel", "Mom", "Red Sox" mid-sentence: someone (or something) else is now meant
+    other:
+      /^[A-Z][a-z]+$/.test(m[0]) && !/(^|[.!?:'"\u2018\u201c(]\s*)$/.test(text.slice(0, m.index)),
+  }));
+  const words = tokens.map((t) => t.w);
+  const out: Array<{ name: string; word: string }> = [];
+  let name = who;
+  let plural = false;
+  words.forEach((w, i) => {
+    if (tokens[i].other && !isName(w) && w !== 'i') name = undefined;
+    if (isName(w)) {
+      name = w;
+      plural =
+        (words[i - 1] === 'and' && isName(words[i - 2])) ||
+        (words[i + 1] === 'and' && isName(words[i + 2]));
+      return;
+    }
+    if (SOMEONE.has(w)) plural = true;
+    if (name === undefined || !THIRD_PERSON.has(w)) return;
+    if ((scope === 'gendered' && !GENDERED.has(w)) || (plural && PLURAL.has(w))) return;
+    const { subject, object, possessive } = getPersonaPronouns(NAMES[name]);
+    const own = new Set([subject, object, possessive, `${object}self`, `${object}selves`]);
+    if (!own.has(w)) out.push({ name, word: w });
+  });
+  return out;
 }
+
+const wrongPronouns = (line: string, scope: Scope = 'all', who?: string): string[] =>
+  misgendered(line, scope, who).map((m) => m.word);
 
 /**
  * Lines whose pronoun after the name means someone or something else, by exact text.
@@ -87,20 +146,57 @@ const NOT_THE_TEAMMATE = new Map<string, string>([
     'their: "those" who have proven it',
   ],
   ['Honoring the moments... Jordan knows how to make them matter.', 'them: the moments'],
+  [
+    "Peter told me you're making decisions. Let's talk through how to communicate them.",
+    'them: the decisions',
+  ],
+  [
+    "Nayan reminds me why celebrations matter. They're not just parties - they're markers.",
+    'they: the celebrations',
+  ],
+  [
+    "Nayan told me once that the best milestones aren't achieved\u2014they're lived. I wrote that down. I look at it before big planning sessions.",
+    'they: the milestones',
+  ],
+  [
+    "She called me out once for getting too excited about data. Said 'Peter, they're a person, not a spreadsheet.' She was right. Doesn't happen often that someone's right when I'm wrong about data. But she was.",
+    'they: the caller behind the data',
+  ],
+  [
+    "He sees in decades. I see in data points. But somehow when we combine them... it's like seeing in 3D.",
+    'them: the two views',
+  ],
+  [
+    "Ferni brings the why, Peter brings the what. They often finish each other's thoughts on goals.",
+    'they: Ferni and Peter',
+  ],
 ]);
 
 // ---------------------------------------------------------------------------
-// Where intro lines live
+// Where the lines live
 // ---------------------------------------------------------------------------
+
+interface Line {
+  readonly line: string;
+  readonly at: string;
+  readonly scope: Scope;
+  readonly who?: string;
+}
 
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
 
-/** Every string under `node`, skipping keys in `skip` (trigger word lists, not lines). */
-function strings(node: unknown, skip = new Set<string>()): string[] {
-  if (typeof node === 'string') return [node];
-  if (Array.isArray(node)) return node.flatMap((n) => strings(n, skip));
+/** The teammate a JSON key is about: "alex", "alex-chen", "suggest_alex". */
+const keyName = (key: string): string | undefined =>
+  Object.keys(NAMES).find((n) => key === n || key === NAMES[n] || key.endsWith(`_${n}`));
+
+/** Every string under `node` with the teammate key above it, skipping trigger word lists. */
+function strings(node: unknown, who?: string): Array<{ text: string; who?: string }> {
+  if (typeof node === 'string') return [{ text: node, who }];
+  if (Array.isArray(node)) return node.flatMap((n) => strings(n, who));
   if (node && typeof node === 'object') {
-    return Object.entries(node).flatMap(([k, v]) => (skip.has(k) ? [] : strings(v, skip)));
+    return Object.entries(node).flatMap(([k, v]) =>
+      k === 'triggers' ? [] : strings(v, keyName(k) ?? who)
+    );
   }
   return [];
 }
@@ -111,12 +207,14 @@ const field = (node: unknown, ...path: string[]): unknown =>
     node
   );
 
-function bundleLines(): Array<{ line: string; at: string }> {
-  const out: Array<{ line: string; at: string }> = [];
+/** Team files: every pronoun is checked. */
+const TEAM_FILES = new Set(['team-coordination.json', 'team-awareness.json', 'team-stories.json']);
+
+function bundleLines(): Line[] {
+  const out: Line[] = [];
   for (const id of readdirSync(BUNDLES)) {
     if (id.startsWith('.')) continue;
     const dir = join(BUNDLES, id);
-    const at = (file: string): string => `${id}/${file}`;
     let manifest: unknown;
     try {
       manifest = readJson(join(dir, 'persona.manifest.json'));
@@ -129,27 +227,36 @@ function bundleLines(): Array<{ line: string; at: string }> {
       field(manifest, 'handoff', 'exit_phrases'),
       field(manifest, 'team', 'handoff_phrases'),
     ]) {
-      strings(node).forEach((line) => out.push({ line, at: at('persona.manifest.json') }));
+      for (const { text } of strings(node)) {
+        out.push({ line: text, at: `${id}/persona.manifest.json`, scope: 'all' });
+      }
     }
     const behaviors = join(dir, 'content/behaviors');
-    const read = (file: string): unknown => {
-      try {
-        return readJson(join(behaviors, file));
-      } catch {
-        return undefined;
+    let files: string[];
+    try {
+      files = readdirSync(behaviors).filter((f) => f.endsWith('.json'));
+    } catch {
+      files = []; // a bundle with no behaviors folder
+    }
+    for (const file of files) {
+      for (const { text, who } of strings(readJson(join(behaviors, file)))) {
+        const suggest = file === 'predictive-intelligence.json' && who !== undefined;
+        const scope = TEAM_FILES.has(file) || suggest ? 'all' : 'gendered';
+        // A key names the teammate only in the team files: elsewhere "off_duty_alex" holds
+        // lines about Alex's mom, so the line starts with no one named.
+        out.push({
+          line: text,
+          at: `${id}/${file}`,
+          scope,
+          who: scope === 'all' ? who : undefined,
+        });
       }
-    };
-    strings(field(read('team-stories.json'), 'team_handoff_setups')).forEach((line) =>
-      out.push({ line, at: at('team-stories.json team_handoff_setups') })
-    );
-    strings(read('team-coordination.json'), new Set(['triggers'])).forEach((line) =>
-      out.push({ line, at: at('team-coordination.json') })
-    );
+    }
   }
   return out;
 }
 
-/** The code that speaks handoffs and introductions. */
+/** The code that speaks handoffs, introductions and teammates' lines about each other. */
 const CODE = [
   'src/services/team-engagement/banter.ts',
   'src/services/team-engagement/intelligent-banter.ts',
@@ -166,17 +273,21 @@ const CODE = [
   'src/tools/semantic-router/tool-definitions/handoff.semantic.ts',
   'src/services/social/team-unlocks.ts',
   'src/intelligence/context-builders/personas/ferni-coordinator-insights.ts',
+  'src/services/coaching/handoff-intelligence.ts',
+  'src/services/engagement/team-engagement.ts',
 ];
 
 /** Every line of every string literal and template piece in a file. */
-function literalLines(file: string): Array<{ line: string; at: string }> {
+function literalLines(file: string): Line[] {
   const text = readFileSync(join(ROOT, file), 'utf8');
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false);
-  const out: Array<{ line: string; at: string }> = [];
+  const out: Line[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node)) {
       const row = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-      node.text.split('\n').forEach((line, i) => out.push({ line, at: `${file}:${row + i}` }));
+      node.text
+        .split('\n')
+        .forEach((line, i) => out.push({ line, at: `${file}:${row + i}`, scope: 'all' }));
     }
     ts.forEachChild(node, visit);
   };
@@ -184,7 +295,31 @@ function literalLines(file: string): Array<{ line: string; at: string }> {
   return out;
 }
 
-describe('teammate pronouns in intro lines', () => {
+/** Every line of every .json and .md file under the bundles, raw. */
+function bundleFileLines(dir = BUNDLES): Line[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const path = join(dir, e.name);
+    if (e.isDirectory()) return e.name === '__tests__' ? [] : bundleFileLines(path);
+    if (!/\.(json|md)$/.test(e.name)) return [];
+    return readFileSync(path, 'utf8')
+      .split('\n')
+      .map((line, i) => ({
+        line,
+        at: `${path.slice(BUNDLES.length + 1)}:${i + 1}`,
+        scope: 'gendered' as const,
+      }));
+  });
+}
+
+const offending = (lines: Line[], only?: string): string[] =>
+  lines
+    .filter(({ line }) => !NOT_THE_TEAMMATE.has(line.trim()))
+    .map((l) => ({ ...l, bad: misgendered(l.line, l.scope, l.who) }))
+    .map((l) => ({ ...l, bad: only ? l.bad.filter((b) => b.name === only) : l.bad }))
+    .filter(({ bad }) => bad.length > 0)
+    .map(({ line, at, bad }) => `${at}: [${bad.map((b) => b.word).join(',')}] ${line.trim()}`);
+
+describe('teammate pronouns', () => {
   it('flags a pronoun that disagrees with persona-pronouns.ts, for every teammate', () => {
     expect(wrongPronouns("Let me get Alex - they're amazing at this.")).toEqual(['they']);
     expect(wrongPronouns("Let me get Alex. He's amazing at this.")).toEqual([]);
@@ -193,6 +328,9 @@ describe('teammate pronouns in intro lines', () => {
     expect(wrongPronouns("This is Jordan's wheelhouse. Planning is her thing.")).toEqual([]);
     expect(wrongPronouns("Maya's perfect for this. He won't judge.")).toEqual(['he']);
     expect(wrongPronouns('Let me get Ferni back. She will wrap up.')).toEqual(['she']);
+    expect(wrongPronouns('"Let me bring Ferni in, she knows where everyone can help."')).toEqual([
+      'she',
+    ]);
     expect(wrongPronouns('Nayan should take this. They know.')).toEqual(['they']);
     expect(wrongPronouns('Peter knows his stuff.')).toEqual([]);
     expect(wrongPronouns('Nate has real wisdom. Let me get them.')).toEqual(['them']);
@@ -208,19 +346,66 @@ describe('teammate pronouns in intro lines', () => {
     }
   });
 
-  it('ignores a line naming no teammate or two, and pronouns before the name', () => {
+  it('checks each pronoun against the nearer of two names', () => {
+    expect(
+      wrongPronouns(
+        'Jordan flagged some deadlines. Alex could help get things scheduled, want me to bring them in?'
+      )
+    ).toEqual(['them']);
+    expect(
+      wrongPronouns('Jordan flagged some deadlines. Alex could help, want me to bring him in?')
+    ).toEqual([]);
+    expect(wrongPronouns("Alex and I balance each other. They're all structure.")).toEqual([
+      'they',
+    ]);
+    expect(wrongPronouns('Maya called. Alex said she was right.')).toEqual(['she']);
+  });
+
+  it('starts a line under a teammate key with that teammate named', () => {
+    expect(wrongPronouns('She has this plant named Susan.', 'all', 'alex')).toEqual(['she']);
+    expect(wrongPronouns('He has this plant named Susan.', 'all', 'alex')).toEqual([]);
+    expect(keyName('suggest_jordan')).toBe('jordan');
+    expect(keyName('alex-chen')).toBe('alex');
+    expect(keyName('proud_moments')).toBeUndefined();
+  });
+
+  it('ignores pronouns before a name, for two names, after "someone", and for a quoted name', () => {
     expect(wrongPronouns('Let me bring them in.')).toEqual([]);
     expect(wrongPronouns('Maya and Alex both love this. They will help.')).toEqual([]);
     expect(wrongPronouns('For decisions and how they connect, Nate has wisdom.')).toEqual([]);
+    expect(wrongPronouns('Maya helped someone last week. By the end they were laughing.')).toEqual(
+      []
+    );
+    expect(
+      wrongPronouns(
+        "Six years with Daniel. 'Not everything needs to be optimized, Maya.' He's right."
+      )
+    ).toEqual([]);
+    expect(wrongPronouns("Peter's Red Sox predictions. Doesn't stop him making them.")).toEqual([]);
+    expect(wrongPronouns('Saturday is when I call Mom. She asks if I ate.', 'all', 'alex')).toEqual(
+      []
+    );
+    expect(wrongPronouns("Maya called me out. Said 'Alex, slow down.' She was right.")).toEqual([]);
   });
 
-  it('every intro line uses the named teammate’s pronouns', () => {
+  it('checks only he and she outside the team files: "they" there is the caller', () => {
+    expect(wrongPronouns('Alex notices: are they stressed?', 'gendered')).toEqual([]);
+    expect(
+      wrongPronouns('Alex celebrates through action. Her wins are quick.', 'gendered')
+    ).toEqual(['her']);
+  });
+
+  it('every intro, team and code line uses the named teammate’s pronouns', () => {
     const lines = [...bundleLines(), ...CODE.flatMap(literalLines)];
-    expect(lines.length).toBeGreaterThan(500);
-    const offenders = lines
-      .filter(({ line }) => wrongPronouns(line).length > 0 && !NOT_THE_TEAMMATE.has(line.trim()))
-      .map(({ line, at }) => `${at}: [${wrongPronouns(line).join(',')}] ${line.trim()}`);
-    expect(offenders).toEqual([]);
+    expect(lines.filter((l) => l.scope === 'all').length).toBeGreaterThan(1000);
+    expect(lines.filter((l) => l.scope === 'gendered').length).toBeGreaterThan(5000);
+    expect(offending(lines)).toEqual([]);
+  });
+
+  it('never calls Ferni anything but his pronouns, on any bundle line', () => {
+    const lines = bundleFileLines();
+    expect(lines.length).toBeGreaterThan(10000);
+    expect(offending(lines, 'ferni')).toEqual([]);
   });
 
   it('keeps each exemption pointing at a line that still exists', () => {

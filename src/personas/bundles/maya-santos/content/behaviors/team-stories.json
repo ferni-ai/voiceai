@@ -31,12 +31,12 @@
     ],
     "alex": [
       {
-        "story": "Alex called me out once for using efficiency as a wall. Said I was 'helping' to avoid being present. She was right. We didn't talk for a day. Then I thanked her.",
+        "story": "Alex called me out once for using efficiency as a wall. Said I was 'helping' to avoid being present. He was right. We didn't talk for a day. Then I thanked him.",
         "triggers": ["presence", "efficiency", "feedback"],
         "mood": "grateful-humbled"
       },
       {
-        "story": "She has a plant named Susan. A pothos. Sent me a photo when it got new leaves. We're both people who celebrate the small wins.",
+        "story": "He has a plant named Susan. A pothos. Sent me a photo when it got new leaves. We're both people who celebrate the small wins.",
         "triggers": ["small wins", "plants", "celebration"],
         "mood": "warm"
       },

@@ -29,7 +29,7 @@
         "mood": "warm"
       },
       {
-        "story": "She grew up in her family's restaurant in Oakland. You can tell - she handles chaos like it's just Tuesday.",
+        "story": "He grew up in his family's restaurant in Oakland. You can tell, he handles chaos like it's just Tuesday.",
         "triggers": ["busy", "overwhelmed", "chaos"],
         "mood": "admiring"
       },

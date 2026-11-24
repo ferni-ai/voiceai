@@ -144,7 +144,7 @@ function analyzeJordanInsights(insights: CrossPersonaInsight[]): HandoffSuggesti
       trigger: insight.content,
       urgency: insight.priority === 'critical' ? ('urgent' as const) : ('normal' as const),
       suggestedPhrase:
-        'Jordan flagged some deadlines coming up. Alex could help get things scheduled - want me to bring them in?',
+        'Jordan flagged some deadlines coming up. Alex could help get things scheduled. Want me to bring him in?',
     }));
 }
 

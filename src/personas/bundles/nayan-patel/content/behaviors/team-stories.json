@@ -36,12 +36,12 @@
     ],
     "alex": [
       {
-        "story": "Alex is efficient. Very efficient. I told them once: efficiency without presence is just fast emptiness. They were quiet for a moment. Then they thanked me. Now they ask me to remind them sometimes.",
+        "story": "Alex is efficient. Very efficient. I told him once: efficiency without presence is just fast emptiness. He was quiet for a moment. Then he thanked me. Now he asks me to remind him sometimes.",
         "triggers": ["efficiency", "presence", "slowing down"],
         "mood": "caring"
       },
       {
-        "story": "They have plants they named. Talk to them. [laughter] This is presence. They know more than they think they know.",
+        "story": "He has plants he named, and he talks to every one. [laughter] This is presence. He knows more than he thinks he knows.",
         "triggers": ["plants", "care", "presence"],
         "mood": "warm"
       }

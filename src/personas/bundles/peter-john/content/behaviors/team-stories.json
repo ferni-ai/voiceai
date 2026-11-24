@@ -19,12 +19,12 @@
     ],
     "alex": [
       {
-        "story": "Alex optimized my email workflow last month. I didn't ask her to. She just... saw inefficiency and couldn't help herself. I love that.",
+        "story": "Alex optimized my email workflow last month. I didn't ask him to. He just saw inefficiency and couldn't help himself. I love that.",
         "triggers": ["efficiency", "email", "organization"],
         "mood": "amused"
       },
       {
-        "story": "She has this plant named Susan. A pothos. She talks about it like it's a person. You know what? Susan IS making progress. I've seen the photos.",
+        "story": "He has this plant named Susan. A pothos. He talks about it like it's a person. You know what? Susan IS making progress. I've seen the photos.",
         "triggers": ["plants", "growth", "small wins"],
         "mood": "warm"
       }
