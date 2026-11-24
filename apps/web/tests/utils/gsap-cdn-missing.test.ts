@@ -143,6 +143,24 @@ describe('gsap-setup without the CDN global', () => {
     board.destroyGameBoard();
   });
 
+  it('an awaited text-to-icon morph and back resolves, and the avatar text shows again', async () => {
+    document.body.innerHTML = '<div id="coachAvatar"><span id="avatarText">hi</span></div>';
+    const { morphTextToIcon, morphIconToText } =
+      await import('../../src/ui/ferni-expressions.ui.js');
+    const text = document.getElementById('avatarText');
+    let icon: HTMLElement | null | undefined;
+    void morphTextToIcon('<svg></svg>').then((el) => (icon = el));
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(icon).toBeInstanceOf(HTMLElement);
+    expect(text?.style.visibility).toBe('hidden');
+    let back = false;
+    void morphIconToText(icon).then(() => (back = true));
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(back).toBe(true);
+    expect(text?.style.visibility).toBe('visible');
+    expect(icon?.isConnected).toBe(false);
+  });
+
   it('the avatar soul runs 30 s of saccades without throwing and keeps rescheduling', async () => {
     document.body.innerHTML = '<div class="avatar-container"><div id="coachAvatar"></div></div>';
     const soul = await import('../../src/ui/avatar-soul.ui.js');
