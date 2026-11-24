@@ -22,6 +22,7 @@
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { ALIAS_TO_CANONICAL } from '../../personas/persona-ids.js';
 import { chiefOfStaffWhen } from './chief-of-staff-note.js';
+import { isMayaHabitTalk, MAYA_ID } from './maya-habit-need.js';
 import { withPronouns } from './teammate-pronouns.js';
 
 interface Teammate {
@@ -90,7 +91,9 @@ export function onOwnBeat(speaker: unknown, callerWords: string): boolean {
   const self = canonical(speaker);
   const words = callerWords.toLowerCase();
   if (LEGENDS.some((m) => m.id === self)) return INVESTING.test(words);
-  return BY_NEED_TEAMMATES.find((m) => m.id === self)?.need?.test(words) ?? false;
+  const beat = BY_NEED_TEAMMATES.find((m) => m.id === self)?.need?.test(words) ?? false;
+  // MAYA_HABIT_TRIGGERS=on: "I broke my streak" is Maya's beat too (maya-habit-need.ts)
+  return beat || (self === MAYA_ID && isMayaHabitTalk(words));
 }
 
 /** Has the agent already named `name` on this call? Then it's been offered. */
@@ -124,13 +127,29 @@ export function teamByNeedNote(speaker: string, callerWords: string, agentWords 
       : '',
     'Offer one only when what the caller needs clearly matches, at most once a call each; ask before transferring, and never push.',
   ];
-  const fits = team.find((m) => m.need?.test(words) && !alreadyOffered(m.name, agentWords));
+  const fits =
+    team.find((m) => m.need?.test(words) && !alreadyOffered(m.name, agentWords)) ??
+    habitTalkFitsMaya(team, words, agentWords);
   if (fits) {
     parts.push(
       `What they just said fits ${fits.name}: if it helps, ask whether they'd like ${fits.name} to join.`
     );
   }
   return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * MAYA_HABIT_TRIGGERS=on: Maya, for habit talk no teammate's own words claim
+ * (maya-habit-need.ts). Undefined while the flag is off.
+ */
+function habitTalkFitsMaya(
+  team: readonly Teammate[],
+  words: string,
+  agentWords: string
+): Teammate | undefined {
+  if (!isMayaHabitTalk(words) || team.some((m) => m.need?.test(words))) return undefined;
+  const maya = team.find((m) => m.id === MAYA_ID);
+  return maya && !alreadyOffered(maya.name, agentWords) ? maya : undefined;
 }
 
 /** What the agents have said on this call, from the request's messages. */
