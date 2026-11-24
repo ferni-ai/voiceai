@@ -14,12 +14,14 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { PRICING } from './finops-prices.js';
+import { finopsSettings, type FinOpsThresholds } from './finops-settings/index.js';
 
 const log = createLogger({ module: 'FinOps' });
 
-// Prices live in finops-prices.ts, each with its source and date.
+// Prices live in finops-prices.ts, each with its source and date. The figures an admin
+// types in and the thresholds are saved in Firestore (finops-settings/), read through
+// finopsSettings.current(), which the routes refresh before they read a snapshot.
 export { PRICING };
 
 // ============================================================================
@@ -167,17 +169,6 @@ export interface FinOpsAlert {
   data?: Record<string, unknown>;
 }
 
-export interface FinOpsThresholds {
-  maxCostPerFreeSession: number; // Alert if free session exceeds this
-  maxMonthlyBurn: number; // Alert if monthly burn exceeds
-  minGrossMargin: number; // Alert if margin drops below
-  maxUnprofitableUsers: number; // Alert if too many users are unprofitable
-  maxLTVCACRatio: number; // Target LTV:CAC ratio (3.0 is healthy)
-  minLTVCACRatio: number; // Alert if LTV:CAC drops below (1.0 = breakeven)
-  maxFreeTierCostPercent: number; // Alert if free tier > X% of total cost
-  powerUserSessionThreshold: number; // Sessions/month to flag as power user
-}
-
 // ============================================================================
 // LTV:CAC TRACKING
 // ============================================================================
@@ -242,26 +233,6 @@ const costEvents: CostEvent[] = [];
 const sessionCosts = new Map<string, SessionCost>();
 const MAX_EVENTS = 50000;
 const MAX_SESSIONS = 10000;
-
-const DEFAULT_THRESHOLDS: FinOpsThresholds = {
-  maxCostPerFreeSession: 0.15, // $0.15 max for 7-min free session
-  maxMonthlyBurn: 5000, // $5K/mo warning
-  minGrossMargin: 0.3, // 30% margin minimum
-  maxUnprofitableUsers: 100, // Alert if >100 unprofitable users
-  maxLTVCACRatio: 5.0, // Target (3.0 is healthy SaaS)
-  minLTVCACRatio: 1.5, // Alert if below (1.0 = breakeven)
-  maxFreeTierCostPercent: 0.6, // Alert if free tier > 60% of total cost
-  powerUserSessionThreshold: 50, // Flag users with >50 sessions/month
-};
-
-let thresholds = { ...DEFAULT_THRESHOLDS };
-let monthlyRevenue = 0; // Set via setMonthlyRevenue()
-let cashReserve: number | null = null;
-
-// LTV:CAC inputs (set via API)
-let customerAcquisitionCost = 0; // CAC - set from marketing spend
-let avgCustomerLifetimeMonths = 12; // Default 12 months
-let churnRateMonthly = 0.05; // 5% monthly churn
 
 // User cost tracking for power user detection
 const userMonthlyCosts = new Map<string, { cost: number; sessions: number; tier: string }>();
@@ -567,6 +538,7 @@ function trimSessions(): void {
  * Get a comprehensive FinOps snapshot.
  */
 export function getSnapshot(): FinOpsSnapshot {
+  const { monthlyRevenue, cashReserve, thresholds, ...ltvInputs } = finopsSettings.current();
   const now = Date.now();
   const last24h = now - 24 * 60 * 60 * 1000;
   const monthStart = new Date();
@@ -667,9 +639,9 @@ export function getSnapshot(): FinOpsSnapshot {
     avgRevenuePerPaidUser,
     avgCostPerPaidUser,
     paidUserCount,
-    churnRate: churnRateMonthly,
-    cac: customerAcquisitionCost,
-    lifetimeMonths: avgCustomerLifetimeMonths,
+    churnRate: ltvInputs.churnRateMonthly,
+    cac: ltvInputs.customerAcquisitionCost,
+    lifetimeMonths: ltvInputs.avgCustomerLifetimeMonths,
   });
 
   // ============== UNIT ECONOMICS ==============
@@ -869,6 +841,7 @@ function generateAlerts(data: {
   freeTierCostPercent: number;
   powerUsers: PowerUser[];
 }): FinOpsAlert[] {
+  const { thresholds } = finopsSettings.current();
   const alerts: FinOpsAlert[] = [];
 
   // High burn rate
@@ -968,76 +941,18 @@ function generateAlerts(data: {
 // CONFIGURATION
 // ============================================================================
 
-/**
- * Set monthly recurring revenue (from Stripe metrics).
- */
-export function setMonthlyRevenue(revenue: number): void {
-  monthlyRevenue = revenue;
-  log.info({ revenue }, 'MRR updated');
-}
-
-/**
- * Set cash reserve for runway calculations.
- */
-export function setCashReserve(amount: number): void {
-  cashReserve = amount;
-  log.info({ amount }, 'Cash reserve updated');
-}
-
-/**
- * Update alert thresholds.
- */
-export function setThresholds(newThresholds: Partial<FinOpsThresholds>): void {
-  thresholds = { ...thresholds, ...newThresholds };
-  log.info({ thresholds }, 'Thresholds updated');
-}
-
-/**
- * Get current thresholds.
- */
+/** The saved alert thresholds (finops-settings/; PUT /api/finops/thresholds saves them). */
 export function getThresholds(): FinOpsThresholds {
-  return { ...thresholds };
+  return { ...finopsSettings.current().thresholds };
 }
 
-/**
- * Set Customer Acquisition Cost (for LTV:CAC calculation).
- * Calculate this from: Marketing spend / New paying customers acquired
- */
-export function setCAC(amount: number): void {
-  customerAcquisitionCost = amount;
-  log.info({ cac: amount }, 'CAC updated');
-}
-
-/**
- * Set expected customer lifetime in months.
- * Can also calculate from: 1 / monthly churn rate
- */
-export function setCustomerLifetime(months: number): void {
-  avgCustomerLifetimeMonths = months;
-  log.info({ lifetimeMonths: months }, 'Customer lifetime updated');
-}
-
-/**
- * Set monthly churn rate (0-1).
- * Calculate from: Churned customers / Total customers at month start
- */
-export function setChurnRate(rate: number): void {
-  churnRateMonthly = Math.max(0, Math.min(1, rate));
-  log.info({ churnRate: churnRateMonthly }, 'Churn rate updated');
-}
-
-/**
- * Get current LTV:CAC inputs for debugging.
- */
-export function getLTVCACInputs(): {
-  cac: number;
-  lifetimeMonths: number;
-  churnRate: number;
-} {
+/** The saved LTV:CAC inputs (PUT /api/finops/ltv-cac saves them). */
+export function getLTVCACInputs(): { cac: number; lifetimeMonths: number; churnRate: number } {
+  const s = finopsSettings.current();
   return {
-    cac: customerAcquisitionCost,
-    lifetimeMonths: avgCustomerLifetimeMonths,
-    churnRate: churnRateMonthly,
+    cac: s.customerAcquisitionCost,
+    lifetimeMonths: s.avgCustomerLifetimeMonths,
+    churnRate: s.churnRateMonthly,
   };
 }
 
@@ -1059,16 +974,8 @@ export const finops = {
   getSessionCost,
   getSessionCostByUserId,
 
-  // Configuration - Basic
-  setMonthlyRevenue,
-  setCashReserve,
-  setThresholds,
+  // Configuration, saved in finops-settings/
   getThresholds,
-
-  // Configuration - LTV:CAC
-  setCAC,
-  setCustomerLifetime,
-  setChurnRate,
   getLTVCACInputs,
 
   // Constants

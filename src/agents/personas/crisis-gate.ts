@@ -245,7 +245,7 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
-    const base = applyClassifierVerdict(detection, verdict);
+    const base = applyClassifierVerdict(detection, verdict, env);
     const merged = who?.live ? await who.resolve(base, verdict) : base;
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
     const stronger = raisedTo(raise, merged, rerouted);
