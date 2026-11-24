@@ -16,6 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { onCalendarEventChange } from '../data-layer/hooks/calendar-hooks.js';
 import { recordCalendarSignal } from '../data-layer/domain-signals.js';
+import { calendarLoadFailed } from './calendar-load-state.js';
 import { withOutlookEvents } from './providers/outlook-state.js';
 import type {
   CalendarEvent,
@@ -125,16 +126,17 @@ function storedToProvider(stored: StoredProviderConnection): ProviderConnection 
 // LOAD USER DATA
 // ============================================================================
 
+function cacheEmpty(userId: string): void {
+  loadedUsers.add(userId);
+  eventCache.set(userId, new Map());
+  providerCache.set(userId, new Map());
+}
+
 async function loadUserData(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   const firestore = await getFirestore();
-  if (!firestore) {
-    loadedUsers.add(userId);
-    eventCache.set(userId, new Map());
-    providerCache.set(userId, new Map());
-    return;
-  }
+  if (!firestore) return cacheEmpty(userId);
 
   try {
     // Load events
@@ -163,10 +165,8 @@ async function loadUserData(userId: string): Promise<void> {
       'Loaded user calendar data'
     );
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to load user calendar data');
-    loadedUsers.add(userId);
-    eventCache.set(userId, new Map());
-    providerCache.set(userId, new Map());
+    if (calendarLoadFailed(userId, error)) return; // CALENDAR_LOAD_FAIL_HONEST: nothing cached, so retried
+    cacheEmpty(userId);
   }
 }
 

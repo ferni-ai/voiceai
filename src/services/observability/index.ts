@@ -38,9 +38,9 @@ export {
   type SessionCost,
   type UserCostSummary,
   type FinOpsAlert,
-  type FinOpsThresholds,
   PRICING,
 } from './finops.js';
+export type { FinOpsThresholds } from './finops-settings/index.js';
 export {
   errorMetrics,
   type ErrorSnapshot,
@@ -56,6 +56,11 @@ export {
   type PersonaUsageEvent,
 } from './persona-health.js';
 export { observabilityHub, type ObservabilitySnapshot, type Alert } from './hub.js';
+export {
+  readCloudRunMetrics,
+  unmeasuredService,
+  type ServiceMetrics,
+} from './cloud-run-metrics.js';
 export {
   resilienceMetrics,
   type ResilienceSnapshot,
@@ -78,7 +83,4 @@ export {
 } from './routing-metrics.js';
 
 // BTH Injection Metrics (Phase 1 Communication System Overhaul)
-export {
-  recordInjectionBloat,
-  getInjectionMetrics,
-} from './routing-metrics.js';
+export { recordInjectionBloat, getInjectionMetrics } from './routing-metrics.js';

@@ -28,8 +28,10 @@ import {
   isSpotifyRefreshRevoked,
 } from '../../../services/identity/spotify-auth.js';
 
-/** Why Spotify can't be used: no client or token set, token revoked, or the refresh failed. */
-type SpotifyUnavailableReason = 'not_configured' | 'revoked' | 'auth_failed';
+/** Why the house Spotify can't work until someone sets a new token: none set, or it was revoked. */
+export type SpotifyDownReason = 'not_configured' | 'revoked';
+/** Why Spotify can't be used: a down reason, or a refresh that failed and may recover. */
+type SpotifyUnavailableReason = SpotifyDownReason | 'auth_failed';
 
 const PREVIEWS_ONLY = "Spotify isn't connected right now, so I can only play short previews.";
 /** Said instead of offering to link Spotify, which can't be done. */
@@ -42,9 +44,14 @@ export function musicHonestOn(env: Env = process.env): boolean {
   return flagOn('MUSIC_HONEST_WHEN_UNLINKED', env);
 }
 
-function spotifyUnavailableReason(): SpotifyUnavailableReason {
+/** The down reason, or null while a configured token has not been revoked. */
+export function spotifyDownReason(): SpotifyDownReason | null {
   if (!isSpotifyConfigured()) return 'not_configured';
-  return isSpotifyRefreshRevoked() ? 'revoked' : 'auth_failed';
+  return isSpotifyRefreshRevoked() ? 'revoked' : null;
+}
+
+function spotifyUnavailableReason(): SpotifyUnavailableReason {
+  return spotifyDownReason() ?? 'auth_failed';
 }
 
 /** What useSpotify says when Spotify isn't linked, flag on or off. */

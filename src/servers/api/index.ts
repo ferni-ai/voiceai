@@ -119,6 +119,7 @@ import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
 import { handleGuestInviteRoutes } from '../../api/guest-invite-routes.js';
 import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
+import { handleSoulStatsRoutes } from '../../api/soul-stats/soul-stats-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -251,20 +252,12 @@ import { handleRitualsRoutes } from '../../api/routes/rituals.js';
 import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
+import { decideCallsAtStartup } from './call-availability.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 
-// Validate configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
-
-if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  log.error(
-    'Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
-  );
-  process.exit(1);
-}
+if (!decideCallsAtStartup()) process.exit(1);
 
 const server = http.createServer((req, res) =>
   respondOnRejection(res, handleRequest(bindBodyLimitResponse(req, res), res))
@@ -747,10 +740,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
 
     // GDPR routes
-    if (pathname.startsWith('/api/gdpr')) {
-      const handled = await handleGDPRRoutes(req, res, pathname);
-      if (handled) return;
-    }
+    if (pathname.startsWith('/api/gdpr') && (await handleGDPRRoutes(req, res, pathname))) return;
 
     // Trust journey routes
     if (pathname.startsWith('/api/trust-journey')) {
@@ -865,6 +855,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (await handleReplyReportRoutes(req, res, pathname)) return;
     if (await handleGuestInviteRoutes(req, res, pathname)) return;
     if (await handleCallTelemetryRoutes(req, res, pathname)) return;
+    if (await handleSoulStatsRoutes(req, res, pathname)) return; // SOUL_STATS
     if (pathname.startsWith('/api/brand') && (await handleBrandRoutes(req, res, pathname))) return;
 
     // Design tokens routes (public - for dynamic theming)

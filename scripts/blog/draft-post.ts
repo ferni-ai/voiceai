@@ -27,7 +27,13 @@ import { parseArgs } from 'node:util';
 import { draftPost, reviseEnabled } from './draft.js';
 import { renderPack, runGh, sourceList } from './grounding.js';
 import { claudeJudge, judgePost, truthPack } from './judge.js';
-import { issueDetails, rejectedSummary, reviewSummary, writtenSummary } from './log-safe.js';
+import {
+  gateRetrySummary,
+  issueDetails,
+  rejectedSummary,
+  reviewSummary,
+  writtenSummary,
+} from './log-safe.js';
 import { geminiModel } from './model.js';
 import { getPostType } from './post-types.js';
 
@@ -89,6 +95,7 @@ switch (result.status) {
     break;
   case 'written':
     console.log(writtenSummary(result.title ?? '', result.path ?? ''));
+    if (result.gateRetry?.length) console.log(gateRetrySummary(result.gateRetry));
     if (result.review) console.log(reviewSummary(result.review));
     break;
   case 'rejected':
