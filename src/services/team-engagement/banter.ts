@@ -285,7 +285,7 @@ export const ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * NAYAN_PLAIN_ENTRANCES (#1433): Nayan never tells people he's there for them and never
+ * NAYAN_PLAIN_VOICE (#1433): Nayan never tells people he's there for them and never
  * performs being wise (bundles/nayan-patel/identity/character.md), but two of his openers
  * did ("I'm here.", "Good to sit with you."). On, he arrives with these instead.
  */
@@ -293,17 +293,17 @@ export const PLAIN_ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>>
   'nayan-patel': [
     "Hello. <break time='200ms'/> Nayan here.",
     "Namaste. <break time='200ms'/> Nayan here.",
-    "Hello. <break time='150ms'/> Good to hear you.",
+    "Hello. <break time='150ms'/> Glad you called.",
   ],
 };
 
-/** The openers a persona arrives with: its plain ones when NAYAN_PLAIN_ENTRANCES is on. */
+/** The openers a persona arrives with: its plain ones when NAYAN_PLAIN_VOICE is on. */
 function arrivingOpenersFor(
   personaId: string,
   env: Env = process.env
 ): readonly string[] | undefined {
   const plain = PLAIN_ARRIVING_OPENERS[personaId];
-  if (plain && flagOn('NAYAN_PLAIN_ENTRANCES', env)) {
+  if (plain && flagOn('NAYAN_PLAIN_VOICE', env)) {
     log.info({ personaId }, 'Nayan plain entrance: plain arrival openers');
     return plain;
   }

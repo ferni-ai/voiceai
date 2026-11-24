@@ -196,7 +196,7 @@ const HANDOFF_BANTER: Record<string, string[]> = {
 
 /**
  * Arriving openers (team-engagement/banter.ts): pre-rendered so the first words after a handoff
- * are instant. The flag-on plain openers too, whatever the flag (NAYAN_PLAIN_ENTRANCES).
+ * are instant. The flag-on plain openers too, whatever the flag (NAYAN_PLAIN_VOICE).
  */
 const ARRIVING_BANTER = (personaId: string): readonly string[] => [
   ...new Set([

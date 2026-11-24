@@ -1,5 +1,5 @@
 /**
- * NAYAN_PLAIN_ENTRANCES (#1433): the plain arrival openers are pre-rendered at boot whatever the
+ * NAYAN_PLAIN_VOICE (#1433): the plain arrival openers are pre-rendered at boot whatever the
  * flag, so the first words after a handoff stay instant when it is on. Additive: every opener
  * that was pre-rendered before is still pre-rendered. Cartesia is stubbed.
  */
@@ -21,7 +21,7 @@ beforeEach(() => {
   clearConversationalCache();
   vi.stubEnv('CARTESIA_API_KEY', 'test-key');
   vi.stubEnv('SKIP_CONVERSATIONAL_PREWARM', 'false');
-  vi.stubEnv('NAYAN_PLAIN_ENTRANCES', 'off');
+  vi.stubEnv('NAYAN_PLAIN_VOICE', 'off');
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(4800) }))

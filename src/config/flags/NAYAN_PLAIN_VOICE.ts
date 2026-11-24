@@ -5,7 +5,7 @@ import type { FlagSpec } from '../flag-spec.js';
 // writes for him (briefed arrival, idle check-in, greeting, resume, wrap-up, sayInOwnWords) uses a
 // plain brief instead of "a reflective guide, unhurried and wise" (speech/direction/cue-say.ts).
 // Off: both exactly as before.
-export const NAYAN_PLAIN_ENTRANCES = {
+export const NAYAN_PLAIN_VOICE = {
   default: 'off',
   owner: 'voice',
   kind: 'experiment',

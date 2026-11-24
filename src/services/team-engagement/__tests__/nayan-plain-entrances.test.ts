@@ -1,5 +1,5 @@
 /**
- * NAYAN_PLAIN_ENTRANCES (#1433): Nayan's entrance stops sounding like a guru.
+ * NAYAN_PLAIN_VOICE (#1433): Nayan's entrance stops sounding like a guru.
  *
  * His character says he's not a guru and never performs being wise. Off, his arrival
  * openers and the director's brief for him are exactly today's. On, every opener he can
@@ -25,8 +25,8 @@ import { characterOf } from '../../../speech/direction/cue-say.js';
 import { prepareBriefing, type BriefInput } from '../../../agents/multi-agent/handoff-brief.js';
 
 const NAYAN = 'nayan-patel';
-const ON = { NAYAN_PLAIN_ENTRANCES: 'on' };
-const OFF = { NAYAN_PLAIN_ENTRANCES: 'off' };
+const ON = { NAYAN_PLAIN_VOICE: 'on' };
+const OFF = { NAYAN_PLAIN_VOICE: 'off' };
 
 /** Nayan's openers on main before this flag, byte for byte. */
 const TODAYS_OPENERS = [
@@ -39,7 +39,7 @@ const TODAYS_BRIEF = 'A gentle, reflective guide. Unhurried and wise.';
 const PLAIN_OPENERS = [
   "Hello. <break time='200ms'/> Nayan here.",
   "Namaste. <break time='200ms'/> Nayan here.",
-  "Hello. <break time='150ms'/> Good to hear you.",
+  "Hello. <break time='150ms'/> Glad you called.",
 ];
 const PLAIN_BRIEF =
   'Calm, direct and quietly funny. Warm without announcing it, glad they called. Says little, says it plainly; no lessons, no aphorisms.';
@@ -98,15 +98,15 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('NAYAN_PLAIN_ENTRANCES off: today, byte for byte', () => {
+describe('NAYAN_PLAIN_VOICE off: today, byte for byte', () => {
   it('Nayan arrives with exactly today’s openers', () => {
-    vi.stubEnv('NAYAN_PLAIN_ENTRANCES', 'off');
+    vi.stubEnv('NAYAN_PLAIN_VOICE', 'off');
     expect(ARRIVING_OPENERS[NAYAN]).toEqual(TODAYS_OPENERS);
     expect(everyArrival(NAYAN, TODAYS_OPENERS.length)).toEqual(TODAYS_OPENERS);
   });
 
   it('is also today when the flag is unset (default off)', () => {
-    vi.stubEnv('NAYAN_PLAIN_ENTRANCES', '');
+    vi.stubEnv('NAYAN_PLAIN_VOICE', '');
     expect(everyArrival(NAYAN, TODAYS_OPENERS.length)).toEqual(TODAYS_OPENERS);
     expect(characterOf(NAYAN, {})).toEqual({ name: 'Nayan', brief: TODAYS_BRIEF });
   });
@@ -116,9 +116,9 @@ describe('NAYAN_PLAIN_ENTRANCES off: today, byte for byte', () => {
   });
 });
 
-describe('NAYAN_PLAIN_ENTRANCES on: plain entrances', () => {
+describe('NAYAN_PLAIN_VOICE on: plain entrances', () => {
   it('every opener Nayan can arrive with is a plain one, and none says "I’m here"', () => {
-    vi.stubEnv('NAYAN_PLAIN_ENTRANCES', 'on');
+    vi.stubEnv('NAYAN_PLAIN_VOICE', 'on');
     const said = distinctArrivals(NAYAN);
     expect(said).toEqual(PLAIN_OPENERS);
     expect(said).not.toContain(TODAYS_OPENERS[1]);
@@ -126,14 +126,14 @@ describe('NAYAN_PLAIN_ENTRANCES on: plain entrances', () => {
   });
 
   it('the plain openers and brief obey the voice text rules', () => {
-    vi.stubEnv('NAYAN_PLAIN_ENTRANCES', 'on');
+    vi.stubEnv('NAYAN_PLAIN_VOICE', 'on');
     for (const line of [...distinctArrivals(NAYAN), characterOf(NAYAN, ON).brief]) {
       expect(voiceRuleBreaks(line), line).toEqual([]);
     }
   });
 
   it('NEVER check: no plain opener or the plain brief has guru register', () => {
-    vi.stubEnv('NAYAN_PLAIN_ENTRANCES', 'on');
+    vi.stubEnv('NAYAN_PLAIN_VOICE', 'on');
     for (const line of [...distinctArrivals(NAYAN), characterOf(NAYAN, ON).brief]) {
       expect(guruHits(line), line).toEqual([]);
     }
@@ -144,7 +144,7 @@ describe('NAYAN_PLAIN_ENTRANCES on: plain entrances', () => {
   });
 
   it('another teammate is untouched', () => {
-    vi.stubEnv('NAYAN_PLAIN_ENTRANCES', 'on');
+    vi.stubEnv('NAYAN_PLAIN_VOICE', 'on');
     const maya = ARRIVING_OPENERS['maya-santos'];
     expect(everyArrival('maya-santos', maya.length)).toEqual([...maya]);
     expect(characterOf('maya-santos', ON)).toEqual(characterOf('maya-santos', OFF));
