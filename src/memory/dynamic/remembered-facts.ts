@@ -43,7 +43,11 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { errorClass } from '../../utils/error-class.js';
 import { credentialInText } from '../credential-shapes.js';
 import { readSecret, type SecretCheckDeps } from '../secret-check.js';
-import { forgottenCheck, forgottenWithin } from '../recall/forget-every-reader.js';
+import {
+  forgetFreshReadEnabled,
+  forgottenCheck,
+  forgottenWithin,
+} from '../recall/forget-every-reader.js';
 import { credentialCategory, logCredentialDrops } from '../spoken-credential.js';
 import { factDocId } from './extraction-firestore-docs.js';
 import { withFactEmbeddings, type FactEmbeddingDeps } from './fact-embeddings.js';
@@ -162,14 +166,15 @@ export type KeepOutcome =
   /** No store, an unreadable forgotten list, or a write that threw. */
   | { kind: 'failed' };
 
-/** The topics check for a write: under MEMORY_TOOLS_HONEST always, and fails closed (null = unreadable). */
+/** The topics check for a write: under MEMORY_TOOLS_HONEST always, and fails closed (null = unreadable); FORGET_FRESH_READ skips the 15 s cache (#2755). */
 async function forgottenFor(
   userId: string,
   env: Env | undefined,
   honest: boolean
 ): Promise<((text: string) => boolean) | 'unreadable' | null> {
   if (!honest) return forgottenCheck(userId, 'remember-to-recall', env);
-  return (await forgottenWithin(userId, 'remember-to-recall')) ?? 'unreadable';
+  const uncached = forgetFreshReadEnabled(env);
+  return (await forgottenWithin(userId, 'remember-to-recall', uncached)) ?? 'unreadable';
 }
 
 /**
