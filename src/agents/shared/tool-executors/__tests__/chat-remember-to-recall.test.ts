@@ -86,11 +86,20 @@ vi.mock('../../../../config/gemini-config.js', async (importOriginal) => ({
   }),
 }));
 // Cohorts, as feature_cohorts holds them: one member in a cohort that turns the flags on
-const cohorts = vi.hoisted(() => ({ members: new Map<string, Record<string, string>>() }));
+const cohorts = vi.hoisted(() => ({
+  members: new Map<string, Record<string, string>>(),
+  reads: [] as string[],
+  hang: new Set<string>(),
+}));
 vi.mock('../../../../services/platform/cohort-firestore.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../services/platform/cohort-firestore.js')>()),
   firestoreCohortStore: {
     cohortsFor: async (uid: string) => {
+      cohorts.reads.push(uid);
+      if (cohorts.hang.has(uid))
+        await new Promise<void>(() => {
+          /* never answers */
+        });
       const flags = cohorts.members.get(uid);
       return flags ? [{ id: 'friends', enabled: true, flags }] : [];
     },
@@ -135,8 +144,8 @@ async function chatRemember(fact: string, userId = UID) {
 }
 
 /** The chat API's correction: updateMemory, as the model calls it. */
-async function chatCorrect(oldFact: string, newFact: string, userId = UID) {
-  return executeTool({ name: 'updateMemory', args: { oldFact, newFact } }, { userId, personaId: 'ferni' }); // prettier-ignore
+async function chatCorrect(oldFact: string, newFact: string, userId = UID, sessionId?: string) {
+  return executeTool({ name: 'updateMemory', args: { oldFact, newFact } }, { userId, sessionId, personaId: 'ferni' }); // prettier-ignore
 }
 
 /** memory-control-store.ts over the fake database: facts, copies, and a forget that marks. */
@@ -203,6 +212,8 @@ afterEach(() => {
   sent.indexed = 0;
   writer.calls.length = 0;
   cohorts.members.clear();
+  cohorts.reads.length = 0;
+  cohorts.hang.clear();
   forgetFlagCache();
 });
 
@@ -290,8 +301,10 @@ describe('CHAT_REMEMBER_TO_RECALL: a correction in chat replaces the recall copy
     vi.stubEnv('REMEMBER_TO_RECALL', 'on');
     await chatRemember(DENVER);
     expect(live()).toEqual([DENVER]);
-    expect(await chatCorrect('Denver', AUSTIN)).toMatchObject({ success: true, result: '' });
+    expect(await chatCorrect('Denver', AUSTIN, UID, 'chat-sess-1')).toMatchObject({ success: true, result: '' }); // prettier-ignore
     expect(live()).toEqual([AUSTIN]);
+    const austin = docsIn('dynamic_facts').find((p) => fs.docs.get(p)?.value === AUSTIN) ?? '';
+    expect(fs.docs.get(austin)).toMatchObject({ category: 'correction', sessionId: 'chat-sess-1' });
     const [extracted] = docsIn('extracted_facts');
     expect(fs.docs.get(extracted)).toMatchObject({ fact: AUSTIN, previousVersion: 'Denver' }); // as before
     const note = await nextCall('where is my sister relocating');
@@ -299,13 +312,24 @@ describe('CHAT_REMEMBER_TO_RECALL: a correction in chat replaces the recall copy
     expect(note).not.toContain('moving to Denver');
   });
 
-  it('on: a fact remembered before the flag has no recall copy; the correction is kept for recall', async () => {
+  it('on: no recall copy to replace (remembered before the flag) changes nothing for recall, as voice', async () => {
     vi.stubEnv('REMEMBER_TO_RECALL', 'on');
     await chatRemember(DENVER); // CHAT_REMEMBER_TO_RECALL off: extracted_facts only
     vi.stubEnv('CHAT_REMEMBER_TO_RECALL', 'on');
     await chatCorrect('Denver', AUSTIN);
-    expect(live()).toEqual([AUSTIN]);
-    expect(fs.docs.get(docsIn('dynamic_facts')[0])).toMatchObject({ category: 'correction' });
+    expect(docsIn('dynamic_facts')).toEqual([]);
+    expect(fs.docs.get(docsIn('extracted_facts')[0])).toMatchObject({ fact: AUSTIN }); // as before
+  });
+
+  it('on: a quote two chat facts contain changes nothing for recall (never the wrong fact)', async () => {
+    const BAKERY = 'I work in Denver at a bakery';
+    vi.stubEnv('CHAT_REMEMBER_TO_RECALL', 'on');
+    vi.stubEnv('REMEMBER_TO_RECALL', 'on');
+    await chatRemember(DENVER);
+    await chatRemember(BAKERY);
+    expect(live().sort()).toEqual([BAKERY, DENVER].sort());
+    await chatCorrect('Denver', 'I work in Boulder at a bakery');
+    expect(live().sort()).toEqual([BAKERY, DENVER].sort());
   });
 
   it('off: a correction touches only extracted_facts', async () => {
@@ -332,6 +356,30 @@ describe("CHAT_REMEMBER_TO_RECALL: flags are the caller's own (the UI server nev
     expect(docsIn('extracted_facts', OTHER)).toHaveLength(1);
     expect(docsIn('dynamic_facts', OTHER)).toEqual([]);
     expect(writer.calls).toHaveLength(1); // the member's only
+  });
+
+  it('a cohort read that runs past READ_TIMEOUT_MS counts as off: no write', async () => {
+    vi.stubEnv('COHORT_FLAGS', 'on');
+    vi.stubEnv('CHAT_REMEMBER_TO_RECALL', 'on');
+    vi.stubEnv('REMEMBER_TO_RECALL', 'on');
+    cohorts.hang.add(MEMBER);
+    const got = await chatRemember(DENVER, MEMBER);
+    expect(got).toMatchObject({ success: true, result: '' });
+    expect(cohorts.reads).toContain(MEMBER);
+    expect(writer.calls).toEqual([]);
+    expect(docsIn('dynamic_facts', MEMBER)).toEqual([]);
+  });
+
+  it('no cohort read for an id that is not a member', async () => {
+    vi.stubEnv('COHORT_FLAGS', 'on');
+    vi.stubEnv('CHAT_REMEMBER_TO_RECALL', 'on');
+    vi.stubEnv('REMEMBER_TO_RECALL', 'on');
+    for (const id of ['anonymous', 'anon:sess-0101', 'onbehalf:call-0101']) {
+      await chatRemember(DENVER, id);
+      await chatCorrect('Denver', 'my sister Dana is moving to Austin in June', id);
+    }
+    expect(cohorts.reads).toEqual([]);
+    expect(writer.calls).toEqual([]);
   });
 
   it("a cohort's MEMORY_TOOLS_HONEST guards apply: a phone number is not kept", async () => {

@@ -19,7 +19,15 @@
  *
  * Flags are the caller's own: the UI server serves many people in one process
  * and never writes cohort flags into process.env (cohort-flags.ts), so they are
- * read per person here, CHAT_REMEMBER_TO_RECALL included.
+ * read per person here, CHAT_REMEMBER_TO_RECALL included. Only for a member,
+ * and never waiting longer than READ_TIMEOUT_MS per read: a read that runs
+ * late counts as off, so the chat reply is never held up by it.
+ *
+ * A correction is replaced only when exactly one stored chat fact matched what
+ * the model quoted: the executor matches by substring, replaceRemembered by
+ * exact text on purpose, so two matches ("Denver" in a sister's move and in a
+ * job) change nothing for recall, as replaceRemembered's own ambiguous does.
+ * No match changes nothing either, as the voice tool's updateMemory does.
  *
  * The writer's stores and secret model are handed in by
  * agents/remembered-fact-store-register.ts, which only the agent process loads
@@ -32,6 +40,8 @@
  * @module agents/shared/tool-executors/chat-remember-to-recall
  */
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { TimeoutError, withTimeout } from '../../../utils/async.js';
 import type { keepForRecall, KeepOutcome, ReplaceOutcome } from '../../../services/memory/index.js';
 import { errorClass } from '../../../utils/error-class.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -50,11 +60,21 @@ export interface ChatRememberedFact {
 
 /** The writer's deps with this caller's flags, or null when CHAT_REMEMBER_TO_RECALL is off for them. */
 async function forCaller(userId: string): Promise<RememberToRecallDeps | null> {
-  const { envForCaller, flagForUser } = await import('../../../services/platform/cohort-flags.js');
-  // Cached, and no read at all without COHORT_FLAGS: the off path stays cheap. Their own value wins.
-  const own = await flagForUser(userId, FLAG);
-  if (!flagOn(FLAG, own === undefined ? process.env : { [FLAG]: own })) return null;
-  const env: Env = await envForCaller(userId);
+  if (!isMemberIdentity(userId)) return null; // the writer keeps only a member's: no read for anyone else
+  const cohorts = await import('../../../services/platform/cohort-flags.js');
+  const inTime = async <T>(read: Promise<T>): Promise<T> =>
+    withTimeout(read, cohorts.READ_TIMEOUT_MS, 'Chat recall cohort flags');
+  let env: Env;
+  try {
+    // Cached, and no read at all without COHORT_FLAGS. Their own value wins.
+    const own = await inTime(cohorts.flagForUser(userId, FLAG));
+    if (!flagOn(FLAG, own === undefined ? process.env : { [FLAG]: own })) return null;
+    env = await inTime(cohorts.envForCaller(userId));
+  } catch (error) {
+    if (!(error instanceof TimeoutError)) throw error;
+    log.warn('Cohort flags not read in time: no chat recall write (fails closed)');
+    return null;
+  }
   await import('../../remembered-fact-store-register.js'); // the UI server loads no agent wiring
   const { memoryToolFlags } = await import('../../../services/memory/index.js');
   // RECALL_VECTOR_INDEX is a cohort flag too: the writer would read it from process.env
@@ -93,24 +113,34 @@ export async function keepChatFactForRecall(
   }
 }
 
+/** A stored extracted_facts document, as the executor's read returned it. */
+interface StoredChatFact {
+  data: () => Record<string, unknown>;
+}
+
 /**
  * With the flag on for this caller, a chat correction in the store recall reads:
- * the remembered fact that reads exactly `original` is replaced by `updated`
- * (replaceRemembered). With no such fact, `updated` is kept for recall, as the
- * executor stores it anew. Null when off.
+ * when exactly one stored chat fact matched `oldFact`, the remembered fact that
+ * reads exactly as it does is replaced by `newFact` (replaceRemembered). Two or
+ * more matches change nothing (ambiguous). Null when off.
  */
 export async function replaceChatFactForRecall(
-  userId: string,
-  change: { original: string; updated: string }
-): Promise<ReplaceOutcome | KeepOutcome | null> {
+  ctx: { userId?: string; sessionId?: string },
+  matched: readonly StoredChatFact[],
+  change: { oldFact: string; newFact: string }
+): Promise<ReplaceOutcome | null> {
+  const { userId, sessionId } = ctx;
+  if (!userId) return null;
   try {
     const deps = await forCaller(userId);
     if (!deps) return null;
-    const { keepForRecall, replaceRemembered } = await import('../../../services/memory/index.js');
-    const replaced = await replaceRemembered(userId, change, deps);
-    if (replaced.kind !== 'no_match') return logged('Chat correction to recall', replaced);
-    const fact = { fact: change.updated, category: 'correction' };
-    return logged('Chat correction to recall', await keepForRecall(userId, fact, deps));
+    if (matched.length > 1) return logged('Chat correction to recall', { kind: 'ambiguous' });
+    // The text as stored (what the remember wrote for recall), else the model's own quote
+    const data = matched[0]?.data();
+    const original = String(data?.fact ?? data?.content ?? change.oldFact);
+    const { replaceRemembered } = await import('../../../services/memory/index.js');
+    const replacing = { original, updated: change.newFact, ...(sessionId && { sessionId }) };
+    return logged('Chat correction to recall', await replaceRemembered(userId, replacing, deps));
   } catch (error) {
     log.warn({ error: errorClass(error) }, 'Chat correction not written for recall');
     return { kind: 'failed' };

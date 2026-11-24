@@ -389,10 +389,11 @@ async function execute(
           .get();
 
         const oldFactLower = oldFact.toLowerCase();
-        const docToUpdate = snapshot.docs.find((doc) => {
+        const matched = snapshot.docs.filter((doc) => {
           const data = doc.data();
           return ((data.fact || data.content || '') as string).toLowerCase().includes(oldFactLower);
         });
+        const docToUpdate = matched.at(0);
 
         if (docToUpdate) {
           await docToUpdate.ref.update(
@@ -422,8 +423,7 @@ async function execute(
               })
             );
         }
-        const original = String(docToUpdate?.data().fact ?? oldFact); // the text recall holds
-        await replaceChatFactForRecall(ctx.userId, { original, updated: newFact }); // #2518
+        await replaceChatFactForRecall(ctx, matched, { oldFact, newFact }); // #2518
         return '';
       } catch (err) {
         log.warn({ error: String(err) }, 'Memory update failed');
