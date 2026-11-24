@@ -48,6 +48,7 @@ import {
   textureLine,
 } from './turn-length.js';
 import { quietLineFor } from './quiet-caller.js';
+import { shortAskLine } from './short-ask.js';
 
 export { callerMove, opinionAsk, type CallerMove } from './caller-move.js';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -355,6 +356,8 @@ function modelChosenShape(
   else if (cap) parts.push(tellingLengthLine(cap));
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
+  const short = shortAskLine(userText); // SHORT_ASK=on: they asked for less (short-ask.ts)
+  if (short) parts.push(short);
   const learned = [
     learn.length ? `length_${target}` : '',
     learn.length && sig.substance ? `substance_${sig.substance}` : '',
@@ -417,6 +420,7 @@ export function turnShapeFor(
   parts.push(extras.shapeLine ?? SHAPE_LINE[shape]);
   if (sharing && telling(userText, move)) parts.push(tellingLengthLine(lengthCap(userText)));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
+  parts.push(shortAskLine(userText) ?? ''); // SHORT_ASK=on; '' is dropped by the filter below
   return {
     move,
     shape,
