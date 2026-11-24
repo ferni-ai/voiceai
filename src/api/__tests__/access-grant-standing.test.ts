@@ -5,7 +5,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  APPROVAL_REASONS_SINCE,
   admittedEntryStands,
   entryStanding,
   approvalLapses,
@@ -15,6 +14,9 @@ import {
 } from '../access-grant-standing.js';
 import { forgetAdmissionCache, isAdmitted, type AdmissionStore } from '../admission.js';
 import type { StoredSubscription, StoredWaitlistEntry } from '../access-grant-standing.js';
+
+/** The legacy cutoff in access-grant-standing.ts (the day #2264 reaches prod). */
+const APPROVAL_REASONS_SINCE = new Date('2026-11-24T00:00:00Z');
 
 const GATE: NodeJS.ProcessEnv = { WAITLIST_GATE: 'on' };
 const FLAG_ON: NodeJS.ProcessEnv = { ...GATE, DURABLE_ACCESS_GRANTS: 'on' };

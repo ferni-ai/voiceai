@@ -48,14 +48,14 @@ export interface StoredWaitlistEntry {
 }
 
 /** Why a waitlist entry was approved: server-only, written in the same write as status 'approved'. */
-export type ApprovedVia = 'open_access' | 'admission' | 'admin' | 'wave';
+type ApprovedVia = 'open_access' | 'admission' | 'admin' | 'wave';
 
 /**
  * The day #2264 deploys to prod, from which every approval writes approvedVia. It MUST equal
  * that prod deploy day: check it (and move it if this shipped later) before DURABLE_ACCESS_GRANTS
  * is turned on. Unlabelled approvals older than this are legacy; newer ones lapse.
  */
-export const APPROVAL_REASONS_SINCE = new Date('2026-11-24T00:00:00Z');
+const APPROVAL_REASONS_SINCE = new Date('2026-11-24T00:00:00Z');
 
 /** Reasons that end: the gate was off, or the live rules said yes at the time (open-access.ts). */
 const LAPSING_GRANTS = new Set(['open-access', 'admission', 'waitlist-approval-auto']);
