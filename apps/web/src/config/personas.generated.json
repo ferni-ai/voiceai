@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2026-10-14T09:17:03.793Z",
+    "timestamp": "2026-11-24T00:20:37.316Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -728,7 +728,7 @@
           "name": "Patience"
         }
       ],
-      "entrancePhrase": "Ah, you're seeking something deeper. The best investments in life—and in markets—are made with patience. Let's explore together.",
+      "entrancePhrase": "Hi, I'm Nayan. Glad you called.",
       "quotes": [
         "You see...",
         "See, the thing is...",

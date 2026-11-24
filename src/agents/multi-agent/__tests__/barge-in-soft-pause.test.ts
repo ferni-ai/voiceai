@@ -60,6 +60,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe('BARGE_IN_SOFT_PAUSE off', () => {
@@ -432,6 +433,93 @@ describe('SOFT_PAUSE_ONE_OUTCOME', () => {
   });
 });
 
+describe('SOFT_PAUSE_CUT_DROPS_HELD', () => {
+  const ALL_ON = { SOFT_PAUSE_ONE_OUTCOME: 'on', SOFT_PAUSE_CUT_DROPS_HELD: 'on' };
+
+  /** Paused, then cut by the barge-in model at 1041 ms, with a drop that throws `error`. */
+  function cutWithFailingDrop(error: unknown) {
+    const decisions: unknown[] = [];
+    const fastLines: unknown[] = [];
+    const interrupt = vi.fn();
+    const resume = vi.fn();
+    const dropCut = vi.fn(() => {
+      throw error;
+    });
+    const softPause = softPauseFromEnv(
+      { BARGE_IN_SOFT_PAUSE: 'on', ...ALL_ON },
+      { pause: () => true, resume, dropCut, log: (fields) => decisions.push(fields) }
+    );
+    const fp = createBargeInFastPath({
+      interrupt,
+      softPause,
+      unlabel: asSaid,
+      log: (fields) => fastLines.push(fields),
+    });
+    fp.onAgentState({ newState: 'speaking' });
+    fp.onSpokenText(FERNI_SAYS);
+    fp.onUserState({ newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS + 1041);
+    expect(() => fp.onOverlapDecision({ isInterruption: true })).not.toThrow();
+    vi.advanceTimersByTime(WATCHDOG_MS);
+    return { decisions, fastLines, interrupt, resume, dropCut };
+  }
+
+  it('a drop that throws is logged by name, and the cut goes on as without the flag', () => {
+    const c = cutWithFailingDrop(new RangeError('no frames'));
+    expect(c.dropCut).toHaveBeenCalledTimes(1);
+    expect(c.interrupt).toHaveBeenCalledTimes(1);
+    expect(c.decisions).toEqual([
+      { outcome: 'interrupted', why: 'model', pausedMs: 1041 },
+      { event: 'drop-failed', error: 'RangeError' },
+    ]);
+    expect(c.resume).not.toHaveBeenCalled(); // the watchdog was still stopped
+  });
+
+  it("never logs a failed drop's message", () => {
+    const words = 'Riley Test wants the lake trail at noon';
+    for (const [error, name] of [
+      [new Error(words), 'Error'],
+      [words, 'string'],
+    ] as const) {
+      const c = cutWithFailingDrop(error);
+      expect(c.decisions).toContainEqual({ event: 'drop-failed', error: name });
+      expect(JSON.stringify([c.decisions, c.fastLines])).not.toContain('lake trail');
+    }
+  });
+
+  it.each([
+    ['on', 'on', true, 0],
+    ['off', 'on', false, 1],
+    ['on', 'off', false, 0],
+    ['off', 'off', false, 0],
+  ])(
+    'ONE_OUTCOME=%s, CUT_DROPS_HELD=%s: drop handed over %s, %i refusal line(s) over two calls',
+    (one, cut, handed, refusals) => {
+      const env = {
+        BARGE_IN_SOFT_PAUSE: 'on',
+        SOFT_PAUSE_ONE_OUTCOME: one,
+        SOFT_PAUSE_CUT_DROPS_HELD: cut,
+      };
+      const dropCut = vi.fn();
+      const lines: unknown[] = [];
+      const io = {
+        pause: () => true,
+        resume: vi.fn(),
+        dropCut,
+        log: (f: unknown) => lines.push(f),
+      };
+      const made = [softPauseFromEnv(env, io), softPauseFromEnv(env, io)];
+      expect(made.map((s) => s?.dropCut === dropCut)).toEqual([handed, handed]);
+      expect(lines).toEqual(
+        Array.from({ length: refusals }, () => ({
+          event: 'cut-drop-refused',
+          reason: 'one-outcome-off',
+        }))
+      );
+    }
+  );
+});
+
 describe('soft pause settings', () => {
   it('reads BARGE_IN_SOFT_PAUSE_CONFIRM_MS within bounds, else 1200', () => {
     expect(softPauseConfirmMs({})).toBe(1200);
@@ -500,7 +588,11 @@ class RoomOutput extends voice.AudioOutput {
 const frame = (): AudioFrame => new AudioFrame(new Int16Array(240), 24000, 1, 240);
 
 /** installLiveCallBehaviors on a fake session that keeps its handlers. */
-function liveCall(flag: string, currentSpeech: unknown = { allowInterruptions: true }) {
+function liveCall(
+  flag: string,
+  currentSpeech: unknown = { allowInterruptions: true },
+  withOutput = true
+) {
   for (const f of ['INTERRUPT_TRACE', 'TURN_KEEPER']) vi.stubEnv(f, 'off');
   vi.stubEnv('BARGE_IN_SOFT_PAUSE', flag);
   const handlers = new Map<string, Array<(ev: unknown) => void>>();
@@ -512,6 +604,7 @@ function liveCall(flag: string, currentSpeech: unknown = { allowInterruptions: t
     output: { audio: room as voice.AudioOutput },
     _activity: { currentSpeech },
   };
+  if (!withOutput) Reflect.deleteProperty(session, 'output');
   installLiveCallBehaviors({
     session: session as never,
     sessionWithEvents: session,
@@ -620,6 +713,40 @@ describe('a live call', () => {
     }
   );
 
+  it.each([
+    ['on', 'on', 1],
+    ['off', 'on', 0],
+    ['on', 'off', 0],
+    ['off', 'off', 0],
+  ])(
+    'ONE_OUTCOME=%s, CUT_DROPS_HELD=%s: a cut decision drops the held reply %i time(s)',
+    (one, cut, n) => {
+      vi.stubEnv('SOFT_PAUSE_ONE_OUTCOME', one);
+      vi.stubEnv('SOFT_PAUSE_CUT_DROPS_HELD', cut);
+      const drop = vi.spyOn(ResumeBufferOutput.prototype, 'dropCutReply');
+      const c = liveCall('on');
+      c.emit('agent_state_changed', { newState: 'speaking' });
+      c.emit('user_state_changed', { newState: 'speaking' });
+      vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+      expect(drop).not.toHaveBeenCalled();
+      c.emit(voice.AgentSessionEventTypes.OverlappingSpeech, { isInterruption: true });
+      expect(c.session.interrupt).toHaveBeenCalledTimes(1);
+      expect(drop).toHaveBeenCalledTimes(n);
+    }
+  );
+
+  it('both drop flags on: a pause that resumes drops nothing', () => {
+    vi.stubEnv('SOFT_PAUSE_ONE_OUTCOME', 'on');
+    vi.stubEnv('SOFT_PAUSE_CUT_DROPS_HELD', 'on');
+    const drop = vi.spyOn(ResumeBufferOutput.prototype, 'dropCutReply');
+    const c = liveCall('on');
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS + SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS);
+    expect(c.room.calls).toEqual(['pause', 'resume']);
+    expect(drop).not.toHaveBeenCalled();
+  });
+
   it("flag on: a reply that isn't paused is never marked held", () => {
     const c = liveCall('on', { allowInterruptions: false });
     c.emit('agent_state_changed', { newState: 'speaking' });
@@ -627,6 +754,18 @@ describe('a live call', () => {
     vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
     expect(c.room.calls).toEqual([]);
     expect(playoutHeld(c.session)).toBe(false);
+  });
+
+  it('all three flags on, a session with no audio output: no throw, cuts as with the flag off', () => {
+    vi.stubEnv('SOFT_PAUSE_ONE_OUTCOME', 'on');
+    vi.stubEnv('SOFT_PAUSE_CUT_DROPS_HELD', 'on');
+    const c = liveCall('on', undefined, false);
+    expect(c.handlers.has(voice.AgentSessionEventTypes.OverlappingSpeech)).toBe(false);
+    c.emit('agent_state_changed', { newState: 'speaking' });
+    c.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(SUSTAINED_SPEECH_MS);
+    expect(c.session.interrupt).toHaveBeenCalledTimes(1);
+    expect(c.room.calls).toEqual([]);
   });
 
   it('flag off: no verdict hook, no resume buffer, sustained speech cuts as before', () => {
