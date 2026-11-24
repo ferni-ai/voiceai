@@ -18,7 +18,7 @@
  * - Category for filtering
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import {
   createEvent,
   deleteEvent,
@@ -213,7 +213,7 @@ export async function createCalendarSyncedItem(
     {
       userId,
       type,
-      title,
+      title: replyForLog(title),
       scheduledFor: scheduledFor.toISOString(),
       externalId,
     },
@@ -285,7 +285,7 @@ export async function createCalendarSyncedItem(
     const calendarEvent = await createEvent(userId, eventInput);
 
     if (!calendarEvent) {
-      log.error({ userId, type, title }, '❌ Calendar bridge: failed to create calendar event');
+      log.error({ userId, type, title: replyForLog(title) }, '❌ Calendar bridge: create failed');
       return {
         success: false,
         externalId,
@@ -316,7 +316,7 @@ export async function createCalendarSyncedItem(
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    log.error({ error: errorMsg, userId, type, title }, '❌ Calendar bridge: error');
+    log.error({ error: errorMsg, userId, type, title: replyForLog(title) }, 'Calendar sync failed');
     return {
       success: false,
       externalId,
