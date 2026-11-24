@@ -33,6 +33,11 @@ const referrals = new Map<string, PartnerReferral>();
 /** Who has had a referral from which partner, as `${partnerId}\n${userId}` */
 const referredUsers = new Set<string>();
 
+/** Under this quality score a partner is never recommended (findRelevantPartners) */
+export const RECOMMENDATION_FLOOR = 70;
+/** Partners a vote has held at the floor, already logged for admin review */
+const heldForReview = new Set<string>();
+
 // Initialize with example partners
 function initializePartners(): void {
   EXAMPLE_PARTNERS.forEach((example, index) => {
@@ -79,7 +84,7 @@ export function findRelevantPartners(params: {
     if (!partner.isActive || excludePartnerIds.includes(partner.id)) continue;
 
     // Skip low quality partners
-    if (partner.qualityScore < 70) continue;
+    if (partner.qualityScore < RECOMMENDATION_FLOOR) continue;
 
     // Check if any trigger keywords match
     const keywordMatch = partner.triggerKeywords.some((keyword) =>
@@ -246,33 +251,34 @@ export function recordConversion(referralId: string, commissionCents: number): v
 // ============================================================================
 
 /**
- * Update partner quality score based on user feedback. With holdDeactivation a
- * score under the floor is logged for admin review and the partner stays active.
+ * Update partner quality score based on user feedback. With holdAtFloor
+ * (PARTNER_VOTE_GUARD) a vote never deactivates a partner or pushes it under
+ * the recommendation floor: it is held there and logged once for admin review.
  */
 export function updatePartnerQuality(
   partnerId: string,
   feedback: 'helpful' | 'not_helpful',
-  opts: { holdDeactivation?: boolean } = {}
+  opts: { holdAtFloor?: boolean } = {}
 ): void {
   const partner = partners.get(partnerId);
   if (!partner) return;
 
   // Adjust score based on feedback
   const adjustment = feedback === 'helpful' ? 2 : -5;
-  partner.qualityScore = Math.max(0, Math.min(100, partner.qualityScore + adjustment));
+  const next = Math.max(0, Math.min(100, partner.qualityScore + adjustment));
 
-  // Deactivate if quality too low
-  if (partner.qualityScore < 50 && opts.holdDeactivation) {
-    log.warn(
-      { partnerId, qualityScore: partner.qualityScore, marker: 'partner_deactivation_review' },
-      'Partner under the quality floor: held for admin review, still active'
-    );
-  } else if (partner.qualityScore < 50) {
-    partner.isActive = false;
-    log.warn(
-      { partnerId, qualityScore: partner.qualityScore },
-      'Partner deactivated due to low quality'
-    );
+  if (opts.holdAtFloor) {
+    holdAtRecommendationFloor(partner, next);
+  } else {
+    partner.qualityScore = next;
+    // Deactivate if quality too low
+    if (partner.qualityScore < 50) {
+      partner.isActive = false;
+      log.warn(
+        { partnerId, qualityScore: partner.qualityScore },
+        'Partner deactivated due to low quality'
+      );
+    }
   }
 
   log.debug(
@@ -282,6 +288,23 @@ export function updatePartnerQuality(
       newScore: partner.qualityScore,
     },
     'Partner quality updated'
+  );
+}
+
+/**
+ * Apply a vote's score without letting it drop a partner out of
+ * recommendations: a drop stops at the floor (or at the current score, if an
+ * earlier unguarded vote already took it lower). The partner stays active.
+ */
+function holdAtRecommendationFloor(partner: Partner, next: number): void {
+  const held = Math.max(next, Math.min(partner.qualityScore, RECOMMENDATION_FLOOR));
+  partner.qualityScore = held;
+  if (held > RECOMMENDATION_FLOOR) heldForReview.delete(partner.id);
+  if (held === next || heldForReview.has(partner.id)) return;
+  heldForReview.add(partner.id);
+  log.warn(
+    { partnerId: partner.id, qualityScore: held, marker: 'partner_deactivation_review' },
+    'Partner votes reached the recommendation floor: held there for admin review'
   );
 }
 

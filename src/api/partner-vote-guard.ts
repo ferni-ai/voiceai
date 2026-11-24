@@ -8,14 +8,24 @@
  * lets one person reinstall (or script anonymous tokens) into many votes. With
  * the guard on:
  *
- * - an anonymous sign-in's vote is thanked and has no effect;
+ * - only a sign-in that costs something to make counts: a verified email, or
+ *   a phone, Apple or Google sign-in. An anonymous sign-in, or an email nobody
+ *   verified, is thanked and has no effect;
  * - a vote counts only from someone who has had a referral from that partner
  *   (the click route records one);
- * - a vote can lower the score but never deactivates the partner: that is
- *   logged (`partner_deactivation_review`) for an admin to decide.
+ * - a vote can lower the score but never below the recommendation floor, so
+ *   votes alone never take a partner out of rotation; reaching the floor is
+ *   logged once (`partner_deactivation_review`) for an admin to decide.
  *
- * Anonymity comes from the verified token (AuthContext.isAnonymous), never from
- * the request body.
+ * The sign-in provider and email verification come from the verified token
+ * (AuthContext.signInProvider / emailVerified), never the request body. The
+ * shared AuthContext.isAnonymous is not used: it is also true for phone
+ * sign-ins, which have no email.
+ *
+ * Residual risk, left for a follow-up: the referral check is self-attested
+ * (anyone signed in can POST /partners/click for any partner, then vote), and
+ * the referral, voter and score stores are in memory per instance, so a voter
+ * who lands on several instances can count once on each.
  *
  * @module api/partner-vote-guard
  */
@@ -26,17 +36,31 @@ import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PartnerVoteGuard' });
 
-export type PartnerVoteSkip = 'anonymous' | 'no_interaction';
+export type PartnerVoteSkip = 'anonymous' | 'unverified' | 'no_interaction';
 
-export interface PartnerVoter {
-  uid: string;
-  /** From the verified token: an anonymous Firebase sign-in */
-  isAnonymous?: boolean;
+/** Who the verified token says the caller is: never read from the request body */
+export interface VoterIdentity {
+  /** Firebase sign_in_provider: 'anonymous', 'phone', 'apple.com', 'password', ... */
+  signInProvider?: string;
+  emailVerified?: boolean;
 }
 
-/** Whether the guard is on; with it on a vote never deactivates a partner. */
+export interface PartnerVoter extends VoterIdentity {
+  uid: string;
+}
+
+/** Providers whose sign-in proves a real phone or account without an email check */
+const PROVEN_PROVIDERS = new Set(['phone', 'apple.com', 'google.com']);
+
+/** Whether the guard is on; with it on a vote never drops a partner below the floor. */
 export function partnerVoteGuardOn(): boolean {
   return flagOn('PARTNER_VOTE_GUARD');
+}
+
+function identitySkip(voter: PartnerVoter): PartnerVoteSkip | null {
+  if (voter.signInProvider === 'anonymous') return 'anonymous';
+  const proven = PROVEN_PROVIDERS.has(voter.signInProvider ?? '');
+  return voter.emailVerified === true || proven ? null : 'unverified';
 }
 
 /**
@@ -45,9 +69,8 @@ export function partnerVoteGuardOn(): boolean {
  */
 export function partnerVoteSkip(voter: PartnerVoter, partnerId: string): PartnerVoteSkip | null {
   if (!partnerVoteGuardOn()) return null;
-  let skip: PartnerVoteSkip | null = null;
-  if (voter.isAnonymous === true) skip = 'anonymous';
-  else if (!contextualPartnerships.hasReferral(voter.uid, partnerId)) skip = 'no_interaction';
+  let skip = identitySkip(voter);
+  if (!skip && !contextualPartnerships.hasReferral(voter.uid, partnerId)) skip = 'no_interaction';
   if (skip) {
     log.info({ partnerId, skip, user_tag: bqHash('user', voter.uid) }, 'Partner vote not counted');
   }

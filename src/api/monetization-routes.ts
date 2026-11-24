@@ -65,7 +65,7 @@ interface RequestContext {
    */
   authUserId?: string;
   isAdmin?: boolean; // whether the authenticated user is an admin
-  isAnonymous?: boolean; // the token is an anonymous Firebase sign-in (AuthContext.isAnonymous)
+  voter?: { signInProvider?: string; emailVerified?: boolean }; // from the verified token
 }
 
 interface ResponseContext {

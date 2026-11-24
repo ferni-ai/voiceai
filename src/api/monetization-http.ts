@@ -1,7 +1,7 @@
 /**
  * The HTTP door for /api/monetization/*: optional auth, the body, the router,
  * the reply. The router only sees what this hands it, so who the caller is
- * (uid, admin, anonymous Firebase sign-in) comes from the verified token here,
+ * (uid, admin, how they signed in) comes from the verified token here,
  * never from the request body.
  *
  * @module api/monetization-http
@@ -40,7 +40,7 @@ export async function serveMonetizationRoute(
       headers: req.headers,
       authUserId: auth?.userId,
       isAdmin: auth?.isAdmin ?? false,
-      isAnonymous: auth?.isAnonymous === true,
+      voter: { signInProvider: auth?.signInProvider, emailVerified: auth?.emailVerified === true },
     });
     res.writeHead(response.status, response.headers);
     res.end(JSON.stringify(response.body));
