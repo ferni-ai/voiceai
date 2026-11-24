@@ -30,6 +30,8 @@ const log = createLogger({ module: 'ContextualPartnerships' });
 
 const partners = new Map<string, Partner>();
 const referrals = new Map<string, PartnerReferral>();
+/** Who has had a referral from which partner, as `${partnerId}\n${userId}` */
+const referredUsers = new Set<string>();
 
 // Initialize with example partners
 function initializePartners(): void {
@@ -193,6 +195,7 @@ export function recordReferral(params: {
   };
 
   referrals.set(referral.id, referral);
+  referredUsers.add(`${partnerId}\n${userId}`);
 
   log.info(
     {
@@ -204,6 +207,11 @@ export function recordReferral(params: {
   );
 
   return referral;
+}
+
+/** Whether this person has had a referral from this partner (on this instance) */
+function hasReferral(userId: string, partnerId: string): boolean {
+  return referredUsers.has(`${partnerId}\n${userId}`);
 }
 
 /**
@@ -238,9 +246,14 @@ export function recordConversion(referralId: string, commissionCents: number): v
 // ============================================================================
 
 /**
- * Update partner quality score based on user feedback
+ * Update partner quality score based on user feedback. With holdDeactivation a
+ * score under the floor is logged for admin review and the partner stays active.
  */
-export function updatePartnerQuality(partnerId: string, feedback: 'helpful' | 'not_helpful'): void {
+export function updatePartnerQuality(
+  partnerId: string,
+  feedback: 'helpful' | 'not_helpful',
+  opts: { holdDeactivation?: boolean } = {}
+): void {
   const partner = partners.get(partnerId);
   if (!partner) return;
 
@@ -249,7 +262,12 @@ export function updatePartnerQuality(partnerId: string, feedback: 'helpful' | 'n
   partner.qualityScore = Math.max(0, Math.min(100, partner.qualityScore + adjustment));
 
   // Deactivate if quality too low
-  if (partner.qualityScore < 50) {
+  if (partner.qualityScore < 50 && opts.holdDeactivation) {
+    log.warn(
+      { partnerId, qualityScore: partner.qualityScore, marker: 'partner_deactivation_review' },
+      'Partner under the quality floor: held for admin review, still active'
+    );
+  } else if (partner.qualityScore < 50) {
     partner.isActive = false;
     log.warn(
       { partnerId, qualityScore: partner.qualityScore },
@@ -399,6 +417,7 @@ export const contextualPartnerships = {
 
   // Tracking
   recordReferral,
+  hasReferral,
   recordClick,
   recordConversion,
 

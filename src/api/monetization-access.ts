@@ -19,6 +19,7 @@ import { contextualPartnerships } from '../services/monetization/contextual-part
 import { tipJar } from '../services/monetization/tip-jar.js';
 import { verifyPayment } from '../services/stripe-payments.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { partnerVoteGuardOn, partnerVoteSkip } from './partner-vote-guard.js';
 
 const log = createLogger({ module: 'MonetizationAccess' });
 
@@ -29,6 +30,8 @@ interface Ctx {
   body?: unknown;
   authUserId?: string;
   isAdmin?: boolean;
+  /** From the verified token, never the body: an anonymous Firebase sign-in */
+  isAnonymous?: boolean;
 }
 
 interface Answer {
@@ -147,6 +150,7 @@ const partnersRatedByUser = new Map<string, number>();
 export const MAX_PARTNERS_RATED_PER_USER = 100;
 
 const FEEDBACK = new Set(['helpful', 'not_helpful']);
+const thanks = (): Answer => json(200, { success: true, message: 'Thank you for your feedback!' });
 
 /**
  * POST /api/monetization/partners/feedback
@@ -156,6 +160,10 @@ const FEEDBACK = new Set(['helpful', 'not_helpful']);
  * repeats are thanked, not applied. Only active partners can be rated, so a
  * flood of made-up ids records nothing, and nothing a person does elsewhere
  * can forget their vote on a partner.
+ *
+ * With PARTNER_VOTE_GUARD on (partner-vote-guard.ts), an anonymous sign-in's
+ * vote and a vote with no referral from that partner are thanked the same way
+ * but change nothing, and a vote never deactivates a partner.
  */
 export async function recordPartnerFeedback(ctx: Ctx): Promise<Answer> {
   const { partnerId, feedback } = (ctx.body ?? {}) as { partnerId?: unknown; feedback?: unknown };
@@ -176,10 +184,19 @@ export async function recordPartnerFeedback(ctx: Ctx): Promise<Answer> {
     if (rated >= MAX_PARTNERS_RATED_PER_USER) {
       return json(429, { error: 'Too many partners rated' });
     }
+    const skip = partnerVoteSkip({ uid, isAnonymous: ctx.isAnonymous }, partnerId);
+    // Not booked, so it can still count once they have used the partner. An anonymous
+    // vote is booked like any other (even the 429 answers the same) but moves nothing.
+    if (skip === 'no_interaction') return thanks();
     voters.add(uid);
     votersByPartner.set(partnerId, voters);
     partnersRatedByUser.set(uid, rated + 1);
-    contextualPartnerships.updateQuality(partnerId, feedback as 'helpful' | 'not_helpful');
+    const vote = feedback as 'helpful' | 'not_helpful';
+    if (skip === null && partnerVoteGuardOn()) {
+      contextualPartnerships.updateQuality(partnerId, vote, { holdDeactivation: true });
+    } else if (skip === null) {
+      contextualPartnerships.updateQuality(partnerId, vote);
+    }
   }
-  return json(200, { success: true, message: 'Thank you for your feedback!' });
+  return thanks();
 }

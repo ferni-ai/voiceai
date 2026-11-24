@@ -64,8 +64,8 @@ interface RequestContext {
    * Only populated after proper authentication via requireAuth middleware.
    */
   authUserId?: string;
-  /** Whether the authenticated user is an admin */
-  isAdmin?: boolean;
+  isAdmin?: boolean; // whether the authenticated user is an admin
+  isAnonymous?: boolean; // the token is an anonymous Firebase sign-in (AuthContext.isAnonymous)
 }
 
 interface ResponseContext {
