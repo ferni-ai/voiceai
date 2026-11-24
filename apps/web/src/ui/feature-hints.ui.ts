@@ -36,7 +36,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('FeatureHints');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -950,10 +950,9 @@ function injectStyles(): void {
 // ============================================================================
 
 export function destroyFeatureHints(): void {
-  if (checkInterval) {
-    clearInterval(checkInterval);
-    checkInterval = null;
-  }
+  if (checkInterval) clearInterval(checkInterval);
+  checkInterval = null;
+  clearAllTimeouts(); // a pending hint check must not run after teardown
 
   dismissAllHints();
   container?.remove();
