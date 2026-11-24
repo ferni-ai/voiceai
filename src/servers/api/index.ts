@@ -72,7 +72,7 @@ import { shutdown as shutdownSpotifyLinks } from '../token/oauth/spotify.js';
 import { shutdownPersistence } from '../../services/persistence/index.js';
 
 // Calendar real-time sync services
-import { stopPolling as shutdownApplePolling } from '../../services/calendar/polling/apple-polling.js';
+import { stopPolling as shutdownApplePolling } from '../../services/calendar/polling/index.js';
 
 // Proactive outreach scheduler ("Better Than Human" - thinking of you moments)
 import { stopScheduler as stopProactiveScheduler } from '../../services/outreach/proactive-scheduler.js';

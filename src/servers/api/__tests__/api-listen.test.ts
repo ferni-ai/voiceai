@@ -48,7 +48,7 @@ vi.mock('../../../personas/voice-registry.js', () => ({
   initializeVoiceRegistry: stub('initializeVoiceRegistry', Promise.resolve()),
 }));
 
-const { listenAndStart, listenHost } = await import('../api-listen.js');
+const { listenAndStart } = await import('../api-listen.js');
 
 /** Every sender the switch governs. */
 const SENDERS = [
@@ -117,13 +117,13 @@ describe('API server listen and background senders (#3853)', () => {
     }
   );
 
-  it('API_LISTEN_HOST moves the listen; blank or unset keeps 0.0.0.0', async () => {
-    const { listen } = await start({ API_LISTEN_HOST: '127.0.0.1' });
-    expect(listen.mock.calls[0].slice(0, 2)).toEqual([3002, '127.0.0.1']);
+  it.each([
+    [' 127.0.0.1 ', '127.0.0.1'],
+    ['  ', '0.0.0.0'],
+    ['', '0.0.0.0'],
+  ])('API_LISTEN_HOST=%j listens on %s; the senders still start', async (host, want) => {
+    const { listen } = await start({ API_LISTEN_HOST: host });
+    expect(listen.mock.calls[0].slice(0, 2)).toEqual([3002, want]);
     expect(m.startProactiveScheduler).toHaveBeenCalledTimes(1);
-
-    expect(listenHost({})).toBe('0.0.0.0');
-    expect(listenHost({ API_LISTEN_HOST: '  ' })).toBe('0.0.0.0');
-    expect(listenHost({ API_LISTEN_HOST: ' 127.0.0.1 ' })).toBe('127.0.0.1');
   });
 });

@@ -29,7 +29,7 @@ import { initWorkflowExecutionHandler } from '../../api/life-automation-routes.j
 import {
   loadRegisteredUsers as loadApplePollingUsers,
   startPolling as startApplePolling,
-} from '../../services/calendar/polling/apple-polling.js';
+} from '../../services/calendar/polling/index.js';
 import { renewExpiringChannels as startGoogleWebhookRenewal } from '../../services/calendar/webhooks/google-webhook.js';
 import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '../../services/calendar/webhooks/outlook-webhook.js';
 import {
@@ -46,8 +46,7 @@ import { startAutoRefresh as startSpotifyAutoRefresh } from './services/spotify.
 const log = createLogger({ module: 'APIServer' });
 
 /** The interface the server listens on: API_LISTEN_HOST, else every interface, as before. */
-export const listenHost = (env: Env = process.env): string =>
-  env.API_LISTEN_HOST?.trim() || '0.0.0.0';
+const listenHost = (env: Env): string => env.API_LISTEN_HOST?.trim() || '0.0.0.0';
 
 /** The calendar, outreach and workflow senders, in the order index.ts started them. */
 const SENDER_STEPS: readonly StartupStep[] = [
