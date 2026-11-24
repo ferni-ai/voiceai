@@ -14,7 +14,11 @@ import {
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
 import { isFindableTool } from '../../tools/dynamic-loader/findable-domains.js';
-import type { FoundTool, ToolPinner } from '../../tools/retrieval/find-tools-tool.js';
+import {
+  setToolPinner,
+  type FoundTool,
+  type ToolPinner,
+} from '../../tools/retrieval/find-tools-tool.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { updateAgentTools } from './tool-updater.js';
 import type { UserData } from './types.js';
@@ -30,7 +34,8 @@ export interface ToolBuildContext {
 
 export type BuildToolsByName = (
   names: readonly string[],
-  ctx: ToolBuildContext
+  ctx: ToolBuildContext,
+  persona?: ReadonlySet<string>
 ) => Promise<Record<string, unknown>>;
 
 /**
@@ -38,7 +43,7 @@ export type BuildToolsByName = (
  * Only findable domains (findable-domains.ts), checked on both the intent
  * manual's and the registry definition's domain; the rest go in `forbidden`.
  */
-export const buildToolsByName: BuildToolsByName = async (names, ctx) => {
+export const buildToolsByName: BuildToolsByName = async (names, ctx, persona) => {
   if (names.length === 0) return {};
   const [{ loadIntentManual }, loader, registry, { EnvironmentServiceRegistry }, dynamic] =
     await Promise.all([
@@ -50,7 +55,9 @@ export const buildToolsByName: BuildToolsByName = async (names, ctx) => {
     ]);
   await dynamic.ensureEssentialDomainsLoaded(); // registers every domain's loader (once per job)
   const manual = loadIntentManual();
-  const findable = names.filter((name) => isFindableTool(name, manual.tools[name]?.domain));
+  const findable = names.filter((name) =>
+    isFindableTool(name, manual.tools[name]?.domain, persona)
+  );
   type Domain = Parameters<typeof loader.loadToolDomain>[0];
   const domains = new Set<Domain>();
   for (const name of findable) {
@@ -59,7 +66,7 @@ export const buildToolsByName: BuildToolsByName = async (names, ctx) => {
   }
   await Promise.all([...domains].map((domain) => loader.loadToolDomain(domain)));
   const allowed = findable.filter((name) =>
-    isFindableTool(name, registry.toolRegistry.get(name)?.domain)
+    isFindableTool(name, registry.toolRegistry.get(name)?.domain, persona)
   );
   const forbidden = names.filter((name) => !allowed.includes(name));
   if (forbidden.length > 0) log.warn({ forbidden }, 'Tools outside the findable domains not built');
@@ -157,12 +164,12 @@ export function createToolPinner(
   build: BuildToolsByName = buildToolsByName,
   domainOf?: DomainOf
 ): ToolPinner {
-  return async (names, need) => {
+  return async (names, need, persona) => {
     const domain = domainOf ?? (await intentManualDomainOf());
-    const allowed = names.filter((name) => isFindableTool(name, domain(name)));
+    const allowed = names.filter((name) => isFindableTool(name, domain(name), persona));
     const target = agent() as voice.Agent<UserData> & ToolHolder;
     const missing = allowed.filter((name) => !(name in target.toolCtx.functionTools));
-    const built = missing.length > 0 ? await build(missing, ctx) : {};
+    const built = missing.length > 0 ? await build(missing, ctx, persona) : {};
     if (Object.keys(built).length > 0) {
       await updateAgentTools(target, built, { pin: true, silentMerge: true });
     }
@@ -186,4 +193,38 @@ export function createToolPinner(
     );
     return found;
   };
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * FINDABLE_PERSONA_DOMAINS: the domains `personaId`'s manifest lists, which findTools may also
+ * reach (isFindableTool). Empty with the flag off, or when the bundle can't be read.
+ */
+async function findableForPersona(
+  personaId: string,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<ReadonlySet<string>> {
+  if (!flagOn('FINDABLE_PERSONA_DOMAINS', env)) return NONE;
+  try {
+    const { loadBundleById } = await import('../../personas/bundles/index.js');
+    const bundle = await loadBundleById(personaId);
+    return new Set(bundle?.manifest.tools?.domains ?? []); // isFindableTool drops home, concierge
+  } catch (error) {
+    log.warn({ personaId, error: String(error) }, 'FINDABLE_PERSONA_DOMAINS: bundle unread');
+    return NONE;
+  }
+}
+
+/**
+ * Installs the call's findTools pinner (createToolPinner); findTools may also reach the domains
+ * of the persona on the call now (findableForPersona). Returns the cleanup.
+ */
+export function installToolPinner(
+  session: object,
+  pinner: ToolPinner,
+  personaNow: () => string
+): () => void {
+  setToolPinner(session, pinner, () => findableForPersona(personaNow()));
+  return () => setToolPinner(session, null);
 }

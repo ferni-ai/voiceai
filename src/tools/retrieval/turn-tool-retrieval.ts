@@ -382,13 +382,13 @@ export class TurnToolRetrieval {
    * findTools: search the whole index for what the model says it needs and
    * make the best matches the agent has part of every request for the next
    * few turns, starting with the model's next step in this same reply.
-   * `anyTool` (TOOL_CORE_STATIC) searches the whole catalog's findable
-   * domains (findable-domains.ts), loaded or not: the caller adds what it finds.
+   * `anyTool` (TOOL_CORE_STATIC) searches the catalog's findable domains and
+   * `persona`'s own (findable-domains.ts), loaded or not: the caller adds them.
    */
   async find(
     need: string,
     n = 5,
-    opts: { anyTool?: boolean } = {}
+    opts: { anyTool?: boolean; persona?: ReadonlySet<string> } = {}
   ): Promise<Array<{ name: string; description: string }>> {
     const started = Date.now();
     const [index, vector] = await Promise.all([this.opts.index(), this.embed(need)]);
@@ -397,8 +397,8 @@ export class TurnToolRetrieval {
     for (const t of index.search(vector, n * CANDIDATES_PER_SLOT * 2)) {
       if (found.length >= n) break;
       if (available && !(t.tool in available)) continue;
-      // The whole catalog holds tools no caller may reach (runBash, webhooks).
-      if (opts.anyTool && !isFindableTool(t.tool, this.opts.domainOf(t.tool))) continue;
+      const reachable = isFindableTool(t.tool, this.opts.domainOf(t.tool), opts.persona);
+      if (opts.anyTool && !reachable) continue; // the catalog holds runBash and webhooks
       this.sticky.set(t.tool, this.turn);
       const description = (available?.[t.tool]?.description ?? '').split(/(?<=[.!?])\s/)[0];
       found.push({ name: t.tool, description: description.slice(0, 140) });
