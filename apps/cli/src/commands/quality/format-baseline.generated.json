@@ -425,7 +425,6 @@
   "src/services/memory/memory-service.ts",
   "src/services/memory/persistence/entity-policies.ts",
   "src/services/memory/persistence/indexing-policy.ts",
-  "src/services/memory/realtime-memory.ts",
   "src/services/musical-you/musical-dna.ts",
   "src/services/musical-you/preferences.ts",
   "src/services/observability/connection-health.ts",
