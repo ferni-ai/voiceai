@@ -23,6 +23,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildHandoffTools } from '../../../tools/handoff/index.js';
 import { toolRegistry } from '../../../tools/registry/index.js';
 import { autoRegisterAllDomains, loadToolDomainsLazy } from '../../../tools/registry/loader.js';
+import { namedToolLists } from '../../../tools/registry/tool-id-owners.js';
 import { ALL_TOOL_DOMAINS } from '../../../tools/registry/types.js';
 import { loadSystemPrompt } from '../prompt-loader.js';
 
@@ -57,7 +58,8 @@ function manifestToolNames(manifest: Manifest): string[] {
     }
   }
   // Entries may carry a note: "saveHabitThesis - When someone commits...", "handoffToPeter (Peter John)"
-  return names.map((entry) => String(entry).split(' ')[0]!);
+  // A name a tool takes under TOOL_ID_OWNERS (remindStockThesis) reads as its id on main here.
+  return namedToolLists({ optional: names.map((entry) => String(entry).split(' ')[0]!) }).optional;
 }
 
 const realTools = new Set<string>();
