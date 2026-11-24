@@ -3,9 +3,10 @@ import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 // In-memory Firestore: collection -> doc id -> data
-const { store, email } = vi.hoisted(() => ({
+const { store, email, outage } = vi.hoisted(() => ({
   store: new Map<string, Map<string, Record<string, unknown>>>(),
   email: { value: 'newcomer@example.com', verified: true },
+  outage: { cohorts: false }, // the cohort lookup throws, as a Firestore outage would
 }));
 const coll = (name: string) => store.get(name) ?? store.set(name, new Map()).get(name)!;
 const fakeDb = {
@@ -24,7 +25,10 @@ const fakeDb = {
     where: (field: string, _op: string, value: string) => ({
       limit: () => ({ get: async () => ({ empty: true, docs: [] }) }),
       // feature_cohorts membership (array-contains), for the admission rules
-      get: async () => ({ docs: [...coll(name)].filter(([, d]) => (d[field] as string[] | undefined)?.includes(value)).map(([id, d]) => ({ id, data: () => d })) }), // prettier-ignore
+      get: async () => {
+        if (outage.cohorts && name === 'feature_cohorts') throw new Error('unavailable');
+        return { docs: [...coll(name)].filter(([, d]) => (d[field] as string[] | undefined)?.includes(value)).map(([id, d]) => ({ id, data: () => d })) }; // prettier-ignore
+      },
     }),
   }),
 };
@@ -279,5 +283,86 @@ describe('waitlist check', () => {
       email: email.value,
       subscription: { tier: 'partner', status: 'active' },
     });
+  });
+});
+
+// DURABLE_ACCESS_GRANTS (#2264): a grant stored for a reason that ends stops admitting when it does
+describe('stored grants under the gate', () => {
+  const gateOn = (flag: 'on' | 'off') => {
+    forgetAdmissionCache();
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+  };
+  const entry = () => coll('waitlist').get(docId(email.value));
+  afterEach(() => {
+    store.clear();
+    outage.cohorts = false;
+    forgetAdmissionCache();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    ['on', { approved: false, status: 'pending' }],
+    ['off', { approved: true, status: 'approved' }], // main: the open-access grant never ends
+  ] as const)(
+    'flag %s: a grant made while the gate was off, once the gate is on',
+    async (flag, want) => {
+      vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+      expect((await check()).body).toMatchObject({ approved: true }); // gate off: open access
+      expect(entry()).toMatchObject({ status: 'approved', source: 'open_access' });
+      gateOn(flag);
+      expect((await check()).body).toMatchObject(want);
+      if (flag === 'on') {
+        expect(entry()).toMatchObject({ status: 'pending', inQueue: true, lapsedApproval: { source: 'open_access' } }); // prettier-ignore
+      } else {
+        expect(entry()).toMatchObject({ status: 'approved', source: 'open_access' });
+      }
+    }
+  );
+
+  it.each([
+    ['on', { approved: false, status: 'pending' }],
+    ['off', { approved: true, status: 'approved' }], // main: membership ended, access did not
+  ] as const)('flag %s: a friends-and-family grant when membership ends', async (flag, want) => {
+    gateOn(flag);
+    coll('feature_cohorts').set('friends-and-family', { members: ['uid-1'] });
+    expect((await check()).body).toMatchObject({ approved: true });
+    const granted = (coll('user_profiles').get(docId(email.value)) as Profile).subscription;
+    expect(granted).toMatchObject({ grantedVia: 'admission' });
+    gateOn(flag);
+    expect((await check()).body).toMatchObject({ approved: true }); // still a member
+    expect((coll('user_profiles').get(docId(email.value)) as Profile).subscription.subscribedAt).toBe(granted.subscribedAt); // prettier-ignore
+    coll('feature_cohorts').set('friends-and-family', { members: [] });
+    gateOn(flag);
+    expect((await check()).body).toMatchObject(want);
+  });
+
+  it('flag on: an explicit admin approval still lets them in, even over an open-access approval', async () => {
+    const { setEmailSenderForTests } = await import('../../services/email-transport/index.js');
+    setEmailSenderForTests({ provider: 'gmail', isConfigured: () => false, send: vi.fn() });
+    onTestFinished(() => setEmailSenderForTests(null));
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    await check(); // gate off: open access
+    expect((await approve(email.value)).status).toBe(200); // not "already approved"
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: true, status: 'approved' });
+    expect(entry()).toMatchObject({ status: 'approved', approvedBy: 'admin-api' });
+  });
+
+  it('flag on: a legacy grant with no recorded reason keeps admitting', async () => {
+    coll('waitlist').set(docId(email.value), { email: email.value, status: 'approved', source: 'landing' }); // prettier-ignore
+    coll('user_profiles').set(docId(email.value), { email: email.value, subscription: { tier: 'free', status: 'active' } }); // prettier-ignore
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: true, status: 'approved' });
+  });
+
+  it('flag on: a failed re-check answers a retryable 500 and writes nothing (fails closed)', async () => {
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    await check(); // gate off: open access
+    const before = { ...entry() };
+    outage.cohorts = true;
+    gateOn('on');
+    expect((await check()).status).toBe(500);
+    expect(entry()).toEqual(before);
   });
 });
