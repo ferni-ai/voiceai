@@ -44,7 +44,11 @@ import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { openingNotice } from '../shared/ai-notice.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
-import { rememberedTurns } from './restored-turns-remembered.js';
+import {
+  rememberedTurns,
+  restoredTurnsFilter,
+  type TurnsFilter,
+} from './restored-turns-remembered.js';
 
 const log = createLogger({ module: 'ResumeAfterDrop' });
 
@@ -214,8 +218,8 @@ export const MOVED_TURNS = 6;
  */
 async function movedTurns(
   sessionId: string,
-  userId: string,
   read: ConversationTurn[],
+  remembered: Promise<TurnsFilter>,
   now: number
 ): Promise<ConversationTurn[] | null> {
   const all = read.filter((t) => t.content?.trim());
@@ -223,7 +227,7 @@ async function movedTurns(
   const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
   if (!fresh) return [];
   if (callerLinesReadAsRisk(all)) return null;
-  const kept = await rememberedTurns(userId, all, 'call-me-moved'); // forgotten: left out
+  const kept = (await remembered)(all); // forgotten: left out
   return memoryHeld(sessionId) ? [] : kept.slice(-MOVED_TURNS); // held while read
 }
 
@@ -247,6 +251,8 @@ export async function restoreMovedTurns(
   if (!from.conversationId) return { moved: true, turns: 0 }; // no app conversation was started
   // Either call held: start fresh, nothing read
   if (memoryHeld(sessionId) || (await callerHeld(from.userId))) return { moved: true, turns: 0 };
+  // Read beside the turns, so the forget check adds no silence before the greeting
+  const remembered = restoredTurnsFilter(from.userId, 'call-me-moved');
   // A failed read is still a moved call: thrown, the caller would read it as a drop
   const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ).catch(
     (error: unknown) => {
@@ -261,7 +267,7 @@ export async function restoreMovedTurns(
   const got = await Promise.race([read, late]);
   clearTimeout(timer);
   if (got.length >= MAX_TURNS_READ) return { moved: true, turns: 0 }; // full: newest may be unread
-  const turns = await movedTurns(sessionId, from.userId, got, now);
+  const turns = await movedTurns(sessionId, got, remembered, now);
   if (!turns) return { moved: true, turns: 0 }; // read as risk
   if (agent && turns.length) await restoreTurns(agent, turns, MOVED_NOTE);
   log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE moved call');

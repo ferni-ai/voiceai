@@ -2,9 +2,11 @@
  * Turns put back into a new call's history leave out a topic the caller asked
  * Ferni to forget (FORGET_EVERY_READER, #2762), in both readers of
  * resume-after-drop.ts: the reconnect after a drop (RESUME_AFTER_DROP) and the
- * phone call a "call me" moved to (CALL_ME_MOVES_TO_PHONE). Flag off, the
- * turns go back exactly as before. A forget read that fails, or throws, keeps
- * no turn.
+ * phone call a "call me" moved to (CALL_ME_MOVES_TO_PHONE). The turns are the
+ * caller's raw speech, so any distinctive word of a topic leaves a turn out
+ * (the passage check). Flag off, the turns go back exactly as before. A forget
+ * read that fails, throws or is late keeps no turn. On a moved call the forget
+ * read starts beside the turns read.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,6 +42,7 @@ vi.mock('../../../memory/recall/forget.js', async (original) => ({
 }));
 
 const { greetingOrResume, startResumeLookup, MOVED_NOTE } = await import('../resume-after-drop.js');
+const realtime = await import('../../../services/memory/realtime-memory.js');
 const { resetForgetTopicsSource } = await import('../../../memory/recall/forget-topics-source.js');
 const { setProactiveSessionContext, clearProactiveSessionContext } =
   await import('../../../intelligence/context-builders/external/proactive-session-context.js');
@@ -64,24 +67,31 @@ function fakeAgent() {
   return { agent, committed };
 }
 
-const LINES: Array<[Turn['role'], string]> = [
-  ['user', 'I adopted a puppy named Biscuit last week'],
-  ['assistant', 'A puppy! What is Biscuit like?'],
-  ['user', 'my sister and I are fighting over the inheritance again'],
-  ['assistant', 'That inheritance fight sounds exhausting'],
-  ['user', 'actually forget the inheritance stuff, I do not want it remembered'],
+/** Each topic as stored, and a line of the caller's that is about it without its exact words. */
+const LEAKS: Array<[string, string]> = [
+  ['the Denver job', 'I got the offer from the Denver office yesterday'],
+  ['my divorce papers', 'the divorce is finally done'],
+  ["my brother's number", 'his number is 435 555 0142'],
 ];
-const FORGOTTEN = ['my sister and I', 'That inheritance', 'actually forget'];
-const KEPT = ['I adopted a puppy named Biscuit last week', 'A puppy! What is Biscuit like?'];
+const TOPICS = LEAKS.map(([topic]) => topic);
+const PUPPY = 'I adopted a puppy named Biscuit last week';
+const PUPPY_REPLY = 'A puppy! What is Biscuit like?';
+const KEPT = [PUPPY, PUPPY_REPLY];
+const LINES: Array<[Turn['role'], string]> = [
+  ['user', PUPPY],
+  ['assistant', PUPPY_REPLY],
+  ...LEAKS.map(([, line]): [Turn['role'], string] => ['user', line]),
+  ['user', "please forget the Denver job, my divorce papers and my brother's number"],
+];
 
-function seedCall(conversationId: string): void {
+function seedCall(conversationId: string, lines = LINES): void {
   const now = Date.now();
   store.turns.set(
     conversationId,
-    LINES.map(([role, content], i) => ({
+    lines.map(([role, content], i) => ({
       role,
       content,
-      timestamp: new Date(now - 25_000 - (LINES.length - 1 - i) * 4000),
+      timestamp: new Date(now - 25_000 - (lines.length - 1 - i) * 4000),
     }))
   );
 }
@@ -97,10 +107,10 @@ function newSession(): string {
 }
 
 /** A reconnect after a drop: the dropped call is the caller's newest un-ended one. */
-async function resumeDropped(userId: string) {
+async function resumeDropped(userId: string, lines = LINES) {
   store.conversations = [{ id: 'conv_new' }, { id: 'conv_dropped' }];
   store.turns.set('conv_new', []);
-  seedCall('conv_dropped');
+  seedCall('conv_dropped', lines);
   const sessionId = newSession();
   startResumeLookup(sessionId, userId, 'conv_new');
   const { agent, committed } = fakeAgent();
@@ -109,8 +119,8 @@ async function resumeDropped(userId: string) {
 }
 
 /** A phone call a "call me" moved from that caller's app call. */
-async function moveToPhone(userId: string) {
-  seedCall('conv_app');
+async function moveToPhone(userId: string, lines = LINES) {
+  seedCall('conv_app', lines);
   const sessionId = newSession();
   setProactiveSessionContext(sessionId, {
     triggerType: 'silence',
@@ -129,7 +139,7 @@ beforeEach(() => {
   resetForgetTopicsSource();
   store.conversations = [];
   store.turns.clear();
-  topics.read.mockImplementation(async () => ['inheritance']);
+  topics.read.mockImplementation(async () => TOPICS);
   vi.stubEnv('RESUME_AFTER_DROP', 'on');
   vi.stubEnv('CALL_ME_MOVES_TO_PHONE', 'on');
   vi.stubEnv('FORGET_EVERY_READER', 'on');
@@ -147,8 +157,18 @@ describe('restoreDroppedTurns: the reconnect after a drop', () => {
     expect(history.at(-1)?.content).toMatch(/^\[RESUMED CALL\]/);
     // The reconnect line quotes the last remembered caller line, not the forget request
     expect(line).toContain('adopted a puppy named Biscuit last week');
-    expect(line).not.toMatch(/inheritance/i);
+    expect(line).not.toMatch(/denver|divorce|number/i);
     expect(topics.read).toHaveBeenCalledWith('user-forget-d1');
+  });
+
+  it.each(LEAKS)('flag on: topic "%s" leaves out "%s"', async (topic, line) => {
+    topics.read.mockImplementation(async () => [topic]);
+    const { history } = await resumeDropped('user-forget-leak-d', [
+      ...LINES.slice(0, 2),
+      ['user', line],
+    ]);
+
+    expect(said(history)).toEqual(KEPT);
   });
 
   it('flag off: every turn goes back as before, and no forget read is made', async () => {
@@ -156,7 +176,7 @@ describe('restoreDroppedTurns: the reconnect after a drop', () => {
     const { line, history } = await resumeDropped('user-forget-d2');
 
     expect(said(history)).toEqual(LINES.map(([, content]) => content));
-    expect(line).toContain('forget the inheritance stuff');
+    expect(line).toContain('forget the Denver job');
     expect(topics.read).not.toHaveBeenCalled();
   });
 
@@ -185,9 +205,35 @@ describe('restoreMovedTurns: the phone call a "call me" moved to', () => {
 
     expect(said(history)).toEqual(KEPT);
     expect(history.at(-1)?.content).toBe(MOVED_NOTE);
-    for (const start of FORGOTTEN) {
-      expect(said(history).some((c) => c.startsWith(start))).toBe(false);
-    }
+  });
+
+  it.each(LEAKS)('flag on: topic "%s" leaves out "%s"', async (topic, line) => {
+    topics.read.mockImplementation(async () => [topic]);
+    const { history } = await moveToPhone('user-forget-leak-m', [
+      ...LINES.slice(0, 2),
+      ['user', line],
+    ]);
+
+    expect(said(history)).toEqual(KEPT);
+  });
+
+  it('the forget read starts beside the turns read, not after it', async () => {
+    let forgetReadsAtTurnsRead = -1;
+    vi.mocked(realtime.getConversationTurns).mockImplementationOnce(async (_u, id) => {
+      forgetReadsAtTurnsRead = topics.read.mock.calls.length;
+      return store.turns.get(id) ?? [];
+    });
+    const { history } = await moveToPhone('user-forget-m4');
+
+    expect(forgetReadsAtTurnsRead).toBe(1);
+    expect(said(history)).toEqual(KEPT);
+  });
+
+  it('the forget read is late: no turn goes back (fail closed)', async () => {
+    topics.read.mockImplementation(() => new Promise<string[] | null>(() => {}));
+    const { history } = await moveToPhone('user-forget-m5');
+
+    expect(said(history)).toEqual([]);
   });
 
   it('flag off: the last turns go back as before, and no forget read is made', async () => {

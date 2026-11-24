@@ -5,49 +5,77 @@
  * resume-after-drop.ts replays an earlier call's last turns verbatim: on
  * reconnect after a drop (findDroppedCall), and into the phone call a "call me"
  * moved to (restoreMovedTurns). A topic forgotten in those turns came straight
- * back. Each turn now goes through the check every other reader uses
- * (aboutForgotten, forget-every-reader.ts).
+ * back. The turns are the caller's raw speech, so each goes through the check
+ * for raw words (isForgottenPassage, via forgottenPassageWithin), as open
+ * loops, episode quotes and call summaries do: any distinctive word of the
+ * topic counts, so "the Denver job" leaves out "the offer from the Denver
+ * office".
  *
- * The topics come from a fresh read only (forgottenWithin): the earlier call
- * often ran on another pod, so this process's last-known list can miss the
- * topic forgotten there. A read that is late, fails or throws keeps no turn.
+ * The topics come from the shared read (forget-topics-source.ts) without the
+ * last-known fallback. That read is still served from its short per-process
+ * cache, so a topic forgotten on another pod seconds ago can be missed until
+ * the cache expires (#2755 adds an uncached read). A read that is late, fails
+ * or throws keeps no turn.
  *
  * @module agents/multi-agent/restored-turns-remembered
  */
 import type { Env } from '../../config/env-flag.js';
-import { forgetEveryReaderEnabled, forgottenWithin } from '../../memory/index.js';
+import { forgetEveryReaderEnabled, forgottenPassageWithin } from '../../memory/index.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RestoredTurnsRemembered' });
 
+/** Keeps the turns not about a forgotten topic. */
+export type TurnsFilter = <T extends { content: string }>(turns: T[]) => T[];
+
+const keepAll: TurnsFilter = (turns) => turns;
+const keepNone: TurnsFilter = () => [];
+
 /**
- * The turns not about a forgotten topic. Flag off or no member: the same array,
- * unchanged. Topics unreadable: none (fail closed). `reader` names the caller in logs.
+ * Starts the forgotten-topics read now and resolves to the filter for restored
+ * turns, so a caller can read the turns at the same time. Flag off or no member:
+ * every turn kept, no read. Topics unreadable, late or the read throws: none
+ * kept (fail closed). Never rejects. `reader` names the caller in logs.
  */
+export async function restoredTurnsFilter(
+  userId: string | null | undefined,
+  reader: string,
+  env: Env = process.env
+): Promise<TurnsFilter> {
+  // forgottenPassageWithin answers null both when off and when unreadable; only the second drops
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return keepAll;
+  let forgotten: Awaited<ReturnType<typeof forgottenPassageWithin>>;
+  try {
+    forgotten = await forgottenPassageWithin(userId, reader, env);
+  } catch (error) {
+    log.warn({ error: String(error), reader }, 'Forgotten topics read threw, restoring no turns');
+    return keepNone;
+  }
+  if (!forgotten) {
+    log.warn({ reader }, 'Forgotten topics unreadable, restoring no turns');
+    return keepNone;
+  }
+  const check = forgotten;
+  return (turns) => {
+    const kept = turns.filter((t) => !check(t.content));
+    if (kept.length < turns.length) {
+      log.info(
+        { reader, dropped: turns.length - kept.length },
+        'Restored turns: forgotten left out'
+      );
+    }
+    return kept;
+  };
+}
+
+/** The turns not about a forgotten topic (restoredTurnsFilter, read then applied). */
 export async function rememberedTurns<T extends { content: string }>(
   userId: string | null | undefined,
   turns: T[],
   reader: string,
   env: Env = process.env
 ): Promise<T[]> {
-  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId) || turns.length === 0) {
-    return turns;
-  }
-  let forgotten: Awaited<ReturnType<typeof forgottenWithin>>;
-  try {
-    forgotten = await forgottenWithin(userId, reader);
-  } catch (error) {
-    log.warn({ error: String(error), reader }, 'Forgotten topics read threw, restoring no turns');
-    return [];
-  }
-  if (!forgotten) {
-    log.warn({ reader, dropped: turns.length }, 'Forgotten topics unreadable, restoring no turns');
-    return [];
-  }
-  const kept = turns.filter((t) => !forgotten(t.content));
-  if (kept.length < turns.length) {
-    log.info({ reader, dropped: turns.length - kept.length }, 'Restored turns: forgotten left out');
-  }
-  return kept;
+  if (turns.length === 0) return turns;
+  return (await restoredTurnsFilter(userId, reader, env))(turns);
 }
