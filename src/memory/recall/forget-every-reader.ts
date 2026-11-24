@@ -34,6 +34,11 @@ export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
   return flagOn('FORGET_EVERY_READER', env);
 }
 
+/** FORGET_FRESH_READ: the rare readers' `uncached` for forgottenWithin (#2755). */
+export function forgetFreshReadEnabled(env: Env = process.env): boolean {
+  return flagOn('FORGET_FRESH_READ', env);
+}
+
 /** True when a text is about something the caller asked to forget. */
 export type ForgottenCheck = (text: string) => boolean;
 

@@ -1,6 +1,6 @@
 /**
  * recentContext honours a topic forgotten on another process's call (#2755,
- * RECENT_CONTEXT_FRESH_FORGET_READ).
+ * FORGET_FRESH_READ).
  *
  * Two processes, one caller: this test is process 2. Process 1's forget is
  * modelled as the store's topics changing underneath (the stored-topics read
@@ -50,7 +50,7 @@ import { resetForgetTopicsSource } from '../../../../memory/recall/forget-topics
 import { essentialsToolDefinitions } from '../essentials-tools.js';
 import { flagOn } from '../../../../config/env-flag.js';
 
-const FLAG = 'RECENT_CONTEXT_FRESH_FORGET_READ' as const;
+const FLAG = 'FORGET_FRESH_READ' as const;
 interface Exec {
   execute: (args: Record<string, unknown>) => Promise<string>;
 }

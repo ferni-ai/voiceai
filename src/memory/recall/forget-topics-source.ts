@@ -134,11 +134,14 @@ export async function topicsFreshWithin(
   const late = new Promise<'late'>((resolve) => {
     timer = setTimeout(() => resolve('late'), READ_TIMEOUT_MS);
   });
+  // No backoff on the uncached read: its readers are rare (one read per tool call or call end, not
+  // per turn) and each waits at most READ_TIMEOUT_MS, so a failing store can't be flooded by them.
   if (uncached) stats.reads++;
   const read = uncached ? forgottenTopicsOrNull(userId) : readTopics(userId);
   const got = await Promise.race([read, late]);
   clearTimeout(timer);
   if (Array.isArray(got)) return got;
+  if (got === null && uncached) stats.failures++; // the cached read counts its own in readTopics
   if (got === 'late') stats.timeouts++;
   stats.failClosed++;
   const why = got === 'late' ? 'timeout' : 'failed';
