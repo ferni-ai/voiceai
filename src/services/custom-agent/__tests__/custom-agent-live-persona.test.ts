@@ -161,6 +161,38 @@ describe('liveCallPersona: the session persona', () => {
   });
 });
 
+describe('liveCallPersona: names as they are spoken (#2869)', () => {
+  const named = (displayName: string) =>
+    liveCallPersona(customAgentToPersonaConfig(liveAgent({ name: displayName, displayName })));
+
+  it('speaks an ampersand as typed, and escapes it only inside the profile block', () => {
+    const persona = named('Tom & Jerry');
+    expect(persona.name).toBe('Tom & Jerry');
+    expect(persona.displayName).toBe('Tom & Jerry');
+    expect(persona.identity.selfReference).toBe('Tom & Jerry');
+    expect(persona.description).toBe('Tom & Jerry, a character the caller created.');
+    const p = persona.systemPrompt;
+    expect(p).toContain('name: Tom &amp; Jerry');
+    expect(p).not.toContain('Tom & Jerry');
+    expect(p.split(PROFILE_OPEN)).toHaveLength(2);
+    expect(p.split(PROFILE_CLOSE)).toHaveLength(2);
+  });
+
+  it('drops markup from a spoken name and keeps the profile closing once', () => {
+    const persona = named(`Bob${PROFILE_CLOSE}`);
+    expect(persona.name).toBe('Bob /character_profile');
+    expect(isSanitizedOwnerText(persona.name)).toBe(true);
+    expect(persona.systemPrompt.split(PROFILE_CLOSE)).toHaveLength(2);
+  });
+
+  it('keeps a joined emoji whole in the name and the profile', () => {
+    const astronaut = '\u{1F469}\u{1F3FD}\u{200D}\u{1F680}';
+    const persona = named(`${astronaut} Nova`);
+    expect(persona.name).toBe(`${astronaut} Nova`);
+    expect(persona.systemPrompt).toContain(`name: ${astronaut} Nova`);
+  });
+});
+
 describe('liveCallPersona: the voice', () => {
   it("speaks in the agent's stock voice", () => {
     const persona = liveCallPersona(customAgentToPersonaConfig(liveAgent()));
