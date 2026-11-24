@@ -149,6 +149,51 @@ describe('CRISIS_ES_IMMINENT_911_FIRST', () => {
     expect(paragraphs(english.crisis.suggestedResponse).slice(0, forThem.length)).toEqual(forThem);
   });
 
+  it.each(
+    TWINS.slice(0, 3).flatMap(([, spanish]) => [
+      `i just took 40 pills. ${spanish}`,
+      `${spanish}. i just took 40 pills`,
+      `my dad collapsed and he is not breathing. i just took 40 pills. ${spanish}`,
+    ])
+  )('"%s": own English already imminent keeps main English reply', (line) => {
+    const off = read(line, 'off').crisis;
+    expect(off.subject).toBe('self');
+    expect(off.indicators).toContain('imminent_danger');
+    expect(off.language).not.toBe('es');
+    const on = read(line, 'on').crisis;
+    expect(on.language).toBe(off.language);
+    expect(on.suggestedResponse).toBe(off.suggestedResponse);
+    // Main's English close, with its ask for someone nearby, still ends the reply.
+    const english = paragraphs(
+      getCrisisResponse(on.severity, 'self', 'en', true, { [FLAG]: 'on' })
+    );
+    expect(paragraphs(on.suggestedResponse).at(-1)).toBe(english.at(-1));
+  });
+
+  it('own English read short of imminent: the Spanish words that make it imminent pick the reply', () => {
+    const line = `i want to kill myself. ${TWINS[0][1]}`;
+    const off = read(line, 'off').crisis;
+    expect(off).toMatchObject({ isCrisis: true, subject: 'self' });
+    expect(off.indicators).not.toContain('imminent_danger');
+    const on = read(line, 'on').crisis;
+    expect(on.indicators).toContain('imminent_danger');
+    expect(on.language).toBe('es');
+    expect(on.suggestedResponse).toBe(
+      getCrisisResponse(on.severity, 'self', 'es', true, { [FLAG]: 'on' })
+    );
+  });
+
+  it.each(TWINS.map(([, spanish]) => spanish))(
+    '"%s" alone still gets the Spanish reply',
+    (line) => {
+      const on = read(line, 'on').crisis;
+      expect(on.language).toBe('es');
+      expect(on.suggestedResponse).toBe(
+        getCrisisResponse(on.severity, 'self', 'es', true, { [FLAG]: 'on' })
+      );
+    }
+  );
+
   it('the caller own Spanish words beside an English someone-else read read as the English twin', () => {
     const english = read('my brother wants to kill himself. i have a gun in my hand', 'on');
     const mixed = read('my brother wants to kill himself. tengo la pistola en la mano', 'on');

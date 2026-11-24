@@ -81,7 +81,8 @@ ${FOR_THEM_988}
 What's going on with them right now?`;
   }
   if (language === 'es') {
-    // The Spanish reply whole, after the 911 line: it gains a line and loses none.
+    // The Spanish reply whole, after the 911 line: it gains a line and loses none. A turn whose own
+    // English already read imminent keeps the English reply above (crisis-imminent-raise.ts).
     const first = imminent && spanishImminentOn(env) ? `${SPANISH_911_FIRST}\n\n` : '';
     return `${first}Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
 

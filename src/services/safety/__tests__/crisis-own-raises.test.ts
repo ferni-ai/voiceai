@@ -46,6 +46,17 @@ describe('every own-crisis raise in the list', () => {
     expect(raised.length).toBeGreaterThanOrEqual(3);
   });
 
+  it.each(FOR_THEM_FIRST)(
+    '"%s" leads with 911 for them only beside third_party_emergency',
+    (line) => {
+      // The classifier's someone-down raise refuses a read with this tag, so 911 for them never
+      // leads twice (crisis-classifier-verdict.ts readsSomeoneElseInDanger).
+      const on = read(line, every).crisis;
+      expect(paragraphs(on.suggestedResponse)[0]).toBe(paragraphs(CALL_911_FOR_THEM)[0]);
+      expect(on.indicators).toContain('third_party_emergency');
+    }
+  );
+
   it.each(FOR_THEM_FIRST)('never lowers "%s", already 911 first for them', (line) => {
     const off = read(line, none);
     expect(off.crisis.indicators).toEqual(

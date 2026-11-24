@@ -10,7 +10,9 @@
  *   the shared modifiers, crisis-modifiers.ts explicitModifier, as the English rows do). Every
  *   match is read, not just the first, so a softened one never hides a later real one.
  * - Never lower: the raise adds the caller's own explicit (and, for an imminent pattern, imminent)
- *   read and keeps every indicator, level and language the read had. The caller's own words make
+ *   read and keeps every indicator and level the read had. It names the set's language only when
+ *   the caller's own read was not already imminent: a turn whose English already read imminent
+ *   keeps main's English reply, with its ask for someone nearby. The caller's own words make
  *   the caller the one at risk, as an English row's do in scoreText (hardSelf). When someone else is
  *   down in the same turn (third_party_emergency), the reply keeps the 911 for them first and then
  *   the caller's own reply ('own', as withCloseDown in crisis-caller-check.ts sets it).
@@ -95,13 +97,14 @@ export function raiseOwnCrisis<T extends RaisableScore>(
     ? ['explicit_crisis_language', 'imminent_danger']
     : ['explicit_crisis_language'];
   for (const tag of tags) if (!indicators.includes(tag)) indicators.push(tag);
+  const ownImminent = score.subject === 'self' && score.indicators.includes('imminent_danger');
   return {
     ...score,
     severity: Math.max(score.severity, SEVERITY.explicit),
     indicators,
     subject: 'self',
     hardSelf: true,
-    language: score.language ?? raised.raise.language,
+    language: ownImminent ? score.language : (score.language ?? raised.raise.language),
     beside: indicators.includes('third_party_emergency') ? 'own' : score.beside,
   };
 }
