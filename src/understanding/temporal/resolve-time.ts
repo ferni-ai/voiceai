@@ -11,6 +11,7 @@ import * as C from './civil.js';
 import type { Certainty, CivilTime, Precision, RuleContext, Tense } from './civil.js';
 import { customRules, narrowToTimeOfDay } from './rules.js';
 import { hasPastVerb } from './tense.js';
+import { spanModifierSays, weekModifier } from './week-modifiers.js';
 
 const log = createLogger({ module: 'Understanding.Temporal' });
 
@@ -64,8 +65,9 @@ function fromCompromise(text: string, now: C.Naive, ctx: RuleContext): CivilTime
   const s = Date.parse(String(hit?.start));
   if (Number.isNaN(s)) return null;
   const e = Date.parse(String(hit?.end)) || s;
-  // A past report that compromise put in the future is kept but flagged.
-  const vague = VAGUE.test(text) ? 'assumed' : 'exact';
+  // A past report that compromise put in the future is kept but flagged; a
+  // day moved by a week or more ("two weeks before Christmas") is not exact (#2499).
+  const vague = VAGUE.test(text) || spanModifierSays(text) ? 'assumed' : 'exact';
   const certainty = ctx.tense === 'past' && s > now ? 'ambiguous' : vague;
   if (e - s < C.MINUTE_MS && s - C.midnight(s) < C.DAY_MS - C.MINUTE_MS) {
     const canonical = `compromise:${new Date(s).toISOString().slice(0, 16)}`;
@@ -94,8 +96,11 @@ function resolveCivil(text: string, now: C.Naive, ctx: RuleContext): CivilTime |
   const dur = DURATION.exec(text);
   const body = dur ? text.replace(dur[0], ' ') : text;
   const weekOf = WEEK_OF.exec(body);
+  const week = weekModifier(body, ctx, (anchor) => resolveDay(anchor, now, ctx));
   let base: CivilTime | null;
-  if (weekOf) {
+  if (week) {
+    base = week;
+  } else if (weekOf) {
     const inner = resolveDay(weekOf[1], now, ctx);
     base =
       inner &&
