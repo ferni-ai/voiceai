@@ -203,20 +203,26 @@ export function droppedFromScreen(symbols: CrisisSymbols, unscreened: string[]):
   );
 }
 
+/** A merge base found in the clone: its commit, and the symbols file as committed there. */
+export interface BaseCommit {
+  sha: string;
+  symbols: CrisisSymbols;
+}
+
 /**
  * The symbols file as committed at the merge base with main: `git merge-base HEAD
  * origin/main`, or HEAD^1 on a pull request's merge commit, where CI fetches only that
  * commit and its base. Undefined when neither is in the clone (a depth-1 checkout).
  */
-export function baseSymbols(root: string): CrisisSymbols | undefined {
+export function baseSymbols(root: string): BaseCommit | undefined {
   const file = symbolsInRepo();
   for (const base of [
     ['merge-base', 'HEAD', 'origin/main'],
     ['rev-parse', 'HEAD^1'],
   ]) {
     try {
-      const ref = git(root, base).trim();
-      return JSON.parse(git(root, ['show', `${ref}:${file}`])) as CrisisSymbols;
+      const sha = git(root, base).trim();
+      return { sha, symbols: JSON.parse(git(root, ['show', `${sha}:${file}`])) as CrisisSymbols };
     } catch {
       // That ref isn't in this clone: try the next.
     }
@@ -224,7 +230,10 @@ export function baseSymbols(root: string): CrisisSymbols | undefined {
   return undefined;
 }
 
-/** Why a CI run has no merge base to compare with. The test prints it when it goes red. */
+/** What a skip leaves unchecked, said on every SKIPPED line. */
+const NOT_RUN = 'the crisis-symbols merge-base check did not run';
+
+/** Why a pull request has no merge base to compare with. The test prints it when it goes red. */
 const NO_BASE = 'no merge base in this checkout: fetch origin/main or check out depth 2';
 
 /** The merge base's symbols, or why there are none: a failure goes red, a skip stays green. */
@@ -235,54 +244,91 @@ export interface BaseRead {
 
 type Env = Record<string, string | undefined>;
 
-/** The symbols file at a commit, fetching that one commit when the clone lacks it. */
-function symbolsAt(root: string, sha: string): CrisisSymbols | undefined {
+/** The first line git wrote to stderr, else the error's message. */
+const gitError = (e: unknown): string => {
+  const err = e as { stderr?: string; message?: string };
+  return (err.stderr || err.message || String(e)).trim().split('\n')[0] ?? '';
+};
+
+/** The symbols file at the queue's base, fetching that one commit when the clone lacks it. */
+function symbolsAt(root: string, sha: string): BaseRead {
   const file = symbolsInRepo();
   const show = (): CrisisSymbols =>
     JSON.parse(git(root, ['show', `${sha}:${file}`])) as CrisisSymbols;
   try {
-    return show();
+    return { symbols: show() };
   } catch {
-    try {
-      git(root, ['fetch', '--quiet', '--depth=1', 'origin', sha]);
-      return show();
-    } catch {
-      return undefined;
-    }
+    // Not in this depth-1 clone yet: fetch it.
+  }
+  try {
+    git(root, ['fetch', '--quiet', '--depth=1', 'origin', sha]);
+  } catch (e) {
+    return {
+      failure:
+        `merge_group: could not fetch merge_group.base_sha ${sha} from origin ` +
+        `(${gitError(e)}); the job needs read access to origin to compare with the base`,
+    };
+  }
+  try {
+    return { symbols: show() };
+  } catch (e) {
+    return { failure: `merge_group: no ${file} at merge_group.base_sha ${sha} (${gitError(e)})` };
   }
 }
+
+/** The queue's base from the event payload, or why it can't be read. */
+function queueBase(root: string, env: Env): BaseRead {
+  let sha: unknown;
+  try {
+    const payload = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH ?? '', 'utf8')) as {
+      merge_group?: { base_sha?: unknown };
+    };
+    sha = payload.merge_group?.base_sha;
+  } catch (e) {
+    return {
+      failure:
+        `merge_group: could not read the event payload at GITHUB_EVENT_PATH ` +
+        `${env.GITHUB_EVENT_PATH ?? '(unset)'} (${String(e).split('\n')[0]})`,
+    };
+  }
+  if (typeof sha !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) {
+    return {
+      failure:
+        `merge_group: merge_group.base_sha is not in the event payload ` +
+        `(got ${JSON.stringify(sha) ?? 'nothing'}); GitHub's merge_group event carries it`,
+    };
+  }
+  return symbolsAt(root, sha);
+}
+
+const headOf = (root: string): string | undefined => {
+  try {
+    return git(root, ['rev-parse', 'HEAD']).trim();
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * The merge base for this CI event. CI checks out depth 1 on every event but a pull request,
  * so the queue's merge_group reads its base from the event payload (`merge_group.base_sha`)
- * and goes red when that can't be read: it is the last gate before main. A push or a
- * nightly run is main itself, so it says loudly that it skipped and stays green.
+ * and goes red, naming the cause, when that can't be read: it is the last gate before main.
+ * A push or a nightly run is main itself: there origin/main is HEAD, so the "base" would be
+ * the file compared with itself. It says loudly that it skipped and stays green.
  */
 export function baseForEvent(
   root: string,
   env: Env = process.env,
-  local: (root: string) => CrisisSymbols | undefined = baseSymbols
+  local: (root: string) => BaseCommit | undefined = baseSymbols
 ): BaseRead {
   const event = env.GITHUB_EVENT_NAME;
-  if (event === 'merge_group') {
-    let sha: string | undefined;
-    try {
-      const payload = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH ?? '', 'utf8')) as {
-        merge_group?: { base_sha?: string };
-      };
-      sha = payload.merge_group?.base_sha;
-    } catch {
-      // No payload to read: no base.
-    }
-    const symbols = sha && /^[0-9a-f]{40}$/.test(sha) ? symbolsAt(root, sha) : undefined;
-    return symbols
-      ? { symbols }
-      : { failure: `${NO_BASE} (merge_group base_sha ${sha ?? 'missing'})` };
-  }
-  const symbols = local(root);
-  if (symbols) return { symbols };
+  if (event === 'merge_group') return queueBase(root, env);
+  const base = local(root);
+  const itself = base !== undefined && base.sha === headOf(root);
+  if (base && !itself) return { symbols: base.symbols };
   if (event === 'pull_request') return { failure: `${NO_BASE} (pull_request)` };
-  if (event) console.log(`SKIPPED: no merge base on ${event}`);
+  const why = itself ? ' (origin/main is this commit)' : '';
+  if (event) console.log(`SKIPPED: no merge base on ${event}${why}: ${NOT_RUN}`);
   return {};
 }
 
