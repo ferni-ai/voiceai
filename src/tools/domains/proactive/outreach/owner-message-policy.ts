@@ -140,7 +140,7 @@ export const ownerMessageNotDelivered = (message: OwnerMessage): void =>
  * OWNER_OUTREACH_STORED_TEXT_SCREEN=on (default off): text stored from calls (what a
  * caller said, or what was saved from it) is screened before the outreach jobs put it
  * in a message to the owner: proactive check-ins, pondered notes, the morning brief,
- * commitment pushes. Those jobs can't tell a verified owner's row from an unverified
+ * commitment pushes, the pre-meeting calendar push (an invite's title). Those jobs can't tell a verified owner's row from an unverified
  * caller's, so every stored text is screened. Read where those jobs run (the UI
  * server); UNVERIFIED_OWNER_MESSAGE_FILTER belongs to live calls and is not read here.
  */
@@ -150,7 +150,7 @@ export function storedTextScreenOn(env: NodeJS.ProcessEnv = process.env): boolea
 
 /** Where stored text is about to go to the owner: the job's site, and whose message it is. */
 export interface StoredTextSite {
-  site: 'proactive' | 'morning-brief' | 'commitment-push';
+  site: 'proactive' | 'morning-brief' | 'commitment-push' | 'calendar-push';
   userId: string;
 }
 
