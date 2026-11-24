@@ -78,6 +78,32 @@ describe('reopenLapsedApproval', () => {
     expect(doc.data).toMatchObject({ status: 'approved', approvedBy: 'admin-api' });
   });
 
+  it('an old approval relabelled by a vote lapses when the profile grant says open access', async () => {
+    const relabelled = {
+      status: 'approved',
+      source: 'feature',
+      approvedAt: new Date('2026-10-10'),
+    };
+    const doc = { data: { ...relabelled } as Record<string, unknown> };
+    const { db, ref, writes } = fakeDb(doc);
+    const profile = store({ subscriptions: async () => [{ status: 'active', grantedVia: 'open-access' }] }); // prettier-ignore
+    expect(await reopenLapsedApproval(db, ref, relabelled, WHO, { env: FLAG_ON, store: profile })).toBe(true); // prettier-ignore
+    expect(writes).toHaveLength(1);
+  });
+
+  it('a failed profile read leaves an old unlabelled approval as is', async () => {
+    const relabelled = {
+      status: 'approved',
+      source: 'feature',
+      approvedAt: new Date('2026-10-10'),
+    };
+    const doc = { data: { ...relabelled } as Record<string, unknown> };
+    const { db, ref, writes } = fakeDb(doc);
+    const broken = store({ subscriptions: async () => Promise.reject(new Error('unavailable')) });
+    expect(await reopenLapsedApproval(db, ref, relabelled, WHO, { env: FLAG_ON, store: broken })).toBe(false); // prettier-ignore
+    expect(writes).toEqual([]);
+  });
+
   it('flag off: nothing is read or written', async () => {
     const doc = { data: { ...OPEN_ACCESS } as Record<string, unknown> };
     const { db, ref, writes } = fakeDb(doc);

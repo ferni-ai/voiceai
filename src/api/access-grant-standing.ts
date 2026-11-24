@@ -51,8 +51,9 @@ export interface StoredWaitlistEntry {
 export type ApprovedVia = 'open_access' | 'admission' | 'admin' | 'wave';
 
 /**
- * The deploy date of #2264, from which every approval writes approvedVia. Move it to the real
- * deploy day if this ships later. Unlabelled approvals older than this are legacy.
+ * The day #2264 deploys to prod, from which every approval writes approvedVia. It MUST equal
+ * that prod deploy day: check it (and move it if this shipped later) before DURABLE_ACCESS_GRANTS
+ * is turned on. Unlabelled approvals older than this are legacy; newer ones lapse.
  */
 export const APPROVAL_REASONS_SINCE = new Date('2026-11-24T00:00:00Z');
 
@@ -61,6 +62,8 @@ const LAPSING_GRANTS = new Set(['open-access', 'admission', 'waitlist-approval-a
 /** The same two reasons as written on the waitlist entry (waitlist-routes.ts). */
 const LAPSING_SOURCES = new Set(['open_access', 'admission']);
 const LASTING_VIA = new Set<unknown>(['admin', 'wave'] satisfies ApprovedVia[]);
+/** Profile grants written by the same handler as an open-access / admission approval. */
+const LAPSING_PROFILE_GRANTS = new Set(['open-access', 'admission']);
 
 const isText = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 
@@ -97,6 +100,22 @@ export function waitlistStanding(entry: StoredWaitlistEntry): GrantStanding {
   return approvedBeforeReasons(entry.approvedAt) ? 'legacy' : 'lapsing';
 }
 
+/**
+ * The entry's standing, cross-checked against the person's stored subscriptions. An unlabelled
+ * old approval is legacy only if no profile grant records open access or admission: that grant
+ * is written in the same handler as such an approval, and a vote can't reach it, so it still
+ * tells a relabelled open-access approval apart from a real legacy one.
+ */
+export function entryStanding(entry: StoredWaitlistEntry, subs: readonly unknown[]): GrantStanding {
+  const standing = waitlistStanding(entry);
+  if (standing !== 'legacy') return standing;
+  const grantedFor = (sub: unknown): boolean => {
+    const via: unknown = typeof sub === 'object' && sub !== null ? (sub as StoredSubscription).grantedVia : undefined; // prettier-ignore
+    return isText(via) && LAPSING_PROFILE_GRANTS.has(via);
+  };
+  return subs.some(grantedFor) ? 'lapsing' : 'legacy';
+}
+
 /** One info-level access_grant_legacy line per kind and uid per process; the rest at debug. */
 const legacyLogged = new Set<string>();
 const LEGACY_LOG_CAP = 10_000;
@@ -124,9 +143,13 @@ export function subscriptionAdmits(sub: StoredSubscription | undefined, uid?: st
 const admittedStatus = (entry: StoredWaitlistEntry | undefined): boolean =>
   typeof entry?.status === 'string' && ADMITTED_STATUSES.has(entry.status);
 
-/** An approved / admitted / joined waitlist entry that admits by itself. */
-export function waitlistEntryAdmits(entry: StoredWaitlistEntry | undefined, uid?: string): boolean {
-  return !!entry && admittedStatus(entry) && admitsByItself(waitlistStanding(entry), 'waitlist', uid); // prettier-ignore
+/** An approved / admitted / joined waitlist entry that admits by itself (subs: entryStanding). */
+export function waitlistEntryAdmits(
+  entry: StoredWaitlistEntry | undefined,
+  subs: readonly unknown[],
+  uid?: string
+): boolean {
+  return !!entry && admittedStatus(entry) && admitsByItself(entryStanding(entry, subs), 'waitlist', uid); // prettier-ignore
 }
 
 /**
@@ -135,10 +158,11 @@ export function waitlistEntryAdmits(entry: StoredWaitlistEntry | undefined, uid?
  */
 export function admittedEntryStands(
   entry: StoredWaitlistEntry | undefined,
+  subs: readonly unknown[],
   uid?: string,
   env: NodeJS.ProcessEnv = process.env
 ): boolean {
-  return admittedStatus(entry) && (!durableGrantsActive(env) || waitlistEntryAdmits(entry, uid));
+  return admittedStatus(entry) && (!durableGrantsActive(env) || waitlistEntryAdmits(entry, subs, uid)); // prettier-ignore
 }
 
 /**

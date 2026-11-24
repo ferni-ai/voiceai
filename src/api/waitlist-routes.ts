@@ -538,7 +538,10 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     const waitlisted = waitlistDoc.data();
-    if (waitlistDoc.exists && admittedEntryStands(waitlisted, decodedToken.uid)) {
+    if (
+      waitlistDoc.exists &&
+      admittedEntryStands(waitlisted, [profileDoc.data()?.subscription], decodedToken.uid)
+    ) {
       // Admitted (a wave, or approved before waves) and no profile yet: the free tier plus the
       // founding-member perk, which replaces the 10-year partner grant (decided 2026-10-18).
       const foundingWave = typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0; // prettier-ignore

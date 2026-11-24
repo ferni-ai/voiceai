@@ -200,10 +200,11 @@ function durableGrantChecks(
   uid: string,
   email: string | undefined
 ): Array<[AdmissionReason, () => Promise<boolean>]> {
-  const stored = async (): Promise<boolean> =>
-    !!email && (await store.subscriptions(email)).some((sub) => subscriptionAdmits(sub, uid));
+  let read: Promise<StoredSubscription[]> | undefined; // one read, shared by both rules
+  const subs = async (): Promise<StoredSubscription[]> => (read ??= email ? store.subscriptions(email) : Promise.resolve([])); // prettier-ignore
+  const stored = async (): Promise<boolean> => (await subs()).some((s) => subscriptionAdmits(s, uid)); // prettier-ignore
   return [
-    ['waitlist-approved', async () => !!email && waitlistEntryAdmits(await store.waitlistEntry(email), uid)], // prettier-ignore
+    ['waitlist-approved', async () => !!email && waitlistEntryAdmits(await store.waitlistEntry(email), await subs(), uid)], // prettier-ignore
     ['active-account', async () => (await stored()) || livePaidPlan(await store.accountSubscription(uid))], // prettier-ignore
   ];
 }

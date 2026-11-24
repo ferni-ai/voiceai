@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   APPROVAL_REASONS_SINCE,
   admittedEntryStands,
+  entryStanding,
   approvalLapses,
   durableGrantsActive,
   subscriptionAdmits,
@@ -81,14 +82,27 @@ describe('grant standing', () => {
     expect(waitlistStanding({ status: 'approved', source: 'feature', approvedAt: after })).toBe('lapsing'); // prettier-ignore
   });
 
+  it('an unlabelled old approval is legacy only without an open-access / admission profile grant', () => {
+    const relabelled = {
+      status: 'approved',
+      source: 'feature',
+      approvedAt: new Date('2026-10-10'),
+    };
+    expect(entryStanding(relabelled, [{ status: 'active', grantedVia: 'open-access' }])).toBe('lapsing'); // prettier-ignore
+    expect(entryStanding(relabelled, [undefined, { status: 'active', grantedVia: 'admission' }])).toBe('lapsing'); // prettier-ignore
+    expect(entryStanding(relabelled, [{ status: 'active', grantedVia: 'waitlist-approval-auto' }])).toBe('legacy'); // prettier-ignore
+    expect(entryStanding(relabelled, [])).toBe('legacy');
+    expect(entryStanding({ ...relabelled, approvedBy: 'cli' }, [{ grantedVia: 'open-access' }])).toBe('lasting'); // prettier-ignore
+  });
+
   it('only acts with the flag on and the gate on', () => {
     expect(durableGrantsActive(FLAG_ON)).toBe(true);
     expect(durableGrantsActive(GATE)).toBe(false);
     expect(durableGrantsActive({ DURABLE_ACCESS_GRANTS: 'on' } as NodeJS.ProcessEnv)).toBe(false);
     const lapsed = { status: 'approved', source: 'open_access' };
-    expect(admittedEntryStands(lapsed, undefined, GATE)).toBe(true);
-    expect(admittedEntryStands(lapsed, undefined, FLAG_ON)).toBe(false);
-    expect(admittedEntryStands({ status: 'pending' }, undefined, GATE)).toBe(false);
+    expect(admittedEntryStands(lapsed, [], undefined, GATE)).toBe(true);
+    expect(admittedEntryStands(lapsed, [], undefined, FLAG_ON)).toBe(false);
+    expect(admittedEntryStands({ status: 'pending' }, [], undefined, GATE)).toBe(false);
   });
 
   it('an admin may re-approve a lapsing approval with the flag on, gate or no gate', () => {
@@ -143,6 +157,16 @@ describe('isAdmitted with stored grants', () => {
   it('flag on: a free plan on the account is not a grant by itself', async () => {
     const free = { ...openAccess, account: { status: 'active', tier: 'free' } };
     expect((await isAdmitted(WHO, { env: FLAG_ON, store: store(free) })).admitted).toBe(false);
+  });
+
+  it('flag on: an old relabelled approval with an open-access profile grant no longer admits', async () => {
+    const relabelled = { entry: { status: 'approved', source: 'feature' }, sub: { status: 'active', grantedVia: 'open-access' } }; // prettier-ignore
+    expect(await isAdmitted(WHO, { env: FLAG_ON, store: store(relabelled) })).toEqual({ admitted: false, reason: 'not-admitted' }); // prettier-ignore
+  });
+
+  it('flag on: a failed profile read refuses (fails closed) for a legacy approval', async () => {
+    const failing = { ...store({ entry: { status: 'approved', source: 'feature' } }), subscriptions: async () => Promise.reject(new Error('unavailable')) }; // prettier-ignore
+    expect(await isAdmitted(WHO, { env: FLAG_ON, store: failing })).toEqual({ admitted: false, reason: 'check-failed' }); // prettier-ignore
   });
 
   it('flag on: an inactive legacy subscription is not a grant', async () => {

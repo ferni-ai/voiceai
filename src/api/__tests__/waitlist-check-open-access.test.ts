@@ -401,29 +401,42 @@ describe('stored grants under the gate', () => {
     expect(entry()).toMatchObject({ status: 'approved', source: 'open_access', approvedVia: 'open_access' }); // prettier-ignore
   });
 
-  it('flag on: an open-access approval whose source a vote overwrote still lapses', async () => {
+  it('flag on: an open-access approval whose source a past vote overwrote still lapses', async () => {
     await check(); // gate off: open access
-    expect((await vote(email.value)).status).toBe(200); // flag off: main's merge relabels source
-    expect(entry()).toMatchObject({ status: 'approved', source: 'feature' });
+    coll('waitlist').set(docId(email.value), { ...entry(), source: 'feature' }); // what votes did before #2264
     gateOn('on');
     expect((await check()).body).toMatchObject({ approved: false, status: 'pending' });
     expect(entry()).toMatchObject({ status: 'pending', lapsedApproval: { source: 'open_access' } });
   });
 
-  it.each([
-    ['on', { source: 'open_access', interestedFeatures: { arrayUnion: ['memory-lane'] } }],
-    ['off', { source: 'feature', featureId: 'memory-lane' }], // main: the vote relabels the entry
-  ] as const)('flag %s: a vote on an existing entry', async (flag, want) => {
-    vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
-    const id = docId(email.value);
-    coll('waitlist').set(id, { email: email.value, status: 'approved', source: 'open_access', timestamp: 'then' }); // prettier-ignore
-    expect((await vote(email.value)).status).toBe(200);
-    expect(coll('waitlist').get(id)).toMatchObject({ ...want, status: 'approved' });
-    if (flag === 'on') expect(coll('waitlist').get(id)).toMatchObject({ timestamp: 'then' });
-  });
+  it.each(['on', 'off'] as const)(
+    'flag %s: a vote on an existing approved entry only adds the feature',
+    async (flag) => {
+      vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+      const id = docId(email.value);
+      const before = { email: email.value, status: 'approved', source: 'open_access', timestamp: 'then' }; // prettier-ignore
+      coll('waitlist').set(id, { ...before });
+      expect((await vote(email.value)).status).toBe(200);
+      expect(coll('waitlist').get(id)).toEqual({ ...before, interestedFeatures: { arrayUnion: ['memory-lane'] } }); // prettier-ignore
+    }
+  );
 
-  it('flag on: a vote from a new address creates its entry', async () => {
-    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+  it.each([
+    ['open-access', { approved: false, status: 'pending' }],
+    [undefined, { approved: true, status: 'approved' }],
+  ] as const)(
+    'flag on: an old approval relabelled by a vote, profile grant %s',
+    async (grantedVia, want) => {
+      const id = docId(email.value);
+      coll('waitlist').set(id, { email: email.value, status: 'approved', source: 'feature', approvedAt: new Date('2026-10-10') }); // prettier-ignore
+      if (grantedVia) coll('user_profiles').set(id, { email: email.value, subscription: { tier: 'free', status: 'active', grantedVia } }); // prettier-ignore
+      gateOn('on');
+      expect((await check()).body).toMatchObject(want);
+      expect(entry()).toMatchObject({ status: grantedVia ? 'pending' : 'approved' });
+    }
+  );
+
+  it('a vote from a new address creates its entry', async () => {
     expect((await vote('voter@example.com')).status).toBe(200);
     expect(coll('waitlist').get(docId('voter@example.com'))).toMatchObject({ email: 'voter@example.com', source: 'feature' }); // prettier-ignore
   });
