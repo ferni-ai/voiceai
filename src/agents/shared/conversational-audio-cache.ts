@@ -20,7 +20,7 @@ import {
   CARTESIA_API_VERSION,
   cartesiaPronunciation,
 } from '../../config/voice-ids.js';
-import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
+import { ARRIVING_OPENERS, PLAIN_ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { toolAckClipTexts } from '../personas/tool-ack-clip-lines.js';
 import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
@@ -194,8 +194,16 @@ const HANDOFF_BANTER: Record<string, string[]> = {
   'nayan-patel': ['Let me bring in Ferni.', 'Maya would be good for this.', 'One moment.'],
 };
 
-/** Arriving openers (team-engagement/banter.ts): pre-rendered so the first words after a handoff are instant. */
-const ARRIVING_BANTER = ARRIVING_OPENERS;
+/**
+ * Arriving openers (team-engagement/banter.ts): pre-rendered so the first words after a handoff
+ * are instant. The flag-on plain openers too, whatever the flag (NAYAN_PLAIN_ENTRANCES).
+ */
+const ARRIVING_BANTER = (personaId: string): readonly string[] => [
+  ...new Set([
+    ...(ARRIVING_OPENERS[personaId] ?? []),
+    ...(PLAIN_ARRIVING_OPENERS[personaId] ?? []),
+  ]),
+];
 
 // ============================================================================
 // CARTESIA API (Direct calls for speed)
@@ -361,7 +369,7 @@ export async function prewarmConversationalAudio(): Promise<number> {
     const byCategory: Record<CachedAudio['category'], readonly string[] | undefined> = {
       greeting: GREETINGS[personaId],
       handoff: HANDOFF_BANTER[personaId],
-      arriving: ARRIVING_BANTER[personaId],
+      arriving: ARRIVING_BANTER(personaId),
       backchannel: bootBackchannels(personaId), // most critical for latency
     };
     for (const [category, texts] of Object.entries(byCategory)) {
