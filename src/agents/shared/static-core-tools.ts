@@ -13,7 +13,10 @@ import {
   forbiddenToolsFor,
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
-import { isFindableTool } from '../../tools/dynamic-loader/findable-domains.js';
+import {
+  isFindableTool,
+  PERSONA_FINDABLE_DOMAINS,
+} from '../../tools/dynamic-loader/findable-domains.js';
 import {
   setToolPinner,
   type FoundTool,
@@ -198,8 +201,9 @@ export function createToolPinner(
 const NONE: ReadonlySet<string> = new Set();
 
 /**
- * FINDABLE_PERSONA_DOMAINS: the domains `personaId`'s manifest lists, which findTools may also
- * reach (isFindableTool). Empty with the flag off, or when the bundle can't be read.
+ * FINDABLE_PERSONA_DOMAINS: the PERSONA_FINDABLE_DOMAINS `personaId`'s manifest lists, which
+ * findTools may also reach (isFindableTool). Empty with the flag off, or when the bundle
+ * can't be read.
  */
 async function findableForPersona(
   personaId: string,
@@ -209,7 +213,8 @@ async function findableForPersona(
   try {
     const { loadBundleById } = await import('../../personas/bundles/index.js');
     const bundle = await loadBundleById(personaId);
-    return new Set(bundle?.manifest.tools?.domains ?? []); // isFindableTool drops home, concierge
+    const listed = bundle?.manifest.tools?.domains ?? [];
+    return new Set(listed.filter((d) => PERSONA_FINDABLE_DOMAINS.includes(d)));
   } catch (error) {
     log.warn({ personaId, error: String(error) }, 'FINDABLE_PERSONA_DOMAINS: bundle unread');
     return NONE;
@@ -217,14 +222,16 @@ async function findableForPersona(
 }
 
 /**
- * Installs the call's findTools pinner (createToolPinner); findTools may also reach the domains
- * of the persona on the call now (findableForPersona). Returns the cleanup.
+ * Installs the call's findTools pinner (createToolPinner). findTools may also reach the domains
+ * of the persona on the call at each search: the one `userData.personaId` names, which a
+ * handoff sets (persona-swap.ts), else the call's first `persona`. Returns the cleanup.
  */
 export function installToolPinner(
   session: object,
   pinner: ToolPinner,
-  personaNow: () => string
+  userData: { personaId?: string },
+  persona: { id: string }
 ): () => void {
-  setToolPinner(session, pinner, () => findableForPersona(personaNow()));
+  setToolPinner(session, pinner, () => findableForPersona(userData.personaId ?? persona.id));
   return () => setToolPinner(session, null);
 }

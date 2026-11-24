@@ -1798,9 +1798,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           phone: config.phoneCaller,
         });
         if (staticCoreToolsEnabled()) {
-          const personaNow = () => userData.personaId ?? persona.id; // findTools pins to the agent
-          const pin = installToolPinner(session, createToolPinner(agentNow, coreCtx), personaNow);
-          cleanupFunctions.push(pin);
+          const pinner = createToolPinner(agentNow, coreCtx); // findTools pins to the agent
+          cleanupFunctions.push(installToolPinner(session, pinner, userData, persona));
         }
         await installDirectorNotes({
           session,

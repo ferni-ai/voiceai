@@ -46,23 +46,21 @@ export const NEVER_PIN_TOOLS: readonly string[] = [
 ];
 
 /**
- * FINDABLE_PERSONA_DOMAINS: a persona's own manifest domains it may also find,
- * never these. home: the vibe tools share it, run as any session id and set the
- * thermostat (smart-home-topics.ts). concierge: reservations and appointments
- * call businesses for the caller, which, like NEVER_PIN_TOOLS, only the
- * caller's own words should load.
+ * FINDABLE_PERSONA_DOMAINS: the only domains a persona's manifest can add to what
+ * findTools reaches, and only for a persona whose manifest lists them. An
+ * allowlist on purpose: manifests also list domains that call, text, post or
+ * share for the caller (proactive, marketing, family), and the vibe tools in home
+ * set the thermostat as any session id. Like NEVER_PIN_TOOLS, only the caller's
+ * own words should load those, and a new one must never leak in by default.
  */
-const NEVER_FINDABLE_FOR_PERSONA: readonly string[] = ['home', 'concierge'];
-
-function personaMayFind(domain: string): boolean {
-  return !NEVER_FINDABLE_DOMAINS.includes(domain) && !NEVER_FINDABLE_FOR_PERSONA.includes(domain);
-}
+export const PERSONA_FINDABLE_DOMAINS: readonly string[] = ['decisions', 'life-thesis'];
 
 const NONE: ReadonlySet<string> = new Set();
 
 /**
- * A tool findTools may offer and pin: a findable domain, or one of `persona`
- * (the persona's manifest domains) it may find, and not one that contacts people.
+ * A tool findTools may offer and pin: a findable domain, or a domain of `persona`
+ * (the persona's manifest domains) on PERSONA_FINDABLE_DOMAINS, and not one that
+ * contacts people.
  */
 export function isFindableTool(
   name: string,
@@ -70,5 +68,7 @@ export function isFindableTool(
   persona: ReadonlySet<string> = NONE
 ): boolean {
   if (NEVER_PIN_TOOLS.includes(name) || domain === undefined) return false;
-  return isFindableDomain(domain) || (persona.has(domain) && personaMayFind(domain));
+  return (
+    isFindableDomain(domain) || (persona.has(domain) && PERSONA_FINDABLE_DOMAINS.includes(domain))
+  );
 }

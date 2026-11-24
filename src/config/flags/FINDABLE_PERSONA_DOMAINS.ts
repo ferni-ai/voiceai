@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: under TOOL_CORE_STATIC, findTools for a persona may also find and pin tools from that persona's own manifest domains (Alex and Nayan: decisions; Jordan and Maya: life-thesis), never home, concierge or the NEVER_FINDABLE domains (findable-domains.ts). A persona without the domain gains nothing.
+// on: under TOOL_CORE_STATIC, findTools for a persona may also find and pin the decisions and life-thesis tools when that persona's manifest lists the domain (Alex and Nayan: decisions; Jordan and Maya: life-thesis). An allowlist (PERSONA_FINDABLE_DOMAINS, findable-domains.ts): no other manifest domain is ever added, so no call, text, post or share tool. A persona without either domain gains nothing.
 export const FINDABLE_PERSONA_DOMAINS = {
   default: 'off',
   owner: 'tools',
