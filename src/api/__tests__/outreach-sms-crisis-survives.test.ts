@@ -372,6 +372,15 @@ describe('SMS_CRISIS_TIMEOUT_CHECKIN never lowers a text at the real route (#422
     expect(on.sent).toContain('I&apos;m calling you now. Are you safe right now?');
     expect(on.sent).toContain('please call or text 988');
   });
+
+  it('the read failed, a "call me" with safety words: off, an ordinary call; on, a crisis call', async () => {
+    // call-hours-paths.test.ts: an ordinary call waits for calling hours, a crisis call rings now.
+    classifierFails.on = true;
+    await answer(`${PILLS}, call me`, 'off');
+    await answer(`${PILLS}, call me`, 'on');
+    const asked = adapter.call.mock.calls.map(([req]) => (req as { crisis?: boolean }).crisis);
+    expect(asked).toEqual([undefined, true]);
+  });
 });
 
 describe('a "call me" crisis text keeps its call and says so in one text', () => {

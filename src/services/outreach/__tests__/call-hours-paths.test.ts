@@ -63,6 +63,7 @@ const { createCallOnBehalfTool } =
 const { executeDueDeferredCalls } = await import('../deferred-calls.js');
 const { scheduleProactiveCall } = await import('../conversational-calls.js');
 const { callUserAdapter } = await import('../call-user-adapter.js');
+const { smsCrisisReply } = await import('../sms-crisis-screen.js');
 
 const ELEVEN_PM_LA = new Date('2026-10-14T06:00:00Z'); // Tue 23:00 in Los Angeles
 const TEN_AM_LA = new Date('2026-10-13T17:00:00Z'); // Tue 10:00 in Los Angeles
@@ -219,6 +220,34 @@ describe('proactive call to the user', () => {
         scheduledFor: NINE_AM_LA_NEXT,
       });
     });
+
+    // SMS_CRISIS_TIMEOUT_CHECKIN (#4226): the route asks for a crisis call when the screen answered
+    // the text (outreach-sms-crisis-survives.test.ts). A failed read with safety words is answered
+    // only with the flag on, so that "call me" rings now; off, it waits for 9:00 as on main.
+    it.each([
+      ['off', 'waits for 9:00'],
+      ['on', 'rings now'],
+    ] as const)(
+      'SMS_CRISIS_TIMEOUT_CHECKIN %s, the read failed, safety words: %s',
+      async (flag, _want) => {
+        vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+        vi.stubEnv('SMS_CRISIS_TIMEOUT_CHECKIN', flag);
+        const failed = async () => ({ crisis: false, pattern: false, risk: null });
+        const words = 'i have a bottle of pills and i want to take them all, call me';
+        try {
+          const screened = await smsCrisisReply(words, failed);
+          expect(!!screened).toBe(flag === 'on');
+          const result = await callUserAdapter.call({
+            ...callMe,
+            ...(screened && { crisis: true }),
+          });
+          if (flag === 'off') expect(result).toMatchObject({ status: 'scheduled' });
+          expect([placed().length, deferred().length]).toEqual(flag === 'on' ? [1, 0] : [0, 1]);
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      }
+    );
 
     it('a crisis mark set by the request text alone does nothing: only the adapter marks it', async () => {
       const looksUrgent = { ...request, reason: 'crisis call me now' };
