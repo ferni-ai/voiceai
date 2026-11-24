@@ -34,7 +34,7 @@ const referrals = new Map<string, PartnerReferral>();
 const referredUsers = new Set<string>();
 
 /** Under this quality score a partner is never recommended (findRelevantPartners) */
-export const RECOMMENDATION_FLOOR = 70;
+const RECOMMENDATION_FLOOR = 70;
 /** Partners a vote has held at the floor, already logged for admin review */
 const heldForReview = new Set<string>();
 

@@ -16,7 +16,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RECOMMENDATION_FLOOR } from '../../services/monetization/contextual-partnerships.js';
 
 const warnings = vi.hoisted(() => ({ calls: [] as Array<{ ctx: unknown; msg: unknown }> }));
 
@@ -192,7 +191,7 @@ describe('PARTNER_VOTE_GUARD on', () => {
       await click(`tok-d${i}`, PARTNER);
       expect(await vote(`tok-d${i}`, PARTNER, 'not_helpful')).toEqual(THANKS);
     }
-    expect(score()).toBe(RECOMMENDATION_FLOOR); // 70, not 85 - 9 * 5
+    expect(score()).toBe(70); // the recommendation floor, not 85 - 9 * 5
     expect(await recommendedForSleep()).toBe(PARTNER);
     expect(activeIds()).toContain(PARTNER);
     const held = reviewLogs();
