@@ -100,7 +100,15 @@ function shapeFor(
   if (plain) return { turn: scriptFreeShapeFor(said, rng, signals), burst: '' };
   const turn = turnShapeFor(said, rng, undefined, signals);
   const seed = rngFor(`${callSeed(session)}:${said}:burst`);
-  return { turn, burst: burstLine(session, shaped ?? regexSignals(said, callerMove(said)), seed) };
+  const sig = shaped ?? regexSignals(said, callerMove(said));
+  // VOCAL_BURSTS_PER_PERSONA: the speaker's own sounds, no wince before an unwelcome answer.
+  const burstTurn = { personaId: speakerOf(session), extras: turn.extras };
+  return { turn, burst: burstLine(session, sig, seed, process.env, burstTurn) };
+}
+
+/** Who is answering: the persona the session's userData names (a swap sets it), Ferni by default. */
+function speakerOf(session: object): string {
+  return unlockViewFor((session as { userData?: unknown }).userData).currentAgentId ?? 'ferni';
 }
 
 /**
@@ -137,8 +145,10 @@ function withSubstance(
   const sig = signals ?? regexSignals(said, callerMove(said));
   if (sig.crisisRisk) return signals;
   // Who is answering: a specialist asked about their own beat needs substance.
-  const speaker = unlockViewFor((session as { userData?: unknown }).userData).currentAgentId;
-  const substance = substanceOf(said, sig.move, { items: chatCtx.items, speaker });
+  const substance = substanceOf(said, sig.move, {
+    items: chatCtx.items,
+    speaker: speakerOf(session),
+  });
   return substance ? { ...sig, substance } : signals;
 }
 

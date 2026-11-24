@@ -28,6 +28,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { leverModes } from '../../speech/tts-gateway/director/gate.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { perPersonaBurstsEnabled, personaBursts } from './persona-bursts.js';
 import type { TurnSignals } from './turn-extras.js';
 
 const log = createLogger({ module: 'VocalBursts' });
@@ -120,10 +121,25 @@ export function withoutBurst(text: string, found: LeadingBurst): string {
   return /[A-Za-z]/.test(rest.charAt(0)) ? found.lead + rest : text;
 }
 
-const INVITE =
-  'This reply may open with one small sound a friend would make, only if one truly fits what they just said (this once it overrides the rule against reaction words): ' +
-  BURSTS.map((b) => `"${b.written}" (${b.fits})`).join(', ') +
-  '. Write it exactly as shown, first, then go on; if none fits, use none.';
+const inviteFor = (bursts: readonly Burst[]): string =>
+  `This reply may open with one small sound a friend would make, only if one truly fits what they just said (this once it overrides the rule against reaction words): ${bursts
+    .map((b) => `"${b.written}" (${b.fits})`)
+    .join(', ')}. Write it exactly as shown, first, then go on; if none fits, use none.`;
+
+const INVITE = inviteFor(BURSTS);
+
+/** Who is speaking and what this turn's shape fired (TurnShape.extras), for VOCAL_BURSTS_PER_PERSONA. */
+interface BurstTurn {
+  personaId?: string;
+  extras?: readonly string[];
+}
+
+/** VOCAL_BURSTS_PER_PERSONA=on: the speaker's own sounds for this turn (persona-bursts.ts), or '' if none fit. */
+function personaInvite({ personaId, extras = [] }: BurstTurn): string {
+  const bursts = personaBursts(BURSTS, personaId, extras);
+  log.info({ persona: personaId ?? null, bursts: bursts.map((b) => b.id) }, 'VOCAL_BURST_INVITE');
+  return bursts.length > 0 ? inviteFor(bursts) : '';
+}
 
 interface BurstState {
   /** Replies played since the last burst. */
@@ -146,12 +162,14 @@ function stateOf(session: object): BurstState {
 /**
  * The invitation for this request, or '' (and no invitation recorded).
  * Draws nothing from `rng` when the flag is off or the turn can't have one.
+ * `turn`: the speaker and the turn shape's extras (VOCAL_BURSTS_PER_PERSONA, persona-bursts.ts).
  */
 export function burstLine(
   session: object,
   signals: TurnSignals,
   rng: () => number,
-  env: Env = process.env
+  env: Env = process.env,
+  turn: BurstTurn = {}
 ): string {
   if (!vocalBurstsEnabled(env)) return '';
   const s = stateOf(session);
@@ -159,8 +177,9 @@ export function burstLine(
   if (signals.careful || signals.supportFirst || signals.move === 'lookup') return '';
   if (s.sinceBurst < BURST_EVERY - 1) return '';
   if (rng() >= BURST_OFFER_P) return '';
-  s.offered = true;
-  return INVITE;
+  const invite = perPersonaBurstsEnabled(env) ? personaInvite(turn) : INVITE;
+  s.offered = invite !== '';
+  return invite;
 }
 
 /** Forget an invitation: a new request is being built. */
