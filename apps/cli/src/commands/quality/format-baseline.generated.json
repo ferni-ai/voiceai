@@ -362,7 +362,6 @@
   "src/personas/id-mapping.ts",
   "src/personas/meaningful-silence.ts",
   "src/personas/shared/persona-building-blocks.ts",
-  "src/servers/api/index.ts",
   "src/servers/api/routes/__tests__/semantic-cleanup-admin.test.ts",
   "src/servers/api/routes/__tests__/smart-home-caller-only.test.ts",
   "src/servers/api/routes/__tests__/web-route-contract.test.ts",
