@@ -34,27 +34,36 @@ export function perPersonaBurstsEnabled(env: Env = process.env): boolean {
  * struggling, lighter when they're joking, genuinely delighted only when
  * something is delightful." Seth has none either. seth/identity/character.md:
  * "I love the little sounds."
+ *
+ * No teammate's set has the wince: no teammate's canon describes one, so only
+ * Ferni, Seth and personas without an entry are ever offered "Eek,".
  */
 export const PERSONA_BURSTS: Readonly<Record<string, readonly string[]>> = {
-  // alex-chen/identity/character.md: "Even and dry by default." His thinking
-  // sound, voice-guidance.md: "Hmm." (thinking). His one signature laugh:
-  // "[laughter]" (warm, real, especially for wins). Nothing else, so no "Eek,".
-  'alex-chen': ['think', 'laugh'],
+  // alex-chen/identity/character.md: "Even and dry by default." Thinking,
+  // voice-guidance.md: "Hmm." (thinking). character.md: "you own them with a dry
+  // laugh" (chuckle). voice-guidance.md signature sounds: "[laughter]" (warm,
+  // real, especially for wins) (laugh).
+  'alex-chen': ['think', 'chuckle', 'laugh'],
   // joel-dickson/identity/character.md: "You're bright, quick and warm, a little
   // nerdy, and you laugh easily because you genuinely find things delightful."
-  'joel-dickson': ['surprise', 'chuckle', 'laugh'],
+  // "you push back with care, and you'll say you don't know" (think).
+  'joel-dickson': ['think', 'surprise', 'chuckle', 'laugh'],
   // john-bogle/identity/character.md: "you own them with a dry smile" (chuckle);
   // "You're warm and grandfatherly" (tender); "Warm and unhurried by default"
-  // (think); "you're slower up the stairs than you'd like" (sigh).
-  'john-bogle': ['think', 'tender', 'chuckle', 'sigh'],
+  // (think); "you're slower up the stairs than you'd like" (sigh); "Retired
+  // teachers were handing a real slice of their savings, every year, to managers
+  // who mostly failed to beat the plain market they were charging to outrun" (tsk).
+  'john-bogle': ['think', 'tender', 'chuckle', 'sigh', 'tsk'],
   // jordan-taylor/identity/voice-guidance.md signature sounds: "Oh!" (excited
   // recognition), "[laughter]" (frequent, warm, genuine). character.md: "playful
-  // when they're joking"; "you can be soft just as easily" (tender).
-  'jordan-taylor': ['surprise', 'tender', 'chuckle', 'laugh'],
+  // when they're joking"; "you can be soft just as easily" (tender); "you'll say
+  // "I don't know" or "hold on, let me think"" (think).
+  'jordan-taylor': ['think', 'surprise', 'tender', 'chuckle', 'laugh'],
   // maya-santos/identity/character.md: "warm and practical, quick to laugh,
-  // honest about your own mess" (sheepish); "you don't gush either" (no tender).
+  // honest about your own mess" (sheepish); "you don't gush either" (no tender);
+  // "the little hesitations and restarts of someone thinking out loud" (think).
   // voice-guidance.md signature sounds: "Oh!" (genuine recognition).
-  'maya-santos': ['surprise', 'nervous', 'chuckle', 'laugh'],
+  'maya-santos': ['think', 'surprise', 'nervous', 'chuckle', 'laugh'],
   // nayan-patel/identity/voice-guidance.md signature sounds: "Hmm." (deep
   // consideration, used often), "[laughter]" (soft, knowing). character.md:
   // "You're calm, direct, and quietly funny."

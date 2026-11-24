@@ -134,11 +134,22 @@ interface BurstTurn {
   extras?: readonly string[];
 }
 
-/** VOCAL_BURSTS_PER_PERSONA=on: the speaker's own sounds for this turn (persona-bursts.ts), or '' if none fit. */
-function personaInvite({ personaId, extras = [] }: BurstTurn): string {
+/** VOCAL_BURSTS_PER_PERSONA=on: the speaker's own sounds for this turn (persona-bursts.ts). */
+function personaOffer({ personaId, extras = [] }: BurstTurn): readonly Burst[] {
   const bursts = personaBursts(BURSTS, personaId, extras);
   log.info({ persona: personaId ?? null, bursts: bursts.map((b) => b.id) }, 'VOCAL_BURST_INVITE');
-  return bursts.length > 0 ? inviteFor(bursts) : '';
+  return bursts;
+}
+
+/**
+ * Whether a reply may open with a burst (burstAllowed): true or false, or,
+ * with VOCAL_BURSTS_PER_PERSONA=on, the ids of the bursts this request offered.
+ */
+export type BurstPermit = boolean | ReadonlySet<string>;
+
+/** Whether `permit` lets a reply open with the burst `id` (opener-gate.ts). */
+export function burstPermits(permit: BurstPermit | undefined, id: string): boolean {
+  return typeof permit === 'boolean' ? permit : (permit?.has(id) ?? false);
 }
 
 interface BurstState {
@@ -146,6 +157,8 @@ interface BurstState {
   sinceBurst: number;
   /** The current request invited one. */
   offered: boolean;
+  /** VOCAL_BURSTS_PER_PERSONA=on: which bursts it offered; a reply opening on another loses it. */
+  ids?: ReadonlySet<string>;
 }
 
 const states = new WeakMap<object, BurstState>();
@@ -174,12 +187,19 @@ export function burstLine(
   if (!vocalBurstsEnabled(env)) return '';
   const s = stateOf(session);
   s.offered = false;
+  s.ids = undefined;
   if (signals.careful || signals.supportFirst || signals.move === 'lookup') return '';
   if (s.sinceBurst < BURST_EVERY - 1) return '';
   if (rng() >= BURST_OFFER_P) return '';
-  const invite = perPersonaBurstsEnabled(env) ? personaInvite(turn) : INVITE;
-  s.offered = invite !== '';
-  return invite;
+  if (!perPersonaBurstsEnabled(env)) {
+    s.offered = true;
+    return INVITE;
+  }
+  const bursts = personaOffer(turn);
+  if (bursts.length === 0) return '';
+  s.offered = true;
+  s.ids = new Set(bursts.map((b) => b.id));
+  return inviteFor(bursts);
 }
 
 /** Forget an invitation: a new request is being built. */
@@ -191,15 +211,18 @@ export function clearBurstOffer(session: object): void {
 /**
  * Whether the reply about to be generated may open with a burst: invited by
  * this request and not a crisis-guided reply. Undefined with the flag off, so
- * the opener gate behaves exactly as before.
+ * the opener gate behaves exactly as before. VOCAL_BURSTS_PER_PERSONA=on: when
+ * invited, the ids of the bursts offered, so the gate drops any other.
  */
 export function burstAllowed(
   session: object,
   guided: boolean,
   env: Env = process.env
-): boolean | undefined {
+): BurstPermit | undefined {
   if (!vocalBurstsEnabled(env)) return undefined;
-  return !guided && (states.get(session)?.offered ?? false);
+  const s = states.get(session);
+  const invited = !guided && (s?.offered ?? false);
+  return invited && perPersonaBurstsEnabled(env) ? (s?.ids ?? false) : invited;
 }
 
 /**
