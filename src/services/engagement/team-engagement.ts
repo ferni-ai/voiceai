@@ -113,7 +113,7 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
     eventType: 'story_unlock',
     title: 'A Memory from Tokyo',
     description:
-      "I was thinking about Tanaka-san today. Fog on the hills this morning, like on that ridge. Funny how grief works—it gets softer but never goes away.",
+      'I was thinking about Tanaka-san today. Fog on the hills this morning, like on that ridge. Funny how grief works—it gets softer but never goes away.',
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'topic_discussed', value: 'loss' },
@@ -714,13 +714,13 @@ export const SEASONAL_EVENTS: Record<
 
 // ============================================================================
 // CROSS-PERSONA BANTER - Characters referencing each other
-// NOTE: Alex uses they/them pronouns. Maya, Jordan use she/her.
+// Pronouns follow persona-pronouns.ts: Alex is he/him, Maya and Jordan she/her.
 // ============================================================================
 
 export const CROSS_PERSONA_REFERENCES = {
   ferni: {
     aboutAlex: [
-      'Alex would have a system for this. They probably have a spreadsheet.',
+      'Alex would have a system for this. He probably has a spreadsheet.',
       'Alex reminds me of my wife— efficient, warm, and intolerant of excuses.',
     ],
     aboutMaya: [
@@ -773,7 +773,7 @@ export const CROSS_PERSONA_REFERENCES = {
       'Ferni taught me: sometimes the best thing is just to listen.',
     ],
     aboutAlex: [
-      "Alex and I balance each other. They're all structure, I'm all vibes.",
+      "Alex and I balance each other. He's all structure, I'm all vibes.",
       'Alex would organize this into a system. Probably already has.',
     ],
   },

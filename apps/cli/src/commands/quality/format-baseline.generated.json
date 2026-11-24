@@ -404,7 +404,6 @@
   "src/services/data/write-ahead-log.ts",
   "src/services/email/email-intelligence.ts",
   "src/services/engagement/engagement-notification-service.ts",
-  "src/services/engagement/team-engagement.ts",
   "src/services/external-apis/food-delivery.ts",
   "src/services/external-apis/twilio-webhooks.ts",
   "src/services/family/checkin-schedule-advance.ts",
