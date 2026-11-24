@@ -159,7 +159,7 @@ describe('follow-ups log the recipient as a length', () => {
   });
 });
 
-describe('the calendar bridge logs titles as lengths', () => {
+describe('the calendar bridge logs titles as lengths (a number, on dev too)', () => {
   const item = {
     userId: 'user-1',
     type: 'reminder' as const,
@@ -170,15 +170,15 @@ describe('the calendar bridge logs titles as lengths', () => {
 
   it('a synced item, a create that fails and a create that throws', async () => {
     await createCalendarSyncedItem(item);
-    expect(line('🌉 Calendar bridge: creating synced item').title).toBe(lengthOf(TITLE));
+    expect(line('🌉 Calendar bridge: creating synced item').titleLength).toBe(TITLE.length);
     cap.createEvent = async () => null;
     await createCalendarSyncedItem(item);
-    expect(line('❌ Calendar bridge: create failed').title).toBe(lengthOf(TITLE));
+    expect(line('❌ Calendar bridge: create failed').titleLength).toBe(TITLE.length);
     cap.createEvent = async () => {
       throw new Error('calendar down');
     };
     await createCalendarSyncedItem(item);
-    expect(line('Calendar sync failed').title).toBe(lengthOf(TITLE));
+    expect(line('Calendar sync failed').titleLength).toBe(TITLE.length);
     nothingSaid();
   });
 });
