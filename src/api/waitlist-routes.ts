@@ -20,7 +20,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -29,8 +28,10 @@ import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import { grantAccess, grantFoundingMember, waitlistGateOn } from './open-access.js';
-import { activeGrantAdmits, isAdminEmail, isAdmitted, reopenLapsedApproval } from './admission.js';
+import { activeGrantAdmits, isAdminEmail, isAdmitted } from './admission.js';
 import { admittedEntryStands, approvalLapses } from './access-grant-standing.js';
+import { reopenLapsedApproval } from './lapsed-approval.js';
+import { saveFeatureInterest } from './waitlist-feature-interest.js';
 import {
   buildApprovalUrl,
   getApprovalSecret,
@@ -372,18 +373,7 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
         ...(req.headers.referer && { referrer: req.headers.referer }),
       };
 
-      const docId = Buffer.from(signup.email).toString('base64').replace(/[/+=]/g, '_');
-      await db
-        .collection('waitlist')
-        .doc(docId)
-        .set(
-          cleanForFirestore({
-            ...signup,
-            interestedFeatures: FieldValue.arrayUnion(featureId),
-            updatedAt: new Date(),
-          }),
-          { merge: true }
-        );
+      await saveFeatureInterest(db, signup, featureId); // DURABLE_ACCESS_GRANTS: never relabels
     }
 
     // Get updated count
@@ -548,7 +538,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     const waitlisted = waitlistDoc.data();
-    if (waitlistDoc.exists && admittedEntryStands(waitlisted)) {
+    if (waitlistDoc.exists && admittedEntryStands(waitlisted, decodedToken.uid)) {
       // Admitted (a wave, or approved before waves) and no profile yet: the free tier plus the
       // founding-member perk, which replaces the 10-year partner grant (decided 2026-10-18).
       const foundingWave = typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0; // prettier-ignore
@@ -572,7 +562,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
         .collection('waitlist')
         .doc(waitlistDocId)
         .set(
-          cleanForFirestore({ email, status: 'approved', source: open ? 'open_access' : 'admission', approvedAt: new Date() }), // prettier-ignore
+          cleanForFirestore({ email, status: 'approved', source: open ? 'open_access' : 'admission', approvedVia: open ? 'open_access' : 'admission', approvedAt: new Date() }), // prettier-ignore
           { merge: true }
         );
       log.info({ email: hashEmail(email) }, 'Signed-in user let in on the free tier');
@@ -581,7 +571,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     // Gate on: in line as a verified person (this verifies an existing website signup too)
-    await reopenLapsedApproval(waitlistRef, waitlisted, who); // DURABLE_ACCESS_GRANTS: reason ended
+    await reopenLapsedApproval(db, waitlistRef, waitlisted, who); // DURABLE_ACCESS_GRANTS: reason ended
     await addSigninToWaitlist(email, offeredReferral(req), decodedToken.uid);
     log.info({ email: hashEmail(email), existed: waitlistDoc.exists }, 'Signed-in user waiting in line'); // prettier-ignore
     sendJson(res, 200, {
@@ -861,6 +851,7 @@ async function approveUserAndGrantAccess(
       status: 'approved',
       approvedAt: new Date(),
       approvedBy,
+      approvedVia: 'admin',
     })
   );
 

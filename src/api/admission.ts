@@ -27,11 +27,12 @@ import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { isCohortMember } from '../services/platform/cohort-membership.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { isOwnerEmail } from '../config/owner-email.js';
+import { ADMITTED_STATUSES } from '../services/waitlist/queue.js';
 import {
   durableGrantsActive,
+  livePaidPlan,
   subscriptionAdmits,
   waitlistEntryAdmits,
-  waitlistStanding,
   type StoredSubscription,
   type StoredWaitlistEntry,
 } from './access-grant-standing.js';
@@ -55,7 +56,6 @@ export function isAdminEmail(
 
 export const ADMISSION_COHORT = 'friends-and-family';
 export const ADMISSION_CACHE_TTL_MS = 60_000;
-const ADMITTED_STATUSES = new Set(['approved', 'admitted', 'joined']);
 
 export type AdmissionReason =
   | 'gate-off'
@@ -86,6 +86,8 @@ export interface AdmissionStore {
   /** DURABLE_ACCESS_GRANTS (#2264): the entry with why it was approved, and every subscription. */
   waitlistEntry: (email: string) => Promise<StoredWaitlistEntry | undefined>;
   subscriptions: (email: string) => Promise<StoredSubscription[]>;
+  /** The account's own plan, bogle_users/{uid}.subscription, where Stripe and Apple write. */
+  accountSubscription: (uid: string) => Promise<StoredSubscription | undefined>;
 }
 
 /** The gate date: accounts created before it are in. Null when unset or not a date. */
@@ -131,6 +133,10 @@ export const firestoreAdmissionStore: AdmissionStore = {
     const subs: unknown[] = [profile.data()?.subscription, bogle.docs[0]?.data()?.subscription];
     return subs.filter((s): s is StoredSubscription => !!s && typeof s === 'object');
   },
+  async accountSubscription(uid) {
+    const sub: unknown = (await db().collection('bogle_users').doc(uid).get()).data()?.subscription;
+    return typeof sub === 'object' && sub !== null ? (sub as StoredSubscription) : undefined;
+  },
 };
 
 const cache = new Map<string, { value: Admission; at: number }>();
@@ -165,7 +171,7 @@ export async function isAdmitted(who: Who, opts: AdmissionOptions = {}): Promise
     ['existing-account', async () => { const at = since && (await store.accountCreatedAt(who.uid)); return !!at && at < since; }], // prettier-ignore
     ['friends-and-family', async () => store.inCohort(ADMISSION_COHORT, who.uid)],
   ];
-  if (durableGrantsActive(env)) checks.splice(0, 2, ...durableGrantChecks(store, email));
+  if (durableGrantsActive(env)) checks.splice(0, 2, ...durableGrantChecks(store, who.uid, email));
   const results = await Promise.allSettled(checks.map(async ([, check]) => check()));
   const passed = results.findIndex((r) => r.status === 'fulfilled' && r.value);
   if (passed >= 0) return remember(key, now, { admitted: true, reason: checks[passed]![0] });
@@ -185,14 +191,20 @@ function remember(key: string, at: number, value: Admission): Admission {
   return value;
 }
 
-/** DURABLE_ACCESS_GRANTS: the two stored-grant rules, counting only grants whose reason lasts. */
+/**
+ * DURABLE_ACCESS_GRANTS: the two stored-grant rules, counting only grants whose reason lasts.
+ * A live paid plan always counts, including the one on the account itself (bogle_users/{uid}).
+ */
 function durableGrantChecks(
   store: AdmissionStore,
+  uid: string,
   email: string | undefined
 ): Array<[AdmissionReason, () => Promise<boolean>]> {
+  const stored = async (): Promise<boolean> =>
+    !!email && (await store.subscriptions(email)).some((sub) => subscriptionAdmits(sub, uid));
   return [
-    ['waitlist-approved', async () => !!email && waitlistEntryAdmits(await store.waitlistEntry(email))], // prettier-ignore
-    ['active-account', async () => !!email && (await store.subscriptions(email)).some(subscriptionAdmits)], // prettier-ignore
+    ['waitlist-approved', async () => !!email && waitlistEntryAdmits(await store.waitlistEntry(email), uid)], // prettier-ignore
+    ['active-account', async () => (await stored()) || livePaidPlan(await store.accountSubscription(uid))], // prettier-ignore
   ];
 }
 
@@ -207,35 +219,12 @@ export async function activeGrantAdmits(
   who: Who,
   opts: AdmissionOptions = {}
 ): Promise<boolean> {
+  if (!durableGrantsActive(opts.env ?? process.env)) return sub?.status === 'active';
+  if (subscriptionAdmits(sub, who.uid)) return true; // a live paid plan, or a reason that lasts
   if (sub?.status !== 'active') return false;
-  if (!durableGrantsActive(opts.env ?? process.env) || subscriptionAdmits(sub)) return true;
   const admission = await isAdmitted(who, opts);
   if (admission.reason === 'check-failed') throw new Error('Admission re-check failed');
   return admission.admitted;
-}
-
-/** The part of a Firestore document reference reopenLapsedApproval writes through. */
-interface MergeTarget {
-  set: (data: Record<string, unknown>, options: { merge: true }) => Promise<unknown>;
-}
-
-/**
- * DURABLE_ACCESS_GRANTS: a waitlist entry approved for a reason that has ended goes back to
- * pending, so this sign-in puts them in line (an approved entry is never queued). Only on a
- * definite "not admitted": a failed lookup writes nothing.
- */
-export async function reopenLapsedApproval(
-  ref: MergeTarget,
-  entry: StoredWaitlistEntry | undefined,
-  who: Who,
-  opts: AdmissionOptions = {}
-): Promise<void> {
-  if (!durableGrantsActive(opts.env ?? process.env) || entry?.status !== 'approved') return;
-  if (waitlistStanding(entry) !== 'lapsing') return;
-  if ((await isAdmitted(who, opts)).reason !== 'not-admitted') return;
-  const source = String(entry.source);
-  await ref.set({ status: 'pending', lapsedApproval: { source, at: new Date() } }, { merge: true });
-  log.info({ marker: 'access_grant_lapsed', source, uid: who.uid.slice(0, 8) }, 'Lapsed approval: back in line'); // prettier-ignore
 }
 
 /** What a refused caller sees: warm, the same on every route. */

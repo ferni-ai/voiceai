@@ -9,7 +9,19 @@ const { store, email, outage } = vi.hoisted(() => ({
   outage: { cohorts: false }, // the cohort lookup throws, as a Firestore outage would
 }));
 const coll = (name: string) => store.get(name) ?? store.set(name, new Map()).get(name)!;
+type FakeRef = {
+  get: () => Promise<unknown>;
+  set: (d: Record<string, unknown>, o?: { merge?: boolean }) => Promise<void>;
+  update: (d: Record<string, unknown>) => Promise<void>;
+};
 const fakeDb = {
+  // Transactions run straight through: each step reads and writes the docs directly
+  runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
+    fn({
+      get: (ref: FakeRef) => ref.get(),
+      set: (ref: FakeRef, d: Record<string, unknown>, o?: { merge?: boolean }) => ref.set(d, o),
+      update: (ref: FakeRef, d: Record<string, unknown>) => ref.update(d),
+    }),
   collection: (name: string) => ({
     doc: (id: string) => ({
       get: async () => ({ exists: coll(name).has(id), data: () => coll(name).get(id) }),
@@ -43,7 +55,10 @@ vi.mock('firebase-admin/auth', () => ({
     getUser: async () => ({ disabled: false }), // a live account (token-revocation.ts)
   }),
 }));
-vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => fakeDb,
+  FieldValue: { arrayUnion: (...v: unknown[]) => ({ arrayUnion: v }) },
+}));
 vi.mock('../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),
   getFirestoreDb: () => fakeDb, // the queue store (services/waitlist) writes to the same docs
@@ -99,6 +114,22 @@ async function approve(target: string): Promise<{ status: number }> {
     method: 'POST',
     headers: { host: 'localhost', 'content-type': 'application/json' },
   });
+  let status = 0;
+  const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} };
+  await handleWaitlistRoutes(req as never, res as never);
+  return { status };
+}
+/** POST /api/waitlist/vote (public, unauthenticated) for this address. */
+async function vote(target: string, featureId = 'memory-lane'): Promise<{ status: number }> {
+  const req = Object.assign(
+    Readable.from([Buffer.from(JSON.stringify({ featureId, email: target }))]),
+    {
+      // prettier-ignore
+      url: '/api/waitlist/vote',
+      method: 'POST',
+      headers: { host: 'localhost', 'content-type': 'application/json' },
+    }
+  );
   let status = 0;
   const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} };
   await handleWaitlistRoutes(req as never, res as never);
@@ -364,5 +395,48 @@ describe('stored grants under the gate', () => {
     gateOn('on');
     expect((await check()).status).toBe(500);
     expect(entry()).toEqual(before);
+  });
+  it('the open-access approval records approvedVia, written with status approved', async () => {
+    await check(); // gate off: open access
+    expect(entry()).toMatchObject({ status: 'approved', source: 'open_access', approvedVia: 'open_access' }); // prettier-ignore
+  });
+
+  it('flag on: an open-access approval whose source a vote overwrote still lapses', async () => {
+    await check(); // gate off: open access
+    expect((await vote(email.value)).status).toBe(200); // flag off: main's merge relabels source
+    expect(entry()).toMatchObject({ status: 'approved', source: 'feature' });
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: false, status: 'pending' });
+    expect(entry()).toMatchObject({ status: 'pending', lapsedApproval: { source: 'open_access' } });
+  });
+
+  it.each([
+    ['on', { source: 'open_access', interestedFeatures: { arrayUnion: ['memory-lane'] } }],
+    ['off', { source: 'feature', featureId: 'memory-lane' }], // main: the vote relabels the entry
+  ] as const)('flag %s: a vote on an existing entry', async (flag, want) => {
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+    const id = docId(email.value);
+    coll('waitlist').set(id, { email: email.value, status: 'approved', source: 'open_access', timestamp: 'then' }); // prettier-ignore
+    expect((await vote(email.value)).status).toBe(200);
+    expect(coll('waitlist').get(id)).toMatchObject({ ...want, status: 'approved' });
+    if (flag === 'on') expect(coll('waitlist').get(id)).toMatchObject({ timestamp: 'then' });
+  });
+
+  it('flag on: a vote from a new address creates its entry', async () => {
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    expect((await vote('voter@example.com')).status).toBe(200);
+    expect(coll('waitlist').get(docId('voter@example.com'))).toMatchObject({ email: 'voter@example.com', source: 'feature' }); // prettier-ignore
+  });
+
+  it.each([
+    ['a live Stripe plan', { tier: 'partner', status: 'active', provider: 'stripe', stripeSubscriptionId: 'sub_0101' }, true], // prettier-ignore
+    ['a live App Store plan', { tier: 'friend', status: 'active', provider: 'apple', currentPeriodEnd: new Date('2099-01-01') }, true], // prettier-ignore
+    ['a cancelled Stripe plan', { tier: 'partner', status: 'canceled', provider: 'stripe', stripeSubscriptionId: 'sub_0101' }, false], // prettier-ignore
+  ] as const)('flag on: an open-access grant plus %s on the account', async (_, plan, admitted) => {
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    await check(); // gate off: open access
+    coll('bogle_users').set('uid-1', { subscription: plan }); // where Stripe and Apple write
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: admitted });
   });
 });

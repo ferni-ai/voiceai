@@ -41,6 +41,7 @@ function store(over: Partial<AdmissionStore> = {}): AdmissionStore & { calls: nu
     inCohort: async () => false,
     waitlistEntry: async () => undefined,
     subscriptions: async () => [],
+    accountSubscription: async () => undefined,
     ...over,
   };
   return s;
