@@ -23,6 +23,7 @@ import {
   toolPicksFor,
 } from '../persona-toolsets.js';
 import { SPECIALIST_CORE_TOOLS, SPECIALIST_TOOL_SETS } from '../specialist-tool-sets.js';
+import { pickSpecialistSet } from '../specialist-tools.js';
 
 /** The safety set as of 2026-10-29. A change here is a crisis-lane change that Seth signs. */
 const EXPECTED_SAFETY = [
@@ -128,6 +129,58 @@ describe('every persona set, as offered', () => {
     expect(set.filter((n) => n.startsWith('topicTool'))).toEqual([]);
     const { beat } = toolPicksFor(persona);
     expect(set).toEqual(expect.arrayContaining([...beat])); // the whole beat fits a full team
+  });
+});
+
+describe('OURA_SLEEP_TOOL on, with the cap reached (#3242)', () => {
+  const SLEEP = 'getSleepSummary';
+  const without = (input: Record<string, string>) =>
+    Object.fromEntries(Object.entries(input).filter(([name]) => name !== SLEEP));
+  const PICKERS = Object.keys(PERSONA_TOOL_PICKS).filter((p) =>
+    toolPicksFor(p).head.includes(SLEEP)
+  );
+
+  /** maximalInput with only the first `handoffs` of the five handoff tools: smaller teams. */
+  const withTeam = (persona: string, handoffs: number) => {
+    const dropped = MAX_TEAM.slice(handoffs, 5);
+    return Object.fromEntries(
+      Object.entries(maximalInput(persona)).filter(([name]) => !dropped.includes(name))
+    );
+  };
+  const CAP = PERSONA_TOOLSET_MAX - ADDED_AFTER.length;
+
+  it.each(PICKERS)(
+    '%s: at every team size, every tool held with the flag off is still held',
+    (persona) => {
+      let capped = 0;
+      for (let handoffs = 0; handoffs <= 5; handoffs++) {
+        // With the flag off the registry never builds the tool, so the input lacks it.
+        const input = withTeam(persona, handoffs);
+        const before = Object.keys(personaToolset(without(input), persona));
+        const after = Object.keys(personaToolset(input, persona));
+        expect(
+          after.filter((n) => n !== SLEEP),
+          `${handoffs} handoffs`
+        ).toEqual(before);
+        if (before.length === CAP) {
+          capped += 1;
+          expect(after, `${handoffs} handoffs`).not.toContain(SLEEP); // the one left out
+        }
+      }
+      expect(capped).toBeGreaterThan(0); // the cap is really reached
+    }
+  );
+
+  it('Maya under SPECIALIST_TOOLS: the sleep tool is the one left out at the cap', () => {
+    const list = Object.keys(SPECIALIST_TOOL_SETS['maya-santos']);
+    const input = Object.fromEntries(
+      [...Object.keys(SPECIALIST_CORE_TOOLS), ...list].map((n) => [n, n])
+    );
+    const limit = Object.keys(without(input)).length;
+    const before = Object.keys(pickSpecialistSet(without(input), list, limit));
+    const after = Object.keys(pickSpecialistSet(input, list, limit));
+    expect(after).toEqual(before);
+    expect(after).not.toContain(SLEEP);
   });
 });
 

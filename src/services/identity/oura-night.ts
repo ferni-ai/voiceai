@@ -164,6 +164,11 @@ export async function getOuraNight(
   ]);
   // Oura did not answer at all: that is not "no sleep recorded".
   if (dailySleep === null && periods === null) return { status: 'unavailable' };
+  // With one sleep read failed, finding nothing in the other proves nothing either.
+  const nothing = (date: string | null): OuraNightResult =>
+    dailySleep === null || periods === null
+      ? { status: 'unavailable' }
+      : { status: 'no_data', date };
 
   const sleepDocs = dailySleep ?? [];
   const periodDocs = periods ?? [];
@@ -178,7 +183,7 @@ export async function getOuraNight(
       .sort();
     day = days[days.length - 1] ?? null;
   }
-  if (!day) return { status: 'no_data', date: null };
+  if (!day) return nothing(null);
 
   const night = buildNight(
     day,
@@ -186,6 +191,6 @@ export async function getOuraNight(
     periodDocs.filter((p) => p.day === day),
     byDay(readinessDocs, day)
   );
-  if (!night.sleep) return { status: 'no_data', date: day };
+  if (!night.sleep) return nothing(day);
   return { status: 'ok', night };
 }
