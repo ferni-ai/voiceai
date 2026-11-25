@@ -36,3 +36,19 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
 export function isPublicRoute(url: string): boolean {
   return PUBLIC_ROUTES.has(url);
 }
+
+/**
+ * Probes aimed at this port by a caller that is not ours. They still need an admin (so 401 and no
+ * data), but the 401 is logged once per process at info, then at debug, instead of a warn each.
+ *
+ * `/worker` is the status route of the LiveKit agents SDK (`@livekit/agents` http_server.js, its
+ * own port, 8081 by default in production). Nothing in this repo or its config polls it. Prod
+ * showed one `GET /worker` per pod about every 5 minutes, 14 warnings an hour, once #3763 made
+ * 401 the answer (#4292). Exact match, like the public list.
+ */
+const KNOWN_EXTERNAL_PROBES: ReadonlySet<string> = new Set(['/worker']);
+
+/** The URL is a known external probe: its 401 is not a warning. Exact match only. */
+export function isKnownExternalProbe(url: string): boolean {
+  return KNOWN_EXTERNAL_PROBES.has(url);
+}

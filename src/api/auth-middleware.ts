@@ -71,6 +71,11 @@ export interface AuthConfig {
   allowDevMode?: boolean;
   /** Approval, consent, payment and step-up routes: the account is checked now (token-revocation.ts) */
   strict?: boolean;
+  /**
+   * A caller that is known and not ours (a platform poll). Still 401, but logged once per process
+   * at info with its user-agent product, then at debug, instead of a warn per request.
+   */
+  knownProbe?: boolean;
 }
 
 // ============================================================================
@@ -100,6 +105,38 @@ const IS_DEV = process.env.NODE_ENV === 'development';
 function getHeader(req: IncomingMessage, name: string): string | undefined {
   const value = req.headers[name.toLowerCase()];
   return Array.isArray(value) ? value[0] : value;
+}
+
+let knownProbeNamed = false;
+
+/** Test-only: forget that a known probe was named. */
+export function resetKnownProbeLogForTesting(): void {
+  knownProbeNamed = false;
+}
+
+/** The product token of a User-Agent ("Name/1.2 (...)" gives "Name"); nothing else of it is kept. */
+function userAgentProduct(req: IncomingMessage): string {
+  const ua = getHeader(req, 'User-Agent');
+  if (!ua) return 'none';
+  return /^[A-Za-z0-9._-]{1,24}/.exec(ua)?.[0] ?? 'other';
+}
+
+/**
+ * A request with no credential. A known probe (a platform poll that is not ours) names itself
+ * once per process at info, so the next log read says who it is, then drops to debug.
+ */
+function logUnauthorized(req: IncomingMessage, knownProbe: boolean): void {
+  if (!knownProbe) {
+    log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
+  } else if (!knownProbeNamed) {
+    knownProbeNamed = true;
+    log.info(
+      { url: req.url, method: req.method, userAgent: userAgentProduct(req) },
+      'Unauthorized request from a known probe; later ones are logged at debug'
+    );
+  } else {
+    log.debug({ url: req.url, method: req.method }, 'Unauthorized request from a known probe');
+  }
 }
 
 /** Client IP for auth-failure tracking: same trusted-proxy rule as rate limiting. */
@@ -291,7 +328,7 @@ export async function requireAuth(
   if (!auth) {
     if (authCheckUnavailable(req, res)) return null;
     if (optional) return null;
-    log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
+    logUnauthorized(req, config.knownProbe === true);
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }
@@ -411,9 +448,10 @@ export function requireAuthSync(
  */
 export async function requireAdmin(
   req: IncomingMessage,
-  res: ServerResponse
+  res: ServerResponse,
+  config: Pick<AuthConfig, 'knownProbe'> = {}
 ): Promise<AuthContext | null> {
-  return requireAuth(req, res, { requireAdmin: true });
+  return requireAuth(req, res, { requireAdmin: true, ...config });
 }
 
 /**

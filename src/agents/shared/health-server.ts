@@ -30,7 +30,7 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { isPublicRoute } from './public-routes.js';
+import { isKnownExternalProbe, isPublicRoute } from './public-routes.js';
 import {
   getReadinessState,
   markHealthServerReady,
@@ -126,7 +126,8 @@ async function initWebSocketServer(httpServer: Server) {
 /** False once the 401 (no or a bad credential) or 403 (not an admin) is sent. */
 async function isVerifiedAdmin(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const { requireAdmin } = await import('../../api/auth-middleware.js');
-  return (await requireAdmin(req, res)) !== null;
+  const knownProbe = isKnownExternalProbe(req.url || '/');
+  return (await requireAdmin(req, res, { knownProbe })) !== null;
 }
 
 /** Cognitive state/history: every user's events (as /ws/cognitive), so admin only (401/403). */
@@ -1150,7 +1151,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
         return;
       }
 
-      // 404 for other routes (LiveKit agent will handle /worker)
+      // 404 for other routes
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Not found' }));
     })();
