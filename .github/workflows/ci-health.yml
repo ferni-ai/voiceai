@@ -29,6 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           sparse-checkout: scripts/ci
       - name: Find jobs failing across PRs
         env:
