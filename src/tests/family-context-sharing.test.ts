@@ -6,7 +6,7 @@
  * Run with: pnpm vitest run src/tests/family-context-sharing.test.ts
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Firestore
 const mockFirestore = {
@@ -177,8 +177,9 @@ describe('Family Context Sharing Service', () => {
   });
 
   describe('Context Expiry', () => {
-    it('should set expiry date 3 days in the future', async () => {
-      const context = await createShareableContext({
+    // Three calendar days: the same local wall-clock time three days on (#3235).
+    const share = async () =>
+      createShareableContext({
         type: 'explicit_share',
         fromUserId: 'user_123',
         fromName: 'Test',
@@ -187,14 +188,41 @@ describe('Family Context Sharing Service', () => {
         summary: 'Just saying hello',
       });
 
-      expect(context).not.toBeNull();
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-      const now = new Date();
-      const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    it('should set expiry date 3 calendar days in the future', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const now = new Date('2026-06-10T15:00:00Z');
+      vi.setSystemTime(now);
 
-      // Expiry should be within a few seconds of 3 days from now
-      expect(context!.expiresAt.getTime()).toBeGreaterThan(now.getTime());
-      expect(context!.expiresAt.getTime()).toBeLessThanOrEqual(threeDaysFromNow.getTime() + 5000);
+      const context = await share();
+
+      const expected = new Date(now);
+      expected.setDate(expected.getDate() + 3);
+      expect(context!.expiresAt.getTime()).toBe(expected.getTime());
+    });
+
+    it('keeps the wall-clock time across a daylight-saving change (73 h in New York)', async () => {
+      const savedTz = process.env.TZ;
+      process.env.TZ = 'America/New_York';
+      try {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        const now = new Date('2026-10-30T12:00:00-04:00'); // two days before clocks go back
+        vi.setSystemTime(now);
+        // The zone must have taken: a runtime that ignores TZ would pass the rest vacuously.
+        const threeDaysOn = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+        expect(now.getTimezoneOffset()).not.toBe(threeDaysOn.getTimezoneOffset());
+
+        const context = await share();
+
+        expect(context!.expiresAt.getTime() - now.getTime()).toBe(73 * 60 * 60 * 1000);
+        expect(context!.expiresAt.getHours()).toBe(now.getHours());
+      } finally {
+        if (savedTz === undefined) delete process.env.TZ;
+        else process.env.TZ = savedTz;
+      }
     });
   });
 

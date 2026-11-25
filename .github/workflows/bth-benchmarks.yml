@@ -58,6 +58,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 2  # Need previous commit for comparison
 
       - name: Setup Node.js and pnpm
@@ -330,6 +331,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Download benchmark results
         uses: actions/download-artifact@v8

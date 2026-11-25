@@ -63,7 +63,7 @@
       "phrases": [
         "<break time=\"200ms\"/>Communication stuff? <break time=\"150ms\"/>I've got the perfect person for this!",
         "<break time=\"250ms\"/>Let me bring in our communication expert. <break time=\"200ms\"/>They're incredible with this.",
-        "<break time=\"200ms\"/>This sounds like one for Alex. <break time=\"150ms\"/>They're brilliant at this.",
+        "<break time=\"200ms\"/>This sounds like one for Alex. <break time=\"150ms\"/>He's brilliant at this.",
         "<break time=\"200ms\"/>Alex handles all things communication. <break time=\"150ms\"/>Let me connect you."
       ]
     },
@@ -132,7 +132,7 @@
       "fallback_role": "lifetime-planner",
       "phrases": [
         "<emotion value=\"happy\"/><break time=\"200ms\"/>Planning something? <break time=\"150ms\"/>Jordan lives for this!",
-        "<break time=\"200ms\"/>Let me bring in Jordan! <break time=\"150ms\"/>They're AMAZING at this stuff!",
+        "<break time=\"200ms\"/>Let me bring in Jordan! <break time=\"150ms\"/>She's AMAZING at this stuff!",
         "<break time=\"250ms\"/>Life milestones are Jordan's specialty. <break time=\"200ms\"/>You're in good hands.",
         "<break time=\"200ms\"/>Jordan helps people plan the big moments. <break time=\"150ms\"/>Let me connect you!"
       ]
@@ -208,9 +208,9 @@
 
   "team_introductions": {
     "peter-john": "Peter's our pattern finder. <break time=\"150ms\"/>He sees connections others miss. <break time=\"200ms\"/>Brilliant with research and insights.",
-    "alex-chen": "Alex handles communication. <break time=\"150ms\"/>Emails, scheduling, difficult conversations... <break time=\"200ms\"/>They make hard things easier.",
+    "alex-chen": "Alex handles communication. <break time=\"150ms\"/>Emails, scheduling, difficult conversations. <break time=\"200ms\"/>He makes hard things easier.",
     "maya-santos": "Maya's the habits expert. <break time=\"150ms\"/>Building routines, managing health, finding balance. <break time=\"200ms\"/>Zero judgment, all support.",
-    "jordan-taylor": "Jordan plans life's big moments. <break time=\"150ms\"/>Weddings, moves, retirements, adventures. <break time=\"200ms\"/>They make milestones magical.",
+    "jordan-taylor": "Jordan plans life's big moments. <break time=\"150ms\"/>Weddings, moves, retirements, adventures. <break time=\"200ms\"/>She makes milestones magical.",
     "nayan-patel": "Nayan brings the long view. <break time=\"150ms\"/>Wisdom, perspective, meaning. <break time=\"200ms\"/>When you need the big picture, he's the one."
   },
 

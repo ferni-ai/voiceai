@@ -40,6 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           sparse-checkout: scripts/ci
       - name: Open or update the ci-health issue
         env:
@@ -59,6 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           sparse-checkout: scripts/ci
       - name: Open or update the main-red issue
         env:

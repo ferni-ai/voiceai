@@ -27,7 +27,7 @@ import type { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
-import { TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
+import { SAFETY_QUESTION_ES, TALK_TO_988, TALK_TO_988_ES } from './crisis-guard-replies.js';
 import { withMissingEnding } from './crisis-grounded-screen.js';
 import { names988 } from './crisis-line-speech.js';
 
@@ -135,7 +135,7 @@ A safety read of the caller's last words could not be made, and their words touc
 2. Say they can call or text 988, the Suicide & Crisis Lifeline, any time
 3. Then carry on with them, in their language. No crisis script, no list of hotlines, no lecture. If they say they are not safe, or anything about hurting themselves, take it seriously and stay with them`;
 
-const SAFETY_QUESTION = { en: 'Are you safe right now?', es: '¿Estás a salvo ahora mismo?' };
+const SAFETY_QUESTION = { en: 'Are you safe right now?', es: SAFETY_QUESTION_ES };
 const LINE_988 = { en: TALK_TO_988, es: TALK_TO_988_ES };
 const ASKED_SAFE = /\b(?:safe|safety|a salvo|segur[oa])\b[^.!?]*\?/i;
 

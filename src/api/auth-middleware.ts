@@ -50,17 +50,16 @@ const log = createLogger({ module: 'AuthMiddleware' });
 export interface AuthContext {
   /** Primary user identifier (Firebase UID) */
   userId: string;
-  /** Firebase UID if authenticated via Firebase */
-  firebaseUid?: string;
+  firebaseUid?: string; // Firebase UID if authenticated via Firebase
   isAdmin: boolean; // whether user is an admin
   isDevMode: boolean; // whether running in dev mode
   /** Which auth method was used */
   authMethod: 'api_key' | 'firebase' | 'dev_mode';
-  /** User's email (if available from Firebase) */
-  email?: string;
+  email?: string; // the user's email, if Firebase has one
   emailVerified?: boolean; // Firebase verified that email (anyone can type an unverified one)
-  /** Whether Firebase user is anonymous */
-  isAnonymous?: boolean;
+  /** Firebase sign_in_provider from the verified token: 'anonymous', 'phone', 'password', ... */
+  signInProvider?: string;
+  isAnonymous?: boolean; // anonymous provider OR no email, so phone sign-ins count as anonymous
 }
 
 export interface AuthConfig {
@@ -232,6 +231,7 @@ async function tryFirebaseAuth(req: IncomingMessage, token: string, strict = fal
       authMethod: 'firebase',
       email: verified.email,
       emailVerified: verified.emailVerified,
+      signInProvider: verified.signInProvider,
       isAnonymous: verified.isAnonymous,
     };
   } catch (error) {

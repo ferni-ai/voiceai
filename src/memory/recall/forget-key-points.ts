@@ -7,16 +7,22 @@
  * @module memory/recall/forget-key-points
  */
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import { forgottenWithin, type ForgottenCheck } from './forget-every-reader.js';
+import {
+  forgetFreshReadEnabled,
+  forgottenWithin,
+  type ForgottenCheck,
+} from './forget-every-reader.js';
 
 /**
  * The check (the shared read, fail closed: null when it can't be read in
  * time). Nothing is stored for a non-member, so nothing is forgotten.
+ * FORGET_FRESH_READ=on reads the store past the 15 s cache: a summary written
+ * now is read on the next call, so a forget made in another process must count (#2755).
  */
 export async function summaryCheck(
   userId: string | null | undefined,
   read: (userId: string) => Promise<ForgottenCheck | null> = (u) =>
-    forgottenWithin(u, 'last-summary')
+    forgottenWithin(u, 'last-summary', forgetFreshReadEnabled())
 ): Promise<ForgottenCheck | null> {
   return isMemberIdentity(userId) ? read(userId) : () => false;
 }

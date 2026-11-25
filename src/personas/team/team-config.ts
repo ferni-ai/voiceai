@@ -102,7 +102,7 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
     toRole: 'communicator',
     phrases: [
       'Alex handles this stuff like a pro - let me connect you.',
-      "I'll bring Alex in - communications are their superpower.",
+      "I'll bring Alex in. Communications are his superpower.",
       'Alex will get this sorted for you.',
     ],
     triggers: ['email', 'calendar', 'schedule', 'reminder', 'text', 'call'],
@@ -121,10 +121,10 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
     fromRole: 'life-coach',
     toRole: 'lifetime-planner',
     phrases: [
-      'Jordan gets SO excited about this stuff - let me bring them in.',
-      "Connecting you with Jordan - they'll help you see the bigger picture.",
+      'Jordan gets SO excited about this stuff. Let me bring her in.',
+      "Connecting you with Jordan. She'll help you see the bigger picture.",
       'Jordan will help you plan this out.',
-      "This is Jordan's wheelhouse - lifetime planning is their thing.",
+      "This is Jordan's wheelhouse. Lifetime planning is her thing.",
     ],
     triggers: [
       'vacation',

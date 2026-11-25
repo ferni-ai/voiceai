@@ -142,8 +142,8 @@ export async function run(argv: string[], deps: RunDeps): Promise<number> {
   const existing = await store.get(id);
   const now = (deps.now ?? (() => new Date()))();
   const fields: Record<string, unknown> = existing
-    ? { status: 'approved', approvedAt: now, approvedBy: 'cli', updatedAt: now }
-    : { email, status: 'approved', source: 'manual', timestamp: now, approvedAt: now, approvedBy: 'cli', updatedAt: now }; // prettier-ignore
+    ? { status: 'approved', approvedAt: now, approvedBy: 'cli', approvedVia: 'admin', updatedAt: now }
+    : { email, status: 'approved', source: 'manual', timestamp: now, approvedAt: now, approvedBy: 'cli', approvedVia: 'admin', updatedAt: now }; // prettier-ignore
   const what = `${maskEmail(email)}: ${existing ? `${existing.status ?? '(none)'} -> approved` : 'not on the list; add as approved'}`; // prettier-ignore
   if (existing?.status === 'approved') {
     deps.out(`${maskEmail(email)} is already approved. Nothing to do.`);
