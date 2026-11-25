@@ -42,7 +42,7 @@ const SESSION = 'sess-diag-sam-0142';
 const USER = 'user-sam-rivera-0142';
 const MARKERS = [SESSION, USER, 'sam-rivera'];
 
-const PUBLIC = ['/', '/health', '/health/ready', '/health/warmup', '/api/warmup'];
+const PUBLIC = ['/', '/health', '/health/ready', '/health/warmup', '/api/warmup', '/worker'];
 
 /** Every path the router or a handler matches (`url === '…'` / `url.startsWith('…')`). */
 function routesIn(source: string): string[] {
@@ -258,7 +258,7 @@ describe('the public probes answer without a credential', () => {
     for (const marker of MARKERS) expect(body).not.toContain(marker);
   });
 
-  it('only those five are public, matched exactly', () => {
+  it('only those six are public, matched exactly', () => {
     for (const route of PUBLIC) expect(isPublicRoute(route)).toBe(true);
     for (const route of [...GATED, ...VARIANTS]) expect(isPublicRoute(route)).toBe(false);
   });

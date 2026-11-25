@@ -188,6 +188,7 @@ import {
 } from './gce/index.js';
 
 import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-readiness.js';
+import { setActiveJobsSource } from './shared/worker-status.js';
 
 // Crash analytics, memory event workers, knowledge capture, orphan cleanups.
 import { getCrashSummary } from './shared/crash-analytics.js';
@@ -213,6 +214,9 @@ log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 // Initialize LiveKit SDK logger: JSON lines when deployed, pretty locally.
 // LOG_LEVEL=debug for verbose turn monitoring and startup logging.
 initializeSdkLogger();
+
+// GET /worker reports the calls running now
+setActiveJobsSource(activeJobCount);
 
 // Initialize LiveKit connection module
 initLiveKitConnection(
