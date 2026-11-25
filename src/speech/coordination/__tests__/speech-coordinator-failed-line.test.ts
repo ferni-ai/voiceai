@@ -26,11 +26,14 @@ const sink = vi.hoisted(() => {
     error: record,
   };
   logger.child = () => logger;
-  return { calls, logger };
+  const quiet = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
+  return { calls, logger, quiet };
 });
+// The coordinator's own logger is the one under test; the gateway's (tts-gateway) is not.
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
-  createLogger: () => sink.logger,
+  createLogger: (bindings: { module?: string }) =>
+    bindings?.module === 'speech-coordinator' ? sink.logger : sink.quiet,
 }));
 
 const SSML_ONLY = '<break time="500ms"/>';
@@ -207,7 +210,9 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     });
   });
 
-  it('a refused line whose error echoes what it was saying reaches no logger, on either path', async () => {
+  it('no log carries the words of a line, spoken or refused, on either path, on a dev process', async () => {
+    // A dev process is the one where replyForLog would print words (reply-for-log.ts).
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
     const sentence = 'zorbleflax tell my fictional neighbour the ladder is back';
     for (const gateway of ['true', 'false']) {
       vi.stubEnv('USE_TTS_GATEWAY', gateway);
@@ -221,7 +226,7 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
       fresh.attachSession({ say } as unknown as voice.AgentSession, { sessionId: 's-2' });
 
       const line = await fresh.requestSpeak({
-        text: 'Line A',
+        text: sentence,
         priority: SpeechPriority.RESPONSE,
         source: 'direct',
       });
@@ -231,6 +236,7 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
         (c) => c[1] === 'TTS Gateway speech failed' || c[1] === 'Speech failed'
       );
       expect(failed?.[0]).toEqual({ error: 'Error', id: line.id });
+      expect(sink.calls.length).toBeGreaterThan(1); // the "speaking" lines were logged too
       expect(JSON.stringify(sink.calls)).not.toContain('zorbleflax');
     }
   });

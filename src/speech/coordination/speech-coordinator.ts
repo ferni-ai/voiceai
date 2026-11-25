@@ -15,7 +15,7 @@
 
 import type { voice } from '@livekit/agents';
 import { errorClass } from '../../utils/error-class.js';
-import { createLogger, replyForLog } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { arrivalCooldownMs } from './arrival-cooldown.js';
 import {
   isTTSGatewayEnabled,
@@ -756,8 +756,8 @@ export class SpeechCoordinator {
           process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
         log.debug(
           {
-            original: replyForLog(request.text),
-            cleanText: replyForLog(ssmlResult.text),
+            textChars: request.text.length,
+            cleanChars: ssmlResult.text.length,
             hadSSML: ssmlResult.hadSSML,
             config: ssmlResult.config,
           },
@@ -771,7 +771,7 @@ export class SpeechCoordinator {
           process.stderr.write(`  🆔 Request ID: ${request.id}\n`);
           process.stderr.write(`  📊 Priority: ${request.priority}\n`);
           process.stderr.write(`  ⏱️ Queue wait: ${queueWaitTime}ms\n`);
-          process.stderr.write(`  📝 Text: ${replyForLog(request.text)}\n`);
+          process.stderr.write(`  📝 Text: ${request.text.length} chars\n`);
           process.stderr.write(`  🎙️ Persona: ${this.personaId || 'ferni'}\n`);
         }
         // Use gateway - fire and forget (onSpeechEnded handles completion)
@@ -797,7 +797,7 @@ export class SpeechCoordinator {
           {
             originalLen: request.text.length,
             strippedLen: textToSpeak.length,
-            hadSSML: request.text !== textToSpeak,
+            hadSSML: Boolean(request.text !== textToSpeak),
           },
           'Speaking text (SSML stripped) - legacy path'
         );

@@ -75,6 +75,9 @@ const SURFACE = [
   'src/services/contacts/contact-relationship-service.ts',
   'src/services/identity/contacts/contact-onboarding.ts',
   'src/services/trust-and-identity/identity-orchestrator.ts',
+  // Ferni's own lines pass here, and a TTS error can echo one: lengths and error classes only.
+  'src/speech/coordination/speech-coordinator.ts',
+  'src/speech/coordination/session-integration.ts',
 ];
 
 /**
