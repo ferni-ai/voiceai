@@ -34,6 +34,9 @@ export const CALL_911_ES = 'Si estás en peligro ahora mismo, llama al 911.';
 export const FOR_THEM_988 =
   "You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.";
 
+/** The Spanish safety question (the timeout check-in asks it; the voice keys Spanish on it). */
+export const SAFETY_QUESTION_ES = '¿Estás a salvo ahora mismo?';
+
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
  * them, so the reply leads with 911 for them and stays with the caller. No 988: it isn't the
