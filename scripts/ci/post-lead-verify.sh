@@ -26,6 +26,10 @@ if ! GH_TOKEN=$("$token_cmd") || [ -z "$GH_TOKEN" ]; then
   exit 4
 fi
 export GH_TOKEN
+# A gh wrapper in Claude sessions swaps GH_TOKEN for the ferni-agent App on this repo unless
+# FERNI_GH_IDENTITY=verifier, so the status and comment went out as ferni-agent[bot], which
+# Lead Verified ignores (2026-11-16, #3940 and #3941). Plain gh ignores the variable.
+export FERNI_GH_IDENTITY=verifier
 
 head=$(gh api "repos/$repo/pulls/$pr" --jq .head.sha)
 if [[ $head != "$sha"* ]]; then

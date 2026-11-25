@@ -23,6 +23,7 @@ import type { CallerChecks } from '../data-sender.js';
 import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
 import { demoCallCap, startDemoCallCap } from './demo-call-cap.js';
+import { idleCheckInFor } from './idle-checkin.js';
 import { isLiveCustomAgent } from '../../shared/custom-agent-live.js';
 
 // ============================================================================
@@ -363,6 +364,7 @@ export async function runMultiAgentMode(
 
     // Until the room disconnects or empties, or the call goes idle (session-end-watch.ts)
     // DEMO_CALL_CAP=on: a demo room ends at its session_duration_minutes (demo-call-cap.ts)
+    // IDLE_END_CHECKIN=on: one spoken check-in before the idle end (idle-checkin.ts)
     const demoLimitMs = demoCallCap(ctx.room?.metadata || ctx.job.room?.metadata);
     const demoCap =
       demoLimitMs === null
@@ -372,7 +374,10 @@ export async function runMultiAgentMode(
           );
     let endReason: Awaited<ReturnType<typeof waitForSessionEnd>>;
     try {
-      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, demoCap?.endOptions);
+      const activeSession = () => multiAgentResult.orchestrator.getActiveAgent()?.session;
+      const idleCheckIn = idleCheckInFor({ sessionId, userData, room: ctx.room, activeSession });
+      const endOptions = { ...demoCap?.endOptions, idleCheckIn };
+      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, endOptions);
     } finally {
       demoCap?.stop();
     }

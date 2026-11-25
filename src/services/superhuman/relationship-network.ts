@@ -13,7 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { writeHeld } from '../../utils/minor-care.js';
-import { couldBePerson, personKey } from '../../memory/index.js';
+import { couldBePerson, nameAsSaid, personKey } from '../../memory/index.js';
 
 const log = createLogger({ module: 'relationship-network' });
 
@@ -33,13 +33,7 @@ export type RelationshipType =
   | 'complicated'; // It's complicated
 
 export type RelationshipSentiment =
-  | 'very_positive'
-  | 'positive'
-  | 'neutral'
-  | 'tense'
-  | 'negative'
-  | 'complicated'
-  | 'healing';
+  'very_positive' | 'positive' | 'neutral' | 'tense' | 'negative' | 'complicated' | 'healing';
 
 export interface RelationshipPerson {
   id: string;
@@ -182,24 +176,6 @@ export function extractPerson(
   }
 
   return null;
-}
-
-/** Capitalized words that start a clause and are never someone's name. */
-const SKIP_WORDS = new Set(
-  'the a an this that it my we they he she you i with said told asked met saw called texted spoke today yesterday tomorrow monday tuesday wednesday thursday friday saturday sunday morning afternoon evening night week month year then when where what who how why but and or so just really very here there now later soon again next last first good great nice new old some many few'.split(
-    ' '
-  )
-);
-
-/**
- * The name a caught word gives, or null: not a pronoun, filler, honorific or verb
- * (couldBePerson, whole words), and capitalised as said. The patterns are case-insensitive for
- * their trigger words, so "[A-Z]" alone also matched "uh" and "check"; title-casing a lowercase
- * word after "talked to" or "ask" stored "Two", "Maybe" and "Google", so lowercase never counts.
- */
-function nameAsSaid(word: string | undefined): string | null {
-  if (!word || SKIP_WORDS.has(word.toLowerCase()) || !couldBePerson(word)) return null;
-  return /^\p{Lu}/u.test(word) ? word : null;
 }
 
 /**

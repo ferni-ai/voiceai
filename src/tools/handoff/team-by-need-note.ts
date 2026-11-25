@@ -22,6 +22,7 @@
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { ALIAS_TO_CANONICAL } from '../../personas/persona-ids.js';
 import { chiefOfStaffWhen } from './chief-of-staff-note.js';
+import { withPronouns } from './teammate-pronouns.js';
 
 interface Teammate {
   readonly id: string;
@@ -116,9 +117,10 @@ export function teamByNeedNote(speaker: string, callerWords: string, agentWords 
   const legends = investing ? LEGENDS.filter((m) => m.id !== self) : [];
 
   const parts = [
-    `Teammates you can bring in: ${team.map((m) => `${m.name} for ${m.when}`).join('; ')}.`,
+    // TEAMMATE_PRONOUNS=on: "Jordan (she/her)", from the canon (teammate-pronouns.ts)
+    `Teammates you can bring in: ${team.map((m) => `${withPronouns(m.id, m.name)} for ${m.when}`).join('; ')}.`,
     legends.length > 0
-      ? `For investing, the legends can join too: ${legends.map((m) => `${m.name} for ${m.when}`).join('; ')}.`
+      ? `For investing, the legends can join too: ${legends.map((m) => `${withPronouns(m.id, m.name)} for ${m.when}`).join('; ')}.`
       : '',
     'Offer one only when what the caller needs clearly matches, at most once a call each; ask before transferring, and never push.',
   ];

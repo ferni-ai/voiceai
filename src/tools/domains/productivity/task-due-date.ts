@@ -1,11 +1,40 @@
 /**
  * Spoken due dates for the task tools ("today", "Friday", "in 3 days"), read on
- * the user's wall clock. Moved out of tasks.ts unchanged.
+ * the user's wall clock, and the calendar entry a dated task gets. Moved out of
+ * tasks.ts unchanged.
  *
  * @module tools/domains/productivity/task-due-date
  */
 
+import { syncTaskToCalendar } from '../../../services/calendar/calendar-bridge.js';
+import { getLogger } from '../../utils/tool-helpers.js';
 import { WallClock } from '../../../utils/time-zone.js';
+
+/**
+ * Put a dated task on the user's calendar: at `dueTime` ("14:00") on its due day,
+ * else 9am, for 30 minutes, on their wall clock. A failure is logged, never thrown.
+ */
+export async function putDueTaskOnCalendar(task: {
+  userId: string;
+  id: string;
+  title: string;
+  dueDate: Date;
+  dueTime?: string;
+  timeZone?: string;
+}): Promise<void> {
+  try {
+    const scheduledFor = new WallClock(task.dueDate, task.timeZone);
+    if (task.dueTime) {
+      const [hours, minutes] = task.dueTime.split(':').map(Number);
+      scheduledFor.setHours(hours, minutes, 0, 0);
+    } else {
+      scheduledFor.setHours(9, 0, 0, 0);
+    }
+    await syncTaskToCalendar(task.userId, task.id, task.title, scheduledFor.toDate(), 30);
+  } catch (calendarError) {
+    getLogger().warn({ error: calendarError, taskId: task.id }, 'Failed to sync task to calendar');
+  }
+}
 
 /** A due date in the user's zone ("tomorrow" ends at 23:59 where they are); unknown zone = UTC. */
 export function parseNaturalDueDate(

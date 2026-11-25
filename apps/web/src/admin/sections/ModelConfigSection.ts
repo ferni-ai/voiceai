@@ -830,56 +830,36 @@ async function fetchToolDefaults(): Promise<ToolConfig | null> {
   };
 }
 
-/**
- * Set up event handlers for the model config section
- */
+/** Set up event handlers for the model config section, once per visit. */
 export function setupEvents(): void {
   log.debug('Setting up model config events');
+  const on = (selector: string, event: string, handler: (e: Event) => Promise<void>) =>
+    document.querySelector(selector)?.addEventListener(event, (e) => void handler(e));
+  on('[data-form="defaults"]', 'submit', handleDefaultsSubmit);
+  on('[data-form="tool-defaults"]', 'submit', handleToolDefaultsSubmit);
+  on('[data-action="load-persona"]', 'click', handleLoadPersona);
+  on('[data-action="reset-all"]', 'click', handleResetAll);
+  const container = document.getElementById('persona-config-container');
+  if (container) bindPersonaForm(container);
+}
 
-  // Defaults form submission
-  const defaultsForm = document.querySelector('[data-form="defaults"]');
-  if (defaultsForm) {
-    defaultsForm.addEventListener('submit', (e) => { void handleDefaultsSubmit(e); });
-  }
-
-  // Persona form submission
-  const personaForm = document.querySelector('[data-form="persona"]');
-  if (personaForm) {
-    personaForm.addEventListener('submit', (e) => { void handlePersonaSubmit(e); });
-
-    // Toggle prompt textarea enabled state
-    const checkbox = personaForm.querySelector('input[name="useSystemPromptOverride"]');
-    const textarea = personaForm.querySelector<HTMLTextAreaElement>('textarea[name="systemPromptOverride"]');
-    if (checkbox && textarea) {
-      checkbox.addEventListener('change', (e) => {
-        textarea.disabled = !(e.target as HTMLInputElement).checked;
-      });
-    }
-  }
-
-  // Tool defaults form submission
-  const toolDefaultsForm = document.querySelector('[data-form="tool-defaults"]');
-  if (toolDefaultsForm) {
-    toolDefaultsForm.addEventListener('submit', (e) => { void handleToolDefaultsSubmit(e); });
-  }
-
-  // Load persona button
-  const loadBtn = document.querySelector('[data-action="load-persona"]');
-  if (loadBtn) {
-    loadBtn.addEventListener('click', () => { void handleLoadPersona(); });
-  }
-
-  // Delete persona button
-  const deleteBtn = document.querySelector('[data-action="delete-persona"]');
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', (e) => { void handleDeletePersona(e); });
-  }
-
-  // Reset all button
-  const resetBtn = document.querySelector('[data-action="reset-all"]');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => { void handleResetAll(); });
-  }
+/**
+ * Bind the controls inside the persona form. Loading a persona replaces only that form, so
+ * only it is bound again: re-running setupEvents bound the section's other forms a second
+ * time, and every later save sent its PUT twice.
+ */
+function bindPersonaForm(root: HTMLElement): void {
+  const personaForm = root.querySelector('[data-form="persona"]');
+  if (!personaForm) return;
+  personaForm.addEventListener('submit', (e) => void handlePersonaSubmit(e));
+  const checkbox = personaForm.querySelector('input[name="useSystemPromptOverride"]');
+  const textarea = personaForm.querySelector<HTMLTextAreaElement>('textarea[name="systemPromptOverride"]');
+  checkbox?.addEventListener('change', (e) => {
+    if (textarea) textarea.disabled = !(e.target as HTMLInputElement).checked;
+  });
+  personaForm
+    .querySelector('[data-action="delete-persona"]')
+    ?.addEventListener('click', (e) => void handleDeletePersona(e));
 }
 
 async function handleDefaultsSubmit(e: Event): Promise<void> {
@@ -1079,7 +1059,7 @@ async function handleLoadPersona(): Promise<void> {
   const config = configStore?.personas[personaId] ?? null;
 
   container.innerHTML = renderPersonaForm(personaId, config);
-  setupEvents(); // Re-attach events to new form
+  bindPersonaForm(container);
 }
 
 async function handleDeletePersona(e: Event): Promise<void> {

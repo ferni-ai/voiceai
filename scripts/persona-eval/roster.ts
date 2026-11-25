@@ -1,19 +1,21 @@
 /**
  * Who the persona evals iterate: every persona with a bundle (the core six and
- * the two legends), checked against the bundles themselves so a new persona
- * can't be silently skipped, and the name each one goes by on a call.
+ * the two legends, and Seth only while his gate is open), checked against the
+ * bundles themselves so a new persona can't be silently skipped, and the name
+ * each one goes by on a call.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { listedNow } from '../../src/config/seth-teammate.js';
 import { ALL_CANONICAL_IDS } from '../../src/personas/persona-ids.js';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const bundleDir = (repo: string, id: string): string => join(repo, 'src/personas/bundles', id);
 
-/** Every persona an eval runs, in a fixed order (seeded shuffles depend on it). */
-export const PERSONAS: readonly string[] = [...ALL_CANONICAL_IDS];
+/** Every live persona an eval runs, in a fixed order (seeded shuffles depend on it). */
+export const PERSONAS: readonly string[] = ALL_CANONICAL_IDS.filter((id) => listedNow(id));
 
 /** The bundle dirs that hold a persona manifest: the registry PERSONAS must match. */
 export function bundlePersonas(repo = REPO): string[] {

@@ -4,6 +4,7 @@
  * would actually do:
  *
  * - the coordinator (Ferni) is always reachable;
+ * - Seth only while his gate is open (config/seth-teammate.ts), unlocks aside;
  * - a core team member is reachable once the user has unlocked them;
  * - any other persona is a marketplace advisor (e.g. the Financial Legends),
  *   reachable once the whole core team is unlocked.
@@ -20,6 +21,7 @@ import {
   isTeamMemberUnlocked,
 } from '../../intelligence/context-builders/team/team-availability.js';
 import { isCoach } from '../../personas/persona-ids.js';
+import { isSeth, sethTeammateOpen } from '../../config/seth-teammate.js';
 import { isFullTeamUnlocked } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
@@ -32,6 +34,7 @@ export function isHandoffTargetOpen(
   tier: SubscriptionTier
 ): boolean {
   if (isCoach(agentId)) return true;
+  if (isSeth(agentId)) return sethTeammateOpen();
   if (isCoreTeamMember(agentId)) return isTeamMemberUnlocked(agentId, userProfile, tier);
   return isFullTeamUnlocked(userProfile, tier);
 }

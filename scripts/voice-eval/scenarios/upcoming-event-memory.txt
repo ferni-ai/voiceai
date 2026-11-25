@@ -1,0 +1,7 @@
+# Upcoming event from the last call (#2530). Run as the returning call after the first-call seed: EVAL_SEED=first-call-seed ./run.sh dev upcoming-event-memory <label>, with MEMORY_TIME_LABELS on. The seed must leave a last-call summary naming a dated event still ahead (dev 1cf4bd64b: Ava's soccer tournament on a Saturday). Ferni must treat it as not happened yet (never "hope you survived it" or "how did it go"), and must not place the seed call, minutes earlier, "this morning" or "earlier today".
+Hey, it's me again.
+Ugh, I just spent an hour at the store buying juice boxes and orange slices.
+Do you think I bought too much?
+What did I tell you about this weekend?
+When did I tell you that?
+Anyway, any tips for keeping twenty kids happy at a snack table?

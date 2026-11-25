@@ -19,7 +19,7 @@ import {
   buildLiveCustomAgentPrompt,
   CUSTOM_AGENT_NAME_MAX,
   customAgentToPersonaConfig,
-  sanitizeOwnerText,
+  cleanOwnerText,
 } from '../../services/custom-agent/index.js';
 import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
@@ -87,11 +87,12 @@ export function buildAgentChatPrompt(
 ): string {
   // CUSTOM_AGENT_CHAT_HONESTY: the live call's prompt (owner text kept as data, honest when
   // sincerely asked whether it's an AI) instead of one that pastes the owner's text raw.
-  // The name is owner text too and lands after the profile, so it is cleaned the same way.
+  // The name is owner text too and lands after the profile, so it is cleaned to plain text:
+  // no angle brackets to close the profile, and `&` as typed, never "&amp;".
   const honest = flagOn('CUSTOM_AGENT_CHAT_HONESTY', options.env);
   const rawName = agent.displayName || agent.name;
   const name = honest
-    ? sanitizeOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
+    ? cleanOwnerText(rawName, CUSTOM_AGENT_NAME_MAX) || 'your character'
     : rawName;
   const stories = honest
     ? []

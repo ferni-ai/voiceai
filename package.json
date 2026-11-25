@@ -331,7 +331,7 @@
     "warmup:agent": "bash scripts/warmup-agent.sh",
     "deploy:workers": "bash infrastructure/scripts/deploy-workers.sh",
     "deploy:context": "bash infrastructure/scripts/deploy-context.sh",
-    "deploy:design-system": "cd design-system && npm run site:build && firebase deploy --only hosting:ferni-design-system",
+    "deploy:design-system": "cd apps/website/design-system-portal && npm ci && npm run build && firebase deploy --only hosting --project johnb-2025",
     "deploy:developers": "cd apps/website/developers-portal && npm ci && npm run build && firebase deploy --only hosting --project johnb-2025",
     "deploy:marketplace": "cd apps/website/marketplace-portal && npm ci && npm run build && firebase deploy --only hosting --project johnb-2025",
     "deploy:marketplace-scheduler": "bash scripts/deploy-marketplace-scheduler.sh",

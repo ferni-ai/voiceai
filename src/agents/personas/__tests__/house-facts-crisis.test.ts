@@ -176,7 +176,6 @@ describe('every helpline table the app carries passes, not only the tool data', 
           contextualFactors: [],
         },
         personaId: 'ferni',
-        timeOfDay: 'night',
         isFirstMention: true,
       });
       expect(fullResponse).toMatch(/\d/);

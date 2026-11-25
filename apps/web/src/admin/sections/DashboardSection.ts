@@ -10,7 +10,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeadersAsync } from '../admin-api.js';
+import { adminFetch } from '../admin-fetch.js';
 import {
   ICON_AGENTS,
   ICON_DELETE,
@@ -28,6 +28,7 @@ import {
   ICON_ZAP,
   iconSm,
 } from '../icons.js';
+import { isUnavailable, loadJson, measured, renderUnavailable } from '../../utils/unavailable.js';
 
 const log = createLogger('DashboardSection');
 
@@ -43,10 +44,20 @@ interface SystemHealth {
 
 interface AggregatedStats {
   agents: { total: number; active: number };
-  conversations: { today: number; thisWeek: number; trend: 'up' | 'down' | 'neutral' };
+  conversations: {
+    today: number | null;
+    thisWeek: number | null;
+    trend: 'up' | 'down' | 'neutral';
+  };
   evalops: { totalEvaluations: number; passRate: number; flaggedCount: number };
   trust: { totalProfiles: number; avgTrustScore: number; activeRelationships: number };
-  system: { uptime: number; responseTime: number; errorRate: number; activeSessions: number };
+  // null: not measured
+  system: {
+    uptime: number;
+    responseTime: number | null;
+    errorRate: number | null;
+    activeSessions: number | null;
+  };
 }
 
 interface ActivityEvent {
@@ -75,15 +86,16 @@ interface QuickStat {
 export async function render(): Promise<string> {
   log.debug('Rendering dashboard section');
 
-  // Fetch real data from APIs
-  const [health, stats, activity] = await Promise.all([
-    fetchSystemHealth(),
-    fetchAggregatedStats(),
-    fetchRecentActivity(),
+  // A failed request renders its reason, never zeros or "System Down"
+  const [health, stats, activityData] = await Promise.all([
+    loadJson<SystemHealth>(adminFetch('/api/v1/admin/dashboard/health'), 'dashboard health'),
+    loadJson<AggregatedStats>(adminFetch('/api/v1/admin/dashboard/stats'), 'dashboard stats'),
+    loadJson<{ activity?: ActivityEvent[] }>(
+      adminFetch('/api/v1/admin/dashboard/activity'),
+      'activity'
+    ),
   ]);
-
-  // Build quick stats from aggregated data
-  const quickStats = buildQuickStats(stats);
+  const activity = isUnavailable(activityData) ? [] : (activityData.activity ?? []);
 
   return `
     <div class="dashboard-section">
@@ -93,34 +105,27 @@ export async function render(): Promise<string> {
           <span class="admin-icon">${iconSm(ICON_HEALTH)}</span>
           System Health
         </h2>
-        <div class="health-status health-status--${health.status}" role="status" aria-live="polite" aria-label="System status: ${getHealthText(health.status)}">
+        ${
+          isUnavailable(health)
+            ? renderUnavailable(`System health ${health.unavailable}`)
+            : `<div class="health-status health-status--${health.status}" role="status" aria-live="polite" aria-label="System status: ${getHealthText(health.status)}">
           <span class="health-indicator" aria-hidden="true"></span>
           <span class="health-text">${getHealthText(health.status)}</span>
-        </div>
-        <div class="health-details">
-          <div class="health-item">
-            <span class="health-label">Uptime</span>
-            <span class="health-value">${formatUptime(health.uptime)}</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">Response Time</span>
-            <span class="health-value">${stats.system.responseTime}ms</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">Active Sessions</span>
-            <span class="health-value">${stats.system.activeSessions}</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">Error Rate</span>
-            <span class="health-value">${(stats.system.errorRate * 100).toFixed(2)}%</span>
-          </div>
-        </div>
-        ${renderServiceStatus(health.services)}
+        </div>`
+        }
+        ${isUnavailable(stats) ? renderUnavailable(`Stats ${stats.unavailable}`) : renderHealthDetails(stats.system)}
+        ${isUnavailable(health) ? '' : renderServiceStatus(health.services)}
       </div>
 
       <!-- Quick Stats Grid -->
       <div class="admin-grid dashboard-stats">
-        ${quickStats.map((stat) => renderStatCard(stat)).join('')}
+        ${
+          isUnavailable(stats)
+            ? ''
+            : buildQuickStats(stats)
+                .map((stat) => renderStatCard(stat))
+                .join('')
+        }
       </div>
 
       <!-- Quick Actions -->
@@ -157,7 +162,13 @@ export async function render(): Promise<string> {
           ${activity.length > 0 ? `<span class="activity-count">${activity.length}</span>` : ''}
         </h2>
         <div class="activity-list" role="log" aria-live="polite" aria-label="Recent activity feed">
-          ${activity.length > 0 ? activity.map((a) => renderActivityItem(a)).join('') : renderNoActivity()}
+          ${
+            isUnavailable(activityData)
+              ? renderUnavailable(`Activity ${activityData.unavailable}`)
+              : activity.length > 0
+                ? activity.map((a) => renderActivityItem(a)).join('')
+                : renderNoActivity()
+          }
         </div>
       </div>
     </div>
@@ -497,6 +508,21 @@ export async function render(): Promise<string> {
 // RENDER HELPERS
 // ============================================================================
 
+function renderHealthDetails(system: AggregatedStats['system']): string {
+  const items: Array<[string, string]> = [
+    ['Uptime', formatUptime(system.uptime)],
+    ['Response Time', measured(system.responseTime, (ms) => `${ms}ms`)],
+    ['Active Sessions', measured(system.activeSessions, String)],
+    ['Error Rate', measured(system.errorRate, (rate) => `${(rate * 100).toFixed(2)}%`)],
+  ];
+  return `<div class="health-details">${items
+    .map(
+      ([label, value]) =>
+        `<div class="health-item"><span class="health-label">${label}</span><span class="health-value">${value}</span></div>`
+    )
+    .join('')}</div>`;
+}
+
 function renderStatCard(stat: QuickStat): string {
   const trendIcon =
     stat.trend === 'up'
@@ -570,74 +596,6 @@ function renderNoActivity(): string {
 }
 
 // ============================================================================
-// DATA FETCHING
-// ============================================================================
-
-async function fetchSystemHealth(): Promise<SystemHealth> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/dashboard/health', {
-      headers,
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error) {
-    log.warn({ error }, 'Failed to fetch system health');
-  }
-
-  // Fallback - indicate API unavailable
-  return {
-    status: 'down',
-    uptime: 0,
-    services: [],
-  };
-}
-
-async function fetchAggregatedStats(): Promise<AggregatedStats> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/dashboard/stats', {
-      headers,
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error) {
-    log.warn({ error }, 'Failed to fetch aggregated stats');
-  }
-
-  // Fallback with zeros (indicates no data)
-  return {
-    agents: { total: 0, active: 0 },
-    conversations: { today: 0, thisWeek: 0, trend: 'neutral' },
-    evalops: { totalEvaluations: 0, passRate: 0, flaggedCount: 0 },
-    trust: { totalProfiles: 0, avgTrustScore: 0, activeRelationships: 0 },
-    system: { uptime: 0, responseTime: 0, errorRate: 0, activeSessions: 0 },
-  };
-}
-
-async function fetchRecentActivity(): Promise<ActivityEvent[]> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/dashboard/activity', {
-      headers,
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.activity ?? [];
-    }
-  } catch (error) {
-    log.warn({ error }, 'Failed to fetch recent activity');
-  }
-
-  return [];
-}
-
-// ============================================================================
 // UTILITIES
 // ============================================================================
 
@@ -650,9 +608,8 @@ function buildQuickStats(stats: AggregatedStats): QuickStat[] {
     },
     {
       label: 'Conversations Today',
-      value: stats.conversations.today,
-      change: stats.conversations.trend === 'up' ? '+12%' : undefined,
-      trend: stats.conversations.trend,
+      // No delta badge: the API sends no measured change (#4069)
+      value: measured(stats.conversations.today, String),
       icon: ICON_USER,
     },
     {

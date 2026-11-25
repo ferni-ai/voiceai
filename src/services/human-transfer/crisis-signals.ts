@@ -8,13 +8,27 @@
  * Read by the crisis follow-up (getCrisisHistory), the pondered opener and
  * the pondered outreach notes, so they all agree on who is in a quiet period.
  *
+ * CRISIS_QUIET_FROM_GATE (agents/safety/crisis-quiet-window.ts): the reply gate's crisis
+ * handling starts the quiet period too. The caller's own crisis is stored here
+ * (gateCrisisSignals), marked QUIET_ONLY_SOURCE: getCrisisHistory skips it, so the crisis
+ * follow-up never mentions it. hadCrisisWithin counts it: outreach goes quiet, and the readers
+ * of pondering-opener's hadRecentCrisis (opener, greeting date, call sheet, remembered-call
+ * card) hold back. They only drop content. A MINOR_CARE-held caller's, and a crisis about
+ * someone the caller knows, are a quietUntil time on minor_care_holds instead. Until a write
+ * is stored, this process holds the quiet (holdQuietHere).
+ *
  * @module services/human-transfer/crisis-signals
  */
+import { quietHoldUntil } from '../outreach/minor-care-shared-hold.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { classifyEscalation } from './escalation-classifier.js';
 import type { CrisisSignals, EscalationType } from './types.js';
 
 const log = createLogger({ module: 'crisis-signals' });
+
+/** The source of a record that only quiets outreach (CRISIS_QUIET_FROM_GATE): no reply reads it. */
+export const QUIET_ONLY_SOURCE = 'gate_quiet';
+export type QuietOnlySource = typeof QUIET_ONLY_SOURCE;
 
 /** A crisis this recent keeps pondered questions out of openers and outreach. */
 export const CRISIS_QUIET_DAYS = 14;
@@ -81,6 +95,32 @@ const NO_SIGNALS: CrisisSignals = {
   rawSignals: [],
 };
 
+/**
+ * The signals the gate's crisis handling is stored as (CRISIS_QUIET_FROM_GATE), with no words:
+ * the 988/911 script is crisis_immediate (severity 9), full crisis guidance crisis_support
+ * (severity 7), so crisisFromSignal counts both. Flags only from the decision's own kind.
+ */
+export function gateCrisisSignals(level: 'script' | 'guidance', selfHarm = false): CrisisSignals {
+  if (level === 'guidance') return { ...NO_SIGNALS, severity: 7 };
+  return { ...NO_SIGNALS, severity: 9, suicidalIdeation: !selfHarm, selfHarmIndicators: selfHarm };
+}
+
+/** userId -> until when (ms) this process holds the quiet: a gate crisis not stored yet. */
+const quietHere = new Map<string, number>();
+const MAX_QUIET_HERE = 5000;
+
+/** Hold the quiet in this process until `until`, or until releaseQuietHere (crisis-quiet-window.ts). */
+export function holdQuietHere(userId: string, until: number): void {
+  quietHere.delete(userId);
+  quietHere.set(userId, until);
+  if (quietHere.size > MAX_QUIET_HERE) quietHere.delete(quietHere.keys().next().value!);
+}
+
+/** The quiet window is stored: this process no longer needs to hold it. */
+export function releaseQuietHere(userId: string): void {
+  quietHere.delete(userId);
+}
+
 /** One crisis_signals doc as a crisis event, or null below crisis level. */
 export function crisisFromSignal(
   userId: string,
@@ -140,11 +180,16 @@ export function followUpCrisis(
   );
 }
 
-/** The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read errors. */
+/**
+ * The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read
+ * errors. `withQuietOnly: false` (getCrisisHistory's readers) skips QUIET_ONLY_SOURCE records;
+ * the default counts them (hadCrisisWithin).
+ */
 export async function crisisLevelSignalsSince(
   db: Pick<FirebaseFirestore.Firestore, 'collection'>,
   userId: string,
-  since: Date
+  since: Date,
+  { withQuietOnly = true }: { withQuietOnly?: boolean } = {}
 ): Promise<CrisisEventRecord[]> {
   const snapshot = await db
     .collection('bogle_users')
@@ -155,15 +200,18 @@ export async function crisisLevelSignalsSince(
     .limit(SIGNALS_READ)
     .get();
   return snapshot.docs
-    .map((doc) => crisisFromSignal(userId, doc.data()))
+    .map((doc) => doc.data())
+    .filter((data) => withQuietOnly || data.source !== QUIET_ONLY_SOURCE)
+    .map((data) => crisisFromSignal(userId, data))
     .filter((event): event is CrisisEventRecord => event !== null)
     .slice(0, 10);
 }
 
 /**
- * True when the caller had a crisis-level signal in the last `days`. Fails
- * closed: when the signals can't be read, it answers true, so nothing pondered
- * reaches someone who may be in crisis.
+ * True when the caller had a crisis-level signal in the last `days`, their
+ * quietUntil on minor_care_holds is still ahead, or this process holds the quiet
+ * (CRISIS_QUIET_FROM_GATE). Fails closed: when either record can't be read, it
+ * answers true, so nothing pondered reaches someone who may be in crisis.
  */
 export async function hadCrisisWithin(
   db: Pick<FirebaseFirestore.Firestore, 'collection'>,
@@ -171,9 +219,14 @@ export async function hadCrisisWithin(
   days: number = CRISIS_QUIET_DAYS,
   now: Date = new Date()
 ): Promise<boolean> {
+  if ((quietHere.get(userId) ?? 0) > now.getTime()) return true;
   try {
     const since = new Date(now.getTime() - days * DAY_MS);
-    return (await crisisLevelSignalsSince(db, userId, since)).length > 0;
+    const [signals, quietUntil] = await Promise.all([
+      crisisLevelSignalsSince(db, userId, since),
+      quietHoldUntil(db, userId),
+    ]);
+    return signals.length > 0 || quietUntil > now.getTime();
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Crisis signals unreadable: treating as a crisis');
     return true;

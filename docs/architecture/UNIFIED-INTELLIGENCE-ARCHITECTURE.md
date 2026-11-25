@@ -114,7 +114,7 @@ recordDomainSignal(userId, {
 | **Superhuman Services** | `services/superhuman/` | 19 "Better Than Human" capabilities |
 | **Semantic Intelligence** | `services/superhuman/semantic-intelligence/` | V3 AI understanding |
 | **Predictive Intelligence** | `intelligence/predictive/` | Multi-signal prediction fusion |
-| **Collective Learning** | `intelligence/collective-learning-integration.ts` | Cross-user patterns |
+| **Collective Learning** | `intelligence/collective/integration.ts` | Cross-user patterns |
 | **Data Layer** | `services/data-layer/` | 98 entity types, unified access |
 | **Trust Systems** | `services/trust-systems/` | Relationship building |
 
@@ -440,7 +440,7 @@ User Conversation
 | **Superhuman** | `services/superhuman/index.ts` | 19 capabilities |
 | **Semantic V3** | `services/superhuman/semantic-intelligence/index.ts` | AI understanding |
 | **Predictions** | `intelligence/predictive/index.ts` | Multi-signal fusion |
-| **Collective** | `intelligence/collective-learning-integration.ts` | Cross-user learning |
+| **Collective** | `intelligence/collective/integration.ts` | Cross-user learning |
 | **Data Layer** | `services/data-layer/index.ts` | 98 entity types |
 | **Turn Handler** | `agents/voice-agent/turn-handler.ts` | Orchestration point |
 

@@ -482,6 +482,17 @@ describe('holds, first audio and flags', () => {
     c.detach();
   });
 
+  it('carries both soft pause switches, so a barge-in turn shows which pair it ran under', () => {
+    const c = receiptsOn({ SOFT_PAUSE_ONE_OUTCOME: 'on', SOFT_PAUSE_CUT_DROPS_HELD: 'off' });
+    c.commit(Date.now() - 500);
+    c.reply();
+    expect(c.receipts[0].flags).toMatchObject({
+      SOFT_PAUSE_ONE_OUTCOME: 'on',
+      SOFT_PAUSE_CUT_DROPS_HELD: 'off',
+    });
+    c.detach();
+  });
+
   it("does not count a hold after Ferni was heard, or another call's", () => {
     const c = receiptsOn({});
     c.commit(Date.now() - 500);

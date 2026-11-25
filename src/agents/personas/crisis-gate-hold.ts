@@ -8,21 +8,30 @@
 import { ReadableStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
+import { escalationFailsClosed } from './crisis-gate-failure.js';
 
 const log = createLogger({ module: 'CrisisGate' }); // the gate's own log lines, as before
 
 /**
  * Hold the model's reply until the escalation settles. No escalation: release
  * what was held and pass the rest through. An escalation: drop the reply and
- * stream the replacement instead.
+ * stream the replacement instead. A rejected escalation counts as none, unless
+ * `failClosed` (CRISIS_GATE_FAIL_CLOSED): then the reply is dropped, never
+ * released, and the stream errors.
  */
 export function holdUntilCleared<C, D>(
   reply: ReadableStream<C>,
   escalation: Promise<D | null>,
-  replacement: (decision: D) => Promise<ReadableStream<C> | null>
+  replacement: (decision: D) => Promise<ReadableStream<C> | null>,
+  { failClosed = false }: { failClosed?: boolean } = {}
 ): ReadableStream<C> {
   const reader = reply.getReader();
   let dropped = false;
+  const dropReply = async (error: unknown): Promise<never> => {
+    dropped = true;
+    await reader.cancel().catch(() => undefined);
+    throw error;
+  };
   return new ReadableStream<C>({
     async start(controller) {
       const held: C[] = [];
@@ -41,7 +50,7 @@ export function holdUntilCleared<C, D>(
       });
 
       try {
-        const decision = await escalation.catch(() => null);
+        const decision = await escalation.catch(failClosed ? dropReply : () => null);
         if (!decision) {
           released = true;
           // How long a ready reply waited on the classifier: the latency this gate adds.
@@ -68,4 +77,11 @@ export function holdUntilCleared<C, D>(
       await reader.cancel(reason).catch(() => undefined);
     },
   });
+}
+
+/** The hold for this env: CRISIS_GATE_FAIL_CLOSED's never releases a reply on a rejection. */
+export function holdFor(env: Record<string, string | undefined>): typeof holdUntilCleared {
+  if (!escalationFailsClosed(env)) return holdUntilCleared;
+  return (reply, escalation, replacement) =>
+    holdUntilCleared(reply, escalation, replacement, { failClosed: true });
 }
