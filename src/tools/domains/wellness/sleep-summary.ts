@@ -18,6 +18,12 @@ export function ouraSleepToolEnabled(env: Env = process.env): boolean {
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+/** A YYYY-MM-DD that names a day on the calendar: 2026-13-45 and 2026-02-30 do not. */
+function isRealDay(date: string): boolean {
+  const ms = Date.parse(`${date}T00:00:00Z`);
+  return !Number.isNaN(ms) && new Date(ms).toISOString().slice(0, 10) === date;
+}
+
 const MESSAGES = {
   not_connected:
     'This caller has not connected an Oura ring, so you cannot see how they slept. Tell them that plainly, give no sleep numbers, and say they can connect Oura in the Ferni app.',
@@ -36,7 +42,10 @@ function durationText(minutes: number | null): string | null {
   return `${h === 0 ? '' : `${h} hour${h === 1 ? '' : 's'} `}${minutes % 60} minutes`;
 }
 
-type Caller = { userId: string; verified: boolean };
+interface Caller {
+  userId: string;
+  verified: boolean;
+}
 
 /** Always the caller the call names, never the factory's ctx.userId; verified only as the session says (verified-caller.ts), and never on a call Ferni placed with PLACED_CALL_NOT_OWNER_PROOF on. */
 export function callerOf(opts: unknown): Caller {
@@ -69,6 +78,13 @@ export async function sleepSummaryFor(
       status: 'invalid_date',
       message:
         'The date must be a past or present day written YYYY-MM-DD. Ask which night they mean, or leave the date out for last night.',
+    };
+  }
+  if (date !== undefined && !isRealDay(date)) {
+    return {
+      status: 'invalid_date',
+      message:
+        "That date doesn't exist on the calendar. Ask which night they mean, or leave the date out for last night. Give no sleep numbers.",
     };
   }
 
@@ -106,6 +122,6 @@ export const getSleepSummaryDef: ToolDefinition = {
     createSleepSummaryTool(
       'How the caller actually slept, read from their connected Oura ring: sleep score, total sleep, efficiency, time to fall asleep, deep/REM/light, readiness and what fed it. Use when they ask how they slept, how rested they are or what their readiness is. Leave date out for last night, or pass YYYY-MM-DD for another night. ' +
         'Speak ONLY the numbers this tool returns. If status is not "ok", tell them you cannot see their sleep and why (not connected, needs reconnecting, no data for that night), and give no numbers. Never guess or estimate sleep. This is not medical advice.',
-      (date, opts) => sleepSummaryFor(callerOf(opts), date)
+      async (date, opts) => sleepSummaryFor(callerOf(opts), date)
     ),
 };

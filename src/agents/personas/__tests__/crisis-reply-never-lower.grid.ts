@@ -228,6 +228,7 @@ export const CLASSIFIER: Record<Answer, CrisisGenerateFn> = {
   crisis: verdict('crisis', 'self'),
   imminent: verdict('imminent', 'self'),
   other: verdict('imminent', 'other'),
+  'for them': verdict('imminent', 'third_party'),
   throws: async () => {
     classifierCalls++;
     throw new Error('provider down');
