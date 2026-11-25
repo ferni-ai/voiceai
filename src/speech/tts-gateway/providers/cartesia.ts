@@ -21,6 +21,7 @@ import {
   cartesiaPronunciation,
 } from '../../../config/voice-ids.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
+import type { TTSLanguage } from '../reply-language.js';
 import { CartesiaReplyStream, type ReplyStream } from './cartesia-reply-stream.js';
 import { CartesiaSocket, DEFAULT_SOCKET_WARMTH } from './cartesia-socket.js';
 import { protectSpell } from '../ssml/speech-markup.js';
@@ -96,7 +97,8 @@ export class CartesiaTTSProvider implements ITTSProvider {
   async synthesize(
     text: string,
     voiceId: string,
-    prosody?: SSMLProsodyConfig
+    prosody?: SSMLProsodyConfig,
+    language: TTSLanguage = 'en'
   ): Promise<ArrayBuffer> {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
@@ -118,7 +120,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
         encoding: 'pcm_s16le' as const,
         sample_rate: 24000,
       },
-      language: 'en',
+      language,
     };
 
     const response = await fetch(BYTES_API, {
@@ -151,7 +153,8 @@ export class CartesiaTTSProvider implements ITTSProvider {
   async *synthesizeStreaming(
     text: string,
     voiceId: string,
-    prosody?: SSMLProsodyConfig
+    prosody?: SSMLProsodyConfig,
+    language: TTSLanguage = 'en'
   ): AsyncIterable<ArrayBuffer> {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
@@ -190,7 +193,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
             encoding: 'pcm_s16le',
             sample_rate: 24000,
           },
-          language: 'en',
+          language,
           context_id: contextId,
           continue: false,
         },
@@ -247,7 +250,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
    * pushes each sentence as the LLM finishes it, and Cartesia keeps the tone
    * and pacing continuous across them. Put any inline tags on the first push.
    */
-  openReplyStream(voiceId: string): ReplyStream {
+  openReplyStream(voiceId: string, language: () => TTSLanguage = () => 'en'): ReplyStream {
     // TTS_ALIGNED_TRANSCRIPT: word timings for the captions (word-timings.ts).
     const timestamps = flagOn('TTS_ALIGNED_TRANSCRIPT');
     return new CartesiaReplyStream(
@@ -258,7 +261,8 @@ export class CartesiaTTSProvider implements ITTSProvider {
         transcript,
         voice: { mode: 'id', id: voiceId },
         output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 24000 },
-        language: 'en',
+        // Read per push: the reply's language is fixed by its first words (#4062).
+        language: language(),
         context_id: contextId,
         continue: more,
         // The gateway already sends whole sentences; server buffering only adds delay.

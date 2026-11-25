@@ -182,6 +182,7 @@ const SCRIPT_WORDING = [
   'You can also',
   'Si estás en peligro ahora mismo, llama al 911.',
   "You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.",
+  '¿Estás a salvo ahora mismo?',
   'That sounds like an emergency. Please call 911 right now, and put them on speaker so you can stay with them.',
   "If they're not breathing or not responding, tell the dispatcher; they'll walk you through what to do until help gets there.",
   "I'm right here with you. Is anyone else there who can help?",
