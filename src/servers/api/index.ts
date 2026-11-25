@@ -242,7 +242,7 @@ const server = http.createServer((req, res) =>
 async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   addRequestId(req, res); // request ID for tracing
 
-  setSecurityHeaders(res); // HSTS, CSP, X-Frame-Options, etc.
+  setSecurityHeaders(res, { requestPath: req.url }); // HSTS, CSP, X-Frame-Options, etc.
 
   // Handle CORS
   setCorsHeaders(req, res);

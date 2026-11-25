@@ -31,8 +31,10 @@ export interface SecurityHeadersConfig {
   cspDirectives?: Record<string, string[]>;
   /** Enable X-Frame-Options (default: true) */
   frameOptions?: boolean;
-  /** X-Frame-Options value (default: DENY) */
+  /** X-Frame-Options value (default: by request path, see frameOptionsFor) */
   frameOptionsValue?: 'DENY' | 'SAMEORIGIN';
+  /** The request's URL path (req.url), which picks the default X-Frame-Options */
+  requestPath?: string;
   /** Enable X-Content-Type-Options (default: true) */
   contentTypeOptions?: boolean;
   /** Enable Referrer-Policy (default: true) */
@@ -130,6 +132,15 @@ const DEFAULT_PERMISSIONS_POLICY = [
   'xr-spatial-tracking=()',
 ].join(', ');
 
+/** Pages the app frames itself: the admin Avatar Soul page frames the avatar lab. */
+const SAME_ORIGIN_FRAMED_PATHS: ReadonlySet<string> = new Set(['/avatar-lab']);
+
+/** SAMEORIGIN for exactly those paths (query ignored); DENY for every other page. */
+function frameOptionsFor(requestPath = ''): 'DENY' | 'SAMEORIGIN' {
+  const pathname = requestPath.split(/[?#]/, 1)[0];
+  return SAME_ORIGIN_FRAMED_PATHS.has(pathname) ? 'SAMEORIGIN' : 'DENY';
+}
+
 /**
  * Check if running in production
  */
@@ -173,7 +184,10 @@ export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersC
 
   // X-Frame-Options
   if (config.frameOptions !== false) {
-    res.setHeader('X-Frame-Options', config.frameOptionsValue ?? 'DENY');
+    res.setHeader(
+      'X-Frame-Options',
+      config.frameOptionsValue ?? frameOptionsFor(config.requestPath)
+    );
   }
 
   // X-Content-Type-Options
