@@ -42,6 +42,7 @@ import {
 } from './crisis-read-room.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
+import { markReader, readerKey } from './crisis-one-reader.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
@@ -477,7 +478,7 @@ export function startCrisisClassifier(
       },
       'CRISIS_CLASSIFIER'
     );
-    return v;
+    return markReader(v, readerKey(normalized, prompt, env)); // one reader per input
   });
   const run = { mode, verdict };
   if (cacheable) recentRuns.set(key, run, { scope: options.call ?? '', on, now: startedAt });

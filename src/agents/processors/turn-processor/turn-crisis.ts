@@ -28,6 +28,7 @@ import {
 import { noteCrisisRisk, notePatternRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   afterCheckLoneRead,
+  readersAgree,
   noteConfirmedRisk,
   type LoneRead,
 } from '../../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
@@ -308,13 +309,14 @@ export function startTurnCrisis(
               log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: outcome === 'soft' };
             }
-            // Reads of this turn that agree on risk are never eased.
+            // Reads of this turn that agree on risk are never eased (every read counts here).
             if (
               verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2
             ) {
               softTransfer = false;
-              noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check
             }
+            // CRISIS_CONFIRMED_CALL_RISK, before any after-check: same-input runs are one reader.
+            if (readersAgree(verdicts, 'pipeline')) noteConfirmedRisk(call, env);
             // A classifier-only crisis gets a fuller second read (crisis-adjudicator.ts).
             const adjudicator = startCrisisAdjudicator(transcriptFrom(input), {
               pattern,

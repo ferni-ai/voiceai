@@ -47,6 +47,7 @@ import {
 import { withoutCrisisHeldNotes } from '../multi-agent/recall-note.js';
 import {
   afterCheckLoneRead,
+  readersAgree,
   noteConfirmedRisk,
 } from '../../services/safety/crisis-confirmed-risk.js';
 import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
@@ -272,11 +273,12 @@ export function startCrisisGate(
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
       }
-      // Reads of this turn that agree on risk are never eased.
+      // Reads of this turn that agree on risk are never eased (every read counts here).
       if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
         softTransfer = false;
-        noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check
       }
+      // CRISIS_CONFIRMED_CALL_RISK, before any after-check: same-input runs are one reader.
+      if (readersAgree(verdicts, 'gate')) noteConfirmedRisk(call, env);
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
         pattern,
