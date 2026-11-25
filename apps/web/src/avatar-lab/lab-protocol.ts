@@ -20,7 +20,6 @@ const LAB_MOMENTS = [
   'protectiveOn',
   'protectiveOff',
   'celebrateGrowth',
-  'shimmer',
   'cameoArrival',
   'cameoReturn',
 ] as const;

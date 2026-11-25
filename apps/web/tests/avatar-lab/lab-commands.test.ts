@@ -5,7 +5,13 @@
  * would refuse, with nothing run.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { runLabCommand, type LabDeps, type LabSoul } from '../../src/avatar-lab/lab-commands.js';
+import {
+  COMMAND_FAILED,
+  runLabCommand,
+  UNKNOWN_COMMAND,
+  type LabDeps,
+  type LabSoul,
+} from '../../src/avatar-lab/lab-commands.js';
 import {
   LAB_MESSAGE_TYPE,
   parseLabReply,
@@ -24,7 +30,6 @@ const SOUL_EXPORTS: ReadonlyArray<keyof LabSoul> = [
   'enterProtectiveMode',
   'exitProtectiveMode',
   'celebrateGrowth',
-  'flashShimmer',
   'triggerCameoArrival',
   'triggerCameoReturn',
 ];
@@ -32,7 +37,6 @@ const SOUL_EXPORTS: ReadonlyArray<keyof LabSoul> = [
 const REDUCED_WHY = 'Reduced motion is on, so this moment does not play';
 const HELD_WHY = 'The crisis hold allows only calm moments';
 const STARTING_WHY = 'The avatar is still starting, so this moment does not play';
-const SHIMMER_WHY = 'The avatar no longer has a shimmer, so this moment does not play';
 const NAME_LIFT_WHY = 'Something is already showing, so the name lift does not show';
 
 /** The moments whose soul export returns early under reduced motion or before the soul starts. */
@@ -169,8 +173,9 @@ describe('parseLabRequest', () => {
     expect(parseLabRequest(request({ name: 'nameLift', effect: 'sparkle' }))).toBeNull();
   });
 
-  it('rejects a moment the lab does not have', () => {
+  it('rejects a moment the lab does not have, including the removed shimmer', () => {
     expect(parseLabRequest(request({ name: 'moment', moment: 'confetti' }))).toBeNull();
+    expect(parseLabRequest(request({ name: 'moment', moment: 'shimmer' }))).toBeNull();
   });
 
   it('rejects __proto__ and other non-commands', () => {
@@ -285,6 +290,11 @@ describe('runLabCommand: each command runs exactly its export', () => {
     expect(run(unknown, d)).toEqual({ ok: false, why: 'unknown command' });
     expect(calledNames(d)).toEqual([]);
   });
+
+  it('keeps the shared refusals frozen, so no reply can change them for the next one', () => {
+    expect(Object.isFrozen(UNKNOWN_COMMAND)).toBe(true);
+    expect(Object.isFrozen(COMMAND_FAILED)).toBe(true);
+  });
 });
 
 describe('runLabCommand: status', () => {
@@ -395,12 +405,6 @@ describe('runLabCommand: nothing shows, so nothing is said to play', () => {
       expect(run({ name: 'moment', moment }, d)).toEqual({ ok: false, why: STARTING_WHY });
       expect(calledNames(d)).toEqual([]);
     }
-  });
-
-  it('refuses the shimmer, whose element the avatar no longer creates', () => {
-    const d = fakeDeps();
-    expect(run({ name: 'moment', moment: 'shimmer' }, d)).toEqual({ ok: false, why: SHIMMER_WHY });
-    expect(d.soul.flashShimmer).not.toHaveBeenCalled();
   });
 
   it('refuses a name lift over a comfort pulse, protective mode or an open dialog', () => {

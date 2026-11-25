@@ -4,8 +4,12 @@
  *
  * The exports are injected (LabDeps) so tests can spy on them. The gates are
  * not: they are the real predicates (the crisis face hold, the avatar motion
- * switch, the viewer's reduced motion), so the lab refuses exactly what a call
- * would refuse.
+ * switch, the soul's own reduced-motion and started state). Most moments are
+ * refused exactly when their export would refuse. Three follow a lab policy
+ * stricter than the export: celebrateGrowth, triggerCameoArrival and
+ * triggerCameoReturn do not check the crisis hold themselves, but the lab
+ * refuses them during it (by the crisis affect they play), so the admin never
+ * reads "played" for a moment that is mostly refused mid-way.
  */
 import type { CrisisAffect } from '../config/crisis-faces.js';
 import type { TurnDriver } from '../ui/avatar-motion/turn-driver.js';
@@ -39,7 +43,6 @@ export interface LabSoul {
   enterProtectiveMode(): void;
   exitProtectiveMode(): void;
   celebrateGrowth(): void;
-  flashShimmer(intensity?: number): void;
   triggerCameoArrival(personaColor: string, isFirstCameo?: boolean): void;
   triggerCameoReturn(): void;
   getState(): LabSoulState;
@@ -64,16 +67,15 @@ const MOMENT_HELD_WHY = 'The crisis hold allows only calm moments';
 const REDUCED_WHY = 'Reduced motion is on, so this moment does not play';
 const PROTECTIVE_REDUCED_WHY = 'Reduced motion is on, so protective mode does not play';
 const STARTING_WHY = 'The avatar is still starting, so this moment does not play';
-const SHIMMER_GONE_WHY = 'The avatar no longer has a shimmer, so this moment does not play';
 const NAME_LIFT_COVERED_WHY = 'Something is already showing, so the name lift does not show';
 
 /** The refusal for a request the lab cannot run: an unknown name or argument. */
-export const UNKNOWN_COMMAND: LabResult = { ok: false, why: UNKNOWN_WHY };
+export const UNKNOWN_COMMAND: Readonly<LabResult> = Object.freeze({ ok: false, why: UNKNOWN_WHY });
 /** The answer when an export throws: nothing showed. */
-export const COMMAND_FAILED: LabResult = {
+export const COMMAND_FAILED: Readonly<LabResult> = Object.freeze({
   ok: false,
   why: 'Something went wrong, so this did not play',
-};
+});
 
 const quiet = { userLevel: 0, canInterrupt: false } as const;
 
@@ -104,11 +106,6 @@ const comfortPulseMotion: Gate = () => {
   if (avatarMotionAllowed('comfortPulse')) return null;
   return prefersReducedMotion() ? REDUCED_WHY : MOMENT_HELD_WHY;
 };
-/**
- * flashShimmer draws only into the iris shimmer, which avatar-soul.ui.ts no
- * longer creates (`irisShimmerElement` is always null), so it never shows.
- */
-const shimmerGone: Gate = () => SHIMMER_GONE_WHY;
 
 interface MomentRow {
   ran: keyof LabSoul;
@@ -145,7 +142,6 @@ const MOMENTS: Readonly<Record<LabMoment, MomentRow>> = {
     gates: [started, motion(), affect('celebration')],
     play: (d) => d.soul.celebrateGrowth(),
   },
-  shimmer: { ran: 'flashShimmer', gates: [shimmerGone], play: (d) => d.soul.flashShimmer(1) },
   cameoArrival: {
     ran: 'triggerCameoArrival',
     gates: [started, motion(), affect('sparkle')],

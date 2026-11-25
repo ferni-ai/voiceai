@@ -20,7 +20,6 @@ function fakeDeps() {
       enterProtectiveMode: vi.fn(),
       exitProtectiveMode: vi.fn(),
       celebrateGrowth: vi.fn(),
-      flashShimmer: vi.fn(),
       triggerCameoArrival: vi.fn(),
       triggerCameoReturn: vi.fn(),
       getState: () => ({

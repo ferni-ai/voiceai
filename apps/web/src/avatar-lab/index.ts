@@ -125,8 +125,10 @@ export async function startAvatarLab(): Promise<void> {
   scheduleAvatar(runner, { startTurns: () => true });
   // The app's settle time: slower when the viewer prefers reduced motion
   lab.turnDriver = createTurnDriver(defaultTargets, turnSettleMs());
+  // Stop and start back to back, after the await: two concurrent starts then leave one listener
+  const deps = await liveDeps(lab.turnDriver);
   lab.stopBridge?.();
-  lab.stopBridge = startLabBridge(window, await liveDeps(lab.turnDriver));
+  lab.stopBridge = startLabBridge(window, deps);
 
   document.querySelector('.avatar-container')?.classList.add('entrance-complete');
   log.info('Avatar lab started');

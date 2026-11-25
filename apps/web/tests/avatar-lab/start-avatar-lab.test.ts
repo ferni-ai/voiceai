@@ -20,6 +20,7 @@ const m = vi.hoisted(() => {
     driver: { update: () => undefined, shown: () => 'none', dispose: () => undefined },
     logError: vi.fn(),
     stopBridge: vi.fn(),
+    realBridge: false,
     soul: { getState: () => ({ isInitialized: false }) },
   };
 });
@@ -47,12 +48,16 @@ vi.mock('../../src/ui/avatar-motion/turn-driver.js', async (importOriginal) => (
     return m.driver;
   }),
 }));
-vi.mock('../../src/avatar-lab/lab-bridge.js', () => ({
-  startLabBridge: vi.fn(() => {
-    m.order.push('startLabBridge');
-    return m.stopBridge;
-  }),
-}));
+// A stand-in bridge, or the real one when a test sets m.realBridge.
+vi.mock('../../src/avatar-lab/lab-bridge.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/avatar-lab/lab-bridge.js')>();
+  return {
+    startLabBridge: vi.fn((win: Window, deps: LabDeps) => {
+      m.order.push('startLabBridge');
+      return m.realBridge ? actual.startLabBridge(win, deps) : m.stopBridge;
+    }),
+  };
+});
 vi.mock('../../src/ui/avatar-soul.ui.js', () => ({ avatarSoul: m.soul }));
 vi.mock('../../src/utils/logger.js', () => ({
   createLogger: () => ({
@@ -67,6 +72,7 @@ import { initializeTheme } from '../../src/app/app-theme.js';
 import { startAvatarLab } from '../../src/avatar-lab/index.js';
 import { startLabBridge } from '../../src/avatar-lab/lab-bridge.js';
 import type { LabDeps } from '../../src/avatar-lab/lab-commands.js';
+import { LAB_MESSAGE_TYPE } from '../../src/avatar-lab/lab-protocol.js';
 import { playNameLift } from '../../src/ui/avatar-motion/name-lift.js';
 import { holdCrisisFace, releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 import { bootAvatarNow, scheduleAvatar } from '../../src/ui/avatar-boot.js';
@@ -229,5 +235,30 @@ describe('startAvatarLab', () => {
     await startAvatarLab();
     expect(m.stopBridge).toHaveBeenCalledOnce();
     expect(vi.mocked(startLabBridge)).toHaveBeenCalledTimes(2);
+  });
+
+  it('two concurrent starts leave one listener and one reply per request', async () => {
+    m.realBridge = true;
+    const added = vi.spyOn(window, 'addEventListener');
+    const removed = vi.spyOn(window, 'removeEventListener');
+    const posted = vi.spyOn(window, 'postMessage').mockImplementation(() => undefined);
+    const messageCalls = (spy: { mock: { calls: unknown[][] } }): number =>
+      spy.mock.calls.filter(([type]) => type === 'message').length;
+    try {
+      await Promise.all([startAvatarLab(), startAvatarLab()]);
+      expect(messageCalls(added) - messageCalls(removed)).toBe(1);
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { type: LAB_MESSAGE_TYPE, id: 'twice', command: { name: 'status' } },
+          origin: window.location.origin,
+          source: window,
+        })
+      );
+      expect(posted).toHaveBeenCalledOnce();
+      expect(posted.mock.calls[0][0]).toMatchObject({ id: 'twice', ok: true });
+    } finally {
+      m.realBridge = false;
+      await startAvatarLab(); // stops the real bridge this test started
+    }
   });
 });
