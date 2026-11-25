@@ -52,8 +52,6 @@ export interface ToolTrackingContext {
   sessionId: string;
   /** Enable debug logging */
   debugEnabled?: boolean;
-  /** Enable verbose tool result logging (from admin config) */
-  logToolResults?: boolean;
   /** Callback to send data messages to frontend (for behavior signals) */
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
 }
@@ -110,16 +108,8 @@ interface ToolInfo {
 const BEHAVIOR_TOOLS = ['shiftMode', 'adjustPacing', 'processing', 'holdSpace', 'expressPresence'];
 
 export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTrackingResult {
-  const {
-    session,
-    userData,
-    services,
-    sessionPersona,
-    sessionId,
-    debugEnabled,
-    logToolResults,
-    sendDataMessage,
-  } = ctx;
+  const { session, userData, services, sessionPersona, sessionId, debugEnabled, sendDataMessage } =
+    ctx;
   const logger = log();
 
   session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
@@ -145,12 +135,6 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
       process.stderr.write(`\n✅ [NATIVE FC] TOOL EXECUTED at ${timestamp}\n`);
       process.stderr.write(`   Tools: ${toolNames.join(', ') || 'unknown'}\n`);
-
-      // Verbose tool result logging (controlled by admin config)
-      if (logToolResults) {
-        process.stderr.write(`🔧 [TOOL RESULT] FunctionToolsExecuted event:\n`);
-        process.stderr.write(`${JSON.stringify(toolsExecutedFields(event), null, 2)}\n`);
-      }
 
       // Debug logging (can be disabled in production)
       if (debugEnabled) {

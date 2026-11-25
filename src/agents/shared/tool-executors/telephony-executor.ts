@@ -9,7 +9,6 @@
  * @module agents/shared/tool-executors/telephony-executor
  */
 
-import { errorClass } from '../../../utils/error-class.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { isOutreachConfirmOn } from '../../../tools/domains/communication/outreach/outreach-confirm.js';
 import { noAccountRefusal } from '../../../tools/registry/outbound-gate.js';
@@ -48,9 +47,6 @@ const TOOL_ALIASES: Record<string, string> = {
   // "Did you call my dad?" is a call status, not voicemail (call-status-tool.ts).
   call_history: 'callstatus',
 };
-
-/** How long a caller's words were: logs carry the length, never the words. */
-const chars = (text: string | undefined): number => text?.length ?? 0;
 
 /** The tools here that call, text or email someone other than the account owner. */
 const THIRD_PARTY = new Set(['reachout', 'multioutreach', 'callonbehalf']);
@@ -99,10 +95,7 @@ async function execute(
     const message = args.message as string | undefined;
     const sendNow = args.sendNow !== false; // Default to true
 
-    log.info(
-      { hasContact: !!contact, purposeChars: chars(purpose), preferredChannel, sessionId },
-      '🤝 Unified outreach initiated'
-    );
+    log.info({ contact, purpose, preferredChannel, userId }, '🤝 Unified outreach initiated');
 
     if (!contact) {
       return 'Who would you like me to reach out to?';
@@ -213,7 +206,7 @@ async function execute(
 
       return `I'm not sure how to reach ${contactInfo.name}. What's the best way?`;
     } catch (error) {
-      log.error({ error: errorClass(error), sessionId }, '🤝 Unified outreach failed');
+      log.error({ error: String(error), contact, purpose }, '🤝 Unified outreach failed');
       return `I had trouble reaching out to ${contact}. ${error instanceof Error ? error.message : 'Would you like me to try a different way?'}`;
     }
   }
@@ -233,7 +226,7 @@ async function execute(
     const defaultPurpose = (args.defaultPurpose as string) || 'check in';
 
     log.info(
-      { sessionId, targetCount: targets?.length, defaultPurposeChars: defaultPurpose.length },
+      { userId, targetCount: targets?.length, defaultPurpose },
       '🤝 Multi-outreach initiated'
     );
 
@@ -289,10 +282,7 @@ async function execute(
     const purpose = (args.purpose || args.objective) as string | undefined;
     const tone = args.tone as string | undefined;
 
-    log.info(
-      { hasName: !!contactQuery, hasPhone: !!phoneNumber, purposeChars: chars(purpose), sessionId },
-      '📞 Initiating phone call'
-    );
+    log.info({ contactQuery, purpose, userId, fn: fnLower }, '📞 Initiating phone call');
 
     if (!contactQuery && !phoneNumber) {
       return "Who should I call? I'll need a name or phone number.";
@@ -329,7 +319,7 @@ async function execute(
         additionalContext: tone ? `Tone: ${tone}` : undefined,
       });
     } catch (err) {
-      log.error({ error: errorClass(err), sessionId }, '📞 Failed to initiate call');
+      log.error({ error: String(err), contact }, '📞 Failed to initiate call');
 
       // Provide helpful error message
       const errorMsg = String(err);
@@ -349,7 +339,7 @@ async function execute(
     const contact = args.contact as string;
     const when = args.when as string;
 
-    log.info({ hasContact: !!contact, hasWhen: !!when, sessionId }, '📅 Scheduling callback');
+    log.info({ contact, when, userId }, '📅 Scheduling callback');
 
     if (!contact) {
       return 'Who should call you back?';
@@ -370,7 +360,7 @@ async function execute(
   // Check or manage voicemail messages
   // ========================================
   if (fnLower === 'checkvoicemail') {
-    log.info({ sessionId }, '📬 Checking voicemail');
+    log.info({ userId }, '📬 Checking voicemail');
 
     // For now, voicemail integration isn't set up
     return "Voicemail checking isn't set up yet. Is there someone specific you're expecting to hear from?";

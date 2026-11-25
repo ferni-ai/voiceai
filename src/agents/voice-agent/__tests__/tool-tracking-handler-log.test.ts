@@ -50,7 +50,7 @@ const ID_LENGTH = 40;
 const WORDS = 'zorbleflax-fictional-contact';
 const ARGS = JSON.stringify({ contactQuery: WORDS, purpose: 'return the fictional ladder' });
 
-async function fire(event: unknown, logToolResults = false) {
+async function fire(event: unknown) {
   sdk.handler = undefined;
   setupToolTrackingHandler({
     session: {
@@ -62,7 +62,6 @@ async function fire(event: unknown, logToolResults = false) {
     services: { userId: 'user-fic1', sessionId: 'session-fic1' },
     sessionPersona: { id: 'ferni' },
     sessionId: 'session-fic1',
-    logToolResults,
   } as unknown as Parameters<typeof setupToolTrackingHandler>[0]);
   (sdk.handler as ((e: unknown) => void) | undefined)?.(event);
   await Promise.all(sdk.pending.splice(0));
@@ -118,6 +117,26 @@ describe('FUNCTION TOOLS EXECUTED line', () => {
     expect(everything(stderr)).not.toContain('ladder');
   });
 
+  it('a memory recall sentence in a tool output never reaches a log line or stderr', async () => {
+    const sentence = 'Your fictional sister Quenby told you she is moving to Lisbon in March.';
+    await fire({
+      functionCalls: [{ callId: 'm1', name: 'recallFromMemory', args: '{"query":"my sister"}' }],
+      functionCallOutputs: [{ callId: 'm1', name: 'recallFromMemory', output: sentence }],
+    });
+    const line = sdk.info.mock.calls.find((c) => c[1] === '🔧 FUNCTION TOOLS EXECUTED');
+    expect(line?.[0]).toMatchObject({
+      tools: [{ name: 'recallFromMemory', argKeys: ['query'], outputChars: sentence.length }],
+    });
+    for (const word of ['Quenby', 'Lisbon', 'sister', 'March']) {
+      expect(everything(stderr)).not.toContain(word);
+    }
+  });
+
+  it('no verbose result dump is written to stderr', async () => {
+    await fire(event());
+    expect(stderr.mock.calls.map((c) => String(c[0])).join('')).not.toContain('TOOL RESULT');
+  });
+
   it('no string field in the line is longer than an id', async () => {
     await fire(event());
     const line = sdk.info.mock.calls.find((c) => c[1] === '🔧 FUNCTION TOOLS EXECUTED')?.[0];
@@ -125,14 +144,6 @@ describe('FUNCTION TOOLS EXECUTED line', () => {
     JSON.stringify(line, (_k, v) => (typeof v === 'string' && strings.push(v), v));
     expect(strings.length).toBeGreaterThan(0);
     for (const s of strings) expect(s.length).toBeLessThanOrEqual(ID_LENGTH);
-  });
-
-  it('with the admin verbose switch on, stderr gets the same fields, not the event', async () => {
-    await fire(event(), true);
-    const written = stderr.mock.calls.map((c) => String(c[0])).join('');
-    expect(written).toContain('"argKeys"');
-    expect(written).not.toContain('zorbleflax');
-    expect(written).not.toContain('ladder');
   });
 });
 
