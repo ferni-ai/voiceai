@@ -806,7 +806,6 @@ export class SpeechCoordinator {
           allowInterruptions: request.allowInterruptions ?? true,
         });
       }
-      // Note: onSpeechEnded() will be called by session state handler
     } catch (error) {
       const errorStr = String(error);
       // Expected error when session disconnects - use debug level
@@ -826,7 +825,8 @@ export class SpeechCoordinator {
     try {
       this.processQueue();
     } catch (error) {
-      log.error({ error: errorClass(error) }, 'Queued line dropped: it threw before speaking');
+      const id = this.currentRequest?.id; // the line that threw, not the one that failed before it
+      log.error({ error: errorClass(error), id }, 'Queued line dropped: it threw before speaking');
       this.abandonLine();
     }
   }

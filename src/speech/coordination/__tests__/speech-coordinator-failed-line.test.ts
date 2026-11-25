@@ -141,9 +141,9 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
       .mockImplementationOnce(() => {
         throw new Error('session is gone');
       });
-    await speak('Line A');
+    const a = await speak('Line A');
     await speak('Line B');
-    await coordinator.requestSpeak({
+    const c = await coordinator.requestSpeak({
       text: 'Line C',
       priority: SpeechPriority.RESPONSE,
       source: 'direct',
@@ -160,8 +160,51 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     const dropped = sink.calls.find(
       (c) => c[1] === 'Queued line dropped: it threw before speaking'
     );
-    expect(dropped?.[0]).toEqual({ error: 'Error' });
+    // The dropped line's own id (C's), the error class only, and no line blames A for C's throw.
+    expect(dropped?.[0]).toEqual({ error: 'Error', id: c.id });
     expect(JSON.stringify(sink.calls)).not.toContain('5550142');
+    expect(JSON.stringify(sink.calls)).not.toContain(a.id);
+  });
+
+  describe('one failed line frees the slot once: the next line speaks once and the one after waits', () => {
+    const refuse = () => {
+      throw new Error('session is gone');
+    };
+
+    it('a line the session refuses', async () => {
+      say.mockImplementationOnce(() => undefined).mockImplementationOnce(refuse);
+
+      await queueBehindALine('Line B', 'Line C', 'Line D');
+
+      expect(spoken(say)).toEqual(['Line A', 'Line B', 'Line C']);
+      expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+    });
+
+    it('a line with nothing left after the SSML strip', async () => {
+      await queueBehindALine(SSML_ONLY, 'Line C', 'Line D');
+
+      expect(spoken(say)).toEqual(['Line A', 'Line C']);
+      expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+    });
+
+    it('a line the session refuses on the legacy path', async () => {
+      vi.stubEnv('USE_TTS_GATEWAY', 'false');
+      say.mockImplementationOnce(() => undefined).mockImplementationOnce(refuse);
+
+      await queueBehindALine('Line B', 'Line C', 'Line D');
+
+      expect(spoken(say)).toEqual(['Line A', 'Line B', 'Line C']);
+      expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+    });
+
+    it('a line with nothing left on the legacy path, or only whitespace after the strip', async () => {
+      vi.stubEnv('USE_TTS_GATEWAY', 'false');
+
+      await queueBehindALine(`${SSML_ONLY}   `, 'Line C', 'Line D');
+
+      expect(spoken(say)).toEqual(['Line A', 'Line C']);
+      expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+    });
   });
 
   it('a second speech-ended event for one line releases the next line once', async () => {
