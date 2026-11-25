@@ -13,7 +13,7 @@ import { bootAvatarNow, scheduleAvatar, type AvatarBootRunner } from '../ui/avat
 import {
   createTurnDriver,
   defaultTargets,
-  TURN_SETTLE_MS,
+  turnSettleMs,
   type TurnDriver,
 } from '../ui/avatar-motion/turn-driver.js';
 import { initWaveformUI } from '../ui/waveform.ui.js';
@@ -69,7 +69,8 @@ export async function startAvatarLab(): Promise<void> {
   initWaveformUI();
   bootAvatarNow(runner);
   scheduleAvatar(runner, { startTurns: () => true });
-  lab.turnDriver = createTurnDriver(defaultTargets, TURN_SETTLE_MS);
+  // The app's settle time: slower when the viewer prefers reduced motion
+  lab.turnDriver = createTurnDriver(defaultTargets, turnSettleMs());
 
   document.querySelector('.avatar-container')?.classList.add('entrance-complete');
   log.info('Avatar lab started');

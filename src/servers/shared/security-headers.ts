@@ -10,7 +10,7 @@
  * - Permissions-Policy
  */
 
-import type { ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SecurityHeaders' });
@@ -18,7 +18,7 @@ const log = createLogger({ module: 'SecurityHeaders' });
 /**
  * Security headers configuration
  */
-export interface SecurityHeadersConfig {
+interface SecurityHeadersConfig {
   /** Enable HSTS (default: true in production) */
   hsts?: boolean;
   /** HSTS max-age in seconds (default: 1 year) */
@@ -151,7 +151,7 @@ function isProduction(): boolean {
 /**
  * Set security headers on response
  */
-export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersConfig = {}): void {
+function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersConfig = {}): void {
   const inProduction = isProduction();
 
   // HSTS - Only in production with HTTPS
@@ -212,6 +212,14 @@ export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersC
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('X-Download-Options', 'noopen');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+}
+
+/**
+ * Security headers for one request to the UI server: the defaults, with
+ * X-Frame-Options picked by the request's path (frameOptionsFor).
+ */
+export function setRequestSecurityHeaders(req: IncomingMessage, res: ServerResponse): void {
+  setSecurityHeaders(res, { requestPath: req.url });
 }
 
 /**

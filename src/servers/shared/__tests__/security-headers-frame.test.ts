@@ -3,16 +3,16 @@
  * origin, so that one exact path may be framed by the same origin; every other
  * page keeps X-Frame-Options DENY.
  */
-import type { ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { describe, expect, it } from 'vitest';
-import { setSecurityHeaders } from '../security-headers.js';
+import { setRequestSecurityHeaders } from '../security-headers.js';
 
 function frameOptions(requestPath: string): string | undefined {
   const headers = new Map<string, string>();
   const res = {
     setHeader: (k: string, v: string) => void headers.set(k, v),
   } as unknown as ServerResponse;
-  setSecurityHeaders(res, { requestPath });
+  setRequestSecurityHeaders({ url: requestPath } as IncomingMessage, res);
   return headers.get('X-Frame-Options');
 }
 
@@ -33,7 +33,7 @@ describe('X-Frame-Options per request path', () => {
     const res = {
       setHeader: (k: string, v: string) => void headers.set(k, v),
     } as unknown as ServerResponse;
-    setSecurityHeaders(res);
+    setRequestSecurityHeaders({} as IncomingMessage, res);
     expect(headers.get('X-Frame-Options')).toBe('DENY');
   });
 });

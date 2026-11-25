@@ -12,7 +12,7 @@ const log = createLogger({ module: 'APIServer' });
 
 // Shared utilities
 import { setCorsHeaders, handleCorsPreflightRequest } from '../shared/cors.js';
-import { setSecurityHeaders } from '../shared/security-headers.js';
+import { setRequestSecurityHeaders } from '../shared/security-headers.js';
 import {
   addRequestId,
   handleHealthEndpoint,
@@ -242,7 +242,7 @@ const server = http.createServer((req, res) =>
 async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   addRequestId(req, res); // request ID for tracing
 
-  setSecurityHeaders(res, { requestPath: req.url }); // HSTS, CSP, X-Frame-Options, etc.
+  setRequestSecurityHeaders(req, res); // HSTS, CSP, X-Frame-Options (by path), etc.
 
   // Handle CORS
   setCorsHeaders(req, res);

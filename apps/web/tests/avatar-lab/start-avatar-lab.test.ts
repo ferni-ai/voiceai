@@ -17,7 +17,6 @@ const m = vi.hoisted(() => {
   return {
     order,
     step,
-    targets: { fake: 'targets' },
     driver: { update: () => undefined, shown: () => 'none', dispose: () => undefined },
     logError: vi.fn(),
   };
@@ -38,22 +37,40 @@ vi.mock('../../src/ui/avatar-boot.js', () => ({
   bootAvatarNow: vi.fn(m.step('bootAvatarNow')),
   scheduleAvatar: vi.fn(m.step('scheduleAvatar')),
 }));
-vi.mock('../../src/ui/avatar-motion/turn-driver.js', () => ({
-  TURN_SETTLE_MS: 123,
-  defaultTargets: m.targets,
+// The real settle-time choice and targets; only the driver itself is a stand-in.
+vi.mock('../../src/ui/avatar-motion/turn-driver.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/ui/avatar-motion/turn-driver.js')>()),
   createTurnDriver: vi.fn(() => {
     m.order.push('createTurnDriver');
     return m.driver;
   }),
 }));
 vi.mock('../../src/utils/logger.js', () => ({
-  createLogger: () => ({ info: () => undefined, error: m.logError }),
+  createLogger: () => ({
+    debug: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+    error: m.logError,
+  }),
 }));
 
 import { initializeTheme } from '../../src/app/app-theme.js';
 import { startAvatarLab } from '../../src/avatar-lab/index.js';
 import { bootAvatarNow, scheduleAvatar } from '../../src/ui/avatar-boot.js';
-import { createTurnDriver } from '../../src/ui/avatar-motion/turn-driver.js';
+import {
+  createTurnDriver,
+  defaultTargets,
+  TURN_SETTLE_MS,
+  TURN_SETTLE_REDUCED_MS,
+} from '../../src/ui/avatar-motion/turn-driver.js';
+
+/** The viewer's prefers-reduced-motion setting, as window.matchMedia reports it. */
+function reducedMotion(matches: boolean): void {
+  vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query: string) =>
+      ({ matches: matches && query.includes('reduce'), media: query }) as MediaQueryList
+  );
+}
 
 function runnerFrom(fn: typeof bootAvatarNow): AvatarBootRunner {
   return vi.mocked(fn).mock.calls[0][0];
@@ -70,6 +87,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks(); // the matchMedia spy
 });
 
 describe('startAvatarLab', () => {
@@ -141,7 +159,18 @@ describe('startAvatarLab', () => {
   });
 
   it('creates the turn driver on the real avatar targets at the app settle time', async () => {
+    reducedMotion(false);
     await startAvatarLab();
-    expect(vi.mocked(createTurnDriver)).toHaveBeenCalledWith(m.targets, 123);
+    expect(vi.mocked(createTurnDriver)).toHaveBeenCalledWith(defaultTargets, TURN_SETTLE_MS);
+  });
+
+  it('settles turns more slowly when the viewer prefers reduced motion, as the app does', async () => {
+    expect(TURN_SETTLE_REDUCED_MS).not.toBe(TURN_SETTLE_MS);
+    reducedMotion(true);
+    await startAvatarLab();
+    expect(vi.mocked(createTurnDriver)).toHaveBeenCalledWith(
+      defaultTargets,
+      TURN_SETTLE_REDUCED_MS
+    );
   });
 });
