@@ -3,7 +3,7 @@
  * on dev's database with FLAG_SNAPSHOT on, and a failed write never fails or delays the boot.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FlagStore } from '../adapters/flag-store.js';
+import type { FlagStore } from '../ports/flag-store.js';
 import type { FlagSnapshot } from '../domain/snapshot.js';
 
 const log = vi.hoisted(() => ({ warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() }));

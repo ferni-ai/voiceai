@@ -155,6 +155,28 @@ export function relationWordIn(text: string, vocabulary: readonly string[]): str
   );
 }
 
+/**
+ * The word of `vocabulary` nearest `name` in `text`, whole words only: "my brother Jason" gives
+ * "brother" (never "son" from ja-SON), and "my dad met my son Theo" gives "son" for Theo.
+ */
+export function relationWordNearest(
+  text: string,
+  name: string,
+  vocabulary: readonly string[]
+): string | undefined {
+  const at = text.indexOf(name);
+  let best: { word: string; distance: number } | undefined;
+  for (const word of vocabulary) {
+    for (const m of text.matchAll(
+      new RegExp(`(?<![\\p{L}-])${escape(word)}(?![\\p{L}-])`, 'giu')
+    )) {
+      const distance = Math.abs(m.index - at);
+      if (!best || distance < best.distance) best = { word, distance };
+    }
+  }
+  return best?.word;
+}
+
 const IRREGULAR: Record<string, string> = { children: 'child', wives: 'wife' };
 
 /** The phrase, then its singular readings: "aunties" → "auntie", "sisters-in-law" → "sister-in-law". */

@@ -211,6 +211,9 @@ export const QUESTION_LINE = {
   /** FERNI_STATE=on: a word about himself is followed by turning to them. */
   noneUnlessOwn:
     'No question this time, unless you said something about yourself: then end by asking them one about their world.',
+  /** SELF_SHARE_STAYS=on, asked about him: no turn-back, but a check-in if they sound low. */
+  stays:
+    'No question back this time, unless something they said sounds low or hard: then check on them.',
 };
 
 /**
@@ -225,6 +228,7 @@ function noQuestion(ownStory: boolean | undefined): string {
 /** The no-question line; during a trouble (TROUBLES_TALK=on) it invites nothing of his own. */
 function noQuestionFor(sig: TurnSignals): string {
   if (sig.exitsHeld) return ''; // a turn whose exits are held bars no question (exits-held.ts)
+  if (sig.selfStays) return QUESTION_LINE.stays; // SELF_SHARE_STAYS: no "then ask them one"
   return sig.trouble ? QUESTION_LINE.noneOnThem : noQuestion(sig.ownStory);
 }
 
@@ -345,7 +349,7 @@ function modelChosenShape(
   if (texture) parts.push(texture.line);
   else if (rng() < scaled(0.5, style.filler))
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
-  const asks = rng() < 0.25;
+  const asks = rng() < 0.25 && !sig.selfStays; // SELF_SHARE_STAYS: no question allowance
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
   // No longer than what they just told: carried by the learned length line when that is on.
@@ -410,7 +414,7 @@ export function turnShapeFor(
   parts.push(...stance.lines);
   if (shape !== 'react' && rng() < scaled(0.5, style.filler))
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
-  const asks = questionAllowed(shape, rng);
+  const asks = questionAllowed(shape, rng) && !sig.selfStays;
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));

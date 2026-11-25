@@ -13,9 +13,9 @@
  *
  * Only the stores are stubbed (the unified moment bridge, shared moments, Our Songs, relational
  * memory, collective learning, the music player, the semantic intelligence entry point, the
- * corrections store), and the real model client refuses, so every read goes through the turn's
- * injected model call. The last block pins a known gap: no classifier answer on a line the
- * patterns miss records as on main. All lines fictional.
+ * corrections store, fast capture), and the real model client refuses, so every read goes
+ * through the turn's injected model call. The known-gap block pins one: no classifier answer on
+ * a line the patterns miss records as on main. All lines fictional.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,7 +68,20 @@ const state = vi.hoisted(() => ({
   /** The adjudicator's injected model call: what it answers, and how often it was asked. */
   adjudicate: '',
   adjudicated: 0,
+  /** The words each fast capture was handed (turn-handler.ts dynamic memory capture). */
+  captures: [] as string[],
 }));
+
+vi.mock('../../../memory/dynamic/index.js', async (orig) => {
+  const { noCapture } = await import('../../../memory/third-party-call.js');
+  return {
+    ...(await orig<Record<string, unknown>>()),
+    fastCapture: vi.fn(async (input: { transcript: string }) => {
+      state.captures.push(input.transcript);
+      return noCapture();
+    }),
+  };
+});
 
 // No row may reach a real model: every read in this file goes through the injected `generate`
 vi.mock('../../../config/gemini-config.js', async (orig) => ({
@@ -904,4 +917,37 @@ describe('the hoisted crisis read', () => {
       ]);
     }
   );
+});
+
+/**
+ * A crisis turn's words reach no fast capture at the turn handler: the same plain words are
+ * captured when the read passes them, and not when the classifier reads them as a crisis or no
+ * crisis read reaches the handler (crisis-turn-memory.ts crisisReadTurn, fail closed).
+ */
+describe('turn handler: a crisis turn reaches no fast capture', () => {
+  const PLAIN = 'the garden had a good week and my cousin Tamsin Reed came over to help';
+  const CAPTURE = 'dynamic-memory-capture';
+  const captured = async (read: string, crisisField: CrisisField = 'read') => {
+    state.captures = [];
+    const turn = await runTurn(PLAIN, LIVE, read, 'joy', 3, 0.2, { crisisField });
+    await vi.waitFor(() => {
+      const m = getFireAndForgetMetrics().byContext.find((c) => c.context === CAPTURE);
+      expect(m && m.successes + m.failures).toBe(1);
+    });
+    return { level: turn.level, captures: state.captures.filter((t) => t === PLAIN).length };
+  };
+
+  it('a turn the read passes: captured once, as before', async () => {
+    expect(await captured(NO_RISK)).toEqual({ level: 'pass', captures: 1 });
+  });
+
+  it('plain words the classifier reads as a crisis: not captured', async () => {
+    const turn = await captured(CRISIS);
+    expect(turn.level).not.toBe('pass');
+    expect(turn.captures).toBe(0);
+  });
+
+  it('no crisis read reaches the handler: not captured (fail closed)', async () => {
+    expect(await captured(NO_RISK, 'undefined')).toEqual({ level: 'absent', captures: 0 });
+  });
 });

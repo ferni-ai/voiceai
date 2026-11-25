@@ -117,3 +117,6 @@ export {
   type StressAdaptation,
   type StressReading,
 } from './stress-adaptation.js';
+
+/** A hard moment in the caller's words (bereavement, despair): personas read it too. */
+export { isHeavyMoment } from './heavy-moment.js';

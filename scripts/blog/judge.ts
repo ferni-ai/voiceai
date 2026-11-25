@@ -135,6 +135,41 @@ export async function judgePost(
   return { status: 'error', model, failures: ['the judge gave no readable verdict'] };
 }
 
+/**
+ * The judge's reasons for each dimension under the bar, for the drafter to
+ * revise against: "craft 3 (needs 4): <reason>". Empty when it passed or gave
+ * no verdict.
+ */
+export function editorNotes(result: JudgeResult): string[] {
+  const { verdict } = result;
+  if (!verdict) return [];
+  return result.failures.map((failure) => {
+    const dimension = failure.split(' ')[0] as Dimension;
+    return `${failure}: ${cap(stripMarkup(verdict.scores[dimension].reason), 600)}`;
+  });
+}
+
+/**
+ * Whether the judge's verdict on a rewrite beats its verdict on the first
+ * draft, so the drafter keeps the rewrite (draft.ts). A rewrite with no
+ * verdict, or a judge that couldn't run, never wins: the first draft stands.
+ *
+ * Measured 2026-11-19 (run 44515303932): a rewrite went from 19 to 17 in
+ * total, and honesty fell from 5 to 4, the one dimension the bar holds at 5.
+ */
+export function rewriteIsBetter(before: JudgeResult, after: JudgeResult): boolean {
+  const was = before.verdict;
+  const now = after.verdict;
+  if (!now || after.status === 'error') return false;
+  if (!was) return true;
+  if (after.status === 'pass' && before.status !== 'pass') return true;
+  // Both fail: keep the rewrite only if no dimension dropped and at least one
+  // rose. Strict on purpose: two judge calls vary, and a trade (a point of
+  // honesty for a point of craft) can move a post further from the bar.
+  const pairs = DIMENSIONS.map((d) => [was.scores[d].score, now.scores[d].score]);
+  return pairs.every(([b, a]) => a >= b) && pairs.some(([b, a]) => a > b);
+}
+
 /** Claude through the repo's Anthropic client (ANTHROPIC_API_KEY, optional ANTHROPIC_WORKSPACE_ID). */
 export function claudeJudge(env: NodeJS.ProcessEnv = process.env): JudgeModel {
   const name = env.BLOG_JUDGE_MODEL || 'claude-opus-5-5';

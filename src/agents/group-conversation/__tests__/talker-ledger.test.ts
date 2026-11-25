@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { FRAME_MS, LEDGER_RETENTION_MS, TalkerLedger, VOICED_RMS } from '../talker-ledger.js';
+import { TalkerLedger } from '../talker-ledger.js';
+
+/** The ledger's voiced level, frame length and retention, from the plan. */
+const VOICED_RMS = 500;
+const FRAME_MS = 10;
+const LEDGER_RETENTION_MS = 60_000;
 
 const OWNER = 'owner_web';
 const GUEST = 'guest_call1';

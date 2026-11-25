@@ -28,9 +28,6 @@ export {
   scheduleEmail,
   scheduleCall,
 
-  // Tools for agents (old-style array)
-  proactiveOutreachTools,
-
   // Initialization
   initializeProactiveOutreach,
 

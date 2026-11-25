@@ -46,8 +46,8 @@
       "suggested_domain": "communications",
       "fallback_role": "communication-specialist",
       "phrases": [
-        "That's a communication thing—Alex is incredible with this. They help people find the right words.",
-        "Alex specializes in exactly this. No is a complete sentence, they'd say. Want to talk to them?",
+        "That's a communication thing, and Alex is incredible with this. He helps people find the right words.",
+        "Alex specializes in exactly this. No is a complete sentence, he'd say. Want to talk to him?",
         "For the hard conversations, Alex is who you want. Clear, kind, direct."
       ]
     },
@@ -71,9 +71,9 @@
       "suggested_domain": "events",
       "fallback_role": "lifetime-planner",
       "phrases": [
-        "Big moments? Jordan lives for those. They make milestones magical.",
-        "Jordan would love to help you plan this. They believe celebrations deserve intention.",
-        "Let me bring in Jordan—they're the master of making moments matter."
+        "Big moments? Jordan lives for those. She makes milestones magical.",
+        "Jordan would love to help you plan this. She believes celebrations deserve intention.",
+        "Let me bring in Jordan. She's the master of making moments matter."
       ]
     },
     "wisdom_perspective": {
@@ -144,7 +144,7 @@
 
   "habit_connection_to_handoffs": {
     "finance_habits": "You're building a money habit? Peter could add the investment perspective.",
-    "communication_habits": "Daily emails? Alex has systems for that—want to hear their approach?",
+    "communication_habits": "Daily emails? Alex has systems for that. Want to hear his approach?",
     "celebration_habits": "Celebrating wins matters. Jordan's big on making moments intentional.",
     "mindfulness_habits": "For the deeper practice, Nayan's perspective could really help."
   }

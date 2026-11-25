@@ -30,6 +30,7 @@ import { DEFAULT_ROUTER_CONFIG, isToolExecutionResult } from '../types.js';
 import { recordRoutingOutcome } from './routing-analytics.js';
 import { recordRoutedTurn, startRoutedTurn } from './routed-turn.js';
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
+import { autoExecuteHeld, type AutoExecuteGate } from './auto-execute-hold.js';
 
 // Phase 5: Adversarial Defense - sanitize inputs before routing
 import { sanitizeInput, shouldBlockInput, recordDefenseStats } from '../defense/index.js';
@@ -141,7 +142,7 @@ export interface TurnRouterResult {
 }
 
 /** Context for routing decision */
-export interface RoutingContext {
+export interface RoutingContext extends AutoExecuteGate {
   userId: string;
   sessionId: string;
   personaId: string;
@@ -384,11 +385,11 @@ export async function startSemanticRouting(
       };
     }
 
-    // For auto-execute, run the tool directly
-    if (routeResult.action.type === 'execute' && routeResult.matches.length > 0) {
+    // Auto-execute runs the tool directly, unless held (ROUTER_EXEC_AFTER_CRISIS_READ)
+    const autoExecute = routeResult.action.type === 'execute' && routeResult.matches.length > 0;
+    if (autoExecute && !(await autoExecuteHeld(context, 'semantic'))) {
       const topMatch = routeResult.matches[0];
       try {
-        // Execute the tool using the router
         const executeResult = await executeMatchedTool(topMatch, context);
         const totalLatencyMs = Math.round(performance.now() - startTime);
 
@@ -403,7 +404,6 @@ export async function startSemanticRouting(
             false // TODO: track cache hits
           );
 
-          // Record outcome to advanced analytics
           recordRoutingOutcome(analyticsEventId, {
             toolExecuted: topMatch.toolId,
             executionSuccess: true,

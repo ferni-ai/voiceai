@@ -22,6 +22,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
 import { fallbackCallSummary } from './call-summary-fallback.js';
+import { conversationStartFields } from './conversation-start.js'; // #3222
 import { checkedPoints, checkedText } from '../../memory/recall/forget-key-points.js'; // #2767
 
 const log = getLogger().child({ module: 'realtime-memory' });
@@ -140,14 +141,7 @@ export async function startConversation(userId: string, personaId: string): Prom
         .doc(userId)
         .collection('conversations')
         .doc(conversationId)
-        .set(
-          removeUndefined({
-            startedAt: new Date(),
-            personaId,
-            turnCount: 0,
-            summarized: false,
-          })
-        );
+        .set(removeUndefined(conversationStartFields(personaId, new Date())));
 
       log.info({ userId, conversationId, personaId }, '🎬 Conversation started (realtime)');
     } catch (error) {
@@ -496,7 +490,8 @@ export async function summarizeConversationAsync(
 
     if (summary) await markSummarized(userId, conversationId, summary);
     else {
-      const fallback = await checkedText(userId, buildQuickSummary(turns)) || 'Brief conversation';
+      const fallback =
+        (await checkedText(userId, buildQuickSummary(turns))) || 'Brief conversation';
       await markSummarized(userId, conversationId, fallback, { profile: false });
     }
   } catch (error) {

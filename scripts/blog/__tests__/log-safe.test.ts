@@ -4,7 +4,8 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GateIssue } from '../brand-gate.js';
 import type { DraftResult } from '../draft.js';
-import { linkCount, ruleCounts } from '../log-safe.js';
+import type { JudgeResult } from '../judge.js';
+import { linkCount, reviewSummary, ruleCounts } from '../log-safe.js';
 import { unsafeOutput } from '../untrusted-text.js';
 
 // The drafter and the gate run in a public Actions log. These tests run the
@@ -12,7 +13,15 @@ import { unsafeOutput } from '../untrusted-text.js';
 
 const MARKER = 'INJECTED-MARKER-7f3a';
 const draftPost = vi.hoisted(() => vi.fn());
-vi.mock('../draft.js', () => ({ draftPost }));
+const reviseEnabled = vi.hoisted(() => vi.fn(() => false));
+const judgePost = vi.hoisted(() => vi.fn());
+vi.mock('../draft.js', () => ({ draftPost, reviseEnabled }));
+vi.mock('../judge.js', async (importActual) => ({
+  ...(await importActual<typeof import('../judge.js')>()),
+  judgePost,
+  claudeJudge: () => ({ name: 'judge', generate: vi.fn() }),
+  truthPack: () => 'truth',
+}));
 vi.mock('../model.js', () => ({ geminiModel: async () => ({ generate: vi.fn() }) }));
 
 class Exit extends Error {
@@ -154,6 +163,80 @@ describe('draft-post.ts on a written draft', () => {
     expect(code).toBeUndefined();
     expect(lines).toEqual(['Wrote "Better memory" (slug whats-new-2026-10-19)']);
   });
+
+  it('wires the judge in only when BLOG_REVISE is on and it is not a dry run, for the right audience', async () => {
+    const reviewOf = () =>
+      (draftPost.mock.calls.at(-1) as [unknown, { review?: (m: string, t: string) => unknown }])[1]
+        .review;
+    draftPost.mockResolvedValue(result({ status: 'dry-run' }));
+
+    reviseEnabled.mockReturnValue(false);
+    await run('draft-post.ts', ['--type', 'whats-new']);
+    expect(reviewOf()).toBeUndefined();
+
+    reviseEnabled.mockReturnValue(true);
+    await run('draft-post.ts', ['--type', 'whats-new', '--dry-run']);
+    expect(reviewOf()).toBeUndefined();
+
+    for (const [type, audience] of [
+      ['whats-new', 'developer'],
+      ['building-in-public', 'consumer'],
+    ]) {
+      await run('draft-post.ts', ['--type', type]);
+      await reviewOf()?.('the post', 'the sources');
+      expect(judgePost).toHaveBeenLastCalledWith(
+        'the post',
+        audience,
+        expect.objectContaining({ truth: 'truth', sourceText: 'the sources' })
+      );
+    }
+    reviseEnabled.mockReturnValue(false);
+  });
+
+  it("prints the judge's scores before and after a rewrite and the gate's rule names, never its reasons", async () => {
+    const reason = `It quotes the post: "${MARKER}"`;
+    const scores = Object.fromEntries(
+      ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'].map((d) => [
+        d,
+        { score: d === 'craft' ? 3 : 4, reason },
+      ])
+    );
+    draftPost.mockResolvedValue(
+      result({
+        status: 'written',
+        title: 'Better memory',
+        path: '/somewhere/better-memory.md',
+        markdown: DRAFT,
+        review: {
+          before: {
+            status: 'fail',
+            model: 'judge',
+            verdict: { scores, summary: MARKER } as never,
+            failures: ['craft 3 (needs 4)'],
+          },
+          after: {
+            status: 'pass',
+            model: 'judge',
+            verdict: {
+              scores: { ...scores, craft: { score: 4, reason } },
+              summary: MARKER,
+            } as never,
+            failures: [],
+          },
+          revised: true,
+        },
+        gateRetry: ['repetition', 'em-dash'],
+      })
+    );
+    await run('draft-post.ts', ['--type', 'building-in-public']);
+
+    expect(lines).toEqual([
+      'Wrote "Better memory" (slug better-memory)',
+      'Brand gate sent the first draft back once (repetition, em-dash); the retry passed',
+      'Judge before revision: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 3); judge on the rewrite: pass (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 4); rewritten once with its notes, and the rewrite is kept',
+    ]);
+    expect(lines.join('\n')).not.toContain(MARKER);
+  });
 });
 
 describe('check-post.ts on a failing post', () => {
@@ -198,5 +281,43 @@ describe('the summaries', () => {
   it('counts links in the body only, once each', () => {
     const body = '[a](https://x.example/1) <https://x.example/2> www.x.example/3 [b](/blog/c/)';
     expect(linkCount(`---\nsources:\n  - "https://github.com/a"\n---\n${body}`)).toBe(4);
+  });
+});
+
+describe('reviewSummary', () => {
+  const judged = (status: 'pass' | 'fail', craft: number): JudgeResult => ({
+    status,
+    model: 'judge',
+    verdict: {
+      scores: Object.fromEntries(
+        ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'].map((d) => [
+          d,
+          { score: d === 'craft' ? craft : 4, reason: 'quotes the post' },
+        ])
+      ),
+      summary: 'quotes the post',
+    } as JudgeResult['verdict'],
+    failures: [],
+  });
+
+  it('says when a rewrite scored no better and the first draft stands', () => {
+    expect(
+      reviewSummary({ before: judged('fail', 3), after: judged('fail', 2), revised: false })
+    ).toBe(
+      'Judge before revision: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 3); judge on the rewrite: fail (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 2); rewritten once with its notes, but the rewrite scored no better, so the first draft stands'
+    );
+  });
+
+  it("says when the judge couldn't score the rewrite", () => {
+    const after: JudgeResult = { status: 'error', model: 'judge', failures: ['overloaded'] };
+    expect(reviewSummary({ before: judged('fail', 3), after, revised: false })).toMatch(
+      /judge on the rewrite: error \(no verdict\); rewritten once with its notes, but the judge couldn't score the rewrite, so the first draft stands$/
+    );
+  });
+
+  it('says when the judge passed the draft and nothing was rewritten', () => {
+    expect(reviewSummary({ before: judged('pass', 4), revised: false })).toBe(
+      'Judge before revision: pass (on_message 4, brand_voice 4, honesty 4, meaningful 4, impact 4, craft 4); kept as drafted'
+    );
   });
 });

@@ -9,9 +9,12 @@
  * words). The match is aboutForgotten, so forgetting "Mark" hides "Mark called" but not "marked
  * the calendar".
  *
+ * With FORGET_FRESH_READ=on the stored read skips the shared 15 s cache, which only
+ * a forget in this process invalidates, so a topic forgotten on another process's call is honoured
+ * at once (#2755). Off, the cached read as before.
+ *
  * @module tools/domains/simple-utilities/recent-context-forget
  */
-
 /** True when a line is about a topic the caller asked Ferni to forget. */
 export type Forgotten = (text: string) => boolean;
 
@@ -25,9 +28,12 @@ export function setRecentContextTopicsReader(next: TopicsReader | undefined): vo
 
 /** The caller's forgotten check, or null when no stored topics can be had (fail closed). */
 export async function forgottenFor(userId: string): Promise<Forgotten | null> {
-  const { aboutForgotten, forgottenInProcess, forgottenWithin } =
+  const { aboutForgotten, forgetFreshReadEnabled, forgottenInProcess, forgottenWithin } =
     await import('../../../memory/index.js');
-  if (!topicsReader) return forgottenWithin(userId, 'recent-context').catch(() => null);
+  if (!topicsReader) {
+    const uncached = forgetFreshReadEnabled();
+    return forgottenWithin(userId, 'recent-context', uncached).catch(() => null);
+  }
   const stored = await topicsReader(userId).catch(() => null);
   if (stored === null) return null;
   const topics = [...stored, ...forgottenInProcess(userId)];

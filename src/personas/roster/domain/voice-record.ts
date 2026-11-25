@@ -1,9 +1,10 @@
 /**
  * Voice records for the roster (docs/plans/2026-11-12-one-roster.md, 3.3).
  *
- * A consented clone is a voice cloned from a real person who has died, which
- * only the one listing its record names may speak in, and only because the
- * person's estate gave written consent. The record says who the consent is for,
+ * A consented clone is a voice cloned from a real person, which only the one
+ * listing its record names may speak in, and only because there is written
+ * consent: from the estate of a person who has died, or from a living person
+ * for their own voice. The record says who the consent is for, on what basis,
  * what it covers and when it was attested. It never holds the consent document
  * or anything about who signed it: those stay with the owner, off the repo.
  *
@@ -31,6 +32,18 @@ interface EstateConsent {
   readonly covers: readonly ConsentScope[];
 }
 
+/** Written consent from a living person for their own voice, held by the owner. */
+interface SelfConsent {
+  /** The person, as they name themselves. */
+  readonly person: string;
+  readonly basis: 'self';
+  /** Who holds the written consent. The document itself never enters the repo. */
+  readonly heldBy: 'owner';
+  /** The date (YYYY-MM-DD) the owner attested that the written consent is on file. */
+  readonly attested: string;
+  readonly covers: readonly ConsentScope[];
+}
+
 /** A clone of a real person's voice that only `listingId` may speak in. */
 export interface ConsentedCloneRecord {
   readonly kind: 'consented-clone';
@@ -47,5 +60,5 @@ export interface ConsentedCloneRecord {
    * every persona.
    */
   readonly reservedCloneIds: readonly string[];
-  readonly consent: EstateConsent;
+  readonly consent: EstateConsent | SelfConsent;
 }

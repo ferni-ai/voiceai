@@ -12,11 +12,18 @@
  * a fake `gh` that answers the GitHub API from fixtures and applies the --jq for real.
  * They run them the way the runner runs a `shell: bash` step: `bash -e -o pipefail`.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+
+import { inPaths, loadPolicy } from '../../../scripts/ci/autonomy-lanes.js';
+import {
+  crisisLaneInclude,
+  DECIDES_THE_SUITE,
+  EVERY_PATH,
+} from '../../../scripts/ci/crisis-lane-include.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 
@@ -199,6 +206,147 @@ describe('pr-changes picks out PRs that touch crisis-safety or memory code', () 
     'apps/web/src/memory/view.tsx',
   ])('%s is not', (file) => {
     expect(pr('src/ui/text-token.ts', file)).toBe('false');
+  });
+});
+
+// #3967: 258 crisis-lane files (autonomy-policy.json) were outside `risky`'s hand-kept list,
+// and #3956 went green on shard 1 alone with a red flag census. ci.yml now reads the lane's
+// paths from the policy (scripts/ci/crisis-lane-include.ts) and fails closed to the full suite.
+describe('every crisis-lane path gets the whole unit suite', () => {
+  const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+  const include = crisisLaneInclude();
+  const lane = loadPolicy().lanes.crisis.paths;
+  const laneFiles = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\n')
+    .filter((f) => f && inPaths(f, lane));
+  const pr = (inc: string, ...names: string[]) =>
+    runAction(
+      'pr-changes',
+      {
+        'github.token': 't',
+        'github.event_name': 'pull_request',
+        'github.repository': 'o/r',
+        'github.event.pull_request.number': '7',
+        'github.event.merge_group.base_ref': '',
+        'github.event.merge_group.head_sha': '',
+        'inputs.merge-group': 'false',
+        'inputs.include': inc,
+        'inputs.exclude': '^$',
+      },
+      { 'repos/o/r/pulls/7/files': names.map((filename) => ({ filename })) }
+    ).outputs.matched;
+
+  it('ci.yml derives the include and ORs it into full-tests and the affected-count skip', () => {
+    expect(ci).toMatch(
+      / {8}id: crisis-lane-paths\n(?: {8}.*\n)*? {10}if include=\$\(pnpm exec tsx scripts\/ci\/crisis-lane-include\.ts\)/
+    );
+    expect(ci).toMatch(
+      / {8}id: crisis-lane\n(?: {8}.*\n)*? {10}include: \$\{\{ steps\.crisis-lane-paths\.outputs\.include \}\}\n/
+    );
+    expect(ci).toContain(
+      "full-tests: ${{ steps.risky.outputs.matched == 'true' || steps.crisis-lane.outputs.matched == 'true' }}"
+    );
+    expect(ci).toContain("&& steps.crisis-lane.outputs.matched != 'true'\n");
+  });
+
+  it('grep -E matches every file in the crisis lane, as pr-changes greps', () => {
+    expect(laneFiles.length).toBeGreaterThan(200);
+    const r = spawnSync('grep', ['-Ev', '--', include], {
+      input: `${laneFiles.join('\n')}\n`,
+      encoding: 'utf8',
+    });
+    // 1 = no line left over (every file matched); 2 would be a pattern grep can't parse.
+    expect({ status: r.status, missed: r.stdout.split('\n').filter(Boolean) }).toEqual({
+      status: 1,
+      missed: [],
+    });
+  });
+
+  it.each([
+    'src/agents/multi-agent/arrival-once.ts',
+    'src/config/flags/CRISIS_CLASSIFIER_BLOCKED_SIGNAL.ts',
+    'src/utils/minor-care.ts',
+    'src/services/outreach/caller-text.ts',
+    'scripts/ci/autonomy-policy.json',
+  ])('%s gets the full suite', (file) => {
+    expect(laneFiles).toContain(file);
+    expect(pr(include, 'docs/readme.md', file)).toBe('true');
+  });
+
+  it('a PR outside the lane does not', () => {
+    const outside = ['docs/readme.md', 'src/ui/text-token.ts', 'apps/web/src/memory/view.tsx'];
+    expect(outside.filter((f) => inPaths(f, lane))).toEqual([]);
+    expect(pr(include, ...outside)).toBe('false');
+  });
+
+  // A PR can't narrow its own lane and dodge the full run in the same change.
+  describe('what decides the suite always gets it, whatever the PR policy says', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crisis-lane-narrow-'));
+    writeFileSync(join(dir, 'symbols.json'), JSON.stringify({ screened: [] }));
+    writeFileSync(
+      join(dir, 'narrow.json'),
+      JSON.stringify({
+        lanes: { crisis: { paths: ['src/elsewhere/only.ts'], symbolsFile: 'symbols.json' } },
+      })
+    );
+    const narrow = crisisLaneInclude(join(dir, 'narrow.json'));
+
+    it.each([
+      ...DECIDES_THE_SUITE.filter((p) => !p.includes('*')),
+      '.github/actions/pr-changes/action.yml',
+    ])('%s', (file) => {
+      expect(narrow).not.toBe(EVERY_PATH);
+      expect(pr(narrow, 'docs/readme.md', file)).toBe('true');
+    });
+
+    it('and the narrow lane still leaves an unrelated PR alone', () => {
+      expect(pr(narrow, 'docs/readme.md', 'src/ui/text-token.ts')).toBe('false');
+    });
+  });
+
+  describe('fails closed to the full suite', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crisis-lane-'));
+    it.each([
+      ['a missing policy', join(dir, 'missing.json')],
+      [
+        'an unparseable policy',
+        (writeFileSync(join(dir, 'bad.json'), '{ "lanes": '), join(dir, 'bad.json')),
+      ],
+      [
+        'a lane with no paths',
+        (writeFileSync(
+          join(dir, 'empty.json'),
+          JSON.stringify({ lanes: { crisis: { paths: [], symbolsFile: 'empty.json' } } })
+        ),
+        join(dir, 'empty.json')),
+      ],
+    ])('%s: every path', (_why, path) => {
+      expect(crisisLaneInclude(path)).toBe(EVERY_PATH);
+      expect(pr(crisisLaneInclude(path), 'docs/readme.md')).toBe('true');
+    });
+
+    it('the ci.yml step writes "." when the script fails or prints nothing', () => {
+      const run = /^ {8}id: crisis-lane-paths\n(?: {8}.*\n)*? {8}run: \|\n((?: {10}.*\n)+)/m
+        .exec(ci)?.[1]
+        .replace(/^ {10}/gm, '');
+      expect(run).toBeTruthy();
+      for (const pnpm of ['exit 1', 'exit 0']) {
+        const bin = mkdtempSync(join(dir, 'bin-'));
+        writeFileSync(join(bin, 'pnpm'), `#!/usr/bin/env bash\n${pnpm}\n`);
+        chmodSync(join(bin, 'pnpm'), 0o755);
+        const out = join(bin, 'out');
+        writeFileSync(out, '');
+        execFileSync('bash', [...RUNNER_BASH, '-c', run!], {
+          env: { PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: out },
+          stdio: 'pipe',
+        });
+        expect(readFileSync(out, 'utf8')).toBe('include=.\n');
+      }
+    });
+
+    it('an empty include (the step never wrote one) still matches every path', () => {
+      expect(pr('', 'docs/readme.md')).toBe('true');
+    });
   });
 });
 

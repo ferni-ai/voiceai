@@ -70,12 +70,16 @@ import {
 } from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { scriptRead, scriptReply, type ScriptRead } from './crisis-script-imminent.js';
-import { checkin, disclosureGuidance, mainOf, shadowGrade } from '../../services/safety/index.js';
+import {
+  checkin,
+  guideLineOf,
+  mainOf,
+  shadowGrade,
+  withGuidedLine,
+} from '../../services/safety/index.js';
 import {
   applyClassifierVerdict,
-  buildCrisisGuidance,
   detectCrisis,
-  guardFromDetection,
   type CrisisDetectionResult,
 } from '../safety/crisis-guard.js';
 import {
@@ -85,14 +89,21 @@ import {
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import type { ReplyLane } from '../model-provider/lane-request.js';
-import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
-import { loggedEscalation } from './crisis-gate-failure.js';
-import { holdUntilCleared } from './crisis-gate-hold.js';
+import {
+  crisisGuide,
+  decisionFor,
+  raisedTo,
+  type CrisisGateDecision,
+  type GuideDecision,
+} from './crisis-gate-decision.js';
+import { gateEscalation } from './crisis-gate-failure.js';
+import { holdFor } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
+import { gateTurnReadsOn, withTurnReads } from './crisis-gate-turn-reads.js';
 import { withHeldRead } from './crisis-read-joined-turn.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
@@ -107,12 +118,7 @@ import { burstAllowed } from './vocal-bursts.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
-export type CrisisGateDecision =
-  | { action: 'pass' }
-  // about: the crisis read's subject when the risk is someone the caller knows (MINOR_CRISIS_CARE).
-  | { action: 'guide'; guidance: string; about?: 'third_party' }
-  | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
-type GuideDecision = Extract<CrisisGateDecision, { action: 'guide' }>;
+export { decisionFor, type CrisisGateDecision } from './crisis-gate-decision.js';
 
 export interface CrisisGateTurn {
   /** What the patterns decided, before the LLM is asked. */
@@ -126,20 +132,20 @@ export interface CrisisGateTurn {
 
 type Chunk = llm.ChatChunk | string | object;
 
-const RANK = { pass: 0, guide: 1, replace: 2 } as const;
-
 const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
+/** What a classifier read is given: the caller's words and the Ferni line they answer. */
+const turnWords = ({ latest, earlier, companion }: ReturnType<typeof callerWords>) => ({
+  latest,
+  earlier,
+  companion,
+});
 
-export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
-  if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
-    return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
-  }
-  if (crisis.isCrisis && crisis.subject === 'third_party') {
-    return { action: 'guide', guidance: buildCrisisGuidance(crisis), about: 'third_party' };
-  }
-  if (crisis.isCrisis) return guide(disclosureGuidance(crisis) ?? buildCrisisGuidance(crisis));
-  return { action: 'pass' };
-}
+/** The stepped-down read of an imminent turn is still a crisis read; an after-check ease is not. */
+const easedGuide = (
+  eased: { guidance: string; crisis?: CrisisDetectionResult },
+  latest: string | undefined
+): GuideDecision =>
+  crisisGuide(eased.guidance, eased.crisis && guideLineOf(eased.crisis, false, latest));
 
 export interface CrisisGateOptions {
   env?: Record<string, string | undefined>;
@@ -166,6 +172,9 @@ export function startCrisisGate(
   if (resolveCrisisGuardMode(env) !== 'live') return null;
   const { latest, earlier, companion, ferni } = callerWords(chatCtx);
   if (!latest) return null;
+  // CRISIS_GATE_TURN_READS: only the classifier read, and the reads it is weighed with, get the
+  // whole turn; patterns and every other decision keep the latest line, so none can be lower.
+  const turnReads = gateTurnReadsOn(env);
 
   const voice = toGuardVoiceEmotion(
     (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)?.voiceEmotion
@@ -177,7 +186,7 @@ export function startCrisisGate(
   const gentle = screen === 'positive' && !screenIdeation(found, latest);
   const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
-  const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
+  const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection, latest);
   if (decision.action !== 'pass') {
     notePatternRisk(sessionScope(userData), detection); // risk on this call (crisis-call-risk.ts)
     noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
@@ -198,6 +207,7 @@ export function startCrisisGate(
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   const said = { latest, earlier, companion };
+  const turn = turnReads ? turnWords(callerWords(chatCtx, { sinceCompleted: true })) : said;
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
     adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
@@ -208,8 +218,9 @@ export function startCrisisGate(
   const secondRead = secondReadOf('gate', userData, detection.subject);
   let who: ReturnType<typeof startWhoRead> | undefined;
   const at = { pattern, env, generate, scope, call, secondRead } as const;
+  const readScope = scope ?? (turnReads ? call : undefined); // kept for the turn's other reads
   const read = (): Promise<CrisisVerdict | null> | undefined => {
-    const run = startCrisisClassifier(said, at);
+    const run = startCrisisClassifier(turn, { ...at, scope: readScope });
     if (run?.mode !== 'live' || decision.action === 'replace') return undefined;
     who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
     return run.verdict;
@@ -218,6 +229,7 @@ export function startCrisisGate(
   const verdictRead = wait ? wait.then(async (go) => (go ? read() : undefined)) : read();
   const scripted = scriptRead(said, detection, decision, at); // CRISIS_SCRIPT_IMMINENT_READ
   if (!verdictRead) return { decision, escalation: null, reask, read: scripted };
+  const raise = { detection, decision, gentle, latest }; // a read only raises it (raisedTo)
   const escalate = async (verdict: CrisisVerdict | null): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
@@ -232,12 +244,11 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
-    const base = applyClassifierVerdict(detection, verdict);
+    const base = applyClassifierVerdict(detection, verdict, env);
     const merged = who?.live ? await who.resolve(base, verdict) : base;
-    if (merged === detection) return null;
-    const stronger = decisionFor(merged);
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
-    if (RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted) return null;
+    const stronger = raisedTo(raise, merged, rerouted);
+    if (!stronger) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
@@ -287,7 +298,7 @@ export function startCrisisGate(
     }
     const lone = { call, input: said, verdict, detection, pattern, env, generate } as const;
     const eased = await afterCheckLoneRead({ ...lone, source: 'gate' }); // CRISIS_CONFIRMED_CALL_RISK
-    if (eased) return guide(eased.guidance);
+    if (eased) return easedGuide(eased, latest);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
@@ -297,7 +308,8 @@ export function startCrisisGate(
     return stronger;
   };
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
-  const logged = loggedEscalation(verdictRead, (v) => checkin.escalation(v, checkinTurn, escalate));
+  const acted = turnReads ? withTurnReads(verdictRead, readScope, turn, env) : verdictRead;
+  const logged = gateEscalation(acted, { ...raise, checkin: checkinTurn, escalate, call, env });
   return { decision, escalation: logged, reask };
 }
 
@@ -425,17 +437,23 @@ export async function gatedReply(
   };
   // A grounded release, or a re-ask after it: code says the direct question, last (crisis-grounded-screen.ts).
   const asking = (s: ReadableStream<Chunk> | null, on = gate?.reask) => (on ? screenReply(s) : s);
-  const reply = asking(await ask(ctx));
+  // CRISIS_GUIDED_LINE_FLOOR: code says the line a crisis guide's reply left out (crisis-guided-line-floor.ts).
+  const first = await ask(ctx);
+  const reply = asking(
+    gate?.decision.action === 'guide' ? withGuidedLine(first, gate.decision, env) : first
+  );
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
-  return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
+  return holdFor(env)(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
-    const guided = checkin.ending(
-      await ask(guidedRequest(decision), burst === undefined ? undefined : false, true),
+    const asked = await ask(guidedRequest(decision), burst === undefined ? undefined : false, true);
+    // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks; a crisis guide, its line.
+    const guided = withGuidedLine(
+      checkin.ending(asked, decision, callerWords(chatCtx)),
       decision,
-      callerWords(chatCtx) // CRISIS_TIMEOUT_CHECKIN: code adds the question or 988 it lacks
+      env
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });

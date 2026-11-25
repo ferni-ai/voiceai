@@ -6,6 +6,7 @@
  * @module speech/direction/cue-say
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { coordinatedSay, getSessionForCoordination } from '../coordination/session-integration.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Cue } from './cue.js';
@@ -34,8 +35,23 @@ const CHARACTERS: Record<string, { name: string; brief: string }> = {
   'nayan-patel': { name: 'Nayan', brief: 'A gentle, reflective guide. Unhurried and wise.' },
 };
 
+/**
+ * NAYAN_PLAIN_VOICE (#1433): his character is "not a guru" and "never performs being
+ * wise" (bundles/nayan-patel/identity/character.md), but "a reflective guide, unhurried and
+ * wise" asked the director for exactly that on every line it writes for him.
+ */
+const NAYAN_PLAIN_BRIEF =
+  'Calm, direct and quietly funny. Warm without announcing it, glad they called. Says little, says it plainly; no lessons, no aphorisms.';
+
 /** A persona's name and how they talk, for a line written in their voice (Ferni's if unknown). */
-export function characterOf(personaId: string): { name: string; brief: string } {
+export function characterOf(
+  personaId: string,
+  env: Env = process.env
+): { name: string; brief: string } {
+  if (personaId === 'nayan-patel' && flagOn('NAYAN_PLAIN_VOICE', env)) {
+    log.info({ personaId }, 'Nayan plain brief for a directed line');
+    return { name: 'Nayan', brief: NAYAN_PLAIN_BRIEF };
+  }
   return CHARACTERS[personaId] ?? CHARACTERS.ferni;
 }
 

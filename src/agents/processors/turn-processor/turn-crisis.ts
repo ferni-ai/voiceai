@@ -8,6 +8,7 @@
  * @module TurnCrisis
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import {
   agreementOutcome,
   resolveCrisisAgreementGate,
@@ -103,6 +104,8 @@ export interface TurnCrisis {
    * soft check-in, which only the normal reply path carries.
    */
   bypassAllowed(): Promise<boolean>;
+  /** A live classifier read with no verdict (timeout, error, refusal): failed, never a none. */
+  classifierReadFailed(): Promise<boolean>;
 }
 
 /** What startTurnCrisis reads from the session's user data. */
@@ -228,7 +231,9 @@ export function startTurnCrisis(
   // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
   const secondRead = secondReadOf('pipeline', userData, patterns.subject);
   const run = { pattern, env, generate, scope, call, secondRead } as const;
-  const classifier = startCrisisClassifier(input, run);
+  // CRISIS_GATE_TURN_READS: the reply gate weighs this read too (crisis-gate-turn-reads.ts).
+  const readScope = scope ?? (flagOn('CRISIS_GATE_TURN_READS', env) ? call : undefined);
+  const classifier = startCrisisClassifier(input, { ...run, scope: readScope });
   const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>
@@ -265,7 +270,7 @@ export function startTurnCrisis(
               // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
               return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
-            const merged = applyClassifierVerdict(patterns, verdict);
+            const merged = applyClassifierVerdict(patterns, verdict, env);
             const crisis = who?.live
               ? await who.resolve(merged, verdict)
               : (who?.shadow(merged, verdict) ?? merged);
@@ -368,6 +373,8 @@ export function startTurnCrisis(
     softCheck: () => settle().then((s) => s.soft),
     summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
+    classifierReadFailed: async () =>
+      classifier?.mode === 'live' && (await classifier.verdict) === null,
   };
 }
 

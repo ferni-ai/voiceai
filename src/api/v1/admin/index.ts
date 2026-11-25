@@ -6,6 +6,7 @@
  *
  * Sub-routes:
  * - /api/v1/admin/flags/*         - Feature flag management
+ * - /api/v1/admin/agent-flags/*   - Dev voice agent flag switchboard (dev UI server only)
  * - /api/v1/admin/agents/*        - Agent management
  * - /api/v1/admin/diagnostics/*   - System diagnostics & handoff monitoring
  * - /api/v1/admin/tts-monitoring/*- TTS sanitization monitoring
@@ -17,6 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { requireAdmin } from '../../auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { handleAdminAgentFlagsRoutes } from './agent-flags.js';
 import { handleAdminAgentsRoutes } from './agents.js';
 import { handleBTHAnalyticsRoutes } from './better-than-human-analytics.js';
 import { handleAdminDashboardRoutes } from './dashboard.js';
@@ -26,6 +28,7 @@ import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
 import { handleAdminModelConfigRoutes } from './model-config.js';
 import { handleAdminOperationsRoutes } from './operations.js';
+import { handleAdminSoulStatsRoutes } from './soul-stats.js';
 import { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';
 
 const log = createLogger({ module: 'AdminAPI' });
@@ -68,6 +71,11 @@ export async function handleAdminRoutes(
     return handleAdminFlagsRoutes(req, res, pathname, parsedUrl);
   }
 
+  // Dev agent flag switchboard (404 unless DEPLOY_ENV is dev)
+  if (pathname.startsWith(`${BASE_PATH}/agent-flags`)) {
+    return handleAdminAgentFlagsRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Agent management
   if (pathname.startsWith(`${BASE_PATH}/agents`)) {
     return handleAdminAgentsRoutes(req, res, pathname, parsedUrl);
@@ -106,6 +114,11 @@ export async function handleAdminRoutes(
   // Better Than Human Analytics (superhuman capability effectiveness)
   if (pathname.startsWith(`${BASE_PATH}/bth`)) {
     return handleBTHAnalyticsRoutes(req, res, pathname, parsedUrl);
+  }
+
+  // Avatar soul counts people's browsers reported (SOUL_STATS)
+  if (pathname.startsWith(`${BASE_PATH}/soul`)) {
+    return handleAdminSoulStatsRoutes(req, res, pathname);
   }
 
   // Route not matched

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   DIRECTOR_SYSTEM,
   Director,
@@ -179,5 +179,45 @@ describe('director notes', () => {
       { speaker: 'user', text: 'hey' },
       { speaker: 'ferni', text: "Hey. What's up?" },
     ]);
+  });
+});
+
+describe('a heading line in the reply (#2658, DIRECTOR_DROPS_HEADINGS)', () => {
+  const call = [
+    { speaker: 'user' as const, text: 'Did you call my mom about Sunday? Tell Ferni the plan.' },
+    { speaker: 'ferni' as const, text: 'Not yet. Want me to?' },
+  ];
+  const reply = [
+    'Here are the notes for Ferni:',
+    'She asked about the call to her mom; answer yes or no first.',
+    'Sunday is the plan; check the time with her.',
+  ].join('\n');
+  const realNotes = [
+    'She asked about the call to her mom; answer yes or no first.',
+    'Sunday is the plan; check the time with her.',
+  ];
+
+  afterEach(() => {
+    delete process.env.DIRECTOR_DROPS_HEADINGS;
+  });
+
+  it('on: a header plus two notes gives the two notes', () => {
+    process.env.DIRECTOR_DROPS_HEADINGS = 'on';
+    expect(parseNotes(reply, call)).toEqual(realNotes);
+    expect(parseNotes('Notes:\n- Sunday is the plan; check the time.', call)).toEqual([
+      'Sunday is the plan; check the time.',
+    ]);
+  });
+
+  it('on: a colon inside a note keeps it', () => {
+    process.env.DIRECTOR_DROPS_HEADINGS = 'on';
+    expect(parseNotes('Sunday: check the time with her.', call)).toEqual([
+      'Sunday: check the time with her.',
+    ]);
+  });
+
+  it('off: the header is kept and pushes out the second note, as today', () => {
+    process.env.DIRECTOR_DROPS_HEADINGS = 'off';
+    expect(parseNotes(reply, call)).toEqual(['Here are the notes for Ferni:', realNotes[0]]);
   });
 });

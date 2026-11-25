@@ -99,7 +99,6 @@
   "src/conversation/response-mode/engine.ts": 1,
   "src/intelligence/context-builders/index.ts": 1,
   "src/intelligence/context-builders/intelligence/predictive-context.ts": 2,
-  "src/intelligence/context-builders/intelligence/sec-intelligence.ts": 1,
   "src/intelligence/context-builders/memory/advanced-memory.ts": 2,
   "src/intelligence/context-builders/memory/unified-data-context.ts": 1,
   "src/intelligence/context-builders/safety/crisis.ts": 1,

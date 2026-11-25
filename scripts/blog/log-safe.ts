@@ -11,6 +11,8 @@
 import * as path from 'node:path';
 import type { GateIssue } from './brand-gate.js';
 import type { Source } from './grounding.js';
+import type { JudgeResult } from './judge.js';
+import { DIMENSIONS } from './rubric.js';
 
 /** "em-dash x2, number x1": each rule once, in the order first found. */
 export function ruleCounts(issues: GateIssue[]): string {
@@ -54,6 +56,38 @@ export function rejectedSummary(r: Rejected): string[] {
     `  sources: ${prs.length > 0 ? prs.map((n) => `#${n}`).join(', ') : 'no PRs'}, ${docs} docs`,
     '  The draft and the findings are not printed (this log is public); rerun with --details locally.',
   ];
+}
+
+/**
+ * The judge's scores on the first clean draft and whether a rewrite replaced
+ * it. Scores only: the reasons quote the post.
+ */
+export function reviewSummary(review: {
+  before: JudgeResult;
+  after?: JudgeResult;
+  revised: boolean;
+}): string {
+  const { before, after, revised } = review;
+  const scores = (r: JudgeResult) =>
+    r.verdict
+      ? `${r.status} (${DIMENSIONS.map((d) => `${d} ${r.verdict!.scores[d].score}`).join(', ')})`
+      : `${r.status} (no verdict)`;
+  const outcome = revised
+    ? 'rewritten once with its notes, and the rewrite is kept'
+    : after && !after.verdict
+      ? "rewritten once with its notes, but the judge couldn't score the rewrite, so the first draft stands"
+      : after
+        ? 'rewritten once with its notes, but the rewrite scored no better, so the first draft stands'
+        : before.status === 'fail' && before.verdict
+          ? "the rewrite wasn't kept (brand gate, unreadable or unsafe), so the first draft stands"
+          : 'kept as drafted';
+  const rewrite = after ? `; judge on the rewrite: ${scores(after)}` : '';
+  return `Judge before revision: ${scores(before)}${rewrite}; ${outcome}`;
+}
+
+/** Which gate rules sent the first draft back, by name only: the findings quote the post. */
+export function gateRetrySummary(rules: string[]): string {
+  return `Brand gate sent the first draft back once (${rules.join(', ')}); the retry passed`;
 }
 
 /** The line an accepted draft prints: its title and slug. */
