@@ -83,15 +83,9 @@ const isOff = (value: unknown): boolean => value === 'off' || value === 'false';
 
 /** Whether a motion switch is on: browser override, then build value, then off. */
 export function isMotionFlagOn(flag: MotionFlag): boolean {
-  const { key, build } = SWITCHES[flag];
-  try {
-    const override = localStorage.getItem(key);
-    if (isOn(override)) return true;
-    if (isOff(override)) return false;
-  } catch (error) {
-    log.debug('localStorage unavailable for a motion switch', { flag, error: String(error) });
-  }
-  return isOn(build());
+  const override = motionFlagOverride(flag);
+  if (override !== null) return override === 'on';
+  return motionFlagBuildDefault(flag);
 }
 
 /** A switch's build value alone, ignoring any browser override. */
