@@ -20,6 +20,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { noRecordWording } from './earlier-call-honest.js';
 
 /** Prior calls before a heavy chapter may come up (this is at least the fourth call). */
 export const TRUSTED_AFTER_CALLS = 3;
@@ -65,7 +66,7 @@ export function beatNote(
   if (!flagOn('PERSONA_BEATS', env) || i.careful) return '';
   const near = nearHeavyChapter(i.said);
   const lines = [CANON_LINE];
-  if (i.priorCalls === 0) lines.push(FIRST_CALL_LINE);
+  if (i.priorCalls === 0) lines.push(noRecordWording(FIRST_CALL_LINE, env));
   else if (near && (i.priorCalls ?? 0) >= TRUSTED_AFTER_CALLS) lines.push(HEAVY_OK_LINE);
   else if (near) lines.push(LIGHT_LINE);
   return lines.join(' ');

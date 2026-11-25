@@ -147,6 +147,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Did code change?
@@ -300,6 +301,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -430,6 +433,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
@@ -666,6 +670,8 @@ jobs:
       - name: Checkout
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
@@ -804,6 +810,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Changed src files
         id: changed
@@ -909,6 +917,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -951,6 +961,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1004,6 +1016,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1061,9 +1075,15 @@ jobs:
     needs: setup
     # Runs on every PR (the secret scan covers docs too); dependency steps skip
     # when no code changed, since the lockfile is then main's.
+    env:
+      # The trufflehog release the action runs; without it the action pulls
+      # :latest. Same value as secret-scan-main.yml (trufflehog-pins.test.ts).
+      TRUFFLEHOG_VERSION: 3.99.7@sha256:0d003fc3abc4e1565eca8462b992001314de51451e96e3c44de80d116794d5d1
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1128,6 +1148,7 @@ jobs:
         uses: trufflesecurity/trufflehog@31ce31ee1abbcc7dc8eee5764c17121c3044c8b2 # v3.99.7
         with:
           path: ./
+          version: ${{ env.TRUFFLEHOG_VERSION }}
           base: ${{ steps.scan-range.outputs.base }}
           head: ${{ steps.scan-range.outputs.head }}
           # Fail on a live secret and on one whose check couldn't finish; a key that
@@ -1345,6 +1366,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1456,6 +1479,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6

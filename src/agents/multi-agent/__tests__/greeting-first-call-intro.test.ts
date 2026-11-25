@@ -51,6 +51,21 @@ describe('the first-call hello (FIRST_CALL_INTRO)', () => {
     expect(direction).not.toMatch(/—|\.\.\.|…/);
   });
 
+  it('with EARLIER_CALL_NO_DENIAL (#3134): "you don\'t know them yet", no first meeting, no records words', async () => {
+    vi.stubEnv('FIRST_CALL_INTRO', 'on');
+    vi.stubEnv('EARLIER_CALL_NO_DENIAL', 'off');
+    const today = firstCallIntroDirection('Ferni');
+    expect(today).toContain('This is your first call together');
+    vi.stubEnv('EARLIER_CALL_NO_DENIAL', 'on');
+    await directedGreeting('fci-no-denial', 'ferni', newUser);
+    const { direction } = lastRequest();
+    expect(direction).toContain(
+      ` You don't know them yet and they may not know your voice: open with hello, their name if you have it, and who you are, in a few words ("Hi Sam, it's Ferni."). Your name comes first; anything playful comes after it and stays gentle.`
+    );
+    expect(direction).not.toMatch(/first (?:call|time|conversation)|\brecords?\b|just met/i);
+    expect(direction).not.toMatch(/—|\.\.\.|…/);
+  });
+
   it("with FERNI_PLAYFUL: still the stranger's hello, no tease, the name first", async () => {
     vi.stubEnv('FIRST_CALL_INTRO', 'on');
     vi.stubEnv('FERNI_PLAYFUL', 'on');

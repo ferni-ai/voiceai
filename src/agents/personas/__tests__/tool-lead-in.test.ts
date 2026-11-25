@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-import { ACKS, LEAD_INS, withoutPastLeadIns, withToolLeadIn } from '../tool-lead-in.js';
+import {
+  ACKS,
+  LEAD_INS,
+  LOOKUP_TOOLS,
+  WIDE_ACTION_TOOLS,
+  withoutPastLeadIns,
+  withToolLeadIn,
+} from '../tool-lead-in.js';
 
 const userTurn = { items: [{ type: 'message', role: 'user' }] };
 const afterTool = {
@@ -200,5 +207,31 @@ describe('withoutPastLeadIns', () => {
     ctx.addMessage({ role: 'assistant', content: "Let me look at that later, it's a lot." });
     ctx.addMessage({ role: 'user', content: 'Set a timer.' });
     expect(withoutPastLeadIns(ctx)).toBe(ctx);
+  });
+});
+
+describe('ids tools take under TOOL_ID_OWNERS (#4291)', () => {
+  /** shared id -> the id the non-owner's tool takes (tools/registry/tool-id-owners.ts) */
+  const TAKEN: Record<string, string> = {
+    checkValuesAlignment: 'flagValuesConflict',
+    saveContactInfo: 'saveOutreachContact',
+    communicationStrategy: 'coachCommunication',
+    getCommuteTime: 'getDriveTime',
+    getMorningBriefing: 'getDailyRundown',
+    getUpcomingBirthdays: 'getBirthdayEvents',
+    goodEnough: 'celebrateGoodEnough',
+    listDevices: 'listMyDevices',
+    remindThesis: 'remindStockThesis',
+    searchRecipes: 'searchMyRecipes',
+  };
+
+  it('a tool keeps the lead-in or ack its shared id gave it', () => {
+    for (const set of [LOOKUP_TOOLS, WIDE_ACTION_TOOLS])
+      for (const [shared, taken] of Object.entries(TAKEN))
+        expect(set.has(taken), taken).toBe(set.has(shared));
+    expect([...LOOKUP_TOOLS].filter((t) => Object.values(TAKEN).includes(t))).toEqual([
+      'getDriveTime',
+      'searchMyRecipes',
+    ]);
   });
 });
