@@ -51,6 +51,8 @@ jobs:
       TWA_VERSION_CODE: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # Before any ./gradlew: the wrapper jar must match a published Gradle release.
       - name: Validate the Gradle wrapper
