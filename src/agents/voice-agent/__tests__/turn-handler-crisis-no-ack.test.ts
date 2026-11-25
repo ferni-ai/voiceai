@@ -123,21 +123,32 @@ async function turn(crisis: Crisis) {
     suggestedResponse: crisis.shouldOverrideLLM ? 'I am here with you.' : undefined,
   };
   const session = { say: vi.fn() };
+  const turnCtx = llm.ChatContext.empty();
+  const dataMessages: Array<[string, unknown]> = [];
   await handleUserTurn({
-    turnCtx: llm.ChatContext.empty(),
+    turnCtx,
     userText: 'the quiet in this apartment is getting to me tonight',
     contextOnly: true,
     persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
     services: { sessionId: 'crisis-no-ack', userId: 'user-crisis-no-ack' },
     userData: { turnCount: 1 },
     currentSession: session,
-    sendDataMessage: async () => {},
+    sendDataMessage: async (type: string, payload: unknown) => {
+      dataMessages.push([type, payload]);
+    },
   } as unknown as Ctx);
-  const injections = (state.result as { context: { injections: Array<{ category: string }> } })
-    .context.injections;
+  const injections = (
+    state.result as { context: { injections: Array<{ category: string; content: string }> } }
+  ).context.injections;
   return {
     acks: state.said.filter((s) => s.line === ACK),
     naturalness: injections.filter((i) => i.category === 'naturalness'),
+    // The crisis reply the model is told to give, whichever way the level delivers it.
+    reply: {
+      override: turnCtx.items.map((item) => JSON.stringify([item.type, item.role, item.content])),
+      injections: injections.filter((i) => i.category !== 'naturalness').map((i) => i.content),
+      dataMessages: dataMessages.filter(([type]) => type === 'crisis_detected'),
+    },
   };
 }
 
@@ -181,5 +192,29 @@ describe('CRISIS_TURN_NO_ACK: the naturalness acknowledgment on a crisis turn', 
     const { acks } = await turn(ORDINARY);
 
     expect(acks).toHaveLength(1);
+  });
+
+  it('on: the crisis reply is still given unchanged on the same turn, at every level', async () => {
+    for (const [name, crisis] of LEVELS) {
+      // eslint-disable-next-line no-await-in-loop
+      const off = (await turn(crisis)).reply;
+      vi.stubEnv('CRISIS_TURN_NO_ACK', 'on');
+      // eslint-disable-next-line no-await-in-loop
+      const on = (await turn(crisis)).reply;
+      vi.unstubAllEnvs();
+
+      expect(on, name).toEqual(off);
+    }
+
+    // The comparison is not between two empty replies: the replaced level carries the override and
+    // the data message, the guided and soft levels carry their safety injection.
+    vi.stubEnv('CRISIS_TURN_NO_ACK', 'on');
+    const replaced = (await turn(LEVELS[0][1])).reply;
+    const guided = (await turn(LEVELS[1][1])).reply;
+    const soft = (await turn(LEVELS[2][1])).reply;
+    expect(replaced.override.join('')).toContain('I am here with you.');
+    expect(replaced.dataMessages.map(([type]) => type)).toContain('crisis_detected');
+    expect(guided.injections.length).toBeGreaterThan(0);
+    expect(soft.injections.length).toBeGreaterThan(0);
   });
 });
