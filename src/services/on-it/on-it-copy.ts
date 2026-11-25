@@ -36,6 +36,7 @@ export const FOLLOW_UP_PERSONA: Record<FollowUpKind, OnItPersona> = {
   promise: 'ferni',
   thread: 'ferni',
   dose: 'ferni',
+  task: 'alex-chen',
 };
 
 /** Errands are Alex's, except weighing up a purchase, which is money: Peter. */
@@ -72,6 +73,7 @@ export const HOLDING: Record<FollowUpKind, string> = {
   thread: "I'll ask how it went.",
   date: "I'll remember the day.",
   dose: "I'll remind you.",
+  task: "I'll check in on it.",
 };
 
 /** How one of their own follow-ups closed, before their words. */

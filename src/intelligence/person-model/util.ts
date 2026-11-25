@@ -70,6 +70,7 @@ const KINDS: readonly FollowUpKind[] = [
   'thread',
   'date',
   'dose',
+  'task',
 ];
 export const followUpKind = (v: unknown): FollowUpKind | undefined => KINDS.find((k) => k === v);
 

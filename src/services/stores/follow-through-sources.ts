@@ -5,14 +5,17 @@
  * - pending reminders (bogle_users/{uid}/reminders, status 'pending');
  * - open commitments (bogle_users/{uid}/commitments), parsed by the same
  *   rules the call check-in uses, so sign-offs like "I need to go" stay out;
+ * - with `withTasks` (FOLLOW_THROUGH_TASKS), open tasks: productivityData.tasks on the user
+ *   doc, pending or in progress, the store the voice task tool and the morning brief read. The
+ *   ref is the task id, as the brief's ref names it (morning-brief/default-deps.ts);
  * - follow-up items from the last calls' summaries, only from summaries
  *   checked against the caller's own lines (callerProvenance) and without the
  *   items the assistant raised or the caller disputed: the same rule the
  *   recall threads use (memory/recall/session-recall.ts).
  *
  * Anything about a topic the caller asked Ferni to forget is left out. When
- * that list can't be read, the commitments and call threads (raw words) are
- * left out too: erring toward silence is the right side of a privacy request.
+ * that list can't be read, the commitments, tasks and call threads (raw words)
+ * are left out too: erring toward silence is the right side of a privacy request.
  * Reminders are the caller's own explicit asks and are kept either way.
  *
  * @module services/stores/follow-through-sources
@@ -90,6 +93,34 @@ async function openCommitments(
   });
 }
 
+/** Open tasks (pending or in progress) with a title, not about a forgotten topic. */
+async function openTasks(
+  db: Firestore,
+  userId: string,
+  forgotten: readonly string[]
+): Promise<SourceItem[]> {
+  const user = (await db.collection('bogle_users').doc(userId).get()).data();
+  const data = user?.productivityData as { tasks?: unknown } | undefined;
+  const tasks: unknown[] = Array.isArray(data?.tasks) ? data.tasks : [];
+  return tasks.flatMap((t) => {
+    if (!t || typeof t !== 'object') return [];
+    const task = t as Record<string, unknown>;
+    const text = typeof task.title === 'string' ? task.title.trim() : '';
+    const open = task.status === 'pending' || task.status === 'in_progress';
+    if (!open || !text || task.id === undefined || isForgotten(text, forgotten)) return [];
+    const due = typeof task.dueDate === 'string' ? Date.parse(task.dueDate) : NaN;
+    return [
+      {
+        kind: 'task' as const,
+        text,
+        dueAt: iso(Number.isNaN(due) ? undefined : due),
+        repeat: null,
+        source: { store: 'tasks', ref: String(task.id) },
+      },
+    ];
+  });
+}
+
 async function lastCallThreads(
   db: Firestore,
   userId: string,
@@ -121,14 +152,18 @@ async function lastCallThreads(
   });
 }
 
-export function createFollowUpSources(db: Firestore): FollowUpSources {
+export function createFollowUpSources(
+  db: Firestore,
+  { withTasks = false }: { withTasks?: boolean } = {}
+): FollowUpSources {
   return {
     async itemsFor(userId) {
       const forgotten = await forgottenTopicsOrNull(userId);
       const reads: Array<Promise<SourceItem[]>> = [pendingReminders(db, userId)];
-      if (forgotten !== null)
+      if (forgotten !== null) {
         reads.push(openCommitments(userId, forgotten), lastCallThreads(db, userId, forgotten));
-      else log.warn({ userId }, 'Forgotten topics unreadable: importing reminders only');
+        if (withTasks) reads.push(openTasks(db, userId, forgotten));
+      } else log.warn({ userId }, 'Forgotten topics unreadable: importing reminders only');
       const settled = await Promise.allSettled(reads);
       return settled.flatMap((r) => {
         if (r.status === 'fulfilled') return r.value;

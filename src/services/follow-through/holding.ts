@@ -27,7 +27,7 @@ import { isOrdinaryWebsite, MAX_BEFORE } from './ordinary-website.js';
 
 export const MAX_HELD = 20;
 
-export type HeldKind = 'reminder' | 'commitment' | 'promise' | 'thread' | 'date' | 'dose';
+export type HeldKind = 'reminder' | 'commitment' | 'promise' | 'thread' | 'date' | 'dose' | 'task';
 export type HeldSource = 'reminder' | 'commitment' | 'thread' | 'on-behalf' | 'other';
 
 /** One thing Ferni's holding, as the app sees it. */
@@ -58,6 +58,7 @@ const KIND: Record<FollowUpKind, HeldKind> = {
   thread: 'thread',
   date: 'date',
   dose: 'dose',
+  task: 'task',
 };
 
 const SOURCE: Readonly<Record<string, HeldSource>> = {
