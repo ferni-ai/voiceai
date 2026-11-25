@@ -323,6 +323,8 @@ export function extractSSMLToConfig(text: string) {
  * @param session - LiveKit agent session
  * @param text - Text to speak (may contain SSML)
  * @param options - Options including voiceId
+ * @returns true when the text was handed to the session; false when nothing was left to say
+ *   after the SSML strip (no speech-ended event will follow, so the caller must not wait for one)
  */
 export function speakToSession(
   session: voice.AgentSession,
@@ -333,7 +335,7 @@ export function speakToSession(
     personaId?: string;
     allowInterruptions?: boolean;
   }
-): void {
+): boolean {
   // Parse SSML and get clean text
   const result = parseSSML(text);
   const cleanText = result.cleanText;
@@ -343,7 +345,7 @@ export function speakToSession(
       { originalText: replyForLog(text) },
       'TTS Gateway: Empty text after SSML strip, skipping'
     );
-    return;
+    return false;
   }
 
   const startTime = Date.now();
@@ -379,6 +381,7 @@ export function speakToSession(
     process.stderr.write(`  ⏱️ session.say() called: ${Date.now() - sayStart}ms\n`);
     process.stderr.write(`  ⏱️ Total TTS Gateway: ${Date.now() - startTime}ms\n`);
   }
+  return true;
 }
 
 /**

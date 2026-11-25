@@ -752,7 +752,6 @@ export class SpeechCoordinator {
         // Extract SSML for logging (gateway handles actual stripping)
         const ssmlResult = extractSSMLToConfig(request.text);
 
-        const speakStartTime = Date.now();
         const debugTTS =
           process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
 
@@ -779,23 +778,17 @@ export class SpeechCoordinator {
 
         // Use gateway - fire and forget (onSpeechEnded handles completion)
         try {
-          gatewaySpeak(this.session, request.text, {
+          const handedOver = gatewaySpeak(this.session, request.text, {
             voiceId: this.personaId || 'ferni',
             sessionId: this.sessionId,
             personaId: this.personaId,
             allowInterruptions: request.allowInterruptions ?? true,
           });
 
-          if (debugTTS) {
-            process.stderr.write(
-              `  ✅ gatewaySpeak() completed: ${Date.now() - speakStartTime}ms\n`
-            );
-          }
+          if (!handedOver) this.abandonLine(); // empty after the SSML strip: nothing will end
         } catch (error: unknown) {
           log.error({ error: String(error), id: request.id }, 'TTS Gateway speech failed');
-          if (debugTTS) {
-            process.stderr.write(`  ❌ gatewaySpeak() FAILED: ${String(error)}\n`);
-          }
+          this.abandonLine();
         }
       } else {
         // LEGACY PATH: Direct SSML stripping (will be removed once gateway validated)
@@ -825,10 +818,15 @@ export class SpeechCoordinator {
       } else {
         log.error({ error: errorStr, id: request.id }, 'Speech failed');
       }
-      this.currentRequest = null;
-      this.transitionTo(CoordinatorState.IDLE);
-      this.processQueue();
+      this.abandonLine();
     }
+  }
+
+  /** A line that never reached the speaker gets no speech-ended event: free the slot, play the queue. */
+  private abandonLine(): void {
+    this.currentRequest = null;
+    this.transitionTo(CoordinatorState.IDLE);
+    this.processQueue();
   }
 
   private expireOldRequests(): void {
