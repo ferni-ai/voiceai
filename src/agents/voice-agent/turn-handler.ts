@@ -2623,6 +2623,8 @@ IMPORTANT:
         });
 
         fireAndForget(async () => {
+          // A crisis turn's words reach no capture; no crisis read counts as one (fail closed).
+          if (crisisTurn) return void diag.info('🧠 Turn memory held', { site: 'turn-handler' });
           const captureResult = await fastCapture({
             userId: captureUserId,
             sessionId: services.sessionId,
@@ -2657,8 +2659,6 @@ IMPORTANT:
             persona.id,
             voiceEmotionSnapshot
           );
-
-          // voice-session-store removed during DDD cleanup
 
           // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
           diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {

@@ -132,6 +132,22 @@ function findSplitPoint(text: string, minLength: number, maxLength: number): num
   return -1; // Don't split yet
 }
 
+/**
+ * A chunk's text and the whitespace around it. The gateway joins chunks as they arrive, so
+ * the whitespace a cut falls on travels with the next chunk, or two words are spoken as one
+ * ("ahora" + "mismo", #4065). Only whitespace the reply had is ever carried.
+ */
+function chunkEdges(chunkText: string): { lead: string; text: string; tail: string } {
+  const text = chunkText.trim();
+  if (!text) return { lead: chunkText, text, tail: '' };
+  const start = chunkText.length - chunkText.trimStart().length;
+  return {
+    lead: chunkText.slice(0, start),
+    text,
+    tail: chunkText.slice(chunkText.trimEnd().length),
+  };
+}
+
 // ============================================================================
 // STREAMING TRANSFORM
 // ============================================================================
@@ -165,6 +181,7 @@ export function createStreamingTTSTransform(
 
   // State
   let buffer = '';
+  let gap = ''; // whitespace at the last cut, spoken before the next chunk
   let hasSentFirstChunk = false;
   let startTime = 0;
   let firstChunkTime = 0;
@@ -200,7 +217,8 @@ export function createStreamingTTSTransform(
       }
     }
 
-    const trimmed = chunkText.trim();
+    const { lead, text: trimmed, tail } = chunkEdges(chunkText);
+    if (hasSentFirstChunk) gap += lead; // the reply's own leading whitespace is never spoken
     if (trimmed.length === 0) return;
 
     // Track metrics
@@ -223,7 +241,8 @@ export function createStreamingTTSTransform(
     chunkCount++;
 
     // Send chunk to TTS
-    controller.enqueue(trimmed);
+    controller.enqueue(gap + trimmed);
+    gap = tail;
 
     // If there's remaining buffer and we're finalizing, recurse
     if (isFinal && buffer.length > 0) {

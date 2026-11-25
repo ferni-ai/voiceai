@@ -54,24 +54,24 @@ export const PERSONA_TOOL_PICKS: Readonly<Record<string, PersonaToolPicks>> = {
       'getCalendarToday',
       'createCalendarEvent',
       'getReminders',
-      'getSleepSummary',
       'tellJoke',
       'getFunFact',
       'quickText',
       'addRelationship',
       'whatCanYouDo',
+      'getSleepSummary', // last: OURA_SLEEP_TOOL on displaces no tool held before (#3242)
     ],
   },
   'maya-santos': {
     beat: ['createHabit', 'logHabitCompletion', 'getHabits', 'habitCheckIn'],
     head: [
-      'getSleepSummary',
       'habitSetback',
       'implementationIntention',
       'celebrateTinyWin',
       'logExercise',
       'analyzeSleepPattern',
       'budgetPlanner',
+      'getSleepSummary', // last: OURA_SLEEP_TOOL on displaces no tool held before (#3242)
     ],
   },
   'alex-chen': {

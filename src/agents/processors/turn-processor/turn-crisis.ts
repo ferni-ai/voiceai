@@ -104,6 +104,8 @@ export interface TurnCrisis {
    * soft check-in, which only the normal reply path carries.
    */
   bypassAllowed(): Promise<boolean>;
+  /** A live classifier read with no verdict (timeout, error, refusal): failed, never a none. */
+  classifierReadFailed(): Promise<boolean>;
 }
 
 /** What startTurnCrisis reads from the session's user data. */
@@ -268,7 +270,7 @@ export function startTurnCrisis(
               // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
               return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
-            const merged = applyClassifierVerdict(patterns, verdict);
+            const merged = applyClassifierVerdict(patterns, verdict, env);
             const crisis = who?.live
               ? await who.resolve(merged, verdict)
               : (who?.shadow(merged, verdict) ?? merged);
@@ -371,6 +373,8 @@ export function startTurnCrisis(
     softCheck: () => settle().then((s) => s.soft),
     summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
+    classifierReadFailed: async () =>
+      classifier?.mode === 'live' && (await classifier.verdict) === null,
   };
 }
 

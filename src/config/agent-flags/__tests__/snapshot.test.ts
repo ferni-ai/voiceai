@@ -4,7 +4,12 @@
  * resolved by the same rule the page uses (resolvedValue), and nothing else from the env.
  */
 import { describe, expect, it } from 'vitest';
-import { buildFlagSnapshot } from '../domain/snapshot.js';
+import {
+  buildFlagSnapshot,
+  flagsPendingRestart,
+  isSnapshotStale,
+  type FlagSnapshot,
+} from '../domain/snapshot.js';
 import { agentFlags } from '../domain/switchable.js';
 
 const NOW = new Date('2026-11-16T12:00:00.000Z');
@@ -70,5 +75,62 @@ describe('buildFlagSnapshot', () => {
     expect(snap.startedAt).toBe('2026-11-16T12:00:00.000Z');
     expect(snap.buildSha).toBe('abc1234');
     expect(buildFlagSnapshot({}, NOW, null).buildSha).toBeNull();
+  });
+});
+
+describe('isSnapshotStale', () => {
+  const snap: FlagSnapshot = { startedAt: '2026-11-16T12:00:00.000Z', buildSha: null, flags: {} };
+
+  it('is stale with no snapshot', () => {
+    expect(isSnapshotStale(null, {})).toBe(true);
+  });
+
+  it('is fresh when every secret changed before the worker started, LiveKit nanoseconds included', () => {
+    expect(isSnapshotStale(snap, {})).toBe(false);
+    expect(
+      isSnapshotStale(snap, { A: '2026-11-16T11:59:59.999999999Z', B: '2026-11-16T12:00:00Z' })
+    ).toBe(false);
+  });
+
+  it('is stale when any secret changed after the worker started', () => {
+    expect(
+      isSnapshotStale(snap, { A: '2026-11-16T11:00:00Z', B: '2026-11-16T12:00:00.001Z' })
+    ).toBe(true);
+  });
+
+  it('is stale when a time does not parse', () => {
+    expect(isSnapshotStale(snap, { A: 'yesterday' })).toBe(true);
+    expect(isSnapshotStale({ ...snap, startedAt: 'unknown' }, {})).toBe(true);
+  });
+});
+
+describe('flagsPendingRestart', () => {
+  const snap: FlagSnapshot = { startedAt: '2026-11-16T12:00:00.000Z', buildSha: null, flags: {} };
+  const after = '2026-11-16T12:00:00.001Z';
+
+  it('lists only switchable flags changed after the worker started, by name', () => {
+    expect(
+      flagsPendingRestart(snap, {
+        SOUND_CONDUCTOR: after,
+        ATTUNE_LEDGER: '2026-11-16T11:59:59.999999999Z',
+        LATENCY_ARM_PERCENT: after,
+        CARTESIA_API_KEY: after,
+        ABUSE_DISCLOSURE_PATTERNS: after,
+      })
+    ).toEqual(['ABUSE_DISCLOSURE_PATTERNS', 'SOUND_CONDUCTOR']);
+  });
+
+  it('is empty with no snapshot or nothing changed since', () => {
+    expect(flagsPendingRestart(null, { SOUND_CONDUCTOR: after })).toEqual([]);
+    expect(flagsPendingRestart(snap, { SOUND_CONDUCTOR: '2026-11-16T12:00:00Z' })).toEqual([]);
+  });
+
+  it('counts a time that does not parse as changed', () => {
+    expect(flagsPendingRestart(snap, { SOUND_CONDUCTOR: 'yesterday' })).toEqual([
+      'SOUND_CONDUCTOR',
+    ]);
+    expect(
+      flagsPendingRestart({ ...snap, startedAt: 'unknown' }, { SOUND_CONDUCTOR: after })
+    ).toEqual(['SOUND_CONDUCTOR']);
   });
 });

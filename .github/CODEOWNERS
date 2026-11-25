@@ -6,6 +6,9 @@
 /.github/workflows/   @sethdford
 /.github/actions/     @sethdford
 /scripts/ci/          @sethdford
+# The Planted Bugs check and its runner, by name (the lines above cover them today).
+/.github/workflows/plants.yml @sethdford
+/scripts/ci/plants/           @sethdford
 
 # Quality gates. They fail only on what a PR adds, measured against its merge base
 # (merge-base.ts below); these files decide what counts as a violation, so a change to
@@ -95,6 +98,8 @@
 /src/agents/shared/phone-goodbye.ts @sethdford
 /src/agents/shared/tts-wrapper.ts @sethdford
 /src/agents/shared/wrap-up-window.ts @sethdford
+/src/agents/voice-agent/phases/idle-checkin.ts @sethdford
+/src/agents/voice-agent/phases/session-end-watch.ts @sethdford
 /src/agents/voice-agent/quiet-presence.ts @sethdford
 /src/agents/voice-agent/turn-handler.ts @sethdford
 /src/api/custom-agent/chat-routes.ts @sethdford
@@ -118,6 +123,9 @@
 /src/services/outreach/decision-engine.ts @sethdford
 /src/services/outreach/session-integration.ts @sethdford
 /src/services/outreach/trigger-publisher.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply-reads.ts @sethdford
+/src/services/outreach/sms-reply/sms-reply-text.ts @sethdford
 /src/services/principal-alignment/human-referral.ts @sethdford
 /src/services/principal-alignment/index.ts @sethdford
 /src/services/principal-alignment/referral-resources.ts @sethdford
@@ -181,6 +189,7 @@
 /src/agents/shared/final-transcript-observer.ts @sethdford
 /src/agents/shared/tool-executors/memory-executor.ts @sethdford
 /src/agents/shared/turn-path-capture.ts @sethdford
+/src/agents/shared/turn-receipt-lane.ts @sethdford
 /src/agents/voice-agent-entry/caller-recognition.ts @sethdford
 /src/agents/voice-agent-entry/handler-setup.ts @sethdford
 /src/agents/voice-agent-entry/user-input-transcribed.ts @sethdford

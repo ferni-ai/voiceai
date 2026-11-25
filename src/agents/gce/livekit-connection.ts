@@ -26,7 +26,7 @@ import {
   markLivekitDisconnected,
   signalWorkerAcceptingJobs,
 } from '../shared/worker-readiness.js';
-import { setWorkerId, type JobInfo } from './job-executor.js';
+import { LIVEKIT_TERMINATION, setWorkerId, type JobInfo } from './job-executor.js';
 import * as jobRunner from './job-runner.js';
 
 // ============================================================================
@@ -421,7 +421,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         timestamp: new Date().toISOString(),
       });
 
-      if (!jobRunner.terminateJob(jobId, 'livekit_termination'))
+      if (!jobRunner.terminateJob(jobId, LIVEKIT_TERMINATION))
         _log('Terminated job is not running here', { jobId });
       break;
     }

@@ -125,6 +125,7 @@ const routing = {
   personaId: 'ferni',
   conversationHistory: [],
   recentTools: [],
+  autoExecuteCheck: null,
 };
 const tool = { id: 'music.play', name: 'play', description: 'plays', parameters: [] };
 const candidate = { toolId: 'music.play', confidence: 0.5, toolName: 'play', description: 'plays' };

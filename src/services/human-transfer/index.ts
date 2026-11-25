@@ -249,6 +249,7 @@ import {
   crisisLevelSignalsSince,
   noteWrittenThisCall,
   type CrisisEventRecord,
+  type QuietOnlySource,
 } from './crisis-signals.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { isAnonymousDemoUser, isSharedPlaceholderId } from '../../utils/synthetic-user.js';
@@ -270,6 +271,9 @@ export { followUpCrisis } from './crisis-signals.js';
  * Every crisis record is kept permanently, a member's or not (2026-11-11): none carries an
  * expireAt, and crisis_signals has no TTL policy. Signing in copies it to the account as is.
  *
+ * Resolves true once the signal is stored; false when nothing was stored (no signal, a
+ * placeholder id, no Firestore, or a failed write, which is logged).
+ *
  * @param _unusedTranscript ignored and never stored. Kept so a positional caller's line can't
  *   shift into sessionId (both are strings, so the compiler would not catch it).
  */
@@ -279,8 +283,10 @@ export async function logCrisisSignal(
   /** @deprecated Ignored: never stored, anywhere. Pass undefined. */
   _unusedTranscript?: string,
   sessionId?: string,
-  turn?: number
-): Promise<void> {
+  turn?: number,
+  /** QUIET_ONLY_SOURCE: the record only quiets outreach; no reply reads it (crisis-signals.ts). */
+  source?: QuietOnlySource
+): Promise<boolean> {
   // Only log if any crisis signals detected (severity > 0 or explicit flags)
   const hasSignals =
     signals.suicidalIdeation ||
@@ -290,7 +296,7 @@ export async function logCrisisSignal(
     signals.severity > 0;
 
   if (!hasSignals) {
-    return;
+    return false;
   }
 
   log.warn(
@@ -306,7 +312,7 @@ export async function logCrisisSignal(
   );
   if (isSharedPlaceholderId(userId)) {
     log.warn({ sessionId }, 'Crisis signal not stored: shared placeholder id');
-    return;
+    return false;
   }
   const keepsSession = isMemberIdentity(userId) && !isAnonymousDemoUser(userId);
   const fades = turn !== undefined && flagOn('CRISIS_SAME_CALL_NOTE_FADES');
@@ -314,7 +320,7 @@ export async function logCrisisSignal(
 
   try {
     const db = getFirestoreDb();
-    if (!db) return;
+    if (!db) return false;
 
     await db
       .collection('bogle_users')
@@ -337,10 +343,12 @@ export async function logCrisisSignal(
         ...(keepsSession && sessionId ? { sessionId } : {}),
         // CRISIS_SAME_CALL_NOTE_FADES: the caller turn, so the same-call note can fade
         ...(fades ? { turn } : {}),
+        ...(source ? { source } : {}),
       });
     // No session id kept: remember in memory which call wrote it, so its note can fade too
     if (fades && sessionId && !keepsSession) noteWrittenThisCall(sessionId, userId, timestamp);
     forgetRecentCrisis(userId); // the next turn's check-in sees this signal
+    return true;
   } catch (error) {
     // The code only, and only when it looks like one: a message can quote the caller
     const code = String((error as { code?: unknown } | null)?.code ?? '');
@@ -348,6 +356,7 @@ export async function logCrisisSignal(
       { userId, code: /^[\w.-]{1,40}$/.test(code) ? code : 'unknown' },
       'Failed to log crisis signal'
     );
+    return false;
   }
 }
 
@@ -359,7 +368,7 @@ async function queryCrisisHistory(userId: string, limitDays: number): Promise<Cr
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - limitDays);
 
-  return crisisLevelSignalsSince(db, userId, cutoffDate);
+  return crisisLevelSignalsSince(db, userId, cutoffDate, { withQuietOnly: false }); // shapes replies
 }
 
 /**

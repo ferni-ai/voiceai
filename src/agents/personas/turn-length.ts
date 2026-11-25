@@ -31,6 +31,8 @@
  * @module agents/personas/turn-length
  */
 
+import { flagOn } from '../../config/env-flag.js';
+
 import { NEXT_TURN_WORDS, ROUGH_KINDS, ROUGH_SHARE } from './turn-length-table.generated.js';
 
 type Env = Record<string, string | undefined>;
@@ -127,14 +129,42 @@ const ROUGH_LINES: Record<string, string> = {
 };
 const CLEAN = 'Say it cleanly this time, with no fillers, hesitations or restarts.';
 
-/** The roughness for a reply of `target` words: friends' rate for that size, in their form. */
-export function textureLine(target: number, rng: () => number): { line: string; kind: string } {
-  const size = bucket(target, [6, 15]);
-  if (rng() >= ROUGH_SHARE[size]) return { line: CLEAN, kind: 'clean' };
-  let r = rng();
+/**
+ * RESTART_VARIED=on (#3071): the one restart example above, "I, I think", was copied on about one
+ * reply in ten of a long call. Several shapes, none on "I", leave no single phrase to copy.
+ */
+const RESTART_EXAMPLES = [
+  'we were, we went',
+  "it was, it's more like",
+  "that's, that's the part",
+  'the thing, the real thing is',
+  'he said, he kept saying',
+];
+
+/** The line for a kind of roughness; a varied restart draws its example only when the flag is on. */
+function roughLine(kind: string, rng: () => number, env: Env): string {
+  if (kind !== 'restart' || !flagOn('RESTART_VARIED', env)) return ROUGH_LINES[kind];
+  const example = RESTART_EXAMPLES[Math.floor(rng() * RESTART_EXAMPLES.length)];
+  return `Start one thought, then start it over or say its first word twice, joined with a comma (like "${example}"); never start the restart on "I".`;
+}
+
+/** Which kind of roughness, from friends' mix for a reply of this size. */
+function roughKind(size: number, r: number): string {
   for (const [kind, p] of Object.entries(ROUGH_KINDS[size])) {
-    if (r < p) return { line: ROUGH_LINES[kind], kind };
+    if (r < p) return kind;
     r -= p;
   }
-  return { line: ROUGH_LINES.restart, kind: 'restart' };
+  return 'restart';
+}
+
+/** The roughness for a reply of `target` words: friends' rate for that size, in their form. */
+export function textureLine(
+  target: number,
+  rng: () => number,
+  env: Env = process.env
+): { line: string; kind: string } {
+  const size = bucket(target, [6, 15]);
+  if (rng() >= ROUGH_SHARE[size]) return { line: CLEAN, kind: 'clean' };
+  const kind = roughKind(size, rng());
+  return { line: roughLine(kind, rng, env), kind };
 }

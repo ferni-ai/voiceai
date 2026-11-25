@@ -33,8 +33,7 @@ import { dropLeadingSaidBy } from './said-by.js';
 import { withCutReplyCheck } from './cut-reply-guard.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { withLane } from '../model-provider/lane-request.js';
-import { sttWithFirstTurnFast } from './first-turn-fast.js';
-import { sttWithNameFix } from './name-mishear.js';
+import { sttChain } from './stt-chain.js';
 import { sttReusableAcrossHandoff } from './stt-handoff-reuse.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
@@ -378,7 +377,7 @@ function buildHandoffTools(): ToolSet {
         return llm.handoff({
           agent: await AlexAgent.create(ctx.session.chatCtx),
           returns:
-            'Connecting you with Alex - they handle calendar and communications like nobody else.',
+            'Connecting you with Alex. He handles calendar and communications like nobody else.',
         });
       },
     }),
@@ -402,7 +401,7 @@ function buildHandoffTools(): ToolSet {
         const { JordanAgent } = await import('./jordan-agent.js');
         return llm.handoff({
           agent: await JordanAgent.create(ctx.session.chatCtx),
-          returns: 'Connecting you with Jordan - they make every milestone feel special.',
+          returns: 'Connecting you with Jordan. She makes every milestone feel special.',
         });
       },
     }),
@@ -614,7 +613,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   /**
    * User audio is tee'd: one branch to the STT (FIRST_TURN_FAST may end turn 1 early:
    * first-turn-fast.ts), one to processAudioStream (prosody, biomarkers, voice emotion for
-   * turn-handler.ts). Transcripts come back with a misheard "Ferni" put right (name-mishear.ts).
+   * turn-handler.ts). Then name fix and a guest's turn labels (GROUP_CALL): stt-chain.ts.
    */
   async sttNode(
     audio: NodeReadableStream<AudioFrame>,
@@ -647,10 +646,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       sendDataMessage,
     }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
 
-    return sttWithNameFix(
-      this.session,
-      sttWithFirstTurnFast(this.session, audioForStt, (a) => super.sttNode(a, modelSettings))
-    );
+    return sttChain(this.session, audioForStt, (a) => super.sttNode(a, modelSettings));
   }
 
   /** STT_HANDOFF_REUSE=on: the next persona keeps this call's STT stream (stt-handoff-reuse.ts). */

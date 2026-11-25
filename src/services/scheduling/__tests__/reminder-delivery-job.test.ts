@@ -14,6 +14,8 @@ const deliverReminder = vi.fn(
   ): Promise<Outcome> => 'sent'
 );
 
+let dbIdentity: { projectId?: string; databaseId?: string } = {};
+
 /** Enough of Firestore for the job's query and its claim transaction. */
 function fakeDb() {
   const ref = (row: Row) => ({
@@ -39,6 +41,7 @@ function fakeDb() {
     },
   });
   return {
+    ...dbIdentity, // a live client's projectId / databaseId (the write guard's prod check)
     collectionGroup: () => query(),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({
@@ -95,6 +98,8 @@ const reminder = (id: string, data: Record<string, unknown>): Row => ({
 
 beforeEach(() => {
   rows = [];
+  dbIdentity = {};
+  vi.unstubAllEnvs();
   smsUp = true;
   deliverReminder.mockReset().mockResolvedValue('sent');
   logPromiseOutcome.mockClear();
@@ -272,6 +277,72 @@ describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
     await deliverDueReminders({ now: NOW, dryRun: true });
     expect(logPromiseJobRun).not.toHaveBeenCalled();
     expect(logPromiseOutcome).not.toHaveBeenCalled();
+  });
+});
+
+describe('a harness owner the write guard refuses (REMINDER_SKIP_SYNTHETIC_OWNER, #3046)', () => {
+  const PROD = { projectId: 'johnb-2025', databaseId: '(default)' };
+  const EVAL_OWNER = 'voice-eval-rel1-reminder';
+  const evalReminder = (id: string): Row => ({
+    ...reminder(id, { scheduledFor: at(-60_000), deliveryAddress: `voice:${EVAL_OWNER}` }),
+    userId: EVAL_OWNER,
+  });
+  const on = () => vi.stubEnv('REMINDER_SKIP_SYNTHETIC_OWNER', 'on');
+  const jobRun = () => logPromiseJobRun.mock.calls.at(-1)?.[1];
+
+  it('on prod, is skipped before the claim: not sent, not failed, no promise outcome', async () => {
+    on();
+    dbIdentity = PROD;
+    rows = [evalReminder('eval')];
+    const result = await deliverDueReminders({ now: NOW });
+
+    expect(result).toMatchObject({ due: 1, syntheticOwner: 1, failed: 0, delivered: 0 });
+    expect(deliverReminder).not.toHaveBeenCalled();
+    expect(rows[0].data.status).toBe('pending'); // unclaimed: marking it would be refused too
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
+    // The summary line carries skipped as a number, apart from failed.
+    expect(jobRun()).toEqual({ due: 1, done: 0, failed: 0, held: 0, missed: 0, skipped: 1 });
+  });
+
+  it("a real owner's failed send still counts failed beside it, and skipped is 0 with none to skip", async () => {
+    on();
+    dbIdentity = PROD;
+    rows = [reminder('real', { scheduledFor: at(-60_000) }), evalReminder('eval')];
+    deliverReminder.mockResolvedValueOnce('failed');
+    const result = await deliverDueReminders({ now: NOW });
+    expect(result).toMatchObject({ failed: 1, syntheticOwner: 1 });
+    expect(deliverReminder).toHaveBeenCalledTimes(1);
+    expect(jobRun()).toMatchObject({ failed: 1, skipped: 1 });
+
+    rows = [reminder('real2', { scheduledFor: at(-60_000) })];
+    deliverReminder.mockResolvedValueOnce('failed');
+    await deliverDueReminders({ now: NOW });
+    expect(jobRun()).toMatchObject({ failed: 1, skipped: 0 });
+  });
+
+  it.each([
+    ['dev data', { projectId: 'johnb-2025', databaseId: 'ferni-dev' }, {}],
+    ['the emulator', PROD, { FIRESTORE_EMULATOR_HOST: 'localhost:8080' }],
+    ['prod with PROD_EVAL_WRITES=voice-eval', PROD, { PROD_EVAL_WRITES: 'voice-eval' }],
+    ['a client that cannot say where it is', {}, {}],
+  ])('on %s, still delivers as before', async (_where, identity, env) => {
+    on();
+    for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
+    dbIdentity = identity;
+    rows = [evalReminder('eval')];
+    const result = await deliverDueReminders({ now: NOW });
+    expect(result).toMatchObject({ delivered: 1, syntheticOwner: 0 });
+    expect(deliverReminder).toHaveBeenCalledTimes(1);
+  });
+
+  it('flag off: as main, the refused send counts failed and the summary has no skipped', async () => {
+    dbIdentity = PROD;
+    rows = [evalReminder('eval')];
+    deliverReminder.mockResolvedValueOnce('failed');
+    const result = await deliverDueReminders({ now: NOW });
+    expect(result.failed).toBe(1);
+    expect(result).not.toHaveProperty('syntheticOwner');
+    expect(jobRun()).toEqual({ due: 1, done: 0, failed: 1, held: 0, missed: 0 });
   });
 });
 
