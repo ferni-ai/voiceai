@@ -4,7 +4,8 @@
  *
  * Every reader, the call-start recall snapshot included, shares one
  * in-flight Firestore read and its result (fresh for 15 s, and at once stale
- * after a forget in this process). A failed read is remembered and retried
+ * after a forget in this process; topicsFreshWithin's `uncached` reader reads
+ * the store itself instead, #2755). A failed read is remembered and retried
  * only after a backoff (1 s doubling to 60 s), so interim transcripts can't
  * flood Firestore. A reader that can't wait for the read (READ_TIMEOUT_MS)
  * uses the last topics read for the caller, by any reader in this process;
@@ -121,19 +122,26 @@ export async function topicsWithin(userId: string, reader: string): Promise<stri
  * READ_TIMEOUT_MS, else null (fail closed). The last-known fallback has no age bound yet (#2623),
  * so it could miss a topic forgotten since in another process; switch to topicsWithin once it does.
  * Each fail-closed answer is logged with the reader and why (timeout or failed), so its rate can
- * be read from the logs.
+ * be read from the logs. `uncached` reads the store itself, not the shared 15 s cache, which only a
+ * forget in this process invalidates (#2755): for a rarely used reader, one read per call.
  */
 export async function topicsFreshWithin(
   userId: string,
-  reader = 'fresh'
+  reader = 'fresh',
+  uncached = false
 ): Promise<string[] | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<'late'>((resolve) => {
     timer = setTimeout(() => resolve('late'), READ_TIMEOUT_MS);
   });
-  const got = await Promise.race([readTopics(userId), late]);
+  // No backoff on the uncached read: its readers are rare (one read per tool call or call end, not
+  // per turn) and each waits at most READ_TIMEOUT_MS, so a failing store can't be flooded by them.
+  if (uncached) stats.reads++;
+  const read = uncached ? forgottenTopicsOrNull(userId) : readTopics(userId);
+  const got = await Promise.race([read, late]);
   clearTimeout(timer);
   if (Array.isArray(got)) return got;
+  if (got === null && uncached) stats.failures++; // the cached read counts its own in readTopics
   if (got === 'late') stats.timeouts++;
   stats.failClosed++;
   const why = got === 'late' ? 'timeout' : 'failed';

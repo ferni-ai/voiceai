@@ -152,8 +152,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
 import { isUnplacedCaller, unsavedCallerNote } from './unknown-caller-honest.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
-import { lastTalkedAwareness } from './welcome-back.js';
-import { calendarDaysSince } from '../../utils/calendar-days.js';
+import { lastCallAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 import { recentTextsBlock } from './recent-texts-awareness.js';
 import { callerCardText, whoYoureTalkingTo } from './caller-card/index.js';
@@ -379,7 +378,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
       rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
-      const sessionStartTime = new Date();
+      const lastCall = { at: userProfile.lastContact, now: new Date(), zone: callZone };
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
       if (displayName) userAwareness.push(`You're talking to ${displayName}.`);
@@ -406,8 +405,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
         // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
-          userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
+          userAwareness.push(...lastCallAwareness(lastCall, userProfile.lastCallerSummary)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
         userAwareness.push(firstTalkNote(sessionId, isUnplacedCaller(userId, false)));
@@ -432,7 +430,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
       if (isReturningUser && userProfile.lastCallerSummary) {
-        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary));
+        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary, lastCall));
       }
 
       // =========================================================================

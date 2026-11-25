@@ -272,7 +272,7 @@ export function startTurnCrisis(
               // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
               return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
-            const merged = applyClassifierVerdict(patterns, verdict);
+            const merged = applyClassifierVerdict(patterns, verdict, env);
             const crisis = who?.live
               ? await who.resolve(merged, verdict)
               : (who?.shadow(merged, verdict) ?? merged);

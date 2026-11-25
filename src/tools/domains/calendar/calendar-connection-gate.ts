@@ -12,6 +12,7 @@
 import { getDayOverview, getWeekOverview } from '../../../services/calendar/index.js';
 import { isConnected } from '../../../services/calendar/calendar-service.js';
 import { describeFerniList } from '../../../services/calendar/ferni-list.js';
+import { readOrUnchecked } from '../../../services/calendar/calendar-load-state.js';
 import {
   NOT_CONNECTED_CHANGE,
   NOT_CONNECTED_CHANGE_FAILED,
@@ -127,41 +128,43 @@ function gate(def: ToolDefinition): ToolDefinition {
     create: (ctx: ToolContext) => {
       const tool = def.create(ctx);
       const original = tool.execute;
+      const gated = async (userId: string, params: unknown, options: unknown): Promise<unknown> => {
+        const unknown = await outlookLinkUnknown(userId); // OUTLOOK_CONNECT: link doc unread
+        if (await isConnected(userId)) {
+          // A write goes to the connected calendar when the flag is on (#1749); else the Ferni path.
+          const out = await withOutlookHonesty(mode === 'create' || mode === 'change', async () => {
+            const routed =
+              mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
+            return routed ?? original(params, options);
+          });
+          return maybeIncomplete(out, unknown && (mode === 'read' || mode === 'clear'));
+        }
+        if (unknown) return uncheckedReply(mode, () => original(params, options));
+        if (mode === 'read') return notConnectedRead(def.id, userId);
+        if (mode === 'clear') {
+          const result: unknown = await original(params, options);
+          if (typeof result !== 'string') return result;
+          return NOTHING_LISTED.test(result)
+            ? NOT_CONNECTED_READ
+            : `No calendar is connected, so this is Ferni's own list, reminders and appointments:\n${result}`;
+        }
+
+        // A write still runs: it lands in Ferni's own list. Only the reply changes.
+        const result: unknown = await original(params, options);
+        const failed = typeof result === 'string' && FAILED_WRITE.test(result);
+        if (mode === 'create') {
+          return failed ? NOT_CONNECTED_CREATE_FAILED : notConnectedCreate(whatWasAsked(params));
+        }
+        return failed ? NOT_CONNECTED_CHANGE_FAILED : NOT_CONNECTED_CHANGE;
+      };
       return {
         ...tool,
         execute: async (params: unknown, options: unknown) => {
           const { userId } = ctx;
           if (!userId) return original(params, options);
-          const unknown = await outlookLinkUnknown(userId); // OUTLOOK_CONNECT: link doc unread
-          if (await isConnected(userId)) {
-            // A write goes to the connected calendar when the flag is on (#1749); else the Ferni path.
-            const out = await withOutlookHonesty(
-              mode === 'create' || mode === 'change',
-              async () => {
-                const routed =
-                  mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
-                return routed ?? original(params, options);
-              }
-            );
-            return maybeIncomplete(out, unknown && (mode === 'read' || mode === 'clear'));
-          }
-          if (unknown) return uncheckedReply(mode, () => original(params, options));
-          if (mode === 'read') return notConnectedRead(def.id, userId);
-          if (mode === 'clear') {
-            const result: unknown = await original(params, options);
-            if (typeof result !== 'string') return result;
-            return NOTHING_LISTED.test(result)
-              ? NOT_CONNECTED_READ
-              : `No calendar is connected, so this is Ferni's own list, reminders and appointments:\n${result}`;
-          }
-
-          // A write still runs: it lands in Ferni's own list. Only the reply changes.
-          const result: unknown = await original(params, options);
-          const failed = typeof result === 'string' && FAILED_WRITE.test(result);
-          if (mode === 'create') {
-            return failed ? NOT_CONNECTED_CREATE_FAILED : notConnectedCreate(whatWasAsked(params));
-          }
-          return failed ? NOT_CONNECTED_CHANGE_FAILED : NOT_CONNECTED_CHANGE;
+          const run = async (): Promise<unknown> => gated(userId, params, options);
+          // CALENDAR_LOAD_FAIL_HONEST: a read that hit a failed load is not a clear calendar
+          return mode === 'read' || mode === 'clear' ? readOrUnchecked(userId, run) : run();
         },
       };
     },

@@ -9,6 +9,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const gateway = { on: true };
 const spoken: string[] = [];
+/** The language each gateway node was given, as the gateway would read it (#4062). */
+const languages: Array<(() => string) | undefined> = [];
 
 async function drain(text: NodeReadableStream<string>): Promise<null> {
   let all = '';
@@ -20,7 +22,10 @@ async function drain(text: NodeReadableStream<string>): Promise<null> {
 vi.mock('../../../speech/tts-gateway/index.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../speech/tts-gateway/index.js')>()),
   isTTSGatewayEnabled: () => gateway.on,
-  createGatewayTTSNode: () => drain,
+  createGatewayTTSNode: (config: { language?: () => string }) => {
+    languages.push(config.language);
+    return drain;
+  },
 }));
 
 vi.mock('../performance/cache-aware-tts.js', async (importOriginal) => ({
@@ -32,6 +37,7 @@ afterEach(() => {
   delete process.env.SPEAK_988_DIGITS;
   gateway.on = true;
   spoken.length = 0;
+  languages.length = 0;
 });
 
 /** Speak a model reply streamed in token-sized chunks; return what reached TTS. */
@@ -54,7 +60,12 @@ async function speak(chunks: string[]): Promise<string> {
 
 const REPLY = ['You can call or text', ' ninety', '-eight', '-eight any time', ', day or night.'];
 // Other stages may add pauses (<break/>) to what reaches TTS; the words are what count.
-const words = (text: string): string => text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
+// A pause can stand where a space was ("nueve,<break/>ocho"), so a tag reads as a space.
+const words = (text: string): string =>
+  text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 describe('tts-wrapper: the crisis line reaches TTS as "nine eight eight"', () => {
   it('a spelled-out wrong form split across chunks is rewritten (gateway path)', async () => {
@@ -84,5 +95,32 @@ describe('tts-wrapper: the crisis line reaches TTS as "nine eight eight"', () =>
     expect(words(await speak(REPLY))).toBe(
       'You can call or text ninety-eight-eight any time, day or night.'
     );
+  });
+});
+
+describe('tts-wrapper: a Spanish crisis line reaches the voice in Spanish (#4062)', () => {
+  const SCRIPT_ES = [
+    'Escucho cuánto dolor sientes ahora. ',
+    'Puedes llamar al 9',
+    '88 y oprimir 2',
+    ' para hablar en español. Si estás en peligro ahora mismo, llama al 911.',
+  ];
+
+  it('digit words reach the gateway, and the gateway reads es', async () => {
+    // Spacing at the streaming chunker's cuts is not under test here: compare without spaces.
+    const squash = (text: string) => words(text).replace(/\s/g, '');
+    const out = squash(await speak(SCRIPT_ES));
+    expect(out).toContain(
+      squash('Puedes llamar al nueve, ocho, ocho y oprimir dos para hablar en español.')
+    );
+    expect(out).toContain(squash('llama al nueve, uno, uno.'));
+    expect(out).not.toMatch(/\d/);
+    expect(languages).toHaveLength(1);
+    expect(languages[0]?.()).toBe('es');
+  });
+
+  it('an English reply: the gateway reads en', async () => {
+    await speak(REPLY);
+    expect(languages[0]?.()).toBe('en');
   });
 });

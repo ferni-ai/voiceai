@@ -33,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0 # Required for Chromatic to detect changes
 
       - name: Setup Node.js and pnpm
