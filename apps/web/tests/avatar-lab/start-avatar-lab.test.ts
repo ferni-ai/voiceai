@@ -1,8 +1,8 @@
 /**
  * The avatar lab is the second caller of the shared avatar boot: it starts the
  * theme and waveform, runs the same boot the app runs (now steps at once,
- * deferred steps at their delay), follows turns with no room, and keeps a turn
- * driver for the command bridge.
+ * deferred steps at their delay), follows turns with no room, and starts the
+ * command bridge on its turn driver and the real avatar exports.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AvatarBootOptions, AvatarBootRunner } from '../../src/ui/avatar-boot.js';
@@ -19,6 +19,8 @@ const m = vi.hoisted(() => {
     step,
     driver: { update: () => undefined, shown: () => 'none', dispose: () => undefined },
     logError: vi.fn(),
+    stopBridge: vi.fn(),
+    soul: { getState: () => ({ isInitialized: false }) },
   };
 });
 
@@ -45,6 +47,13 @@ vi.mock('../../src/ui/avatar-motion/turn-driver.js', async (importOriginal) => (
     return m.driver;
   }),
 }));
+vi.mock('../../src/avatar-lab/lab-bridge.js', () => ({
+  startLabBridge: vi.fn(() => {
+    m.order.push('startLabBridge');
+    return m.stopBridge;
+  }),
+}));
+vi.mock('../../src/ui/avatar-soul.ui.js', () => ({ avatarSoul: m.soul }));
 vi.mock('../../src/utils/logger.js', () => ({
   createLogger: () => ({
     debug: () => undefined,
@@ -56,6 +65,10 @@ vi.mock('../../src/utils/logger.js', () => ({
 
 import { initializeTheme } from '../../src/app/app-theme.js';
 import { startAvatarLab } from '../../src/avatar-lab/index.js';
+import { startLabBridge } from '../../src/avatar-lab/lab-bridge.js';
+import type { LabDeps } from '../../src/avatar-lab/lab-commands.js';
+import { playNameLift } from '../../src/ui/avatar-motion/name-lift.js';
+import { holdCrisisFace, releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 import { bootAvatarNow, scheduleAvatar } from '../../src/ui/avatar-boot.js';
 import {
   createTurnDriver,
@@ -120,6 +133,7 @@ describe('startAvatarLab', () => {
       'bootAvatarNow',
       'scheduleAvatar',
       'createTurnDriver',
+      'startLabBridge',
     ]);
     expect(vi.mocked(initializeTheme)).toHaveBeenCalledWith();
   });
@@ -180,5 +194,26 @@ describe('startAvatarLab', () => {
       defaultTargets,
       TURN_SETTLE_REDUCED_MS
     );
+  });
+
+  it('starts the command bridge on this window with the turn driver and the real exports', async () => {
+    await startAvatarLab();
+    expect(vi.mocked(startLabBridge)).toHaveBeenCalledOnce();
+    const [win, deps] = vi.mocked(startLabBridge).mock.calls[0] as [Window, LabDeps];
+    expect(win).toBe(window);
+    expect(deps.driver).toBe(m.driver);
+    expect(deps.soul).toBe(m.soul);
+    expect(deps.playNameLift).toBe(playNameLift);
+    expect(deps.holdCrisisFace).toBe(holdCrisisFace);
+    expect(deps.releaseCrisisFace).toBe(releaseCrisisFace);
+    expect(deps.ready()).toBe(false);
+  });
+
+  it('stops the previous bridge when the lab starts again, so listeners never stack', async () => {
+    await startAvatarLab(); // module state: an earlier test's bridge may be stopped here
+    m.stopBridge.mockClear();
+    await startAvatarLab();
+    expect(m.stopBridge).toHaveBeenCalledOnce();
+    expect(vi.mocked(startLabBridge)).toHaveBeenCalledTimes(2);
   });
 });

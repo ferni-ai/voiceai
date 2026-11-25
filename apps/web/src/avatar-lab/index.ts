@@ -5,7 +5,8 @@
  * nothing else: no sign-in, no call, no auth, connection service or LiveKit.
  *
  * The avatar follows turns from a turn driver this page owns (there is no
- * room to watch), kept here for the command bridge to drive.
+ * room to watch), which the command bridge (lab-bridge.ts) drives along with
+ * the real avatar exports.
  */
 import { initializeTheme } from '../app/app-theme.js';
 import { initI18n } from '../i18n/index.js';
@@ -16,9 +17,14 @@ import {
   turnSettleMs,
   type TurnDriver,
 } from '../ui/avatar-motion/turn-driver.js';
+import { playNameLift } from '../ui/avatar-motion/name-lift.js';
+import { holdCrisisFace, releaseCrisisFace } from '../ui/face/crisis-face-hold.js';
+import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import { initWaveformUI } from '../ui/waveform.ui.js';
 import { initGSAP } from '../utils/gsap-animations.js';
 import { createLogger } from '../utils/logger.js';
+import { startLabBridge } from './lab-bridge.js';
+import type { LabDeps } from './lab-commands.js';
 
 const log = createLogger('AvatarLab');
 
@@ -46,7 +52,13 @@ html[data-avatar-lab='on'] #app :not(:has(#coach, #waveformContainer)):not(#coac
  */
 const FORCED_VISIBLE_IDS = ['helperText'] as const;
 
-const lab: { turnDriver: TurnDriver | null } = { turnDriver: null };
+/** Ferni's persona colour token, for the cameo arrival's bloom. */
+const PERSONA_COLOR_TOKEN = '--color-persona-ferni';
+
+const lab: { turnDriver: TurnDriver | null; stopBridge: (() => void) | null } = {
+  turnDriver: null,
+  stopBridge: null,
+};
 
 async function runStep(name: string, fn: () => void | Promise<void>): Promise<void> {
   try {
@@ -63,6 +75,22 @@ const runner: AvatarBootRunner = {
     setTimeout(() => void runStep(name, fn), delayMs);
   },
 };
+
+/** The real exports the bridge runs. The soul loads on first use, as the boot loads it. */
+async function liveDeps(driver: TurnDriver): Promise<LabDeps> {
+  const { avatarSoul } = await import('../ui/avatar-soul.ui.js');
+  return {
+    driver,
+    soul: avatarSoul,
+    setExpression: (expression) => ferniExpressions.setExpression(expression),
+    playNameLift,
+    holdCrisisFace,
+    releaseCrisisFace,
+    personaColor: () =>
+      getComputedStyle(document.documentElement).getPropertyValue(PERSONA_COLOR_TOKEN).trim(),
+    ready: () => avatarSoul.getState().isInitialized,
+  };
+}
 
 function addLabStyle(): void {
   if (document.getElementById(LAB_STYLE_ID)) return;
@@ -90,6 +118,8 @@ export async function startAvatarLab(): Promise<void> {
   scheduleAvatar(runner, { startTurns: () => true });
   // The app's settle time: slower when the viewer prefers reduced motion
   lab.turnDriver = createTurnDriver(defaultTargets, turnSettleMs());
+  lab.stopBridge?.();
+  lab.stopBridge = startLabBridge(window, await liveDeps(lab.turnDriver));
 
   document.querySelector('.avatar-container')?.classList.add('entrance-complete');
   log.info('Avatar lab started');
