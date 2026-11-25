@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import { GoogleGenAI } from '@google/genai';
 import { vertexGenAIOptions } from '../../config/vertex-endpoint.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { ownedManualEntries } from '../registry/tool-id-owners.js';
 import type { IntentManual, RetrievedTool } from './tool-retriever.js';
 
 const log = createLogger({ module: 'DenseToolIndex' });
@@ -226,9 +227,10 @@ export class DenseToolIndex {
 
 export function loadIntentManual(): IntentManual {
   const here = dirname(fileURLToPath(import.meta.url));
-  return JSON.parse(
+  const manual = JSON.parse(
     readFileSync(join(here, 'intent-manual.generated.json'), 'utf8')
   ) as IntentManual;
+  return { ...manual, tools: ownedManualEntries(manual.tools) }; // TOOL_ID_OWNERS (#4291)
 }
 
 /** Cache file for a manual + model, so a changed manual never loads stale vectors. */

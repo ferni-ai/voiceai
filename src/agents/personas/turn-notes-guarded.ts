@@ -46,7 +46,7 @@ import { callerSetsDepthNote as raw_callerSetsDepthNote } from './caller-sets-de
 import { repairNoteFor as raw_repairNoteFor } from './repair-check.js';
 import { formatNotes as raw_formatNotes } from './director-notes.js';
 import { listeningNotes as raw_listeningNotes } from './listen-first-turn.js';
-import { ferniStateTurn as raw_ferniStateTurn } from './ferni-state.js';
+import { ferniStateStays as raw_ferniStateTurn } from './self-share-stays.js'; // SELF_SHARE_STAYS
 import { styleFor as raw_styleFor } from './turn-request-style.js';
 import { noteTurn as raw_noteTurn } from './move-log.js';
 import { clearBurstOffer as raw_clearBurstOffer } from './vocal-bursts.js';

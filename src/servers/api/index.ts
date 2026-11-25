@@ -166,8 +166,8 @@ import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscr
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
-import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
-import { parseMonetizationBody } from '../../api/monetization-webhook.js';
+import { isMonetizationRoute } from '../../api/monetization-routes.js';
+import { serveMonetizationRoute } from '../../api/monetization-http.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
 import { handleV2Routes } from '../../api/v2/index.js';
@@ -1374,46 +1374,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // Monetization routes
     if (isMonetizationRoute(pathname)) {
-      try {
-        // SECURITY: Get authenticated user for IDOR protection
-        let authUserId: string | undefined;
-        let isAdmin = false;
-        const auth = await optionalAuthAsync(req);
-        if (auth) {
-          authUserId = auth.userId;
-          isAdmin = auth.isAdmin;
-        }
-
-        let body: unknown = undefined;
-
-        if (req.method === 'POST' || req.method === 'PUT') {
-          // Use parseRawBody to avoid race condition with async auth check
-          // Also adds timeout, max size limit, and proper error handling
-          const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
-          body = parseMonetizationBody(pathname, rawBody);
-        }
-
-        const ctx = {
-          method: req.method || 'GET',
-          pathname,
-          query: Object.fromEntries(parsedUrl.searchParams),
-          body,
-          headers: req.headers,
-          // SECURITY: Pass authenticated user to prevent IDOR attacks
-          authUserId,
-          isAdmin,
-        };
-
-        const response = await handleMonetizationRequest(ctx);
-        res.writeHead(response.status, response.headers);
-        res.end(JSON.stringify(response.body));
-        return;
-      } catch (err) {
-        log.error({ error: String(err) }, 'Monetization route error');
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Internal server error' }));
-        return;
-      }
+      await serveMonetizationRoute(req, res, pathname, parsedUrl.searchParams);
+      return;
     }
 
     // Apple IAP routes
