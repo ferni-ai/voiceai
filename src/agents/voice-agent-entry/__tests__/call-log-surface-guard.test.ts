@@ -75,6 +75,9 @@ const SURFACE = [
   'src/services/contacts/contact-relationship-service.ts',
   'src/services/identity/contacts/contact-onboarding.ts',
   'src/services/trust-and-identity/identity-orchestrator.ts',
+  // Every tool call's arguments and output pass these: names and sizes only (#4442).
+  'src/agents/voice-agent/tool-tracking-handler.ts',
+  'src/agents/shared/tool-executors/telephony-executor.ts',
 ];
 
 /**
@@ -104,6 +107,8 @@ const REQUIRED = [
   'src/tools/domains/information/utils/geocoding.ts',
   'src/tools/domains/information/weather-tools.ts',
   'src/agents/shared/tool-executors/information-executor.ts',
+  'src/agents/voice-agent/tool-tracking-handler.ts',
+  'src/agents/shared/tool-executors/telephony-executor.ts',
 ];
 
 /**
@@ -166,6 +171,8 @@ const EXEMPT: Exemptions = {
     ['twilio-webhooks.ts', 'phoneLast4', 'last4(payload.To)'], // a number's last four digits
     ['twilio-webhooks.ts', 'messageSid', 'payload.MessageSid'], // a Twilio id
     ['twilio-webhooks.ts', 'callSid', 'payload.CallSid'], // a Twilio id
+    ['tool-tracking-handler.ts', '', "toolNames.join(', ') || 'unknown'"], // tool names
+    ['tool-tracking-handler.ts', '', 'JSON.stringify(toolsExecutedFields(event), null, 2)'], // tool names, argument names and sizes
   ],
   whole: [
     ['session-creator.ts', 'record'], // TURN_METRICS: latencies and token counts
@@ -175,6 +182,7 @@ const EXEMPT: Exemptions = {
     ['tts-wrapper.ts', 'extractedInfo'], // tool name and argument key names (analyzeLeakedJson)
     ['e2e-latency-tracker.ts', 'summary'], // latencies, a bottleneck kind, the transcript's length
     ['scheduled-outreach-executor.ts', 'result'], // ExecutionResult: counts
+    ['tool-tracking-handler.ts', 'linkOutcome(tool.callId)'], // a provider name, a keyed hash and a link state
   ],
 };
 
@@ -200,6 +208,24 @@ describe('the call and turn logs', () => {
     );
     expect(longer).not.toBe(src);
     expect(offences(path, longer, EXEMPT)).not.toEqual([]);
+  });
+
+  it('a whole tool event, or a contact or purpose, put back in the tool logs is caught (#4442)', () => {
+    const tracker = 'src/agents/voice-agent/tool-tracking-handler.ts';
+    const trackerSrc = readFileSync(tracker, 'utf8');
+    const whole = trackerSrc.replace(
+      "logger.info(toolsExecutedFields(event), '🔧 FUNCTION TOOLS EXECUTED');",
+      "logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');"
+    );
+    expect(whole).not.toBe(trackerSrc);
+    expect(offences(tracker, trackerSrc, EXEMPT)).toEqual([]);
+    expect(offences(tracker, whole, EXEMPT).some((o) => o.includes('event'))).toBe(true);
+
+    const phone = 'src/agents/shared/tool-executors/telephony-executor.ts';
+    const phoneSrc = readFileSync(phone, 'utf8');
+    const named = phoneSrc.replace('hasName: !!contactQuery,', 'contactQuery,');
+    expect(named).not.toBe(phoneSrc);
+    expect(offences(phone, named, EXEMPT).some((o) => o.includes('contactQuery'))).toBe(true);
   });
 
   it('keeps covering every file a leak was fixed in', () => {

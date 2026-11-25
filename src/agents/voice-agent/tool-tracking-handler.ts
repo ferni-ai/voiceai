@@ -27,6 +27,8 @@ import { onToolExecuted } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { linkOutcome, toolOutcome } from './tool-outcome.js';
+import { toolsExecutedFields } from './tools-executed-fields.js';
+import { errorClass } from '../../utils/error-class.js';
 // Semantic tool presence - "Better than Human" tool feedback
 import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
 // Tool timing context for natural LLM framing
@@ -146,17 +148,15 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
       // Verbose tool result logging (controlled by admin config)
       if (logToolResults) {
-        process.stderr.write(`\n${'='.repeat(60)}\n`);
         process.stderr.write(`🔧 [TOOL RESULT] FunctionToolsExecuted event:\n`);
-        process.stderr.write(`${JSON.stringify(event, null, 2)}\n`);
-        process.stderr.write(`${'='.repeat(60)}\n\n`);
+        process.stderr.write(`${JSON.stringify(toolsExecutedFields(event), null, 2)}\n`);
       }
 
       // Debug logging (can be disabled in production)
       if (debugEnabled) {
         logger.debug({ event: 'FunctionToolsExecuted' }, '🔧 [TOOLS] FunctionToolsExecuted event');
       }
-      logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');
+      logger.info(toolsExecutedFields(event), '🔧 FUNCTION TOOLS EXECUTED');
 
       // Update conversation state with tool execution
       if (userData?.conversationState && event) {
@@ -239,7 +239,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
               {
                 timestamp: diagTimestamp,
                 toolName,
-                error: String(tool.error || toolInfo.error),
+                error: errorClass(tool.error || toolInfo.error),
                 isNewsOrWeather,
                 sessionId,
               },
@@ -329,7 +329,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                     logger.info({ toolName, sessionId }, '🔧 Tool result spoken successfully');
                   } catch (speakErr) {
                     logger.warn(
-                      { toolName, error: String(speakErr), sessionId },
+                      { toolName, error: errorClass(speakErr), sessionId },
                       '🔧 Failed to speak tool result (watchdog will catch this)'
                     );
                   }
@@ -521,7 +521,7 @@ async function recordToolAnalytics(params: RecordToolAnalyticsParams): Promise<v
     );
   } catch (e) {
     // Analytics recording is non-critical, don't fail the tool execution
-    log().debug({ error: String(e) }, 'Tool analytics recording failed (non-critical)');
+    log().debug({ error: errorClass(e) }, 'Tool analytics recording failed (non-critical)');
   }
 }
 

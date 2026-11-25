@@ -96,7 +96,7 @@ async function findContact(
       }
     } catch (entityError) {
       log.debug(
-        { error: String(entityError), contactQuery },
+        { error: String(entityError) },
         'Entity store lookup failed, falling back to legacy'
       );
     }
@@ -123,7 +123,7 @@ async function findContact(
       ? { ...pick, choices: pick.choices.map(resolved) }
       : resolved(pick.contact);
   } catch (error) {
-    log.error({ error: String(error), contactQuery }, 'Contact resolution failed');
+    log.error({ error: String(error) }, 'Contact resolution failed');
     return null;
   }
 }
