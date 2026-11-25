@@ -42,6 +42,7 @@ import { parseBody, sendError, sendJSON } from './helpers.js';
 import { sendUserFacingError } from './user-facing-error.js';
 import { handleProcessingConsent } from './processing-consent-routes.js';
 import { handleCallCaptureConsent } from './call-capture-consent-routes.js';
+import { writeAccountName } from '../services/identity/account-name.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -392,7 +393,13 @@ async function handleUpdateProfile(
       }
     } else {
       // Update existing profile
-      if (name !== undefined) profile.name = name;
+      if (name !== undefined) {
+        writeAccountName(profile, name, {
+          source: 'settings',
+          sessionKind: 'api',
+          fields: ['name'],
+        });
+      }
       if (email !== undefined) {
         profile.contactInfo = { ...profile.contactInfo, email };
       }

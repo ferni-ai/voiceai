@@ -1,8 +1,8 @@
 /**
- * rememberName with CALL_ME_VOCATIVE=on (conversation-tools.ts hands the call
- * here; with the flag off the tool is unchanged), and then the one writer of the
- * caller's name. A new name is never written on the call that names it: the
- * model asks "Want me to call you X from now on?", and the name is saved when
+ * rememberName with CALL_ME_VOCATIVE=on or NAME_SAVE_NEEDS_YES=on (nameNeedsYes;
+ * conversation-tools.ts hands the call here; with both off the tool is unchanged),
+ * and then the one writer of the caller's name. A new name is never written on
+ * the call that names it: the model asks "Want me to call you X from now on?", and the name is saved when
  * the tool is called again for it on the caller's next turn and that turn is a
  * clear yes (isClearYes), or name-correction heard that yes (agreeTo). Which name
  * is confirmed follows the tool calls (name-confirm-calls.ts). Ferni's own name is
@@ -13,13 +13,14 @@
  */
 
 import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
-import { callMeVocativeEnabled } from '../../../utils/call-me-vocative.js';
+import { nameNeedsYes } from '../../../utils/call-me-vocative.js';
+import { writeAccountName } from '../../../services/identity/account-name.js';
 import { isCallbackTime } from '../../../utils/callback-time.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { ownerOnTheLine, stepFor } from './name-confirm-calls.js';
+import { ownerOnTheLine, phoneOnTheLine, stepFor } from './name-confirm-calls.js';
 import { nameLikeness, secondQuestion } from './name-likeness.js';
 
-export { callMeVocativeEnabled };
+export { nameNeedsYes };
 
 /** What this reads and writes of the session's userData (services: services/types.ts). */
 interface NameToolUser {
@@ -64,8 +65,8 @@ async function save(name: string, user: NameToolUser, session: object): Promise<
   const { services } = user;
   // Anyone may rename the call; only the verified owner renames the account.
   if (services?.userProfile && ownerOnTheLine(session)) {
-    services.userProfile.name = name;
-    services.userProfile.preferredName = name;
+    const sessionKind = phoneOnTheLine(session) ? 'phone' : 'app';
+    writeAccountName(services.userProfile, name, { source: 'confirm', sessionKind });
     try {
       await services.saveProfile();
     } catch (saveError) {
@@ -75,7 +76,7 @@ async function save(name: string, user: NameToolUser, session: object): Promise<
   return `[INTERNAL: Name "${name}" stored. Respond naturally - do NOT read this message aloud.]`;
 }
 
-/** CALL_ME_VOCATIVE=on: refuse a non-name, ask (once or twice) before a new name, else save. */
+/** nameNeedsYes: refuse a non-name, ask (once or twice) before a new name, else save. */
 export async function rememberNameConfirmed(
   name: string,
   userData: unknown,

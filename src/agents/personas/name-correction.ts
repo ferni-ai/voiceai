@@ -41,11 +41,7 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { guestsPresent } from './room-guests.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import {
-  callMeVocativeEnabled,
-  readCallMe,
-  withoutVocatives,
-} from '../../utils/call-me-vocative.js';
+import { nameNeedsYes, readCallMe, withoutVocatives } from '../../utils/call-me-vocative.js';
 import { isCallbackTime } from '../../utils/callback-time.js';
 import { agreeTo } from '../../tools/domains/conversation/index.js';
 import { callerTurns } from './call-me-note.js';
@@ -234,7 +230,7 @@ const sameName = (name: string, current: string | undefined): boolean =>
   name.toLowerCase() === current?.split(/\s+/)[0].toLowerCase();
 
 /**
- * CALL_ME_VOCATIVE=on: a self-introduction cue, where a word like a team name
+ * nameNeedsYes: a self-introduction cue, where a word like a team name
  * ("I'm Pete", "my friends call me Mya") may still be theirs. Only ever a name
  * to confirm (name-confirm.ts), so the team-name stoplists don't apply.
  */
@@ -267,7 +263,7 @@ const currentName = (session: object, user: SessionUser): string | undefined =>
 /**
  * A yes to "Sam from now on?", or "the name" to "ring or call you Fern?". The
  * rename itself is rememberName's (remember-name.ts), the one writer of the
- * caller's name with CALL_ME_VOCATIVE on: this records the yes for this turn
+ * caller's name with nameNeedsYes on: this records the yes for this turn
  * (agreeTo) and returns the names the model should now save.
  */
 function agreedNames(
@@ -293,7 +289,7 @@ const saveNote = (name: string, current: string | undefined): string =>
   `${current ? `; until it's saved, keep calling them ${current}` : ''}.`;
 
 /**
- * CALL_ME_VOCATIVE=on: a new name waits for their yes (name-confirm.ts). This
+ * nameNeedsYes: a new name waits for their yes (name-confirm.ts). This
  * turn may answer the last question, and may raise a new one. `words` is ''
  * with a guest in the room.
  */
@@ -324,8 +320,8 @@ function confirmingNote(
 /**
  * The name note for this reply, or ''. On the turn the caller gives a new
  * name it also renames them (rename above). Idempotent: the preemptive and
- * final requests of one turn rename once. CALL_ME_VOCATIVE=on: the name is
- * confirmed first (confirmingNote).
+ * final requests of one turn rename once. CALL_ME_VOCATIVE or NAME_SAVE_NEEDS_YES
+ * on (nameNeedsYes): the name is confirmed first (confirmingNote).
  */
 export function nameCorrectionNote(
   chatCtx: llm.ChatContext,
@@ -338,12 +334,12 @@ export function nameCorrectionNote(
   if (!user) return '';
   // With a guest in the room, "I'm David" may be the guest (room-guests.ts).
   const words = callerWords !== '' && !guestsPresent(session, env) ? callerWords : '';
-  return callMeVocativeEnabled(env)
+  return nameNeedsYes(env)
     ? confirmingNote(chatCtx, session, user, words, deps)
     : renameAtOnce(chatCtx, session, user, words, deps);
 }
 
-/** CALL_ME_VOCATIVE off: a name they state renames them on this turn. `words`: '' with a guest in the room. */
+/** nameNeedsYes off: a name they state renames them on this turn. `words`: '' with a guest in the room. */
 function renameAtOnce(
   chatCtx: llm.ChatContext,
   session: object,

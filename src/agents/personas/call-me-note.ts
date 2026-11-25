@@ -16,7 +16,8 @@
 import type { llm } from '@livekit/agents';
 
 import { type Env } from '../../config/env-flag.js';
-import { callMeVocativeEnabled, readCallMe } from '../../utils/call-me-vocative.js';
+import { callMeVocativeEnabled, nameNeedsYes, readCallMe } from '../../utils/call-me-vocative.js';
+import { isPhoneListener } from '../shared/performance/phone-voice-profile.js';
 import { noteCallerTurn } from '../../tools/domains/conversation/index.js';
 import { eitherNote, personaFirstNameOf, propose, settle } from './name-confirm.js';
 
@@ -45,12 +46,19 @@ const DID_YOU_CALL = (plain: boolean): string =>
   `You haven't called them on this call, and asking if you did most likely means they want ` +
   `one. Don't just say no: offer to ring their phone now${plain ? '' : ' ("Want me to ring your phone now?")'}.`;
 
+const onPhone = (session: object): boolean =>
+  isPhoneListener(
+    (session as { userData?: { services?: { sessionId?: string } } }).userData?.services?.sessionId
+  );
+
 const firstOf = (name: string | undefined): string => name?.split(/\s+/)[0]?.toLowerCase() ?? '';
 
 /**
  * One line for a turn that asks the persona to phone them, may ask it, or asks
  * whether it did; '' otherwise, with the flag off, or with crisis guidance.
  * `plain`: no quoted example (SCRIPT_FREE_REMINDER, script-free.ts).
+ * NAME_SAVE_NEEDS_YES=on alone notes the turn for rememberName's confirm and
+ * says nothing: ringing stays CALL_ME_VOCATIVE's.
  */
 export function callMeNote(
   chatCtx: llm.ChatContext,
@@ -59,11 +67,11 @@ export function callMeNote(
   opts: { plain?: boolean; careful?: boolean; owner?: boolean } = {},
   env: Env = process.env
 ): string {
-  if (!callMeVocativeEnabled(env)) return '';
+  if (!nameNeedsYes(env)) return '';
   // rememberName's confirm, and whether its save may rename the account (remember-name.ts)
   const count = callerTurns(chatCtx.items);
-  noteCallerTurn(session, words, count, opts.owner === true);
-  if (!words || opts.careful === true) return '';
+  noteCallerTurn(session, words, count, opts.owner === true, onPhone(session));
+  if (!callMeVocativeEnabled(env) || !words || opts.careful === true) return '';
   const persona = personaFirstNameOf(session);
   const plain = opts.plain === true;
   const ring = (): string => (calledUserThisCall(chatCtx.items) ? ALREADY : RING(persona));
