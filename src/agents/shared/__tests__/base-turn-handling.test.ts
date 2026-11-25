@@ -76,6 +76,18 @@ describe('no session uses the deprecated option names', () => {
       .join('\n');
   const agentsDir = join(import.meta.dirname, '..', '..');
 
+  it('every file that builds an AgentSession takes its turn handling from baseTurnHandling', () => {
+    const builders = sources(agentsDir).filter((file) =>
+      /new voice\.AgentSession\b/.test(code(file))
+    );
+
+    expect(builders.map((file) => file.split('/').slice(-2).join('/')).sort()).toEqual([
+      'multi-agent/call-session.ts',
+      'voice-agent-entry/session-creator.ts',
+    ]);
+    expect(builders.filter((file) => !code(file).includes('baseTurnHandling('))).toEqual([]);
+  });
+
   it.each([
     ['voiceOptions', /\bvoiceOptions\b\s*[:,}]/],
     ['preemptiveGeneration: <boolean>', /\bpreemptiveGeneration:\s*(true|false)\b/],
