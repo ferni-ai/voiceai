@@ -43,6 +43,7 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.useRealTimers();
   });
 
@@ -81,6 +82,20 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     await queueBehindALine(SSML_ONLY, 'Line C');
 
     expect(spoken(say)).toEqual(['Line A', 'Line C']);
+    expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+  });
+
+  it('a line the session refuses on the legacy path is followed by the next queued line', async () => {
+    vi.stubEnv('USE_TTS_GATEWAY', 'false');
+    say
+      .mockImplementationOnce(() => undefined)
+      .mockImplementationOnce(() => {
+        throw new Error('AgentSession is not running');
+      });
+
+    await queueBehindALine('Line B', 'Line C');
+
+    expect(spoken(say)).toEqual(['Line A', 'Line B', 'Line C']);
     expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
   });
 
