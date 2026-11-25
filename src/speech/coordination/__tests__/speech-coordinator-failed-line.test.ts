@@ -246,6 +246,29 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     }
   });
 
+  it('a session that closed under a line logs the class and the line id, not the error text', async () => {
+    vi.stubEnv('USE_TTS_GATEWAY', 'false');
+    say.mockReset();
+    say.mockImplementationOnce(() => {
+      throw new Error('AgentSession is not running: zorbleflax tell my fictional neighbour hi');
+    });
+    resetSpeechCoordinator();
+    const fresh = new SpeechCoordinator();
+    fresh.attachSession({ say } as unknown as voice.AgentSession, { sessionId: 's-3' });
+    sink.calls.length = 0;
+
+    const line = await fresh.requestSpeak({
+      text: 'Line Z',
+      priority: SpeechPriority.RESPONSE,
+      source: 'direct',
+    });
+
+    const closed = sink.calls.find((c) => c[1] === 'Speech skipped - session closed');
+    expect(closed?.[0]).toEqual({ error: 'Error', id: line.id });
+    expect(JSON.stringify(sink.calls)).not.toContain('zorbleflax');
+    expect(fresh.getState()).toBe(CoordinatorState.IDLE);
+  });
+
   it('a second speech-ended event for one line releases the next line once', async () => {
     await speak('Line A');
     await speak('Line B');
