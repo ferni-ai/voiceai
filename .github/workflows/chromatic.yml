@@ -49,7 +49,7 @@ jobs:
 
       # Run Chromatic (requires CHROMATIC_PROJECT_TOKEN secret to be configured)
       - name: Run Chromatic
-        uses: chromaui/action@v18
+        uses: chromaui/action@b46fae7df99a74cc2201b00cb59ec498c3346530 # v18.15.0
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           workingDir: design-system
