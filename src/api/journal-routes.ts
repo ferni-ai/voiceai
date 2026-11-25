@@ -136,7 +136,7 @@ export async function handleJournalRoutes(
 
     // POST /api/journal/transcribe - Transcribe audio to text (signed in, rate limited, capped)
     if (method === 'POST' && pathname === '/api/journal/transcribe') {
-      return handleJournalTranscribe(req, res);
+      return await handleJournalTranscribe(req, res);
     }
 
     // POST /api/journal/capture - Save auto-captured moment

@@ -77,12 +77,12 @@ export async function handleToolsRoutes(
   try {
     // POST /tools - Create new tool
     if (method === 'POST' && (subPath === '' || subPath === '/')) {
-      return handleCreateTool(req, res);
+      return await handleCreateTool(req, res);
     }
 
     // GET /tools - List tools
     if (method === 'GET' && (subPath === '' || subPath === '/')) {
-      return handleListTools(req, res);
+      return await handleListTools(req, res);
     }
 
     // Routes with :id parameter
@@ -94,22 +94,22 @@ export async function handleToolsRoutes(
 
     // POST /tools/:id/test - Test tool
     if (method === 'POST' && subPath.endsWith('/test')) {
-      return handleTestTool(req, res, toolId);
+      return await handleTestTool(req, res, toolId);
     }
 
     // GET /tools/:id - Get tool
     if (method === 'GET' && subPath === `/${toolId}`) {
-      return handleGetTool(req, res, toolId);
+      return await handleGetTool(req, res, toolId);
     }
 
     // PUT /tools/:id - Update tool
     if (method === 'PUT' && subPath === `/${toolId}`) {
-      return handleUpdateTool(req, res, toolId);
+      return await handleUpdateTool(req, res, toolId);
     }
 
     // DELETE /tools/:id - Delete tool
     if (method === 'DELETE' && subPath === `/${toolId}`) {
-      return handleDeleteTool(req, res, toolId);
+      return await handleDeleteTool(req, res, toolId);
     }
 
     return false;
