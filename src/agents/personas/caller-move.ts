@@ -63,12 +63,14 @@ export const ABOUT_THEIR_THINGS =
   /\b(?:do|did|can|could|would|will) you (?:still |even |actually )?(?:have|know|remember|keep|save|store|see|get|call|text|reach|ring|phone|message|email|send)\b(?:\s+\w+)?\s+(?:my|me|mine|our|us)\b/i;
 
 /**
- * CALLER_SETUP_READ=on: "and you" asks about him only where the caller
- * hands the turn over ("good, and you?"). Mid-line it is their own story: on
- * dev "And you know what the thing is?", the setup to a punchline, read as
- * about_ferni and he told a story of his own about Hollis (#3810).
+ * CALLER_SETUP_READ=on: "and you" hands the turn to him only where it ends a
+ * clause: the line ends, punctuation follows ("Not bad, and you? Busy day?"),
+ * or only his name or a tag does ("pretty good and you ferni", "and you
+ * though"). With a word straight after, "you" opens their own clause, the setup
+ * to a punchline: on dev "And you know what the thing is?" read as about_ferni
+ * and he told a story of his own about Hollis (#3810).
  */
-const AND_YOU_MID = /\band you\b(?![?.!,\s]*$)/gi;
+const AND_YOU_OPENS_THEIR_CLAUSE = /\band you(?=\s+(?!(?:ferni|though|tho|too)\b)[a-z'])/gi;
 
 export function callerMove(
   text: string,
@@ -79,7 +81,9 @@ export function callerMove(
   if (words <= 3 && ACK.test(t)) return 'ack';
   if (isLookup(t)) return 'lookup';
   if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
-  const aboutHim = flagOn('CALLER_SETUP_READ', env) ? t.replace(AND_YOU_MID, 'and') : t;
+  const aboutHim = flagOn('CALLER_SETUP_READ', env)
+    ? t.replace(AND_YOU_OPENS_THEIR_CLAUSE, 'and')
+    : t;
   if (ABOUT_FERNI.test(aboutHim)) return 'about_ferni';
   if (OPINION_ASK.test(t)) return 'request';
   return 'share';

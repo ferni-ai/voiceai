@@ -29,6 +29,20 @@ describe('callerMove: "and you" mid-line (CALLER_SETUP_READ)', () => {
     expect(callerMove('Pretty good. And you', ON)).toBe('about_ferni');
     expect(callerMove("I'm fine, and you? How's your week been?", ON)).toBe('about_ferni');
   });
+
+  // A hand-back with more words after it: punctuation, his name or a tag closes the clause.
+  const HAND_BACKS = [
+    'Doing well, and you, Ferni?',
+    'Not bad, and you? Busy day?',
+    "I'm alright, and you? Anything new?",
+    'pretty good and you ferni',
+    'Long week. And you though?',
+  ];
+
+  it.each(HAND_BACKS)('flag on: a hand-back with words after it asks about him: %s', (line) => {
+    expect(callerMove(line, OFF)).toBe('about_ferni');
+    expect(callerMove(line, ON)).toBe('about_ferni');
+  });
 });
 
 describe('callerSharing: a short setup holds his own story (CALLER_SETUP_READ)', () => {
