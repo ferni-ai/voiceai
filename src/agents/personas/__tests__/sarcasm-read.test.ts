@@ -27,6 +27,13 @@ describe('SARCASM_READ: stock sarcasm reads mixed (#4054)', () => {
   // [turns, read with the flag off, read with it on]
   const ROWS: Array<[string, string[], CallerState, CallerState]> = [
     ['the reported opener', [REPORTED], 'neutral', 'mixed'],
+    ['a deadpan "Truly." on its own', ['Best Monday ever. Truly.'], 'neutral', 'mixed'],
+    [
+      '"living the dream!" over a complaint',
+      ['Living the dream! My car broke down again.'],
+      'neutral',
+      'mixed',
+    ],
     [
       '"best day ever" over a complaint',
       ['Best day ever, my car broke down again.'],
@@ -51,6 +58,25 @@ describe('SARCASM_READ: stock sarcasm reads mixed (#4054)', () => {
     // Sincere lines stay as they were.
     ['sincere best day', ['Best day ever, I got the job!'], 'excited', 'excited'],
     ['sincere best birthday', ['That was the best birthday ever.'], 'neutral', 'neutral'],
+    // "truly" that praises, and an exclaimed "living the dream", are sincere.
+    [
+      'truly the best day ever',
+      ['my daughter got married saturday, it was truly the best day ever'],
+      'excited',
+      'excited',
+    ],
+    [
+      'truly the best birthday ever',
+      ['honestly, truly the best birthday ever, everyone came'],
+      'neutral',
+      'neutral',
+    ],
+    [
+      'living the dream, exclaimed',
+      ['we finally moved to the beach, living the dream!'],
+      'neutral',
+      'neutral',
+    ],
     [
       'someone else living the dream',
       ['My sister is living the dream in Lisbon.'],
@@ -108,6 +134,21 @@ describe('SARCASM_READ: stock sarcasm reads mixed (#4054)', () => {
     expect(
       attunementNote(ctx(REPORTED), {}, { careful: true, env: { ...env, SARCASM_READ: 'on' } })
     ).toBe('');
+  });
+
+  it('sarcasm beside crisis words adds nothing to a crisis reply', () => {
+    // The crisis read sets crisis guidance (careful) on its own; this flag is read only here,
+    // so it can only add an attunement line, and under crisis guidance it adds none.
+    const env = { ATTUNE: 'on', ATTUNE_LEDGER: 'on', SARCASM_READ: 'on' };
+    for (const line of [
+      'Oh joy, another Monday. I want to die.',
+      "Living the dream. I don't want to be here anymore.",
+      'Story of my life. Nobody would even notice if I was gone.',
+    ]) {
+      expect(on([line])).toBe('mixed');
+      expect(attunementNote(ctx(line), {}, { env })).toContain("don't assume either way");
+      expect(attunementNote(ctx(line), {}, { careful: true, env })).toBe('');
+    }
   });
 
   it('reads only the start of a long turn, and a long pathological turn stays quick', () => {

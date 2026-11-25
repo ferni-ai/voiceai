@@ -97,15 +97,22 @@ const INTERJECTION =
 const COMPLAINT =
   /\b(?:again|another (?:monday|meeting|bill|one)|more (?:meetings|work|emails|bills|traffic|of this)|broke(?:n)? down|crashed|cancel+ed)\b/i;
 /**
- * SARCASM_READ: stock sarcastic idioms that carry no positive word ("I'm living
- * the dream over here"). Only the caller's own: "my sister is living the dream"
- * and "not exactly living the dream" are not sarcasm.
+ * SARCASM_READ: stock sarcastic idioms that carry no positive word ("story of
+ * my life"). Only the caller's own: "my sister is living the dream" and "not
+ * exactly living the dream" are not sarcasm.
  */
 const STOCK_SARCASM =
-  /\b(?:living the dream|just my luck|story of my life|oh joy|could (?:this|today|my) (?:day |week )?(?:get|be) any better)\b/gi;
-/** SARCASM_READ: "best Monday ever" is sarcasm only next to a complaint or a flat "truly". */
+  /\b(?:just my luck|story of my life|oh joy|could (?:this|today|my) (?:day |week )?(?:get|be) any better)\b/gi;
+/**
+ * SARCASM_READ: idioms people also say sincerely, so they are sarcasm only when
+ * said flat or next to a complaint. "I'm living the dream over here." is flat;
+ * "we moved to the beach, living the dream!" is not. "Best Monday ever. Truly."
+ * is flat; "truly the best day ever" and "best birthday ever." are not.
+ */
+const LIVING_THE_DREAM = /\bliving the dream\b/gi;
 const BEST_EVER = /\bbest (?:\w+ ){1,2}ever\b/gi;
-const TRULY = /\btruly\b/i;
+/** A deadpan "Truly." as a sentence of its own. */
+const FLAT_TRULY = /(?:^|[.!?…]\s*)truly\s*(?:[.…]|$)/i;
 /** Stock sarcasm sits early in a line: the scan stops here so a long turn costs nothing extra. */
 const SARCASM_SCAN_CHARS = 600;
 const OPENER = /^(?:ok(?:ay)?|so|well|alright|anyway|right)\b[\s,.…-]*(?:so\b)?[\s,.…-]*$/i;
@@ -198,7 +205,15 @@ function dropsShort(text: string, baseline: number | undefined): boolean {
 function stockSarcasm(text: string): boolean {
   const head = text.slice(0, SARCASM_SCAN_CHARS);
   if (firstOwn(head, STOCK_SARCASM)) return true;
-  return firstOwn(head, BEST_EVER) !== undefined && (COMPLAINT.test(head) || TRULY.test(head));
+  const complaint = COMPLAINT.test(head);
+  const dream = firstOwn(head, LIVING_THE_DREAM);
+  if (dream && (complaint || !exclaimed(head, dream))) return true;
+  return firstOwn(head, BEST_EVER) !== undefined && (complaint || FLAT_TRULY.test(head));
+}
+
+/** The match is said with an exclamation mark ("living the dream!"): sincere, not deadpan. */
+function exclaimed(text: string, match: RegExpMatchArray): boolean {
+  return /^\s*!/.test(text.slice((match.index ?? 0) + match[0].length));
 }
 
 /** Options for one ledger read. */
