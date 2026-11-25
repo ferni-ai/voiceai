@@ -25,6 +25,7 @@ import type { Firestore } from '@google-cloud/firestore';
 import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
 import { judgedRowText, singleWriterFor } from '../superhuman/commitment-single-writer.js';
+import { hasSecret } from '../superhuman/commitment-span-guard.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { CALLER_PROVENANCE, isForgotten, undisputed } from '../../memory/recall/session-recall.js';
@@ -93,7 +94,12 @@ async function openCommitments(
   });
 }
 
-/** Open tasks (pending or in progress) with a title, not about a forgotten topic. */
+/**
+ * Open tasks (pending or in progress) with a title, not about a forgotten topic.
+ * A title holding a secret (the span guard's hasSecret: four or more digits, or a
+ * credential word) is left out, as it is for a stored commitment. No word list calls
+ * a title safe to send, so a task follow-up is raised on a call only (follow-up-texts.ts).
+ */
 async function openTasks(
   db: Firestore,
   userId: string,
@@ -108,6 +114,7 @@ async function openTasks(
     const text = typeof task.title === 'string' ? task.title.trim() : '';
     const open = task.status === 'pending' || task.status === 'in_progress';
     if (!open || !text || task.id === undefined || isForgotten(text, forgotten)) return [];
+    if (hasSecret(text)) return [];
     const due = typeof task.dueDate === 'string' ? Date.parse(task.dueDate) : NaN;
     return [
       {

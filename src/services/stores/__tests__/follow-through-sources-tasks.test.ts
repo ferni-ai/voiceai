@@ -98,6 +98,18 @@ describe('open tasks as follow-up sources', () => {
     expect(unreadable.some((i) => i.source.store === 'tasks')).toBe(false);
   });
 
+  it('a task title holding a secret is not imported; a plain one is', async () => {
+    const { db } = withTasks([
+      { id: 'c1', title: 'Pay the card 4111 1111 1111 1111', status: 'pending' },
+      { id: 'c2', title: 'Change the password to hunter2', status: 'pending' },
+      { id: 'c3', title: 'Pay the plumber $120', status: 'pending' },
+    ]);
+    const items = await createFollowUpSources(db, { withTasks: true }).itemsFor(UID, NOW);
+    expect(items.filter((i) => i.source.store === 'tasks').map((i) => i.source.ref)).toEqual([
+      'c3',
+    ]);
+  });
+
   it('a user doc with no tasks imports none and does not throw', async () => {
     const fake = fakeFirestore();
     fake.docs.set(`bogle_users/${UID}`, { productivityData: { tasks: 'garbage' } });

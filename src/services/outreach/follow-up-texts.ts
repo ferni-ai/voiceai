@@ -8,7 +8,7 @@
  * follow-up about one is closed as forgotten and never texted, and when the
  * list can't be read nothing is sent to them this run (fail closed). Then it
  * expires their stale follow-ups and texts the oldest one
- * whose right moment is `text-now`. It claims the follow-up (saves it
+ * whose right moment is `text-now`, unless the stored-text screen refuses its words. It claims the follow-up (saves it
  * surfaced, compare-and-set) before sending, so a call that raised it a
  * moment earlier wins and no text goes; if the sender holds the text, the
  * claim is put back so a later run can try again. One text per person per
@@ -36,6 +36,7 @@ import { isForgotten } from '../../memory/recall/session-recall.js';
 import { countReason, logJobRun } from '../../utils/job-run.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isSavedQuietNow } from './quiet-hours.js';
+import { storedTextForOwner } from '../../tools/domains/proactive/outreach/index.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
 
@@ -120,7 +121,12 @@ async function record(
  * Their follow-ups due at or before now, oldest first. A follow-up imported
  * from a reminder is left out: the reminder job (reminder-delivery-job.ts)
  * already texts it, once, with the same words, so texting it here sent it twice.
+ * One from a task is left out too: a task title is typed text no judge has read,
+ * so, like a judged commitment, it is raised on a call only.
  */
+/** Sources this job never texts: reminders (the reminder job's), tasks (call-only). */
+const CALL_ONLY: ReadonlySet<string> = new Set(['reminders', 'tasks']);
+
 async function dueFor(
   store: FollowUpTextDeps['store'],
   userId: string,
@@ -128,7 +134,7 @@ async function dueFor(
 ): Promise<FollowUp[]> {
   const at = now.toISOString();
   return (await store.live(userId))
-    .filter((f) => f.dueAt !== null && f.dueAt <= at && f.source.store !== 'reminders')
+    .filter((f) => f.dueAt !== null && f.dueAt <= at && !CALL_ONLY.has(f.source.store))
     .sort((a, b) => (a.dueAt ?? '').localeCompare(b.dueAt ?? ''));
 }
 
@@ -233,7 +239,15 @@ async function forPerson(
   for (const { moment } of moments) {
     if (moment !== 'text-now' && moment !== 'expire') countReason(report.notTextNow, moment);
   }
-  const pick = moments.find((m) => m.moment === 'text-now')?.f;
+  // Every kind, any source: stored words with a scam's instruction never go in a text.
+  // Such a follow-up stays open for a call, and doesn't hold up the next one.
+  const env = { ...process.env, ...flags };
+  const screened = (f: FollowUp): boolean => {
+    if (storedTextForOwner([f.text], { site: 'follow-up', userId }, env)) return true;
+    countReason(report.notTextNow, 'stored-text');
+    return false;
+  };
+  const pick = moments.find((m) => m.moment === 'text-now' && screened(m.f))?.f;
   if (!pick) return false;
   // One Ferni starts, inside the quiet hours they saved in the menu, waits for a later run.
   if (!isCallerTimed(pick) && (await isSavedQuietNow(userId, now))) {
