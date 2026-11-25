@@ -138,7 +138,12 @@ export class ABTestingManager {
     const totalTraffic = experiment.variants.reduce((sum, v) => sum + v.trafficPercent, 0);
     if (Math.abs(totalTraffic - 100) > 0.01) {
       log.warn(
-        { experimentId: experiment.id, totalTraffic, variantCount: experiment.variants.length },
+        {
+          experimentId: experiment.id,
+          totalTraffic,
+          variantCount: experiment.variants.length,
+          percentages: experiment.variants.map((v) => v.trafficPercent),
+        },
         'Traffic percentages did not sum to 100; normalizing to equal split'
       );
       const perVariant = 100 / experiment.variants.length;

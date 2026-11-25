@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getABTestingManager, type ExperimentResults } from './ab-testing.js';
+import { variantTraffic } from './variant-traffic.js';
 import {
   getAutoRolloutManager,
   removeAutoRolloutManager,
@@ -254,7 +255,6 @@ export class ExperimentManager {
   private initializeABTest(config: ExperimentConfig): void {
     const abManager = getABTestingManager();
 
-    // Validate traffic percentages
     const totalTraffic = config.variants.reduce((sum, v) => sum + (v.trafficPercent || 0), 0);
     if (Math.abs(totalTraffic - 100) > 0.01) {
       // Auto-distribute if not specified
@@ -271,7 +271,7 @@ export class ExperimentManager {
       variants: config.variants.map((v, i) => ({
         id: v.id,
         name: v.name,
-        trafficPercent: v.trafficPercent || 100 / config.variants.length,
+        trafficPercent: variantTraffic(v.trafficPercent, config.variants.length),
         config: v.config || {},
         isControl: i === 0, // First variant is control
       })),
