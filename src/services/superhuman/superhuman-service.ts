@@ -311,7 +311,7 @@ export async function buildSuperhumanContext(
   if (crisisSignal) {
     const detected = detectCrisis(crisisSignal.signal);
     if (detected) {
-      crisis = buildFirstAidContext(detected);
+      crisis = buildFirstAidContext(detected, currentTranscript ?? '');
     }
   }
 

@@ -55,6 +55,8 @@ export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 export { checkin } from './crisis-timeout-checkin.js';
 // CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
 export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
+// CRISIS_ONE_988_SOURCE: the prompt builders name the shared policy's line, not their own 988
+export { crisisLineFor } from './crisis-one-988-source.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
 export {
   resolveCrisisClassifierTimeoutMs,

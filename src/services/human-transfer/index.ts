@@ -43,6 +43,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { crisisLineFor } from '../safety/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // Re-export types
@@ -204,10 +205,16 @@ export const humanTransfer = {
 // CONTEXT INJECTION BUILDER
 // ============================================================================
 
+const ALWAYS_988 = 'CRITICAL: Always mention 988 (call or text) for crisis support.';
+
 /**
- * Build context injection for LLM when transfer might be needed
+ * Build context injection for LLM when transfer might be needed. `latest`: the caller's last
+ * line, which picks the crisis line under CRISIS_ONE_988_SOURCE (crisisLineFor).
  */
-export function buildTransferAwarenessContext(decision: EscalationDecision): string | null {
+export function buildTransferAwarenessContext(
+  decision: EscalationDecision,
+  latest = ''
+): string | null {
   if (decision.type === 'none') return null;
 
   const sections: string[] = [];
@@ -219,7 +226,7 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
     sections.push('⚠️ CRISIS INDICATORS DETECTED');
     sections.push(`Reason: ${decision.reason}`);
     sections.push('');
-    sections.push('CRITICAL: Always mention 988 (call or text) for crisis support.');
+    sections.push(crisisLineFor(ALWAYS_988, latest));
     sections.push('Your role: Provide grounding and presence while suggesting professional help.');
     sections.push("Don't lecture or push - offer and support their choice.");
   } else if (decision.type === 'therapy' || decision.type === 'psychiatry') {
