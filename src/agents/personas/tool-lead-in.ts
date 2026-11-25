@@ -60,6 +60,7 @@ export const LOOKUP_TOOLS: ReadonlySet<string> = new Set([
   'getPositiveNewsOnly',
   'getSports',
   'getCommuteTime',
+  'getDriveTime', // transportation's getCommuteTime under TOOL_ID_OWNERS
   'getDirections',
   'searchWeb',
   'searchWikipedia',
@@ -72,6 +73,7 @@ export const LOOKUP_TOOLS: ReadonlySet<string> = new Set([
   'searchHotels',
   'getFlightPrice',
   'searchRecipes',
+  'searchMyRecipes', // meal-planning's searchRecipes under TOOL_ID_OWNERS
   'searchBooks',
   'searchPodcasts',
 ]);
@@ -129,6 +131,7 @@ export const WIDE_ACTION_TOOLS: ReadonlySet<string> = new Set([
   'manageContact',
   'saveContact',
   'saveContactInfo',
+  'saveOutreachContact', // proactive's saveContactInfo under TOOL_ID_OWNERS
   'recordContactInteraction',
   'setContactFollowUp',
   'completeContactFollowUp',

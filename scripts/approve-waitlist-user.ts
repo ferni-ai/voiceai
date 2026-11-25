@@ -271,6 +271,7 @@ async function approveWaitlistUser(db: FirebaseFirestore.Firestore, email: strin
         email: email.toLowerCase().trim(),
         status: 'approved',
         approvedAt: FieldValue.serverTimestamp(),
+        approvedVia: 'admin', // lasts under DURABLE_ACCESS_GRANTS (#2264)
         source: 'manual_approval',
         timestamp: FieldValue.serverTimestamp(),
       });
@@ -282,6 +283,7 @@ async function approveWaitlistUser(db: FirebaseFirestore.Firestore, email: strin
     await docRef.update({
       status: 'approved',
       approvedAt: FieldValue.serverTimestamp(),
+      approvedVia: 'admin',
       updatedAt: FieldValue.serverTimestamp(),
     });
 

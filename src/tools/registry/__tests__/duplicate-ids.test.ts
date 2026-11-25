@@ -99,10 +99,6 @@ describe('duplicate tool ids across domains', () => {
           "information",
           "ceo-coaching",
         ],
-        "getQuickStatus": [
-          "information",
-          "information",
-        ],
         "getSavedTrips": [
           "productivity",
           "travel",
@@ -178,7 +174,6 @@ describe('duplicate tool ids across domains', () => {
         "communicationStrategy",
         "getCommuteTime",
         "getMorningBriefing",
-        "getQuickStatus",
         "getSavedTrips",
         "getUpcomingBirthdays",
         "goodEnough",
@@ -193,15 +188,9 @@ describe('duplicate tool ids across domains', () => {
     `);
   });
 
-  it('within one domain, the later definition wins and the earlier one is never offered', () => {
+  it('no domain hands the registry one id twice (getQuickStatus was the one, #4291)', () => {
     const sameDomain = duplicates().filter(([, o]) => new Set(o.map((x) => x.domain)).size === 1);
-    expect(sameDomain.map(([id, o]) => `${id} (${o[0]!.domain})`)).toEqual([
-      'getQuickStatus (information)',
-    ]);
-    for (const [id, o] of sameDomain) {
-      expect(toolRegistry.get(id)?.description).toBe(o.at(-1)!.def.description);
-      expect(o[0]!.def.description).not.toBe(o.at(-1)!.def.description);
-    }
+    expect(sameDomain.map(([id, o]) => `${id} (${o[0]!.domain})`)).toEqual([]);
   });
 
   it('across domains, the winner of a differing duplicate is whichever domain loaded last', () => {
