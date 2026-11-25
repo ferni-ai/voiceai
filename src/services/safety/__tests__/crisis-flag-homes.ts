@@ -432,3 +432,30 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act on a line the speech coordinator says to the caller, not on the
+ * reply: when a hand-back line is queued, how long it waits, or whether a filler is said beside
+ * a crisis turn. The six readers and SHOWN_ON (the gate's reply) never see that step. This home is
+ * open only to a flag whose named rows run the real exit or turn handler and the real coordinator
+ * (only the LiveKit session is a stub), flag off then on, and assert that with it on the line is
+ * never lowered: it is still spoken, only earlier or kept longer, never cutting in on a line
+ * being spoken; or, for a filler, that only a filler is dropped and the reply is untouched.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const HAND_BACK_LINE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // STILL_HERE_LINE, said when a step-away exit is held for a caller at risk (#4447).
+  CRISIS_LINE_NEVER_DROP: [
+    {
+      file: 'src/agents/shared/gateway/__tests__/still-here-line-never-drop.test.ts',
+      rows: [
+        'on: survives a line that is slow to end, where it expired before',
+        'off: expires in the queue after 10 s, as on main',
+        'on: is spoken before a line that was queued earlier',
+        'off: waits its turn behind a line queued earlier, as on main',
+      ],
+    },
+  ],
+};
