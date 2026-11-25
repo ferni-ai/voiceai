@@ -6,7 +6,7 @@
  * same call, with the same arguments, behind a real HTTP server and real requests.
  */
 import { readFileSync } from 'node:fs';
-import { createServer, type Server } from 'node:http';
+import { createServer, request, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -32,15 +32,30 @@ afterAll(async () => {
   });
 });
 
-async function frameOptions(path: string): Promise<string | null> {
-  const response = await fetch(origin + path);
-  return response.headers.get('x-frame-options');
+/** A real GET of `path`, sent with `host` as the Host header; resolves with X-Frame-Options. */
+function frameOptions(path: string, host?: string): Promise<string | undefined> {
+  return new Promise((resolve, reject) => {
+    const req = request(origin + path, { headers: host ? { host } : {} }, (res) => {
+      res.resume();
+      resolve(res.headers['x-frame-options'] as string | undefined);
+    });
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 describe('X-Frame-Options on real requests', () => {
   it('lets the same origin frame /avatar-lab', async () => {
     expect(await frameOptions('/avatar-lab')).toBe('SAMEORIGIN');
     expect(await frameOptions('/avatar-lab?theme=zen')).toBe('SAMEORIGIN');
+  });
+
+  it('lets the same origin frame /avatar-lab on the app host (a reserved subdomain)', async () => {
+    expect(await frameOptions('/avatar-lab', 'app.ferni.ai')).toBe('SAMEORIGIN');
+  });
+
+  it("forbids framing /avatar-lab on a custom site's subdomain, which serves /sites/<x>/", async () => {
+    expect(await frameOptions('/avatar-lab', 'x.ferni.ai')).toBe('DENY');
   });
 
   it('forbids framing every other page', async () => {

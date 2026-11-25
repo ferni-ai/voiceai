@@ -12,7 +12,7 @@ describe('Permissions-Policy', () => {
     const res = {
       setHeader: (k: string, v: string) => void headers.set(k, v),
     } as unknown as ServerResponse;
-    setRequestSecurityHeaders({ url: '/' } as IncomingMessage, res);
+    setRequestSecurityHeaders({ url: '/', headers: {} } as IncomingMessage, res);
     const policy = (headers.get('Permissions-Policy') ?? '').split(', ');
     expect(policy).toContain('publickey-credentials-get=(self)');
     expect(policy).toContain('publickey-credentials-create=(self)');

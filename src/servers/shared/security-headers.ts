@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { customSiteSubdomain } from './custom-site-host.js';
 
 const log = createLogger({ module: 'SecurityHeaders' });
 
@@ -216,10 +217,12 @@ function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersConfig =
 
 /**
  * Security headers for one request to the UI server: the defaults, with
- * X-Frame-Options picked by the request's path (frameOptionsFor).
+ * X-Frame-Options picked by the request's path (frameOptionsFor). A custom
+ * site's subdomain serves /sites/<x>/..., never the app's framed pages: DENY.
  */
 export function setRequestSecurityHeaders(req: IncomingMessage, res: ServerResponse): void {
-  setSecurityHeaders(res, { requestPath: req.url });
+  const appPath = customSiteSubdomain(req.headers.host) ? undefined : req.url;
+  setSecurityHeaders(res, { requestPath: appPath });
 }
 
 /**

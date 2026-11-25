@@ -9,7 +9,7 @@ import { type PersonaId } from './types/persona.js';
 
 // Theme system (shared with the avatar lab)
 import { applyPersonaTheme, initializeTheme } from './app/app-theme.js';
-import { isAvatarLab } from './avatar-lab/lab-mode.js';
+import { isAvatarLab, openAvatarLab } from './avatar-lab/lab-mode.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
@@ -457,7 +457,10 @@ class VoiceAIApp {
       void this.initializeAdmin();
       return;
     }
-    if (isAvatarLab()) return this.initializeAvatarLab(); // the real avatar alone, framed by the admin
+    if (isAvatarLab()) {
+      this.isInitialized = true; // first: a second initialize() must not boot the lab again
+      return openAvatarLab(); // the real avatar alone, framed by the admin; logs its own failure
+    }
 
     // Pages opened from a text link that replace the app (/a/:id, /connect#i=…)
     const { openStandalonePage } = await import('./app/standalone-pages.js');
@@ -930,11 +933,6 @@ class VoiceAIApp {
     }
 
     this.isInitialized = true;
-  }
-
-  /** The avatar lab page (/avatar-lab): the real avatar alone, no sign-in or call. */
-  private async initializeAvatarLab(): Promise<void> {
-    await (await import('./avatar-lab/index.js')).startAvatarLab();
   }
 
   /**

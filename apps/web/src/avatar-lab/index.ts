@@ -64,7 +64,7 @@ export async function startAvatarLab(): Promise<void> {
   document.body.classList.add('app-loaded'); // runs the avatar's entrance, as in the app
 
   await initI18n(); // the circadian theme and the thinking label use t()
-  initializeTheme();
+  initializeTheme(); // no listener: no theme toggle, so the lab never changes the saved theme
   initGSAP(); // the app's tween defaults, which the avatar's animations rely on
   initWaveformUI();
   bootAvatarNow(runner);

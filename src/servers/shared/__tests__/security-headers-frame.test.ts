@@ -12,7 +12,7 @@ function frameOptions(requestPath: string): string | undefined {
   const res = {
     setHeader: (k: string, v: string) => void headers.set(k, v),
   } as unknown as ServerResponse;
-  setRequestSecurityHeaders({ url: requestPath } as IncomingMessage, res);
+  setRequestSecurityHeaders({ url: requestPath, headers: {} } as IncomingMessage, res);
   return headers.get('X-Frame-Options');
 }
 
@@ -33,7 +33,7 @@ describe('X-Frame-Options per request path', () => {
     const res = {
       setHeader: (k: string, v: string) => void headers.set(k, v),
     } as unknown as ServerResponse;
-    setRequestSecurityHeaders({} as IncomingMessage, res);
+    setRequestSecurityHeaders({ headers: {} } as IncomingMessage, res);
     expect(headers.get('X-Frame-Options')).toBe('DENY');
   });
 });

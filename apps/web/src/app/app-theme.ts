@@ -24,14 +24,17 @@ import { initMagneticHover } from '../ui/magnetic-hover.ui.js';
 /** Adds a listener; the app passes one that it removes on dispose. */
 type AddListener = (target: EventTarget, type: string, handler: EventListener) => void;
 
-const addListener: AddListener = (target, type, handler) => target.addEventListener(type, handler);
-
 /** The persona's theme colours: canonical ids, and a Legend while one speaks; anyone else is Ferni. */
 export function applyPersonaTheme(personaId: SpeakerId): void {
   setThemePersona(isValidPersonaId(personaId) || isLegendId(personaId) ? personaId : 'ferni');
 }
 
-export function initializeTheme(listen: AddListener = addListener): void {
+/**
+ * `listen` wires the theme toggle (button and T key) and is the app's alone.
+ * Without it (the avatar lab) nothing can change the theme saved in localStorage,
+ * which the same-origin admin and app read.
+ */
+export function initializeTheme(listen?: AddListener): void {
   initTheme();
   watchSystemTheme();
 
@@ -48,7 +51,7 @@ export function initializeTheme(listen: AddListener = addListener): void {
   initMagneticHover();
 
   const toggleBtn = document.getElementById('themeToggle');
-  if (toggleBtn) {
+  if (toggleBtn && listen) {
     listen(toggleBtn, 'click', () => toggleTheme());
     // T toggles the theme, unless the user is typing
     listen(document, 'keydown', ((e: KeyboardEvent) => {
