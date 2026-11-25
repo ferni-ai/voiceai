@@ -446,18 +446,18 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
 };
 
 /**
- * Crisis-lane flags that act on a line the speech coordinator says to the caller, not on the
- * reply: when a hand-back line is queued, how long it waits, or whether a filler is said beside
- * a crisis turn. The six readers and SHOWN_ON (the gate's reply) never see that step. This home is
- * open only to a flag whose named rows run the real exit or turn handler and the real coordinator
- * (only the LiveKit session is a stub), flag off then on, and assert that with it on the line is
- * never lowered: it is still spoken, only earlier or kept longer, never cutting in on a line
- * being spoken; or, for a filler, that only a filler is dropped and the reply is untouched.
+ * Crisis-lane flags that remove a line the speech coordinator would say beside a turn, not the
+ * reply: a filler or remark that is not crisis or safety speech. The six readers and SHOWN_ON (the
+ * gate's reply) never see that step. This home is open only to a flag that removes nothing but a
+ * line that is not crisis or safety speech, and whose named rows run the real turn handler, flag
+ * off then on, and assert both that the line is removed and that the crisis reply (the override,
+ * the safety injection and the crisis_detected message) is still given unchanged on the same turn.
+ * A flag that delays or shortens a crisis or safety line does not belong here.
  *
  * The census checks that each named file exists and holds each title as an it() or test() call,
  * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
  */
-export const HAND_BACK_LINE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+export const NON_SAFETY_LINE_REMOVED: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
   // The naturalness acknowledgment (a remark about the caller's surroundings, a rapport repair
   // cue), a filler said beside the reply on a turn the crisis read replaced, guided or softened
   // (#4451). Only that filler is dropped: the reply and the rest of the naturalness step run.
@@ -468,6 +468,7 @@ export const HAND_BACK_LINE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnl
         'on: no crisis level says it, and the rest of the naturalness step still runs',
         'off: every crisis level says it, as on main',
         'on: an ordinary turn says it, unchanged',
+        'on: the crisis reply is still given unchanged on the same turn, at every level',
       ],
     },
   ],
