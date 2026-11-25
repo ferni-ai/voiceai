@@ -34,6 +34,13 @@ const WEIGHTY =
 export type Captured = Record<string, { system: string; prompt: string }>;
 
 /**
+ * Flags outside GOLDEN_ENVS that change the director's or the deliberator's rule. Each is held
+ * unset (its manifest default) unless `extra` sets it, so the golden stays what prod sends
+ * whatever the shell exports.
+ */
+const HELD_UNSET = ['NO_INVENTED_USAGE'] as const;
+
+/**
  * Every prompt the director and the deliberator would send, under `extra` env
  * on top of each combo. `personaId` is handed to both as the persona on the
  * call (DIRECTOR_DIRECTS reads it; nothing else may).
@@ -44,6 +51,7 @@ export async function capturePrompts(
 ): Promise<Captured> {
   const out: Captured = {};
   for (const [combo, env] of Object.entries(GOLDEN_ENVS)) {
+    for (const k of HELD_UNSET) vi.stubEnv(k, undefined);
     for (const [k, v] of Object.entries({ ...env, ...extra })) vi.stubEnv(k, v);
     for (const speaking of [undefined, 'Jordan']) {
       let got = { system: '', prompt: '' };

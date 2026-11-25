@@ -28,6 +28,7 @@ import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
 import { handleAdminModelConfigRoutes } from './model-config.js';
 import { handleAdminOperationsRoutes } from './operations.js';
+import { handleAdminSoulStatsRoutes } from './soul-stats.js';
 import { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';
 
 const log = createLogger({ module: 'AdminAPI' });
@@ -113,6 +114,11 @@ export async function handleAdminRoutes(
   // Better Than Human Analytics (superhuman capability effectiveness)
   if (pathname.startsWith(`${BASE_PATH}/bth`)) {
     return handleBTHAnalyticsRoutes(req, res, pathname, parsedUrl);
+  }
+
+  // Avatar soul counts people's browsers reported (SOUL_STATS)
+  if (pathname.startsWith(`${BASE_PATH}/soul`)) {
+    return handleAdminSoulStatsRoutes(req, res, pathname);
   }
 
   // Route not matched

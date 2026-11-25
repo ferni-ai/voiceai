@@ -106,14 +106,14 @@ describe('ferni waitlist, every subcommand through the real parser', () => {
     expect(writes).toEqual([
       {
         id: waitlistDocId('pat@example.test'),
-        fields: { status: 'approved', approvedAt: NOW, approvedBy: 'cli', updatedAt: NOW },
+        fields: { status: 'approved', approvedAt: NOW, approvedBy: 'cli', approvedVia: 'admin', updatedAt: NOW }, // prettier-ignore
       },
     ]);
   });
 
   it('approve --apply for someone not on the list: adds them approved', async () => {
     const { writes } = await ferniWaitlist(['approve', 'new@example.test', '--apply']);
-    expect(writes[0]?.fields).toMatchObject({ email: 'new@example.test', status: 'approved', source: 'manual' }); // prettier-ignore
+    expect(writes[0]?.fields).toMatchObject({ email: 'new@example.test', status: 'approved', source: 'manual', approvedVia: 'admin' }); // prettier-ignore
   });
 
   it('approve someone already approved: writes nothing', async () => {
@@ -125,7 +125,8 @@ describe('ferni waitlist, every subcommand through the real parser', () => {
 
 describe('the script refuses what it cannot do safely', () => {
   it('every command needs an explicit --project', () => {
-    for (const cmd of ['list', 'stats', 'export']) expect(() => parseArgs([cmd])).toThrow(/--project/);
+    for (const cmd of ['list', 'stats', 'export'])
+      expect(() => parseArgs([cmd])).toThrow(/--project/);
     expect(() => parseArgs(['approve', 'a@b.test'])).toThrow(/--project/);
   });
 

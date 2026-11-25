@@ -16,6 +16,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { toCanonical } from '../../personas/persona-ids.js';
 import { personaName } from '../personas/said-by.js';
 import { placeholderSummaryNote } from '../../services/session/placeholder-summary.js';
+import { labelTimes, memoryTimeLabelsOn } from '../../understanding/temporal/index.js';
 
 interface ProfileCounts {
   humanizingState?: { perPersonaMeetingCounts?: Record<string, number> };
@@ -65,16 +66,30 @@ export function teammateRelationship(
   ];
 }
 
+/** When the last call was, now, and the caller's zone (unknown: undefined). */
+export interface LastCall {
+  at: Date | number | string;
+  now: Date | number;
+  zone?: string;
+}
+
 /**
  * How the profile's last-call summary reads: a teammate hears it as the
- * caller's last call with the team, not with itself.
+ * caller's last call with the team, not with itself. With MEMORY_TIME_LABELS
+ * and the last call's time, each dated clause is marked with where it stands
+ * now ("a tournament on 2026-11-21 [coming up, not happened yet]"), #2530.
  */
-export function lastTalkedAbout(teammate: boolean, summary: string): string {
+export function lastTalkedAbout(teammate: boolean, summary: string, last?: LastCall): string {
   const unknown = placeholderSummaryNote(summary); // PLACEHOLDER_SUMMARY_UNKNOWN
   if (unknown) return unknown;
+  const at = last && new Date(last.at).getTime();
+  const shown =
+    last && at !== undefined && Number.isFinite(at) && memoryTimeLabelsOn()
+      ? labelTimes(summary, at, new Date(last.now).getTime(), last.zone).text
+      : summary;
   return teammate
-    ? `Last time they called, they talked about: ${summary}`
-    : `Last time you talked about: ${summary}`;
+    ? `Last time they called, they talked about: ${shown}`
+    : `Last time you talked about: ${shown}`;
 }
 
 /**

@@ -190,6 +190,10 @@ describe(`firestore.rules lockdown (${RULES_PATH})`, () => {
     ]).toEqual([]);
   });
 
+  it('server-written counters (soul_stats_hourly) grant clients nothing', () => {
+    expect(allowsFor('soul_stats_hourly')).toEqual([{ ops: ['read', 'write'], cond: 'false' }]);
+  });
+
   it('marketplace installations cannot be moved to another userId on update', () => {
     expect(
       unguardedPaths('marketplace_installations', 'update', affectedKeysGuard('userId'))

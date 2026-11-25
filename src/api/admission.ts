@@ -15,6 +15,8 @@
  *
  * Gate off: everyone is admitted and nothing is read. Gate on: a lookup that
  * fails refuses (fails closed) and is not cached; answers are cached 60 s.
+ * DURABLE_ACCESS_GRANTS (#2264): an approval or subscription stored for a
+ * reason that ends (open access, admission) counts only through the live rules.
  *
  * @module api/admission
  */
@@ -25,6 +27,15 @@ import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { isCohortMember } from '../services/platform/cohort-membership.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { isOwnerEmail } from '../config/owner-email.js';
+import { ADMITTED_STATUSES } from '../services/waitlist/queue.js';
+import {
+  durableGrantsActive,
+  livePaidPlan,
+  subscriptionAdmits,
+  waitlistEntryAdmits,
+  type StoredSubscription,
+  type StoredWaitlistEntry,
+} from './access-grant-standing.js';
 
 const log = createLogger({ module: 'Admission' });
 
@@ -45,7 +56,6 @@ export function isAdminEmail(
 
 export const ADMISSION_COHORT = 'friends-and-family';
 export const ADMISSION_CACHE_TTL_MS = 60_000;
-const ADMITTED_STATUSES = new Set(['approved', 'admitted', 'joined']);
 
 export type AdmissionReason =
   | 'gate-off'
@@ -73,6 +83,11 @@ export interface AdmissionStore {
   hasActiveSubscription: (email: string) => Promise<boolean>;
   accountCreatedAt: (uid: string) => Promise<Date | null>;
   inCohort: (cohort: string, uid: string) => Promise<boolean>;
+  /** DURABLE_ACCESS_GRANTS (#2264): the entry with why it was approved, and every subscription. */
+  waitlistEntry: (email: string) => Promise<StoredWaitlistEntry | undefined>;
+  subscriptions: (email: string) => Promise<StoredSubscription[]>;
+  /** The account's own plan, bogle_users/{uid}.subscription, where Stripe and Apple write. */
+  accountSubscription: (uid: string) => Promise<StoredSubscription | undefined>;
 }
 
 /** The gate date: accounts created before it are in. Null when unset or not a date. */
@@ -108,6 +123,20 @@ export const firestoreAdmissionStore: AdmissionStore = {
     return user?.metadata.creationTime ? new Date(user.metadata.creationTime) : null;
   },
   inCohort: async (cohort, uid) => isCohortMember(cohort, uid), // enabled + member (cohort-membership.ts)
+  async waitlistEntry(email) {
+    const snap = await db().collection('waitlist').doc(docId(email)).get();
+    return snap.exists ? (snap.data() as StoredWaitlistEntry | undefined) : undefined;
+  },
+  async subscriptions(email) {
+    const profile = await db().collection('user_profiles').doc(docId(email)).get();
+    const bogle = await db().collection('bogle_users').where('email', '==', email).limit(1).get();
+    const subs: unknown[] = [profile.data()?.subscription, bogle.docs[0]?.data()?.subscription];
+    return subs.filter((s): s is StoredSubscription => !!s && typeof s === 'object');
+  },
+  async accountSubscription(uid) {
+    const sub: unknown = (await db().collection('bogle_users').doc(uid).get()).data()?.subscription;
+    return typeof sub === 'object' && sub !== null ? (sub as StoredSubscription) : undefined;
+  },
 };
 
 const cache = new Map<string, { value: Admission; at: number }>();
@@ -142,7 +171,8 @@ export async function isAdmitted(who: Who, opts: AdmissionOptions = {}): Promise
     ['existing-account', async () => { const at = since && (await store.accountCreatedAt(who.uid)); return !!at && at < since; }], // prettier-ignore
     ['friends-and-family', async () => store.inCohort(ADMISSION_COHORT, who.uid)],
   ];
-  const results = await Promise.allSettled(checks.map(([, check]) => check()));
+  if (durableGrantsActive(env)) checks.splice(0, 2, ...durableGrantChecks(store, who.uid, email));
+  const results = await Promise.allSettled(checks.map(async ([, check]) => check()));
   const passed = results.findIndex((r) => r.status === 'fulfilled' && r.value);
   if (passed >= 0) return remember(key, now, { admitted: true, reason: checks[passed]![0] });
   const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
@@ -159,6 +189,43 @@ export async function isAdmitted(who: Who, opts: AdmissionOptions = {}): Promise
 function remember(key: string, at: number, value: Admission): Admission {
   cache.set(key, { value, at });
   return value;
+}
+
+/**
+ * DURABLE_ACCESS_GRANTS: the two stored-grant rules, counting only grants whose reason lasts.
+ * A live paid plan always counts, including the one on the account itself (bogle_users/{uid}).
+ */
+function durableGrantChecks(
+  store: AdmissionStore,
+  uid: string,
+  email: string | undefined
+): Array<[AdmissionReason, () => Promise<boolean>]> {
+  let read: Promise<StoredSubscription[]> | undefined; // one read, shared by both rules
+  const subs = async (): Promise<StoredSubscription[]> => (read ??= email ? store.subscriptions(email) : Promise.resolve([])); // prettier-ignore
+  const stored = async (): Promise<boolean> => (await subs()).some((s) => subscriptionAdmits(s, uid)); // prettier-ignore
+  return [
+    ['waitlist-approved', async () => !!email && waitlistEntryAdmits(await store.waitlistEntry(email), await subs(), uid)], // prettier-ignore
+    ['active-account', async () => (await stored()) || livePaidPlan(await store.accountSubscription(uid))], // prettier-ignore
+  ];
+}
+
+/**
+ * For /api/waitlist/check: an active subscription that lets them in. Flag or gate off: any
+ * active one, with no read (main's behaviour). DURABLE_ACCESS_GRANTS: one granted for a reason
+ * that ends counts only while the live rules admit them. A failed lookup throws, so the check
+ * answers a retryable 500 (fails closed, writes nothing) rather than "you're on the waitlist".
+ */
+export async function activeGrantAdmits(
+  sub: StoredSubscription | undefined,
+  who: Who,
+  opts: AdmissionOptions = {}
+): Promise<boolean> {
+  if (!durableGrantsActive(opts.env ?? process.env)) return sub?.status === 'active';
+  if (subscriptionAdmits(sub, who.uid)) return true; // a live paid plan, or a reason that lasts
+  if (sub?.status !== 'active') return false;
+  const admission = await isAdmitted(who, opts);
+  if (admission.reason === 'check-failed') throw new Error('Admission re-check failed');
+  return admission.admitted;
 }
 
 /** What a refused caller sees: warm, the same on every route. */

@@ -1,0 +1,7 @@
+# First-call goodbye, nothing coming up (#4287): a plain warm close, no "tell me how it goes", no invented plan. Run on a new account with FIRST_CALL_GOODBYE_GROUNDED=on.
+Hey. Honestly I'm just bored, figured I'd try this.
+Nothing much going on, quiet week at work.
+Ha, I don't know. I'm bad at cooking, mostly.
+No, nothing big coming up really. Same old.
+I guess I just like hearing someone else think out loud.
+Okay, this was nice. I gotta go, bye.
