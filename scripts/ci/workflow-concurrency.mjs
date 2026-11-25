@@ -14,6 +14,16 @@
  *
  * Exceptions live in ALLOWED, each with its reason.
  *
+ * A workflow that also runs on labeled/unlabeled must give a label it doesn't read
+ * a group of its own (keyed on github.event.label.name, falling to github.run_id),
+ * allowlisted or not. Opening a PR with a label fires opened and labeled a second
+ * apart; in one shared group the second cancels the first, and a cancelled run's
+ * fail-closed check stays red on a head that passed (#4198). Nor may such a
+ * workflow skip a job on a label event (a job-level `if:` reading
+ * github.event.label.name or github.event.action): a skipped job's check counts
+ * as passing, and as the newest run of that name it stands in for a red one.
+ * Exceptions live in LABEL_SKIP_ALLOWED.
+ *
  *   node scripts/ci/workflow-concurrency.mjs [workflows-dir]
  *
  * It reads the YAML by line, not with a parser: `on:` and `concurrency:` are
@@ -36,7 +46,14 @@ export const ALLOWED = {
     'group keyed on the ref with the PR-only cancel, so main pushes and Play-signing dispatches queue instead of running side by side; no merge_group trigger',
 };
 
+/** Workflows allowed a job that skips on a label event, and why. */
+export const LABEL_SKIP_ALLOWED = {
+  'staging.yml':
+    'preview deploy runs only for the preview label; a deploy, not a gate, so a skipped run stands in for no verdict',
+};
+
 const TRIGGERS = /^(pull_request|pull_request_target)$/;
+const LABEL_EVENTS = /^(labeled|unlabeled)$/;
 
 /** The lines of a top-level key's block, or the inline value as one line. */
 function topLevelBlock(lines, key) {
@@ -92,13 +109,84 @@ export function concurrency(text) {
   return { group: field('group'), cancel: field('cancel-in-progress') || 'false' };
 }
 
+/** The `types:` of the pull_request trigger; [] when it lists none (Actions' defaults). */
+export function pullRequestTypes(text) {
+  const lines = text.split('\n');
+  const on = topLevelBlock(lines, 'on') ?? topLevelBlock(lines, 'true') ?? [];
+  const start = on.findIndex((l) => /^\s+pull_request\s*:/.test(l));
+  if (start === -1) return [];
+  const depth = (l) => l.match(/^\s*/)[0].length;
+  const body = [];
+  for (const l of on.slice(start + 1)) {
+    if (depth(l) <= depth(on[start])) break;
+    body.push(l);
+  }
+  const at = body.findIndex((l) => /^\s*types\s*:/.test(l));
+  if (at === -1) return [];
+  const inline = body[at]
+    .replace(/^\s*types\s*:/, '')
+    .replace(/\s+#.*$/, '')
+    .trim();
+  const items = inline
+    ? inline.replace(/[[\]]/g, '').split(',')
+    : body
+        .slice(at + 1)
+        .filter((l) => /^\s*-/.test(l))
+        .map((l) => l.replace(/^\s*-\s*/, ''));
+  return items.map((s) => s.trim()).filter(Boolean);
+}
+
+/** A pull_request label trigger whose runs share the PR's cancelling group. */
+function labelProblems(file, text, c) {
+  if (!triggers(text).includes('pull_request')) return [];
+  if (!pullRequestTypes(text).some((t) => LABEL_EVENTS.test(t))) return [];
+  if (!c || c.cancel === 'false') return [];
+  if (c.group.includes('github.event.label.name') && c.group.includes('github.run_id')) return [];
+  return [
+    `${file}: runs on labeled/unlabeled in the PR's cancelling group, so a label it doesn't read cancels the PR's run; give those events their own group (github.event.label.name ... github.run_id)`,
+  ];
+}
+
+/** Ids of jobs whose job-level `if:` reads the label event. */
+export function labelSkips(text) {
+  const body = text.slice(text.indexOf('\njobs:\n') + 1);
+  const out = [];
+  let job = null;
+  let inIf = false;
+  for (const line of body.split('\n')) {
+    const id = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (id) {
+      job = id[1];
+      inIf = false;
+      continue;
+    }
+    if (/^ {4}if:/.test(line)) inIf = true;
+    else if (!/^ {6,}\S/.test(line)) inIf = false;
+    if (inIf && job && /github\.event\.(label\.name|action)\b/.test(line) && !out.includes(job)) {
+      out.push(job);
+    }
+  }
+  return out;
+}
+
+/** A label-triggered workflow whose job skips on a label event. */
+function labelSkipProblems(file, text) {
+  if (LABEL_SKIP_ALLOWED[file] || !triggers(text).includes('pull_request')) return [];
+  if (!pullRequestTypes(text).some((t) => LABEL_EVENTS.test(t))) return [];
+  return labelSkips(text).map(
+    (job) =>
+      `${file}: job ${job} skips on a label event; its skipped check counts as passing and can stand in for a red run of the same name`
+  );
+}
+
 /** Problems for one workflow file; empty when it complies or isn't PR-triggered. */
 export function problems(file, text) {
   if (!triggers(text).some((t) => TRIGGERS.test(t))) return [];
-  if (ALLOWED[file]) return [];
   const c = concurrency(text);
+  const labels = [...labelProblems(file, text, c), ...labelSkipProblems(file, text)];
+  if (ALLOWED[file]) return labels;
   if (!c) return [`${file}: runs on pull_request but has no top-level concurrency group`];
-  const out = [];
+  const out = [...labels];
   if (!c.group.includes('github.event.pull_request.number')) {
     out.push(
       `${file}: concurrency group is not keyed on github.event.pull_request.number (${c.group})`
@@ -115,7 +203,7 @@ export function scan(dir) {
     .filter((f) => /\.ya?ml$/.test(f))
     .sort();
   const found = files.flatMap((f) => problems(f, readFileSync(join(dir, f), 'utf8')));
-  const stale = Object.keys(ALLOWED)
+  const stale = [...Object.keys(ALLOWED), ...Object.keys(LABEL_SKIP_ALLOWED)]
     .filter((f) => !files.includes(f))
     .map((f) => `${f}: allowlisted but no longer exists; drop it from ALLOWED`);
   return [...found, ...stale];

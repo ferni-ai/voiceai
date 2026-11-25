@@ -1,13 +1,16 @@
 name: PR Flow
 
 # Size, base branch, WIP and issue link (scripts/ci/pr-flow-check.sh).
-# Labels and the description change the result, so those events re-run it.
+# The description and the size/large-ok label change the result, so those events
+# supersede the PR's run. Any other label runs the check in a group of its own, so
+# it can't cancel the run of a PR opened with that label (#4198). It never skips:
+# a skipped check counts as passing and would stand in for a red one.
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
 
 concurrency:
-  group: pr-flow-${{ github.event.pull_request.number }}
+  group: pr-flow-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'size/large-ok' && github.run_id) || github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
