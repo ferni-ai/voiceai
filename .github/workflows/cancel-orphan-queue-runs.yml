@@ -30,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           sparse-checkout: scripts/ci
       - name: Cancel runs whose queue ref is gone
         env:

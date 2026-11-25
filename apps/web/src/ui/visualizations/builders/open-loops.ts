@@ -417,7 +417,7 @@ function buildTablet(
 
   // Left: Loops by category
   const loopsSection = createElement('div');
-  setStyles(loopsSection, { flex: '2' });
+  setStyles(loopsSection, { flex: '2', minWidth: '0' }); // min-width 0: long text wraps instead of pushing the age out
 
   // Group by category
   const byCategory = groupByCategory(data.loops);
@@ -465,7 +465,7 @@ function buildTablet(
 
       // Age
       const age = createElement('span', 'viz-label');
-      setStyles(age, { flexShrink: '0' });
+      setStyles(age, { flexShrink: '0', whiteSpace: 'nowrap' });
       age.textContent = formatAge(loop.createdAt);
       row.appendChild(age);
 

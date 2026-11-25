@@ -36,6 +36,15 @@ export function localDayKey(instant: Date | number, timeZone?: string): string {
   return Number.isFinite(day) ? new Date(day).toISOString().slice(0, 10) : '';
 }
 
+/**
+ * A stored target date that has not passed where the user is: later than now, or due today.
+ * A date stored as midnight UTC is a date-only target: that calendar day, wherever they are.
+ */
+export function targetDateAhead(target: number, now: number, timeZone?: string): boolean {
+  const due = localDayKey(target, target % DAY_MS === 0 ? undefined : timeZone);
+  return target > now || due >= localDayKey(now, timeZone);
+}
+
 /** 0 = same calendar day, 1 = yesterday, ...; never negative. */
 export function calendarDaysSince(
   from: Date | number | string,

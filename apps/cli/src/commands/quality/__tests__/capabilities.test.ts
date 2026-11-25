@@ -108,6 +108,12 @@ describe('decision gate: a second owner fails, a delegate passes', () => {
     'tts-voice': 'synthesizeSpeech',
     'tool-registry': 'registerTools',
     'outreach-scheduling': 'scheduleCheckinOutreach',
+    'task-store': 'addTask',
+    'reminder-store': 'setDailyReminder',
+    'commitment-store': 'recordUserCommitment',
+    'calendar-event': 'createCalendarEvent',
+    'goal-store': 'saveLifeGoal',
+    'routine-store': 'createMorningRoutine',
   };
 
   it.each(DECISIONS.map((d) => [d.id] as const))(

@@ -18,7 +18,6 @@ This folder contains builders that provide intelligence capabilities that exceed
 | `deep-understanding.ts` | Silence, rhythm, resistance, energy, goals |
 | `proactive-noticing.ts` | "I notice..." pattern surfacing |
 | `inner-world-injector.ts` | Inner world/emotional state awareness |
-| `sec-intelligence.ts` | SEC/financial intelligence |
 
 ## Key Principle
 

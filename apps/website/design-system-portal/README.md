@@ -26,7 +26,12 @@ npm run build
 
 ## Deployment
 
-From the root of the monorepo:
+A merge to `main` that changes this folder deploys design.ferni.ai through
+`.github/workflows/deploy-design-system-site.yml`; a pull request that changes
+it gets a preview channel, with its URL in a comment. The workflow fails on an
+empty build and on a live site that doesn't serve the new deploy.
+
+By hand, from the root of the monorepo:
 
 ```bash
 ferni deploy design-system
@@ -49,6 +54,7 @@ pnpm tokens:sync
 ```
 
 This syncs tokens to all portals:
+
 - `apps/website/design-system-portal/src/css/tokens.css`
 - `apps/website/developers-portal/src/css/tokens.css`
 - `apps/website/marketplace-portal/src/css/tokens.css`

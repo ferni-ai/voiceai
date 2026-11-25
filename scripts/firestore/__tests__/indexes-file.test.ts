@@ -105,9 +105,13 @@ const NAMED_ONLY_IN_PATH_TEMPLATES: Record<string, string> = {
  * names that file; the name's quotes there are not a use, its quotes anywhere else still are,
  * and the test fails if that file stops quoting it or starts using it as a collection.
  */
-const QUOTED_AS_NON_COLLECTION: Record<string, string> = {
+const QUOTED_AS_NON_COLLECTION: Record<string, readonly string[]> = {
   // CALL_TELEMETRY=reports, a flag mode (felt-off reports only); Ferni has no `reports` store.
-  reports: 'api/call-telemetry/call-telemetry-store.ts',
+  // The dev flag switchboard lists the same mode among the words a flag can take.
+  reports: [
+    'api/call-telemetry/call-telemetry-store.ts',
+    'config/agent-flags/domain/switchable.ts',
+  ],
 };
 
 /**
@@ -277,13 +281,17 @@ describe('firestore.indexes.json composite indexes', () => {
       ...file.fieldOverrides.map((o) => o.collectionGroup),
     ]);
     const used = (n: string): boolean =>
-      [...(quotedIn.get(n) ?? [])].some((rel) => rel !== QUOTED_AS_NON_COLLECTION[n]);
+      [...(quotedIn.get(n) ?? [])].some(
+        (rel) => !(QUOTED_AS_NON_COLLECTION[n] ?? []).includes(rel)
+      );
     const stale = NOT_FERNI_COLLECTIONS.filter((n) => !names.has(n) || used(n));
     expect(stale).toEqual([]);
   });
 
   it('excuses a quoted not-Ferni name only in its one file, and never as a collection', () => {
-    for (const [name, rel] of Object.entries(QUOTED_AS_NON_COLLECTION)) {
+    for (const [name, rel] of Object.entries(QUOTED_AS_NON_COLLECTION).flatMap(([n, files]) =>
+      files.map((f) => [n, f] as const)
+    )) {
       expect(NOT_FERNI_COLLECTIONS).toContain(name);
       const text = readFileSync(join(srcDir, rel), 'utf8');
       expect(text, `${rel} no longer quotes '${name}'; drop the entry`).toMatch(

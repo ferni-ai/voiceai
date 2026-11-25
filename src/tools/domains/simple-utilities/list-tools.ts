@@ -14,37 +14,18 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import {
+  findListByName,
+  listSaved,
+  loadLists,
+  saveList,
+  type ListItem,
+  type UserList,
+} from './list-store.js';
+
+export type { ListItem, UserList } from './list-store.js';
 
 const log = getLogger();
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface ListItem {
-  id: string;
-  text: string;
-  checked: boolean;
-  addedAt: number;
-  checkedAt?: number;
-  notes?: string;
-}
-
-export interface UserList {
-  id: string;
-  userId: string;
-  name: string;
-  type: string; // 'packing', 'bucket', 'guest', 'reading', 'custom'
-  items: ListItem[];
-  createdAt: number;
-  updatedAt: number;
-  archived: boolean;
-}
-
-// In-memory fallback
-const listStore = new Map<string, UserList[]>();
 
 // Common list types with templates
 const LIST_TEMPLATES: Record<string, { emoji: string; suggestions: string[] }> = {
@@ -93,96 +74,6 @@ const LIST_TEMPLATES: Record<string, { emoji: string; suggestions: string[] }> =
     suggestions: [],
   },
 };
-
-// ============================================================================
-// STORAGE HELPERS
-// ============================================================================
-
-async function loadLists(userId: string): Promise<UserList[]> {
-  try {
-    const db = getFirestoreDb();
-    if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('lists')
-        .where('archived', '==', false)
-        .get();
-
-      return snapshot.docs.map(
-        (doc: FirebaseFirestore.QueryDocumentSnapshot) =>
-          ({ id: doc.id, ...doc.data() }) as UserList
-      );
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore not available for lists');
-  }
-
-  // Fallback to in-memory
-  return (listStore.get(userId) || []).filter((l) => !l.archived);
-}
-
-async function loadList(userId: string, listId: string): Promise<UserList | null> {
-  try {
-    const db = getFirestoreDb();
-    if (db) {
-      const doc = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('lists')
-        .doc(listId)
-        .get();
-      if (doc.exists) {
-        return { id: doc.id, ...doc.data() } as UserList;
-      }
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore load failed');
-  }
-
-  // Fallback
-  const lists = listStore.get(userId) || [];
-  return lists.find((l) => l.id === listId) || null;
-}
-
-async function saveList(userId: string, list: UserList): Promise<UserList> {
-  list.updatedAt = Date.now();
-
-  try {
-    const db = getFirestoreDb();
-    if (db) {
-      const ref = db.collection('bogle_users').doc(userId).collection('lists').doc(list.id);
-      await ref.set(cleanForFirestore(list));
-      log.info({ listId: list.id, userId }, 'List saved to Firestore');
-      return list;
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore save failed, using in-memory');
-  }
-
-  // Fallback
-  const lists = listStore.get(userId) || [];
-  const index = lists.findIndex((l) => l.id === list.id);
-  if (index >= 0) {
-    lists[index] = list;
-  } else {
-    lists.push(list);
-  }
-  listStore.set(userId, lists);
-
-  return list;
-}
-
-async function findListByName(userId: string, name: string): Promise<UserList | null> {
-  const lists = await loadLists(userId);
-  const nameLower = name.toLowerCase().trim();
-
-  return (
-    lists.find(
-      (l) => l.name.toLowerCase() === nameLower || l.name.toLowerCase().includes(nameLower)
-    ) || null
-  );
-}
 
 // ============================================================================
 // HELPERS
@@ -311,7 +202,9 @@ const createListDef: ToolDefinition = {
           archived: false,
         };
 
-        await saveList(ctx.userId, list);
+        if (!(await listSaved(saveList(ctx.userId, list)))) {
+          return `I couldn't save the "${name}" list just now, so it isn't made yet. Want me to try again?`;
+        }
 
         log.info({ listId: list.id, type: listType, itemCount: items.length }, 'List created');
 
@@ -370,7 +263,9 @@ const addToListDef: ToolDefinition = {
         }));
 
         list.items.push(...newItems);
-        await saveList(ctx.userId, list);
+        if (!(await listSaved(saveList(ctx.userId, list)))) {
+          return `I couldn't add that to **${list.name}** just now, so it isn't on the list yet. Want me to try again?`;
+        }
 
         log.info({ listId: list.id, addedCount: items.length }, 'Items added to list');
 
@@ -502,7 +397,9 @@ const checkOffItemDef: ToolDefinition = {
 
         targetItem.checked = true;
         targetItem.checkedAt = Date.now();
-        await saveList(ctx.userId, list);
+        if (!(await listSaved(saveList(ctx.userId, list)))) {
+          return `I couldn't check off "${targetItem.text}" just now. It's still on your ${list.name} list.`;
+        }
 
         const remaining = list.items.filter((i) => !i.checked).length;
         const emoji = getListEmoji(list.type);
@@ -550,7 +447,9 @@ const removeFromListDef: ToolDefinition = {
         }
 
         const removed = list.items.splice(index, 1)[0];
-        await saveList(ctx.userId, list);
+        if (!(await listSaved(saveList(ctx.userId, list)))) {
+          return `I couldn't remove "${removed.text}" from **${list.name}** just now. It's still there.`;
+        }
 
         const emoji = getListEmoji(list.type);
         return `${emoji} Removed "${removed.text}" from **${list.name}**`;
@@ -585,7 +484,9 @@ const deleteListDef: ToolDefinition = {
 
         // Archive instead of hard delete
         list.archived = true;
-        await saveList(ctx.userId, list);
+        if (!(await listSaved(saveList(ctx.userId, list)))) {
+          return `I couldn't delete the **"${list.name}"** list just now. It's still there.`;
+        }
 
         log.info({ listId: list.id, name: list.name }, 'List archived');
 

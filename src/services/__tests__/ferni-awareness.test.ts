@@ -34,7 +34,7 @@ import {
   shouldSurfacePattern,
   getAppropriateEnergy,
   getToolDecisionContext,
-} from '../ferni-awareness.js';
+} from '../intelligence/ferni-awareness.js';
 
 import type { UserProfile } from '../../types/user-profile.js';
 import type { SessionServices } from '../types.js';

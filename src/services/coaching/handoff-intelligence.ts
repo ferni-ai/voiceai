@@ -133,8 +133,8 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       'ask',
     ],
     warmIntros: [
-      "Alex is our communication specialist. They're incredible at this.",
-      'For difficult conversations, Alex is your person. Want to meet them?',
+      "Alex is our communication specialist. He's incredible at this.",
+      'For difficult conversations, Alex is your person. Want to meet him?',
       'Alex helps with exactly this kind of thing. Should I introduce you?',
     ],
     description: 'Communication coach and conversation architect',
@@ -178,7 +178,7 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       'celebration',
     ],
     warmIntros: [
-      'Jordan is amazing at making moments special. Want to meet them?',
+      'Jordan is amazing at making moments special. Want to meet her?',
       'For planning and events, Jordan is incredible.',
       'Jordan would love to help make this memorable.',
     ],

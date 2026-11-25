@@ -90,6 +90,7 @@ async function grantAccess(db: FirebaseFirestore.Firestore, options: GrantAccess
     approvedAt: FieldValue.serverTimestamp(),
     approvedTier: tier,
     approvedReason: reason,
+    approvedVia: 'admin',
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   console.log('   ✅ Waitlist status: approved');

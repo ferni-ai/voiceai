@@ -5,7 +5,7 @@
  * that re-checks recall's notes for forgotten topics (turn-packet.ts
  * sendRecall). That runs before the reply to those words, so the reply never
  * reads it; a classifier-only crisis found during the reply is kept from it by
- * crisis-gate.ts (withoutGrowthNote). Any error takes the note out.
+ * crisis-gate.ts (withoutCrisisHeldNotes). Any error takes the note out.
  *
  * @module agents/personas/persona-growth-note
  */

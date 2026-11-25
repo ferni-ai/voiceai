@@ -35,6 +35,7 @@ import {
 } from '../../../services/intelligence-publisher.js';
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
+import { crisisTurnSettled } from '../../../utils/crisis-memory-hold.js';
 import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
 import { ownerWriteId, ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
@@ -115,7 +116,7 @@ import { heldCallerCorrection } from './caller-correction-crisis-hold.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
-import { extractNames, recordMention } from '../../../services/superhuman/relationship-network.js';
+import { extractNames, recordNamesSaid } from '../../../services/superhuman/relationship-network.js';
 
 import { processDataCapture } from '../../../intelligence/data-capture/index.js';
 import { recordTemporalObservation } from '../../../intelligence/patterns/temporal-patterns.js';
@@ -140,6 +141,7 @@ import { enrichEmotionWithVoice } from './voice-biomarker.js';
 import { recordTeamHuddleObservation } from './team-huddle-helpers.js';
 import { buildContextInjections } from './context-injections.js';
 import { isFtisEnabled } from '../../../config/tool-config.js';
+import { routerCrisisChecks } from './router-crisis-check.js';
 
 /**
  * Process a complete user turn
@@ -195,6 +197,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
   const turnCrisis = startTurnCrisis(userText, userData, { sessionId: services.sessionId });
   const crisisResult = turnCrisis.patterns;
+  const routerChecks = routerCrisisChecks(turnCrisis, services.sessionId, userText);
 
   if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {
@@ -495,23 +498,19 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
     }
 
+    let kept: Promise<boolean> | undefined; // the three tasks below share one crisis-read wait
     safeFireAndForget(
       async () => {
-        const extractedNames = extractNames(userText);
-        for (const { name, context } of extractedNames) {
-          await recordMention(services.userId!, {
-            name,
-            type: 'acquaintance',
-            context,
-          });
-          diag.state('📇 Recorded person mention', { name });
-        }
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
+        const names = await recordNamesSaid(services.userId!, extractNames(userText));
+        for (const name of names) diag.state('📇 Recorded person mention', { name });
       },
       { context: 'relationship-network-extraction' }
     );
 
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         const captureResult = await fastCapture({
           transcript: userText,
           userId: services.userId!,
@@ -520,10 +519,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           voiceEmotion: analysisResult.analysis.emotion.primary,
           personaId: ctx.persona?.id,
         });
-
         const { recordTurn } = await import('../../../memory/dynamic/index.js');
         recordTurn(services.sessionId, services.userId!, captureResult, userText, turnCount);
-
         if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
           diag.state('🧠 Dynamic memory capture', {
             entityCount: captureResult.mentionedEntities.length,
@@ -538,19 +535,17 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
     safeFireAndForget(
       async () => {
+        if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         try {
           const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
-
           if (!isKnowledgeCaptureReady()) return;
-
           const valenceToNumber = (v?: string): number | undefined => {
             if (!v) return undefined;
             if (v === 'positive') return 1;
             if (v === 'negative') return -1;
             return 0;
           };
-
           // Runs with the next few turns of the session (knowledge-capture-batch.ts)
           queueTurnCapture({
             userId: services.userId!,
@@ -679,6 +674,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       personaId: ctx.persona.id,
       userLocation: userLocationData,
       lastAgentMessage,
+      ...routerChecks.gate,
     });
     diag.debug('🧠 FTIS routing started', { mode: 'ftis' });
   } else if (!ctx.contextOnly && isRoutingEnabled()) {
@@ -697,6 +693,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       conversationHistory,
       recentTools: toolExecData?.recentlyUsedTools || [],
       crisisTurn: hasCrisisSignal(crisisResult),
+      ...routerChecks.gate,
     };
 
     if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(routingUserId)) {
@@ -716,11 +713,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
     // Never bypass the LLM on a crisis or soft check-in turn: the bypass result carries neither.
-    if (
-      ftisResult.bypassLLM &&
-      ftisResult.toolResult &&
-      (await turnCrisis.bypassAllowed())
-    ) {
+    if (ftisResult.bypassLLM && ftisResult.toolResult && (await routerChecks.bypassAllowed())) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
@@ -786,7 +779,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (semanticRoutingPromise) {
     const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: !(await turnCrisis.bypassAllowed()), // a crisis or a soft check-in
+      crisisDetected: !(await routerChecks.bypassAllowed()), // a crisis or a soft check-in
       crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,
@@ -1396,7 +1389,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     const routingLatencyMs = routingTimer.stop();
 
     semanticRouting = applyRoutingResult(routingResult, {
-      crisisDetected: crisisResult.isCrisis,
+      crisisDetected: await routerChecks.blocksDirectReply(),
       latencyMs: routingLatencyMs,
     });
 

@@ -36,6 +36,7 @@ import {
   enhanceProgressIndicatorWithNarrative,
   injectStorytellingStyles,
 } from './visualization-storytelling.js';
+import { relationshipKnown, relationshipPendingCardHtml } from './relationship-facts-view.js';
 
 const log = createLogger('ProgressIndicator');
 
@@ -111,22 +112,16 @@ export function initProgressIndicator(): void {
   injectStyles();
   injectStorytellingStyles(); // Enhanced narrative styles
   createIndicator();
-  
-  // Subscribe to stage changes
-  relationshipStageService.onStageChange(() => {
-    updateIndicator();
-  });
-  
+  // Re-render on a stage change and when the server's numbers arrive
+  relationshipStageService.onStageChange(updateIndicator);
+  relationshipStageService.onFactsChange(updateIndicator);
+
   // Update periodically (for days/streak changes)
   updateInterval = setInterval(updateIndicator, 60000);
-  
   // Listen for conversation state changes
   window.addEventListener('ferni:conversation-start', handleConversationStart);
   window.addEventListener('ferni:conversation-end', handleConversationEnd);
-  
-  // Initial update
   updateIndicator();
-  
   isInitialized = true;
   log.debug('Progress indicator initialized');
 }
@@ -221,7 +216,11 @@ export function collapse(): void {
 
 function updateIndicator(): void {
   if (!indicator) return;
-
+  // No number or stage before the server's record: not this device's 0 and "New Friends"
+  if (!relationshipKnown()) {
+    indicator.innerHTML = relationshipPendingCardHtml();
+    return;
+  }
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();

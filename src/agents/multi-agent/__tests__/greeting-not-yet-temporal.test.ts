@@ -312,3 +312,21 @@ describe('TEMPORAL_RESOLVER on: #2482 round 1 (modifiers and tense)', () => {
     expect(ahead("I'm seeing her on the 9th", said, fri)).toBe(true);
   });
 });
+
+describe('#2499: week modifiers through the hello', () => {
+  const said = ny('2026-10-22', 10);
+  const visit = 'visiting my sister the week after next';
+  it('on: "the week after next" is still under way on Thu 11-05, over on Mon 11-09', () => {
+    expect(
+      commitmentAhead({ statement: visit, createdAt: said }, ny('2026-11-05', 9), NY, ON)
+    ).toBe(true);
+    expect(
+      commitmentAhead({ statement: visit, createdAt: said }, ny('2026-11-09', 9), NY, ON)
+    ).toBe(false);
+  });
+  it('off: the word-list reading is unchanged (not ahead)', () => {
+    expect(
+      commitmentAhead({ statement: visit, createdAt: said }, ny('2026-11-05', 9), NY, OFF)
+    ).toBe(false);
+  });
+});

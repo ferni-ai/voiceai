@@ -41,6 +41,7 @@ import { recordedWhistleId, takeTuneId, tuneAudio, tuneKind } from './presence-t
 import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
 import { presenceCallEnding } from './presence-closing.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
+import { heavyCallSticky } from './heavy-call-sticky.js';
 import type { ConductedSound, SoundGate } from './sound-conductor.js';
 import { flagOn } from '../../config/env-flag.js';
 import { recordQuirk, type QuirkKind } from '../../services/session/quirk-log.js';
@@ -355,12 +356,17 @@ function startSnore(v: Voiced): () => void {
   return watchQuiet(v, { play, stop }, LONG_QUIET);
 }
 
-/** Live reactions: the plain clip or one of its takes, not the one just played. */
+/**
+ * Live reactions: the plain clip or one of its takes, not the one just played.
+ * A heavy tone, or (HEAVY_CALL_STICKY) a call that has had a hard moment, gets
+ * the plain clip: a soft "Mm-hmm" never turns into the happy "Mmhm!" take.
+ */
 function variants(v: Voiced): (play: PlayClip) => PlayClip {
   const last = new Map<VoicedCategory, string>();
   return (playClip) => (text, clipOpts) => {
     const category = REACTION_VARIANTS[text];
-    if (category === undefined || isHeavyMood(v.mood())) return playClip(text, clipOpts);
+    if (category === undefined || isHeavyMood(v.mood()) || heavyCallSticky(v.session, v.env))
+      return playClip(text, clipOpts);
     const pool = [text, ...VOICED_TAKES[category]].filter((t) => t !== last.get(category));
     const choice = pool[Math.floor(v.rng() * pool.length)] ?? text;
     const variant = choice !== text && playClip(choice, clipOpts);

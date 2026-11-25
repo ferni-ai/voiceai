@@ -1,7 +1,6 @@
 /** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
-import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
-import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import './first-imports.js'; // log redaction, dotenv and prod-data guard, error reporting
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';
@@ -28,9 +27,7 @@ import { limitServerRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { bindBodyLimitResponse } from '../../api/bounded-body.js';
-import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-import { initializeVoiceRegistry } from '../../personas/voice-registry.js';
-import { runBackgroundServices } from './background-services.js';
+import { listenAndStart } from './api-listen.js';
 import { parseRawBody } from '../../api/helpers.js';
 import { handleAppConfigIos } from '../../api/app-config-ios.js';
 
@@ -66,10 +63,7 @@ import {
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
 // Spotify auto-refresh
-import {
-  startAutoRefresh as startSpotifyAutoRefresh,
-  shutdown as shutdownSpotify,
-} from './services/spotify.js';
+import { shutdown as shutdownSpotify } from './services/spotify.js';
 import { shutdown as shutdownPlaid } from './services/plaid.js';
 import { shutdown as shutdownDemoSessions } from './services/demo-sessions.js';
 import { shutdown as shutdownTokenRoutes } from './routes/token.js';
@@ -78,20 +72,10 @@ import { shutdown as shutdownSpotifyLinks } from '../token/oauth/spotify.js';
 import { shutdownPersistence } from '../../services/persistence/index.js';
 
 // Calendar real-time sync services
-import {
-  startPolling as startApplePolling,
-  loadRegisteredUsers as loadApplePollingUsers,
-  stopPolling as shutdownApplePolling,
-} from '../../services/calendar/polling/apple-polling.js';
+import { stopPolling as shutdownApplePolling } from '../../services/calendar/polling/index.js';
 
 // Proactive outreach scheduler ("Better Than Human" - thinking of you moments)
-import {
-  startScheduler as startProactiveScheduler,
-  stopScheduler as stopProactiveScheduler,
-  loadPendingOutreach,
-} from '../../services/outreach/proactive-scheduler.js';
-import { renewExpiringChannels as startGoogleWebhookRenewal } from '../../services/calendar/webhooks/google-webhook.js';
-import { renewExpiringSubscriptions as startOutlookSubscriptionRenewal } from '../../services/calendar/webhooks/outlook-webhook.js';
+import { stopScheduler as stopProactiveScheduler } from '../../services/outreach/proactive-scheduler.js';
 
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
@@ -105,7 +89,6 @@ import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
-import { installUiServerPorts } from '../../services/outreach/ui-server-ports.js';
 import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
@@ -118,7 +101,9 @@ import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.j
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
+import { handleGuestInviteRoutes } from '../../api/guest-invite-routes.js';
 import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
+import { handleSoulStatsRoutes } from '../../api/soul-stats/soul-stats-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -165,8 +150,8 @@ import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscr
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
-import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
-import { parseMonetizationBody } from '../../api/monetization-webhook.js';
+import { isMonetizationRoute } from '../../api/monetization-routes.js';
+import { serveMonetizationRoute } from '../../api/monetization-http.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
 import { handleV2Routes } from '../../api/v2/index.js';
@@ -206,11 +191,7 @@ import { handleActionRoutes } from '../../api/action-routes.js';
 import { handleAutomationRoutes } from '../../api/automation-routes.js';
 import { handleWorkerRoutes } from '../../api/worker-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
-import {
-  handleTwilioRoutes,
-  initializeTwilioStreamBridge,
-  attachTwilioStreamBridgeToServer,
-} from '../../api/twilio-routes.js';
+import { handleTwilioRoutes } from '../../api/twilio-routes.js';
 import { handleFamilyCheckinWebhookRoutes } from '../../api/family-checkin-webhook-routes.js';
 import { handleOutboundCallRoutes } from '../../api/outbound-call-handler.js';
 
@@ -241,30 +222,19 @@ import { handleGamesRoutes } from '../../api/routes/games.js';
 import { handleGroupConversationRoutes } from '../../api/group-conversation-handler.js';
 
 // Life Automation (workflows, templates, integrations)
-import {
-  handleLifeAutomationRoutes,
-  initWorkflowExecutionHandler,
-} from '../../api/life-automation-routes.js';
+import { handleLifeAutomationRoutes } from '../../api/life-automation-routes.js';
 
 // Orphaned routes (previously not registered but frontend calls them)
 import { handleRitualsRoutes } from '../../api/routes/rituals.js';
 import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
+import { decideCallsAtStartup } from './call-availability.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 
-// Validate configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
-
-if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  log.error(
-    'Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
-  );
-  process.exit(1);
-}
+if (!decideCallsAtStartup()) process.exit(1);
 
 const server = http.createServer((req, res) =>
   respondOnRejection(res, handleRequest(bindBodyLimitResponse(req, res), res))
@@ -320,7 +290,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname)))
+    return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
@@ -747,10 +718,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
 
     // GDPR routes
-    if (pathname.startsWith('/api/gdpr')) {
-      const handled = await handleGDPRRoutes(req, res, pathname);
-      if (handled) return;
-    }
+    if (pathname.startsWith('/api/gdpr') && (await handleGDPRRoutes(req, res, pathname))) return;
 
     // Trust journey routes
     if (pathname.startsWith('/api/trust-journey')) {
@@ -860,15 +828,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
+    // Feedback, reported replies (POST /api/reports), a guest's invite answers (/api/guest-invite)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
+    if (await handleGuestInviteRoutes(req, res, pathname)) return;
     if (await handleCallTelemetryRoutes(req, res, pathname)) return;
-
-    if (pathname.startsWith('/api/brand')) {
-      const handled = await handleBrandRoutes(req, res, pathname);
-      if (handled) return;
-    }
+    if (await handleSoulStatsRoutes(req, res, pathname)) return; // SOUL_STATS
+    if (pathname.startsWith('/api/brand') && (await handleBrandRoutes(req, res, pathname))) return;
 
     // Design tokens routes (public - for dynamic theming)
     if (pathname.startsWith('/api/design-tokens')) {
@@ -1386,46 +1352,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
     // Monetization routes
     if (isMonetizationRoute(pathname)) {
-      try {
-        // SECURITY: Get authenticated user for IDOR protection
-        let authUserId: string | undefined;
-        let isAdmin = false;
-        const auth = await optionalAuthAsync(req);
-        if (auth) {
-          authUserId = auth.userId;
-          isAdmin = auth.isAdmin;
-        }
-
-        let body: unknown = undefined;
-
-        if (req.method === 'POST' || req.method === 'PUT') {
-          // Use parseRawBody to avoid race condition with async auth check
-          // Also adds timeout, max size limit, and proper error handling
-          const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
-          body = parseMonetizationBody(pathname, rawBody);
-        }
-
-        const ctx = {
-          method: req.method || 'GET',
-          pathname,
-          query: Object.fromEntries(parsedUrl.searchParams),
-          body,
-          headers: req.headers,
-          // SECURITY: Pass authenticated user to prevent IDOR attacks
-          authUserId,
-          isAdmin,
-        };
-
-        const response = await handleMonetizationRequest(ctx);
-        res.writeHead(response.status, response.headers);
-        res.end(JSON.stringify(response.body));
-        return;
-      } catch (err) {
-        log.error({ error: String(err) }, 'Monetization route error');
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Internal server error' }));
-        return;
-      }
+      await serveMonetizationRoute(req, res, pathname, parsedUrl.searchParams);
+      return;
     }
 
     // Apple IAP routes
@@ -1480,55 +1408,8 @@ registerDDoSAlertCallback(async (details) => {
 // Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
-server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
-async function startBackgroundServices(): Promise<void> {
-  log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
-
-  // Outreach reaches only verified phones; a forgotten topic closes its follow-ups.
-  installUiServerPorts();
-  startSpotifyAutoRefresh();
-  fireAndForget(initializeVoiceRegistry, 'voice-registry'); // bundle voices win over fallbacks
-
-  // The /stream bridge attaches before any Firestore load is awaited: a cold
-  // boot once spent ~40s in those loads with inbound calls unable to connect.
-  await runBackgroundServices({
-    attachStreamBridge: () => {
-      const twilioStreamPort = process.env.TWILIO_STREAM_PORT;
-      if (twilioStreamPort) {
-        // Development mode: Use separate port
-        initializeTwilioStreamBridge(parseInt(twilioStreamPort, 10));
-        log.info({ port: twilioStreamPort }, '📞 Twilio Stream Bridge initialized (standalone)');
-      } else {
-        // Production (Cloud Run): attach to the main HTTP server
-        attachTwilioStreamBridgeToServer(server, '/stream');
-        log.info({ path: '/stream' }, '📞 Twilio Stream Bridge initialized (attached)');
-      }
-    },
-    steps: [
-      {
-        // Apple Calendar polling (CalDAV doesn't support webhooks)
-        name: 'apple-calendar-polling',
-        load: loadApplePollingUsers,
-        start: startApplePolling,
-      },
-      {
-        // Google watches expire after 7 days; Outlook subscriptions after hours.
-        name: 'calendar-renewals',
-        start: () => {
-          fireAndForget(startGoogleWebhookRenewal, 'google-webhook-renewal');
-          fireAndForget(startOutlookSubscriptionRenewal, 'outlook-subscription-renewal');
-        },
-      },
-      {
-        // "Better Than Human" - thinking of you moments
-        name: 'proactive-scheduler',
-        load: loadPendingOutreach,
-        start: startProactiveScheduler,
-      },
-      { name: 'workflow-handler', start: initWorkflowExecutionHandler },
-    ],
-  });
-}
+// Background senders start only with API_BACKGROUND_SENDERS on (default); see api-listen.ts.
+listenAndStart(server, { port: PORT, livekitUrl: LIVEKIT_URL });
 
 // ============================================================================
 // GRACEFUL SHUTDOWN

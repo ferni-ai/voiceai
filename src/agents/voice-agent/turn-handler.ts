@@ -138,7 +138,6 @@ import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelli
 import {
   getUnifiedIntelligence,
   markProactiveInsightSurfaced,
-  processTurnLearning,
 } from '../integrations/unified-intelligence-integration.js';
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
@@ -2603,20 +2602,9 @@ IMPORTANT:
         crisisTurn,
       };
 
-      // Fire-and-forget to not block turn completion
+      // Fire-and-forget to not block turn completion. The only semantic intelligence pass
+      // for the turn: a second one (processTurnLearning) saved every loop twice.
       fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
-
-      // NEW: Unified intelligence turn learning (cross-domain correlation & pattern detection)
-      processTurnLearning({
-        userId: services.userId,
-        sessionId: services.sessionId,
-        turnNumber,
-        transcript: userText,
-        emotion: result.emotional.primary,
-        topics: result.analysis.analysis.topics?.detected || [],
-        reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
-        crisisTurn,
-      });
 
       // ================================================================
       // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling
@@ -2635,6 +2623,8 @@ IMPORTANT:
         });
 
         fireAndForget(async () => {
+          // A crisis turn's words reach no capture; no crisis read counts as one (fail closed).
+          if (crisisTurn) return void diag.info('🧠 Turn memory held', { site: 'turn-handler' });
           const captureResult = await fastCapture({
             userId: captureUserId,
             sessionId: services.sessionId,
@@ -2669,8 +2659,6 @@ IMPORTANT:
             persona.id,
             voiceEmotionSnapshot
           );
-
-          // voice-session-store removed during DDD cleanup
 
           // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
           diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {

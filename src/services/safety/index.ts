@@ -32,7 +32,6 @@ export {
   EMERGENCY_FOR_THEM,
   getCrisisResponse,
   LATE_911_LINE,
-  names911,
   namesCrisisLine,
   TALK_TO_988_ES,
 } from './crisis-guard-replies.js';
@@ -42,20 +41,33 @@ export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-flo
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
-export { crisisReadInFlight, crisisRiskThisCall } from './crisis-call-risk.js';
-export { offersCrisisLine } from './crisis-line-speech.js';
+// Note risk on a call: the reply gate's fail-closed settle (crisis-gate-failure.ts).
+export { crisisReadInFlight, crisisRiskThisCall, noteCrisisRisk } from './crisis-call-risk.js';
+// A crisis pattern holds the call's memory before capture (transcript-handler.ts).
+export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
+// The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
+export { names911, offersCrisisLine, says988 } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
 export { checkin } from './crisis-timeout-checkin.js';
+// CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
+export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).
 export {
   resolveCrisisClassifierTimeoutMs,
   startCrisisClassifier,
   type CrisisClassifierInput,
   type StartCrisisClassifierOptions,
+} from './crisis-classifier.js';
+// CRISIS_GATE_TURN_READS: the turn's other reads and the line cap (agents/personas/crisis-gate-turn-reads.ts).
+export {
+  MAX_EARLIER_MESSAGES,
+  turnVerdicts,
+  verdictOutcome,
+  type CrisisVerdict,
 } from './crisis-classifier.js';
 // CRISIS_GRADED_RESPONSE=shadow: the graded crisis response, measured first (crisis-graded-shadow.ts).
 export { mainOf } from './crisis-graded-response.js';
@@ -152,6 +164,9 @@ import {
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
+
+/** Whether a crisis is self-harm: code outside the kernel asks this, never the type name. */
+export const isSelfHarm = (type: CrisisType | undefined): boolean => type === 'self_harm';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -259,15 +274,10 @@ export function performSafetyCheck(
   // 4. Generate response if needed
   let response: CrisisResponseContent | null = null;
   if (detection.detected && detection.primary) {
-    const hour = new Date().getHours();
-    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
-      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-
     response = generateCrisisResponse({
       signal: detection.primary,
       userName,
       personaId,
-      timeOfDay,
       isFirstMention: sessionSignals.length === 0,
     });
   }

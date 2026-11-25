@@ -31,7 +31,6 @@ import {
   buildSuperhumanContext,
   formatSuperhumanContextForPrompt,
 } from '../../services/superhuman/index.js';
-import { processSemanticIntelligence } from '../../services/superhuman/semantic-intelligence/integration.js';
 // "Better Than Human" - User Knowledge System
 import {
   getUserKnowledge,
@@ -248,7 +247,7 @@ export async function getUnifiedIntelligence(
     // New unified intelligence (Levels 2-5)
     getIntelligenceForTurn(userId, {
       moment,
-      // voiceEmotion is tracked in session state, not passed here
+      sessionId, // its settled zone sets the caller's clock (voiceEmotion is in session state)
       forceRefresh: turnNumber === 1,
     }),
 
@@ -692,68 +691,9 @@ function buildMilestoneMessage(milestone: RelationshipMilestone): string {
 // ============================================================================
 // LEARNING HOOKS
 // ============================================================================
-
-/**
- * Process learning from a conversation turn (fire-and-forget)
- */
-export function processTurnLearning(input: {
-  userId: string;
-  sessionId: string;
-  turnNumber: number;
-  transcript: string;
-  topic?: string;
-  topics?: string[];
-  emotion?: string;
-  personaMentioned?: string;
-  reactionToInsight?: 'positive' | 'neutral' | 'acknowledged' | 'negative';
-  /** The turn's crisis read (crisisReadTurn); semantic intelligence runs only when false */
-  crisisTurn: boolean;
-}): void {
-  const {
-    userId,
-    sessionId,
-    turnNumber,
-    transcript,
-    topic,
-    topics,
-    emotion,
-    personaMentioned,
-    reactionToInsight,
-    crisisTurn,
-  } = input;
-
-  // Record reaction to proactive insight if we got one
-  if (reactionToInsight) {
-    // Map 'acknowledged' to 'neutral' for the API
-    const reaction =
-      reactionToInsight === 'acknowledged' ? ('neutral' as const) : reactionToInsight;
-    log.debug({ userId, reaction }, 'Recording insight reaction');
-    // This would tie back to the insight that was surfaced this turn
-    // For now, we just log it - full implementation would track the insight ID
-  }
-
-  const now = new Date();
-  // Fire-and-forget semantic intelligence processing
-  void processSemanticIntelligence({
-    userId,
-    userText: transcript,
-    topic: topic || topics?.[0] || '',
-    topics,
-    textEmotion: emotion || '',
-    textEmotionIntensity: 0.5,
-    sessionId,
-    personaId: 'ferni', // Default persona
-    turnNumber,
-    mentionedPerson: personaMentioned,
-    timestamp: now,
-    dayOfWeek: now.getDay(),
-    hourOfDay: now.getHours(),
-    turnsSinceStart: turnNumber,
-    crisisTurn,
-  }).catch((err) => {
-    log.debug({ error: String(err), userId }, 'Semantic intelligence processing failed');
-  });
-}
+// Turn learning lives in the turn handler, which runs semantic intelligence once per turn
+// (turn-handler.ts). A second entry here ran it again on every turn, so each open loop,
+// insight and pattern was saved twice (Story So Far's doubled Open Loops, 2026-11-16).
 
 /**
  * Record a domain signal for cross-domain correlation
@@ -831,10 +771,10 @@ export function formatIntelligenceForLLM(
     parts.push(`[EMOTIONAL STATE] User appears ${ctx.immediate.currentMood}`);
   }
 
-  // Add temporal context
-  parts.push(
-    `[TIME] ${ctx.immediate.timeOfDay.replace('_', ' ')} on ${ctx.immediate.dayOfWeek}${ctx.immediate.isWeekend ? ' (weekend)' : ''}`
-  );
+  // Add temporal context (none when the caller's clock is unknown)
+  const { timeOfDay: part, dayOfWeek: day, isWeekend } = ctx.immediate;
+  if (part && day)
+    parts.push(`[TIME] ${part.replace('_', ' ')} on ${day}${isWeekend ? ' (weekend)' : ''}`);
 
   // Add active domains
   if (ctx.activeDomains.length > 0) {
@@ -915,7 +855,6 @@ export default {
   initializeIntelligence,
   cleanupIntelligenceSession,
   getUnifiedIntelligence,
-  processTurnLearning,
   recordSignal,
   markProactiveInsightSurfaced,
   markPatternMirrorSurfaced,

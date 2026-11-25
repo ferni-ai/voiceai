@@ -18,19 +18,28 @@
  * @module agents/personas/director-guard
  */
 
+import type { Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Cast } from './director-cast.js';
+import { noInventedUsageEnabled, pushesUsage, usageDirectorRule } from './no-invented-usage.js';
+import { earlierCallRuleFor } from './earlier-call-honest.js';
 
 const log = createLogger({ module: 'DirectorGuard' });
 
 /**
  * The system-prompt rule: nothing erodes a boundary, honesty or tool truth, or
  * reads as a line. `thought`: worded for the deliberator (deliberation.ts).
+ * NO_INVENTED_USAGE=on: nor asks for what other callers said or how many there are.
+ * EARLIER_CALL_NO_DENIAL adds: a caller citing an earlier call may be right.
  */
-export const guardRuleFor = (c: Cast, { thought = false } = {}): string =>
-  `Never suggest ${c.name} drop or soften a boundary or a refusal, stop being honest that ${c.p.subject} ${c.p.subject === 'they' ? 'are' : 'is'} an AI, or hide or misstate what a tool reported. ${thought ? 'Your thought is private' : 'Your notes are private coaching'}, never words for ${c.p.object} to read out.`;
+export const guardRuleFor = (
+  c: Cast,
+  { thought = false, env = process.env }: { thought?: boolean; env?: Env } = {}
+): string =>
+  `Never suggest ${c.name} drop or soften a boundary or a refusal, stop being honest that ${c.p.subject} ${c.p.subject === 'they' ? 'are' : 'is'} an AI, or hide or misstate what a tool reported. ${thought ? 'Your thought is private' : 'Your notes are private coaching'}, never words for ${c.p.object} to read out.${noInventedUsageEnabled(env) ? ` ${usageDirectorRule(c.name, c.p.object)}` : ''}${earlierCallRuleFor(c, env)}`;
 
-export type GuardReason = 'boundary_erosion' | 'honesty_erosion' | 'tool_concealment';
+export type GuardReason =
+  'boundary_erosion' | 'honesty_erosion' | 'tool_concealment' | 'usage_invention';
 
 /** Who a note may be about: "you" (DIRECTOR_ESCALATE's address), a pronoun, or the persona. */
 const WHO = String.raw`(?:you(?:'re| are)|he(?:'s| is)|she(?:'s| is)|they(?:'re| are)|it(?:'s| is)|being)`;
@@ -116,16 +125,26 @@ const PATTERNS: ReadonlyArray<{ reason: GuardReason; re: RegExp }> = [
   },
 ];
 
-/** Why a note erodes a boundary, honesty or tool truth, or undefined when it doesn't. Pure. */
-export function guardViolation(note: string): GuardReason | undefined {
+/**
+ * Why a note erodes a boundary, honesty or tool truth, or undefined when it doesn't.
+ * `said`: the caller's recent words (NO_INVENTED_USAGE: after a question about other callers,
+ * a note asking for a figure is a push to invent one). Pure.
+ */
+export function guardViolation(
+  note: string,
+  said = '',
+  env: Env = process.env
+): GuardReason | undefined {
   // Curly apostrophes from the model ("don’t") match the straight ones above.
   const text = note.replace(/[‘’]/g, "'");
-  return PATTERNS.find(({ re }) => re.test(text))?.reason;
+  const reason = PATTERNS.find(({ re }) => re.test(text))?.reason;
+  if (reason) return reason;
+  return noInventedUsageEnabled(env) && pushesUsage(text, said) ? 'usage_invention' : undefined;
 }
 
 /** True when the note must be dropped; logs the reason code (never the note) at info. */
-export function erodesGuard(note: string, sessionId?: string): boolean {
-  const reason = guardViolation(note);
+export function erodesGuard(note: string, sessionId?: string, said = ''): boolean {
+  const reason = guardViolation(note, said);
   if (reason) log.info({ sessionId, reason }, 'director note dropped');
   return reason !== undefined;
 }

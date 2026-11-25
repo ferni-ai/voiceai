@@ -17,9 +17,11 @@
  *   to the menu button when that place has since been hidden
  * - back (Android's gesture, the browser button) closes the top one
  *   (back-closes-overlay.ts) instead of leaving the app
+ * - closed dialogs that stay mounted are made inert (closed-dialog-inert.ts)
  */
 
 import { installBackClosesOverlay } from './back-closes-overlay.js';
+import { CLOSED_MARK, installClosedDialogInert, releaseClosedInert } from './closed-dialog-inert.js';
 
 const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
 const FOCUSABLE =
@@ -40,7 +42,8 @@ const stack: OpenDialog[] = [];
  * as hidden; focusing into them would trap the keyboard somewhere invisible.
  */
 function isShown(el: HTMLElement): boolean {
-  if (!el.isConnected || el.getClientRects().length === 0 || el.closest('[inert], [aria-hidden="true"]')) return false;
+  const hiddenBy = `[inert]:not([${CLOSED_MARK}]), [aria-hidden="true"]`; // closed-dialog-inert's own mark is lifted on open
+  if (!el.isConnected || el.getClientRects().length === 0 || el.closest(hiddenBy)) return false;
   const style = getComputedStyle(el);
   if (style.visibility === 'hidden' || style.display === 'none' || style.pointerEvents === 'none') return false;
   let opacity = 1;
@@ -93,6 +96,7 @@ function opened(dialog: HTMLElement, framesLeft = MAX_WAIT_FRAMES): void {
     }
     if (!isModalDialog(dialog)) return;
     stack.push({ dialog, returnTo: document.activeElement });
+    releaseClosedInert(dialog);
     focusInto(dialog);
   });
 }
@@ -175,6 +179,7 @@ export function installDialogFocus(root: HTMLElement = document.body): () => voi
   const observer = new MutationObserver((records) => {
     for (const record of records) {
       if (record.type === 'attributes') {
+        if (record.attributeName === 'inert' && (record.target as Element).hasAttribute(CLOSED_MARK)) continue;
         if (record.target instanceof HTMLElement && record.target.matches(DIALOG_SELECTOR)) changed(record.target);
         continue;
       }
@@ -190,7 +195,9 @@ export function installDialogFocus(root: HTMLElement = document.body): () => voi
   });
   document.addEventListener('keydown', onKeydown, true);
   const stopBack = installBackClosesOverlay(root);
+  const stopInert = installClosedDialogInert(root);
   return () => {
+    stopInert();
     stopBack();
     observer.disconnect();
     document.removeEventListener('keydown', onKeydown, true);

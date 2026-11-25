@@ -15,7 +15,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeadersAsync } from '../admin-api.js';
+import { adminFetch } from '../admin-fetch.js';
 import {
   ICON_CHART,
   ICON_CHECK,
@@ -27,6 +27,13 @@ import {
   ICON_ZAP,
   iconSm,
 } from '../icons.js';
+import {
+  isUnavailable,
+  loadJson,
+  measured,
+  renderUnavailable,
+  type Unavailable,
+} from '../../utils/unavailable.js';
 
 const log = createLogger('BTHValidationSection');
 
@@ -53,52 +60,46 @@ function escapeHtml(str: unknown): string {
 // TYPES
 // ============================================================================
 
-interface BenchmarkResult {
-  capability: string;
-  totalCases: number;
-  passed: number;
-  failed: number;
-  precision: number;
-  recall: number;
-  f1Score: number;
-}
-
-interface GapExample {
-  input: string;
-  expected: boolean;
-  actual: boolean;
-  confidence: number;
-}
+// What src/api/v1/admin/better-than-human-analytics.ts sends.
 
 interface KnownGap {
   category: string;
-  description: string;
-  exampleCount: number;
-  examples: GapExample[];
+  examples: string[];
+  priority: 'critical' | 'high' | 'medium' | 'low';
+}
+
+interface BenchmarkResult {
+  capability: string;
+  totalTestCases: number;
+  truePositives: number;
+  trueNegatives: number;
+  falsePositives: number;
+  falseNegatives: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  knownGaps: KnownGap[];
 }
 
 interface TelemetryEntry {
   capability: string;
-  triggeredCount: number;
-  successRate: number;
-  avgConfidence: number;
-  lastTriggered: string;
+  totalTriggers: number;
+  uniqueUsers: number;
+  acknowledgmentRate: number | null;
+  engagementRate: number | null;
+  averageConfidence: number;
 }
 
+/** GET .../benchmark runs a synthetic benchmark: fixed test cases in code. */
+type Benchmark = {
+  results: { generatedAt: string; overallF1Score: number; capabilities: BenchmarkResult[] };
+};
+/** GET .../telemetry: production events over the last periodDays. */
+type Telemetry = { periodDays: number; entries: TelemetryEntry[]; timestamp: string };
+
 interface ValidationData {
-  benchmark: {
-    overallF1: number;
-    capabilities: BenchmarkResult[];
-    lastRun: string;
-  };
-  gaps: {
-    totalGaps: number;
-    byCategory: KnownGap[];
-  };
-  telemetry: {
-    period: string;
-    entries: TelemetryEntry[];
-  };
+  benchmark: Benchmark | Unavailable;
+  telemetry: Telemetry | Unavailable;
 }
 
 // ============================================================================
@@ -112,55 +113,38 @@ let cachedData: ValidationData | null = null;
 // DATA FETCHING
 // ============================================================================
 
+// Each GET of the benchmark route runs the benchmark, and its result carries the gaps
+const loadBenchmark = () =>
+  loadJson<Benchmark>(adminFetch('/api/v1/admin/bth/validation/benchmark'), 'BTH benchmark');
+const loadTelemetry = () =>
+  loadJson<Telemetry>(adminFetch('/api/v1/admin/bth/validation/telemetry'), 'BTH telemetry');
+
+/** Held until cleanup() or an action button reloads a part; failures are held as reasons. */
 async function fetchValidationData(): Promise<ValidationData> {
   if (cachedData) return cachedData;
+  const [benchmark, telemetry] = await Promise.all([loadBenchmark(), loadTelemetry()]);
+  cachedData = { benchmark, telemetry };
+  return cachedData;
+}
 
-  try {
-    const headers = await getAdminHeadersAsync();
+/** A stat card value, or the reason the request failed. */
+function stat<T>(data: T | Unavailable, read: (value: T) => string): string {
+  return isUnavailable(data) ? renderUnavailable(data.unavailable) : escapeHtml(read(data));
+}
 
-    // Fetch all validation endpoints in parallel
-    const [benchmarkRes, gapsRes, telemetryRes] = await Promise.all([
-      fetch('/api/v1/admin/bth/validation/benchmark', { headers }),
-      fetch('/api/v1/admin/bth/validation/gaps', { headers }),
-      fetch('/api/v1/admin/bth/validation/telemetry', { headers }),
-    ]);
+function allGaps(benchmark: Benchmark): Array<KnownGap & { capability: string }> {
+  return benchmark.results.capabilities.flatMap((c) =>
+    c.knownGaps.map((gap) => ({ ...gap, capability: c.capability }))
+  );
+}
 
-    const benchmark = benchmarkRes.ok ? await benchmarkRes.json() : getDefaultBenchmark();
-    const gaps = gapsRes.ok ? await gapsRes.json() : getDefaultGaps();
-    const telemetry = telemetryRes.ok ? await telemetryRes.json() : getDefaultTelemetry();
-
-    cachedData = { benchmark, gaps, telemetry };
-    return cachedData;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to fetch validation data');
-    return {
-      benchmark: getDefaultBenchmark(),
-      gaps: getDefaultGaps(),
-      telemetry: getDefaultTelemetry(),
-    };
+/** "Synthetic benchmark: N fixed test cases in code, not production traffic. Run <when>." */
+function syntheticLabel(benchmark: Benchmark | Unavailable): string {
+  if (isUnavailable(benchmark)) {
+    return `Synthetic benchmark: ${renderUnavailable(benchmark.unavailable)}`;
   }
-}
-
-function getDefaultBenchmark() {
-  return {
-    overallF1: 0,
-    capabilities: [],
-    lastRun: 'Never',
-  };
-}
-
-function getDefaultGaps() {
-  return {
-    totalGaps: 0,
-    byCategory: [],
-  };
-}
-
-function getDefaultTelemetry() {
-  return {
-    period: 'No data',
-    entries: [],
-  };
+  const cases = benchmark.results.capabilities.reduce((sum, c) => sum + c.totalTestCases, 0);
+  return `Synthetic benchmark: ${cases} fixed test cases in code, not production traffic. Run ${escapeHtml(formatTime(benchmark.results.generatedAt))}.`;
 }
 
 // ============================================================================
@@ -174,6 +158,13 @@ export async function render(): Promise<string> {
   log.debug('Rendering BTH Validation section');
 
   const data = await fetchValidationData();
+  const bench = data.benchmark;
+  const f1 = stat(bench, (b) => formatPercent(b.results.overallF1Score));
+  const f1Status = isUnavailable(bench)
+    ? 'neutral'
+    : getF1StatusClass(bench.results.overallF1Score);
+  const gapCount = stat(bench, (b) => String(allGaps(b).length));
+  const capabilityCount = stat(bench, (b) => String(b.results.capabilities.length));
 
   return `
     <div class="bth-validation-section">
@@ -181,10 +172,10 @@ export async function render(): Promise<string> {
 
       <!-- Overview Stats -->
       <div class="admin-grid bth-stats">
-        ${renderStatCard('F1 Score', formatPercent(data.benchmark.overallF1), ICON_TARGET, getF1StatusClass(data.benchmark.overallF1))}
-        ${renderStatCard('Known Gaps', escapeHtml(data.gaps.totalGaps), ICON_WARNING, data.gaps.totalGaps > 10 ? 'warning' : 'success')}
-        ${renderStatCard('Capabilities', escapeHtml(data.benchmark.capabilities.length), ICON_CHECK, 'neutral')}
-        ${renderStatCard('Triggers (24h)', getTotalTriggers(data.telemetry.entries), ICON_ZAP, 'neutral')}
+        ${renderStatCard('Benchmark F1', f1, ICON_TARGET, f1Status)}
+        ${renderStatCard('Benchmark Gaps', gapCount, ICON_WARNING, 'neutral')}
+        ${renderStatCard('Capabilities', capabilityCount, ICON_CHECK, 'neutral')}
+        ${renderStatCard('Production Triggers', stat(data.telemetry, getTotalTriggers), ICON_ZAP, 'neutral')}
       </div>
 
       <!-- Tab Navigation -->
@@ -204,7 +195,7 @@ export async function render(): Promise<string> {
             class="bth-tab ${currentTab === 'gaps' ? 'bth-tab--active' : ''}"
             data-tab="gaps"
           >
-            ${iconSm(ICON_FLAGS)} Gaps (${escapeHtml(data.gaps.totalGaps)})
+            ${iconSm(ICON_FLAGS)} Gaps${isUnavailable(data.benchmark) ? '' : ` (${allGaps(data.benchmark).length})`}
           </button>
           <button
             role="tab"
@@ -219,7 +210,7 @@ export async function render(): Promise<string> {
         <!-- Tab Content -->
         <div class="bth-tab-content" role="tabpanel">
           ${currentTab === 'benchmarks' ? renderBenchmarksTab(data.benchmark) : ''}
-          ${currentTab === 'gaps' ? renderGapsTab(data.gaps) : ''}
+          ${currentTab === 'gaps' ? renderGapsTab(data.benchmark) : ''}
           ${currentTab === 'telemetry' ? renderTelemetryTab(data.telemetry) : ''}
         </div>
       </div>
@@ -240,7 +231,7 @@ export async function render(): Promise<string> {
             ${iconSm(ICON_EXTERNAL)} Export Report
           </button>
         </div>
-        <p class="bth-last-run">Last benchmark: ${escapeHtml(data.benchmark.lastRun)}</p>
+        <p class="bth-last-run">${syntheticLabel(data.benchmark)}</p>
       </div>
     </div>
   `;
@@ -262,13 +253,9 @@ function renderStatCard(
 }
 
 function renderBenchmarksTab(benchmark: ValidationData['benchmark']): string {
-  if (benchmark.capabilities.length === 0) {
-    return `
-      <div class="bth-empty">
-        <p>No benchmark data available.</p>
-        <p>Click "Run Benchmark" to generate results.</p>
-      </div>
-    `;
+  if (isUnavailable(benchmark)) return renderUnavailable(benchmark.unavailable);
+  if (benchmark.results.capabilities.length === 0) {
+    return `<div class="bth-empty"><p>The benchmark ran no capabilities.</p></div>`;
   }
 
   return `
@@ -278,13 +265,17 @@ function renderBenchmarksTab(benchmark: ValidationData['benchmark']): string {
           <tr>
             <th>Capability</th>
             <th>Cases</th>
+            <th>TP</th>
+            <th>FP</th>
+            <th>FN</th>
+            <th>TN</th>
             <th>Precision</th>
             <th>Recall</th>
             <th>F1 Score</th>
           </tr>
         </thead>
         <tbody>
-          ${benchmark.capabilities
+          ${[...benchmark.results.capabilities]
             .sort((a, b) => b.f1Score - a.f1Score)
             .map((cap) => renderBenchmarkRow(cap))
             .join('')}
@@ -299,7 +290,11 @@ function renderBenchmarkRow(cap: BenchmarkResult): string {
   return `
     <tr class="bth-table-row">
       <td class="bth-capability-name">${escapeHtml(cap.capability)}</td>
-      <td>${escapeHtml(cap.totalCases)}</td>
+      <td>${escapeHtml(cap.totalTestCases)}</td>
+      <td>${escapeHtml(cap.truePositives)}</td>
+      <td>${escapeHtml(cap.falsePositives)}</td>
+      <td>${escapeHtml(cap.falseNegatives)}</td>
+      <td>${escapeHtml(cap.trueNegatives)}</td>
       <td>${formatPercent(cap.precision)}</td>
       <td>${formatPercent(cap.recall)}</td>
       <td class="bth-f1 bth-f1--${f1Class}">${formatPercent(cap.f1Score)}</td>
@@ -307,47 +302,40 @@ function renderBenchmarkRow(cap: BenchmarkResult): string {
   `;
 }
 
-function renderGapsTab(gaps: ValidationData['gaps']): string {
-  if (gaps.byCategory.length === 0) {
-    return `
-      <div class="bth-empty">
-        <p>No gaps identified yet.</p>
-        <p>Run benchmarks to identify capability gaps.</p>
-      </div>
-    `;
+function renderGapsTab(benchmark: ValidationData['benchmark']): string {
+  if (isUnavailable(benchmark)) return renderUnavailable(benchmark.unavailable);
+  const gaps = allGaps(benchmark);
+  if (gaps.length === 0) {
+    return `<div class="bth-empty"><p>The synthetic benchmark found no failing categories.</p></div>`;
   }
 
   return `
     <div class="bth-gaps-container">
-      ${gaps.byCategory.map((gap) => renderGapCategory(gap)).join('')}
+      ${gaps.map((gap) => renderGapCategory(gap)).join('')}
     </div>
   `;
 }
 
-function renderGapCategory(gap: KnownGap): string {
+function renderGapCategory(gap: KnownGap & { capability: string }): string {
   return `
     <div class="bth-gap-category">
       <div class="bth-gap-header">
         <span class="bth-gap-title">${escapeHtml(gap.category)}</span>
-        <span class="bth-gap-count">${escapeHtml(gap.exampleCount)} examples</span>
+        <span class="bth-gap-count">${escapeHtml(gap.capability)}, ${escapeHtml(gap.priority)} priority</span>
       </div>
-      <p class="bth-gap-description">${escapeHtml(gap.description)}</p>
       ${gap.examples.length > 0 ? renderGapExamples(gap.examples.slice(0, 3)) : ''}
     </div>
   `;
 }
 
-function renderGapExamples(examples: GapExample[]): string {
+function renderGapExamples(examples: string[]): string {
   return `
     <div class="bth-gap-examples">
       ${examples
         .map(
           (ex) => `
         <div class="bth-gap-example">
-          <span class="bth-gap-input">${escapeHtml(truncate(ex.input, 60))}</span>
-          <span class="bth-gap-result ${ex.expected === ex.actual ? 'success' : 'error'}">
-            Expected: ${escapeHtml(ex.expected)}, Got: ${escapeHtml(ex.actual)}
-          </span>
+          <span class="bth-gap-input">${escapeHtml(truncate(ex, 60))}</span>
         </div>
       `
         )
@@ -357,31 +345,28 @@ function renderGapExamples(examples: GapExample[]): string {
 }
 
 function renderTelemetryTab(telemetry: ValidationData['telemetry']): string {
+  if (isUnavailable(telemetry)) return renderUnavailable(telemetry.unavailable);
   if (telemetry.entries.length === 0) {
-    return `
-      <div class="bth-empty">
-        <p>No telemetry data available.</p>
-        <p>Telemetry will appear as capabilities are triggered in production.</p>
-      </div>
-    `;
+    return `<div class="bth-empty"><p>No production events in the last ${escapeHtml(telemetry.periodDays)} days.</p></div>`;
   }
 
   return `
-    <div class="bth-telemetry-period">Period: ${escapeHtml(telemetry.period)}</div>
+    <div class="bth-telemetry-period">Production events, last ${escapeHtml(telemetry.periodDays)} days. Read ${escapeHtml(formatTime(telemetry.timestamp))}.</div>
     <div class="bth-telemetry-table-container">
       <table class="bth-table">
         <thead>
           <tr>
             <th>Capability</th>
             <th>Triggers</th>
-            <th>Success Rate</th>
+            <th>People</th>
+            <th>Acknowledged</th>
+            <th>Engaged</th>
             <th>Avg Confidence</th>
-            <th>Last Triggered</th>
           </tr>
         </thead>
         <tbody>
-          ${telemetry.entries
-            .sort((a, b) => b.triggeredCount - a.triggeredCount)
+          ${[...telemetry.entries]
+            .sort((a, b) => b.totalTriggers - a.totalTriggers)
             .map((entry) => renderTelemetryRow(entry))
             .join('')}
         </tbody>
@@ -394,10 +379,11 @@ function renderTelemetryRow(entry: TelemetryEntry): string {
   return `
     <tr class="bth-table-row">
       <td class="bth-capability-name">${escapeHtml(entry.capability)}</td>
-      <td>${escapeHtml(entry.triggeredCount)}</td>
-      <td class="bth-rate ${getRateClass(entry.successRate)}">${formatPercent(entry.successRate)}</td>
-      <td>${formatPercent(entry.avgConfidence)}</td>
-      <td class="bth-timestamp">${escapeHtml(formatTime(entry.lastTriggered))}</td>
+      <td>${escapeHtml(entry.totalTriggers)}</td>
+      <td>${escapeHtml(entry.uniqueUsers)}</td>
+      <td>${measured(entry.acknowledgmentRate, formatPercent)}</td>
+      <td>${measured(entry.engagementRate, formatPercent)}</td>
+      <td>${formatPercent(entry.averageConfidence)}</td>
     </tr>
   `;
 }
@@ -520,15 +506,6 @@ function renderStyles(): string {
       .bth-f1--fair { color: var(--color-semantic-warning); }
       .bth-f1--poor { color: var(--color-semantic-error); }
 
-      .bth-rate.success { color: var(--color-semantic-success); }
-      .bth-rate.warning { color: var(--color-semantic-warning); }
-      .bth-rate.error { color: var(--color-semantic-error); }
-
-      .bth-timestamp {
-        color: var(--color-text-muted);
-        font-size: 0.875rem;
-      }
-
       /* Gaps */
       .bth-gaps-container {
         display: flex;
@@ -559,11 +536,6 @@ function renderStyles(): string {
         color: var(--color-text-muted);
       }
 
-      .bth-gap-description {
-        color: var(--color-text-secondary);
-        margin-bottom: var(--space-sm);
-      }
-
       .bth-gap-examples {
         display: flex;
         flex-direction: column;
@@ -583,9 +555,6 @@ function renderStyles(): string {
         color: var(--color-text-secondary);
         font-family: monospace;
       }
-
-      .bth-gap-result.success { color: var(--color-semantic-success); }
-      .bth-gap-result.error { color: var(--color-semantic-error); }
 
       /* Telemetry */
       .bth-telemetry-period {
@@ -657,30 +626,31 @@ function getF1StatusClass(f1: number): 'success' | 'warning' | 'neutral' {
   return 'neutral';
 }
 
-function getRateClass(rate: number): string {
-  if (rate >= 0.8) return 'success';
-  if (rate >= 0.5) return 'warning';
-  return 'error';
-}
-
-function getTotalTriggers(entries: TelemetryEntry[]): string {
-  const total = entries.reduce((sum, e) => sum + e.triggeredCount, 0);
-  return escapeHtml(total);
+function getTotalTriggers(telemetry: Telemetry): string {
+  return String(telemetry.entries.reduce((sum, e) => sum + e.totalTriggers, 0));
 }
 
 function formatTime(isoString: string): string {
-  if (!isoString || isoString === 'Never') return 'Never';
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleString();
-  } catch {
-    return isoString;
-  }
+  return new Date(isoString).toLocaleString();
 }
 
 // ============================================================================
 // EVENT SETUP
 // ============================================================================
+
+/** Draw the section again into `container` (the portal's content area) and wire it. */
+async function rerender(container: HTMLElement): Promise<void> {
+  container.innerHTML = await render();
+  setupEvents(container);
+}
+
+/** Disable an action button and say what it is doing until the section redraws. */
+function busy(container: HTMLElement, action: string, text: string): void {
+  const button = container.querySelector(`[data-action="${action}"]`);
+  if (!(button instanceof HTMLButtonElement)) return;
+  button.disabled = true;
+  button.textContent = text;
+}
 
 /**
  * Set up event listeners for the BTH Validation section
@@ -701,7 +671,7 @@ export function setupEvents(container: HTMLElement): void {
             currentTab === 'benchmarks'
               ? renderBenchmarksTab(data.benchmark)
               : currentTab === 'gaps'
-                ? renderGapsTab(data.gaps)
+                ? renderGapsTab(data.benchmark)
                 : renderTelemetryTab(data.telemetry);
         }
         // Update active tab
@@ -717,32 +687,24 @@ export function setupEvents(container: HTMLElement): void {
   // Action buttons
   container.querySelector('[data-action="run-benchmark"]')?.addEventListener('click', async () => {
     log.info('Running benchmark...');
-    try {
-      const headers = await getAdminHeadersAsync();
-      const res = await fetch('/api/v1/admin/bth/validation/benchmark?run=true', { headers });
-      if (res.ok) {
-        cachedData = null; // Clear cache
-        const section = container.closest('.admin-section-content');
-        if (section) {
-          section.innerHTML = await render();
-          setupEvents(section as HTMLElement);
-        }
-      }
-    } catch (error) {
-      log.error({ error: String(error) }, 'Benchmark failed');
-    }
+    busy(container, 'run-benchmark', 'Running benchmark');
+    // One request runs it; a failure is drawn as its reason
+    const benchmark = await loadBenchmark();
+    if (cachedData) cachedData.benchmark = benchmark;
+    await rerender(container);
   });
 
-  container.querySelector('[data-action="refresh-telemetry"]')?.addEventListener('click', async () => {
-    log.info('Refreshing telemetry...');
-    cachedData = null;
-    currentTab = 'telemetry';
-    const section = container.closest('.admin-section-content');
-    if (section) {
-      section.innerHTML = await render();
-      setupEvents(section as HTMLElement);
-    }
-  });
+  container
+    .querySelector('[data-action="refresh-telemetry"]')
+    ?.addEventListener('click', async () => {
+      log.info('Refreshing telemetry...');
+      busy(container, 'refresh-telemetry', 'Refreshing telemetry');
+      // Telemetry only: clearing everything would run the benchmark again
+      const telemetry = await loadTelemetry();
+      if (cachedData) cachedData.telemetry = telemetry;
+      currentTab = 'telemetry';
+      await rerender(container);
+    });
 
   container.querySelector('[data-action="export-report"]')?.addEventListener('click', async () => {
     log.info('Exporting report...');

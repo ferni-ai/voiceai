@@ -24,5 +24,6 @@
   {"name": "preemptive", "type": "STRING"},
   {"name": "pause_hold_ms", "type": "INT64"},
   {"name": "barge_in_source", "type": "STRING"},
-  {"name": "reply_chars", "type": "INT64"}
+  {"name": "reply_chars", "type": "INT64"},
+  {"name": "first_any_audio_ms", "type": "INT64"}
 ]

@@ -5,6 +5,7 @@
 import { ReadableStream } from 'node:stream/web';
 import { stt, voice } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { labelTurn } from '../../group-conversation/turn-label.js';
 import { normalizeNameMishear, sttWithNameFix } from '../name-mishear.js';
 
 const logged = vi.hoisted(() => [] as Array<{ fields: unknown; msg: unknown }>);
@@ -199,6 +200,30 @@ describe('a transfer to Ferni (prod call 2026-10-17)', () => {
 
 describe('sttWithNameFix', () => {
   const events = () => Promise.resolve(streamOf([final('How are you doing, Freddy?')]));
+
+  it("reads a group call turn after its label, and puts the label back (this call's only)", async () => {
+    const group = { userData: { personaId: 'ferni' } };
+    const said = labelTurn(group, 'Sarah (guest)', 'Hey Fred.');
+    const heard = () => Promise.resolve(streamOf([final(said)]));
+    expect(await texts(await sttWithNameFix(group, heard(), ON))).toEqual([
+      '[Sarah (guest)] Hey Ferni.',
+    ]);
+    const solo = { userData: { personaId: 'ferni' } }; // no label put on: the bracket is words
+    expect(await texts(await sttWithNameFix(solo, heard(), ON))).toEqual([said]);
+  });
+
+  it('keeps every label where it is, and fixes only the words between them', async () => {
+    const group = { userData: { personaId: 'ferni' } };
+    const turn = (...finals: string[]) => Promise.resolve(streamOf([final(finals.join(' '))]));
+    const unclear = (text: string) => labelTurn(group, 'unclear', text);
+    expect(
+      await texts(await sttWithNameFix(group, turn('Hey Fred.', unclear('okay')), ON))
+    ).toEqual(['Hey Ferni. [unclear] okay']);
+    const twice = turn(unclear('Hey Fred.'), unclear('okay'));
+    expect(await texts(await sttWithNameFix(group, twice, ON))).toEqual([
+      '[unclear] Hey Ferni. [unclear] okay',
+    ]);
+  });
 
   it('fixes final transcripts while Ferni is on the call', async () => {
     const session = { userData: { personaId: 'ferni' } };

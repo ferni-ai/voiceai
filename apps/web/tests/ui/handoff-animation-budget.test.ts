@@ -101,7 +101,7 @@ describe('handoff animation budget', () => {
 
     const targets = recorded.map((r) => r.target.id);
     expect(targets).toEqual(expect.arrayContaining(['coachAvatar', 'personaName', 'personaSubtitle']));
-    expect(document.getElementById('personaName')!.textContent).toBe(getPersona('peter-john').name);
+    expect(document.getElementById('personaName')!.textContent).toBe('Peter'); // first name, as the talk button says
     for (const r of recorded) {
       expect(r.props.filter((p) => !COMPOSITOR_ONLY.has(p)), `#${r.target.id} animates layout/paint properties`).toEqual([]);
       expect(r.end, `#${r.target.id} runs past the budget`).toBeLessThanOrEqual(HANDOFF_BUDGET_MS);

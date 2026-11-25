@@ -13,9 +13,9 @@
  *
  * Only the stores are stubbed (the unified moment bridge, shared moments, Our Songs, relational
  * memory, collective learning, the music player, the semantic intelligence entry point, the
- * corrections store), and the real model client refuses, so every read goes through the turn's
- * injected model call. The last block pins a known gap: no classifier answer on a line the
- * patterns miss records as on main. All lines fictional.
+ * corrections store, fast capture), and the real model client refuses, so every read goes
+ * through the turn's injected model call. The known-gap block pins one: no classifier answer on
+ * a line the patterns miss records as on main. All lines fictional.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,7 +68,20 @@ const state = vi.hoisted(() => ({
   /** The adjudicator's injected model call: what it answers, and how often it was asked. */
   adjudicate: '',
   adjudicated: 0,
+  /** The words each fast capture was handed (turn-handler.ts dynamic memory capture). */
+  captures: [] as string[],
 }));
+
+vi.mock('../../../memory/dynamic/index.js', async (orig) => {
+  const { noCapture } = await import('../../../memory/third-party-call.js');
+  return {
+    ...(await orig<Record<string, unknown>>()),
+    fastCapture: vi.fn(async (input: { transcript: string }) => {
+      state.captures.push(input.transcript);
+      return noCapture();
+    }),
+  };
+});
 
 // No row may reach a real model: every read in this file goes through the injected `generate`
 vi.mock('../../../config/gemini-config.js', async (orig) => ({
@@ -87,7 +100,7 @@ vi.mock('../../../services/superhuman/user-corrections.js', () => ({
   },
 }));
 
-// Both semantic intelligence entry points (turn-handler.ts direct and processTurnLearning) land here
+// The turn's one semantic intelligence pass (turn-handler.ts) lands here; there used to be two
 vi.mock('../../../services/superhuman/semantic-intelligence/integration.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   processSemanticIntelligence: vi.fn(async (data: { crisisTurn?: unknown }) => {
@@ -438,11 +451,11 @@ describe('turn handler: no happy memory of a crisis turn', () => {
   );
 
   it.each(CRISIS_TURNS)(
-    'hands semantic intelligence the crisis read on both paths when %s',
+    'hands semantic intelligence the crisis read, once, when %s',
     async (_name, level, line, env, read) => {
       const turn = await runTurn(line, env, read);
       expect(turn.level).toBe(level);
-      expect(turn.semanticReads).toEqual([true, true]);
+      expect(turn.semanticReads).toEqual([true]);
     }
   );
 
@@ -484,10 +497,10 @@ describe('turn handler: a turn the crisis read passes keeps its happy memories',
     for (const moment of ALL_MOMENTS) expect(turn.writes, moment).toContain(moment);
   });
 
-  it('hands semantic intelligence an ordinary read on both paths', async () => {
+  it('hands semantic intelligence an ordinary read, once', async () => {
     const turn = await runTurn('the garden had a good week', LIVE, NO_RISK, 'joy');
     expect(turn.level).toBe('pass');
-    expect(turn.semanticReads).toEqual([false, false]);
+    expect(turn.semanticReads).toEqual([false]);
   });
 
   it('records a deep conversation on a long line with no risk', async () => {
@@ -525,7 +538,7 @@ describe('known gap: the classifier gives no answer on a line the patterns miss'
       expect(turn.realClient).toBe(0);
       expect(turn.level).toBe('pass');
       expect([...turn.writes].sort()).toEqual(AS_ON_MAIN);
-      expect(turn.semanticReads).toHaveLength(2);
+      expect(turn.semanticReads).toHaveLength(1);
     }
   );
 
@@ -652,7 +665,7 @@ describe('the bond message to the client', () => {
 
   // A missing crisis field counts as a crisis turn at every post-turn site: the learning context
   // (correction, preference, shared moment), the moment recorder, both relational milestones
-  // (thanks, and distress over 0.5), and semantic intelligence on both paths. The ordinary run of
+  // (thanks, and distress over 0.5), and semantic intelligence (one pass). The ordinary run of
   // the same line and distress proves each site writes, so each held zero follows a run that writes.
   it.each(['undefined', 'null'] as const)(
     'a turn whose crisis field is %s is held at every post-turn site (fail closed)',
@@ -670,7 +683,7 @@ describe('the bond message to the client', () => {
       ]) {
         expect(ordinary.writes, write).toContain(write);
       }
-      expect(ordinary.semanticReads).toEqual([false, false]); // both semantic paths
+      expect(ordinary.semanticReads).toEqual([false]); // the one semantic pass
 
       const held = await runTurn(EVERY_RECORDER, LIVE, NO_RISK, 'sad', 6, 0.9, {
         crisisField: field,
@@ -679,7 +692,7 @@ describe('the bond message to the client', () => {
       expect(bond(held)).toBe(0);
       expect(warmth(held)).toBe(0);
       expect(held.writes).toEqual([]);
-      expect(held.semanticReads).toEqual([true, true]);
+      expect(held.semanticReads).toEqual([true]);
     }
   );
 
@@ -713,7 +726,7 @@ describe('the bond message to the client', () => {
 /**
  * The crisis read under its non-default flags. LIVE runs the agreement gate on; before these rows
  * every classifier-live row ran with it on and none with it off. A held turn records nothing here:
- * no moment, no happy write, a crisis read to semantic intelligence on both paths, no bond message.
+ * no moment, no happy write, one crisis read to semantic intelligence, no bond message.
  */
 describe('crisis read flags beyond the default', () => {
   const LIVE_NO_GATE = { ...LIVE, CRISIS_AGREEMENT_GATE: 'off' };
@@ -723,7 +736,7 @@ describe('crisis read flags beyond the default', () => {
     expect(turn.writes.filter((w) => w.startsWith('moment:') || HAPPY_WRITES.includes(w))).toEqual(
       []
     );
-    expect(turn.semanticReads).toEqual([true, true]);
+    expect(turn.semanticReads).toEqual([true]);
     expect([bond(turn), warmth(turn)]).toEqual([0, 0]);
   };
   const softGuidance = () =>
@@ -747,7 +760,7 @@ describe('crisis read flags beyond the default', () => {
     'agreement gate off: %s, and nothing is recorded',
     async (_name, level, line, read) => {
       const ordinary = await runTurn(HAPPY + WORTH, LIVE_NO_GATE, NO_RISK); // a line the patterns miss
-      expect(ordinary.semanticReads).toEqual([false, false]);
+      expect(ordinary.semanticReads).toEqual([false]);
       expect(bond(ordinary)).toBeGreaterThan(0);
 
       resetCrisisState();
@@ -771,7 +784,7 @@ describe('crisis read flags beyond the default', () => {
         const line = 'which part, the trip?';
         const ordinary = await runTurn(line, LIVE, NO_RISK, 'sad', 3, 0.2, turn);
         expect(ordinary.level).toBe('pass');
-        expect(ordinary.semanticReads).toEqual([false, false]);
+        expect(ordinary.semanticReads).toEqual([false]);
 
         resetCrisisState();
         const gateOff = await runTurn(line, LIVE_NO_GATE, CRISIS, 'sad', 3, 0.2, turn);
@@ -794,7 +807,7 @@ describe('crisis read flags beyond the default', () => {
         expect(state.read).toBe(CRISIS);
         expect(presence.asked).toBeGreaterThan(0);
         expect(presence.level).toBe('pass');
-        expect(presence.semanticReads).toEqual([false, false]);
+        expect(presence.semanticReads).toEqual([false]);
       });
 
       // Shadow logs its decision and never changes the turn: the same lists whatever it decides.
@@ -855,7 +868,7 @@ describe('crisis read flags beyond the default', () => {
       earlier: [],
     });
     expect(absent.level).toBe('pass');
-    expect(absent.semanticReads).toEqual([false, false]);
+    expect(absent.semanticReads).toEqual([false]);
   });
 });
 
@@ -904,4 +917,37 @@ describe('the hoisted crisis read', () => {
       ]);
     }
   );
+});
+
+/**
+ * A crisis turn's words reach no fast capture at the turn handler: the same plain words are
+ * captured when the read passes them, and not when the classifier reads them as a crisis or no
+ * crisis read reaches the handler (crisis-turn-memory.ts crisisReadTurn, fail closed).
+ */
+describe('turn handler: a crisis turn reaches no fast capture', () => {
+  const PLAIN = 'the garden had a good week and my cousin Tamsin Reed came over to help';
+  const CAPTURE = 'dynamic-memory-capture';
+  const captured = async (read: string, crisisField: CrisisField = 'read') => {
+    state.captures = [];
+    const turn = await runTurn(PLAIN, LIVE, read, 'joy', 3, 0.2, { crisisField });
+    await vi.waitFor(() => {
+      const m = getFireAndForgetMetrics().byContext.find((c) => c.context === CAPTURE);
+      expect(m && m.successes + m.failures).toBe(1);
+    });
+    return { level: turn.level, captures: state.captures.filter((t) => t === PLAIN).length };
+  };
+
+  it('a turn the read passes: captured once, as before', async () => {
+    expect(await captured(NO_RISK)).toEqual({ level: 'pass', captures: 1 });
+  });
+
+  it('plain words the classifier reads as a crisis: not captured', async () => {
+    const turn = await captured(CRISIS);
+    expect(turn.level).not.toBe('pass');
+    expect(turn.captures).toBe(0);
+  });
+
+  it('no crisis read reaches the handler: not captured (fail closed)', async () => {
+    expect(await captured(NO_RISK, 'undefined')).toEqual({ level: 'absent', captures: 0 });
+  });
 });

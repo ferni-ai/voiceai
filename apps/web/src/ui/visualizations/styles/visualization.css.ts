@@ -956,9 +956,9 @@ export function getVisualizationStyles(): string {
       font-size: var(--viz-text-md);
       color: var(--color-text-primary, #2C2520);
       flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      min-width: 0; /* a long loop wraps; the age beside it keeps its room */
+      overflow-wrap: anywhere;
+      white-space: normal;
     }
 
     /* Category icon for loop categories */

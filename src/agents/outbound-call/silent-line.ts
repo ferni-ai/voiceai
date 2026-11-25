@@ -25,8 +25,9 @@
  */
 import { coordinatedSay } from '../../speech/coordination/session-integration.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { deleteRoom } from '../shared/phone-goodbye.js';
 import { isAgentSpeaking } from '../shared/response-orchestrator.js';
-import { deleteRoom, onBehalfCallRoom, type HangUp } from './call-control.js';
+import { onBehalfCallRoom, type HangUp } from './call-control.js';
 
 const log = createLogger({ module: 'silent-line' });
 
