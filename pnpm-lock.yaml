@@ -14,7 +14,7 @@ overrides:
   '@livekit/agents-plugin-silero>onnxruntime-common': 1.30.0
   '@livekit/rtc-node': 1.1.0
   sharp: ^0.35.5
-  '@google-cloud/firestore': 9.4.0
+  '@google-cloud/firestore': 9.4.1
   fast-xml-parser@>=4 <4.5.4: 4.5.7
   websocket-driver@<0.7.5: 0.7.5
   tar@>=7 <7.5.21: 7.5.22
@@ -92,8 +92,8 @@ importers:
         specifier: 3.1.0
         version: 3.1.0
       '@google-cloud/firestore':
-        specifier: 9.4.0
-        version: 9.4.0
+        specifier: 9.4.1
+        version: 9.4.1
       '@google-cloud/monitoring':
         specifier: 6.2.0
         version: 6.2.0
@@ -361,8 +361,8 @@ importers:
   apps/async:
     dependencies:
       '@google-cloud/firestore':
-        specifier: 9.4.0
-        version: 9.4.0
+        specifier: 9.4.1
+        version: 9.4.1
       '@google-cloud/pubsub':
         specifier: ^6.4.1
         version: 6.4.1
@@ -402,7 +402,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^5.1.1
-        version: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.1(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   apps/cli:
     dependencies:
@@ -432,8 +432,8 @@ importers:
   apps/intelligence-worker:
     dependencies:
       '@google-cloud/firestore':
-        specifier: 9.4.0
-        version: 9.4.0
+        specifier: 9.4.1
+        version: 9.4.1
       '@google-cloud/pubsub':
         specifier: ^6.4.1
         version: 6.4.1
@@ -1379,12 +1379,12 @@ packages:
     resolution: {integrity: sha512-qhqxToTDkEmahxVkdgJ+ZsBpgSSgUUN0VewP0114GeSiecEmPOKE0dXLRHdDtpVIsrm08JqVrYveyBfI9b92nA==}
     engines: {node: '>=22'}
 
-  '@google-cloud/firestore-api@0.2.0':
-    resolution: {integrity: sha512-wfHJPZmLqzpy6FN6U+7HkkP/AKhGsbHSpEy/qL2TyI3/pKRAvpamQxZ2qvps5hMRgAjfuHCim+oeJj9RveCaqg==}
-    engines: {node: '>=18'}
+  '@google-cloud/firestore-api@0.7.1':
+    resolution: {integrity: sha512-CM6Xm8P/eU59AgH94whcJxA4jaUUgH8Lj4Ki425yFlICEsOaw7Sc6XuezvrZGoXec+W5iVsQgPrZHnwF5g98Kg==}
+    engines: {node: '>=22'}
 
-  '@google-cloud/firestore@9.4.0':
-    resolution: {integrity: sha512-4tVhdRFepX5w+fRfl3H6D2+gaGQjmMiA9l+OwIwInfAkCi8iacfRx4jS9SmSfpQNlXequ55DfzFopwyFnIIJ9w==}
+  '@google-cloud/firestore@9.4.1':
+    resolution: {integrity: sha512-arD6dY7H8G1647OqxHmgxb3m1IYAAoVDm9ev/MW1meQRl1XuaNP8j/aGT5HPHTeaV/8AHZVGeXwOGTovWvIKIA==}
     engines: {node: '>=22'}
 
   '@google-cloud/monitoring@6.2.0':
@@ -5305,10 +5305,6 @@ packages:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
     engines: {node: '>= 0.4'}
 
-  google-auth-library@10.5.0:
-    resolution: {integrity: sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==}
-    engines: {node: '>=18'}
-
   google-auth-library@10.9.1:
     resolution: {integrity: sha512-i1ydyHrqcIxXkWh/uBmVkzCvIuq5yiK2ATndIe5XxKholrG/MTYP9xGYka4sQhrbIAgGjL2B6NOE7rFaiF3fXw==}
     engines: {node: '>=18'}
@@ -5324,10 +5320,6 @@ packages:
   google-auth-library@9.15.1:
     resolution: {integrity: sha512-Jb6Z0+nvECVz+2lzSMt9u98UsoakXxA2HGHMCxh+so3n90XgYWkq5dur19JAJV7ONiJY22yBTyJB1TSkvPq9Ng==}
     engines: {node: '>=14'}
-
-  google-gax@5.0.8:
-    resolution: {integrity: sha512-M4vpZcXQIC1gqIVGQ7eaU3jXQA6zecStyTXu514TYfThlgSurYJOxHZo9fzU6hAgwPWvuEynAVHWyaIk80VeEA==}
-    engines: {node: '>=18'}
 
   google-gax@6.12.1:
     resolution: {integrity: sha512-U/OUrt4+aUiELB8sgaPJAdVfPzFOPjo1ngXVOwbR1NcCHV7ZcPOW0Ecwdbp8J86NmxBwLMJUOj8AgRSOZm5iJQ==}
@@ -5387,10 +5379,6 @@ packages:
   gtoken@7.1.0:
     resolution: {integrity: sha512-pCcEwRi+TKpMlxAQObHDQ56KawURgyAf6jtIY046fJ5tIv3zDe/LEIubckAO8fj6JnAxLdmWkUfNyulQ2iKdEw==}
     engines: {node: '>=14.0.0'}
-
-  gtoken@8.0.0:
-    resolution: {integrity: sha512-+CqsMbHPiSTdtSO14O51eMNlrp9N79gmeqmXeouJOhfucAedHw9noVe/n5uJk3tbKE6a+6ZCQg3RPhVhHByAIw==}
-    engines: {node: '>=18'}
 
   guid-typescript@1.0.9:
     resolution: {integrity: sha512-Y8T4vYhEfwJOTbouREvG+3XDsjr8E3kIr7uf+JZ0BYloFsttiHU0WfvANVsR7TxNUJa/WpCnw/Ino/p+DeBhBQ==}
@@ -6381,10 +6369,6 @@ packages:
     resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
     engines: {node: '>= 0.6.0'}
 
-  proto3-json-serializer@3.0.4:
-    resolution: {integrity: sha512-E1sbAYg3aEbXrq0n1ojJkRHQJGE1kaE/O6GLA94y8rnJBfgvOPTOd1b9hOceQK1FFZI9qMh1vBERCyO2ifubcw==}
-    engines: {node: '>=18'}
-
   proto3-json-serializer@4.1.0:
     resolution: {integrity: sha512-Z0Blk2BTZTPp9ZXOWnRG/P3bkEs53FtMv59sl4xU44xcDdYhKlVO/AqAHTYXAlW9HdislqQxjSornP3457wkag==}
     engines: {node: '>=22'}
@@ -6530,10 +6514,6 @@ packages:
     resolution: {integrity: sha512-1ZjYvR9sbkiwC5+9QHetqW5HmA2pHRMaoupD01t2HlYnV/vydC2zPwLixhsMieSWVZt0JJRg5LVIk0Ow1D/TrA==}
     engines: {node: '>= 0.4'}
     hasBin: true
-
-  retry-request@8.0.4:
-    resolution: {integrity: sha512-pI6/7eabUYkZxamkOq0g0uMxKLLGnjzhefY+vL8bVXag5rto4OU2YBTPytWLuHH7aEKD6fn7kJycQfid0Mwnkw==}
-    engines: {node: '>=18'}
 
   retry-request@9.0.2:
     resolution: {integrity: sha512-S73r2yk09DSWx7K4mTZG7v5wSOrCK5okQbYLlkgpDjzVsxkUkhKrUR2VpUp69e3iA06Btn0bDXa27gxfnCqZMw==}
@@ -6875,10 +6855,6 @@ packages:
   synckit@0.12.3:
     resolution: {integrity: sha512-U+/AXT6LWsxnj2vz9HeUuPWBNgdWxjyIEjEPdbJARC9txmgPzo2VEdqnFo4hHaNyMPtycyVJrSaQYeQv/PoyyA==}
     engines: {node: ^14.18.0 || >=16.0.0}
-
-  teeny-request@10.1.4:
-    resolution: {integrity: sha512-R1Cg4Vu0UULeDfHL/kjABLaTW++9yD/B6n2g48y5dJ04hsEaxcfmAqbNDzNsbqAYJyIpZafjklLG9YxRu9uzOg==}
-    engines: {node: '>=18'}
 
   teeny-request@11.0.1:
     resolution: {integrity: sha512-bNr5j2YjSdajgCVsp+8JVjRf1uHIbpNISLeKp/7V1NnVMX3Gh6H/kECNGlm2Q3I68ACODQ0iv6aZ3Rvm8WgLGA==}
@@ -8260,15 +8236,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@google-cloud/firestore-api@0.2.0':
+  '@google-cloud/firestore-api@0.7.1':
     dependencies:
-      google-gax: 5.0.8
+      google-gax: 6.17.0
+      long: 5.3.2
     transitivePeerDependencies:
       - supports-color
 
-  '@google-cloud/firestore@9.4.0':
+  '@google-cloud/firestore@9.4.1':
     dependencies:
-      '@google-cloud/firestore-api': 0.2.0
+      '@google-cloud/firestore-api': 0.7.1
       '@opentelemetry/api': 1.10.0
       fast-deep-equal: 3.1.3
       functional-red-black-tree: 1.0.1
@@ -10890,7 +10867,7 @@ snapshots:
       obug: 3.0.0
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.1.1(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -10937,7 +10914,7 @@ snapshots:
       pathe: 2.0.3
       sirv: 3.0.2
       tinyrainbow: 3.2.0
-      vitest: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.1.1(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -11776,7 +11753,7 @@ snapshots:
       jsonwebtoken: 9.0.3
       jwks-rsa: 4.1.0
     optionalDependencies:
-      '@google-cloud/firestore': 9.4.0
+      '@google-cloud/firestore': 9.4.1
       '@google-cloud/storage': 8.4.0
     transitivePeerDependencies:
       - '@firebase/app'
@@ -12036,18 +12013,6 @@ snapshots:
       define-properties: 1.2.1
       gopd: 1.2.0
 
-  google-auth-library@10.5.0:
-    dependencies:
-      base64-js: 1.5.1
-      ecdsa-sig-formatter: 1.0.11
-      gaxios: 7.3.1
-      gcp-metadata: 8.1.4
-      google-logging-utils: 1.1.3
-      gtoken: 8.0.0
-      jws: 4.0.1
-    transitivePeerDependencies:
-      - supports-color
-
   google-auth-library@10.9.1:
     dependencies:
       base64-js: 1.5.1
@@ -12091,22 +12056,6 @@ snapshots:
       jws: 4.0.1
     transitivePeerDependencies:
       - encoding
-      - supports-color
-
-  google-gax@5.0.8:
-    dependencies:
-      '@grpc/grpc-js': 1.14.7
-      '@grpc/proto-loader': 0.8.1
-      duplexify: 4.1.3
-      google-auth-library: 10.5.0
-      google-logging-utils: 1.1.3
-      node-fetch: 3.3.2
-      object-hash: 3.0.0
-      proto3-json-serializer: 3.0.4
-      protobufjs: 7.6.6
-      retry-request: 8.0.4
-      rimraf: 5.0.10
-    transitivePeerDependencies:
       - supports-color
 
   google-gax@6.12.1:
@@ -12207,13 +12156,6 @@ snapshots:
       jws: 4.0.1
     transitivePeerDependencies:
       - encoding
-      - supports-color
-
-  gtoken@8.0.0:
-    dependencies:
-      gaxios: 7.3.1
-      jws: 4.0.1
-    transitivePeerDependencies:
       - supports-color
 
   guid-typescript@1.0.9: {}
@@ -13271,10 +13213,6 @@ snapshots:
 
   process@0.11.10: {}
 
-  proto3-json-serializer@3.0.4:
-    dependencies:
-      protobufjs: 7.6.6
-
   proto3-json-serializer@4.1.0:
     dependencies:
       protobufjs: 7.6.6
@@ -13433,13 +13371,6 @@ snapshots:
       is-core-module: 2.18.0
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
-
-  retry-request@8.0.4:
-    dependencies:
-      extend: 3.0.2
-      teeny-request: 10.1.4
-    transitivePeerDependencies:
-      - supports-color
 
   retry-request@9.0.2:
     dependencies:
@@ -13844,15 +13775,6 @@ snapshots:
       '@dual-bundle/import-meta-resolve': 4.2.1
       '@pkgr/core': 0.3.6
 
-  teeny-request@10.1.4:
-    dependencies:
-      http-proxy-agent: 7.0.2
-      https-proxy-agent: 7.0.6
-      node-fetch: 3.3.2
-      stream-events: 1.0.5
-    transitivePeerDependencies:
-      - supports-color
-
   teeny-request@11.0.1:
     dependencies:
       http-proxy-agent: 7.0.2
@@ -14114,31 +14036,6 @@ snapshots:
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@opentelemetry/api': 1.10.0
-      '@types/node': 22.20.5
-      '@vitest/coverage-v8': 5.1.1(vitest@5.1.1)
-      '@vitest/ui': 5.1.1(vitest@5.1.1)
-      jsdom: 30.1.3
-    transitivePeerDependencies:
-      - msw
-
-  vitest@5.1.1(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@30.1.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
-    dependencies:
-      '@types/chai': 5.2.3
-      '@vitest/mocker': 5.1.1(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
-      chai: 6.3.0
-      es-module-lexer: 2.3.2
-      expect-type: 1.4.0
-      magic-string: 1.4.5
-      obug: 3.0.0
-      picomatch: 4.0.7
-      std-env: 4.3.0
-      tinybench: 6.2.4
-      tinyexec: 1.3.1
-      tinyglobby: 0.2.17
-      vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
-      why-is-node-running: 3.2.1
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
       '@types/node': 22.20.5
       '@vitest/coverage-v8': 5.1.1(vitest@5.1.1)
       '@vitest/ui': 5.1.1(vitest@5.1.1)
