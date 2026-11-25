@@ -21,6 +21,7 @@ import {
   routeSpeech,
 } from '../../../../speech/coordination/session-integration.js';
 import {
+  CoordinatorState,
   getSpeechCoordinator,
   resetSpeechCoordinator,
 } from '../../../../speech/coordination/speech-coordinator.js';
@@ -93,6 +94,30 @@ describe('STILL_HERE_LINE with CRISIS_LINE_NEVER_DROP', () => {
     expect(call.lines()).toEqual(['Line A']);
     unregisterSessionForReconnection(call.sessionId);
     cleanupSpeechCoordination(call.sessionId);
+  });
+
+  it('on: a call that ends while the line is queued discards it; nothing is said on a closed session', async () => {
+    vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'on');
+    const call = await callWithALineStillPlaying();
+    await triggerGracefulExit(call.sessionId);
+    expect(getSpeechCoordinator().getState()).toBe(CoordinatorState.SPEAKING);
+
+    cleanupSpeechCoordination(call.sessionId); // the call ends: the coordinator detaches
+    expect(getSpeechCoordinator().getState()).toBe(CoordinatorState.IDLE);
+    getSpeechCoordinator().onSpeechEnded(false, 1000); // a late end event of the old line
+    await endLineA(5 * MINUTE, call.lines, 1);
+
+    expect(call.lines()).toEqual(['Line A']);
+    const next = vi.fn();
+    initializeSpeechCoordination({
+      session: { say: next } as unknown as voice.AgentSession,
+      sessionId: `${call.sessionId}-next`,
+      personaId: 'p-1',
+    });
+    await routeSpeech(`${call.sessionId}-next`, 'A line on the next call');
+    expect(next.mock.calls.map((c) => c[0])).toEqual(['A line on the next call']);
+    unregisterSessionForReconnection(call.sessionId);
+    cleanupSpeechCoordination(`${call.sessionId}-next`);
   });
 
   it('on: is spoken before a line that was queued earlier', async () => {
