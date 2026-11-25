@@ -809,9 +809,9 @@ export class SpeechCoordinator {
     } catch (error) {
       const closed = String(error).includes('AgentSession is not running'); // expected: debug
       // A TTS error can echo the line it was speaking: log its class, never its message.
-      const fields = { error: errorClass(error), id: request.id };
-      if (closed) log.debug(fields, 'Speech skipped - session closed');
-      else log.error(fields, 'Speech failed');
+      if (closed)
+        log.debug({ error: errorClass(error), id: request.id }, 'Speech skipped - session closed');
+      else log.error({ error: errorClass(error), id: request.id }, 'Speech failed');
       this.abandonLine();
     }
   }

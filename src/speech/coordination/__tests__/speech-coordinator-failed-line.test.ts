@@ -166,7 +166,12 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     // The dropped line's own id (C's), the error class only, and no line blames A for C's throw.
     expect(dropped?.[0]).toEqual({ error: 'Error', id: c.id });
     expect(JSON.stringify(sink.calls)).not.toContain('5550142');
-    expect(JSON.stringify(sink.calls)).not.toContain(a.id);
+    // A spoke fine, so none of the failure lines may carry A's id (its info lines may).
+    const failures = sink.calls.filter((c) =>
+      /Speech failed|Speech skipped|Queued line dropped/.test(String(c[1]))
+    );
+    expect(failures.length).toBeGreaterThan(0);
+    expect(JSON.stringify(failures)).not.toContain(a.id);
   });
 
   describe('one failed line frees the slot once: the next line speaks once and the one after waits', () => {
