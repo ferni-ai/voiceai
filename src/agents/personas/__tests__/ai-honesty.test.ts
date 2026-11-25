@@ -5,9 +5,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { STORY_HONESTY, withStoryHonesty } from '../ai-honesty.js';
+import { STORY_HONESTY, withHonesty } from '../ai-honesty.js';
 
-const RULE = readFileSync(join(__dirname, '../../../personas/bundles/shared/ai-honesty.md'), 'utf8');
+const RULE = readFileSync(
+  join(__dirname, '../../../personas/bundles/shared/ai-honesty.md'),
+  'utf8'
+);
 
 describe('story honesty', () => {
   afterEach(() => {
@@ -16,11 +19,11 @@ describe('story honesty', () => {
   });
 
   it('off: the rule is the file, unchanged', () => {
-    expect(withStoryHonesty(RULE, {})).toBe(RULE);
+    expect(withHonesty(RULE, {})).toBe(RULE);
   });
 
   it('on: the rule keeps its yes and gains the in-character answer', () => {
-    const rule = withStoryHonesty(RULE, { AI_HONESTY_STORY: 'on' });
+    const rule = withHonesty(RULE, { AI_HONESTY_STORY: 'on' });
     expect(rule.startsWith(RULE.trimEnd())).toBe(true);
     expect(rule).toContain("I'm an AI, yeah"); // the yes itself never goes
     expect(rule).toContain('"I am. And this life is the one I carry with me."');

@@ -151,8 +151,6 @@ export const BASELINE: Readonly<Record<string, readonly string[]>> = {
     // Engagement demo/service import the views they populate. Fix: emit data and let ui/ subscribe.
     'src/services/engagement-demo-data.ts -> src/ui/engagement.ui.ts',
     'src/services/engagement.service.ts -> src/ui/engagement.ui.ts',
-    // Soul-stats talks to the admin API client. Fix: move the call behind a services/ API wrapper.
-    'src/services/soul-stats.service.ts -> src/admin/admin-api.ts',
   ],
   'generated:src/config/animation-constants.generated.ts': [
     // Feature UI reads generated tokens directly. Fix: import animation-constants.ts instead.

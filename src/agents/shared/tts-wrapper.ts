@@ -26,7 +26,10 @@ import { GEMINI_MODEL } from '../../config/gemini-config.js';
 import { asSessionVoice, spokenVoiceId, type SessionVoice } from './spoken-voice.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
-import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
+import {
+  crisisLineSpeechTransform,
+  replyLanguage,
+} from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { spokenPunctuation } from '../../speech/output-control/spoken-punctuation.js';
@@ -95,44 +98,6 @@ function detectGarbageResponse(trimmedOutput: string): boolean {
   // Just ellipsis variants
   if (/^\.{2,}$/.test(trimmedOutput) || trimmedOutput === '...' || trimmedOutput === '…') {
     return true;
-  }
-
-  return false;
-}
-
-/**
- * Detect if LLM is responding to a punctuation-only STT artifact.
- *
- * Sometimes Gemini's internal STT transcribes silence/noise as just "." or similar,
- * and the LLM responds with things like "You just sent a period."
- *
- * These responses should be suppressed as they're reacting to artifacts, not user intent.
- */
-function detectPunctuationArtifactResponse(trimmedOutput: string): boolean {
-  const lower = trimmedOutput.toLowerCase();
-
-  // Patterns that indicate the LLM is responding to a punctuation-only artifact
-  const punctuationArtifactPatterns = [
-    // "You sent a period" variants
-    /you (just )?(sent|typed|said) (a |an? )?\.?(period|dot|ellips|punctuation)/i,
-    // "That was just a period" variants
-    /(that was|that's) (just )?(a |an? )?(period|dot|ellips|punctuation)/i,
-    // "Just a period?" variants
-    /^(just |only )?(a |an? )?(period|dot|ellips|punctuation)\??$/i,
-    // "Everything alright? You sent a period"
-    /everything (alright|okay|ok)\??.*(period|dot|punctuation)/i,
-    // "You just sent punctuation"
-    /you (just )?(sent|typed) (some )?punctuation/i,
-    // "Did you mean to send a period?"
-    /did you (mean|want) to.*(period|dot|punctuation)/i,
-    // "I noticed you sent a period"
-    /i (noticed|saw|see) you (sent|typed).*(period|dot|punctuation)/i,
-  ];
-
-  for (const pattern of punctuationArtifactPatterns) {
-    if (pattern.test(lower)) {
-      return true;
-    }
   }
 
   return false;
@@ -1014,7 +979,11 @@ export async function wrappedTtsNode(
   });
 
   // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → punctuation → cost)
-  const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
+  // One reply, one spoken language: a Spanish crisis line is voiced in Spanish (#4062).
+  const language = replyLanguage();
+  const spokenText = linguisticallyMirroredText.pipeThrough(
+    crisisLineSpeechTransform(process.env, language)
+  );
   const trackedText = spokenText.pipeThrough(spokenPunctuation()).pipeThrough(costTrackingStream);
 
   // 6. Streaming TTS optimization: chunks more aggressively for faster first audio
@@ -1123,6 +1092,7 @@ export async function wrappedTtsNode(
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,
+      language: language.read,
     });
 
     // Use gateway for full TTS synthesis

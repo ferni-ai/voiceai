@@ -106,12 +106,12 @@ export const SPECIALIST_TOOL_SETS: Readonly<Record<string, ToolsByName>> = {
     logExercise: 'health',
     analyzeSleepPattern: 'health',
     suggestSleepHygiene: 'health',
-    getSleepSummary: 'wellness',
     coachOnNutrition: 'health',
     budgetPlanner: 'finance',
     debtPayoff: 'finance',
     savingsCalc: 'finance',
     bankData: 'finance',
+    getSleepSummary: 'wellness', // last: OURA_SLEEP_TOOL on displaces no tool held before (#3242)
   },
   // Chief of staff, executive coach and communication coach
   'alex-chen': {

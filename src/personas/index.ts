@@ -33,9 +33,6 @@ export { canonPeople, canonPersonIn } from './canon-people.js';
 // generic-advisor and wellness-coach (extendPersona() templates, not production).
 import { personaRegistry } from './persona-registry.js';
 
-// External agents available at marketplace-agents/
-// Install with: npm run agents install <agent-id>
-
 // ============================================================================
 // SHARED UTILITIES EXPORTS
 // ============================================================================
@@ -440,6 +437,8 @@ export {
   type CanonicalPersonaId,
   type FrontendPersonaId,
 } from './persona-ids.js';
+// How each persona is referred to in the third person (the canon)
+export { getPersonaPronouns, type PersonaPronouns } from './persona-pronouns.js';
 
 // ============================================================================
 // COGNITIVE DIFFERENTIATION
