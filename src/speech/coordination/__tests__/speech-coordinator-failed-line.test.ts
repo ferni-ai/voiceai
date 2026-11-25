@@ -207,6 +207,34 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     });
   });
 
+  it('a refused line whose error echoes what it was saying reaches no logger, on either path', async () => {
+    const sentence = 'zorbleflax tell my fictional neighbour the ladder is back';
+    for (const gateway of ['true', 'false']) {
+      vi.stubEnv('USE_TTS_GATEWAY', gateway);
+      sink.calls.length = 0;
+      say.mockReset();
+      say.mockImplementationOnce(() => {
+        throw new Error(`TTS rejected: ${sentence}`);
+      });
+      resetSpeechCoordinator();
+      const fresh = new SpeechCoordinator();
+      fresh.attachSession({ say } as unknown as voice.AgentSession, { sessionId: 's-2' });
+
+      const line = await fresh.requestSpeak({
+        text: 'Line A',
+        priority: SpeechPriority.RESPONSE,
+        source: 'direct',
+      });
+
+      expect(fresh.getState()).toBe(CoordinatorState.IDLE);
+      const failed = sink.calls.find(
+        (c) => c[1] === 'TTS Gateway speech failed' || c[1] === 'Speech failed'
+      );
+      expect(failed?.[0]).toEqual({ error: 'Error', id: line.id });
+      expect(JSON.stringify(sink.calls)).not.toContain('zorbleflax');
+    }
+  });
+
   it('a second speech-ended event for one line releases the next line once', async () => {
     await speak('Line A');
     await speak('Line B');

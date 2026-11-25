@@ -785,7 +785,7 @@ export class SpeechCoordinator {
 
           if (!handedOver) this.abandonLine(); // empty after the SSML strip: nothing will end
         } catch (error: unknown) {
-          log.error({ error: String(error), id: request.id }, 'TTS Gateway speech failed');
+          log.error({ error: errorClass(error), id: request.id }, 'TTS Gateway speech failed');
           this.abandonLine();
         }
       } else {
@@ -807,13 +807,11 @@ export class SpeechCoordinator {
         });
       }
     } catch (error) {
-      const errorStr = String(error);
-      // Expected error when session disconnects - use debug level
-      if (errorStr.includes('AgentSession is not running')) {
-        log.debug({ error: errorStr, id: request.id }, 'Speech skipped - session closed');
-      } else {
-        log.error({ error: errorStr, id: request.id }, 'Speech failed');
-      }
+      const closed = String(error).includes('AgentSession is not running'); // expected: debug
+      // A TTS error can echo the line it was speaking: log its class, never its message.
+      const fields = { error: errorClass(error), id: request.id };
+      if (closed) log.debug(fields, 'Speech skipped - session closed');
+      else log.error(fields, 'Speech failed');
       this.abandonLine();
     }
   }
