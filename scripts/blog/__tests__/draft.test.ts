@@ -3,7 +3,15 @@ import * as path from 'node:path';
 import matter from 'gray-matter';
 import { describe, expect, it, vi } from 'vitest';
 import { REQUIRED_FIELDS } from '../brand-gate.js';
-import { draftPost, isoWeek, usedSources, type DraftDeps } from '../draft.js';
+import {
+  draftPost,
+  isoWeek,
+  repeatGateEnabled,
+  reviseEnabled,
+  usedSources,
+  type DraftDeps,
+} from '../draft.js';
+import type { JudgeResult, Verdict } from '../judge.js';
 import { existingPosts } from '../existing-posts.js';
 import { HOUSE_FACTS, sourceList, type GhRunner } from '../grounding.js';
 import { POST_TYPES } from '../post-types.js';
@@ -454,6 +462,46 @@ describe('the retry', () => {
   });
 });
 
+describe('the repetition rule in the drafter', () => {
+  /** A body long enough for whats-new with no six words repeated. */
+  const consonants = 'bcdfghjklmnprstvz';
+  const VARIED = Array.from({ length: 400 }, (_, i) => {
+    const c = consonants[i % 17];
+    const v = 'aeiou'[Math.floor(i / 17) % 5];
+    return `${c}${v}${consonants[Math.floor(i / 85) % 17]}o`;
+  }).join(' ');
+
+  it('is on only when BLOG_REPEAT_GATE is "on"', () => {
+    expect(repeatGateEnabled({ BLOG_REPEAT_GATE: 'on' })).toBe(true);
+    for (const value of [undefined, 'off', 'true', 'ON', '1'])
+      expect(repeatGateEnabled({ BLOG_REPEAT_GATE: value })).toBe(false);
+  });
+
+  it('off: a draft that repeats itself is written on the first call', async () => {
+    vi.stubEnv('BLOG_REPEAT_GATE', 'off');
+    const { d, generate } = deps(() => answer('Better memory'));
+    const result = await draftPost({ type: 'whats-new' }, d);
+    vi.unstubAllEnvs();
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe('written');
+  });
+
+  it('on: a draft that repeats itself goes back once with the repeated line', async () => {
+    vi.stubEnv('BLOG_REPEAT_GATE', 'on');
+    const replies = [answer('Better memory'), answer('Better memory', VARIED)];
+    const { d, writes, generate } = deps(() => replies.shift() ?? '');
+    const result = await draftPost({ type: 'whats-new' }, d);
+    vi.unstubAllEnvs();
+
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate.mock.calls[1][0]).toContain(
+      '[repetition] said twice in the post: "we kept working on this part of ferni with care and patience'
+    );
+    expect(result.status).toBe('written');
+    expect(writes[0].content).toContain(VARIED);
+  });
+});
+
 describe('links in a draft', () => {
   it('rejects a draft that links off the allowlist, writes nothing and does not retry', async () => {
     const { d, writes, generate } = deps(() =>
@@ -519,5 +567,188 @@ describe('a failed model call', () => {
     await expect(draftPost({ type: 'whats-new' }, d)).rejects.toThrow('403 permission denied');
     expect(generate).toHaveBeenCalledTimes(1);
     expect(writes).toHaveLength(0);
+  });
+});
+
+describe('the rewrite against the judge (BLOG_REVISE)', () => {
+  const DIMS = ['on_message', 'brand_voice', 'honesty', 'meaningful', 'impact', 'craft'] as const;
+  const verdict = (craft: number): JudgeResult => ({
+    status: craft >= 4 ? 'pass' : 'fail',
+    model: 'judge',
+    verdict: {
+      scores: Object.fromEntries(
+        DIMS.map((d) => [
+          d,
+          { score: d === 'craft' ? craft : 5, reason: `${d}: says the same thing twice` },
+        ])
+      ) as Verdict['scores'],
+      summary: 'one line',
+    },
+    failures: craft >= 4 ? [] : [`craft ${craft} (needs 4)`],
+  });
+  const REWRITE = BODY.replace('with care and patience', 'with care');
+  const twoAnswers = (second: string) => {
+    const prompts: string[] = [];
+    const model = (prompt: string) => {
+      prompts.push(prompt);
+      return prompts.length === 1 ? answer('First draft') : answer('Second draft', second);
+    };
+    return { prompts, model };
+  };
+
+  it('is on only when BLOG_REVISE is "on"', () => {
+    expect(reviseEnabled({})).toBe(false);
+    expect(reviseEnabled({ BLOG_REVISE: 'off' })).toBe(false);
+    expect(reviseEnabled({ BLOG_REVISE: 'true' })).toBe(false);
+    expect(reviseEnabled({ BLOG_REVISE: 'on' })).toBe(true);
+  });
+
+  it('off: one model call, the first clean draft is written, nothing is judged', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const result = await draftPost({ type: 'building-in-public' }, d);
+    expect(result.status).toBe('written');
+    expect(prompts).toHaveLength(1);
+    expect(result.review).toBeUndefined();
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it("on and the judge fails it: rewrites once with the judge's notes and writes the rewrite", async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const review = vi.fn(async (markdown: string) =>
+      verdict(matter(markdown).data.title === 'Second draft' ? 4 : 3)
+    );
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+
+    expect(review).toHaveBeenCalledTimes(2);
+    const [judged, sourceText] = review.mock.calls[0] as unknown as [string, string];
+    expect(matter(judged).data.title).toBe('First draft');
+    expect(sourceText).toContain('essentially no users yet');
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1].startsWith(prompts[0])).toBe(true);
+    expect(prompts[1]).toContain('FACTS');
+    expect(prompts[1]).toContain('YOUR DRAFT');
+    expect(prompts[1]).toContain('"title":"First draft"');
+    expect(prompts[1]).toContain('- craft 3 (needs 4): craft: says the same thing twice');
+    expect(prompts[1]).not.toContain('honesty 5');
+    expect(prompts[1]).toContain(
+      "never by adding a fact, number, person, place or event that isn't in the FACTS"
+    );
+    expect(result.status).toBe('written');
+    expect(result.review?.revised).toBe(true);
+    expect(result.title).toBe('Second draft');
+    expect(writes).toHaveLength(1);
+    expect(matter(writes[0].content).data.title).toBe('Second draft');
+  });
+
+  it('on and the rewrite scores no better: the first draft stands, and both verdicts are kept', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const worse: JudgeResult = { ...verdict(2), failures: ['craft 2 (needs 4)'] };
+    const review = vi.fn(async (markdown: string) =>
+      matter(markdown).data.title === 'Second draft' ? worse : verdict(3)
+    );
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+
+    expect(prompts).toHaveLength(2);
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(result.review).toMatchObject({
+      revised: false,
+      after: { failures: ['craft 2 (needs 4)'] },
+    });
+    expect(result.title).toBe('First draft');
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on and the judge throws on the rewrite: the first draft stands', async () => {
+    const { model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const review = async (markdown: string): Promise<JudgeResult> => {
+      if (matter(markdown).data.title === 'Second draft') throw new Error('overloaded');
+      return verdict(3);
+    };
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(result.review).toMatchObject({ revised: false, after: { status: 'error' } });
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('a first draft that passes the gate leaves no gate retry to log', async () => {
+    const { model } = twoAnswers(REWRITE);
+    const { d } = deps(model);
+    const result = await draftPost({ type: 'building-in-public' }, d);
+    expect(result.gateRetry).toBeUndefined();
+  });
+
+  it('on and the judge passes it: no rewrite', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const review = vi.fn(async () => verdict(4));
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(review).toHaveBeenCalledOnce();
+    expect(prompts).toHaveLength(1);
+    expect(result.review).toMatchObject({ revised: false, before: { status: 'pass' } });
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on and the judge gives no verdict: no rewrite', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const none: JudgeResult = { status: 'error', model: 'judge', failures: ['no verdict'] };
+    const review = vi.fn(async () => none);
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(review).toHaveBeenCalledOnce();
+    expect(prompts).toHaveLength(1);
+    expect(result.review?.revised).toBe(false);
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on and the rewrite fails the brand gate: the first draft stands', async () => {
+    const { prompts, model } = twoAnswers(`${REWRITE} It is fast \u2014 really fast.`);
+    const { d, writes } = deps(model);
+    const review = vi.fn(async () => verdict(3));
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(review).toHaveBeenCalledOnce();
+    expect(result.review?.after).toBeUndefined();
+    expect(prompts).toHaveLength(2);
+    expect(result.status).toBe('written');
+    expect(result.review?.revised).toBe(false);
+    expect(writes).toHaveLength(1);
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on and the judge throws: the first draft stands', async () => {
+    const { prompts, model } = twoAnswers(REWRITE);
+    const { d, writes } = deps(model);
+    const review = async (): Promise<JudgeResult> => {
+      throw new Error('privacyData.json: ENOENT');
+    };
+    const result = await draftPost({ type: 'building-in-public' }, { ...d, review });
+    expect(result.status).toBe('written');
+    expect(prompts).toHaveLength(1);
+    expect(result.review).toMatchObject({ revised: false, before: { status: 'error' } });
+    expect(matter(writes[0].content).data.title).toBe('First draft');
+  });
+
+  it('on: a draft that needed a gate retry is still judged and rewritten', async () => {
+    const prompts: string[] = [];
+    const answers = [
+      answer('First draft', `${BODY} It is fast \u2014 really fast.`),
+      answer('Second draft'),
+      answer('Third draft', REWRITE),
+    ];
+    const { d, writes } = deps((prompt) => {
+      prompts.push(prompt);
+      return answers[prompts.length - 1];
+    });
+    const result = await draftPost(
+      { type: 'building-in-public' },
+      { ...d, review: async (md) => verdict(matter(md).data.title === 'Third draft' ? 4 : 3) }
+    );
+    expect(prompts).toHaveLength(3);
+    expect(result.gateRetry).toEqual(['em-dash']);
+    expect(prompts[2]).toContain('"title":"Second draft"');
+    expect(result.review?.revised).toBe(true);
+    expect(matter(writes[0].content).data.title).toBe('Third draft');
   });
 });

@@ -12,8 +12,9 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { finopsFetch } from '../admin-fetch.js';
 import { ICONS } from '../icons.js';
+import { finopsGet, finopsLoadFailure } from './finops-load.js';
+import { wireFinOpsSaves } from './finops-settings-save.js';
 
 const log = createLogger('FinOpsSection');
 
@@ -109,60 +110,8 @@ let isLoading = false;
 // API
 // ============================================================================
 
-async function fetchSnapshot(): Promise<FinOpsSnapshot> {
-  const response = await finopsFetch('/api/finops/snapshot');
-  if (!response.ok) throw new Error('Failed to fetch FinOps data');
-  return response.json();
-}
-
-async function fetchThresholds(): Promise<Thresholds> {
-  const response = await finopsFetch('/api/finops/thresholds');
-  if (!response.ok) throw new Error('Failed to fetch thresholds');
-  return response.json();
-}
-
-async function _updateThreshold(key: string, value: number): Promise<void> {
-  await finopsFetch('/api/finops/thresholds', {
-    method: 'PUT',
-    body: JSON.stringify({ [key]: value }),
-  });
-}
-
-async function setMRR(mrr: number): Promise<void> {
-  await finopsFetch('/api/finops/revenue', {
-    method: 'PUT',
-    body: JSON.stringify({ mrr }),
-  });
-}
-
-async function setCash(amount: number): Promise<void> {
-  await finopsFetch('/api/finops/cash', {
-    method: 'PUT',
-    body: JSON.stringify({ amount }),
-  });
-}
-
-async function syncMRRFromStripe(): Promise<{
-  mrr: number;
-  subscriptionCount: number;
-  success: boolean;
-}> {
-  const response = await finopsFetch('/api/finops/sync-mrr', {
-    method: 'POST',
-  });
-  return response.json();
-}
-
-async function setLTVCACConfig(cac?: number, churnRate?: number): Promise<void> {
-  const body: Record<string, number> = {};
-  if (cac !== undefined) body.cac = cac;
-  if (churnRate !== undefined) body.churnRate = churnRate / 100; // Convert % to decimal
-
-  await finopsFetch('/api/finops/ltv-cac', {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
-}
+const fetchSnapshot = async () => finopsGet<FinOpsSnapshot>('/api/finops/snapshot');
+const fetchThresholds = async () => finopsGet<Thresholds>('/api/finops/thresholds');
 
 // ============================================================================
 // FORMATTING HELPERS
@@ -1025,73 +974,8 @@ export async function setupEvents(): Promise<void> {
     void refreshData();
   });
 
-  // Save MRR
-  const saveMrrBtn = document.getElementById('save-mrr');
-  saveMrrBtn?.addEventListener('click', () => {
-    void (async () => {
-      const input = document.getElementById('config-mrr') as HTMLInputElement;
-      const mrr = parseFloat(input.value);
-      if (!isNaN(mrr)) {
-        await setMRR(mrr);
-        await refreshData();
-      }
-    })();
-  });
-
-  // Save Cash
-  const saveCashBtn = document.getElementById('save-cash');
-  saveCashBtn?.addEventListener('click', () => {
-    void (async () => {
-      const input = document.getElementById('config-cash') as HTMLInputElement;
-      const cash = parseFloat(input.value);
-      if (!isNaN(cash)) {
-        await setCash(cash);
-        await refreshData();
-      }
-    })();
-  });
-
-  // Sync MRR from Stripe
-  const syncMrrBtn = document.getElementById('sync-mrr');
-  syncMrrBtn?.addEventListener('click', () => {
-    void (async () => {
-      const btn = syncMrrBtn as HTMLButtonElement;
-      const originalText = btn.textContent;
-      btn.textContent = 'Syncing...';
-      btn.disabled = true;
-
-      try {
-        const result = await syncMRRFromStripe();
-        if (result.success) {
-          const mrrInput = document.getElementById('config-mrr') as HTMLInputElement;
-          if (mrrInput) {
-            mrrInput.value = result.mrr.toFixed(2);
-          }
-          await refreshData();
-        }
-      } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }
-    })();
-  });
-
-  // Save LTV:CAC Config
-  const saveLtvBtn = document.getElementById('save-ltv-config');
-  saveLtvBtn?.addEventListener('click', () => {
-    void (async () => {
-      const cacInput = document.getElementById('config-cac') as HTMLInputElement;
-      const churnInput = document.getElementById('config-churn') as HTMLInputElement;
-
-      const cac = cacInput?.value ? parseFloat(cacInput.value) : undefined;
-      const churn = churnInput?.value ? parseFloat(churnInput.value) : undefined;
-
-      if (cac !== undefined || churn !== undefined) {
-        await setLTVCACConfig(cac, churn);
-        await refreshData();
-      }
-    })();
-  });
+  // Save MRR, cash and LTV:CAC, and Sync from Stripe, each answering on screen
+  wireFinOpsSaves(refreshData);
 }
 
 async function refreshData(): Promise<void> {
@@ -1103,6 +987,8 @@ async function refreshData(): Promise<void> {
     updateUI();
   } catch (error) {
     log.error({ error }, 'Failed to refresh FinOps data');
+    const loadingText = document.querySelector('#finops-loading p');
+    if (loadingText) loadingText.textContent = finopsLoadFailure(error);
   } finally {
     isLoading = false;
   }

@@ -48,6 +48,12 @@
     "reason": "Compares the Firebase Auth signInProvider enum ('anonymous' provider) of the two tokens being merged (#2226), not a user id."
   },
   {
+    "file": "api/partner-vote-guard.ts",
+    "count": 1,
+    "category": "non-user-id",
+    "reason": "signInProvider is the Firebase sign_in_provider claim ('anonymous', 'phone', 'apple.com', ...), not a user id: a vote is skipped when the sign-in method itself is anonymous (PARTNER_VOTE_GUARD, #2356)."
+  },
+  {
     "file": "api/v1/developers/auth-routes.ts",
     "count": 1,
     "category": "enum",

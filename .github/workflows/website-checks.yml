@@ -66,6 +66,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Build the site
         working-directory: apps/website/ferni-website
@@ -131,6 +133,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # The PR's checkout is its merge with the base, so the base build is
       # the base commit the merge was made with (origin/main on a dispatch).
@@ -139,6 +143,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha || 'main' }}
           path: _base
+          persist-credentials: false
 
       - name: Build the site
         working-directory: apps/website/ferni-website

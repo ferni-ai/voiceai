@@ -77,6 +77,16 @@ describe('agentFlags', () => {
     });
   });
 
+  it('lists both soft pause switches as on/off experiments', () => {
+    for (const name of ['SOFT_PAUSE_ONE_OUTCOME', 'SOFT_PAUSE_CUT_DROPS_HELD']) {
+      expect(byName(name)).toMatchObject({
+        kind: 'experiment',
+        switchable: true,
+        modes: ['off', 'on'],
+      });
+    }
+  });
+
   it('gives a flagModeOf flag the shadow mode as well', () => {
     expect(byName('SOUND_CONDUCTOR').modes).toEqual(['off', 'shadow', 'on']);
   });
@@ -85,6 +95,7 @@ describe('agentFlags', () => {
     expect(byName('CRISIS_MEANS_IN_HAND').modes).toEqual(['off', 'shadow', 'live']);
     expect(byName('ATTUNE_LEDGER').modes).toEqual(['off', 'on']);
     expect(byName('CALL_TELEMETRY').modes).toEqual(['off', 'on', 'reports']);
+    expect(byName('FAST_LANE_SHADOW').modes).toEqual(['off', 'decision', 'sample']);
   });
 
   it('is computed once and cannot be changed by a caller', () => {
@@ -230,6 +241,14 @@ describe('resolvedValue', () => {
     expect(resolvedValue('CRISIS_MEANS_IN_HAND', ' LIVE ')).toBe('live');
     expect(resolvedValue('CRISIS_MEANS_IN_HAND', 'off')).toBe('off');
     expect(resolvedValue('CRISIS_MEANS_IN_HAND', undefined)).toBe('shadow');
+  });
+
+  it('reports FAST_LANE_SHADOW as its reader resolves it (any case; anything else is off)', () => {
+    expect(resolvedValue('FAST_LANE_SHADOW', ' Decision ')).toBe('decision');
+    expect(resolvedValue('FAST_LANE_SHADOW', 'SAMPLE')).toBe('sample');
+    expect(resolvedValue('FAST_LANE_SHADOW', 'on')).toBe('off');
+    expect(resolvedValue('FAST_LANE_SHADOW', 'true')).toBe('off');
+    expect(resolvedValue('FAST_LANE_SHADOW', undefined)).toBe('off');
   });
 
   it("reports a flag whose reader accepts only 'on' as off for any other word", () => {

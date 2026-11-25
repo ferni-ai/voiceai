@@ -61,6 +61,7 @@ import {
   noteUnstoredForget,
 } from '../adapters/firestore/forgotten-store.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
+import { forgetRelated, relatedNumbers, relatedPhrases } from './forget-related.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
@@ -237,14 +238,28 @@ export function forgetDoneNote(result: Extract<ForgetResult, { kind: 'forgotten'
     : `It's kept out of what you recall from now on, not erased. Tell them this, briefly, and carry on: "${line}" Don't say you've forgotten, deleted or erased it.`;
 }
 
-/** forgetTopic for a call's user, if any. Never throws: a failure is logged and reported as such. */
+/**
+ * forgetTopic for a call's user, if any, then each phrase the model named as
+ * part of it (`alsoAbout`, forget-related.ts; FORGET_RELATED_WORDS). Never
+ * throws: a failure is logged and reported as such.
+ */
 export async function forgetForCaller(
   userId: string | undefined,
   topic: string,
-  store: ForgetStore = firestoreForgetStore
+  store: ForgetStore = firestoreForgetStore,
+  alsoAbout?: readonly unknown[]
 ): Promise<ForgetResult> {
   if (!isMemberIdentity(userId)) return { kind: 'not-saved' };
-  return forgetTopic(userId, topic, store).catch((error: unknown) => {
+  const related = relatedPhrases(topic, alsoAbout);
+  const forgetAll = async () => {
+    const result = await forgetTopic(userId, topic, store);
+    if (result.kind !== 'forgotten') return result;
+    const numbers = await relatedNumbers([topic, ...related], () => store.facts(userId));
+    const phrases = [...related, ...numbers];
+    await forgetRelated(userId, phrases, (phrase) => forgetTopic(userId, phrase, store));
+    return result;
+  };
+  return forgetAll().catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Could not forget from stored memory');
     return { kind: 'failed' as const };
   });

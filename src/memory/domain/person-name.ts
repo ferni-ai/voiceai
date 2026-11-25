@@ -67,3 +67,22 @@ export function couldBePerson(name: string): boolean {
   const [word] = words as [string];
   return !NOT_A_NAME.has(word) && !NOT_A_PERSON.has(word) && !PLACEHOLDER.has(word);
 }
+
+/** Capitalized words that start a clause and are never someone's name. */
+export const CLAUSE_WORDS = new Set(
+  'the a an this that it my we they he she you i with said told asked met saw called texted spoke today yesterday tomorrow monday tuesday wednesday thursday friday saturday sunday morning afternoon evening night week month year then when where what who how why but and or so just really very here there now later soon again next last first good great nice new old some many few honestly anyway actually basically also though'.split(
+    ' '
+  )
+);
+
+/**
+ * The name a caught word gives, or null: not a clause word, pronoun, filler, honorific or verb
+ * (couldBePerson, whole words), and capitalised as said. Name patterns are case-insensitive for
+ * their trigger words ("my son", "talked to"), so their "[A-Z][a-z]+" also caught "and" in "my
+ * son and I"; a lowercase word is never a name. Shared by the people graph, the profile's family
+ * members and fast capture (#3922, #3993).
+ */
+export function nameAsSaid(word: string | undefined): string | null {
+  if (!word || CLAUSE_WORDS.has(word.toLowerCase()) || !couldBePerson(word)) return null;
+  return /^\p{Lu}/u.test(word) ? word : null;
+}

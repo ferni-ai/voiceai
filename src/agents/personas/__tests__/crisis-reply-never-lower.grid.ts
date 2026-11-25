@@ -18,7 +18,10 @@ import { ReadableStream } from 'node:stream/web';
 import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest';
 
 import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
-import { NOT_YET_COVERED } from '../../../services/safety/__tests__/crisis-flag-homes.js';
+import {
+  MEMORY_ONLY,
+  NOT_YET_COVERED,
+} from '../../../services/safety/__tests__/crisis-flag-homes.js';
 import {
   CRISIS_FLAGS,
   RUNNER_MARKERS,
@@ -205,11 +208,27 @@ export let classifierCalls = 0;
 export const verdict =
   (risk: string, subject: string): CrisisGenerateFn =>
   async () => (classifierCalls++, JSON.stringify({ risk, subject }));
+/**
+ * A cut call's reads (ReplyCall.cut): the answer only for a read whose latest words hold the
+ * call's first line, none for any other (the classifier is sent its input as JSON; earlier lines
+ * are context, as in the real prompt). The one call whose reads differ by input, so the whole-turn
+ * read (CRISIS_GATE_TURN_READS) shows at the reply: off, the next turn's latest words are only the
+ * new line; on, they hold the cut-off line too.
+ */
+const splitRead =
+  (answer: CrisisGenerateFn, line: string): CrisisGenerateFn =>
+  async (prompt, content, signal) => {
+    const latest = String((JSON.parse(content) as { latest?: unknown }).latest ?? '');
+    return latest.toLowerCase().includes(line.toLowerCase())
+      ? answer(prompt, content, signal)
+      : CLASSIFIER.none(prompt, content, signal);
+  };
 export const CLASSIFIER: Record<Answer, CrisisGenerateFn> = {
   none: verdict('none', 'self'),
   crisis: verdict('crisis', 'self'),
   imminent: verdict('imminent', 'self'),
   other: verdict('imminent', 'other'),
+  'for them': verdict('imminent', 'third_party'),
   throws: async () => {
     classifierCalls++;
     throw new Error('provider down');
@@ -385,7 +404,7 @@ export async function place(call: ReplyCall, answer: Answer, at?: At): Promise<H
     void inReply.run(true, async (): Promise<void> => {
       const stream = await gatedReply(ctx.copy(), session, model as never, opener as never, {
         env: process.env as Record<string, string>,
-        generate: CLASSIFIER[answer],
+        generate: call.cut ? splitRead(CLASSIFIER[answer], call.says[0]) : CLASSIFIER[answer],
         adjudicate: ADJUDICATOR,
       });
       if (stream)
@@ -400,7 +419,7 @@ export async function place(call: ReplyCall, answer: Answer, at?: At): Promise<H
       await vi.advanceTimersByTimeAsync(step);
     if (!came) vi.clearAllTimers();
     heard.push({ came, firstWordsMs, spoken, asked, holdAsked });
-    ctx.addMessage({ role: 'assistant', content: spoken });
+    ctx.addMessage({ role: 'assistant', content: spoken, interrupted: call.cut ?? false });
   }
   return heard;
 }
@@ -723,10 +742,13 @@ export const SCOPED: ReadonlyArray<readonly [string, FlagValues]> = [
 export const INERT = READ_BY_GATE.flatMap((name) =>
   inertFor(name).map((word) => [name, shown(word), word] as const)
 );
-/** Crisis-lane flags the gate reads that no call shows yet: no word of one may change a reply. */
-export const NO_ROW = NOT_YET_COVERED.filter((name) => READ_BY_GATE.includes(name)).flatMap(
-  (name) => WORDS.map((word) => [name, shown(word), word] as const)
-);
+/**
+ * Crisis-lane flags the gate reads that no call shows yet, or that by design change no reply
+ * (MEMORY_ONLY): no word of one may change a reply.
+ */
+export const NO_ROW = [...NOT_YET_COVERED, ...Object.keys(MEMORY_ONLY)]
+  .filter((name) => READ_BY_GATE.includes(name))
+  .flatMap((name) => WORDS.map((word) => [name, shown(word), word] as const));
 /** A timezone for the caller, so the code that works out the caller's own time runs. */
 export const ZONE = 'America/Denver';
 export const upTo = (count: number): number[] => Array.from({ length: count }, (_, i) => i);

@@ -61,11 +61,15 @@ async function voiceCancellation(
   }
 }
 
-/** session.start() fields for the caller's audio input. */
+/**
+ * session.start() fields for the caller's audio input. `sampleRate` is the rate the
+ * audio is read at, for the phone frame processor; unset, the room input's 24 kHz.
+ */
 export async function roomInputOptions(
   participant: CallParticipantLike | undefined,
   sessionId: string,
-  env: Env = process.env
+  env: Env = process.env,
+  sampleRate?: number
 ): Promise<InputOptions> {
   if (isPhoneParticipant(participant)) {
     if (flagOn('PHONE_NOISE_CANCEL', env)) {
@@ -81,7 +85,7 @@ export async function roomInputOptions(
       }
     }
     const phone = wantsPhonePreStt(participant, env)
-      ? await createPreSTTFrameProcessor(sessionId)
+      ? await createPreSTTFrameProcessor(sessionId, sampleRate)
       : null;
     return phone ? { inputOptions: { noiseCancellation: phone } } : {};
   }

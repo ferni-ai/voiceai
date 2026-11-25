@@ -1,6 +1,7 @@
 /**
- * Where the dev flag switchboard keeps its state, in the process's Firestore database
- * (ferni-dev for the dev agent and the dev UI server):
+ * Where the dev flag switchboard keeps its state (ports/flag-store.ts), in dev's Firestore
+ * database (ferni-dev, for the dev agent and the dev UI server). It refuses to open on any
+ * other database, prod's '(default)' included. It holds:
  * - ops/agent_flag_snapshot: the flag values the dev agent last booted with (one doc,
  *   replaced on every worker start);
  * - agent_flag_changes: one doc per apply request, who asked and what LiveKit said.
@@ -11,33 +12,21 @@
  * @module config/agent-flags/adapters/flag-store
  */
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
+import type { Env } from '../../env-flag.js';
+import { isKnownDevDatabase } from '../../firestore-database.js';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { safeSet } from '../../../utils/safe-firestore.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { FlagSnapshot } from '../domain/snapshot.js';
+import type { FlagChange, FlagStore } from '../ports/flag-store.js';
 
 const log = createLogger({ module: 'agent-flag-store' });
 
 const SNAPSHOT_COLLECTION = 'ops';
 const SNAPSHOT_DOC = 'agent_flag_snapshot';
 const CHANGES_COLLECTION = 'agent_flag_changes';
-
-export interface FlagChange {
-  at: string;
-  actor: string;
-  set: Record<string, string>;
-  reset: string[];
-  result: 'applied' | 'refused' | 'failed';
-  detail?: string;
-}
-
-export interface FlagStore {
-  writeSnapshot: (s: FlagSnapshot) => Promise<void>;
-  readSnapshot: () => Promise<FlagSnapshot | null>;
-  appendChange: (c: FlagChange) => Promise<void>;
-  recentChanges: (limit: number) => Promise<FlagChange[]>;
-}
+const MAX_CHANGES_LISTED = 100;
 
 const RESULTS: ReadonlySet<string> = new Set(['applied', 'refused', 'failed']);
 
@@ -72,9 +61,24 @@ function parseChange(data: unknown): FlagChange | null {
   return change;
 }
 
-/** The store on `db`, by default the process's database (FIRESTORE_DATABASE). */
-export function firestoreFlagStore(db: Firestore = getAdminFirestore()): FlagStore {
-  const snapshotRef = (): DocumentReference => db.collection(SNAPSHOT_COLLECTION).doc(SNAPSHOT_DOC);
+/** Any limit to a whole number of changes in 1..MAX_CHANGES_LISTED (NaN lists one). */
+function clampLimit(limit: number): number {
+  if (!Number.isFinite(limit)) return 1;
+  return Math.min(MAX_CHANGES_LISTED, Math.max(1, Math.trunc(limit)));
+}
+
+/**
+ * The store on `db`, by default the process's database (getAdminFirestore binds to
+ * FIRESTORE_DATABASE in process.env, the default `env`). Throws unless `env` names dev's
+ * database exactly, before any Firestore is opened.
+ */
+export function firestoreFlagStore(db?: Firestore, env: Env = process.env): FlagStore {
+  if (!isKnownDevDatabase(env)) {
+    throw new Error('The agent flag store runs only on the ferni-dev Firestore database');
+  }
+  const firestore = db ?? getAdminFirestore();
+  const snapshotRef = (): DocumentReference =>
+    firestore.collection(SNAPSHOT_COLLECTION).doc(SNAPSHOT_DOC);
   return {
     async writeSnapshot(s) {
       await safeSet(snapshotRef(), { ...s }); // no merge: a removed flag file leaves no stale entry
@@ -88,10 +92,14 @@ export function firestoreFlagStore(db: Firestore = getAdminFirestore()): FlagSto
       return parsed;
     },
     async appendChange(c) {
-      await db.collection(CHANGES_COLLECTION).add(cleanForFirestore(c));
+      await firestore.collection(CHANGES_COLLECTION).add(cleanForFirestore(c));
     },
     async recentChanges(limit) {
-      const snap = await db.collection(CHANGES_COLLECTION).orderBy('at', 'desc').limit(limit).get();
+      const snap = await firestore
+        .collection(CHANGES_COLLECTION)
+        .orderBy('at', 'desc')
+        .limit(clampLimit(limit))
+        .get();
       const changes: FlagChange[] = [];
       for (const doc of snap.docs) {
         const change = parseChange(doc.data());

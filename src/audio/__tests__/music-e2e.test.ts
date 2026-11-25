@@ -480,97 +480,102 @@ describe('E2E: Persona-Specific Transitions', () => {
 describe('E2E: Relationship Stage Influence', () => {
   const stages = ['stranger', 'acquaintance', 'friend', 'close_friend'] as const;
 
+  // Seeded (#3889): unseeded, 20 draws at a true stranger rate of 0.7 fell under the
+  // old 0.4 bound about once in 770 runs. Each trial's roll is a point on an even grid,
+  // (i + 0.5) / 20, and every later draw (phrase picks) is 0, so the counts are exact:
+  // roll < 0.6 is silence for everyone, 0.6-0.9 is presence, and the top 10% is silence
+  // for a stranger or acquaintance but a check-in for a friend.
   it('should be more cautious with strangers', () => {
-    const silenceRates: Record<string, number> = {};
+    const silenceCounts: Record<string, number> = {};
+    const trials = 20;
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
 
-    for (const stage of stages) {
-      let silenceCount = 0;
-      const trials = 20;
+    try {
+      for (const stage of stages) {
+        let silenceCount = 0;
 
-      for (let i = 0; i < trials; i++) {
-        startMusicContext(
-          TEST_SESSION_ID,
-          createTestContext({
-            startReason: 'emotional_processing',
-            emotionalTone: 'heavy',
+        for (let i = 0; i < trials; i++) {
+          startMusicContext(
+            TEST_SESSION_ID,
+            createTestContext({
+              startReason: 'emotional_processing',
+              emotionalTone: 'heavy',
+              relationshipStage: stage,
+            })
+          );
+          const musicContext = endMusicContext(TEST_SESSION_ID);
+
+          random.mockReturnValueOnce((i + 0.5) / trials);
+          const transition = getMusicTransition({
+            musicContext,
+            personaId: 'ferni',
             relationshipStage: stage,
-          })
-        );
-        const musicContext = endMusicContext(TEST_SESSION_ID);
+            userId: `${TEST_USER_ID}-${stage}-${i}`,
+            sessionId: `${TEST_SESSION_ID}-${stage}-${i}`,
+            enableEnhancements: false, // Disable learning for consistent results
+          });
 
-        const transition = getMusicTransition({
-          musicContext,
-          personaId: 'ferni',
-          relationshipStage: stage,
-          userId: `${TEST_USER_ID}-${stage}-${i}`,
-          sessionId: `${TEST_SESSION_ID}-${stage}-${i}`,
-          enableEnhancements: false, // Disable learning for consistent results
-        });
+          if (transition.transitionType === 'silence') {
+            silenceCount++;
+          }
 
-        if (transition.transitionType === 'silence') {
-          silenceCount++;
+          clearMusicContext(TEST_SESSION_ID);
         }
 
-        clearMusicContext(TEST_SESSION_ID);
+        silenceCounts[stage] = silenceCount;
       }
-
-      silenceRates[stage] = silenceCount / trials;
+    } finally {
+      random.mockRestore();
     }
 
-    // Strangers should have high silence rate in emotional moments
-    // (at least higher than close friends on average)
-    expect(silenceRates['stranger']).toBeGreaterThanOrEqual(0.4);
+    expect(silenceCounts).toEqual({ stranger: 14, acquaintance: 14, friend: 12, close_friend: 12 });
+    expect(silenceCounts['stranger']).toBeGreaterThan(silenceCounts['close_friend']);
   });
 });
 
 describe('E2E: Late Night Awareness', () => {
-  it('should favor silence during late night', () => {
+  // Seeded like the stranger row (#3889): each trial's roll is (i + 0.5) / 20 and
+  // later draws are 0, so the counts are exact. Late night is silent for roll < 0.7,
+  // normal background for roll < 0.75. So late night is NOT more silent than normal
+  // background today (14 vs 15 of 20), whatever the comment in the selector says. This
+  // pins each branch's rate, not the inversion between them.
+  it('is silent 14 of 20 late at night and 15 of 20 for normal background music', () => {
     let lateNightSilence = 0;
     let normalSilence = 0;
     const trials = 20;
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
 
-    for (let i = 0; i < trials; i++) {
-      // Late night
-      startMusicContext(TEST_SESSION_ID, createTestContext({ startReason: 'background' }));
-      let musicContext = endMusicContext(TEST_SESSION_ID);
+    try {
+      for (let i = 0; i < trials; i++) {
+        for (const isLateNight of [true, false]) {
+          startMusicContext(TEST_SESSION_ID, createTestContext({ startReason: 'background' }));
+          const musicContext = endMusicContext(TEST_SESSION_ID);
 
-      let transition = getMusicTransition({
-        musicContext,
-        personaId: 'ferni',
-        isLateNight: true,
-        userId: `${TEST_USER_ID}-late-${i}`,
-        sessionId: `${TEST_SESSION_ID}-late-${i}`,
-        enableEnhancements: false,
-      });
+          random.mockReturnValueOnce((i + 0.5) / trials);
+          const transition = getMusicTransition({
+            musicContext,
+            personaId: 'ferni',
+            isLateNight,
+            userId: `${TEST_USER_ID}-${isLateNight ? 'late' : 'normal'}-${i}`,
+            sessionId: `${TEST_SESSION_ID}-${isLateNight ? 'late' : 'normal'}-${i}`,
+            enableEnhancements: false,
+          });
 
-      if (transition.transitionType === 'silence') {
-        lateNightSilence++;
+          if (transition.transitionType === 'silence') {
+            if (isLateNight) lateNightSilence++;
+            else normalSilence++;
+          }
+
+          clearMusicContext(TEST_SESSION_ID);
+        }
       }
-
-      clearMusicContext(TEST_SESSION_ID);
-
-      // Normal time
-      startMusicContext(TEST_SESSION_ID, createTestContext({ startReason: 'background' }));
-      musicContext = endMusicContext(TEST_SESSION_ID);
-
-      transition = getMusicTransition({
-        musicContext,
-        personaId: 'ferni',
-        isLateNight: false,
-        userId: `${TEST_USER_ID}-normal-${i}`,
-        sessionId: `${TEST_SESSION_ID}-normal-${i}`,
-        enableEnhancements: false,
-      });
-
-      if (transition.transitionType === 'silence') {
-        normalSilence++;
-      }
-
-      clearMusicContext(TEST_SESSION_ID);
+    } finally {
+      random.mockRestore();
     }
 
-    // Late night should have at least somewhat higher silence rate
-    // Due to randomness, we just verify both work
-    expect(lateNightSilence + normalSilence).toBeGreaterThan(0);
+    expect({ lateNightSilence, normalSilence }).toEqual({
+      lateNightSilence: 14,
+      normalSilence: 15,
+    });
   });
 });

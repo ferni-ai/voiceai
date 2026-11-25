@@ -8,6 +8,7 @@ import { getDJController } from '../../audio/dj-controller.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { isSessionClosing } from '../shared/session-closing-tracker.js';
 import { onToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import { renderFallbackLine } from './fallback-line-render.js';
 import type { LiveCallBehaviorsInput } from './live-call-behaviors.js';
 import { ensureResumeBuffer, replyPaused } from './resume-buffer.js';
 import {
@@ -16,6 +17,7 @@ import {
   neverSilentMode,
   type NeverSilentSession,
 } from './never-silent.js';
+import { createToolWait, toolWaitOn, withToolWait } from './never-silent-tool-wait.js';
 
 const log = getLogger();
 
@@ -27,9 +29,16 @@ function musicPlaying(): boolean {
   }
 }
 
+/** The voice the session speaks in now (PersonaAwareTTS); read per render, so a handoff counts. */
+function sessionVoiceId(session: unknown): string | undefined {
+  const { tts } = session as { tts?: { getVoiceId?: () => string } | null };
+  return typeof tts?.getVoiceId === 'function' ? tts.getVoiceId() : undefined;
+}
+
 export function installNeverSilent(
   input: LiveCallBehaviorsInput,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  render: typeof renderFallbackLine = renderFallbackLine
 ): void {
   const mode = neverSilentMode(env);
   if (mode === 'off') return;
@@ -37,12 +46,27 @@ export function installNeverSilent(
   const events = input.sessionWithEvents as {
     on: (event: string, handler: (ev: unknown) => void) => void;
   };
-  const guard = createNeverSilentGuard({
+  const shared = {
     session: session as unknown as NeverSilentSession,
     mode,
-    hangMs: hangMs(env),
     stayQuiet: () => isSessionClosing(sessionId) || musicPlaying(),
     replyPaused: () => replyPaused(session),
+  };
+  const wait = toolWaitOn(env)
+    ? createToolWait({
+        ...shared,
+        waitMs: hangMs(env),
+        log: (fields) => log.warn({ sessionId, ...fields }, 'NEVER_SILENT_FALLBACK'),
+      })
+    : null;
+  const inner = createNeverSilentGuard({
+    ...shared,
+    hangMs: hangMs(env),
+    toolWait: wait !== null,
+    renderLine: async (text) => {
+      const voiceId = sessionVoiceId(session);
+      return voiceId ? render(text, voiceId, { env }) : { failure: 'no_voice' };
+    },
     // A rendering problem is not a fallback: keep NEVER_SILENT_FALLBACK a count of real ones.
     log: (fields) =>
       log.warn(
@@ -52,6 +76,7 @@ export function installNeverSilent(
           : 'NEVER_SILENT_FALLBACK'
       ),
   });
+  const guard = withToolWait(inner, wait);
   const handlers: Array<{ event: string; handler: (ev: unknown) => void }> = [
     { event: 'conversation_item_added', handler: guard.onItemAdded },
     { event: 'agent_state_changed', handler: guard.onAgentState },

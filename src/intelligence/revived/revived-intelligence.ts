@@ -111,8 +111,9 @@ export interface RevivedStart {
   lastConversationSummary?: string;
   store: RevivedStore;
   /**
-   * What the caller asked Ferni to forget, as stored, or null when it can't be
-   * read (or takes past FORGOTTEN_WAIT_MS): then nothing from earlier calls is offered.
+   * What the caller asked Ferni to forget, as stored, or null when there is no
+   * live check (FORGET_EVERY_READER off, no member) or it takes past
+   * FORGOTTEN_WAIT_MS: then nothing from earlier calls is offered.
    */
   forgotten: () => Promise<IsForgotten | null>;
   /** What they asked to forget during this call (forget.ts forgottenInProcess), checked every turn. */

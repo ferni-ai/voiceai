@@ -25,6 +25,7 @@
  * @module speech/adaptive-ssml/heavy-moment
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { scoreCrisisLanguage } from '../../services/safety/index.js';
 import { BLOCK_LAUGHTER_PATTERNS } from './contextual-laughter.js';
 
@@ -108,6 +109,41 @@ const HEAVY: readonly RegExp[] = [
   /\bwhat (?:do|am) i (?:even )?(?:supposed to )?(?:do|going to do|gonna do) now\b/i,
 ];
 
+const MONTH =
+  'january|february|march|april|may|june|july|august|september|october|november|december';
+const WEEKDAY = 'monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+const SEASON = 'spring|summer|fall|autumn|winter';
+/** When a loss happened: "in 2019", "in March", "last week", "on Sunday", "two years ago". */
+const WHEN = [
+  `in (?:(?:19|20)\\d{2}|${MONTH})`,
+  `last (?:week|month|year|night|${MONTH}|${WEEKDAY}|${SEASON})`,
+  `on ${WEEKDAY}`,
+  'yesterday',
+  'this (?:morning|week|month|year)',
+  '(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|a few|several|\\d+) (?:days?|weeks?|months?|years?) ago',
+].join('|');
+
+/**
+ * HEAVY_MOMENT_WIDER: loss said without a death word, which HEAVY misses
+ * (#3845). Each needs a person and a sign it is a loss, never a word alone:
+ * "buried in email", "the pass rush", "he's been gone since Monday on a work
+ * trip" stay light. "Gone since" counts only with a year ("since 2011",
+ * "since '09"); a bare "since 09" could be a time, so it is left out.
+ */
+const WIDER_LOSS: readonly RegExp[] = [
+  // "Buried my uncle last Friday.": no subject, which HEAVY's "we|i|they buried" needs.
+  new RegExp(`\\bburied (?:my|our|her|his|their) (?:${PEOPLE})\\b`, 'i'),
+  // "she passed in 2019": a pronoun passing, then when.
+  new RegExp(`\\b(?:she|he|they)\\s+(?:just\\s+|recently\\s+)?passed (?:${WHEN})\\b`, 'i'),
+  // "my aunt has been gone since 2011", "Mom's been gone since '09".
+  new RegExp(
+    `\\b(?:(?:my|our|her|his|their)\\s+)?(?:${PEOPLE})(?:'s|\\s+has|\\s+had)\\s+been gone since (?:(?:19|20)\\d{2}|'\\d{2})\\b`,
+    'i'
+  ),
+  // Where and what of a burial.
+  /\b(?:cemetery|graveyard|gravesite|graveside|headstone|tombstone|casket|coffin|obituary|eulogy|burial|bereave\w*|widowed)\b/i,
+];
+
 /** "ER" said as the emergency room: only in capitals, "er" is a filler. */
 const ER = /\bE\.?R\b/;
 
@@ -125,7 +161,11 @@ function heavyTurn(text: string): boolean {
   if (ER.test(text)) return true;
   let t = text.replace(/[‘’]/g, "'");
   for (const idiom of LIGHT_IDIOMS) t = t.replace(idiom, ' ');
-  return HEAVY_MOMENT_PATTERNS.some((p) => p.test(t)) || scoreCrisisLanguage(t).severity > 0;
+  return (
+    HEAVY_MOMENT_PATTERNS.some((p) => p.test(t)) ||
+    scoreCrisisLanguage(t).severity > 0 ||
+    (flagOn('HEAVY_MOMENT_WIDER') && WIDER_LOSS.some((p) => p.test(t)))
+  );
 }
 
 /**

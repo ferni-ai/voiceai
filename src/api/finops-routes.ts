@@ -8,64 +8,14 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseBody, sendJSON } from './helpers.js';
-import { finops, type FinOpsThresholds } from '../services/observability/finops.js';
-
-// ============================================================================
-// VALIDATION SCHEMAS (Zod)
-// ============================================================================
-
-const RevenueSchema = z.object({
-  mrr: z.number().nonnegative({ message: 'MRR must be non-negative' }),
-});
-
-const CashSchema = z.object({
-  amount: z.number().nonnegative({ message: 'Amount must be non-negative' }),
-});
-
-const LtvCacConfigSchema = z.object({
-  cac: z.number().optional(),
-  lifetimeMonths: z.number().optional(),
-  churnRate: z.number().optional(),
-});
+import { requireAuth } from './auth-middleware.js';
+import { sendJSON } from './helpers.js';
+import { ensureFinOpsSettings, handleFinOpsSettingsSave } from './finops-settings-routes.js';
+import { finops } from '../services/observability/finops.js';
+import { FinOpsSettingsUnavailableError } from '../services/observability/finops-settings/index.js';
 
 const log = createLogger({ module: 'FinOpsRoutes' });
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Verify admin access for FinOps endpoints.
- *
- * SECURITY: Properly validates admin key without accepting 'dev-mode' in production.
- * The dev-mode bypass only works when NODE_ENV is explicitly 'development'.
- */
-function isAdmin(req: IncomingMessage, query: URLSearchParams): boolean {
-  const adminKeyHeader = req.headers['x-admin-key'] as string | undefined;
-  const adminKeyQuery = query.get('admin_key');
-  const adminKey = adminKeyHeader || adminKeyQuery || undefined;
-
-  const configuredAdminKey = process.env.ADMIN_KEY;
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // Primary check: valid ADMIN_KEY from environment
-  if (configuredAdminKey && adminKey === configuredAdminKey) {
-    return true;
-  }
-
-  // Dev mode bypass - ONLY works in development environment
-  // SECURITY: Never accept 'dev-mode' string in production
-  if (isDev && adminKey === 'dev-mode') {
-    return true;
-  }
-
-  return false;
-}
-
-// parseBody and sendJSON imported from './helpers.js'
 
 // ============================================================================
 // ROUTE HANDLER
@@ -79,22 +29,25 @@ export async function handleFinOpsRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  parsedUrl: URL
+  _parsedUrl: URL
 ): Promise<boolean> {
   // Only handle /api/finops/* routes
   if (!pathname.startsWith('/api/finops')) {
     return false;
   }
 
-  const query = parsedUrl.searchParams;
-
-  // Auth check
-  if (!isAdmin(req, query)) {
-    sendJSON(res, { error: 'Unauthorized' }, 401);
-    return true;
-  }
+  // Company finances: admins only, through the same check as every other admin route
+  // (a Firebase admin; in development, the dev-mode key). 401 signed out, 403 non-admin.
+  const auth = await requireAuth(req, res, { requireAdmin: true });
+  if (!auth) return true;
 
   try {
+    // Saves (revenue, cash, ltv-cac, thresholds) write through the settings store
+    if (await handleFinOpsSettingsSave(req, res, pathname, auth.userId)) return true;
+    // Reads show the saved settings, so refresh them first (503 when the store is down)
+    const readsSettings = req.method === 'GET' && pathname !== '/api/finops/pricing';
+    if (readsSettings && !(await ensureFinOpsSettings(res))) return true;
+
     // GET /api/finops/snapshot
     if (pathname === '/api/finops/snapshot' && req.method === 'GET') {
       const snapshot = finops.getSnapshot();
@@ -106,40 +59,6 @@ export async function handleFinOpsRoutes(
     if (pathname === '/api/finops/thresholds' && req.method === 'GET') {
       const thresholds = finops.getThresholds();
       sendJSON(res, thresholds);
-      return true;
-    }
-
-    // PUT /api/finops/thresholds
-    if (pathname === '/api/finops/thresholds' && req.method === 'PUT') {
-      const body = await parseBody<Partial<FinOpsThresholds>>(req);
-      finops.setThresholds(body);
-      sendJSON(res, { success: true, thresholds: finops.getThresholds() });
-      return true;
-    }
-
-    // PUT /api/finops/revenue
-    if (pathname === '/api/finops/revenue' && req.method === 'PUT') {
-      const body = await parseBody(req);
-      const result = RevenueSchema.safeParse(body);
-      if (!result.success) {
-        sendJSON(res, { error: result.error.issues[0]?.message || 'Invalid MRR value' }, 400);
-        return true;
-      }
-      finops.setMonthlyRevenue(result.data.mrr);
-      sendJSON(res, { success: true, mrr: result.data.mrr });
-      return true;
-    }
-
-    // PUT /api/finops/cash
-    if (pathname === '/api/finops/cash' && req.method === 'PUT') {
-      const body = await parseBody(req);
-      const result = CashSchema.safeParse(body);
-      if (!result.success) {
-        sendJSON(res, { error: result.error.issues[0]?.message || 'Invalid cash amount' }, 400);
-        return true;
-      }
-      finops.setCashReserve(result.data.amount);
-      sendJSON(res, { success: true, amount: result.data.amount });
       return true;
     }
 
@@ -203,27 +122,6 @@ export async function handleFinOpsRoutes(
       const snapshot = finops.getSnapshot();
       sendJSON(res, {
         metrics: snapshot.ltvCac,
-        inputs: finops.getLTVCACInputs(),
-      });
-      return true;
-    }
-
-    // PUT /api/finops/ltv-cac
-    if (pathname === '/api/finops/ltv-cac' && req.method === 'PUT') {
-      const body = await parseBody(req);
-      const result = LtvCacConfigSchema.safeParse(body);
-      if (!result.success) {
-        sendJSON(res, { error: result.error.issues[0]?.message || 'Invalid LTV/CAC config' }, 400);
-        return true;
-      }
-      const { cac, lifetimeMonths, churnRate } = result.data;
-
-      if (cac !== undefined) finops.setCAC(cac);
-      if (lifetimeMonths !== undefined) finops.setCustomerLifetime(lifetimeMonths);
-      if (churnRate !== undefined) finops.setChurnRate(churnRate);
-
-      sendJSON(res, {
-        success: true,
         inputs: finops.getLTVCACInputs(),
       });
       return true;
@@ -317,26 +215,28 @@ export async function handleFinOpsRoutes(
       return true;
     }
 
-    // POST /api/finops/sync-mrr - Trigger MRR sync from Stripe
+    // POST /api/finops/sync-mrr - Trigger MRR sync from Stripe. Without Stripe there is
+    // no MRR to sync: 503 and nothing saved, never a made-up 0.
     if (pathname === '/api/finops/sync-mrr' && req.method === 'POST') {
+      const stripe = await import('../services/stripe-subscription.js');
+      if (!stripe.isStripeConfigured()) {
+        sendJSON(res, { success: false, error: 'MRR not synced', reason: 'Stripe is not configured' }, 503); // prettier-ignore
+        return true;
+      }
       try {
-        const { syncMRRToFinOps } = await import('../services/stripe-subscription.js');
-        const result = await syncMRRToFinOps();
+        const result = await stripe.syncMRRToFinOps();
         sendJSON(res, {
           success: true,
           ...result,
           message: `Synced MRR from ${result.subscriptionCount} subscriptions`,
         });
       } catch (err) {
-        sendJSON(
-          res,
-          {
-            success: false,
-            error: String(err),
-            message: 'Failed to sync MRR - check Stripe configuration',
-          },
-          500
-        );
+        log.error({ error: String(err) }, 'MRR sync from Stripe failed');
+        if (err instanceof FinOpsSettingsUnavailableError) {
+          sendJSON(res, { success: false, error: 'Synced MRR could not be saved', reason: err.reason }, 503); // prettier-ignore
+        } else {
+          sendJSON(res, { success: false, error: 'MRR sync from Stripe failed', reason: String(err) }, 500); // prettier-ignore
+        }
       }
       return true;
     }

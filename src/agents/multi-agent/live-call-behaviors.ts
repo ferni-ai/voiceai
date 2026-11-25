@@ -55,10 +55,12 @@ import {
   sessionTurnDetector,
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
+import { stripTurnLabel } from '../group-conversation/turn-label.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
+import { installLateWriteResultPort } from './late-write-result.js';
 
 const log = getLogger();
 
@@ -105,6 +107,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       .catch((error: unknown) => log.warn({ error: String(error) }, 'LK_PATCH_CHECK failed'));
   }
 
+  const unlabel = (t: string): string => stripTurnLabel(session, t); // GROUP_CALL turn labels
   // Stop Ferni within ~a second of a clear interruption (barge-in-fastpath.ts);
   // LiveKit's barge-in model still handles backchannels and short overlaps.
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
@@ -126,6 +129,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
       },
       softPause,
+      unlabel,
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
     setBargeInFastPath(session, bargeIn);
@@ -154,6 +158,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installGatedCallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
+  // LATE_WRITE_RESULT_KEPT: a write that lands after a barge-in still reaches the model.
+  installLateWriteResultPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
@@ -215,13 +221,15 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // the model already waits through unfinished thoughts (turn-detector-sole.ts).
   const sole = holdsStandDown(session);
   if (!sole) {
-    if (installUnfinishedTurnHold(session)) reportUnfinishedTurnHolds(session, sessionId);
+    const held = installUnfinishedTurnHold(session, process.env, unlabel);
+    if (held) reportUnfinishedTurnHolds(session, sessionId);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
       session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
       endpointingDelays().minEndpointingDelay,
       process.env,
-      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
+      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR'),
+      unlabel
     );
     if (detach) cleanupFunctions.push(detach);
   }

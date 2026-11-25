@@ -116,6 +116,40 @@ async function run(
   return { scratchNotes, body: pushed.slice(TURN_CONTEXT_HEADER.length + 1) };
 }
 
+// The turn reads the hour from the process clock (turn-events.ts hourOfDay); the late-night
+// note is on from 23:00 to 05:00 (behavior-event-dispatcher.ts). Every row that runs
+// handleUserTurn sets the clock, so no row depends on the hour the suite happens to run at.
+const LATE_NIGHT = 'late_night_detected';
+const lateNight = (hour: number): boolean => hour >= 23 || hour < 5;
+const DAY = 14;
+const NIGHT = 2;
+
+/** Runs `body` with the process clock at hour:30, local time. */
+async function atHalfPast<T>(hour: number, body: () => Promise<T>): Promise<T> {
+  vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
+  vi.setSystemTime(new Date(2026, 10, 9, hour, 30, 0));
+  try {
+    return await body();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+/**
+ * One turn at hour:30. The late-night note is in the composed turn exactly in its band, so a night
+ * row tests it. Not asserted in the pushed note: the safety rows' memories exceed the cap and the
+ * behavior note is written last (turn-handler.ts), so pushedNotesText cuts it by design; the
+ * 24 hour rows, with small notes, check it there.
+ */
+async function runAt(hour: number, s: Scenario, userText?: string) {
+  const turn = await atHalfPast(hour, () => run(s, userText));
+  expect(
+    turn.scratchNotes.some((text) => text.includes(LATE_NIGHT)),
+    `late-night note at ${hour}:30`
+  ).toBe(lateNight(hour));
+  return turn;
+}
+
 const pad = (tag: string, n: number) => `${tag} ${'x'.repeat(Math.max(0, n - tag.length - 1))}`;
 const MEMORIES = `[RELEVANT MEMORIES]\n${'They talked about their sister, the move, the job and the dog. '.repeat(64)}`;
 const SAFETY: Injection = {
@@ -168,61 +202,70 @@ const LONG_CRISIS = {
 };
 
 describe('crisis guidance survives the pushed-context cut (#2618)', () => {
-  it('a crisis turn keeps crisis_response whole and last, and keeps the safety injection', async () => {
-    const s: Scenario = {
-      name: 'crisis',
-      kept: [SAFETY, IDENTITY, CONTEXT],
-      memories: [MEMORIES],
-      crisis: LONG_CRISIS,
-      correlations: CORRELATIONS,
-    };
-    const { scratchNotes, body } = await run(s);
-    // Precondition: main's raw cut would have had to drop something.
-    expect(scratchNotes.join('\n\n').length).toBeGreaterThan(MAX_PUSHED_CONTEXT_CHARS);
+  it.each([DAY, NIGHT])(
+    'a crisis turn keeps crisis_response whole and last, and keeps the safety injection, at %i:30',
+    async (hour) => {
+      const s: Scenario = {
+        name: 'crisis',
+        kept: [SAFETY, IDENTITY, CONTEXT],
+        memories: [MEMORIES],
+        crisis: LONG_CRISIS,
+        correlations: CORRELATIONS,
+      };
+      const { scratchNotes, body } = await runAt(hour, s);
+      // Precondition: main's raw cut would have had to drop something.
+      expect(scratchNotes.join('\n\n').length).toBeGreaterThan(MAX_PUSHED_CONTEXT_CHARS);
 
-    const guidance = buildCrisisGuidance(LONG_CRISIS as never);
-    expect(body).toContain(guidance);
-    expect(body).toContain(SAFETY.content);
-    // The safety guidance is the tail, whole: the other notes and injections all come before it.
-    const tail = body.slice(Math.min(body.indexOf(guidance), body.indexOf(SAFETY.content)));
-    expect(tail.length).toBe(guidance.length + SAFETY.content.length + 2);
-    expect(body.indexOf(CORRELATIONS_HEADER)).toBeLessThan(body.length - tail.length);
-    expect(tail).not.toContain('[IDENTITY]');
-    // The remainder still gets what budget is left, so the note stays bounded.
-    expect(body).toContain(CORRELATIONS_HEADER);
-    expect(body.length).toBeLessThanOrEqual(MAX_PUSHED_CONTEXT_CHARS);
-  });
+      const guidance = buildCrisisGuidance(LONG_CRISIS as never);
+      expect(body).toContain(guidance);
+      expect(body).toContain(SAFETY.content);
+      // The safety guidance is the tail, whole: the other notes and injections all come before it.
+      const tail = body.slice(Math.min(body.indexOf(guidance), body.indexOf(SAFETY.content)));
+      expect(tail.length).toBe(guidance.length + SAFETY.content.length + 2);
+      expect(body.indexOf(CORRELATIONS_HEADER)).toBeLessThan(body.length - tail.length);
+      expect(tail).not.toContain('[IDENTITY]');
+      // The remainder still gets what budget is left, so the note stays bounded.
+      expect(body).toContain(CORRELATIONS_HEADER);
+      expect(body.length).toBeLessThanOrEqual(MAX_PUSHED_CONTEXT_CHARS);
+    }
+  );
 
-  it('a soft-check turn keeps safety_soft_check whole and last', async () => {
-    const softGuidance = `${SOFT_CRISIS_CHECK}\n4. ${'Stay gentle. '.repeat(40).trim()}`;
-    const s: Scenario = {
-      name: 'soft',
-      intensity: 0.1,
-      kept: [IDENTITY, CONTEXT],
-      memories: [MEMORIES],
-      crisis: { isCrisis: false, softCheck: true, severity: 0.25, softGuidance },
-      correlations: CORRELATIONS,
-    };
-    const { body } = await run(s, 'meh whatever');
-    expect(body).toContain(softGuidance);
-    expect(body.endsWith(softGuidance)).toBe(true);
-    expect(body.indexOf(CORRELATIONS_HEADER)).toBeLessThan(body.indexOf(softGuidance));
-  });
+  it.each([DAY, NIGHT])(
+    'a soft-check turn keeps safety_soft_check whole and last at %i:30',
+    async (hour) => {
+      const softGuidance = `${SOFT_CRISIS_CHECK}\n4. ${'Stay gentle. '.repeat(40).trim()}`;
+      const s: Scenario = {
+        name: 'soft',
+        intensity: 0.1,
+        kept: [IDENTITY, CONTEXT],
+        memories: [MEMORIES],
+        crisis: { isCrisis: false, softCheck: true, severity: 0.25, softGuidance },
+        correlations: CORRELATIONS,
+      };
+      const { body } = await runAt(hour, s, 'meh whatever');
+      expect(body).toContain(softGuidance);
+      expect(body.endsWith(softGuidance)).toBe(true);
+      expect(body.indexOf(CORRELATIONS_HEADER)).toBeLessThan(body.indexOf(softGuidance));
+    }
+  );
 
-  it('a crisis override keeps the required response whole and last of all', async () => {
-    const suggestedResponse = 'I am really glad you told me. Please call or text 988 right now.';
-    const s: Scenario = {
-      name: 'override',
-      kept: [SAFETY],
-      memories: [MEMORIES],
-      crisis: { isCrisis: true, shouldOverrideLLM: true, suggestedResponse },
-      correlations: CORRELATIONS,
-    };
-    const { body } = await run(s, 'I have the pills right here');
-    expect(body.endsWith(`REQUIRED RESPONSE:\n${suggestedResponse}`)).toBe(true);
-    expect(body.indexOf(SAFETY.content)).toBeLessThan(body.indexOf('[CRITICAL SAFETY OVERRIDE]'));
-    expect(body.indexOf(CORRELATIONS_HEADER)).toBeLessThan(body.indexOf(SAFETY.content));
-  });
+  it.each([DAY, NIGHT])(
+    'a crisis override keeps the required response whole and last of all at %i:30',
+    async (hour) => {
+      const suggestedResponse = 'I am really glad you told me. Please call or text 988 right now.';
+      const s: Scenario = {
+        name: 'override',
+        kept: [SAFETY],
+        memories: [MEMORIES],
+        crisis: { isCrisis: true, shouldOverrideLLM: true, suggestedResponse },
+        correlations: CORRELATIONS,
+      };
+      const { body } = await runAt(hour, s, 'I have the pills right here');
+      expect(body.endsWith(`REQUIRED RESPONSE:\n${suggestedResponse}`)).toBe(true);
+      expect(body.indexOf(SAFETY.content)).toBeLessThan(body.indexOf('[CRITICAL SAFETY OVERRIDE]'));
+      expect(body.indexOf(CORRELATIONS_HEADER)).toBeLessThan(body.indexOf(SAFETY.content));
+    }
+  );
 
   it.each([
     ['over budget', [CONTEXT], [MEMORIES]],
@@ -232,23 +275,26 @@ describe('crisis guidance survives the pushed-context cut (#2618)', () => {
     'a turn with no safety guidance is cut exactly as before (%s)',
     async (name, kept, memories) => {
       const s: Scenario = { name, kept, memories, intensity: 0.3, correlations: CORRELATIONS };
-      const { scratchNotes, body } = await run(s, 'what should i do about the move?');
+      const { scratchNotes, body } = await runAt(DAY, s, 'what should i do about the move?');
       expect(body).toBe(scratchNotes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS));
     }
   );
 
-  it('a non-crisis turn carrying safety guidance keeps it whole and last', async () => {
-    const s: Scenario = {
-      name: 'escalation',
-      kept: [CONTEXT, SAFETY],
-      memories: [MEMORIES],
-      intensity: 0.3,
-      correlations: CORRELATIONS,
-    };
-    const { body } = await run(s, 'what should i do about the move?');
-    expect(body.endsWith(SAFETY.content)).toBe(true);
-    expect(body.length).toBeLessThanOrEqual(MAX_PUSHED_CONTEXT_CHARS);
-  });
+  it.each([DAY, NIGHT])(
+    'a non-crisis turn carrying safety guidance keeps it whole and last at %i:30',
+    async (hour) => {
+      const s: Scenario = {
+        name: 'escalation',
+        kept: [CONTEXT, SAFETY],
+        memories: [MEMORIES],
+        intensity: 0.3,
+        correlations: CORRELATIONS,
+      };
+      const { body } = await runAt(hour, s, 'what should i do about the move?');
+      expect(body.endsWith(SAFETY.content)).toBe(true);
+      expect(body.length).toBeLessThanOrEqual(MAX_PUSHED_CONTEXT_CHARS);
+    }
+  );
 
   it('safety guidance still waiting is carried whole ahead of a later note (PREEMPT_STABLE_CONTEXT)', async () => {
     vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
@@ -341,7 +387,7 @@ describe('the crisis override has the final word', () => {
   const SHORT_SAFETY: Injection = { ...SAFETY, content: '[SAFETY] Stay with them.' };
   // Every note the turn can append after the override is written, on at once (turn-handler.ts).
   const LATE_NOTES = [
-    'late_night_detected', // behavior events, 23:00-05:00 (behavior-event-dispatcher.ts)
+    LATE_NIGHT, // behavior events, 23:00-05:00 (behavior-event-dispatcher.ts)
     '[CONTEXT]', // injectTurnContext, the other injections
     '[INTERNAL CONTEXT - DO NOT SPEAK THIS]', // extensibility session prompt
     '[INTERNAL BRIEFING - DO NOT SPEAK THIS]', // pre-session briefing
@@ -351,47 +397,59 @@ describe('the crisis override has the final word', () => {
     'ask for their phone number', // phone-number ask
   ];
 
-  it('is the last block of the turn and of the pushed note at 00:30, every late note before it', async () => {
-    vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true });
-    vi.setSystemTime(new Date(2026, 10, 9, 0, 30, 0));
-    state.phoneAsk = true;
-    try {
-      const suggestedResponse = 'I am really glad you told me. Please call or text 988 right now.';
-      // Small notes, so the pushed note's cap cuts none of them and every one can be checked.
-      const s: Scenario = {
-        name: 'override-last',
-        kept: [SHORT_SAFETY, { ...CONTEXT, content: '[CONTEXT] They called from work.' }],
-        memories: [],
-        crisis: { isCrisis: true, shouldOverrideLLM: true, suggestedResponse },
-      };
-      const { scratchNotes, body } = await run(s, 'I have the pills right here', {
-        turnCount: 0,
-        extensibilitySessionPrompt: 'Session prompt.',
-        preSessionBriefing: 'Returning caller.',
-        greetingText: 'Hey, good to hear you.',
-        calendarAwareness: 'Dentist tomorrow at nine.',
-      });
-      const override = '[CRITICAL SAFETY OVERRIDE]';
-      // The turn's context, as the real handleUserTurn leaves it: every late note was appended
-      // after the override was written, so this turn is the case the pushed note must reorder.
-      const overrideAt = scratchNotes.findIndex((text) => text.startsWith(override));
-      expect(overrideAt).toBeGreaterThanOrEqual(0);
-      for (const note of LATE_NOTES) {
+  // Every hour of the day runs.
+  const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+
+  it.each(HOURS)(
+    'is the last block of the turn and of the pushed note at %i:30, every late note before it',
+    async (hour) => {
+      state.phoneAsk = true;
+      try {
+        const suggestedResponse =
+          'I am really glad you told me. Please call or text 988 right now.';
+        // Small notes, so the pushed note's cap cuts none of them and every one can be checked.
+        const s: Scenario = {
+          name: 'override-last',
+          kept: [SHORT_SAFETY, { ...CONTEXT, content: '[CONTEXT] They called from work.' }],
+          memories: [],
+          crisis: { isCrisis: true, shouldOverrideLLM: true, suggestedResponse },
+        };
+        const { scratchNotes, body } = await atHalfPast(hour, () =>
+          run(s, 'I have the pills right here', {
+            turnCount: 0,
+            extensibilitySessionPrompt: 'Session prompt.',
+            preSessionBriefing: 'Returning caller.',
+            greetingText: 'Hey, good to hear you.',
+            calendarAwareness: 'Dentist tomorrow at nine.',
+          })
+        );
+        const override = '[CRITICAL SAFETY OVERRIDE]';
+        // The turn's context, as the real handleUserTurn leaves it: every late note was appended
+        // after the override was written, so this turn is the case the pushed note must reorder.
+        const overrideAt = scratchNotes.findIndex((text) => text.startsWith(override));
+        expect(overrideAt).toBeGreaterThanOrEqual(0);
+        // The late-night note is there exactly in its band, so the night hours test the reorder.
         expect(
-          scratchNotes.findIndex((text) => text.includes(note)),
-          note
-        ).toBeGreaterThan(overrideAt);
+          scratchNotes.some((text) => text.includes(LATE_NIGHT)),
+          `late-night note at ${hour}:30`
+        ).toBe(lateNight(hour));
+        const late = LATE_NOTES.filter((note) => note !== LATE_NIGHT || lateNight(hour));
+        for (const note of late) {
+          expect(
+            scratchNotes.findIndex((text) => text.includes(note)),
+            note
+          ).toBeGreaterThan(overrideAt);
+        }
+        // The pushed note the next reply reads: nothing follows "Do NOT deviate".
+        expect(body.endsWith(`REQUIRED RESPONSE:\n${suggestedResponse}`)).toBe(true);
+        expect(body.length).toBeLessThan(MAX_PUSHED_CONTEXT_CHARS);
+        for (const note of [...late, SHORT_SAFETY.content]) {
+          expect(body.indexOf(note), note).toBeGreaterThanOrEqual(0);
+          expect(body.indexOf(note), note).toBeLessThan(body.indexOf(override));
+        }
+      } finally {
+        state.phoneAsk = false;
       }
-      // The pushed note the next reply reads: nothing follows "Do NOT deviate".
-      expect(body.endsWith(`REQUIRED RESPONSE:\n${suggestedResponse}`)).toBe(true);
-      expect(body.length).toBeLessThan(MAX_PUSHED_CONTEXT_CHARS);
-      for (const note of [...LATE_NOTES, SHORT_SAFETY.content]) {
-        expect(body.indexOf(note), note).toBeGreaterThanOrEqual(0);
-        expect(body.indexOf(note), note).toBeLessThan(body.indexOf(override));
-      }
-    } finally {
-      state.phoneAsk = false;
-      vi.useRealTimers();
     }
-  });
+  );
 });

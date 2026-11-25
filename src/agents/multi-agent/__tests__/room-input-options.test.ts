@@ -12,7 +12,7 @@ const PHONE_PROCESSOR = { kind: 'pre-stt-frame-processor' };
 const TELEPHONY = { moduleId: 'livekit.plugins.noise_cancellation', options: { modelPath: 'tel' } };
 const bvcCalls = vi.fn(() => BVC);
 const telephonyCalls = vi.fn(() => TELEPHONY);
-const preStt = vi.fn(async (_sessionId: string) => PHONE_PROCESSOR);
+const preStt = vi.fn(async (_sessionId: string, _sampleRate?: number) => PHONE_PROCESSOR);
 
 vi.mock('@livekit/noise-cancellation-node', () => ({
   BackgroundVoiceCancellation: () => bvcCalls(),
@@ -20,7 +20,8 @@ vi.mock('@livekit/noise-cancellation-node', () => ({
 }));
 vi.mock('../../integrations/pre-stt-frame-processor.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../integrations/pre-stt-frame-processor.js')>()),
-  createPreSTTFrameProcessor: (sessionId: string) => preStt(sessionId),
+  createPreSTTFrameProcessor: (sessionId: string, sampleRate?: number) =>
+    preStt(sessionId, sampleRate),
 }));
 
 const { roomInputOptions } = await import('../room-input-options.js');
@@ -47,6 +48,16 @@ describe('roomInputOptions', () => {
     expect(await roomInputOptions(web, 's1', {})).toEqual({});
     expect(await roomInputOptions(web, 's1', { WEB_NOISE_CANCEL: 'off' })).toEqual({});
     expect(bvcCalls).not.toHaveBeenCalled();
+  });
+
+  it('builds the phone frame processor for the rate the audio is read at', async () => {
+    await roomInputOptions(phone, 's1', {}, 16_000);
+    await roomInputOptions(phone, 's1', {});
+    // Unset, createPreSTTFrameProcessor's own default (the room input's 24 kHz) applies.
+    expect(preStt.mock.calls).toEqual([
+      ['s1', 16_000],
+      ['s1', undefined],
+    ]);
   });
 
   it('keeps the phone frame processor and never adds BVC to a phone caller', async () => {

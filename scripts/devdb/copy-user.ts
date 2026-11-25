@@ -103,6 +103,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'family_shared_context[toUserId]': `${OTHERS}: shared by family members`,
   'consent[grants.{uid}]': `${OTHERS}: a contact's own consent record`,
   'consent[asks.{uid}]': `${OTHERS}: a contact's own consent record`,
+  'guest_invites[uid]': `${OTHERS}: invites to a guest, keyed to her phone`,
 };
 
 /**
@@ -175,6 +176,8 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   visual_memories: `${OTHERS}: OCR of uploaded images (screenshots, cards, letters)`,
   tool_executions: `${OTHERS}: tool arguments and results (recipients, messages)`,
   semantic_intelligence: `${OTHERS}: execution_records keeps the raw args of the last 100 tool calls`,
+  // A guest's yes to being called into the person's calls (messaging/guest-consent)
+  guest_consents: `${OTHERS}: guests' consent to be called in, keyed by their phone's hash`,
 };
 
 /**

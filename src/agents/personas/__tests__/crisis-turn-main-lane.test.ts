@@ -14,7 +14,9 @@
 import { EventEmitter } from 'node:events';
 import { DEFAULT_API_CONNECT_OPTIONS, llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flagOn } from '../../../config/env-flag.js';
 import type { CrisisGenerateFn } from '../../../services/safety/crisis-classifier.js';
+import { TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
 
 /** The gate's model calls, stubbed: llmNode passes gatedReply none of its own. */
 const stub = vi.hoisted(() => ({
@@ -240,7 +242,9 @@ describe.each(GATE_STATES)('crisis turns, fast lane on (%s)', (_state, env) => {
       // The routing claim: which stub's chat() got the request (said is a secondary check).
       expect(c.order).toEqual(['main']);
       expect(c.flash.requests).toHaveLength(0);
-      expect(said).toBe('main');
+      // CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply that leaves out 988 gets it said after.
+      const floor = flagOn('CRISIS_GUIDED_LINE_FLOOR', process.env);
+      expect(said).toBe(floor ? `main ${TALK_TO_988}`.toLowerCase() : 'main'); // turn() lowercases
       expect(routeOf(c.main.requests[0])).toEqual({ lane: 'main', reason: 'crisis' });
       expect(stub.calls.generate).toBeGreaterThan(0);
     }

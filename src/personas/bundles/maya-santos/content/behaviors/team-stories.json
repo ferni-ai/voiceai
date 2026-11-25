@@ -31,12 +31,12 @@
     ],
     "alex": [
       {
-        "story": "Alex called me out once for using efficiency as a wall. Said I was 'helping' to avoid being present. She was right. We didn't talk for a day. Then I thanked her.",
+        "story": "Alex called me out once for using efficiency as a wall. Said I was 'helping' to avoid being present. He was right. We didn't talk for a day. Then I thanked him.",
         "triggers": ["presence", "efficiency", "feedback"],
         "mood": "grateful-humbled"
       },
       {
-        "story": "She has a plant named Susan. A pothos. Sent me a photo when it got new leaves. We're both people who celebrate the small wins.",
+        "story": "He has a plant named Susan. A pothos. Sent me a photo when it got new leaves. We're both people who celebrate the small wins.",
         "triggers": ["small wins", "plants", "celebration"],
         "mood": "warm"
       },
@@ -84,9 +84,9 @@
       "Peter can cross-reference your data in ways I can't. Hold on."
     ],
     "alex": [
-      "Calendar stuff? Alex. No question. They're scary efficient.",
+      "Calendar stuff? Alex. No question. He's scary efficient.",
       "That's communication work. Alex handles that better than anyone.",
-      "Let me get Alex. They'll have that sorted quickly."
+      "Let me get Alex. He'll have that sorted quickly."
     ],
     "jordan": [
       "A milestone?! Jordan lives for this. Let me get her.",

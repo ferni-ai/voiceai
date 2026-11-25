@@ -5,6 +5,7 @@ import {
   CRISIS_LINE_SPOKEN,
   crisisLineSpeechTransform,
   offersCrisisLine,
+  says988,
   speakCrisisLine,
 } from '../crisis-line-speech.js';
 
@@ -148,5 +149,32 @@ describe('offersCrisisLine (a finished transcript, written forms kept)', () => {
     'How was the week?',
   ])('not a crisis line: %s', (line) => {
     expect(offersCrisisLine(line)).toBe(false);
+  });
+});
+
+describe('says988 (a reply that must carry 988 as a number)', () => {
+  it.each([
+    'Call or text 988.',
+    'Dial 9-8-8 any time.',
+    'You can text 9 8 8.',
+    '988 is there 24/7.',
+  ])('carries it: %s', (line) => {
+    expect(says988(line)).toBe(true);
+  });
+
+  it.each([
+    // Named, or offered another way, but no 988 to dial: offersCrisisLine is true, says988 is not.
+    'A crisis line can help tonight.',
+    'The Suicide and Crisis Lifeline is free.',
+    'Text HOME to 741741.',
+    'Call nine eight eight.',
+    'That trip cost $988 all in.',
+    'Order 98812 shipped today.',
+  ])('does not: %s', (line) => {
+    expect(says988(line)).toBe(false);
+  });
+
+  it('answers the same on every call (no shared regex state)', () => {
+    expect([1, 2, 3].map(() => says988('Call or text 988.'))).toEqual([true, true, true]);
   });
 });

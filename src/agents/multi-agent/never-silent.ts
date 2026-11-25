@@ -20,19 +20,17 @@
  * only for a turn it is about to answer: a StopResponse (screening,
  * roundtable), an unfinished-turn hold or a backchannel never arms it.
  *
- * The lines are rendered once with the session's own TTS after the first
- * reply, so they still play when TTS is what failed; without them the line
- * goes through TTS like any say(). Nothing here uses the LLM.
+ * The lines are rendered once in the session's voice after the first reply
+ * (deps.renderLine: fallback-line-render.ts), so they still play when TTS is
+ * what failed; without them the line goes through TTS like any say(). Nothing
+ * here uses the LLM.
  *
  * A rendered line is kept only with MIN_VOICED_MS of voice in it. Dev call
  * action-claim-b (2026-10-22): the fallback fired at 5 s and its rendered line
  * played for 23 ms, with no voice on the recording, and the caller heard
- * nothing for 12 s. The rendering goes through the LiveKit Cartesia plugin's
- * REST path (the only thing in the app that does; replies use the TTS
- * gateway), which reads any HTTP body as PCM without checking the status, so a
- * failed request became a few ms of noise counted as the line.
- * A line under the bar is dropped and logged (prerenderRejected), and the
- * fallback speaks it through live TTS instead.
+ * nothing for 12 s: a failed HTTP body had been read as PCM. A line under the
+ * bar is dropped and logged (prerenderRejected), a failed render is logged with
+ * its reason (prerenderFailed), and the fallback speaks it through live TTS.
  *
  * NEVER_SILENT=shadow logs NEVER_SILENT_FALLBACK without speaking.
  *
@@ -84,6 +82,10 @@ interface FrameLike {
   readonly data?: Int16Array;
 }
 
+/** A rendered line, or why there is none (an enum and an HTTP status class: no words). */
+export type LineRender =
+  { frames: readonly FrameLike[] } | { failure: string; statusClass?: string };
+
 /** A clip's length and how much of it is voiced, in ms. */
 export function measureClip(frames: readonly FrameLike[]): { ms: number; voicedMs: number } {
   let ms = 0;
@@ -106,11 +108,34 @@ export function measureClip(frames: readonly FrameLike[]): { ms: number; voicedM
   return { ms: Math.round(ms), voicedMs: Math.round(voicedMs) };
 }
 
+/** A line's frames up to MAX_PRERENDER_SAMPLES. */
+function capped(frames: readonly FrameLike[]): FrameLike[] {
+  const kept: FrameLike[] = [];
+  let samples = 0;
+  for (const frame of frames) {
+    kept.push(frame);
+    samples += frame.samplesPerChannel;
+    if (samples > MAX_PRERENDER_SAMPLES) break;
+  }
+  return kept;
+}
+
+/** The line's render; a render that throws counts as a failure, its message unlogged. */
+async function renderSafely(
+  renderLine: (text: string) => Promise<LineRender>,
+  text: string
+): Promise<LineRender> {
+  try {
+    return await renderLine(text);
+  } catch {
+    return { failure: 'threw' };
+  }
+}
+
 export interface NeverSilentSession {
   readonly agentState: string;
   readonly userState: string;
   readonly output?: { readonly audio?: unknown; readonly audioEnabled?: boolean };
-  readonly tts?: { synthesize(text: string): AsyncIterable<{ frame: FrameLike }> } | null;
   say(
     text: string,
     options?: { audio?: ReadableStream<never>; allowInterruptions?: boolean }
@@ -137,6 +162,10 @@ export function createNeverSilentGuard(deps: {
   stayQuiet?: () => boolean;
   /** A reply paused for caller audio that may still resume (resume-buffer.ts): wait for it. */
   replyPaused?: () => boolean;
+  /** Renders a line in the session's voice; without it every line goes through live TTS. */
+  renderLine?: (text: string) => Promise<LineRender>;
+  /** NEVER_SILENT_TOOL_WAIT: a tool's own wait speaks (never-silent-tool-wait.ts), not the hold. */
+  toolWait?: boolean;
   log: (fields: Record<string, unknown>) => void;
   now?: () => number;
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
@@ -233,25 +262,21 @@ export function createNeverSilentGuard(deps: {
 
   /** Render the lines once, after the first reply, so they play even with TTS down. */
   const prerender = async (): Promise<void> => {
-    const tts = session.tts;
-    if (prerenderStarted || deps.mode !== 'on' || typeof tts?.synthesize !== 'function') return;
+    const { renderLine } = deps;
+    if (prerenderStarted || deps.mode !== 'on' || !renderLine) return;
     prerenderStarted = true;
-    for (const text of FALLBACK_LINES) {
-      try {
-        const frames: FrameLike[] = [];
-        let samples = 0;
-        for await (const { frame } of tts.synthesize(text)) {
-          frames.push(frame);
-          samples += frame.samplesPerChannel;
-          if (samples > MAX_PRERENDER_SAMPLES) break;
-        }
-        const clip = measureClip(frames);
-        if (clip.voicedMs >= MIN_VOICED_MS) rendered.set(text, frames);
-        else deps.log({ prerenderRejected: text, ...clip });
-      } catch (error) {
-        deps.log({ prerenderFailed: String(error) });
-        return;
+    for (const [line, text] of FALLBACK_LINES.entries()) {
+      // eslint-disable-next-line no-await-in-loop -- one at a time: a failure stops the rest
+      const result = await renderSafely(renderLine, text);
+      // The next line would fail the same way: leave the rest to live TTS.
+      if ('failure' in result) {
+        const { failure, statusClass } = result;
+        return deps.log({ prerenderFailed: failure, line, ...(statusClass && { statusClass }) });
       }
+      const frames = capped(result.frames);
+      const clip = measureClip(frames);
+      if (clip.voicedMs >= MIN_VOICED_MS) rendered.set(text, frames);
+      else deps.log({ prerenderRejected: line, ...clip });
     }
   };
 
@@ -298,7 +323,9 @@ export function createNeverSilentGuard(deps: {
     onToolsRequested() {
       if (!turn) return;
       turn.toolPending = true;
-      schedule(toolHold);
+      // NEVER_SILENT_TOOL_WAIT: the tool's own wait speaks; this clock restarts when it returns.
+      if (deps.toolWait) clear();
+      else schedule(toolHold);
     },
     onToolsExecuted() {
       if (!turn) return;

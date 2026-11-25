@@ -344,13 +344,7 @@ function getDailyBriefingToolDefinitions(): ToolDefinition[] {
       legacyTools.getEveningReflection,
       ['reflection', 'evening', 'daily', 'review']
     ),
-    wrapLegacyTool(
-      'getQuickStatus',
-      'Get Quick Status',
-      'Get a quick status of urgent items: overdue tasks, due medications, pending habits, and bills due soon.',
-      legacyTools.getQuickStatus,
-      ['status', 'quick', 'urgent', 'overview']
-    ),
+    // getQuickStatus: enhanced-briefing.ts registers it after this list, so a wrap here was never offered (#4291)
     wrapLegacyTool(
       'getWeeklyReview',
       'Get Weekly Review',
