@@ -30,6 +30,19 @@ const TWINS: ReadonlyArray<readonly [string, string]> = [
   ['es_took_dose', 'me tomé todo el frasco'],
   ['es_did_it', 'estoy sangrando mucho, ya lo hice'],
   ['es_cutting_now', 'me estoy cortando las muñecas ahora mismo'],
+  // #4319: the exclusions below keep these, the caller's own burn and the caller's own words.
+  ['es_cutting_now', 'me estoy cortando ahora mismo'],
+  ['es_cutting_now', 'me estoy quemando los brazos ahora mismo'],
+  ['es_cutting_now', 'estoy quemándome a mí misma en este momento'],
+  [
+    'es_means_with_intent',
+    'le dije a mi hermano: tengo las pastillas aquí y me las voy a tomar ahora',
+  ],
+  ['es_drug_count', 'le escribí a mi hermana: me tomé 40 tylenol'],
+  [
+    'es_means_with_intent',
+    'mi hermano me dijo que no, y yo tengo las pastillas aquí y me las voy a tomar ahora',
+  ],
   ['es_ending_beside_means', 'quiero morir. tengo las pastillas listas en mi mano'],
 ];
 
@@ -49,6 +62,9 @@ const EVERYDAY = [
   'tengo la cuerda aquí para amarrar el bote',
   'me tomé todas mis vitaminas',
   'tengo la pistola de agua en la mano para los niños',
+  // #4319: the heat and the sun, said with "me estoy quemando"
+  'me estoy quemando ahora mismo, hace 40 grados afuera',
+  'uf, me estoy quemando ahorita en la playa, pásame el bloqueador',
 ];
 
 /** The same words, negated, a dream, a film, the past or a joke: main's read. */
@@ -60,6 +76,47 @@ const SOFTENED = [
   'hace años me tomé 40 tylenol',
   'jaja me tomé todo el frasco de tylenol',
   'nunca me tomé 40 tylenol',
+  // #4319: someone else's words, reported or quoted
+  'mi hermano dijo: tengo las pastillas aquí y me las voy a tomar ahora',
+  'mi hermana me escribió: me tomé 40 tylenol',
+  'mi hermano dijo que tengo las pastillas aquí y me las voy a tomar ahora',
+  'mi amiga me mandó, "me tomé 40 tylenol"',
+];
+
+/**
+ * #4319: each new row beside the English line it mirrors. The English form decides; the Spanish
+ * twin reads the same way, imminent or not.
+ */
+const MIRRORS: ReadonlyArray<readonly [boolean, string, string]> = [
+  [true, "i'm burning my arms right now", 'me estoy quemando los brazos ahora mismo'],
+  [true, "i'm cutting myself right now", 'me estoy cortando ahora mismo'],
+  [
+    true,
+    "i told my brother: i have the pills right here and i'm taking them now",
+    'le dije a mi hermano: tengo las pastillas aquí y me las voy a tomar ahora',
+  ],
+  [
+    false,
+    "i'm burning up right now, it's 100 degrees out",
+    'me estoy quemando ahora mismo, hace 40 grados afuera',
+  ],
+  [
+    false,
+    "my brother said: i have the pills right here and i'm taking them now",
+    'mi hermano dijo: tengo las pastillas aquí y me las voy a tomar ahora',
+  ],
+  [false, 'my sister wrote: i took 40 tylenol', 'mi hermana me escribió: me tomé 40 tylenol'],
+  [
+    false,
+    "my brother said i have the pills right here and i'm taking them now",
+    'mi hermano dijo que tengo las pastillas aquí y me las voy a tomar ahora',
+  ],
+  [
+    true,
+    "my brother told me no, and i have the pills right here and i'm taking them now",
+    'mi hermano me dijo que no, y yo tengo las pastillas aquí y me las voy a tomar ahora',
+  ],
+  [false, 'my friend texted me, "i took 40 tylenol"', 'mi amiga me mandó, "me tomé 40 tylenol"'],
 ];
 
 const ALL = [...TWINS.map(([, line]) => line), ...EVERYDAY, ...SOFTENED];
@@ -87,6 +144,11 @@ describe('CRISIS_ES_MEANS_IN_HAND (#4315)', () => {
     expect(readsImminentLive(line, { CRISIS_MEANS_IN_HAND: 'live' })).toBe(true);
     // The shadow log names the twin.
     expect(read(line, 'all', 'on').indicators).toContain(`means_form:${form}`);
+  });
+
+  it.each(MIRRORS)('#4319 mirror (imminent=%s): %s', (fires, english, spanish) => {
+    expect(imminent(read(english, 'live', 'on')), english).toBe(fires);
+    expect(imminent(read(spanish, 'live', 'on')), spanish).toBe(fires);
   });
 
   it('cutting now is self-harm', () => {

@@ -11,7 +11,8 @@
  * check-in is said, as in English.
  *
  * A twin counts only when it is the caller's own and plain: negated, hypothetical, a dream or a
- * story, someone else's words, the past or a joke leave the turn as main reads it.
+ * story, someone else's words (reported or quoted), the past or a joke leave the turn as main reads
+ * it. "me estoy quemando" alone is the heat or the sun; a burn reads with what it is on.
  *
  * @module services/safety/crisis-means-in-hand-es
  */
@@ -40,6 +41,9 @@ const DONE = String.raw`(?:sangrando|sangre por todas partes|sobredosis|${TOOK} 
 /** A dose's clause ends here: "me tomé todas mis pastillas de hoy" carries on, so it is a check-in. */
 const CLAUSE_END = String.raw`(?= *(?:$|[.!?;,]|y${B}|ya${B}|ahora${B}|adi[oó]s${B}|perd[oó]n${B}|lo siento${B}|te quiero${B}|los quiero${B}))`;
 const DID_IT = String.raw`${B}(?:ya )?lo hice${B}|${B}me atrev[ií]${B}`;
+/** The body a cut or a burn is on, or the caller themself: the objects the English form names. */
+const ON_SELF = String.raw`(?:(?:las|la|los|mis|mi) (?:muñecas?|brazos?|piernas?|muslos?|piel)|a m[ií] mism[oa])`;
+const NOW = String.raw`(?:ahora mismo|ahorita|ahora|en este momento)`;
 
 interface SpanishForm {
   name: SpanishMeansFormName;
@@ -87,7 +91,9 @@ const SPANISH_FORMS: readonly SpanishForm[] = [
   {
     name: 'es_cutting_now',
     re: new RegExp(
-      String.raw`${B}(?:me estoy (?:cortando|quemando)|estoy (?:cort[aá]ndome|quem[aá]ndome))(?: (?:las|la|los|mis|mi) (?:muñecas?|brazos?|piernas?|muslos?|piel))? (?:ahora mismo|ahorita|ahora|en este momento)${B}`
+      // "me estoy cortando" is "i'm cutting myself"; "me estoy quemando" alone is the heat or the
+      // sun, so a burn needs what it is on, as the English form does ("burning my arms").
+      String.raw`${B}(?:(?:me estoy cortando|estoy cort[aá]ndome)(?: ${ON_SELF})?|(?:me estoy quemando|estoy quem[aá]ndome) ${ON_SELF}) ${NOW}${B}`
     ),
     tag: 'self_harm',
   },
@@ -105,10 +111,23 @@ const NEGATED_BEFORE = new RegExp(
 const NEGATED_INSIDE = new RegExp(
   String.raw`${B}(?:no|nunca|jam[aá]s)\s+(?:tengo|voy|me|lo|las|estoy|tom[eé])${B}`
 );
-/** Not happening (a condition, a dream, a story), someone else's words, the past or a joke. */
+/** Not happening (a condition, a dream, a story), the past or a joke; someone else's words are REPORTED. */
 const SOFT_SENTENCE = new RegExp(
-  String.raw`${B}si (?:tuviera|estuviera|fuera|me tomara)${B}|${B}(?:qu[eé] tal si|imagina\w*|sup[oó]n|supongamos)${B}|${B}(?:so[nñ][eé]|en (?:mi|un|el) sue[nñ]o|en (?:la|una) (?:pel[ií]cula|serie|novela|canci[oó]n)|en el (?:libro|juego))${B}|${B}(?:dijo|dice|me dijo|escribi[oó]|public[oó]) que${B}|${B}hace (?:\w+ )?(?:años?|meses?)${B}|${B}el (?:año|mes) pasado${B}|${B}cuando era (?:niñ[oa]|chic[oa]|joven|adolescente)${B}|${B}(?:jaja\w*|jeje\w*|es broma|de broma|en broma)${B}`
+  String.raw`${B}si (?:tuviera|estuviera|fuera|me tomara)${B}|${B}(?:qu[eé] tal si|imagina\w*|sup[oó]n|supongamos)${B}|${B}(?:so[nñ][eé]|en (?:mi|un|el) sue[nñ]o|en (?:la|una) (?:pel[ií]cula|serie|novela|canci[oó]n)|en el (?:libro|juego))${B}|${B}hace (?:\w+ )?(?:años?|meses?)${B}|${B}el (?:año|mes) pasado${B}|${B}cuando era (?:niñ[oa]|chic[oa]|joven|adolescente)${B}|${B}(?:jaja\w*|jeje\w*|es broma|de broma|en broma)${B}`
 );
+
+/**
+ * Someone else's words, reported in the clause before the match ("mi hermano dijo que ...", "me
+ * escribió: ..."), as the English REPORTED reads its clause. Only that clause: in "dijo que no, y yo
+ * tengo las pastillas aquí..." the caller's own clause reads. The verb is someone else's: "le dije:"
+ * is the caller speaking, and reads.
+ */
+const REPORTED = String.raw`${B}(?:dijo|dice|me dijo|me dice|escribi[oó]|escribe|me escribi[oó]|me escribe|public[oó]|me mand[oó]|me texte[oó]|sigue diciendo|acaba de decir(?:me)?)${B}`;
+const REPORTED_IN_CLAUSE = new RegExp(REPORTED);
+/** A quote opened after the reporting words and still open where the match starts (English QUOTED). */
+const QUOTED = new RegExp(String.raw`${REPORTED}[^"“”«»]*["“«][^"”»]*$`);
+/** What ends a clause, as in crisis-means-lookback.ts: the sentence breaks, ";", ",", "pero", "y", "así que". */
+const CLAUSE_BREAK = new RegExp(String.raw`[;,]|${B}(?:pero|y|as[ií] que)${B}`);
 
 /** Whether a match reads plainly: the caller's own, and nothing in its sentence softens it. */
 function plain(text: string, start: number, end: number): boolean {
@@ -120,10 +139,13 @@ function plain(text: string, start: number, end: number): boolean {
     ) + 1;
   const stop = /[.!?]/.exec(text.slice(end));
   const sentence = text.slice(from, stop ? end + stop.index : text.length);
+  const before = text.slice(from, start);
   return !(
-    NEGATED_BEFORE.test(text.slice(from, start)) ||
+    NEGATED_BEFORE.test(before) ||
     NEGATED_INSIDE.test(text.slice(start, end)) ||
-    SOFT_SENTENCE.test(sentence)
+    SOFT_SENTENCE.test(sentence) ||
+    REPORTED_IN_CLAUSE.test(before.split(CLAUSE_BREAK).pop() ?? '') ||
+    QUOTED.test(before)
   );
 }
 
