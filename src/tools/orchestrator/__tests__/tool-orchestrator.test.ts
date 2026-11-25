@@ -119,6 +119,7 @@ vi.mock('../../builder.js', () => ({
 }));
 
 // Import after mocks
+import { getLogger } from '../../../utils/safe-logger.js';
 import { initializeToolRegistry } from '../../registry/loader.js';
 import { semanticRouter } from '../../semantic-router/compat.js';
 import { UnifiedToolOrchestrator } from '../tool-orchestrator.js';
@@ -225,6 +226,69 @@ describe('UnifiedToolOrchestrator', () => {
 
       expect(toolIds(result.tools)).toEqual(ALWAYS_ON);
       expect(result.meta.sources).toMatchObject({ essential: 4, semantic: 0, contextual: 0 });
+    });
+
+    describe('a tool set over the schema token budget (#4399)', () => {
+      const select = (agentId: string, transcript: string) =>
+        orchestrator.getToolsForIntent({ transcript, userId: 'test-user', agentId });
+      const budgetWarnings = () =>
+        vi
+          .mocked(getLogger().warn)
+          .mock.calls.filter(([, message]) => /budget/.test(String(message)));
+
+      beforeEach(() => {
+        // 60 always-on tools of about 160 estimated tokens each: 9,600 against the 8,000 budget
+        for (let i = 0; i < 60; i++) {
+          const description = 'x'.repeat(400);
+          mockTools.set(`bulk${i}`, {
+            id: `bulk${i}`,
+            domain: 'information',
+            description,
+            create: () => ({ description }),
+          } as never);
+        }
+      });
+
+      const freshOrchestrator = async (maxTools: number) => {
+        orchestrator = new UnifiedToolOrchestrator({
+          maxTools,
+          semanticThreshold: 0.15,
+          precomputeEmbeddings: true,
+          alwaysDomains: ['information'],
+          enableContextualTools: false,
+          enabledDomains: [],
+          excludedTools: [],
+          includedTools: [],
+          debugMode: false,
+          logToolSchemas: false,
+          logToolResults: false,
+        });
+        await orchestrator.initialize();
+      };
+
+      it('warns once per persona, with the numbers and a lever that can be followed', async () => {
+        await freshOrchestrator(100);
+        await select('budget-persona-a', 'hello');
+        await select('budget-persona-a', 'good morning');
+        await select('budget-persona-a', 'how are you');
+        await select('budget-persona-b', 'hello');
+
+        const warnings = budgetWarnings();
+        expect(warnings.map(([fields]) => (fields as { personaId: string }).personaId)).toEqual([
+          'budget-persona-a',
+          'budget-persona-b',
+        ]);
+        expect(warnings[0]?.[0]).toMatchObject({ toolCount: 61, usagePercent: 121, maxTools: 100 });
+        expect(String(warnings[0]?.[1])).toMatch(/lower it/);
+        expect(String(warnings[0]?.[1])).not.toMatch(/consider reducing/);
+      });
+
+      it('says the router is the lever when maxTools is 0 (no cap)', async () => {
+        await freshOrchestrator(0);
+        await select('budget-persona-c', 'hello');
+
+        expect(String(budgetWarnings().at(-1)?.[1])).toMatch(/maxTools is 0.*semantic router/);
+      });
     });
 
     it('detects a presence intent and loads presence tools for a stressed caller', async () => {
