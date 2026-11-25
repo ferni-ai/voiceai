@@ -24,6 +24,8 @@
  * - A reply that talks about something else closes nothing ("work's done for
  *   the week" is not "I called mom"), and only the account owner's answer
  *   counts.
+ * - With FOLLOW_THROUGH_SOURCE_CLOSE, a close also closes the item it was made
+ *   from: the task, reminder or commitment (agents/follow-through-source-close.ts).
  *
  * The raised follow-up lives in this agent process (one call per worker),
  * like opener-claim.ts.
@@ -42,6 +44,7 @@ import {
 import { firestoreFollowUpStore } from '../../services/stores/follow-through-store.js';
 import { forgottenInProcess, isForgotten } from '../../memory/recall/forget.js';
 import { loadOpenerPick } from '../../services/follow-through/opener-pick.js';
+import { closeSourceAfterReply } from '../follow-through-source-close.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FollowThroughOpener' });
@@ -222,6 +225,8 @@ export function followThroughReplyListeners(deps: {
   isOwner: () => boolean;
   store?: FollowUpStore | null;
   now?: () => Date;
+  /** Injected for tests; defaults to closing the source item behind its flag. */
+  closeSource?: typeof closeSourceAfterReply;
 }): { onItemAdded: (event: unknown) => void; onTranscript: (event: unknown) => void } {
   const now = deps.now ?? (() => new Date());
   return {
@@ -246,10 +251,13 @@ export function followThroughReplyListeners(deps: {
       }
       const store = deps.store === undefined ? firestoreFollowUpStore() : deps.store;
       if (!store) return;
-      void save(store, f, eventFor(verdict, now()), now())
-        .then((next) =>
-          log.info({ verdict, kind: f.kind, saved: next !== null }, 'FOLLOW_THROUGH_REPLY')
-        )
+      const at = now();
+      void save(store, f, eventFor(verdict, at), at)
+        .then(async (next) => {
+          log.info({ verdict, kind: f.kind, saved: next !== null }, 'FOLLOW_THROUGH_REPLY');
+          // The item it was made from closes too (FOLLOW_THROUGH_SOURCE_CLOSE)
+          if (next) await (deps.closeSource ?? closeSourceAfterReply)(f, verdict, at);
+        })
         .catch((error: unknown) => log.warn({ error: String(error) }, 'Follow-up not closed'));
     },
   };

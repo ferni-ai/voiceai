@@ -338,6 +338,10 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   productivityTools
 );
 
+// For the live call: this process's task copies, and the store a completed task closes its follow-up through
+export { getUserTasks } from './tasks.js';
+export { setTaskFollowUpStore } from './task-follow-up-close.js';
+
 // Export individual tool groups for selective imports
 export {
   getTaskToolDefinitions,

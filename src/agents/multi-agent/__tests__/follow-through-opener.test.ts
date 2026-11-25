@@ -22,6 +22,10 @@ import { createMemoryRecall } from '../memory-recall-hook.js';
 import { storedTopic } from '../../../memory/recall/session-recall.js';
 import { installLiveCallBehaviors } from '../live-call-behaviors.js';
 import {
+  closeTaskFollowUp,
+  setTaskFollowUpStore,
+} from '../../../tools/domains/productivity/task-follow-up-close.js';
+import {
   answersIt,
   clearRaisedFollowUps,
   createFollowThroughOpener,
@@ -320,5 +324,91 @@ describe("the caller's answer closes it, on a live call", () => {
     await guest.ferni('Did you call grandma?');
     await guest.caller('yeah I did');
     expect(doc(g.id)).toMatchObject({ status: 'surfaced' });
+  });
+});
+
+describe('the answer closes the item it was made from too (FOLLOW_THROUGH_SOURCE_CLOSE)', () => {
+  const reminder = 'bogle_users/u1/reminders/r1';
+  const user = 'bogle_users/u1';
+  async function raisedOn(source: { store: string; ref: string }) {
+    docs.set(reminder, { status: 'pending', message: 'call mom about the trip' });
+    docs.set(user, {
+      productivityData: {
+        tasks: [{ id: 't1', title: 'call mom about the trip', status: 'pending' }],
+      },
+    });
+    const f = await seed({ source });
+    const call = await liveCall();
+    call.recall.noteFor('Hi');
+    await flush();
+    await call.ferni('Did you end up calling your mom?');
+    return { f, call };
+  }
+  const taskStatus = () =>
+    (docs.get(user)?.productivityData as { tasks: Array<{ status: string }> }).tasks[0].status;
+
+  it('"yeah I did" completes the reminder, so it is never sent', async () => {
+    vi.stubEnv('FOLLOW_THROUGH_SOURCE_CLOSE', 'on');
+    const { f, call } = await raisedOn({ store: 'reminders', ref: 'r1' });
+    await call.caller('yeah I did');
+    expect(doc(f.id)).toMatchObject({ status: 'done' });
+    expect(docs.get(reminder)).toMatchObject({ status: 'completed' });
+  });
+
+  it('"yeah I did" completes the task; "forget it" cancels it', async () => {
+    vi.stubEnv('FOLLOW_THROUGH_SOURCE_CLOSE', 'on');
+    const done = await raisedOn({ store: 'tasks', ref: 't1' });
+    await done.call.caller('yeah I did');
+    expect(taskStatus()).toBe('completed');
+
+    clearRaisedFollowUps();
+    docs.delete(`bogle_users/u1/follow_through/${done.f.id}`);
+    const dropped = await raisedOn({ store: 'tasks', ref: 't1' });
+    await dropped.call.caller('ugh, forget it');
+    expect(doc(dropped.f.id)).toMatchObject({ status: 'released' });
+    expect(taskStatus()).toBe('cancelled');
+  });
+
+  it('a follow-up closed elsewhere a moment before the answer leaves the item alone', async () => {
+    vi.stubEnv('FOLLOW_THROUGH_SOURCE_CLOSE', 'on');
+    const { f, call } = await raisedOn({ store: 'reminders', ref: 'r1' });
+    const live = await stored(f.id);
+    await store.save({ ...live, status: 'released', updatedAt: 'z' }, live.updatedAt);
+    await call.caller('yeah I did');
+    expect(doc(f.id)).toMatchObject({ status: 'released' });
+    expect(docs.get(reminder)).toMatchObject({ status: 'pending' });
+  });
+
+  it('"not yet" moves the follow-up and leaves the item open', async () => {
+    vi.stubEnv('FOLLOW_THROUGH_SOURCE_CLOSE', 'on');
+    const { call } = await raisedOn({ store: 'reminders', ref: 'r1' });
+    await call.caller('not yet, maybe tomorrow');
+    expect(docs.get(reminder)).toMatchObject({ status: 'pending' });
+  });
+
+  it('a guest\'s "I did" closes neither', async () => {
+    vi.stubEnv('FOLLOW_THROUGH_SOURCE_CLOSE', 'on');
+    fake.owner = false;
+    const { call } = await raisedOn({ store: 'reminders', ref: 'r1' });
+    await call.caller('yeah I did');
+    expect(docs.get(reminder)).toMatchObject({ status: 'pending' });
+  });
+
+  it('the live call hands the task tool its follow-up store, so completing a task closes it', async () => {
+    setTaskFollowUpStore(undefined);
+    const f = await seed({ source: { store: 'tasks', ref: 't9' } });
+    const env = { FOLLOW_THROUGH_SOURCE_CLOSE: 'on' };
+    expect(await closeTaskFollowUp('u1', 't9', NOW, { env })).toBe(0);
+    await liveCall();
+    expect(await closeTaskFollowUp('u1', 't9', NOW, { env })).toBe(1);
+    expect(doc(f.id)).toMatchObject({ status: 'done' });
+  });
+
+  it('flag off: the follow-up closes and the item stays open, as on main', async () => {
+    const { f, call } = await raisedOn({ store: 'reminders', ref: 'r1' });
+    await call.caller('yeah I did');
+    expect(doc(f.id)).toMatchObject({ status: 'done' });
+    expect(docs.get(reminder)).toMatchObject({ status: 'pending' });
+    expect(taskStatus()).toBe('pending');
   });
 });

@@ -48,6 +48,7 @@ export {
 } from './promise-outcomes.js';
 export { releaseForgotten } from './release-forgotten.js';
 export { closeFromSource } from './close-from-source.js';
+export type { SourceCloser } from './close-source.js';
 export {
   toHeldItem,
   whatFerniHolds,

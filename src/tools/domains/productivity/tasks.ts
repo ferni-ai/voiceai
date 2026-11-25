@@ -28,6 +28,7 @@ import { parseNaturalDueDate, putDueTaskOnCalendar } from './task-due-date.js';
 import { taskEditsOn, taskToolDescription, UPDATE_TASK_DESCRIPTION } from './task-tool-text.js';
 import { runTaskUpdate, UPDATE_TASK_PARAMETERS, type TaskEditStore } from './update-task.js';
 import { removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
+import { closeTaskFollowUp } from './task-follow-up-close.js';
 // Bridge function to convert TaskData to Task
 function taskDataToTask(data: TaskData & { userId?: string }, userId: string): Task {
   return {
@@ -367,10 +368,9 @@ export async function completeTask(
   task.completedAt = new Date();
   task.completionNotes = completionNotes;
   task.updatedAt = new Date();
-
-  // Save to cache and persist
   tasksCache.set(taskId, task);
   persistTask(task.userId, task);
+  await closeTaskFollowUp(task.userId, taskId, task.updatedAt); // FOLLOW_THROUGH_SOURCE_CLOSE
 
   // Remove from calendar when completed
   if (task.dueDate) {

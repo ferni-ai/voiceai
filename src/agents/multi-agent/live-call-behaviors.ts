@@ -11,6 +11,7 @@ import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utiliti
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
+import { installSourceClose } from '../follow-through-source-close.js';
 import { installCallRecallPort } from '../../services/outreach/call-recall.js';
 import { installGatedCallPort } from '../../services/outreach/gated-call-paths.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
@@ -157,6 +158,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installGatedCallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
+  // FOLLOW_THROUGH_SOURCE_CLOSE: completing a task closes its follow-up (task-follow-up-close.ts).
+  installSourceClose();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler

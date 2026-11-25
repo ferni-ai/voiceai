@@ -103,7 +103,8 @@ export type ClosedBy = 'completed' | 'dismissed';
 export type CloseOutcome = 'closed' | 'already' | 'missing';
 
 /**
- * Close one of the caller's own active commitments. The document is read under
+ * Close one of the caller's own active commitments, from the app or from a
+ * call (the person said it's done or to let it go). The document is read under
  * their uid, so only its owner can. A repeat of the same close is 'already', so
  * a caller can retry the steps after it. Throws when it can't be written, so no
  * caller reports a close that didn't land.
@@ -112,7 +113,8 @@ export async function closeCommitmentOrThrow(
   userId: string,
   commitmentId: string,
   status: ClosedBy,
-  now = Date.now()
+  now = Date.now(),
+  via: 'app' | 'call' = 'app'
 ): Promise<CloseOutcome> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
@@ -121,7 +123,7 @@ export async function closeCommitmentOrThrow(
     const snap = await tx.get(ref);
     if (snap.exists && snap.get('status') === status) return 'already';
     if (!snap.exists || snap.get('status') !== 'active') return 'missing';
-    tx.update(ref, { status, closedAt: now, closedVia: 'app', lastMentioned: now });
+    tx.update(ref, { status, closedAt: now, closedVia: via, lastMentioned: now });
     return 'closed';
   });
   if (outcome === 'closed') commitmentCache.delete(userId);

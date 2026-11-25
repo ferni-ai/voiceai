@@ -9,9 +9,19 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ScheduledReminder } from './reminder-scheduler.js';
 
-/** A reminder's stored status ('in_app_unnotified': an inbox row with no text or push). */
+/**
+ * A reminder's stored status ('in_app_unnotified': an inbox row with no text or push;
+ * 'completed': the person said they did it, so it is never sent).
+ */
 export type ReminderStatus =
-  'pending' | 'sending' | 'delivered' | 'failed' | 'cancelled' | 'missed' | 'in_app_unnotified';
+  | 'pending'
+  | 'sending'
+  | 'delivered'
+  | 'failed'
+  | 'cancelled'
+  | 'missed'
+  | 'in_app_unnotified'
+  | 'completed';
 
 /**
  * Sent on its channel (text, email, call), saved in the app with a push

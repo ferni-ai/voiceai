@@ -105,6 +105,19 @@ export function fakeFirestore(opts: { directions?: boolean } = {}) {
           },
           set: (ref: { path: string }, data: Record<string, unknown>) =>
             void writes.push([ref.path, structuredClone(data)]),
+          // Dotted field paths, as Firestore's update takes them; the document must exist
+          update: (ref: { path: string }, fields: Record<string, unknown>) => {
+            const base = docs.get(ref.path);
+            if (!base) throw new Error(`fake transaction: no document to update at ${ref.path}`);
+            const next = structuredClone(base);
+            for (const [key, value] of Object.entries(fields)) {
+              const parts = key.split('.');
+              let at = next;
+              for (const p of parts.slice(0, -1)) at = (at[p] ??= {}) as Record<string, unknown>;
+              at[parts[parts.length - 1]] = structuredClone(value);
+            }
+            writes.push([ref.path, next]);
+          },
         });
         // Commit: synchronous, so no other transaction runs between check and write
         if (unchanged.every((ok) => ok())) {
