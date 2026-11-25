@@ -75,6 +75,9 @@ export const MOTION_FLAG_KEYS = Object.fromEntries(
   Object.entries(SWITCHES).map(([flag, { key }]) => [flag, key])
 ) as { readonly [F in MotionFlag]: (typeof SWITCHES)[F]['key'] };
 
+/** Every switch, in the order of the table above. */
+export const MOTION_FLAGS = Object.keys(SWITCHES) as readonly MotionFlag[];
+
 const isOn = (value: unknown): boolean => value === 'on' || value === 'true';
 const isOff = (value: unknown): boolean => value === 'off' || value === 'false';
 
@@ -89,4 +92,32 @@ export function isMotionFlagOn(flag: MotionFlag): boolean {
     log.debug('localStorage unavailable for a motion switch', { flag, error: String(error) });
   }
   return isOn(build());
+}
+
+/** A switch's build value alone, ignoring any browser override. */
+export function motionFlagBuildDefault(flag: MotionFlag): boolean {
+  return isOn(SWITCHES[flag].build());
+}
+
+/** A switch's browser override: 'on', 'off', or null when none is set. */
+export function motionFlagOverride(flag: MotionFlag): 'on' | 'off' | null {
+  try {
+    const stored = localStorage.getItem(SWITCHES[flag].key);
+    if (isOn(stored)) return 'on';
+    if (isOff(stored)) return 'off';
+  } catch (error) {
+    log.debug('localStorage unavailable for a motion switch', { flag, error: String(error) });
+  }
+  return null;
+}
+
+/** Sets a switch's browser override, or removes it with null. Never throws. */
+export function setMotionFlagOverride(flag: MotionFlag, value: 'on' | 'off' | null): void {
+  const { key } = SWITCHES[flag];
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch (error) {
+    log.warn('could not store a motion switch override', { flag, value, error: String(error) });
+  }
 }
