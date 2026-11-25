@@ -396,7 +396,7 @@ export async function prepareBriefing(
       log.warn({ error: String(error) }, 'Handoff brief writer failed, using the plain brief');
       return null;
     });
-  const character = characterOf(input.toPersonaId);
+  const character = characterOf(input.toPersonaId, opts.env);
   const grounded = arrivalGrounded(opts.env); // arrival-grounding.ts
   const reason = fromBrief.reason(callerLines);
   const direction = `${arrivalDirection(opts.env)}${grounded ? ARRIVAL_DIRECTION_GROUNDED : ''}${fromBrief.cue(reason)}`;

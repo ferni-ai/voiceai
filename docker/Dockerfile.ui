@@ -281,7 +281,7 @@ COPY --from=frontend-builder /app/apps/web/dist ./apps/web/dist/
 ENV NODE_ENV=production
 ENV PORT=8080
 # Cloud Run reaches the container from outside it; only development defaults to loopback.
-ENV UI_SERVER_HOST=0.0.0.0
+ENV API_LISTEN_HOST=0.0.0.0
 
 EXPOSE 8080
 

@@ -13,10 +13,10 @@ const prodEnv = readFileSync(join(ROOT, 'deploy/ui-server/env.yaml'), 'utf8');
 
 describe('UI server listen host in deploys', () => {
   it('the UI image listens on every interface', () => {
-    expect(dockerfile).toMatch(/^ENV UI_SERVER_HOST=0\.0\.0\.0$/m);
+    expect(dockerfile).toMatch(/^ENV API_LISTEN_HOST=0\.0\.0\.0$/m);
   });
 
   it('no deploy env overrides the image host', () => {
-    expect(prodEnv).not.toMatch(/^UI_SERVER_HOST:/m);
+    expect(prodEnv).not.toMatch(/^API_LISTEN_HOST:/m);
   });
 });

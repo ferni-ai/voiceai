@@ -144,7 +144,7 @@ function analyzeJordanInsights(insights: CrossPersonaInsight[]): HandoffSuggesti
       trigger: insight.content,
       urgency: insight.priority === 'critical' ? ('urgent' as const) : ('normal' as const),
       suggestedPhrase:
-        'Jordan flagged some deadlines coming up. Alex could help get things scheduled - want me to bring them in?',
+        'Jordan flagged some deadlines coming up. Alex could help get things scheduled. Want me to bring him in?',
     }));
 }
 
@@ -375,7 +375,7 @@ async function analyzeCalendarForHandoffs(userId: string): Promise<CalendarConte
       trigger: 'recovery_urgent',
       urgency: 'urgent',
       suggestedPhrase:
-        "I'm noticing your schedule has been intense. Alex could help protect some recovery time - want me to bring them in?",
+        "I'm noticing your schedule has been intense. Alex could help protect some recovery time. Want me to bring him in?",
     };
   } else if (focusTimePercent < 15) {
     calendarHandoffSuggestion = {

@@ -62,6 +62,50 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+describe("a first call's hello with EARLIER_CALL_NO_DENIAL (#3134)", () => {
+  // The hello is its own request: records words there could be spoken.
+  const NO_PAST_WORDS = /first (?:call|time|conversation)|\brecords?\b|on file|just met/i;
+
+  it('flag on: "you don\'t know them yet" in the direction and the facts, no records words', async () => {
+    vi.stubEnv('EARLIER_CALL_NO_DENIAL', 'on');
+    const cue = await cueFor(newCaller);
+    expect(cue.direction).not.toMatch(NO_PAST_WORDS);
+    expect(cue.direction).toContain("They just called you, and you don't know them yet. Answer");
+    expect(cue.facts?.['how well you know each other']).toBe("you don't know them yet");
+    expect(Object.values(cue.facts ?? {}).join(' ')).not.toMatch(NO_PAST_WORDS);
+  });
+
+  const CLAIMS_NO_PAST = [
+    "Hi, I don't have any record of us talking.",
+    'Hey Sam, first time calling?',
+    "Hi there, I don't think we've ever spoken. I'm glad you called.",
+    'Hi, nice to have you on the line, this is our first call.',
+    'Hey, we just met, but how is your day going?',
+  ];
+  const FINE = ["Hey Sam, how's it going?", 'Hi, are you recording something? Sounds busy there.'];
+
+  it.each(CLAIMS_NO_PAST)(
+    'flag on: a hello claiming no past is turned away, "%s"',
+    async (line) => {
+      vi.stubEnv('EARLIER_CALL_NO_DENIAL', 'on');
+      const cue = await cueFor(newCaller);
+      expect(cue.rejectIf?.(line)).toBe(true);
+    }
+  );
+
+  it.each(CLAIMS_NO_PAST)('flag off (today): not turned away, "%s"', async (line) => {
+    vi.stubEnv('EARLIER_CALL_NO_DENIAL', 'off');
+    const cue = await cueFor(newCaller);
+    expect(cue.rejectIf?.(line)).toBe(false);
+  });
+
+  it.each(FINE)('flag on: an ordinary hello, whole words only, is kept, "%s"', async (line) => {
+    vi.stubEnv('EARLIER_CALL_NO_DENIAL', 'on');
+    const cue = await cueFor(newCaller);
+    expect(cue.rejectIf?.(line)).toBe(false);
+  });
+});
+
 describe("a first call's hello: a stranger's, not an old friend's", () => {
   it.each([
     ['calm', 'off'],

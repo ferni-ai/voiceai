@@ -51,6 +51,7 @@ import {
   submitBlindEvaluation,
   getScenarioEvaluationResults,
 } from '../../../services/better-than-human-validation/blind-evaluation.js';
+import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from '../../helpers.js';
@@ -59,6 +60,7 @@ const log = createLogger({ module: 'BTHAnalyticsAPI' });
 
 // Base path for these routes
 const BASE_PATH = '/api/v1/admin/bth';
+const TELEMETRY_PERIOD_DAYS = 7;
 
 // ============================================================================
 // ROUTE HANDLER
@@ -238,23 +240,29 @@ export async function handleBTHAnalyticsRoutes(
     // BTH VALIDATION FRAMEWORK ROUTES
     // ========================================================================
 
-    // GET /api/v1/admin/bth/validation/telemetry - Real-time telemetry data
+    // GET /api/v1/admin/bth/validation/telemetry - production events, last 7 days
     if (subPath === '/validation/telemetry' && method === 'GET') {
-      const telemetry = getAllCapabilityTelemetry();
-      const bufferStats = getBufferStats();
-
-      // Convert to dashboard-friendly format
-      const formatted = Object.entries(telemetry).map(([capability, data]) => ({
-        capability,
-        triggers: data.triggers,
-        outcomes: data.outcomes,
-        successRate: data.triggers > 0 ? Math.round((data.outcomes / data.triggers) * 100) : 0,
-        lastTriggered: data.lastTriggered || null,
-      }));
-
+      // Without the store there is nothing to read: say so, never an empty list (#4069)
+      if (!getFirestoreDb()) {
+        sendJSON(res, { error: 'Telemetry store unavailable' }, 503);
+        return true;
+      }
+      const telemetry = await getAllCapabilityTelemetry(TELEMETRY_PERIOD_DAYS);
       sendJSON(res, {
-        telemetry: formatted,
-        buffer: bufferStats,
+        periodDays: TELEMETRY_PERIOD_DAYS,
+        entries: telemetry.map((t) => {
+          // No reply was classified: the rates are unmeasured, not 0%
+          const replied = t.acknowledged + t.dismissed + t.engaged > 0;
+          return {
+            capability: t.capability,
+            totalTriggers: t.totalTriggers,
+            uniqueUsers: t.uniqueUsers,
+            acknowledgmentRate: replied ? t.acknowledgmentRate : null,
+            engagementRate: replied ? t.engagementRate : null,
+            averageConfidence: t.averageConfidence,
+          };
+        }),
+        buffer: getBufferStats(),
         timestamp: new Date().toISOString(),
       });
       return true;
@@ -423,7 +431,6 @@ export async function handleBTHAnalyticsRoutes(
     if (subPath === '/validation/gaps' && method === 'GET') {
       const benchmarkResults = await runFullBenchmark();
 
-      // Extract gaps from benchmark results
       type GapEntry = {
         capability: string;
         category: string;
@@ -433,7 +440,6 @@ export async function handleBTHAnalyticsRoutes(
         severity: 'high' | 'medium' | 'low';
       };
 
-      // Helper to determine severity based on F1 score
       const getSeverity = (f1Score: number): 'high' | 'medium' | 'low' => {
         if (f1Score < 0.7) return 'high';
         if (f1Score < 0.85) return 'medium';
@@ -452,17 +458,8 @@ export async function handleBTHAnalyticsRoutes(
       );
 
       // Sort by severity then priority
-      const severityOrder: Record<'high' | 'medium' | 'low', number> = {
-        high: 0,
-        medium: 1,
-        low: 2,
-      };
-      const priorityOrder: Record<'critical' | 'high' | 'medium' | 'low', number> = {
-        critical: 0,
-        high: 1,
-        medium: 2,
-        low: 3,
-      };
+      const severityOrder = { high: 0, medium: 1, low: 2 } as const;
+      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 } as const;
       gaps.sort((a, b) => {
         const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
         if (severityDiff !== 0) return severityDiff;
