@@ -145,7 +145,9 @@ async function turn(crisis: Crisis) {
     naturalness: injections.filter((i) => i.category === 'naturalness'),
     // The crisis reply the model is told to give, whichever way the level delivers it.
     reply: {
-      override: turnCtx.items.map((item) => JSON.stringify([item.type, item.role, item.content])),
+      override: turnCtx.items.flatMap((item) =>
+        item.type === 'message' ? [JSON.stringify([item.role, item.content])] : []
+      ),
       injections: injections.filter((i) => i.category !== 'naturalness').map((i) => i.content),
       dataMessages: dataMessages.filter(([type]) => type === 'crisis_detected'),
     },
