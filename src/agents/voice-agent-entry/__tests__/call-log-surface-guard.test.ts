@@ -75,6 +75,8 @@ const SURFACE = [
   'src/services/contacts/contact-relationship-service.ts',
   'src/services/identity/contacts/contact-onboarding.ts',
   'src/services/trust-and-identity/identity-orchestrator.ts',
+  // The tool selection's own lines: it logged the first 50 characters of what the caller said (#4438).
+  'src/tools/orchestrator/tool-orchestrator.ts',
 ];
 
 /**
@@ -104,6 +106,7 @@ const REQUIRED = [
   'src/tools/domains/information/utils/geocoding.ts',
   'src/tools/domains/information/weather-tools.ts',
   'src/agents/shared/tool-executors/information-executor.ts',
+  'src/tools/orchestrator/tool-orchestrator.ts',
 ];
 
 /**
@@ -175,6 +178,7 @@ const EXEMPT: Exemptions = {
     ['tts-wrapper.ts', 'extractedInfo'], // tool name and argument key names (analyzeLeakedJson)
     ['e2e-latency-tracker.ts', 'summary'], // latencies, a bottleneck kind, the transcript's length
     ['scheduled-outreach-executor.ts', 'result'], // ExecutionResult: counts
+    ['tool-orchestrator.ts', 'observabilityData'], // counts, a persona id, tool ids and source names; tool-orchestrator-log.test.ts holds its fields to short strings
   ],
 };
 

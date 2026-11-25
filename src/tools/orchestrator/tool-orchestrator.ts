@@ -367,10 +367,8 @@ export class UnifiedToolOrchestrator {
 
     // Observability logging
     const observabilityData = {
-      transcript: request.transcript.slice(0, 50),
-      userId: request.userId.slice(0, 8),
+      transcriptChars: request.transcript.length,
       personaId: request.agentId,
-      sessionId: request.context?.sessionId?.slice(0, 12),
       selected: result.meta.selected,
       totalAvailable: result.meta.totalAvailable,
       selectionTimeMs: result.meta.selectionTimeMs,
