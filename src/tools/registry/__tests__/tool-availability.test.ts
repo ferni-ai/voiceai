@@ -130,6 +130,19 @@ describe('requiresEnv availability', () => {
     expect(info.map((c) => c[0].toolId)).toEqual(['toolA', 'toolB']);
   });
 
+  it('two domains missing the same key each get an info line', () => {
+    const tool = (id: string, domain: ToolDefinition['domain']): ToolDefinition => ({
+      ...fake(['KEY_A']),
+      id,
+      domain,
+    });
+
+    registered([tool('toolA', 'information'), tool('toolB', 'entertainment')]);
+
+    const info = logs.info.mock.calls.filter((c) => String(c[1]).startsWith('TOOL_UNAVAILABLE'));
+    expect(info.map((c) => c[0].domain)).toEqual(['information', 'entertainment']);
+  });
+
   it('TOOL_REQUIRES_ENV=off registers it anyway, as before', () => {
     vi.stubEnv('TOOL_REQUIRES_ENV', 'off');
     expect(registered([fake(['FAKE_TOOL_KEY'])])).toEqual(['fakeKeyedTool']);
