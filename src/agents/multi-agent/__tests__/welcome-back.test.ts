@@ -58,17 +58,17 @@ describe('sensitive threads match whole words', () => {
 
 describe('system prompt line for when they last talked', () => {
   const off = { RECENT_CALL_RESTRAINT: 'off' };
+  /** The lines for a last call `days` calendar days before noon UTC (lastCallAwareness, agent-setup's entry). */
+  const NOON = Date.parse('2026-11-20T12:00:00Z');
+  const byDays = (days: number, env: Record<string, string>) =>
+    wb.lastCallAwareness({ at: NOON - days * 86_400_000, now: NOON, zone: 'UTC' }, undefined, env);
 
   it('restraint off: the same lines as before', () => {
-    expect(wb.lastTalkedAwareness(0, off)).toEqual(['You talked earlier today.']);
-    expect(wb.lastTalkedAwareness(1, off)).toEqual(['You talked yesterday.']);
-    expect(wb.lastTalkedAwareness(3, off)).toEqual(['Last talked 3 days ago.']);
-    expect(wb.lastTalkedAwareness(12, off)).toEqual([
-      "It's been about 2 weeks since you last talked.",
-    ]);
-    expect(wb.lastTalkedAwareness(60, off)).toEqual([
-      "It's been a while - about 2 months since you last talked.",
-    ]);
+    expect(byDays(0, off)).toEqual(['You talked earlier today.']);
+    expect(byDays(1, off)).toEqual(['You talked yesterday.']);
+    expect(byDays(3, off)).toEqual(['Last talked 3 days ago.']);
+    expect(byDays(12, off)).toEqual(["It's been about 2 weeks since you last talked."]);
+    expect(byDays(60, off)).toEqual(["It's been a while - about 2 months since you last talked."]);
   });
 
   // Live call 10-17, second call that day: the first reply led with the earlier call's
@@ -76,7 +76,7 @@ describe('system prompt line for when they last talked', () => {
   // talked with Jordan"). Seth: "You did jump the gun."
   it('by default a same-day call is told to let them lead, one light open question at most', () => {
     expect(wb.recentCallRestraintEnabled({})).toBe(true);
-    const [line, rule] = wb.lastTalkedAwareness(0, {});
+    const [line, rule] = byDays(0, {});
     expect(line).toBe('You talked earlier today.');
     expect(rule).toMatch(/already talked today/);
     expect(rule).toMatch(/do not open with what you talked about last time/);
@@ -86,10 +86,10 @@ describe('system prompt line for when they last talked', () => {
   });
 
   it('other returning calls get the let-them-lead rule without the same-day line', () => {
-    const lines = wb.lastTalkedAwareness(3, {});
+    const lines = byDays(3, {});
     expect(lines).toHaveLength(2);
     expect(lines[1]).toMatch(/^Let them lead/);
-    expect(wb.lastTalkedAwareness(12, {})[1]).toMatch(/^Let them lead/);
+    expect(byDays(12, {})[1]).toMatch(/^Let them lead/);
   });
 });
 

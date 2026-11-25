@@ -61,7 +61,18 @@ globalThis.fetch = (async (url: Parameters<typeof fetch>[0], init?: RequestInit)
 const twilioCallFetches = () => fetches.filter((f) => /Calls/.test(f)).length;
 
 const rid = () => Math.random().toString(36).slice(2, 10);
-const phone = () => `+1555${String(Math.floor(1_000_000 + Math.random() * 8_999_999))}`;
+/**
+ * A fresh 555 number the dialer accepts. Exchanges 976 and 900 (premium) and N11 are
+ * refused as undialable (us-ca-numbers.ts), and a random exchange hit one about 1 time
+ * in 90, failing a send at random (e.g. +1 555 976 8795).
+ */
+const UNDIALABLE_EXCHANGE = /^(976|900|[2-9]11)$/;
+const phone = (): string => {
+  let exchange: string;
+  do exchange = String(200 + Math.floor(Math.random() * 800));
+  while (UNDIALABLE_EXCHANGE.test(exchange));
+  return `+1555${exchange}${String(Math.floor(Math.random() * 10_000)).padStart(4, '0')}`;
+};
 
 /** A member with a verified phone, texts, calls and email on, and outreach on or paused. */
 async function member(paused: boolean, channels = ['sms', 'voice_call', 'email']) {

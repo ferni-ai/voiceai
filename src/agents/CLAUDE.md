@@ -264,8 +264,9 @@ See `__tests__/README.md` for test helpers and mock factories.
 
 Every model reply passes through `personas/ferni-agent.ts` `llmNode`, then
 `withActionClaimCheck` (`personas/action-claim-guard.ts`), which runs, in order:
-the house facts guard (`house-facts.ts`, `HOUSE_FACTS`, off by default; first, on the
-model's own words), the action-claim check and the caller voice guard
+the pause cap (`pause-request.ts`, `PAUSE_REQUEST_WAIT`, off by default: a reply to a
+"hold on, let me think" keeps its first sentence), the house facts guard (`house-facts.ts`,
+`HOUSE_FACTS`, off by default; on the model's own words), the action-claim check and the caller voice guard
 (`caller-voice-guard.ts`). Guards read
 the stream through `personas/reply-chunks.ts` (`contentOf`, `hasToolCall`); don't
 add another copy.

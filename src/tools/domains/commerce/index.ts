@@ -20,6 +20,7 @@ import {
   getSubscriptionSummary,
   getUpcomingRenewals,
   cancelSubscription,
+  orUnsaved,
 } from '../../../services/stores/subscription-store.js';
 import { registerActionType } from '../../../services/actions/action-engine.js';
 import type { GroceryOrderPayload } from '../../../services/actions/action-types.js';
@@ -229,6 +230,8 @@ const trackRenewalDef: ToolDefinition = {
   },
 };
 
+const NOTE = 'User requested via Ferni';
+
 const cancelSubscriptionDef: ToolDefinition = {
   id: 'cancelSubscription',
   name: 'Cancel Subscription',
@@ -262,15 +265,21 @@ const cancelSubscriptionDef: ToolDefinition = {
           );
         }
 
+        // STORE_WRITES_TRUTHFUL: a cancel that was not saved says so
+        const couldnt = `I couldn't mark **${sub.name}** as cancelled just now. Nothing changed.`;
+        const cancel = async (): Promise<string | undefined> =>
+          orUnsaved(cancelSubscription(userId, sub.id, NOTE), couldnt);
         if (sub.cancellationUrl) {
-          await cancelSubscription(userId, sub.id, 'User requested via Ferni');
+          const unsaved = await cancel();
+          if (unsaved) return unsaved;
           return (
             `To cancel **${sub.name}**, visit: ${sub.cancellationUrl}\n\n` +
             `I've marked this as pending cancellation. Let me know when you've completed it.`
           );
         }
 
-        await cancelSubscription(userId, sub.id, 'User requested via Ferni');
+        const unsaved = await cancel();
+        if (unsaved) return unsaved;
         return (
           `I've marked **${sub.name}** as cancelled. ` +
           `You may need to contact them directly to complete the cancellation.`
