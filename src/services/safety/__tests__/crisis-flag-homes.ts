@@ -463,6 +463,16 @@ export const NON_SAFETY_LINE_REMOVED: Readonly<Record<string, readonly MemoryOnl
   // The turn-opening "Mm" (TURN_OPENING_SOUND, plain and early): none while a crisis verdict is
   // pending or once the gate acted on the call, and one just played is cut, and the reply it held
   // released, when the gate's decision lands (#4451). Only that sound is dropped.
+  // The sound's own switch: off, the "Mm" is not made; on or early, an ordinary turn gets it.
+  TURN_OPENING_SOUND: [
+    {
+      file: 'src/agents/integrations/__tests__/turn-opening-sound-crisis.test.ts',
+      rows: [
+        'TURN_OPENING_SOUND unset: no sound at all; on: an ordinary turn gets it',
+        'control, ordinary turn: the clip plays and holds the reply',
+      ],
+    },
+  ],
   CRISIS_NO_OPENING_SOUND: [
     {
       file: 'src/agents/integrations/__tests__/turn-opening-sound-crisis.test.ts',

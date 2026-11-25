@@ -104,6 +104,18 @@ describe('plain mode: the "Mm" 650 ms after the thinking state', () => {
     }
   });
 
+  it('TURN_OPENING_SOUND unset: no sound at all; on: an ordinary turn gets it', async () => {
+    for (const mode of [undefined, 'on']) {
+      if (mode) vi.stubEnv('TURN_OPENING_SOUND', mode);
+      else vi.stubEnv('TURN_OPENING_SOUND', '');
+      track.plays = 0;
+      const { agent } = await startedTurn();
+      agent('thinking');
+      vi.advanceTimersByTime(700);
+      expect(track.plays).toBe(mode ? 1 : 0);
+    }
+  });
+
   it('on: a crisis verdict pending when the wait ends, no sound, even once it clears', async () => {
     vi.stubEnv('CRISIS_NO_OPENING_SOUND', 'on');
     const { session, agent } = await startedTurn();
