@@ -823,7 +823,8 @@ export class SpeechCoordinator {
     try {
       this.processQueue();
     } catch (error) {
-      const id = this.currentRequest?.id; // the line that threw, not the one that failed before it
+      // The line that threw (processQueue set it), not the one that failed before it.
+      const id = (this.currentRequest as SpeechRequest | null)?.id;
       log.error({ error: errorClass(error), id }, 'Queued line dropped: it threw before speaking');
       this.abandonLine();
     }
