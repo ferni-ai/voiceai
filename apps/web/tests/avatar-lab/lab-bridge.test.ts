@@ -23,13 +23,18 @@ function fakeDeps() {
       flashShimmer: vi.fn(),
       triggerCameoArrival: vi.fn(),
       triggerCameoReturn: vi.fn(),
+      getState: () => ({
+        isInitialized: true,
+        reducedMotion: false,
+        comfortPulseActive: false,
+        protectiveMode: false,
+      }),
     },
     setExpression: vi.fn(),
     playNameLift: vi.fn(),
     holdCrisisFace: vi.fn(),
     releaseCrisisFace: vi.fn(),
     personaColor: vi.fn(() => ''),
-    ready: vi.fn(() => true),
   };
 }
 
@@ -101,8 +106,14 @@ describe('startLabBridge', () => {
     post({ type: LAB_MESSAGE_TYPE, id: 'req-8', command: { name: '__proto__' } });
     post({ type: LAB_MESSAGE_TYPE, id: 'req-9', command: { name: 'face', expression: 'smirk' } });
     expect(postMessage.mock.calls).toEqual([
-      [{ type: LAB_MESSAGE_TYPE, id: 'req-8', ok: false }, window.location.origin],
-      [{ type: LAB_MESSAGE_TYPE, id: 'req-9', ok: false }, window.location.origin],
+      [
+        { type: LAB_MESSAGE_TYPE, id: 'req-8', ok: false, why: 'unknown command' },
+        window.location.origin,
+      ],
+      [
+        { type: LAB_MESSAGE_TYPE, id: 'req-9', ok: false, why: 'unknown command' },
+        window.location.origin,
+      ],
     ]);
     expect(deps.setExpression).not.toHaveBeenCalled();
   });
@@ -120,9 +131,14 @@ describe('startLabBridge', () => {
     });
     post(sparkRequest);
     post(sparkRequest);
-    expect(postMessage.mock.calls.map(([reply]) => (reply as { ok: boolean }).ok)).toEqual([
-      false,
-      true,
+    expect(postMessage.mock.calls.map(([reply]) => reply)).toEqual([
+      {
+        type: LAB_MESSAGE_TYPE,
+        id: 'req-7',
+        ok: false,
+        why: 'Something went wrong, so this did not play',
+      },
+      { type: LAB_MESSAGE_TYPE, id: 'req-7', ok: true, ran: 'triggerMemorySpark' },
     ]);
   });
 

@@ -138,6 +138,17 @@ describe('startAvatarLab', () => {
     expect(vi.mocked(initializeTheme)).toHaveBeenCalledWith();
   });
 
+  it('drops the sign-in placeholder, as the app does, so its aria-modal cannot cover a name lift', async () => {
+    document.documentElement.classList.add('gate-first');
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div id="gateFirst" role="dialog" aria-modal="true" hidden></div>'
+    );
+    await startAvatarLab();
+    expect(document.getElementById('gateFirst')).toBeNull();
+    expect(document.documentElement.classList.contains('gate-first')).toBe(false);
+  });
+
   it('follows turns without a room and adds no tracked listener', async () => {
     await startAvatarLab();
     const opts = vi.mocked(scheduleAvatar).mock.calls[0][1] as AvatarBootOptions;
@@ -206,7 +217,10 @@ describe('startAvatarLab', () => {
     expect(deps.playNameLift).toBe(playNameLift);
     expect(deps.holdCrisisFace).toBe(holdCrisisFace);
     expect(deps.releaseCrisisFace).toBe(releaseCrisisFace);
-    expect(deps.ready()).toBe(false);
+    expect(deps.soul.getState().isInitialized).toBe(false);
+    document.documentElement.style.setProperty('--color-ferni', ' #4a6741');
+    expect(deps.personaColor()).toBe('#4a6741');
+    document.documentElement.style.removeProperty('--color-ferni');
   });
 
   it('stops the previous bridge when the lab starts again, so listeners never stack', async () => {

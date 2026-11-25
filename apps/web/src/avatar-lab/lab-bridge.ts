@@ -5,7 +5,13 @@
  * and runs nothing.
  */
 import { createLogger } from '../utils/logger.js';
-import { runLabCommand, type LabDeps, type LabResult } from './lab-commands.js';
+import {
+  COMMAND_FAILED,
+  runLabCommand,
+  UNKNOWN_COMMAND,
+  type LabDeps,
+  type LabResult,
+} from './lab-commands.js';
 import {
   LAB_MESSAGE_TYPE,
   parseLabReply,
@@ -22,7 +28,7 @@ function run(request: LabRequest, deps: LabDeps): LabResult {
     return runLabCommand(request.command, deps);
   } catch (error) {
     log.error('Lab command failed', { name: request.command.name, error: String(error) });
-    return { ok: false };
+    return COMMAND_FAILED;
   }
 }
 
@@ -40,7 +46,7 @@ export function startLabBridge(win: Window, deps: LabDeps): () => void {
     const request = parseLabRequest(event.data);
     if (request) return reply(request.id, run(request, deps));
     const unknownId = unknownRequestId(event.data);
-    if (unknownId !== null) reply(unknownId, { ok: false }); // a command the lab does not know
+    if (unknownId !== null) reply(unknownId, UNKNOWN_COMMAND); // a command the lab does not know
   };
 
   win.addEventListener('message', onMessage);

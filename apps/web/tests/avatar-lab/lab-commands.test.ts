@@ -29,19 +29,43 @@ const SOUL_EXPORTS: ReadonlyArray<keyof LabSoul> = [
   'triggerCameoReturn',
 ];
 
+const REDUCED_WHY = 'Reduced motion is on, so this moment does not play';
+const HELD_WHY = 'The crisis hold allows only calm moments';
+const STARTING_WHY = 'The avatar is still starting, so this moment does not play';
+const SHIMMER_WHY = 'The avatar no longer has a shimmer, so this moment does not play';
+const NAME_LIFT_WHY = 'Something is already showing, so the name lift does not show';
+
+/** The moments whose soul export returns early under reduced motion or before the soul starts. */
+const GATED_MOMENTS: LabMoment[] = [
+  'warmthBloom',
+  'memorySpark',
+  'comfortPulseStart',
+  'protectiveOn',
+  'celebrateGrowth',
+  'cameoArrival',
+  'cameoReturn',
+];
+
 function fakeDeps() {
-  const soul = Object.fromEntries(SOUL_EXPORTS.map((name) => [name, vi.fn()])) as unknown as {
-    [K in keyof LabSoul]: ReturnType<typeof vi.fn>;
+  const exports = Object.fromEntries(SOUL_EXPORTS.map((name) => [name, vi.fn()])) as unknown as {
+    [K in Exclude<keyof LabSoul, 'getState'>]: ReturnType<typeof vi.fn>;
+  };
+  /** The soul's own state, as avatarSoul.getState() reports it; tests change it. */
+  const soulState = {
+    isInitialized: true,
+    reducedMotion: false,
+    comfortPulseActive: false,
+    protectiveMode: false,
   };
   const deps = {
     driver: { update: vi.fn(), shown: vi.fn(() => 'thinking' as const) },
-    soul,
+    soulState,
+    soul: { ...exports, getState: vi.fn(() => ({ ...soulState })) },
     setExpression: vi.fn(),
     playNameLift: vi.fn(),
     holdCrisisFace: vi.fn(holdCrisisFace),
     releaseCrisisFace: vi.fn(releaseCrisisFace),
     personaColor: vi.fn(() => 'rgb(74, 103, 65)'),
-    ready: vi.fn(() => true),
   };
   return deps;
 }
@@ -50,8 +74,9 @@ type Fake = ReturnType<typeof fakeDeps>;
 
 /** Every export spy in the fake deps, by name. */
 function allSpies(d: Fake): Record<string, ReturnType<typeof vi.fn>> {
+  const { getState: _read, ...soulExports } = d.soul;
   return {
-    ...d.soul,
+    ...soulExports,
     update: d.driver.update,
     setExpression: d.setExpression,
     playNameLift: d.playNameLift,
@@ -85,6 +110,7 @@ function request(command: unknown, extra: Record<string, unknown> = {}): unknown
 beforeEach(() => {
   releaseCrisisFace();
   reducedMotion(false);
+  document.body.innerHTML = '<div class="avatar-container"></div>'; // the avatar a name lift shows on
 });
 
 afterEach(() => {
@@ -215,7 +241,6 @@ describe('runLabCommand: each command runs exactly its export', () => {
     [{ name: 'moment', moment: 'protectiveOn' }, 'enterProtectiveMode'],
     [{ name: 'moment', moment: 'protectiveOff' }, 'exitProtectiveMode'],
     [{ name: 'moment', moment: 'celebrateGrowth' }, 'celebrateGrowth'],
-    [{ name: 'moment', moment: 'shimmer' }, 'flashShimmer'],
     [{ name: 'moment', moment: 'cameoArrival' }, 'triggerCameoArrival'],
     [{ name: 'moment', moment: 'cameoReturn' }, 'triggerCameoReturn'],
   ];
@@ -235,8 +260,6 @@ describe('runLabCommand: each command runs exactly its export', () => {
     expect(d.playNameLift).toHaveBeenCalledWith({ effect: 'attentive' });
     run({ name: 'moment', moment: 'warmthBloom' }, d);
     expect(d.soul.triggerWarmthBloom).toHaveBeenCalledWith(1);
-    run({ name: 'moment', moment: 'shimmer' }, d);
-    expect(d.soul.flashShimmer).toHaveBeenCalledWith(1);
     run({ name: 'moment', moment: 'cameoArrival' }, d);
     expect(d.soul.triggerCameoArrival).toHaveBeenCalledWith('rgb(74, 103, 65)');
   });
@@ -259,7 +282,7 @@ describe('runLabCommand: each command runs exactly its export', () => {
   it('a command the table does not know runs nothing and replies not ok', () => {
     const d = fakeDeps();
     const unknown = { name: 'dance' } as unknown as LabCommand;
-    expect(run(unknown, d)).toEqual({ ok: false });
+    expect(run(unknown, d)).toEqual({ ok: false, why: 'unknown command' });
     expect(calledNames(d)).toEqual([]);
   });
 });
@@ -273,7 +296,7 @@ describe('runLabCommand: status', () => {
     });
     holdCrisisFace();
     reducedMotion(true);
-    d.ready.mockReturnValue(false);
+    d.soulState.isInitialized = false;
     expect(run({ name: 'status' }, d).status).toEqual({
       ready: false,
       crisisHeld: true,
@@ -304,7 +327,6 @@ describe('runLabCommand: the crisis hold', () => {
     holdCrisisFace();
     const refused: LabMoment[] = [
       'memorySpark',
-      'shimmer',
       'celebrateGrowth',
       'cameoArrival',
       'cameoReturn',
@@ -312,7 +334,7 @@ describe('runLabCommand: the crisis hold', () => {
     ];
     for (const moment of refused) {
       const d = fakeDeps();
-      expect(run({ name: 'moment', moment }, d)).toEqual({ ok: false });
+      expect(run({ name: 'moment', moment }, d)).toEqual({ ok: false, why: HELD_WHY });
       expect(calledNames(d)).toEqual([]);
     }
     const played: LabMoment[] = [
@@ -333,20 +355,79 @@ describe('runLabCommand: the crisis hold', () => {
 });
 
 describe('runLabCommand: reduced motion', () => {
-  it('refuses protective mode, saying why, and does not enter it', () => {
-    reducedMotion(true);
-    const d = fakeDeps();
-    expect(run({ name: 'moment', moment: 'protectiveOn' }, d)).toEqual({
-      ok: false,
-      why: 'Reduced motion is on, so protective mode does not play',
-    });
-    expect(d.soul.enterProtectiveMode).not.toHaveBeenCalled();
+  it('refuses every moment whose export returns early, saying why, and runs nothing', () => {
+    for (const moment of GATED_MOMENTS) {
+      const d = fakeDeps();
+      d.soulState.reducedMotion = true; // the state the soul's exports check
+      const why =
+        moment === 'protectiveOn'
+          ? 'Reduced motion is on, so protective mode does not play'
+          : REDUCED_WHY;
+      expect(run({ name: 'moment', moment }, d)).toEqual({ ok: false, why });
+      expect(calledNames(d)).toEqual([]);
+    }
   });
 
-  it('refuses the comfort pulse through the motion switch', () => {
+  it('still stops the pulse and leaves protective mode', () => {
+    for (const moment of ['comfortPulseStop', 'protectiveOff'] as const) {
+      const d = fakeDeps();
+      d.soulState.reducedMotion = true;
+      expect(run({ name: 'moment', moment }, d).ok).toBe(true);
+    }
+  });
+
+  it('refuses the comfort pulse through the motion switch when the viewer turns reduced motion on later', () => {
+    reducedMotion(true); // the live media query; the soul read it as off at start
+    const d = fakeDeps();
+    expect(run({ name: 'moment', moment: 'comfortPulseStart' }, d)).toEqual({
+      ok: false,
+      why: REDUCED_WHY,
+    });
+    expect(d.soul.startComfortPulse).not.toHaveBeenCalled();
+  });
+});
+
+describe('runLabCommand: nothing shows, so nothing is said to play', () => {
+  it('refuses every soul moment before the soul has started', () => {
+    for (const moment of GATED_MOMENTS) {
+      const d = fakeDeps();
+      d.soulState.isInitialized = false;
+      expect(run({ name: 'moment', moment }, d)).toEqual({ ok: false, why: STARTING_WHY });
+      expect(calledNames(d)).toEqual([]);
+    }
+  });
+
+  it('refuses the shimmer, whose element the avatar no longer creates', () => {
+    const d = fakeDeps();
+    expect(run({ name: 'moment', moment: 'shimmer' }, d)).toEqual({ ok: false, why: SHIMMER_WHY });
+    expect(d.soul.flashShimmer).not.toHaveBeenCalled();
+  });
+
+  it('refuses a name lift over a comfort pulse, protective mode or an open dialog', () => {
+    const covers: Array<(d: Fake) => void> = [
+      (d) => (d.soulState.comfortPulseActive = true),
+      (d) => (d.soulState.protectiveMode = true),
+      () => document.body.insertAdjacentHTML('beforeend', '<dialog open></dialog>'),
+      () => document.querySelector('.avatar-container')?.remove(),
+    ];
+    for (const cover of covers) {
+      document.body.innerHTML = '<div class="avatar-container"></div>';
+      const d = fakeDeps();
+      cover(d);
+      expect(run({ name: 'nameLift', effect: 'brighten' }, d)).toEqual({
+        ok: false,
+        why: NAME_LIFT_WHY,
+      });
+      expect(d.playNameLift).not.toHaveBeenCalled();
+    }
+  });
+
+  it('plays a name lift under reduced motion, which shows its still warmth', () => {
     reducedMotion(true);
     const d = fakeDeps();
-    expect(run({ name: 'moment', moment: 'comfortPulseStart' }, d)).toEqual({ ok: false });
-    expect(d.soul.startComfortPulse).not.toHaveBeenCalled();
+    expect(run({ name: 'nameLift', effect: 'comfort' }, d)).toEqual({
+      ok: true,
+      ran: 'playNameLift',
+    });
   });
 });

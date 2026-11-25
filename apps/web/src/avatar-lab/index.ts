@@ -20,6 +20,7 @@ import {
 import { playNameLift } from '../ui/avatar-motion/name-lift.js';
 import { holdCrisisFace, releaseCrisisFace } from '../ui/face/crisis-face-hold.js';
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
+import { revealApp } from '../ui/gate-first.ui.js';
 import { initWaveformUI } from '../ui/waveform.ui.js';
 import { initGSAP } from '../utils/gsap-animations.js';
 import { createLogger } from '../utils/logger.js';
@@ -52,8 +53,13 @@ html[data-avatar-lab='on'] #app :not(:has(#coach, #waveformContainer)):not(#coac
  */
 const FORCED_VISIBLE_IDS = ['helperText'] as const;
 
-/** Ferni's persona colour token, for the cameo arrival's bloom. */
 const PERSONA_COLOR_TOKEN = '--color-persona-ferni';
+/**
+ * Ferni's colour token from the design tokens (design-system/dist/tokens.css),
+ * for the cameo arrival's bloom. `--persona-ferni-primary` is not defined in the
+ * webapp's CSS (only the marketplace portal's), so it would resolve to ''.
+ */
+const PERSONA_COLOR_TOKEN = '--color-ferni';
 
 const lab: { turnDriver: TurnDriver | null; stopBridge: (() => void) | null } = {
   turnDriver: null,
@@ -88,7 +94,6 @@ async function liveDeps(driver: TurnDriver): Promise<LabDeps> {
     releaseCrisisFace,
     personaColor: () =>
       getComputedStyle(document.documentElement).getPropertyValue(PERSONA_COLOR_TOKEN).trim(),
-    ready: () => avatarSoul.getState().isInitialized,
   };
 }
 
@@ -109,6 +114,8 @@ export async function startAvatarLab(): Promise<void> {
   addLabStyle();
   removeForcedVisible();
   document.body.classList.add('app-loaded'); // runs the avatar's entrance, as in the app
+  // Drop the sign-in placeholder as the app does once it starts: its aria-modal would cover every name lift
+  revealApp();
 
   await initI18n(); // the circadian theme and the thinking label use t()
   initializeTheme(); // no listener: no theme toggle, so the lab never changes the saved theme
