@@ -5,17 +5,11 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import { isLegendId, isValidPersonaId, type PersonaId, type SpeakerId } from './types/persona.js';
+import { type PersonaId } from './types/persona.js';
 
-// Theme system
-import {
-  initTheme,
-  onThemeChange,
-  setPersona as setThemePersona,
-  startAmbientCycle,
-  toggleTheme,
-  watchSystemTheme,
-} from './theme/index.js';
+// Theme system (shared with the avatar lab)
+import { applyPersonaTheme, initializeTheme } from './app/app-theme.js';
+import { isAvatarLab, openAvatarLab } from './avatar-lab/lab-mode.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
@@ -326,9 +320,6 @@ import { getPersona } from './config/personas.js';
 // Platform Detection
 import { initPlatform, platform } from './utils/platform.js';
 
-// Magnetic hover effect
-import { initMagneticHover } from './ui/magnetic-hover.ui.js';
-
 // 🌟 Soul System - The living presence that makes people fall in love
 // 🎬 Narrative Director - Cinematic story beats for connection moments
 import { playBeat, updateNarrativeContext } from './narrative/narrative-director.js';
@@ -466,6 +457,10 @@ class VoiceAIApp {
       void this.initializeAdmin();
       return;
     }
+    if (isAvatarLab()) {
+      this.isInitialized = true; // first: a second initialize() must not boot the lab again
+      return openAvatarLab(); // the real avatar alone, framed by the admin; logs its own failure
+    }
 
     // Pages opened from a text link that replace the app (/a/:id, /connect#i=…)
     const { openStandalonePage } = await import('./app/standalone-pages.js');
@@ -503,7 +498,7 @@ class VoiceAIApp {
       await initI18n(); // before any UI renders
 
       // Initialize theme system (affects all UI)
-      this.initializeTheme();
+      initializeTheme((target, type, handler) => this.addTrackedListener(target, type, handler));
 
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
@@ -938,79 +933,6 @@ class VoiceAIApp {
     }
 
     this.isInitialized = true;
-  }
-
-  /**
-   * Initialize the theme system.
-   * Sets up theme from localStorage/system preference and wires up toggle button.
-   */
-  private initializeTheme(): void {
-    // Initialize theme from stored preference or system
-    initTheme();
-    watchSystemTheme();
-
-    // ========================================================================
-    // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)
-    // Layered theming: Circadian (time) + Warmth (relationship) + Persona
-    // ========================================================================
-
-    // 1. Circadian: Time-aware theming (dawn warmth, midday clarity, night intimacy)
-    circadianManager.injectStyles();
-    circadianManager.init();
-
-    // 2. Warmth: Relationship-based visual evolution (deepens as bond grows)
-    warmthManager.injectStyles();
-    warmthManager.init();
-
-    // 3. Persona Aura: Ambient glow reflecting the active team member
-    personaAura.injectStyles();
-    personaAura.init();
-
-    // Start ambient warmth cycle (WALL-E style time-aware lighting)
-    startAmbientCycle();
-
-    // Initialize magnetic hover effect (WALL-E curiosity)
-    initMagneticHover();
-
-    // Wire up theme toggle button
-    const toggleBtn = document.getElementById('themeToggle');
-    if (toggleBtn) {
-      this.addTrackedListener(toggleBtn, 'click', () => {
-        toggleTheme();
-      });
-
-      // Add keyboard shortcut (T) for theme toggle
-      this.addTrackedListener(document, 'keydown', ((e: KeyboardEvent) => {
-        if (e.key === 't' || e.key === 'T') {
-          // Don't toggle if user is typing in an input
-          if (
-            document.activeElement?.tagName !== 'INPUT' &&
-            document.activeElement?.tagName !== 'TEXTAREA'
-          ) {
-            toggleTheme();
-          }
-        }
-      }) as EventListener);
-    }
-
-    // Listen for theme changes (for analytics or other systems)
-    onThemeChange((_newTheme) => {
-      // Reserved for future analytics/telemetry
-    });
-
-    // Set initial persona theme
-    const persona = appState.get('selectedPersona');
-    if (persona?.id) {
-      this.updatePersonaTheme(persona.id);
-    }
-  }
-
-  /**
-   * Update the persona theme colors.
-   */
-  private updatePersonaTheme(personaId: SpeakerId): void {
-    // Canonical ids, and a Legend while one speaks (their colours: setActivePersona)
-    setThemePersona(isValidPersonaId(personaId) || isLegendId(personaId) ? personaId : 'ferni');
   }
 
   /**
@@ -2279,7 +2201,7 @@ class VoiceAIApp {
     setSelectedPersona(personaId);
 
     // Update theme persona colors
-    this.updatePersonaTheme(personaId);
+    applyPersonaTheme(personaId);
 
     // Update UI
     coachUI.updatePersona(persona);
@@ -2883,7 +2805,7 @@ class VoiceAIApp {
         log.info('Restoring UI systems to rollback persona:', rollbackTo);
         waveformUI.setPersona(rollbackTo);
         gesturesUI.setCurrentPersona(rollbackTo);
-        this.updatePersonaTheme(rollbackTo);
+        applyPersonaTheme(rollbackTo);
       }
 
       thinkingUI.hide();
@@ -2923,7 +2845,7 @@ class VoiceAIApp {
       // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
-      this.updatePersonaTheme(newPersona.id);
+      applyPersonaTheme(newPersona.id);
 
       // Update all UI systems
       waveformUI.setPersona(newPersona.id);
