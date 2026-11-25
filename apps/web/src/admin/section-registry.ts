@@ -195,10 +195,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     id: 'avatar-soul',
     name: 'Avatar Soul',
     icon: ICON_SPARKLES,
-    description: 'Better Than Human animations',
-    badge: 'NEW',
+    description: 'The real avatar and its moments',
     component: async () => (await avatarSoul()).render(),
-    setup: async () => (await avatarSoul()).setupEvents(),
+    setup: async (root) => (await avatarSoul()).setupEvents(root),
+    cleanup: () => void avatarSoul().then((s) => s.cleanup()),
   },
   {
     id: 'design-system',
