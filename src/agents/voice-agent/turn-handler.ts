@@ -131,7 +131,7 @@ import {
 import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
 import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
 import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
-import { crisisReadTurn, momentRecorder } from './crisis-turn-memory.js';
+import { acknowledgmentAllowed, crisisReadTurn, momentRecorder } from './crisis-turn-memory.js';
 import { skipsRecall } from '../processors/turn-processor/crisis-memory-recall.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
@@ -1548,7 +1548,7 @@ ${result.crisis.suggestedResponse}`
       }
 
       // Handle verbal acknowledgment (e.g., "I notice it's a bit noisy there...")
-      if (naturalnessResult.acknowledgment && currentSession) {
+      if (naturalnessResult.acknowledgment && currentSession && acknowledgmentAllowed(crisisTurn)) {
         // Speak acknowledgment before main response
         const { coordinatedSay } = await import('../../speech/coordination/index.js');
         coordinatedSay(services.sessionId, naturalnessResult.acknowledgment.phrase, {

@@ -20,6 +20,7 @@
  * @module voice-agent/crisis-turn-memory
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetection } from '../processors/types.js';
 
@@ -28,6 +29,15 @@ const log = createLogger({ module: 'CrisisTurnMemory' });
 /** Whether the turn's crisis read replaced the reply, guided it, or gave a soft check-in. */
 export function crisisReadTurn(crisis: CrisisDetection | undefined): boolean {
   return !crisis || crisis.shouldOverrideLLM || crisis.isCrisis || crisis.softCheck === true;
+}
+
+/**
+ * Whether the naturalness engine's spoken acknowledgment (a remark about the caller's surroundings,
+ * a rapport repair cue) may be said. With CRISIS_TURN_NO_ACK on, not on a crisis turn: the turn's
+ * reply is the one thing said, and a filler beside it is not part of it.
+ */
+export function acknowledgmentAllowed(crisisTurn: boolean): boolean {
+  return !(crisisTurn && flagOn('CRISIS_TURN_NO_ACK'));
 }
 
 /**

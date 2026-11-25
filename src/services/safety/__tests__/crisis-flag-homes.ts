@@ -444,3 +444,31 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that act on a line the speech coordinator says to the caller, not on the
+ * reply: when a hand-back line is queued, how long it waits, or whether a filler is said beside
+ * a crisis turn. The six readers and SHOWN_ON (the gate's reply) never see that step. This home is
+ * open only to a flag whose named rows run the real exit or turn handler and the real coordinator
+ * (only the LiveKit session is a stub), flag off then on, and assert that with it on the line is
+ * never lowered: it is still spoken, only earlier or kept longer, never cutting in on a line
+ * being spoken; or, for a filler, that only a filler is dropped and the reply is untouched.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const HAND_BACK_LINE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // The naturalness acknowledgment (a remark about the caller's surroundings, a rapport repair
+  // cue), a filler said beside the reply on a turn the crisis read replaced, guided or softened
+  // (#4451). Only that filler is dropped: the reply and the rest of the naturalness step run.
+  CRISIS_TURN_NO_ACK: [
+    {
+      file: 'src/agents/voice-agent/__tests__/turn-handler-crisis-no-ack.test.ts',
+      rows: [
+        'on: no crisis level says it, and the rest of the naturalness step still runs',
+        'off: every crisis level says it, as on main',
+        'on: an ordinary turn says it, unchanged',
+      ],
+    },
+  ],
+};
