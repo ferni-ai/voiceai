@@ -120,7 +120,12 @@ describe('plain mode: the "Mm" 650 ms after the thinking state', () => {
     vi.stubEnv('CRISIS_NO_OPENING_SOUND', 'on');
     const { session, agent } = await startedTurn();
     let release!: () => void;
-    noteCrisisVerdictPending(session, new Promise<void>((r) => (release = r)));
+    noteCrisisVerdictPending(
+      session,
+      new Promise<void>((r) => {
+        release = r;
+      })
+    );
     agent('thinking');
     vi.advanceTimersByTime(700);
     release();
