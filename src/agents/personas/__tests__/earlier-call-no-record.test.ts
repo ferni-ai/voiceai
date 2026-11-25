@@ -9,7 +9,7 @@
 import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DONT_KNOW_THEM_YET, NO_EARLIER_CALLS } from '../earlier-call-honest.js';
+import { DONT_KNOW_THEM_YET } from '../earlier-call-honest.js';
 import {
   FIRST_CALL_NOTE,
   NAME_SWAP_NOTE,
@@ -18,7 +18,6 @@ import {
 } from '../first-call-rapport.js';
 import { CANON_LINE, FIRST_CALL_LINE, beatNote } from '../personal-beats.js';
 import {
-  FIRST_CALL_FACTS,
   STRANGER_GREETING_DIRECTION,
   easyStrangerDirection,
   firstCallFacts,
@@ -28,6 +27,8 @@ import { buildUserAwareness } from '../../voice-agent/phases/user-awareness.js';
 
 const FIRST = /first (?:call|time|conversation)/i;
 const OFF = { EARLIER_CALL_NO_DENIAL: 'off' };
+/** The no-record wording in earlier-call-honest.ts. */
+const NO_EARLIER_CALLS = 'You have no earlier calls with them on record';
 const ON = { EARLIER_CALL_NO_DENIAL: 'on' };
 
 afterEach(() => vi.unstubAllEnvs());
@@ -141,7 +142,7 @@ describe("the stranger's hello (first-call-stranger.ts)", () => {
     expect(easyStrangerDirection(STRANGER_GREETING_DIRECTION, OFF)).toBe(
       STRANGER_GREETING_DIRECTION
     );
-    expect(firstCallFacts(OFF)).toBe(FIRST_CALL_FACTS);
+    expect(firstCallFacts(OFF)).toEqual({ 'how well you know each other': 'first time talking' });
   });
   it("flag on: you don't know them yet (no records words in a hello), the guidance kept", () => {
     const direction = easyStrangerDirection(STRANGER_GREETING_DIRECTION, ON);

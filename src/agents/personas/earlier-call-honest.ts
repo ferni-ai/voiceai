@@ -52,7 +52,7 @@ export function earlierCallNoDenialEnabled(env: Env = process.env): boolean {
   return flagOn('EARLIER_CALL_NO_DENIAL', env);
 }
 
-export const EARLIER_CALL_HEADING = "## Earlier Calls You Can't See";
+const EARLIER_CALL_HEADING = "## Earlier Calls You Can't See";
 
 const NOTE = `
 ---
@@ -84,7 +84,7 @@ export function earlierCallNote(
 }
 
 /** What a first call's in-call notes say with the flag on: no record, never "first call". */
-export const NO_EARLIER_CALLS = 'You have no earlier calls with them on record';
+const NO_EARLIER_CALLS = 'You have no earlier calls with them on record';
 
 /** A note that opens by calling this the first call. */
 const FIRST_CALL_CLAIM = /^This is your first (?:call|conversation) with them\b/;

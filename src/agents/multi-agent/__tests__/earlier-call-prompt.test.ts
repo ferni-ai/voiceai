@@ -74,8 +74,9 @@ vi.mock('../../model-provider/index.js', async (importOriginal) => {
 });
 
 const { setupPersonaAgent } = await import('../agent-setup.js');
-const { EARLIER_CALL_HEADING, earlierCallNote } =
-  await import('../../personas/earlier-call-honest.js');
+/** The heading earlier-call-honest.ts puts on the note. */
+const EARLIER_CALL_HEADING = "## Earlier Calls You Can't See";
+const { earlierCallNote } = await import('../../personas/earlier-call-honest.js');
 const { setOutboundCallContext } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 

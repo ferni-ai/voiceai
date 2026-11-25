@@ -102,7 +102,7 @@ export function easyStrangerDirection(
 }
 
 /** The fact that says so, beside the time of day and their name. */
-export const FIRST_CALL_FACTS: Readonly<Record<string, string>> = {
+const FIRST_CALL_FACTS: Readonly<Record<string, string>> = {
   'how well you know each other': 'first time talking',
 };
 
