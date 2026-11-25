@@ -73,6 +73,12 @@ export const SESSION_CLEANUP_INTERVAL_MS = parseDurationMs(
 /** Timeout for session summarization during end (10 seconds) */
 export const SUMMARIZE_TIMEOUT_MS = 10000;
 
+/**
+ * A call that ends with no turn after fewer seconds than this is a caller who left before anyone
+ * spoke, not a fault. Longer with no turn means addTurn() was likely never reached.
+ */
+export const EMPTY_CALL_MAX_SECONDS = 60;
+
 /** Shutdown timeout for ending sessions (5 seconds) */
 export const SHUTDOWN_TIMEOUT_MS = 5000;
 
