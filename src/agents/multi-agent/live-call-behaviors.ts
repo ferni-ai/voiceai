@@ -12,6 +12,7 @@ import { installCallUserPort } from '../../services/outreach/call-user-adapter.j
 import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installCallRecallPort } from '../../services/outreach/call-recall.js';
+import { installStillConnectingPort } from './still-connecting.js';
 import { installGatedCallPort } from '../../services/outreach/gated-call-paths.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -153,6 +154,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installConfirmThreadPort();
   // "Did you call my dad?": callStatus reads the owner's call records (call-status-tool.ts).
   installCallRecallPort();
+  // ON_BEHALF_JOIN_WAIT: one "still connecting" line while a call is placed (still-connecting.ts).
+  installStillConnectingPort();
   // CALL_PATHS_PLACE_OR_HOLD: backgroundCall and referral calls go through placeOrHold.
   installGatedCallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).

@@ -88,6 +88,8 @@ process.env.SIP_TRUNK_ID = 'ST_test';
 const { createCallOnBehalfTool } = await import('../call-on-behalf.js');
 const { callConfirm } = await import('../call-confirm.js');
 const { pendingCallTo } = await import('../../../../services/outreach/deferred-calls.js');
+const { NO_AGENT_REPLY } = await import('../call-not-placed.js');
+const { outcomeOf } = await import('../../communication/outreach/confirm-thread.js');
 
 const AT_8_42_DENVER = new Date('2026-10-17T14:42:27Z'); // the prod call, 8:42 AM in Denver
 const NINE_DENVER = '2026-10-17T15:00:00.000Z';
@@ -174,6 +176,27 @@ describe('a call no agent joins (prod 2026-11-05)', () => {
         "I couldn't place that call just now, so it didn't ring. Want me to try again in a minute?",
     });
     expect(JSON.stringify(reply)).not.toMatch(/calling \w+ now|let you know/i);
+  });
+
+  it('ON_BEHALF_JOIN_WAIT: after the 30 s wait the reply text the model gets is NO_AGENT_REPLY', async () => {
+    process.env.ON_BEHALF_JOIN_WAIT = 'on';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-17T18:00:00Z'));
+    listParticipants.mockResolvedValue([]);
+    try {
+      const replying = callMom();
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(listParticipants).toHaveBeenCalled(); // still waiting at 20 s, nothing rung
+      await vi.advanceTimersByTimeAsync(11_000);
+      const reply = await replying;
+
+      expect(reply).toBe(NO_AGENT_REPLY); // the sentence itself, not an error to explain
+      expect(createSipParticipant).not.toHaveBeenCalled();
+      expect(outcomeOf(reply)).toBe('failed'); // a confirmed call that didn't ring
+    } finally {
+      listParticipants.mockResolvedValue([{ kind: 4 }]);
+      delete process.env.ON_BEHALF_JOIN_WAIT;
+    }
   });
 });
 

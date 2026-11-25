@@ -23,7 +23,7 @@ import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
 import { pickFromTie, type PickRow } from './contact-pick.js';
-import { isAgentNotJoined, NO_AGENT_REPLY } from './call-not-placed.js';
+import { isAgentNotJoined, noAgentReply, whileConnecting } from './call-not-placed.js';
 import type {
   CallType,
   CallObjective,
@@ -340,7 +340,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
     parameters: callOnBehalfSchema,
 
-    execute: async (params) => {
+    execute: async (params, opts) => {
       const {
         contactQuery,
         phoneNumber,
@@ -458,10 +458,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           const why = `I can't make this call because: ${compliance.issues.join(', ')}.`;
           return { success: false, error: `${why} Could you help me resolve these issues?` };
         }
-
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
         const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
-        const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
+        const placing = placeOrHold(request, initiateOnBehalfCall);
+        const { callId, held, others = '' } = await whileConnecting(opts, placing);
         if (held) return held;
         log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
@@ -472,7 +472,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why
         // No agent joined, so nothing rang: no "calling now", no "I'll let you know".
-        if (isAgentNotJoined(error)) return { success: false, error: NO_AGENT_REPLY };
+        if (isAgentNotJoined(error)) return noAgentReply();
         const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
         return { success: false, error: `${sorry} Would you like me to try again?` };
       }
