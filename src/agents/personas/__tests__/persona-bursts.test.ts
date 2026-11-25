@@ -10,11 +10,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { gatedReply } from '../crisis-gate.js';
 import { OpenerGate } from '../opener-gate.js';
 
-import { PERSONA_BURSTS, WINCE_FITS, personaBursts } from '../persona-bursts.js';
+import { personaBursts } from '../persona-bursts.js';
 import { PLAIN_SIGNALS, type TurnSignals } from '../turn-extras.js';
 import { styleFor } from '../turn-request-style.js';
 import { BURSTS, burstAllowed, burstLine } from '../vocal-bursts.js';
 
+/** Each teammate's set, as persona-bursts.ts reads it from their canon. */
+const PERSONA_BURSTS: Readonly<Record<string, readonly string[]>> = {
+  'alex-chen': ['think', 'chuckle', 'laugh'],
+  'joel-dickson': ['think', 'surprise', 'chuckle', 'laugh'],
+  'john-bogle': ['think', 'tender', 'chuckle', 'sigh', 'tsk'],
+  'jordan-taylor': ['think', 'surprise', 'tender', 'chuckle', 'laugh'],
+  'maya-santos': ['think', 'surprise', 'nervous', 'chuckle', 'laugh'],
+  'nayan-patel': ['think', 'chuckle', 'laugh'],
+  'peter-john': ['think', 'surprise', 'nervous', 'chuckle', 'laugh'],
+};
+const WINCE_FITS = 'wincing for them at a small mishap they just told you about';
 const BURSTS_ON = { VOCAL_BURSTS: 'on' };
 const ON = { VOCAL_BURSTS: 'on', VOCAL_BURSTS_PER_PERSONA: 'on' };
 const LIGHT: TurnSignals = { ...PLAIN_SIGNALS, careful: false };

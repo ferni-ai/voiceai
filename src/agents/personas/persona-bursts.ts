@@ -18,11 +18,10 @@
  *
  * @module agents/personas/persona-bursts
  */
-
-type Env = Record<string, string | undefined>;
+import { flagOn, type Env } from '../../config/env-flag.js';
 
 export function perPersonaBurstsEnabled(env: Env = process.env): boolean {
-  return env.VOCAL_BURSTS_PER_PERSONA === 'on';
+  return flagOn('VOCAL_BURSTS_PER_PERSONA', env);
 }
 
 /**
@@ -38,7 +37,7 @@ export function perPersonaBurstsEnabled(env: Env = process.env): boolean {
  * No teammate's set has the wince: no teammate's canon describes one, so only
  * Ferni, Seth and personas without an entry are ever offered "Eek,".
  */
-export const PERSONA_BURSTS: Readonly<Record<string, readonly string[]>> = {
+const PERSONA_BURSTS: Readonly<Record<string, readonly string[]>> = {
   // alex-chen/identity/character.md: "Even and dry by default." Thinking,
   // voice-guidance.md: "Hmm." (thinking). character.md: "you own them with a dry
   // laugh" (chuckle). voice-guidance.md signature sounds: "[laughter]" (warm,
@@ -83,7 +82,7 @@ export const PERSONA_BURSTS: Readonly<Record<string, readonly string[]>> = {
 const UNWELCOME_ANSWER = new Set(['candor_yes', 'candor_unknowable']);
 
 /** A wince, in the per-persona invite: for their mishap, not his own honest answer. */
-export const WINCE_FITS = 'wincing for them at a small mishap they just told you about';
+const WINCE_FITS = 'wincing for them at a small mishap they just told you about';
 
 /**
  * The bursts this persona may be offered on this turn: its own set (all of
