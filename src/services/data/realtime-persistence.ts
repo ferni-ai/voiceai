@@ -22,6 +22,7 @@ import { acceptsSpokenName, nameCaptureStrict } from '../../utils/caller-name.js
 import { MAX_RETRIES, RETRY_DELAY_MS } from '../../config/resilience-config.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { writeHeld } from '../../utils/minor-care.js';
+import { nameForLog } from '../../utils/name-for-log.js';
 
 const log = createLogger({ module: 'RealtimePersistence' });
 
@@ -146,7 +147,7 @@ export async function persistExtractedDetails(
       if (userNameDetail && !currentProfile.name) {
         updates.name = userNameDetail.value;
         log.info(
-          { userId, name: userNameDetail.value },
+          { userId, ...nameForLog(userNameDetail.value) },
           '🎉 Learned user name from conversation - updating profile!'
         );
       }

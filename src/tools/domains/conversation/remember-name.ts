@@ -16,6 +16,7 @@ import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js'
 import { callMeVocativeEnabled } from '../../../utils/call-me-vocative.js';
 import { isCallbackTime } from '../../../utils/callback-time.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { nameForLog } from '../../../utils/name-for-log.js';
 import { ownerOnTheLine, stepFor } from './name-confirm-calls.js';
 import { nameLikeness, secondQuestion } from './name-likeness.js';
 
@@ -58,7 +59,7 @@ const noYesNote = (name: string, current: string | undefined): string =>
 
 /** The tool's write, as it is with the flag off: this call, then the profile, saved now. */
 async function save(name: string, user: NameToolUser, session: object): Promise<string> {
-  getLogger().info(`Remembering user name: ${name}`);
+  getLogger().info(nameForLog(name), 'Remembering user name');
   user.name = name;
   user.userName = name; // this call's name too: rememberName is the one writer with the flag on
   const { services } = user;
@@ -69,7 +70,10 @@ async function save(name: string, user: NameToolUser, session: object): Promise<
     try {
       await services.saveProfile();
     } catch (saveError) {
-      getLogger().error({ error: String(saveError), name }, 'Failed to persist name to Firestore');
+      getLogger().error(
+        { error: String(saveError), ...nameForLog(name) },
+        'Failed to persist name to Firestore'
+      );
     }
   }
   return `[INTERNAL: Name "${name}" stored. Respond naturally - do NOT read this message aloud.]`;

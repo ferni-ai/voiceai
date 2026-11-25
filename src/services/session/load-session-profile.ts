@@ -17,6 +17,7 @@ import {
 } from '../../memory/storage/profile-read-failure.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { nameForLog } from '../../utils/name-for-log.js';
 
 export async function loadSessionProfile(
   store: Pick<MemoryStore, 'getProfileForWrite' | 'saveProfile'>,
@@ -44,7 +45,7 @@ export async function loadSessionProfile(
     await store.saveProfile(profile).catch(warnUnsaved);
     void cacheProfile(userId, profile);
     getLogger().info(
-      { userId, name: userName || '(none)' },
+      { userId, ...nameForLog(userName) },
       '🆕 Created new user profile with name from onboarding'
     );
   } else if (!profile.name && userName) {
@@ -53,7 +54,7 @@ export async function loadSessionProfile(
     await store.saveProfile(profile).catch(warnUnsaved);
     void invalidateProfile(userId);
     getLogger().info(
-      { userId, name: userName },
+      { userId, ...nameForLog(userName) },
       '✨ Updated existing profile with name from onboarding'
     );
   }

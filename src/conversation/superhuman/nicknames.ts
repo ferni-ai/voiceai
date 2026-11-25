@@ -11,6 +11,7 @@
 
 import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { nameForLog } from '../../utils/name-for-log.js';
 import { extractCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 const log = createLogger({ module: 'Nicknames' });
@@ -99,7 +100,7 @@ export function setUserName(userId: string, firstName: string, preferredName?: s
   naming.preferredName = preferredName || firstName;
   namingStore.set(userId, naming);
 
-  log.info({ userId, name: naming.preferredName }, '👤 User name set');
+  log.info({ userId, ...nameForLog(naming.preferredName) }, '👤 User name set');
 }
 
 /**
@@ -110,7 +111,7 @@ export function addNickname(userId: string, nickname: string): void {
   if (!naming.nicknames.includes(nickname)) {
     naming.nicknames.push(nickname);
     namingStore.set(userId, naming);
-    log.info({ userId, nickname }, '🏷️ Nickname added');
+    log.info({ userId, nicknameChars: nickname.length }, '🏷️ Nickname added');
   }
 }
 
