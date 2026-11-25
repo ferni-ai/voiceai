@@ -20,7 +20,7 @@
  * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
  * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
  * (NOT_YET_COVERED). A flag acting on a text channel, on the turn's tool routing, or only on a
- * rejected gate escalation, or on a non-safety line the speech coordinator would say, which neither
+ * rejected gate escalation, or on a non-safety sound or line said beside the reply, which neither
  * reader sees, names rows that show it there (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON,
  * GATE_FAILURE_SHOWN_ON, NON_SAFETY_LINE_REMOVED). All of these lists are in crisis-flag-homes.ts.
  *

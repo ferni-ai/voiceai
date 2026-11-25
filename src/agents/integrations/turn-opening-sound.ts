@@ -30,7 +30,13 @@
  * @module agents/integrations/turn-opening-sound
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger, replyForLog } from '../../utils/safe-logger.js';
+import {
+  CRISIS_GATE_SIGNAL,
+  crisisDecidedOn,
+  crisisVerdictPending,
+} from '../safety/crisis-gate-signal.js';
 import {
   noteOpeningSound,
   slowSoundBlocksEarly,
@@ -156,6 +162,9 @@ export function turnOpeningClip(
   return question ? 'Hmm' : 'Mm';
 }
 
+/** A clip older than this can no longer be cut (direct-clip-track.ts cancelIfFresh's window is 200 ms). */
+const OPENER_CUT_MS = 250;
+
 interface SessionEvents {
   on: (event: string, handler: (ev: unknown) => void) => unknown;
   off: (event: string, handler: (ev: unknown) => void) => unknown;
@@ -173,6 +182,8 @@ export function attachTurnOpeningSound(
     lastPlayedAt: () => number;
     /** play() to the wire for a clip (clip-player.ts); early mode holds the reply for it too. */
     wireDelayMs?: () => number;
+    /** Cut a clip played moments ago (clip-player.ts cancelFresh); true if cut. */
+    cancelFresh?: () => boolean;
   },
   lastUserTranscript: () => string,
   /** Whether reply audio was produced at or after this time (TTS first frame). */
@@ -185,9 +196,23 @@ export function attachTurnOpeningSound(
   let lastThinkingTurn = -1;
   let userStartedAt = 0;
   let userSpeaking = false;
+  let openerPlayedAt = 0;
   const cancel = (): void => {
     if (timer) clearTimeout(timer);
     timer = null;
+  };
+  // CRISIS_NO_OPENING_SOUND: no "Mm" while a crisis verdict is pending or the gate acted on this
+  // call, as for the slow-turn sound and the tool hum (slow-turn-wiring.ts, tool-hum.ts).
+  const crisisHolds = (): boolean =>
+    flagOn('CRISIS_NO_OPENING_SOUND') &&
+    (crisisDecidedOn(session) || crisisVerdictPending(session) !== null);
+  // A verdict lands while an opener is queued: cut it and let the reply go at once.
+  const onCrisisDecision = (): void => {
+    if (!flagOn('CRISIS_NO_OPENING_SOUND')) return;
+    cancel();
+    if (Date.now() - openerPlayedAt >= OPENER_CUT_MS || !clips.cancelFresh?.()) return;
+    early?.holdReply(0);
+    log.info({ sessionId: early?.sessionId }, 'TURN_OPENING_CUT_CRISIS');
   };
   // Hard news in this turn or the last few, or crisis risk on the call (presence-heavy.ts).
   const heavy = (): boolean =>
@@ -217,6 +242,7 @@ export function attachTurnOpeningSound(
     playedLastTurn = text !== null && clips.playClip(text);
     if (!playedLastTurn || text === null) return;
     lastClip = text;
+    openerPlayedAt = Date.now();
     openedAt.set(session, Date.now());
     noteOpeningSound(session, 'early');
     const clipMs = early.clipMs(text);
@@ -248,6 +274,10 @@ export function attachTurnOpeningSound(
     timer = setTimeout(() => {
       timer = null;
       if (userSpeaking) return;
+      if (crisisHolds()) {
+        log.info({ sessionId: early?.sessionId }, 'TURN_OPENING_SKIPPED_CRISIS');
+        return;
+      }
       // The reply's audio exists already; its playback is about to start.
       if (replyAudioSince(userStartedAt)) return;
       if (early) {
@@ -261,14 +291,18 @@ export function attachTurnOpeningSound(
         heavy: heavy(),
       });
       playedLastTurn = text !== null && clips.playClip(text);
-      if (playedLastTurn) log.info({ text: replyForLog(text) }, 'turn opening clip played');
+      if (!playedLastTurn) return;
+      openerPlayedAt = Date.now();
+      log.info({ text: replyForLog(text) }, 'turn opening clip played');
     }, early?.waitMs ?? TURN_OPENING.waitMs);
   };
   session.on('agent_state_changed', onState);
   session.on('user_state_changed', onUserState);
+  session.on(CRISIS_GATE_SIGNAL, onCrisisDecision);
   return () => {
     cancel();
     session.off('agent_state_changed', onState);
     session.off('user_state_changed', onUserState);
+    session.off(CRISIS_GATE_SIGNAL, onCrisisDecision);
   };
 }
