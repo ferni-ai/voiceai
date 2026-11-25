@@ -186,6 +186,7 @@ export function createBargeInFastPath(deps: {
     if (timer) clearTimer(timer);
     timer = undefined;
   };
+  /** Logs counts and enums only: never what the caller said (text logs are lengths only). */
   const fire = (fields: Record<string, unknown>): void => {
     if (firedThisReply) return;
     firedThisReply = true;
@@ -346,7 +347,7 @@ export function createBargeInFastPath(deps: {
       const minWords = justResumed ? POST_RESUME_MIN_WORDS : MIN_INTERRUPT_WORDS;
       if (!shouldInterrupt({ transcript, agentSpeaking, spokenText, minWords })) return;
       const extra = justResumed ? { minWords } : {};
-      fire({ reason: 'transcript', transcript, words: words(transcript).length, ...extra });
+      fire({ reason: 'transcript', words: words(transcript).length, chars: transcript.length, ...extra }); // prettier-ignore
     },
   };
 }
