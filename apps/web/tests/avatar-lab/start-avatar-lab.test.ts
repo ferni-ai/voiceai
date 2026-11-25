@@ -102,6 +102,14 @@ describe('startAvatarLab', () => {
     expect(document.querySelector('.avatar-container')?.classList).toContain('entrance-complete');
   });
 
+  it('removes the helper text, which the app stylesheet forces visible over the lab style', async () => {
+    document.getElementById('app')?.insertAdjacentHTML('beforeend', '<p id="helperText"></p>');
+    expect(document.getElementById('helperText')).not.toBeNull();
+    await startAvatarLab();
+    expect(document.getElementById('helperText')).toBeNull();
+    expect(document.querySelector('.avatar-container')).not.toBeNull(); // the avatar stays
+  });
+
   it('starts i18n, then the theme, waveform and the shared boot, then the turn driver', async () => {
     await startAvatarLab();
     expect(m.order).toEqual([

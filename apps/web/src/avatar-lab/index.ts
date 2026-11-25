@@ -24,13 +24,27 @@ const log = createLogger('AvatarLab');
 
 const LAB_STYLE_ID = 'avatar-lab-style';
 
-/** Hides everything but the avatar (#coach) and the waveform, wherever they sit in #app. */
+/**
+ * Hides everything but the avatar (#coach) and the waveform, wherever they sit
+ * in #app. The ID selectors outrank the app's ordinary rules. Two things could
+ * still win: an inline display, which app.ts never sets on the lab because it
+ * starts the lab before sign-in, the call controls or revealApp run; and an
+ * important rule in the app's stylesheets (the one that shows on the lab is
+ * handled by FORCED_VISIBLE_IDS).
+ */
 const LAB_STYLE = `
-html[data-avatar-lab='on'] body > :not(#app) { display: none !important; }
+html[data-avatar-lab='on'] body > :not(#app) { display: none; }
 html[data-avatar-lab='on'] #app :not(:has(#coach, #waveformContainer)):not(#coach, #coach *, #waveformContainer, #waveformContainer *) {
-  display: none !important;
+  display: none;
 }
 `;
+
+/**
+ * Elements the app's stylesheet forces visible with an important display
+ * (#helperText in styles/inline-styles.css), which no lab rule outranks. The lab
+ * never runs the code that uses them (ui/message.ui.ts), so it removes them.
+ */
+const FORCED_VISIBLE_IDS = ['helperText'] as const;
 
 const lab: { turnDriver: TurnDriver | null } = { turnDriver: null };
 
@@ -58,9 +72,14 @@ function addLabStyle(): void {
   document.head.appendChild(style);
 }
 
+function removeForcedVisible(): void {
+  for (const id of FORCED_VISIBLE_IDS) document.getElementById(id)?.remove();
+}
+
 export async function startAvatarLab(): Promise<void> {
   document.documentElement.setAttribute('data-avatar-lab', 'on');
   addLabStyle();
+  removeForcedVisible();
   document.body.classList.add('app-loaded'); // runs the avatar's entrance, as in the app
 
   await initI18n(); // the circadian theme and the thinking label use t()
