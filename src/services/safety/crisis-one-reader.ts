@@ -40,12 +40,27 @@ export function markReader<T extends Verdict | null>(verdict: T, reader: string)
   return verdict;
 }
 
-/** The number of distinct readers among the risk reads. A read with no reader counts alone. */
-export function riskReaders(verdicts: ReadonlyArray<Verdict | null>): number {
+/** A turn's risk reads, as counts only: no hash or other value derived from the words. */
+export interface ReaderTally {
+  /** Crisis and imminent reads. */
+  riskReads: number;
+  /** Distinct readers among them. A read with no reader counts alone. */
+  readers: number;
+  /** A risk read joined a reader already counted: two runs of one input, prompt and model. */
+  sharedReader: boolean;
+}
+
+/** Counts the distinct readers among a turn's risk reads. */
+export function readerTally(verdicts: ReadonlyArray<Verdict | null>): ReaderTally {
   const readers = new Set<unknown>();
+  let riskReads = 0;
+  let sharedReader = false;
   for (const v of verdicts) {
     if (v?.risk !== 'crisis' && v?.risk !== 'imminent') continue;
-    readers.add(readerOf.get(v) ?? v);
+    riskReads += 1;
+    const reader = readerOf.get(v) ?? v;
+    if (readers.has(reader)) sharedReader = true;
+    readers.add(reader);
   }
-  return readers.size;
+  return { riskReads, readers: readers.size, sharedReader };
 }

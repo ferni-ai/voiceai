@@ -47,7 +47,7 @@ import {
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
-import { riskReaders } from './crisis-one-reader.js';
+import { readerTally } from './crisis-one-reader.js';
 
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
@@ -154,6 +154,18 @@ function readersFailed(source: string): true {
 }
 
 /**
+ * Two or more readers agree on risk. Logs the counts when two or more reads are risk, so a
+ * same-input pair shows as readers 1 with sharedReader: counts and booleans, never words.
+ */
+function readersAgreeOn(verdicts: ReadonlyArray<CrisisVerdict | null>, source: string): boolean {
+  const { riskReads, readers, sharedReader } = readerTally(verdicts);
+  if (riskReads >= 2) {
+    log.info({ riskReads, readers, sharedReader, source }, 'CRISIS_READERS');
+  }
+  return readers >= 2;
+}
+
+/**
  * Two or more READERS of this turn agree on risk. Runs that saw the same input with the same
  * prompt and model are one reader (crisis-one-reader.ts); the patterns and the after-check
  * confirm on their own (noteConfirmedRisk).
@@ -164,7 +176,7 @@ async function agreed(
   source: string
 ): Promise<boolean> {
   try {
-    return riskReaders(await turnVerdicts(call, input)) >= 2;
+    return readersAgreeOn(await turnVerdicts(call, input), source);
   } catch {
     return readersFailed(source);
   }
@@ -179,7 +191,7 @@ export function readersAgree(
   source: LoneRead['source']
 ): boolean {
   try {
-    return riskReaders(verdicts) >= 2;
+    return readersAgreeOn(verdicts, source);
   } catch {
     return readersFailed(source);
   }

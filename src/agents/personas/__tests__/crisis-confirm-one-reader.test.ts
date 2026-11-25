@@ -12,20 +12,21 @@ vi.mock('../../../services/safety/crisis-one-reader.js', async (load) => {
   const real = await load<typeof import('../../../services/safety/crisis-one-reader.js')>();
   return {
     ...real,
-    riskReaders: (...args: Parameters<typeof real.riskReaders>) => {
+    readerTally: (...args: Parameters<typeof real.readerTally>) => {
       if (broken.on) throw new Error('count failed');
-      return real.riskReaders(...args);
+      return real.readerTally(...args);
     },
   };
 });
 const warn = vi.hoisted(() => vi.fn());
+const info = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', async (load) => {
   const real = await load<typeof import('../../../utils/safe-logger.js')>();
   return {
     ...real,
     createLogger: (bindings: { module?: string }) => {
       const base = real.createLogger(bindings as never);
-      return bindings?.module === 'CrisisConfirmedRisk' ? { ...base, warn } : base;
+      return bindings?.module === 'CrisisConfirmedRisk' ? { ...base, info, warn } : base;
     },
   };
 });
@@ -46,7 +47,7 @@ import {
 } from '../../../services/safety/crisis-confirmed-risk.js';
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
-import { markReader, readerKey, riskReaders } from '../../../services/safety/crisis-one-reader.js';
+import { markReader, readerKey, readerTally } from '../../../services/safety/crisis-one-reader.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
@@ -87,6 +88,7 @@ let calls = 0;
 beforeEach(() => {
   broken.on = false;
   warn.mockReset();
+  info.mockReset();
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
@@ -115,6 +117,10 @@ async function agreeTurn(generate: CrisisGenerateFn, pipelineFerni: string, pipe
   return { decision, session };
 }
 
+/** The confirm's reader counts, as logged. */
+const tallies = (): Array<Record<string, unknown>> =>
+  info.mock.calls.filter((c) => c[1] === 'CRISIS_READERS').map((c) => c[0]);
+
 const eased = (d: CrisisGateDecision) =>
   d.action === 'guide' && d.guidance === AFTER_CHECK_GUIDANCE;
 
@@ -127,6 +133,14 @@ describe('CRISIS_CONFIRMED_CALL_RISK: same-input classifier runs are one reader'
     // Not confirmed, so the after-check read the turn and, finding no risk, eased it.
     expect(generate.afterCalls).toContain(AGREE);
     expect(eased(decision)).toBe(true);
+    // Checkable in the logs: two risk reads, one reader, a shared reader.
+    expect(tallies()).toContainEqual({
+      riskReads: 2,
+      readers: 1,
+      sharedReader: true,
+      source: 'gate',
+    });
+    expect(tallies().every((t) => t.readers === 1)).toBe(true);
   });
 
   it('the pipeline on its own: another run of the same input is not a second reader', async () => {
@@ -157,6 +171,29 @@ describe('CRISIS_CONFIRMED_CALL_RISK: same-input classifier runs are one reader'
     expect(generate.afterCalls).toEqual([]);
     expect(eased(decision)).toBe(false);
     expect(decision.action).not.toBe('pass');
+    expect(tallies()).toContainEqual({
+      riskReads: 2,
+      readers: 2,
+      sharedReader: false,
+      source: 'gate',
+    });
+  });
+
+  it('the logged counts carry nothing derived from the words: counts and booleans', async () => {
+    const generate = stub({ [ALARM]: IMMINENT, [AGREE]: CRISIS }, { [AGREE]: NONE });
+    await agreeTurn(generate, FERNI.replace, LATER_DEADLINE);
+    await agreeTurn(generate, 'Sounds lovely.');
+    const logged = tallies();
+    expect(logged.length).toBeGreaterThan(1);
+    const sources = ['gate', 'pipeline', 'kept'];
+    for (const fields of logged) {
+      for (const [field, value] of Object.entries(fields)) {
+        if (field === 'source') expect(sources).toContain(value);
+        else expect(['number', 'boolean']).toContain(typeof value);
+      }
+      const text = JSON.stringify(fields);
+      for (const line of [AGREE, ...BENIGN, FERNI.replace]) expect(text).not.toContain(line);
+    }
   });
 
   it('a pattern and the classifier on one turn still confirm the call', async () => {
@@ -248,13 +285,14 @@ describe('CRISIS_CONFIRMED_CALL_RISK: a failed reader count confirms (fails clos
   });
 });
 
-describe('riskReaders and readerKey', () => {
+describe('readerTally and readerKey', () => {
   const seen = { latest: AGREE, earlier: BENIGN, companion: FERNI.pass };
   const key = readerKey(seen, 'prompt', {});
   const read = () => parseClassifierReply(CRISIS);
 
   it('two runs of the same input, prompt and model are one reader', () => {
-    expect(riskReaders([markReader(read(), key), markReader(read(), key)])).toBe(1);
+    const tally = readerTally([markReader(read(), key), markReader(read(), key)]);
+    expect(tally).toEqual({ riskReads: 2, readers: 1, sharedReader: true });
   });
 
   it('a different input, prompt or model is another reader', () => {
@@ -267,15 +305,18 @@ describe('riskReaders and readerKey', () => {
     ];
     for (const other of others) {
       expect(other).not.toBe(key);
-      expect(riskReaders([markReader(read(), key), markReader(read(), other)])).toBe(2);
+      const tally = readerTally([markReader(read(), key), markReader(read(), other)]);
+      expect(tally).toEqual({ riskReads: 2, readers: 2, sharedReader: false });
     }
   });
 
   it('only risk reads count, and an unmarked read counts alone', () => {
     const none = parseClassifierReply(NONE); // unmarked: it would count alone
-    expect(riskReaders([markReader(read(), key), none, null])).toBe(1);
-    expect(riskReaders([read(), read()])).toBe(2);
-    expect(riskReaders([markReader(parseClassifierReply(IMMINENT), key), read()])).toBe(2);
+    const one = { riskReads: 1, readers: 1, sharedReader: false };
+    expect(readerTally([markReader(read(), key), none, null])).toEqual(one);
+    expect(readerTally([read(), read()])).toEqual({ ...one, riskReads: 2, readers: 2 });
+    const imminent = markReader(parseClassifierReply(IMMINENT), key);
+    expect(readerTally([imminent, read()]).readers).toBe(2);
   });
 
   it('the key keeps no caller words', () => {
