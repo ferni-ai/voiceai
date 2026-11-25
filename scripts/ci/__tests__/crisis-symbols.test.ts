@@ -83,7 +83,7 @@ describe('crisis symbols', () => {
       screened: derived.screened.filter((n) => n !== 'scoreCrisisLanguage'),
     };
     expect(droppedFromScreen(unscreenedNow, unscreened)).toEqual(['scoreCrisisLanguage']);
-    expect(droppedFromScreen(unscreenedNow, ['scoreCrisisLanguage'])).toEqual([]);
+    expect(droppedFromScreen(unscreenedNow, [...unscreened, 'scoreCrisisLanguage'])).toEqual([]);
     // A name no longer exported at all has left with its crisis module edit.
     const gone = {
       ...unscreenedNow,
@@ -182,10 +182,20 @@ describe('crisis symbols', () => {
       const sha = 'a'.repeat(40);
       const read = baseForEvent(checkout, queue({ merge_group: { base_sha: sha } }), baseSymbols);
       expect(read.symbols).toBeUndefined();
+      expect(red(read)).toContain(`merge_group: git fetch --depth=1 origin ${sha} failed (`);
+      expect(red(read)).toContain("the queue's base commit is not reachable from origin");
       expect(red(read)).toContain(
-        `merge_group: could not fetch merge_group.base_sha ${sha} from origin`
+        "(re-queue the PR, or check the workflow's token and fetch step)"
       );
       expect(red(read)).not.toContain('check out depth 2');
+      // The same line when origin/main and HEAD^1 are both here: the queue reads only base_sha.
+      run(checkout, 'remote', 'set-url', 'origin', `file://${join(repo(), 'still-none')}`);
+      commitSymbols(checkout, ['alphaName']);
+      commitSymbols(checkout, []);
+      run(checkout, 'update-ref', 'refs/remotes/origin/main', 'HEAD^1');
+      const trap = baseForEvent(checkout, queue({ merge_group: { base_sha: sha } }), baseSymbols);
+      expect(red(trap)).toContain(`merge_group: git fetch --depth=1 origin ${sha} failed (`);
+      expect(red(trap)).not.toContain('origin/main');
     });
 
     it('merge_group is red when the base commit has no symbols file, naming the file', () => {
@@ -207,11 +217,12 @@ describe('crisis symbols', () => {
     it('merge_group with no base_sha in the event is red, saying so', () => {
       const read = baseForEvent(ROOT, queue({ merge_group: {} }), baseSymbols);
       expect(read.symbols).toBeUndefined();
-      expect(red(read)).toContain('merge_group: merge_group.base_sha is not in the event payload');
+      expect(red(read)).toContain('merge_group: the event payload at GITHUB_EVENT_PATH ');
+      expect(red(read)).toContain(' carries no merge_group.base_sha (got nothing)');
       expect(red(read)).not.toContain('check out depth 2');
       // A branch name is not a commit: the base must be the sha GitHub sent.
       const named = baseForEvent(ROOT, queue({ merge_group: { base_sha: 'main' } }), baseSymbols);
-      expect(red(named)).toContain('base_sha is not in the event payload (got "main")');
+      expect(red(named)).toContain('carries no merge_group.base_sha (got "main")');
     });
 
     it('merge_group with no readable event payload is red, naming the path', () => {
@@ -293,6 +304,31 @@ describe('crisis symbols', () => {
       const read = baseForEvent(checkout, { GITHUB_EVENT_NAME: 'pull_request' });
       expect(baseSymbols(checkout)?.sha).toBe(base);
       expect(read.symbols?.previouslyScreened).toEqual(['alphaName']);
+    });
+
+    it("a pull request's merge commit at depth 2 reads its first parent, main", () => {
+      const checkout = repo();
+      run(checkout, 'init', '-q', '-b', 'main');
+      const main = commitSymbols(checkout, ['alphaName']);
+      run(checkout, 'checkout', '-q', '-b', 'feature');
+      commitSymbols(checkout, ['betaName']);
+      run(checkout, 'checkout', '-q', 'main');
+      run(checkout, 'merge', '-q', '--no-ff', '--no-gpg-sign', '-m', 'merge', 'feature');
+      // No origin/main ref, as on a pull_request checkout: HEAD^1 is the base, not HEAD^2.
+      expect(baseSymbols(checkout)).toEqual({
+        sha: main,
+        symbols: expect.objectContaining({ previouslyScreened: ['alphaName'] }),
+      });
+    });
+
+    it('a checkout with no base at all reads no base, not an empty list', () => {
+      const checkout = repo();
+      run(checkout, 'init', '-q');
+      commitSymbols(checkout, ['alphaName']);
+      expect(baseSymbols(checkout)).toBeUndefined();
+      expect(red(baseForEvent(checkout, { GITHUB_EVENT_NAME: 'pull_request' }))).toContain(
+        'no merge base in this checkout'
+      );
     });
   });
 

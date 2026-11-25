@@ -265,8 +265,9 @@ function symbolsAt(root: string, sha: string): BaseRead {
   } catch (e) {
     return {
       failure:
-        `merge_group: could not fetch merge_group.base_sha ${sha} from origin ` +
-        `(${gitError(e)}); the job needs read access to origin to compare with the base`,
+        `merge_group: git fetch --depth=1 origin ${sha} failed (${gitError(e)}); the queue's ` +
+        `base commit is not reachable from origin (re-queue the PR, or check the workflow's ` +
+        `token and fetch step)`,
     };
   }
   try {
@@ -294,8 +295,8 @@ function queueBase(root: string, env: Env): BaseRead {
   if (typeof sha !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) {
     return {
       failure:
-        `merge_group: merge_group.base_sha is not in the event payload ` +
-        `(got ${JSON.stringify(sha) ?? 'nothing'}); GitHub's merge_group event carries it`,
+        `merge_group: the event payload at GITHUB_EVENT_PATH ${env.GITHUB_EVENT_PATH} carries ` +
+        `no merge_group.base_sha (got ${JSON.stringify(sha) ?? 'nothing'})`,
     };
   }
   return symbolsAt(root, sha);
