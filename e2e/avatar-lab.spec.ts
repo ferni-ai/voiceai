@@ -4,23 +4,28 @@
  *
  * The bridge answers only its parent window on its own origin, so the lab is
  * framed by a stand-in parent page served on the app's origin (page.route), and
- * the requests are posted from that parent. The "no reply" case frames it from
- * a page on another origin: a second server on a loopback port this spec starts
- * (a page.route page counts as public, and Chrome's local network access checks
- * would block it from framing a localhost lab at all).
+ * the requests are posted from that parent. The cross-origin case frames it from
+ * a page on another origin: a second server on a loopback port (the `outsider`
+ * fixture; a page.route page counts as public, and Chrome's local network access
+ * checks would block it from framing a localhost lab at all).
  *
  * Runs in the menu merge gate (playwright.menu-e2e.config.ts, project
  * "avatar-lab"), against the Vite app at E2E_BASE_URL.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test as base, type Page } from '@playwright/test';
 
 const LAB_TYPE = 'ferni:avatar-lab';
 const HARNESS_PATH = '/__avatar-lab-parent';
-/** A same-origin reply takes milliseconds; three seconds of silence is a fair "no answer". */
-const NO_REPLY_MS = 3_000;
 const BOOT_MS = 45_000;
+/** How long the lids may take to come to rest before the test says so. */
+const LID_SETTLE_MS = 4_000;
+/**
+ * The longest a turn waits before the avatar shows it: TURN_SETTLE_REDUCED_MS
+ * (400 ms, ui/avatar-motion/turn-driver.ts) plus a margin. A first turn shows at once.
+ */
+const TURN_SHOWN_MS = 600;
 
 type Command = Record<string, unknown> & { name: string };
 interface Reply {
@@ -47,6 +52,12 @@ function parentPage(labUrl: string): string {
     addEventListener('message', onMessage);
     frame.contentWindow.postMessage({ type, id, command }, new URL(frame.src).origin);
   });
+  window.postOnly = (type, command) => {
+    const frame = document.getElementById('lab');
+    const id = 'e2e-' + Math.random().toString(36).slice(2);
+    frame.contentWindow.postMessage({ type, id, command }, new URL(frame.src).origin);
+    return id;
+  };
 </script>`;
 }
 
@@ -62,17 +73,36 @@ async function openParent(page: Page): Promise<void> {
   await page.goto(url);
 }
 
-/** A server on another loopback port that serves only the parent page: another origin. */
-async function startOutsider(): Promise<{ server: Server; origin: string }> {
-  const body = parentPage(labUrl());
-  const server = createServer((_req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(body);
-  });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-  return { server, origin: `http://127.0.0.1:${port}` };
-}
+/**
+ * Fixtures, so their teardown runs even when a test fails or times out:
+ * - outsider: the origin of a server on another loopback port that serves only the parent page;
+ * - reducedMotionPage: a page in its own context that prefers reduced motion.
+ */
+const test = base.extend<{ outsider: string; reducedMotionPage: Page }>({
+  // eslint-disable-next-line no-empty-pattern -- Playwright needs the destructuring form
+  outsider: async ({}, use) => {
+    const body = parentPage(labUrl());
+    const server: Server = createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(body);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    await use(`http://127.0.0.1:${port}`);
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  },
+  reducedMotionPage: async ({ browser }, use) => {
+    const context = await browser.newContext();
+    try {
+      const page = await context.newPage();
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await use(page);
+    } finally {
+      await context.close();
+    }
+  },
+});
 
 function send(page: Page, command: Command, waitMs = 5_000): Promise<Reply | null> {
   return page.evaluate(
@@ -102,16 +132,49 @@ const lab = (page: Page) => page.frameLocator('#lab');
 /** The top lid's outline: what a face change redraws on the eyes. */
 const lidShape = (page: Page) => lab(page).locator('.lid-top').getAttribute('d');
 
-/** Waits until the lid has stopped moving and returns where it came to rest. */
-async function restingLid(page: Page): Promise<string | null> {
-  let last = await lidShape(page);
+/**
+ * Where the lids come to rest: the same outline over four samples 100 ms apart.
+ * Fails within LID_SETTLE_MS, naming `what` and the last two samples, if they keep moving.
+ */
+async function restingLid(page: Page, what: string): Promise<string | null> {
+  let previous = await lidShape(page);
+  let last = previous;
+  const deadline = Date.now() + LID_SETTLE_MS;
   for (let stable = 0; stable < 4;) {
-    await page.waitForTimeout(250);
-    const now = await lidShape(page);
-    stable = now === last ? stable + 1 : 0;
-    last = now;
+    if (Date.now() > deadline) {
+      throw new Error(
+        `${what}: the lids did not settle within ${LID_SETTLE_MS} ms; last two samples: ${previous} | ${last}`
+      );
+    }
+    await page.waitForTimeout(100);
+    previous = last;
+    last = await lidShape(page);
+    stable = last === previous ? stable + 1 : 0;
   }
   return last;
+}
+
+/**
+ * The outline "excited" draws, learned without the hold. Ambient life can redraw the lids
+ * as `warm` at any moment (ambient-life.ui.ts performWarmthPulse), so one capture might
+ * catch that instead: two rounds in a row (neutral, then excited) must agree.
+ */
+async function learnExcitedLids(page: Page): Promise<string | null> {
+  let earlier: string | null | undefined;
+  for (let round = 1; round <= 4; round++) {
+    expect(await send(page, { name: 'face', expression: 'neutral' })).toMatchObject({ ok: true });
+    const neutral = await restingLid(page, `round ${round}, neutral`);
+    expect(await send(page, { name: 'face', expression: 'excited' })).toMatchObject({
+      ok: true,
+      ran: 'setExpression',
+    });
+    const excited = await restingLid(page, `round ${round}, excited`);
+    if (excited !== neutral && excited === earlier) return excited;
+    earlier = excited;
+  }
+  throw new Error(
+    `"excited" never drew the same outline twice in a row, unlike neutral; last: ${earlier}`
+  );
 }
 
 test.describe('avatar lab', () => {
@@ -167,82 +230,97 @@ test.describe('avatar lab', () => {
     });
     await openLab(page);
 
-    // Without the hold, "excited" redraws the lids: learn the shape it draws
-    const before = await restingLid(page);
-    expect(await send(page, { name: 'face', expression: 'excited' })).toMatchObject({
-      ok: true,
-      ran: 'setExpression',
-    });
-    const excited = await restingLid(page);
-    expect(excited, 'an allowed face changes the lids').not.toBe(before);
+    // Without the hold, "excited" redraws the lids: learn the outline it draws
+    const excited = await learnExcitedLids(page);
     expect(await send(page, { name: 'face', expression: 'neutral' })).toMatchObject({ ok: true });
-    expect(await restingLid(page)).not.toBe(excited);
+    expect(await restingLid(page, 'neutral before the hold')).not.toBe(excited);
 
     expect(await send(page, { name: 'crisisHold', on: true })).toMatchObject({
       ok: true,
       ran: 'holdCrisisFace',
     });
     expect((await send(page, { name: 'status' }))?.status?.crisisHeld).toBe(true);
-    const held = await restingLid(page);
+    const held = await restingLid(page, 'held, before the refused face');
 
     const refused = await send(page, { name: 'face', expression: 'excited' });
+    // The reply proves the lab's own gate (lab-commands.ts face case). The lids below prove
+    // the inner gate (handOffToFaceEngine): with only the lab gate removed they still stay.
     expect(refused).toMatchObject({ ok: false });
     expect(refused?.ran).toBeUndefined();
     expect(refused?.why ?? '').toMatch(/crisis hold/i);
     for (let i = 0; i < 8; i++) {
       await page.waitForTimeout(200);
-      expect(await lidShape(page), 'the lids after a refused face').toBe(held);
+      const now = await lidShape(page);
+      expect(now, 'the lids after a refused face').toBe(held);
+      expect(now, 'the lids drew "excited" during the hold').not.toBe(excited);
     }
   });
 
-  test('reduced motion: status says so and protective mode is refused', async ({ browser }) => {
-    const plain = await browser.newPage();
-    await openLab(plain);
-    expect((await send(plain, { name: 'status' }))?.status?.reducedMotion).toBe(false);
-    expect(await send(plain, { name: 'moment', moment: 'protectiveOn' })).toMatchObject({
+  test('reduced motion: status says so and protective mode is refused', async ({
+    page,
+    reducedMotionPage,
+  }) => {
+    await openLab(page);
+    expect((await send(page, { name: 'status' }))?.status?.reducedMotion).toBe(false);
+    expect(await send(page, { name: 'moment', moment: 'protectiveOn' })).toMatchObject({
       ok: true,
       ran: 'enterProtectiveMode',
     });
-    await plain.context().close();
 
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await openLab(page);
-    expect((await send(page, { name: 'status' }))?.status?.reducedMotion).toBe(true);
-    const refused = await send(page, { name: 'moment', moment: 'protectiveOn' });
+    await openLab(reducedMotionPage);
+    expect((await send(reducedMotionPage, { name: 'status' }))?.status?.reducedMotion).toBe(true);
+    const refused = await send(reducedMotionPage, { name: 'moment', moment: 'protectiveOn' });
     expect(refused).toMatchObject({ ok: false });
     expect(refused?.ran).toBeUndefined();
     expect(refused?.why ?? '').toMatch(/reduced motion/i);
-    await context.close();
   });
 
-  test('a page on another origin gets no reply and runs nothing', async ({ page }) => {
-    const outsider = await startOutsider();
-    try {
-      await page.goto(`${outsider.origin}${HARNESS_PATH}`);
-      expect(new URL(page.url()).origin).not.toBe(appOrigin());
-      await outsideCannotDrive(page);
-    } finally {
-      await new Promise((resolve) => outsider.server.close(resolve));
-    }
+  test('a page on another origin cannot run a command', async ({ page, outsider }) => {
+    await page.goto(`${outsider}${HARNESS_PATH}`);
+    expect(new URL(page.url()).origin).not.toBe(appOrigin());
+    // The class is added just after the bridge starts listening (avatar-lab/index.ts)
+    await expect(lab(page).locator('.avatar-container.entrance-complete')).toBeAttached({
+      timeout: BOOT_MS,
+    });
+    const coach = lab(page).locator('#coach');
+    await expect(coach).toBeVisible();
+    await expect(coach).not.toHaveClass(/\bis-speaking\b/);
+
+    // In the lab, a listener added after the bridge's: listeners run in the order they were
+    // added, so once it has seen the message the bridge has already handled it. It also counts
+    // every turn the avatar shows (turn-driver.ts AVATAR_TURN_EVENT).
+    const labFrame = page.frame({ url: /\/avatar-lab\/?$/ });
+    if (!labFrame) throw new Error('no avatar lab frame in the outside page');
+    await labFrame.evaluate((type) => {
+      const seen = { ids: [] as string[], turns: 0 };
+      (window as unknown as { __outside: typeof seen }).__outside = seen;
+      window.addEventListener('message', (event: MessageEvent) => {
+        const data = event.data as { type?: unknown; id?: unknown } | null;
+        if (data?.type === type && typeof data.id === 'string') seen.ids.push(data.id);
+      });
+      window.addEventListener('ferni:avatar-turn', () => (seen.turns += 1));
+    }, LAB_TYPE);
+
+    const id = await page.evaluate(
+      ([type, command]) =>
+        (window as unknown as { postOnly: (t: string, c: unknown) => string }).postOnly(
+          type,
+          command
+        ),
+      [LAB_TYPE, { name: 'turn', speaker: 'ferni' }] as const
+    );
+    await labFrame.waitForFunction(
+      (want) =>
+        (window as unknown as { __outside: { ids: string[] } }).__outside.ids.includes(want),
+      id
+    );
+    await page.waitForTimeout(TURN_SHOWN_MS);
+    const turns = await labFrame.evaluate(
+      () => (window as unknown as { __outside: { turns: number } }).__outside.turns
+    );
+    expect(turns, 'turns the avatar showed after the outside request').toBe(0);
+    expect(await coach.getAttribute('class'), 'the outside turn ran').not.toMatch(
+      /\bis-speaking\b/
+    );
   });
 });
-
-/** The outside page posts a turn and a status to the booted lab: no reply, and the turn never shows. */
-async function outsideCannotDrive(page: Page): Promise<void> {
-  // The class is added just after the bridge starts listening (avatar-lab/index.ts)
-  await expect(lab(page).locator('.avatar-container.entrance-complete')).toBeAttached({
-    timeout: BOOT_MS,
-  });
-  const coach = lab(page).locator('#coach');
-  await expect(coach).toBeVisible();
-
-  const [turn, status] = await Promise.all([
-    send(page, { name: 'turn', speaker: 'ferni' }, NO_REPLY_MS),
-    send(page, { name: 'status' }, NO_REPLY_MS),
-  ]);
-  expect(turn, 'a reply to the outside page').toBeNull();
-  expect(status, 'a reply to the outside page').toBeNull();
-  await expect(coach, 'the outside turn ran').not.toHaveClass(/\bis-speaking\b/);
-}
