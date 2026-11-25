@@ -70,6 +70,8 @@ export interface SpeakOptions {
   priority?: SpeechPriority;
   /** Allow user to interrupt */
   allowInterruptions?: boolean;
+  /** How long it may wait in the queue before it expires (ms; defaults by priority) */
+  maxAge?: number;
   /** Source of the speech request */
   source?: SpeechRequest['source'];
   /** Tool ID if this is a tool result */
@@ -187,6 +189,7 @@ export async function routeSpeech(
     priority,
     source: options.source ?? 'direct',
     allowInterruptions: options.allowInterruptions ?? true,
+    maxAge: options.maxAge,
     onStart: options.onStart,
     onEnd: options.onEnd,
   });
@@ -363,11 +366,13 @@ export function getSessionForCoordination(sessionId: string): voice.AgentSession
 export function coordinatedSay(
   sessionId: string,
   text: string,
-  options?: { allowInterruptions?: boolean }
+  options?: { allowInterruptions?: boolean; priority?: SpeechPriority; maxAge?: number }
 ): void {
   // Fire and forget - matches session.say() signature
   void routeSpeech(sessionId, text, {
     allowInterruptions: options?.allowInterruptions,
+    priority: options?.priority,
+    maxAge: options?.maxAge,
     source: 'direct',
   }).catch((err) => {
     log.warn({ sessionId, error: String(err) }, 'Coordinated say failed');
