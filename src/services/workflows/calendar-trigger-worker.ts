@@ -16,6 +16,7 @@ import { getWorkflowEngine } from './workflow-engine.js';
 import { getActiveWorkflows, type Workflow } from '../stores/workflow-store.js';
 import type { CalendarEvent } from '../calendar/types.js';
 import { getFirestoreDatabase } from '../../config/environment.js';
+import { preMeetingPushWords, type PreMeetingAttendee } from './pre-meeting-push-words.js';
 
 const log = createLogger({ module: 'calendar-trigger-worker' });
 
@@ -36,8 +37,8 @@ interface TriggeredEvent {
   triggeredAt: Date;
 }
 
-const triggeredEvents: Map<string, TriggeredEvent> = new Map();
-const sentPushNotifications: Map<string, Date> = new Map();
+const triggeredEvents = new Map<string, TriggeredEvent>();
+const sentPushNotifications = new Map<string, Date>();
 
 // Worker state
 let workerInterval: NodeJS.Timeout | null = null;
@@ -76,8 +77,8 @@ async function sendPreMeetingPushNotification(
     }
 
     // Get enriched briefing if available
-    let briefingBody = `${event.title || 'Meeting'} starts in ${minutesBefore} minutes`;
-    let briefingData: Record<string, unknown> = { eventId: event.id };
+    let attendee: PreMeetingAttendee | null = null;
+    const briefingData: Record<string, unknown> = { eventId: event.id };
 
     try {
       const { enrichPreMeetingBriefing } = await import('../calendar/meeting-memory-service.js');
@@ -88,12 +89,7 @@ async function sendPreMeetingPushNotification(
         if (briefing.relationshipContext && briefing.relationshipContext.length > 0) {
           const firstPerson = briefing.relationshipContext[0];
           const name = firstPerson.displayName || firstPerson.attendeeEmail.split('@')[0];
-          briefingBody = `Meeting with ${name} in ${minutesBefore} min`;
-
-          // Add past topics as hint
-          if (briefing.pastTopics && briefing.pastTopics.length > 0) {
-            briefingBody += `. Last time: ${briefing.pastTopics[0]}`;
-          }
+          attendee = { name, pastTopics: briefing.pastTopics }; // the first past topic is the hint
         }
 
         // Add open commitments to data
@@ -113,10 +109,12 @@ async function sendPreMeetingPushNotification(
     // Send push notification
     const { getPushNotificationsService } = await import('../push-notifications.js');
     const pushService = getPushNotificationsService();
+    // OWNER_OUTREACH_STORED_TEXT_SCREEN: the invite's title, name and past topics are screened
+    const words = preMeetingPushWords(userId, event.title, minutesBefore, attendee);
 
     const sent = await pushService.sendNotification(userId, {
-      title: `📅 ${event.title || 'Meeting'} soon`,
-      body: briefingBody,
+      title: words.title,
+      body: words.body,
       type: 'calendar_reminder',
       personaId: 'alex-chen', // Alex handles calendar
       data: briefingData,
@@ -125,7 +123,7 @@ async function sendPreMeetingPushNotification(
     if (sent) {
       sentPushNotifications.set(notificationId, new Date());
       log.info(
-        { userId, event: event.title, minutesBefore },
+        { userId, eventId: event.id, minutesBefore },
         '📅 Pre-meeting push notification sent'
       );
     }
@@ -280,7 +278,7 @@ async function checkUserCalendar(
               triggeredAt: now,
             });
             log.info(
-              { userId, event: event.title, reminderMinutes },
+              { userId, eventId: event.id, reminderMinutes },
               '📅 Calendar reminder triggered'
             );
           }
@@ -303,7 +301,7 @@ async function checkUserCalendar(
             triggerType: 'event_start',
             triggeredAt: now,
           });
-          log.info({ userId, event: event.title }, '📅 Calendar event started trigger');
+          log.info({ userId, eventId: event.id }, '📅 Calendar event started trigger');
         }
       }
 
@@ -323,7 +321,7 @@ async function checkUserCalendar(
             triggerType: 'event_end',
             triggeredAt: now,
           });
-          log.info({ userId, event: event.title }, '📅 Calendar event ended trigger');
+          log.info({ userId, eventId: event.id }, '📅 Calendar event ended trigger');
         }
       }
     }
@@ -389,7 +387,7 @@ async function checkAllCalendars(
     for (let i = 0; i < userIdArray.length; i += BATCH_SIZE) {
       const batch = userIdArray.slice(i, i + BATCH_SIZE);
       await Promise.all(
-        batch.map((userId) => {
+        batch.map(async (userId) => {
           // Send push notifications for all calendar users
           // Only trigger workflows for users with workflow configs
           const hasWorkflows = workflowUserIds.includes(userId);

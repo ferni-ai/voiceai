@@ -336,7 +336,7 @@ describe('Data Routes', () => {
 
       await handleDeleteAllData(req, res, parsedUrl);
 
-      expect(mockExportService.deleteAllData).toHaveBeenCalledWith('test-user');
+      expect(mockExportService.deleteAllData).toHaveBeenCalledWith('test-user', true); // keep account
       expect(getWrittenData().status).toBe(200);
       const data = JSON.parse(getWrittenData().body || '{}');
       expect(data.success).toBe(true);

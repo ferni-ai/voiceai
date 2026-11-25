@@ -245,13 +245,17 @@ interface QuietCallContext {
 
 /**
  * Any crisis signal on this call: a reply the crisis gate guided or replaced, or risk noted
- * (or a read still in flight) under either of the call's ids. Fails toward the short wait.
+ * (or a read still in flight) under either of the call's ids (the session id and the
+ * services' id). Fails toward the short wait. Also read by the idle check-in
+ * (phases/idle-checkin.ts), which skips a call with one.
  */
-function callHasCrisisSignal(
+export function callHasCrisisSignal(
   session: unknown,
-  callIds: ReadonlyArray<string | undefined>
+  sessionId: string,
+  userData: unknown
 ): boolean {
   if (crisisDecidedOn(session)) return true;
+  const callIds = [sessionId, sessionScope(userData)];
   return callIds.some((id) => id !== undefined && crisisRiskThisCall(id));
 }
 
@@ -273,7 +277,7 @@ export function quietPresenceFor(
       return {
         ...cues,
         askedQuestion: askedQuestion(turns.ferni.at(-1)),
-        crisis: callHasCrisisSignal(session, [sessionId, sessionScope(userData)]),
+        crisis: callHasCrisisSignal(session, sessionId, userData),
       };
     },
     afterQuestion: () => quietAfterQuestionOn(),

@@ -20,14 +20,13 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createMusicTools } from './music.js';
 import { createSpotifyTools } from './spotify.js';
 
-// Import Apple Music tools
 import { appleMusicTools } from './apple-music-tools.js';
 
-// Import Spotify Connect multi-room tools
 import { spotifyConnectTools } from './spotify-connect.js';
 
 import { createSonosMusicTools } from './sonos-music.js';
 import { requiringEnv } from '../../registry/tool-availability.js';
+import { followSpotifyAvailability, gateSpotifyOnlyTools } from './spotify-tool-gate.js';
 const SONOS_ENV = ['SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET'];
 
 const log = getLogger();
@@ -549,8 +548,9 @@ log.info(
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport(
   'entertainment',
-  entertainmentTools
+  gateSpotifyOnlyTools(entertainmentTools)
 );
+followSpotifyAvailability(definitions); // MUSIC_TOOLS_HIDE_WHEN_SPOTIFY_DOWN
 
 export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getSonosMusicToolDefinitions };
 
