@@ -46,7 +46,7 @@ export const CONTENT = new RegExp(
     String.raw`(?:profile|contact|caller|recipient|participant|member|person(?!a)|user)\w*\??\.(?:name|\w*Name)\b`,
     String.raw`\bgeo\??\.(?:name|admin1|country|latitude|longitude)\b`,
     String.raw`\bmetadata\b(?!\??\.)`,
-    String.raw`\b(?:purpose|triggerReason|handoffReason|script|notes?|objective|quote|payload|identity|arguments|\w*args|city|cityOnly|location|effectiveLocation|locationName|latitude|longitude|locales?|facts?|phone\w*|text|query|utterance|content|textContent|interests?|prediction|memoryToSurface|connectionReason|originalFact|updatedFact)\b`,
+    String.raw`\b(?:purpose|triggerReason|handoffReason|script|notes?|objective|quote|payload|identity|arguments|\w*args|city|cityOnly|location|effectiveLocation|locationName|latitude|longitude|locales?|facts?|phone\w*|text|query|contactQuery|utterance|content|textContent|interests?|prediction|memoryToSurface|connectionReason|originalFact|updatedFact)\b`,
     String.raw`\w*(?:transcript|summary|accent|userText|userInput|userMessage|originalMessage|assessment|topics|email|address)\w*`,
     String.raw`\b\w*[cC]ontext\b(?!\??\.)|\bctx\b(?!\??\.)|\bmacOS\w*`,
     String.raw`\bpref(?:erence)?s?\??\.value\b`,
@@ -66,7 +66,7 @@ const ERROR_TEXT =
 
 /** A value that says only whether, how many, how long or which kind; or a helper that reduces it so. */
 export const SHAPE =
-  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
+  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|chars|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
 
 export interface Exemptions {
   /** Whole calls left as they are, by exact source text: [file suffix, exact argument text]. */
