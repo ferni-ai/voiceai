@@ -9,7 +9,7 @@
  * @module agents/shared/tool-executors/telephony-executor
  */
 
-import { errorClass } from '../../../utils/error-class.js';
+import { errorClass, errorFields } from '../../../utils/error-class.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { isOutreachConfirmOn } from '../../../tools/domains/communication/outreach/outreach-confirm.js';
 import { noAccountRefusal } from '../../../tools/registry/outbound-gate.js';
@@ -268,7 +268,7 @@ async function execute(
 
       return result;
     } catch (error) {
-      log.error({ error: String(error), targetCount: targets?.length }, '🤝 Multi-outreach failed');
+      log.error({ ...errorFields(error), targets: targets?.length }, '🤝 Multi-outreach failed');
       return `I had trouble reaching out to those contacts. ${error instanceof Error ? error.message : 'Would you like me to try one at a time?'}`;
     }
   }

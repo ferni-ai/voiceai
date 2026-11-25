@@ -25,6 +25,10 @@ const callTool = vi.hoisted(() => ({
 vi.mock('../../../../tools/domains/telephony/call-on-behalf.js', () => ({
   createCallOnBehalfTool: () => ({ execute: callTool.execute }),
 }));
+const multi = vi.hoisted(() => ({ execute: vi.fn(async (): Promise<unknown> => 'Reaching out') }));
+vi.mock('../../../../tools/domains/communication/outreach/multi-outreach.js', () => ({
+  createMultiOutreachTool: () => ({ execute: multi.execute }),
+}));
 vi.mock('../../../../services/outreach/on-behalf-call-orchestrator.js', () => ({
   getOnBehalfCallOrchestrator: () => ({}),
 }));
@@ -85,6 +89,22 @@ describe('callOnBehalf', () => {
     await telephonyExecutor.execute('callonbehalf', { contactQuery: WORDS, purpose: PURPOSE }, ctx);
     expect(execLog.error).toHaveBeenCalled();
     expect(logged()).not.toContain('zorbleflax');
+  });
+});
+
+describe('multi-outreach', () => {
+  it('a failure logs its class and status, not a message that names a number (#4445)', async () => {
+    multi.execute.mockRejectedValueOnce(
+      Object.assign(new Error('refused To=+12025550142'), { status: 403 })
+    );
+    await telephonyExecutor.execute(
+      'multioutreach',
+      { targets: [{ contact: WORDS }], defaultPurpose: PURPOSE },
+      ctx
+    );
+    const line = execLog.error.mock.calls.find((c) => c[1] === '🤝 Multi-outreach failed');
+    expect(line?.[0]).toEqual({ error: 'Error', status: 403, targets: 1 });
+    expect(logged()).not.toContain('5550142');
   });
 });
 
