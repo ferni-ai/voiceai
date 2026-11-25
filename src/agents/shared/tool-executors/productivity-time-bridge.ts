@@ -96,7 +96,8 @@ export async function getReminders(ctx: ToolExecutionContext): Promise<string> {
 
 /**
  * Chat's setAlarm, once the executor has read the time. ALARM_ONE_SHAPE (#4316) on: saved by the
- * voice tool's path, in its shape, so the alarm store lists it. Off: chat's own write, as on main.
+ * voice tool's path, in its shape, so the alarm store lists it; a save Firestore did not take
+ * still says it couldn't, as chat does on main. Off: chat's own write, as on main.
  */
 export async function setAlarm(
   { time, label, recurring }: { time: string; label?: string; recurring?: string },
@@ -105,7 +106,7 @@ export async function setAlarm(
   if (!ctx.userId) return "I couldn't save that alarm, I don't know whose it is.";
   if (flagOn('ALARM_ONE_SHAPE')) {
     const { createAlarm } = await import('../../../tools/domains/simple-utilities/alarm-tools.js');
-    return createAlarm(ctx.userId, { time, repeat: recurring, label });
+    return createAlarm(ctx.userId, { time, repeat: recurring, label }, 'report');
   }
   try {
     const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');

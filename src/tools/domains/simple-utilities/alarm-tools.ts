@@ -68,18 +68,20 @@ async function loadAlarms(userId: string): Promise<Alarm[]> {
   return alarmStore.get(userId) || [];
 }
 
-async function saveAlarm(userId: string, alarm: Alarm): Promise<Alarm> {
+/** False when Firestore did not take the alarm and it was not to be kept in memory instead. */
+async function saveAlarm(userId: string, alarm: Alarm, keepInMemory = true): Promise<boolean> {
   try {
     const db = getFirestoreDb();
     if (db) {
       const ref = db.collection('bogle_users').doc(userId).collection('alarms').doc(alarm.id);
       await ref.set(cleanForFirestore(alarm));
       log.info({ alarmId: alarm.id, userId }, 'Alarm saved to Firestore');
-      return alarm;
+      return true;
     }
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore not available, using in-memory');
+    log.warn({ error: String(error), userId }, 'Firestore not available for an alarm save');
   }
+  if (!keepInMemory) return false;
 
   // Fallback to in-memory
   const userAlarms = alarmStore.get(userId) || [];
@@ -91,7 +93,7 @@ async function saveAlarm(userId: string, alarm: Alarm): Promise<Alarm> {
   }
   alarmStore.set(userId, userAlarms);
 
-  return alarm;
+  return true;
 }
 
 async function deleteAlarm(userId: string, alarmId: string): Promise<boolean> {
@@ -320,10 +322,16 @@ const setAlarmDef: ToolDefinition = {
   },
 };
 
-/** The one alarm-save path: the voice tool, and the chat path with ALARM_ONE_SHAPE on (#4316). */
+const ALARM_NOT_SAVED = "I couldn't save that alarm. Set it on your phone for now?";
+
+/**
+ * The one alarm-save path: voice, and chat with ALARM_ONE_SHAPE on (#4316). If Firestore fails,
+ * each does as on main: `memory` keeps it and says saved (voice; #4275), `report` says it can't.
+ */
 export async function createAlarm(
   userId: string,
-  { time, repeat = 'once', label }: { time: string; repeat?: string; label?: string }
+  { time, repeat = 'once', label }: { time: string; repeat?: string; label?: string },
+  failedSave: 'memory' | 'report' = 'memory'
 ): Promise<string> {
   const { time: parsedTime, error: timeError } = parseAlarmTime(time);
   if (timeError) return timeError;
@@ -340,7 +348,7 @@ export async function createAlarm(
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
-  await saveAlarm(userId, alarm);
+  if (!(await saveAlarm(userId, alarm, failedSave === 'memory'))) return ALARM_NOT_SAVED;
   log.info({ alarmId: alarm.id, time: parsedTime, repeat: parsedRepeat }, 'Alarm set');
   const [display, repeats] = [formatTimeForSpeech(parsedTime), formatRepeatForSpeech(alarm)];
   const when = alarm.repeat === 'once' ? display : `${display}, repeating ${repeats}`;

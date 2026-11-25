@@ -11,6 +11,8 @@ import type { ToolExecutionContext } from '../../../../agents/shared/tool-execut
 
 const fs = vi.hoisted(() => {
   const docs = new Map<string, Record<string, unknown>>();
+  /** `failWrites`: every set rejects, as a Firestore outage does. `absent`: no Firestore at all. */
+  const state = { failWrites: false, absent: false };
   const depth = (p: string): number => p.split('/').length;
   const children = (path: string): Array<[string, Record<string, unknown>]> =>
     [...docs.entries()].filter(([p]) => p.startsWith(`${path}/`) && depth(p) === depth(path) + 1);
@@ -27,20 +29,24 @@ const fs = vi.hoisted(() => {
   const doc = (path: string): Record<string, unknown> => ({
     collection: (name: string) => coll(`${path}/${name}`),
     set: async (data: Record<string, unknown>) => {
+      if (state.failWrites) throw new Error('14 UNAVAILABLE');
       docs.set(path, structuredClone(data));
     },
     delete: async () => {
       docs.delete(path);
     },
   });
-  return { docs, db: { collection: (name: string) => coll(name) } };
+  return { docs, state, db: { collection: (name: string) => coll(name) } };
 });
 
 vi.mock('../../../../services/superhuman/firestore-utils.js', () => ({
-  getFirestoreDb: () => fs.db,
+  getFirestoreDb: () => (fs.state.absent ? null : fs.db),
 }));
 vi.mock('../../../../utils/firebase-admin-app.js', () => ({
-  getAdminFirestore: () => fs.db,
+  getAdminFirestore: () => {
+    if (fs.state.absent) throw new Error('Firestore is not configured');
+    return fs.db;
+  },
 }));
 
 const tools = await import('../alarm-tools.js');
@@ -58,6 +64,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   process.env = { ...saved };
+  Object.assign(fs.state, { failWrites: false, absent: false });
   vi.useRealTimers();
 });
 
@@ -192,4 +199,30 @@ describe('ALARM_ONE_SHAPE', () => {
     await voice('setAlarm', { time: '6am' });
     expect((await tools.loadAlarms(uid)).map((a) => a.time)).toEqual(['06:00']);
   });
+});
+
+describe('ALARM_ONE_SHAPE, when Firestore does not take a chat alarm', () => {
+  const NOT_SAVED = "I couldn't save that alarm. Set it on your phone for now?";
+  const FAULTS = ['failWrites', 'absent'] as const;
+  const setByChat = async (): Promise<string> =>
+    chat('setAlarm', { time: '7am', label: 'fern run' });
+
+  it.each(FAULTS)("off, Firestore %s: chat says it couldn't save, as on main", async (fault) => {
+    process.env.ALARM_ONE_SHAPE = 'off';
+    fs.state[fault] = true;
+    expect(await setByChat()).toBe(NOT_SAVED);
+  });
+
+  it.each(FAULTS)(
+    "on, Firestore %s: chat says it couldn't save, and no list shows the alarm",
+    async (fault) => {
+      on();
+      fs.state[fault] = true;
+      expect(await setByChat()).toBe(NOT_SAVED);
+      fs.state[fault] = false;
+      expect(docsOf()).toEqual([]);
+      expect(await chat('getAlarms')).toMatch(/^You don't have any alarms set/);
+      expect(await voice('getAlarms')).not.toMatch(/fern run/);
+    }
+  );
 });
