@@ -7,8 +7,7 @@
 
 import { voice } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { coordinatedSay } from '../../../speech/coordination/index.js';
-import { SpeechPriority } from '../../../speech/coordination/speech-coordinator.js';
+import { coordinatedSay, SpeechPriority } from '../../../speech/coordination/index.js';
 import { flagOn } from '../../../config/env-flag.js';
 import {
   RECONNECT_DELAY_MS,
@@ -252,7 +251,7 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
  * (a RESPONSE line expires after 10 s). Priority never interrupts a line being spoken: the
  * coordinator starts the next line only when it is idle, so the caller is not cut off mid-word.
  */
-const NEVER_DROP = { priority: SpeechPriority.CRISIS, maxAge: Number.POSITIVE_INFINITY } as const;
+const neverDrop = () => ({ priority: SpeechPriority.CRISIS, maxAge: Number.POSITIVE_INFINITY });
 
 /** The step-away exit was held: Ferni stays, saying STILL_HERE_LINE once per call. */
 function stayOnTheLine(sessionId: string): void {
@@ -261,7 +260,7 @@ function stayOnTheLine(sessionId: string): void {
   try {
     coordinatedSay(sessionId, STILL_HERE_LINE, {
       allowInterruptions: true,
-      ...(flagOn('CRISIS_LINE_NEVER_DROP') && NEVER_DROP),
+      ...(flagOn('CRISIS_LINE_NEVER_DROP') && neverDrop()),
     });
   } catch (err) {
     log.error({ error: String(err), sessionId }, '👋 [GATEWAY] Still-here line failed');
