@@ -206,10 +206,10 @@ export function attachTurnOpeningSound(
   const crisisHolds = (): boolean =>
     flagOn('CRISIS_NO_OPENING_SOUND') &&
     (crisisDecidedOn(session) || crisisVerdictPending(session) !== null);
-  // A verdict lands while an opener is queued: cut it and let the reply go at once.
+  // A verdict lands just after an opener started: cut it and let the reply go at once (a queued
+  // opener never plays: crisisHolds, above, is checked when its wait ends and the gate has marked the call).
   const onCrisisDecision = (): void => {
     if (!flagOn('CRISIS_NO_OPENING_SOUND')) return;
-    cancel();
     if (Date.now() - openerPlayedAt >= OPENER_CUT_MS || !clips.cancelFresh?.()) return;
     early?.holdReply(0);
     log.info({ sessionId: early?.sessionId }, 'TURN_OPENING_CUT_CRISIS');
