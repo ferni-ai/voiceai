@@ -57,10 +57,11 @@ export function outboundCallerAwareness(parties: OutboundParties | undefined): s
   }
   // A check-in's opener doesn't say "AI" (they know Ferni), so don't claim it did
   const honesty = parties.checkin ? CHECKIN_HONESTY_RULE : AI_DISCLOSURE_RULE;
+  const you = `You are ${parties.agentName ?? 'Ferni'}`; // CALL_AS_PERSONA: the persona placing it
   lines.push(
     sponsorName
-      ? `You are Ferni, ${sponsorName}'s friend. ${honesty}`
-      : `You are Ferni, a friend calling to check in. ${honesty}`
+      ? `${you}, ${sponsorName}'s friend. ${honesty}`
+      : `${you}, a friend calling to check in. ${honesty}`
   );
   return `\n---\n\n## Who You're Talking To\n\n${lines.join('\n')}\n`;
 }

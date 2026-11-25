@@ -38,8 +38,10 @@ vi.mock('../../../services/diagnostic-logger.js', () => ({
   diag: { entry: vi.fn() },
 }));
 
-// Mock session registry to avoid deep dependency chains
-vi.mock('../../../utils/session-registry.js', () => ({
+// Mock session registry to avoid deep dependency chains (the rest of the module is real:
+// the personas index, reached through the telephony scripts, creates a registry at load)
+vi.mock('../../../utils/session-registry.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/session-registry.js')>()),
   getSessionRegistry: vi.fn(() => ({
     registerSession: vi.fn(),
     unregisterSession: vi.fn(),

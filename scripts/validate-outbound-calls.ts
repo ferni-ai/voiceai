@@ -228,7 +228,6 @@ async function testScriptGeneration(): Promise<void> {
     for (const { contact, purpose } of testCases) {
       const { script: template, type } = selectScript(contact, purpose);
       const script = buildCallScript(template, {
-        agentName: 'Ferni',
         userName: 'Test User',
         contactName: contact.name,
         purpose,
