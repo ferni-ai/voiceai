@@ -24,19 +24,3 @@ export function scriptedSelfDisclosureEnabled(
 ): boolean {
   return false;
 }
-
-/**
- * The ferni-personality injections that react to what the caller said rather
- * than volunteer Ferni's life: pushing back on "I always fail", his view when
- * they raise a topic, and the slower mode for distress.
- */
-const RESPONSIVE_SOURCES = new Set(['ferni_pushback', 'ferni_opinion', 'ferni_depth_mode']);
-
-/** A ferni-personality builder's injections, minus the volunteered self-disclosure. */
-export function withoutScriptedSelfDisclosure<T extends { source: string }>(
-  injections: T[],
-  env: Record<string, string | undefined> = process.env
-): T[] {
-  if (scriptedSelfDisclosureEnabled(env)) return injections;
-  return injections.filter((i) => RESPONSIVE_SOURCES.has(i.source));
-}

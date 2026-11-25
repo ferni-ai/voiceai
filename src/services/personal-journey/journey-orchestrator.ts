@@ -17,17 +17,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { DeliveryRecord, JourneyMoment, JourneyMomentType, JourneySnapshot } from './types.js';
+import type { DeliveryRecord, JourneyMoment, JourneyMomentType } from './types.js';
 
 // Import from other journey services
-import {
-  getChapterGreetingContext,
-  getChapterMoments,
-  getCurrentChapterSummary,
-} from './chapter-detector.js';
+import { getChapterGreetingContext, getChapterMoments } from './chapter-detector.js';
 import {
   acknowledgeMilestone,
-  getRhythm,
   getRhythmGreetingContext,
   getRhythmStats,
   getUnacknowledgedMilestones,
@@ -637,40 +632,6 @@ function getMomentTypeFromSource(source: string): JourneyMomentType | null {
     default:
       return null;
   }
-}
-
-// ============================================================================
-// SNAPSHOT / STATE
-// ============================================================================
-
-/**
- * Get a snapshot of the user's journey state
- */
-export function getJourneySnapshot(userId: string): JourneySnapshot {
-  const rhythm = getRhythm(userId);
-  const relationshipStage = determineRelationshipStage(userId);
-  const chapterSummary = getCurrentChapterSummary(userId);
-  const history = getDeliveryHistory(userId);
-
-  const allMoments = gatherAllMoments(userId);
-  const availableMoments = filterMoments(userId, allMoments);
-
-  return {
-    userId,
-    stats: {
-      totalConversations: rhythm.sessions.totalCount,
-      daysKnown: Math.floor(
-        (Date.now() - rhythm.sessions.firstSession.getTime()) / (24 * 60 * 60 * 1000)
-      ),
-      currentStreak: rhythm.sessions.currentStreak,
-      relationshipStage,
-    },
-    availableMoments,
-    recentDeliveries: history.deliveries.slice(-10),
-    currentChapter: chapterSummary.theme,
-    inTransition: chapterSummary.isInTransition || false,
-    capturedAt: new Date(),
-  };
 }
 
 /**

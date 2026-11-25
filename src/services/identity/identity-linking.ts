@@ -9,7 +9,7 @@
  * 2. Copy every subcollection of its record (listCollections, at any depth) to the
  *    authenticated profile. A fixed list of 12 names used to leave ~28 behind.
  * 3. Mark the old record with _migratedTo (migration-flag.ts), the one flag
- *    autoLinkOnAuth and user-migration.ts both read. A failed copy still claims
+ *    user-migration.ts reads too. A failed copy still claims
  *    it, with _migrationIncomplete: true, and is retried while that is set.
  *    A retry never overwrites a target doc changed since (newer updatedAt).
  *
@@ -221,6 +221,20 @@ function isNewer(target: unknown, source: unknown): boolean {
 }
 
 /**
+ * A crisis record is kept permanently (2026-11-11) and never holds words (2026-11-12). One
+ * written before those rules may still carry a 90-day expireAt or a transcriptSnippet; the
+ * account's copy drops both.
+ */
+function copiedFields(
+  collectionId: string,
+  data: FirebaseFirestore.DocumentData
+): FirebaseFirestore.DocumentData {
+  if (collectionId !== 'crisis_signals') return data;
+  const { expireAt: _expiry, transcriptSnippet: _words, ...rest } = data;
+  return rest;
+}
+
+/**
  * Copy every document of `source` to the same id under `target`, and every
  * subcollection under each of them, at any depth. Returns the documents copied.
  */
@@ -244,7 +258,11 @@ async function copyTree(
     // Same document id, so references keep working
     batch.set(
       target.doc(doc.id),
-      { ...doc.data(), _migratedFrom: sourceUserId, _migratedAt: new Date().toISOString() },
+      {
+        ...copiedFields(source.id, doc.data()),
+        _migratedFrom: sourceUserId,
+        _migratedAt: new Date().toISOString(),
+      },
       { merge: true }
     );
     copied++;
@@ -265,58 +283,6 @@ async function copyTree(
   return copied;
 }
 
-/**
- * Check if a device ID has previous session data that should be linked.
- * Call this when a user authenticates to automatically merge their data.
- *
- * @param deviceId - The device ID from the session
- * @param firebaseUid - The authenticated Firebase UID
- */
-export async function autoLinkOnAuth(
-  deviceId: string | undefined,
-  firebaseUid: string
-): Promise<void> {
-  if (!deviceId) return;
-
-  const deviceUserId = `device:${deviceId}`;
-
-  try {
-    const db = getFirestoreDb();
-    if (!db) return;
-
-    // Check if device profile exists and hasn't been migrated
-    const deviceDoc = await db.collection('bogle_users').doc(deviceUserId).get();
-    if (!deviceDoc.exists) return;
-
-    const deviceData = deviceDoc.data();
-    if (migratedToOf(deviceData) && !migrationIncomplete(deviceData)) {
-      log.debug({ deviceId }, 'Device profile already migrated');
-      return;
-    }
-
-    // Worth migrating when it has conversations or any subcollection at all
-    const hasConversations = deviceData?.totalConversations > 0;
-    const hasSubcollections = (await deviceDoc.ref.listCollections()).length > 0;
-
-    if (!hasConversations && !hasSubcollections) {
-      log.debug({ deviceId }, 'Device profile has no data to migrate');
-      return;
-    }
-
-    log.info(
-      { deviceId: deviceId.substring(0, 16), firebaseUid: firebaseUid.substring(0, 8) },
-      '🔗 Auto-linking device profile on auth'
-    );
-
-    const result = await linkIdentity(deviceUserId, firebaseUid);
-    if (!result.success) {
-      log.warn({ errors: result.errors, deviceId }, 'Auto-link had errors');
-    }
-  } catch (error) {
-    log.warn({ error: String(error), deviceId }, 'Auto-link failed (non-blocking)');
-  }
-}
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -324,5 +290,4 @@ export async function autoLinkOnAuth(
 export default {
   linkIdentity,
   linkVerifiedAnonymousIdentity,
-  autoLinkOnAuth,
 };

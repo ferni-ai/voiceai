@@ -26,11 +26,14 @@ import { GEMINI_MODEL } from '../../config/gemini-config.js';
 import { asSessionVoice, spokenVoiceId, type SessionVoice } from './spoken-voice.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
-import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
+import {
+  crisisLineSpeechTransform,
+  replyLanguage,
+} from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { spokenPunctuation } from '../../speech/output-control/spoken-punctuation.js';
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
@@ -95,44 +98,6 @@ function detectGarbageResponse(trimmedOutput: string): boolean {
   // Just ellipsis variants
   if (/^\.{2,}$/.test(trimmedOutput) || trimmedOutput === '...' || trimmedOutput === '…') {
     return true;
-  }
-
-  return false;
-}
-
-/**
- * Detect if LLM is responding to a punctuation-only STT artifact.
- *
- * Sometimes Gemini's internal STT transcribes silence/noise as just "." or similar,
- * and the LLM responds with things like "You just sent a period."
- *
- * These responses should be suppressed as they're reacting to artifacts, not user intent.
- */
-function detectPunctuationArtifactResponse(trimmedOutput: string): boolean {
-  const lower = trimmedOutput.toLowerCase();
-
-  // Patterns that indicate the LLM is responding to a punctuation-only artifact
-  const punctuationArtifactPatterns = [
-    // "You sent a period" variants
-    /you (just )?(sent|typed|said) (a |an? )?\.?(period|dot|ellips|punctuation)/i,
-    // "That was just a period" variants
-    /(that was|that's) (just )?(a |an? )?(period|dot|ellips|punctuation)/i,
-    // "Just a period?" variants
-    /^(just |only )?(a |an? )?(period|dot|ellips|punctuation)\??$/i,
-    // "Everything alright? You sent a period"
-    /everything (alright|okay|ok)\??.*(period|dot|punctuation)/i,
-    // "You just sent punctuation"
-    /you (just )?(sent|typed) (some )?punctuation/i,
-    // "Did you mean to send a period?"
-    /did you (mean|want) to.*(period|dot|punctuation)/i,
-    // "I noticed you sent a period"
-    /i (noticed|saw|see) you (sent|typed).*(period|dot|punctuation)/i,
-  ];
-
-  for (const pattern of punctuationArtifactPatterns) {
-    if (pattern.test(lower)) {
-      return true;
-    }
   }
 
   return false;
@@ -551,7 +516,7 @@ export async function wrappedTtsNode(
 
         if (isMetaInstruction) {
           log.warn(
-            { chunk: chunk.slice(0, 50), sessionId },
+            { chunk: replyForLog(chunk), sessionId },
             '🚨 [META-LEAK-FILTER] Meta-instruction leaked to TTS - stripping'
           );
           // Don't enqueue - strip from TTS stream
@@ -565,7 +530,7 @@ export async function wrappedTtsNode(
           // Log detection for debugging context contamination
           if (hasCursorEditPattern) {
             log.warn(
-              { chunk: chunk.slice(0, 100), sessionId },
+              { chunk: replyForLog(chunk), sessionId },
               '🚨 [JSON-LEAK-FILTER] Cursor/Claude Code edit format detected - stripping'
             );
           }
@@ -586,7 +551,7 @@ export async function wrappedTtsNode(
           // Log with structured data for observability
           log.warn(
             {
-              leakedJson: jsonLeakBuffer.slice(0, 200),
+              leakedJson: replyForLog(jsonLeakBuffer),
               leakLength: jsonLeakBuffer.length,
               sessionId,
               personaId,
@@ -637,7 +602,7 @@ export async function wrappedTtsNode(
               latencyMs,
               trace: 'STREAM_LIFECYCLE',
             },
-            `🔄 [0.5/4] First LLM chunk arrived after ${latencyMs}ms: "${chunk.slice(0, 50)}..."`
+            `🔄 [0.5/4] First LLM chunk arrived after ${latencyMs}ms: ${replyForLog(chunk)}`
           );
           // P1 UTO Fix (January 2026): Mark LLM first token checkpoint for latency tracking
           if (turnNumber !== undefined) {
@@ -681,11 +646,11 @@ export async function wrappedTtsNode(
           const isGarbageResponse = detectGarbageResponse(trimmedOutput);
 
           // E2E TRACE LOG - Always visible in production logs
-          // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
+          // replyForLog(): the length, or the text on dev with LOG_FULL_RESPONSES
           log.info(
             {
               trace: 'E2E_LLM_OUTPUT',
-              rawOutput: truncateForLog(rawLLMBuffer, 500),
+              rawOutput: replyForLog(rawLLMBuffer, 500),
               fullLength: rawLLMBuffer.length,
               containsJson,
               containsWeather,
@@ -710,8 +675,8 @@ export async function wrappedTtsNode(
             log.error(
               {
                 sessionId,
-                rawOutput: rawLLMBuffer,
-                trimmedOutput,
+                rawOutput: replyForLog(rawLLMBuffer),
+                trimmedOutput: replyForLog(trimmedOutput),
                 trimmedLength: trimmedOutput.length,
                 rawLength: rawLLMBuffer.length,
                 containsJson,
@@ -871,7 +836,7 @@ export async function wrappedTtsNode(
       if (chunkCount === 1) {
         log.info(
           { sessionId, personaId, chunkLength: chunk.length, trace: 'STREAM_LIFECYCLE' },
-          `🔄 [3/4] TTS stream first chunk received: "${chunk.slice(0, 50)}..."`
+          `🔄 [3/4] TTS stream first chunk received: ${replyForLog(chunk)}`
         );
       }
       controller.enqueue(chunk);
@@ -916,7 +881,7 @@ export async function wrappedTtsNode(
             {
               sessionId,
               personaId,
-              outputSample: ttsOutputBuffer.slice(0, 200),
+              outputSample: replyForLog(ttsOutputBuffer),
               totalLength: totalCharacters,
             },
             '🚨 [SAFETY] Full TTS output looks like code-editing format - context contamination detected'
@@ -956,7 +921,7 @@ export async function wrappedTtsNode(
             {
               sessionId,
               personaId,
-              outputSample: ttsOutputBuffer.slice(0, 300),
+              outputSample: replyForLog(ttsOutputBuffer),
               totalLength: totalCharacters,
             },
             '🚨 [SAFETY] TTS output contains instruction leakage - LLM echoed context meant for prompt only'
@@ -978,19 +943,19 @@ export async function wrappedTtsNode(
           sessionId,
         });
 
-        // 🔍 E2E TRACE [4/4]: what goes to TTS (truncateForLog respects LOG_FULL_RESPONSES)
+        // 🔍 E2E TRACE [4/4]: what goes to TTS (replyForLog: the length, or the text on dev)
         const streamDurationMs = Date.now() - streamStartTime;
         log.info(
           {
             trace: 'E2E_TTS_OUTPUT',
-            ttsText: truncateForLog(ttsOutputBuffer, 300),
+            ttsText: replyForLog(ttsOutputBuffer),
             fullLength: totalCharacters,
             estimatedTokens: estimatedOutputTokens,
             isEmpty: ttsOutputBuffer.trim().length === 0,
             chunkCount,
             streamDurationMs,
           },
-          `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
+          `🔍 E2E TRACE [4/4] → TTS: ${replyForLog(ttsOutputBuffer)} (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
         noteGeneratedReply(sessionId, ttsOutputBuffer, options.session); // CALL_TIMELINE, CUT_REPLY
       }
@@ -1014,7 +979,11 @@ export async function wrappedTtsNode(
   });
 
   // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → punctuation → cost)
-  const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
+  // One reply, one spoken language: a Spanish crisis line is voiced in Spanish (#4062).
+  const language = replyLanguage();
+  const spokenText = linguisticallyMirroredText.pipeThrough(
+    crisisLineSpeechTransform(process.env, language)
+  );
   const trackedText = spokenText.pipeThrough(spokenPunctuation()).pipeThrough(costTrackingStream);
 
   // 6. Streaming TTS optimization: chunks more aggressively for faster first audio
@@ -1123,6 +1092,7 @@ export async function wrappedTtsNode(
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,
+      language: language.read,
     });
 
     // Use gateway for full TTS synthesis

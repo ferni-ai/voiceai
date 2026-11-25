@@ -61,6 +61,12 @@ export interface BlinkDeps {
   busy(): boolean;
   /** The persona's multiple of the gap between blinks (1 is the base pace). */
   pace(): number;
+  /**
+   * Whether blinks may come as quick doubles and with turn or gaze cues.
+   * False keeps to plain blinks on the timer (the crisis hold's calm blink).
+   * Defaults to true.
+   */
+  lively?(): boolean;
   random(): number;
   now(): number;
   setTimer(fn: () => void, ms: number): unknown;
@@ -97,6 +103,7 @@ export function createBlinkScheduler(deps: BlinkDeps): BlinkScheduler {
   let timer: unknown = null;
   let active = false;
   let lastBlinkAt = Number.NEGATIVE_INFINITY;
+  const lively = (): boolean => deps.lively?.() ?? true;
 
   const clear = (): void => {
     if (timer !== null) deps.clearTimer(timer);
@@ -121,7 +128,7 @@ export function createBlinkScheduler(deps: BlinkDeps): BlinkScheduler {
       lastBlinkAt = deps.now();
       const weight: BlinkWeight = deps.heavy() ? 'heavy' : 'light';
       const took = deps.blink(weight);
-      if (deps.random() < DOUBLE_BLINK_CHANCE) {
+      if (lively() && deps.random() < DOUBLE_BLINK_CHANCE) {
         later(() => {
           if (active && deps.canBlink() && !deps.busy()) deps.blink(weight);
           scheduleNext();
@@ -143,7 +150,7 @@ export function createBlinkScheduler(deps: BlinkDeps): BlinkScheduler {
       clear();
     },
     cue() {
-      if (!active) return;
+      if (!active || !lively()) return;
       if (deps.now() - lastBlinkAt < MIN_BLINK_SPACING_MS) return;
       if (deps.random() >= CUE_BLINK_CHANCE) return;
       const span = CUE_BLINK_DELAY_MAX_MS - CUE_BLINK_DELAY_MIN_MS;

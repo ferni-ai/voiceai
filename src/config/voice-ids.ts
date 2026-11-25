@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { flagOn, type Env } from './env-flag.js';
 
 const log = createLogger({ module: 'VoiceIds' });
 
@@ -157,11 +158,27 @@ export const LESTER_PRO_V3_VOICE_ID = 'ebaf7477-b6ae-417e-be54-19e6176777ea';
  * override that names one is ignored (the clones stay in the Cartesia account;
  * nothing here deletes them).
  */
-export const RETIRED_CLONE_VOICE_IDS: ReadonlySet<string> = new Set([
-  '3ebcd114-d280-4eed-a238-b9323a6b8e52', // "joel"
-  '85680374-8d94-43a1-bb15-5eea7a8bdbb8', // "Peter"
-  '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // "john 2" (bogle)
-]);
+export const RETIRED_CLONES = {
+  joel: '3ebcd114-d280-4eed-a238-b9323a6b8e52', // "joel"
+  peter: '85680374-8d94-43a1-bb15-5eea7a8bdbb8', // "Peter"
+  bogle: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // "john 2" (bogle)
+} as const;
+export const RETIRED_CLONE_VOICE_IDS: ReadonlySet<string> = new Set(Object.values(RETIRED_CLONES));
+
+/**
+ * The setting that holds Seth's own cloned voice id (his consent record in
+ * personas/roster names the same setting; this file can't import the roster).
+ * The id is never in code.
+ */
+const SETH_VOICE_SETTING = 'ROSTER_VOICE_SETH';
+
+/**
+ * Seth's cloned voice id from its setting, trimmed, or null when it is unset or
+ * blank. The seth-teammate gate reads it (seth-teammate.ts).
+ */
+export function sethVoiceId(env: Env = process.env): string | null {
+  return env[SETH_VOICE_SETTING]?.trim() || null;
+}
 
 /**
  * Alias for backwards compatibility with cartesia-core.ts
@@ -179,6 +196,11 @@ export const DEFAULT_VOICE_IDS = VOICE_IDS;
  */
 export function getVoiceIdForPersona(personaId: string): string {
   const normalized = personaId.toLowerCase();
+
+  // Seth speaks only in his own clone, and only while SETH_TEAMMATE is on. Off or
+  // unset means no voice: '' rather than the unknown-persona fallback below,
+  // which would give him Ferni's.
+  if (normalized === 'seth') return (flagOn('SETH_TEAMMATE') && sethVoiceId()) || '';
 
   // Check environment variable override first
   // Canonical names (preferred) with fallback to legacy names

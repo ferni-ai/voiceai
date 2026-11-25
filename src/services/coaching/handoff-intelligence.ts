@@ -46,7 +46,7 @@ export interface HandoffDecision {
   userConsent: 'not_asked' | 'asked' | 'accepted' | 'declined';
 }
 
-export interface TeamMemberProfile {
+interface TeamMemberProfile {
   id: PersonaId;
   name: string;
   specializations: string[];
@@ -55,7 +55,7 @@ export interface TeamMemberProfile {
   description: string;
 }
 
-export interface UserTeamExperience {
+interface UserTeamExperience {
   userId: string;
   metPersonas: PersonaId[];
   preferredPersonas: PersonaId[];
@@ -133,8 +133,8 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       'ask',
     ],
     warmIntros: [
-      "Alex is our communication specialist. They're incredible at this.",
-      'For difficult conversations, Alex is your person. Want to meet them?',
+      "Alex is our communication specialist. He's incredible at this.",
+      'For difficult conversations, Alex is your person. Want to meet him?',
       'Alex helps with exactly this kind of thing. Should I introduce you?',
     ],
     description: 'Communication coach and conversation architect',
@@ -178,7 +178,7 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
       'celebration',
     ],
     warmIntros: [
-      'Jordan is amazing at making moments special. Want to meet them?',
+      'Jordan is amazing at making moments special. Want to meet her?',
       'For planning and events, Jordan is incredible.',
       'Jordan would love to help make this memorable.',
     ],
@@ -370,7 +370,7 @@ export function getBestPersonaForTopic(topic: string): PersonaId {
 /**
  * Record a handoff
  */
-export function recordHandoff(
+function recordHandoff(
   userId: string,
   from: PersonaId,
   to: PersonaId,
@@ -397,7 +397,7 @@ export function recordHandoff(
 /**
  * Get team members user hasn't met yet
  */
-export function getUnmetTeamMembers(userId: string): PersonaId[] {
+function getUnmetTeamMembers(userId: string): PersonaId[] {
   const experience = getOrCreateExperience(userId);
   const allPersonas: PersonaId[] = [
     'maya-santos',
@@ -473,29 +473,14 @@ export function buildHandoffContext(userId: string, currentPersona: PersonaId): 
 // PERSISTENCE
 // ============================================================================
 
-export function exportTeamExperience(userId: string): UserTeamExperience | null {
+function exportTeamExperience(userId: string): UserTeamExperience | null {
   return userExperiences.get(userId) || null;
 }
 
-export function importTeamExperience(experience: UserTeamExperience): void {
+function importTeamExperience(experience: UserTeamExperience): void {
   experience.handoffHistory.forEach((h) => {
     h.date = new Date(h.date);
   });
   userExperiences.set(experience.userId, experience);
   log.debug({ userId: experience.userId }, 'Imported team experience');
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  detectHandoffOpportunity,
-  getBestPersonaForTopic,
-  recordHandoff,
-  getUnmetTeamMembers,
-  generateTeamIntroduction,
-  buildHandoffContext,
-  exportTeamExperience,
-  importTeamExperience,
-};

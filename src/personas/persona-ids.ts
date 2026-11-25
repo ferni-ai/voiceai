@@ -22,7 +22,9 @@
  */
 
 import { isCustomAgentId } from '../services/custom-agent/custom-agent-ids.js';
+import type { PersonaId } from '../types/branded.js';
 import { personaRegistry } from './persona-registry.js';
+import { listedNow } from '../config/seth-teammate.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -55,6 +57,8 @@ export const CANONICAL_IDS = {
   JOEL_DICKSON: 'joel-dickson',
   // Financial Legends team
   JOHN_BOGLE: 'john-bogle',
+  // The founder, behind SETH_TEAMMATE (config/seth-teammate.ts)
+  SETH: 'seth',
 } as const;
 
 /**
@@ -91,6 +95,7 @@ export const CANONICAL_TO_FRONTEND: Record<CanonicalPersonaId, CanonicalPersonaI
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
   'john-bogle': 'john-bogle',
+  seth: 'seth',
 };
 
 /**
@@ -107,6 +112,7 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
   'john-bogle': 'john-bogle',
+  seth: 'seth',
 };
 
 /**
@@ -213,6 +219,9 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'henry-caldwell': 'john-bogle',
   'index-investing': 'john-bogle',
   'index-pioneer': 'john-bogle',
+
+  // Seth (the founder): his own id only
+  seth: 'seth',
 };
 
 // ============================================================================
@@ -239,6 +248,15 @@ function canonicalForAlias(normalized: string): CanonicalPersonaId | undefined {
  */
 export function isKnownId(id: string): boolean {
   return canonicalForAlias(id.toLowerCase()) !== undefined;
+}
+
+/**
+ * Type guard: is this value a known persona id or alias (case-insensitive)?
+ * Reads ALIAS_TO_CANONICAL's own keys, so it cannot drift from this table and
+ * inherited keys such as "constructor" stay out.
+ */
+export function isValidPersonaId(value: unknown): value is PersonaId {
+  return typeof value === 'string' && canonicalForAlias(value.toLowerCase()) !== undefined;
 }
 
 /**
@@ -295,6 +313,7 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   // Fictional characters inspired by investing philosophies, not the real people the ids are named for.
   'joel-dickson': 'Nate Holloway',
   'john-bogle': 'Henry Caldwell',
+  seth: 'Seth',
 };
 
 export function getDisplayName(id: string): string {
@@ -328,7 +347,7 @@ export function livePersonaId(id: string): string {
   const raw = String(id ?? '').trim();
   if (isCustomAgentId(raw)) return raw;
   const key = raw.toLowerCase();
-  if (Object.hasOwn(RETIRED_PERSONA_NAMES, key)) return CANONICAL_IDS.COACH;
+  if (Object.hasOwn(RETIRED_PERSONA_NAMES, key) || !listedNow(key)) return CANONICAL_IDS.COACH;
   const registered = personaRegistry.get(raw) ?? personaRegistry.get(key);
   if (registered) return registered.id;
   return canonicalForAlias(key) ?? CANONICAL_IDS.COACH;
@@ -456,6 +475,7 @@ export default {
   fromFrontend,
   isCanonicalId,
   isKnownId,
+  isValidPersonaId,
   isSamePersona,
   isCoach,
   isTeamMember,

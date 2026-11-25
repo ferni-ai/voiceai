@@ -25,7 +25,7 @@ import {
   getLiveBackchannelingService,
   type LiveBackchannelContext,
 } from '../../speech/live-backchanneling/index.js';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { trackBackchannelEvent } from './speech-metrics-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
@@ -45,6 +45,7 @@ import {
 } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { pickContextualBackchannel, REACTIONS } from './backchannel-context.js';
 import { callIsGrave } from './presence-heavy.js';
+import { heavyCallSticky } from './heavy-call-sticky.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
 import { laughCapOn, nextReplyMayLaugh, recordLaugh } from '../personas/laugh-ledger.js';
 import {
@@ -233,8 +234,11 @@ export function initializeLiveBackchanneling<T>(
       (state.currentEmotion?.intensity ?? 0) > 0.7;
     // Hard news lately or crisis risk: only soft "mm"s, further apart (presence-heavy.ts).
     // (The partial is usually callerTurns' last already; read alone so the window keeps 3 turns.)
+    // HEAVY_CALL_STICKY: or a hard moment anywhere on the call so far (heavy-call-sticky.ts).
     const heavy =
-      callIsGrave(sessionId, callerTurns) || callIsGrave(undefined, [partialTranscript]);
+      callIsGrave(sessionId, callerTurns) ||
+      callIsGrave(undefined, [partialTranscript]) ||
+      heavyCallSticky(session);
     const now = Date.now();
     // LAUGH_CAP: a laugh clip is one of the call's laughs (laugh-ledger.ts).
     const capOn = laughCapOn();
@@ -319,7 +323,10 @@ export function initializeLiveBackchanneling<T>(
       userEmotion: state.currentEmotion?.primary,
       mode: 'live',
     });
-    log.info({ text, emotional, contextual: text === fitting }, 'backchannel clip played');
+    log.info(
+      { text: replyForLog(text), emotional, contextual: text === fitting },
+      'backchannel clip played'
+    );
   };
 
   // =========================================================================
@@ -381,7 +388,8 @@ export function initializeLiveBackchanneling<T>(
       isEmotionalMoment:
         (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
         (state.currentEmotion?.intensity ?? 0) > 0.7 ||
-        callIsGrave(sessionId, recentCallerTurns(heard)),
+        callIsGrave(sessionId, recentCallerTurns(heard)) ||
+        heavyCallSticky(session),
     };
 
     // Check if we should emit

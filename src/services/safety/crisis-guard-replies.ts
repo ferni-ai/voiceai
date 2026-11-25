@@ -5,6 +5,8 @@
  * @module CrisisGuardReplies
  */
 
+import type { Env } from '../../config/env-flag.js';
+import { SELF_HARM_911_LINE, selfHarm911LineOn } from './crisis-script-lines.js';
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
 
@@ -14,6 +16,26 @@ export const IN_DANGER_NOW =
 
 /** The caller's own 988 line, in the in-danger reply's words (the caller check speaks it). */
 export const TALK_TO_988 = IN_DANGER_NOW.slice(IN_DANGER_NOW.indexOf('You can also'));
+
+/** Said after the 988 script when an imminent read lands while it is still said (2026-11-11). */
+export const LATE_911_LINE = "And if you're in danger right now, call 911.";
+
+/** Whether a reply's sentence names a line to call. */
+export const namesCrisisLine = (text: string): boolean => /\b(?:911|988)\b/.test(text);
+
+/** The 988 line in Spanish, in the Spanish crisis reply's words (the timeout check-in reuses it). */
+export const TALK_TO_988_ES =
+  'Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988.';
+
+/** The Spanish crisis reply's 911 sentence (the 988 floor reuses it). */
+export const CALL_911_ES = 'Si estás en peligro ahora mismo, llama al 911.';
+
+/** The 988 line for someone the caller is worried about, in the third-party reply's words. */
+export const FOR_THEM_988 =
+  "You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.";
+
+/** The Spanish safety question (the timeout check-in asks it; the voice keys Spanish on it). */
+export const SAFETY_QUESTION_ES = '¿Estás a salvo ahora mismo?';
 
 /**
  * Someone else is down and not getting up, or won't wake (owner, 2026-11-02): an emergency for
@@ -26,6 +48,12 @@ If they're not breathing or not responding, tell the dispatcher; they'll walk yo
 
 I'm right here with you. Is anyone else there who can help?`;
 
+/** The 911 for them, without the staying line: it leads a caller's own reply (forThemFirst). */
+export const CALL_911_FOR_THEM = EMERGENCY_FOR_THEM.slice(
+  0,
+  EMERGENCY_FOR_THEM.lastIndexOf('\n\n')
+);
+
 /**
  * Get appropriate crisis response based on severity
  */
@@ -33,7 +61,8 @@ export function getCrisisResponse(
   severity: number,
   subject: CrisisSubject | undefined,
   language: 'en' | 'es' | undefined,
-  imminent: boolean
+  imminent: boolean,
+  env: Env = process.env
 ): string {
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
@@ -45,22 +74,23 @@ I'm staying right here with you. Is anyone nearby who can be with you?`;
   if (subject === 'third_party') {
     return `It sounds like you're really worried about them, and it matters that you're paying attention. You don't have to handle this alone either.
 
-You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.
+${FOR_THEM_988}
 
 What's going on with them right now?`;
   }
   if (language === 'es') {
     return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
 
-Puedes llamar al 988 y oprimir 2 para hablar en español, o enviar un mensaje de texto con la palabra AYUDA al 988. Hay consejeros disponibles las 24 horas. Si estás en peligro ahora mismo, llama al 911.
+${TALK_TO_988_ES} Hay consejeros disponibles las 24 horas. ${CALL_911_ES}
 
 Estoy aquí contigo. ¿Me cuentas qué está pasando?`;
   }
   if (severity >= SEVERITY.block) {
     // Severe crisis - immediate support + resources
+    const after988 = selfHarm911LineOn(env) ? ` ${SELF_HARM_911_LINE}` : ''; // CRISIS_SELF_HARM_911_LINE
     return `I hear how much pain you're in right now, and I'm really glad you're sharing this with me. What you're feeling matters, and you don't have to carry this alone.
 
-If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.
+If you're in crisis or having thoughts of suicide, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988. They have trained counselors available 24/7.${after988}
 
 I'm here with you right now. Can you tell me more about what you're going through?`;
   }

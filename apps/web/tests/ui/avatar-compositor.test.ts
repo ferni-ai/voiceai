@@ -4,8 +4,9 @@
  * `add` so the speaking body pulse shows, the speaking system is the only
  * writer of the container's transform (the presence voice-pulse loop is gone,
  * and with it a getComputedStyle read every frame), the coach ring writer
- * stands down, and the body pulse stays within +8 %. Speaking-system body and
- * halo hold still under prefers-reduced-motion in both flag states.
+ * stands down, and the body pulse stays within +8 %. Speaking-system body,
+ * halo and lid mouth hold still under prefers-reduced-motion in both flag
+ * states, and the lid mouth also holds still while the crisis face is held.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -179,7 +180,7 @@ describe('speaking system body pulse', () => {
     ['off', false],
     ['on', true],
   ])(
-    'with the flag %s and reduced motion: body and halo hold still, the lid still opens',
+    'with the flag %s and reduced motion: body, halo and lid mouth hold still',
     async (_label, on) => {
       setFlag(on);
       localStorage.setItem('ferni:lid-blend', 'true'); // the lid mouth runs only under lid-blend
@@ -194,11 +195,66 @@ describe('speaking system body pulse', () => {
       const waves = document.querySelectorAll<HTMLElement>('.speaking-halo-wave');
       expect(waves.length).toBeGreaterThan(0);
       waves.forEach((w) => expect(w.style.opacity).toBe('0'));
-      const lid = document.querySelector('.lid-bottom')?.getAttribute('d') ?? '';
-      // neutral bottom dome opened fully: the old Q 50,70, split into its two cubic halves
-      expect(lid).toBe('M0 100C16.67 90 33.33 85 50 85C66.67 85 83.33 90 100 100Z');
+      // the voice never wrote the lid: it was not opened
+      expect(document.querySelector('.lid-bottom')?.getAttribute('d') ?? null).toBeNull();
     }
   );
+});
+
+describe('lid mouth while the crisis face is held (fe 2026-11-11: lids do not follow the voice)', () => {
+  /** neutral bottom dome opened fully: the old Q 50,70, split into its two cubic halves */
+  const OPENED = 'M0 100C16.67 90 33.33 85 50 85C66.67 85 83.33 90 100 100Z';
+  const lidD = (): string | null => document.querySelector('.lid-bottom')?.getAttribute('d') ?? null;
+
+  beforeEach(() => localStorage.setItem('ferni:lid-blend', 'true'));
+
+  it('control, no hold: the lid opens with the voice', async () => {
+    const { speakingSystem } = await import('../../src/ui/speaking-system.ui.js');
+    speakingSystem.init();
+    speakingSystem.start();
+    speakingSystem.updateVolume(1);
+    flushFrames(30);
+    expect(lidD()).toBe(OPENED);
+  });
+
+  it('held: 0 lid frames follow the voice', async () => {
+    const crisis = await import('../../src/ui/face/crisis-face-hold.js');
+    crisis.holdCrisisFace();
+    const { speakingSystem } = await import('../../src/ui/speaking-system.ui.js');
+    speakingSystem.init();
+    const writes: string[] = [];
+    const lid = document.querySelector('.lid-bottom')!;
+    const setAttribute = lid.setAttribute.bind(lid);
+    vi.spyOn(lid, 'setAttribute').mockImplementation((name, value) => {
+      writes.push(value);
+      setAttribute(name, value);
+    });
+    speakingSystem.start();
+    for (const level of [1, 0.2, 0.9, 0.4]) {
+      speakingSystem.updateVolume(level);
+      flushFrames(10);
+    }
+    expect(writes).toHaveLength(0);
+  });
+
+  it('a hold that starts mid-speech settles the lid on the expression and keeps it there', async () => {
+    const crisis = await import('../../src/ui/face/crisis-face-hold.js');
+    const { speakingSystem } = await import('../../src/ui/speaking-system.ui.js');
+    speakingSystem.init();
+    speakingSystem.start();
+    speakingSystem.updateVolume(1);
+    flushFrames(30);
+    expect(lidD()).toBe(OPENED);
+    crisis.holdCrisisFace();
+    flushFrames(1);
+    const settled = lidD();
+    expect(settled).not.toBe(OPENED);
+    speakingSystem.updateVolume(0.3);
+    flushFrames(10);
+    speakingSystem.updateVolume(1);
+    flushFrames(10);
+    expect(lidD()).toBe(settled);
+  });
 });
 
 describe('presence breathing and voice pulse', () => {

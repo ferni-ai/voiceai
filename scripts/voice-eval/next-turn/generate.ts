@@ -47,7 +47,7 @@ for (const [k, v] of ARMS[name]
   process.env[k] = v;
 const loader = await import('../../../src/agents/personas/prompt-loader.js');
 const { turnShapeFor, rngFor } = await import('../../../src/agents/personas/turn-shape.js');
-const { laneReason } = await import('../../../src/agents/model-provider/fast-lane.js');
+const { wordsLane } = await import('./lane.js');
 const { lengthAdaptive, recentTurns } = await import('../../../src/agents/personas/turn-length.js');
 const { substanceOf } = await import('../../../src/agents/personas/turn-substance.js');
 const { regexSignals } = await import('../../../src/agents/personas/turn-extras.js');
@@ -90,7 +90,7 @@ await pool(
     const substance = lengthAdaptive() ? substanceOf(said, move) : undefined;
     const sig = { ...regexSignals(said, move), recent, substance };
     const shape = turnShapeFor(said, rngFor(`${salt}${m.id}:${said}`), undefined, sig);
-    const lane = laneReason(said);
+    const lane = wordsLane(said);
     const lite = process.env.CASCADE_FAST_LANE === 'on' && lane === 'chat';
     const model = lite ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
     const generationConfig = {

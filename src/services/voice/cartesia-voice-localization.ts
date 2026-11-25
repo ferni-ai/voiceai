@@ -17,6 +17,7 @@ import { type EnglishAccent, ACCENT_TO_DIALECT } from '../../config/voice-accent
 import { CARTESIA_API_VERSION, getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isConsentedCloneVoice } from './consented-clone-voice.js';
 
 const log = createLogger({ module: 'CartesiaLocalization' });
 
@@ -270,21 +271,16 @@ export async function getLocalizedVoiceId(
   personaId: string,
   accent: EnglishAccent
 ): Promise<LocalizationResult> {
-  // American accent uses the original voice - no localization needed
-  if (accent === 'american') {
-    const originalVoiceId = getVoiceIdForPersona(personaId);
-    return {
-      voiceId: originalVoiceId,
-      isLocalized: false,
-      accent: 'american',
-      cached: true,
-    };
+  // American, no voice, or a consented clone (never localized; consented-clone-voice.ts): the original
+  const originalVoiceId = getVoiceIdForPersona(personaId);
+  if (accent === 'american' || !originalVoiceId || isConsentedCloneVoice(originalVoiceId)) {
+    return { voiceId: originalVoiceId, isLocalized: false, accent: 'american', cached: true };
   }
 
   // Check cache first
   const cacheKey = `${personaId}:${accent}`;
   const cached = localizedVoiceCache.get(cacheKey);
-  if (cached) {
+  if (cached && !isConsentedCloneVoice(cached.originalVoiceId)) {
     log.debug({ personaId, accent, voiceId: cached.id }, '🌍 Using cached localized voice');
     return {
       voiceId: cached.id,
@@ -297,7 +293,6 @@ export async function getLocalizedVoiceId(
   // Need to create a new localized voice
   log.info({ personaId, accent }, '🌍 Creating localized voice via Cartesia API');
 
-  const originalVoiceId = getVoiceIdForPersona(personaId);
   const personaMeta = PERSONA_VOICE_META[personaId] || { name: personaId, gender: 'female' };
   const dialect = ACCENT_TO_DIALECT[accent];
 
@@ -361,14 +356,11 @@ export async function getLocalizedVoiceId(
  * Returns the original voice ID if not cached.
  */
 export function getLocalizedVoiceIdSync(personaId: string, accent: EnglishAccent): string {
-  if (accent === 'american') {
-    return getVoiceIdForPersona(personaId);
-  }
+  const originalVoiceId = getVoiceIdForPersona(personaId);
+  if (accent === 'american' || isConsentedCloneVoice(originalVoiceId)) return originalVoiceId;
 
-  const cacheKey = `${personaId}:${accent}`;
-  const cached = localizedVoiceCache.get(cacheKey);
-
-  if (cached) {
+  const cached = localizedVoiceCache.get(`${personaId}:${accent}`);
+  if (cached && !isConsentedCloneVoice(cached.originalVoiceId)) {
     return cached.id;
   }
 
@@ -377,7 +369,7 @@ export function getLocalizedVoiceIdSync(personaId: string, accent: EnglishAccent
     { personaId, accent },
     '⚠️ Localized voice not cached, using original. Call preWarmLocalizedVoices() at startup.'
   );
-  return getVoiceIdForPersona(personaId);
+  return originalVoiceId;
 }
 
 /**

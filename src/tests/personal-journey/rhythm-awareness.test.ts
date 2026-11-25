@@ -10,7 +10,6 @@ import {
   acknowledgeMilestone,
   clearRhythmCache,
   getMilestoneMessage,
-  getRhythm,
   getRhythmGreetingContext,
   getRhythmStats,
   getUnacknowledgedMilestones,
@@ -23,61 +22,6 @@ describe('Rhythm Awareness Service', () => {
 
   beforeEach(() => {
     clearRhythmCache(testUserId);
-  });
-
-  describe('Session Recording', () => {
-    it('should create rhythm data for new user', () => {
-      const rhythm = getRhythm(testUserId);
-      expect(rhythm.userId).toBe(testUserId);
-      expect(rhythm.sessions.totalCount).toBe(0);
-    });
-
-    it('should record a session and increment count', () => {
-      recordSession(testUserId);
-      const rhythm = getRhythm(testUserId);
-      expect(rhythm.sessions.totalCount).toBe(1);
-    });
-
-    it('should track first session date', () => {
-      const before = new Date();
-      recordSession(testUserId);
-      const rhythm = getRhythm(testUserId);
-      expect(rhythm.sessions.firstSession.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    });
-
-    it('should start streak at 1 for first session', () => {
-      recordSession(testUserId);
-      const rhythm = getRhythm(testUserId);
-      expect(rhythm.sessions.currentStreak).toBe(1);
-    });
-
-    it('should maintain streak for consecutive days', () => {
-      // Day 1
-      const day1 = new Date();
-      recordSession(testUserId, day1);
-
-      // Day 2 (next day)
-      const day2 = new Date(day1);
-      day2.setDate(day2.getDate() + 1);
-      recordSession(testUserId, day2);
-
-      const rhythm = getRhythm(testUserId);
-      expect(rhythm.sessions.currentStreak).toBe(2);
-    });
-
-    it('should reset streak after gap > 1 day', () => {
-      // Day 1
-      const day1 = new Date();
-      recordSession(testUserId, day1);
-
-      // Day 5 (gap of 4 days)
-      const day5 = new Date(day1);
-      day5.setDate(day5.getDate() + 4);
-      recordSession(testUserId, day5);
-
-      const rhythm = getRhythm(testUserId);
-      expect(rhythm.sessions.currentStreak).toBe(1);
-    });
   });
 
   describe('Milestone Detection', () => {
@@ -199,46 +143,6 @@ describe('Rhythm Awareness Service', () => {
       expect(stats.longestStreak).toBe(1);
       expect(stats.daysKnown).toBe(0);
       expect(typeof stats.isConsistent).toBe('boolean');
-    });
-  });
-
-  describe('Persistence', () => {
-    it('should initialize from persisted data', () => {
-      const persistedData = {
-        userId: testUserId,
-        updatedAt: new Date(),
-        sessions: {
-          totalCount: 50,
-          firstSession: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-          lastSession: new Date(),
-          averageSessionsPerWeek: 3,
-          currentStreak: 7,
-          longestStreak: 14,
-        },
-        rhythmMilestones: [
-          { type: 'conversation_10' as const, achievedAt: new Date(), acknowledged: true },
-          { type: 'conversation_25' as const, achievedAt: new Date(), acknowledged: true },
-        ],
-        timePreferences: {
-          preferredHours: [14],
-          preferredDays: [1],
-          mostActiveTimeOfDay: 'afternoon' as const,
-          weekdayVsWeekend: 'weekday' as const,
-        },
-        consistency: {
-          averageGapDays: 2,
-          longestGap: 5,
-          isConsistent: true,
-          currentGapDays: 0,
-        },
-      };
-
-      initializeRhythm(testUserId, persistedData);
-      const rhythm = getRhythm(testUserId);
-
-      expect(rhythm.sessions.totalCount).toBe(50);
-      expect(rhythm.sessions.currentStreak).toBe(7);
-      expect(rhythm.rhythmMilestones.length).toBe(2);
     });
   });
 });

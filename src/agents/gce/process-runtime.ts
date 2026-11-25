@@ -11,9 +11,10 @@
  */
 
 import { configureAsyncEvents } from '../../memory/dynamic/async-events-config.js';
-import { configureSyncService, startDeepExtractionWorker } from '../../memory/dynamic/index.js';
+import { startDeepExtractionWorker } from '../../memory/dynamic/index.js';
 import { initializeKnowledgeCapture } from '../../memory/knowledge-graph/index.js';
 import { memoryAsyncEvents } from '../../services/async-events/index.js';
+import { startBTHTelemetryIfEnabled } from '../../services/better-than-human-validation/index.js';
 import { registerMessagingConsent } from '../../services/messaging/consent.js';
 import { startRegistryOrphanCleanup, stopRegistryOrphanCleanup } from '../session/index.js';
 import { initCrashAnalytics } from '../shared/crash-analytics.js';
@@ -56,10 +57,6 @@ export function startProcessRuntime(log: LogFn): { stop(): void } {
       })
     );
 
-  // No Spanner instance exists (gcloud instances list empty, 2026-10). Keep L2 Firestore.
-  configureSyncService({ enabled: false });
-  log('ℹ️ Spanner L3 removed — Firestore L2 only');
-
   // Orphan cleanups keep per-session maps bounded when a session dies without cleanup:
   // OpenAI health monitors (10 min), session registries (15 min, 2 h TTL),
   // sessions stuck closing (2 min, 5 min TTL).
@@ -67,6 +64,9 @@ export function startProcessRuntime(log: LogFn): { stop(): void } {
   startRegistryOrphanCleanup();
   startClosingTrackerCleanup();
   log('✅ Session orphan cleanups started');
+
+  // BTH_TELEMETRY_FLUSH: flush BTH capability events every 30 s where the calls record them.
+  if (startBTHTelemetryIfEnabled()) log('✅ BTH telemetry flush started');
 
   return {
     stop(): void {

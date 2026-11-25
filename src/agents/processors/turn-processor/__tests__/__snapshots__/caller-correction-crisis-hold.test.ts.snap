@@ -1,0 +1,160 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FRIEND_REPAIR and DISPUTE_DENIED_FACTS on > ordinary read: keeps the correction and retires the fact, as before 1`] = `
+[
+  [
+    "repair.add",
+    "uid-invented",
+    {
+      "at": "<at>",
+      "callId": "turn-full-none",
+      "ferniSaid": "So your sister in Denver is getting married, that is huge.",
+      "personaId": "ferni",
+      "right": "my brother in Denver",
+      "said": "Ha, no, it's my brother in Denver, not my sister.",
+      "supersededFactIds": [
+        "f1",
+      ],
+      "wrong": "my sister",
+    },
+  ],
+  [
+    "repair.retire",
+    "uid-invented",
+    [
+      "f1",
+    ],
+    "c1",
+    "<at>",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "Ha, no, it's my brother in Denver, not my sister.",
+    "So your sister in Denver is getting married, that is huge.",
+    "ferni",
+  ],
+  [
+    "dispute",
+    "uid-invented",
+    "Ha, no, it's my brother in Denver, not my sister.",
+    "So your sister in Denver is getting married, that is huge.",
+  ],
+]
+`;
+
+exports[`an invented 10-turn call > read as ordinary: the same 9 corrections as before (snapshot from main) 1`] = `
+[
+  [
+    "autoRecord",
+    "uid-invented",
+    "work was long today, lots of meetings",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "I made pasta for dinner, the garlic kind",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "my cousin called and we talked about her trip",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "the dog wanted a second walk tonight",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "I am thinking about repainting the kitchen",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "we watched an old movie after dinner",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "tomorrow I have a dentist appointment",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "the weather has been nice this week",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+  [
+    "autoRecord",
+    "uid-invented",
+    "anyway, tell me something good",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+]
+`;
+
+exports[`every return of processTurn > inputs changed mid-turn: the correction is the one taken as the turn began (snapshot from main) 1`] = `
+[
+  [
+    "autoRecord",
+    "uid-invented",
+    "work was long today, lots of meetings",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+]
+`;
+
+exports[`every return of processTurn > route ftis, ordinary read: returns by ftis-bypass and writes as before 1`] = `
+[
+  [
+    "autoRecord",
+    "uid-invented",
+    "work was long today, lots of meetings",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+]
+`;
+
+exports[`every return of processTurn > route full, ordinary read: returns by full and writes as before 1`] = `
+[
+  [
+    "autoRecord",
+    "uid-invented",
+    "work was long today, lots of meetings",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+]
+`;
+
+exports[`every return of processTurn > route semantic, ordinary read: returns by short-circuit and writes as before 1`] = `
+[
+  [
+    "autoRecord",
+    "uid-invented",
+    "work was long today, lots of meetings",
+    "That sounds like a full day. What was the best part of it?",
+    "ferni",
+  ],
+]
+`;

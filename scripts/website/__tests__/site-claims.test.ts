@@ -44,6 +44,12 @@ describe('site claims check', () => {
     ['Spots spending patterns and wealth-building', 'spending patterns'],
     ['patterns nobody else sees across your spending', 'spending patterns'],
     ['<td>Perfect recall, forever</td>', 'perfect recall'],
+    ['<li>Your interactions may be used to improve AI models</li>', 'trains on your data'],
+    ['<li>We use de-identified and aggregated data for training</li>', 'trains on your data'],
+    [
+      '<li>You can opt out of training data use in your account settings</li>',
+      'trains on your data',
+    ],
   ])('flags %s', (line, id) => {
     expect(findClaims('index.njk', `<p>\n${line}\n</p>`)).toEqual([
       expect.objectContaining({ file: 'index.njk', line: 2, id }),
@@ -60,6 +66,10 @@ describe('site claims check', () => {
     const ok =
       'Encrypted in transit and at rest. I remember what matters, and you can forget any of it. Free in early access.';
     expect(findClaims('index.njk', ok)).toEqual([]);
+    // The privacy policy's own promise must not trip the training rule
+    const neverTrains =
+      "We don't train models on your conversations. Never used to train or improve AI models, including our own.";
+    expect(findClaims('privacy.njk', neverTrains)).toEqual([]);
   });
 });
 

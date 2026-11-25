@@ -60,6 +60,7 @@ import { isLookupTool, lookupKind, withAnnouncedCheckLog } from './announced-che
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
 import type { HouseFactsWho } from './grounded-addresses.js';
 import { withHouseFactsGuard } from './house-facts.js';
+import { withPauseReplyCap } from './pause-request.js';
 import { CRISIS_TALK } from './emergency-claim.js';
 import { honestLine, inPlace, type ClaimKind, type MissReason } from './honest-line.js';
 import type { Kinds, SeenActions } from './honest-line.js';
@@ -208,8 +209,9 @@ export async function withActionClaimCheck<T>(
   const asked = actionClaimGuardEnabled(env)
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
+  // PAUSE_REQUEST_WAIT=on: a pause request's reply keeps one sentence; the guards check what's left.
   // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
-  const facts = withHouseFactsGuard(reply, chatCtx, env, who);
+  const facts = withHouseFactsGuard(withPauseReplyCap(reply, chatCtx, env), chatCtx, env, who);
   const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }

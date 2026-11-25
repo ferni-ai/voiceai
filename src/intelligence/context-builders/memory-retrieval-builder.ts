@@ -33,12 +33,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   retrieveForTurn,
-  formatMemoryContextForPrompt,
-  formatProactiveMemory,
   type MemoryContext,
   type TurnRetrievalInput,
-  type RetrievedMemoryForTurn,
 } from '../../memory/retrieval/turn-memory-retrieval.js';
+import { turnMemoryPrompts } from './memory/turn-memory-time-labels.js';
 import {
   registerContextBuilder,
   createHighInjection,
@@ -81,7 +79,7 @@ export interface MemoryRetrievalResult {
 /**
  * Builder configuration
  */
-export interface MemoryRetrievalBuilderConfig {
+interface MemoryRetrievalBuilderConfig {
   /** Enable memory retrieval (default: true) */
   enabled: boolean;
   /** Minimum turn number to start retrieval (default: 1) */
@@ -102,23 +100,7 @@ const DEFAULT_CONFIG: MemoryRetrievalBuilderConfig = {
   injectionPriority: 'high',
 };
 
-let config: MemoryRetrievalBuilderConfig = { ...DEFAULT_CONFIG };
-
-/**
- * Update builder configuration
- */
-export function setMemoryRetrievalBuilderConfig(
-  newConfig: Partial<MemoryRetrievalBuilderConfig>
-): void {
-  config = { ...config, ...newConfig };
-}
-
-/**
- * Get current configuration
- */
-export function getMemoryRetrievalBuilderConfig(): MemoryRetrievalBuilderConfig {
-  return { ...config };
-}
+const config: MemoryRetrievalBuilderConfig = { ...DEFAULT_CONFIG };
 
 // ============================================================================
 // SESSION STATE
@@ -142,18 +124,11 @@ export function getSurfacedMemoryIds(sessionId: string): Set<string> {
 /**
  * Record that memories were surfaced
  */
-export function recordSurfacedMemories(sessionId: string, ids: string[]): void {
+function recordSurfacedMemories(sessionId: string, ids: string[]): void {
   const surfaced = getSurfacedMemoryIds(sessionId);
   for (const id of ids) {
     surfaced.add(id);
   }
-}
-
-/**
- * Clear session state
- */
-export function clearMemoryRetrievalSession(sessionId: string): void {
-  surfacedMemoriesBySession.delete(sessionId);
 }
 
 // ============================================================================
@@ -216,24 +191,19 @@ export async function buildMemoryRetrievalContext(
       return { injections, memoryContext, surfacedIds };
     }
 
-    // Create memory context injection
-    const memoryPrompt = formatMemoryContextForPrompt(memoryContext);
-    if (memoryPrompt) {
-      const injection = createMemoryInjection(memoryPrompt, config.injectionPriority);
+    // Create memory context injection (time labels: MEMORY_TIME_LABELS)
+    const prompts = turnMemoryPrompts(memoryContext, { sessionId, userId });
+    if (prompts.memory) {
+      const injection = createMemoryInjection(prompts.memory, config.injectionPriority);
       injections.push(injection);
     }
 
     // Add proactive suggestion if available and enabled
-    if (
-      config.enableProactive &&
-      memoryContext.hasProactiveSuggestion &&
-      memoryContext.proactiveMemory
-    ) {
-      const proactivePrompt = formatProactiveMemory(memoryContext.proactiveMemory);
+    if (config.enableProactive && memoryContext.hasProactiveSuggestion && prompts.proactive) {
       injections.push(
-        createHintInjection('memory_proactive', proactivePrompt, {
+        createHintInjection('memory_proactive', prompts.proactive.text, {
           category: 'memory',
-          confidence: memoryContext.proactiveMemory.relevance,
+          confidence: prompts.proactive.relevance,
         })
       );
     }
@@ -320,63 +290,3 @@ const memoryRetrievalBuilder = {
 
 // Register the builder
 registerContextBuilder(memoryRetrievalBuilder);
-
-// ============================================================================
-// STANDALONE RETRIEVAL (for direct use)
-// ============================================================================
-
-/**
- * Retrieve memories for a turn without the full context builder pipeline.
- *
- * Use this when you need direct access to memory retrieval,
- * e.g., for testing or specialized use cases.
- */
-export async function retrieveMemoriesForTurn(
-  userId: string,
-  sessionId: string,
-  transcript: string,
-  options?: {
-    turnNumber?: number;
-    emotion?: string;
-    topics?: string[];
-    personaId?: string;
-  }
-): Promise<MemoryContext> {
-  const input: TurnRetrievalInput = {
-    userId,
-    sessionId,
-    transcript,
-    turnNumber: options?.turnNumber ?? 1,
-    emotion: options?.emotion,
-    topics: options?.topics,
-    personaId: options?.personaId,
-    surfacedMemoryIds: getSurfacedMemoryIds(sessionId),
-  };
-
-  return retrieveForTurn(input);
-}
-
-/**
- * Format memories for direct injection into an LLM prompt
- */
-export function formatMemoriesForPrompt(memories: RetrievedMemoryForTurn[]): string | null {
-  if (memories.length === 0) return null;
-
-  const lines: string[] = ['[RELEVANT MEMORIES]'];
-
-  for (const memory of memories) {
-    lines.push(`• ${memory.attribution}: "${memory.content}"`);
-  }
-
-  return lines.join('\n');
-}
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export {
-  type MemoryContext,
-  type RetrievedMemoryForTurn,
-  type TurnRetrievalInput,
-} from '../../memory/retrieval/turn-memory-retrieval.js';

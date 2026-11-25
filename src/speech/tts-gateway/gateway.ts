@@ -36,7 +36,7 @@ import {
   type TraceEventType,
 } from './types.js';
 import { getSSMLProcessor } from './ssml/index.js';
-import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { finops } from '../../services/observability/finops.js';
 
 const log = createLogger({ module: 'TTSGateway' });
@@ -177,14 +177,14 @@ export class TTSGateway implements ITTSGateway {
 
       if (trace) {
         addTraceEvent(trace, 'request_received', {
-          text: truncateForLog(request.text, 100),
+          text: replyForLog(request.text),
           voiceId: request.voiceId,
           sessionId: request.sessionId,
         });
 
         addTraceEvent(trace, 'ssml_parsed', {
           hadSSML: parseResult.hadSSML,
-          cleanText: truncateForLog(parseResult.cleanText, 100),
+          cleanText: replyForLog(parseResult.cleanText),
           prosody: parseResult.prosody,
           warnings: parseResult.warnings,
         });
@@ -196,7 +196,7 @@ export class TTSGateway implements ITTSGateway {
 
       if (!cleanText.trim()) {
         log.debug(
-          { originalText: truncateForLog(request.text, 50) },
+          { originalText: replyForLog(request.text) },
           'Empty text after SSML processing, returning empty result'
         );
         return this.createEmptyResult(trace);
@@ -206,7 +206,7 @@ export class TTSGateway implements ITTSGateway {
       if (this.cache && request.allowCache !== false) {
         if (trace) {
           addTraceEvent(trace, 'cache_lookup', {
-            text: truncateForLog(cleanText, 50),
+            text: replyForLog(cleanText),
             voiceId: request.voiceId,
           });
         }
@@ -228,7 +228,7 @@ export class TTSGateway implements ITTSGateway {
           log.info(
             {
               traceId: trace?.traceId,
-              text: truncateForLog(cleanText, 50),
+              text: replyForLog(cleanText),
               voiceId: request.voiceId,
               cached: true,
               audioBytes: cached.audio.byteLength,
@@ -257,7 +257,7 @@ export class TTSGateway implements ITTSGateway {
       if (trace) {
         addTraceEvent(trace, 'provider_call', {
           provider: this.provider.name,
-          text: truncateForLog(cleanText, 50),
+          text: replyForLog(cleanText),
           voiceId: request.voiceId,
           prosody,
         });
@@ -311,7 +311,7 @@ export class TTSGateway implements ITTSGateway {
       log.info(
         {
           traceId: trace?.traceId,
-          text: truncateForLog(cleanText, 50),
+          text: replyForLog(cleanText),
           voiceId: request.voiceId,
           cached: false,
           audioBytes: audio.byteLength,
@@ -344,7 +344,7 @@ export class TTSGateway implements ITTSGateway {
         {
           traceId: trace?.traceId,
           error: errorMessage,
-          text: truncateForLog(request.text, 50),
+          text: replyForLog(request.text),
           voiceId: request.voiceId,
         },
         '❌ TTS Synthesis failed'

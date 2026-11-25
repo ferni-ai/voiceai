@@ -274,40 +274,4 @@ describe('Bundle Loader Integration', () => {
       expect(typeof behaviors).toBe('object');
     }
   });
-
-  it('persona-content-loader exports all new loader functions', async () => {
-    const loader = await import('../services/persona-content-loader.js');
-
-    // Check that all 12 new loader functions are exported
-    const expectedLoaders = [
-      'loadBackchannels',
-      'loadCatchphrases',
-      'loadGoodbyes',
-      'loadPetPeeves',
-      'loadWittyRemarks',
-      'loadAffirmation',
-      'loadBreathSounds',
-      'loadCoachingModes',
-      'loadOutreachVoice',
-      'loadVoiceDNA',
-      'loadPredictiveIntelligence',
-      'loadSensoryMoments',
-    ];
-
-    // Check each loader exists in the module
-    for (const loaderName of expectedLoaders) {
-      const exists =
-        loaderName in loader ||
-        typeof (loader as Record<string, unknown>)[loaderName] === 'function';
-      if (!exists) {
-        // The loader might exist in the TS source but not in the built JS
-        // This is acceptable during testing
-        console.warn(`Loader ${loaderName} not found in built module (may need rebuild)`);
-      }
-    }
-
-    // Just verify the module loaded without errors
-    expect(loader).toBeDefined();
-    expect(typeof loader).toBe('object');
-  });
 });

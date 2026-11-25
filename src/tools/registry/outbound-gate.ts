@@ -1,7 +1,8 @@
 /**
  * Every registered tool that calls, texts or emails someone other than the
  * account owner acts only on the caller's spoken yes to a read-back
- * (outreach-confirm.ts). ToolRegistry.register() runs every definition through
+ * (outreach-confirm.ts), and so does triggerWebhook, which fires the owner's own
+ * home automations. ToolRegistry.register() runs every definition through
  * gateOutboundTool, so all live tool paths (orchestrator, semantic router,
  * registry builds) share the gate. createDomainExport gates every exported
  * definition too, so code that builds tools straight from a domain's
@@ -33,6 +34,7 @@ import {
   sendBatchConfirm,
 } from '../domains/communication/outreach/outreach-confirm-specs.js';
 import { callConfirm } from '../domains/telephony/call-confirm.js';
+import { webhookConfirm } from '../domains/webhooks/webhook-confirm.js';
 import type { Tool, ToolContext, ToolDefinition } from './types.js';
 
 /** Tool id → what it reads back before acting. */
@@ -55,6 +57,8 @@ export const OUTBOUND_TOOLS: Readonly<Record<string, ConfirmSpec>> = {
   sendApprovedEmail: argsConfirm('an email'),
   // A reminder sent to an address the model names (setReminder is gated in productivity/reminders.ts)
   scheduleReminder: reminderConfirm,
+  // The owner's own automations (IFTTT, Zapier, Home Assistant): they can open a garage or a lock
+  triggerWebhook: webhookConfirm,
 };
 
 /**

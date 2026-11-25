@@ -13,9 +13,6 @@ import { signDispatch } from '../../../services/outreach/on-behalf-dispatch.js';
 
 const store = new InMemoryStore();
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store }));
-vi.mock('../../../services/identity/identity-linking.js', () => ({
-  autoLinkOnAuth: vi.fn(async () => undefined),
-}));
 vi.mock('../../../services/superhuman/commitment-prefetch.js', () => ({
   prefetchUserCommitments: vi.fn(async () => {}),
 }));

@@ -18,9 +18,12 @@ import {
   unfinishedTurnHoldMs,
   unfinishedness,
 } from '../unfinished-turn.js';
+import { labelTurn, stripTurnLabel } from '../../group-conversation/turn-label.js';
 import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import type { TurnReceipt } from '../../shared/turn-receipt.js';
 
+/** A solo call's transcripts: no group call labels to take off. */
+const asSaid = (transcript: string): string => transcript;
 const PAUSE_OFF = { PAUSE_REQUEST_COMMITS_TURN: 'off' };
 const PAUSE_ON = { PAUSE_REQUEST_COMMITS_TURN: 'on' };
 
@@ -201,11 +204,12 @@ describe('unfinishedness', () => {
   });
 
   it('installs on the session unless UNFINISHED_TURN_HOLD=off', () => {
-    const on: { unfinishedTurnHoldMs?: unknown } = {};
-    expect(installUnfinishedTurnHold(on, {})).toBe(true);
-    expect(on.unfinishedTurnHoldMs).toBe(unfinishedTurnHoldMs);
+    const on: { unfinishedTurnHoldMs?: (transcript: string) => number } = {};
+    expect(installUnfinishedTurnHold(on, {}, asSaid)).toBe(true);
+    for (const said of ['We don’t get', 'so,', 'Sounds good.'])
+      expect(on.unfinishedTurnHoldMs?.(said)).toBe(unfinishedTurnHoldMs(said));
     const off: { unfinishedTurnHoldMs?: unknown } = {};
-    expect(installUnfinishedTurnHold(off, { UNFINISHED_TURN_HOLD: 'off' })).toBe(false);
+    expect(installUnfinishedTurnHold(off, { UNFINISHED_TURN_HOLD: 'off' }, asSaid)).toBe(false);
     expect(off.unfinishedTurnHoldMs).toBeUndefined();
   });
 });
@@ -227,7 +231,7 @@ function activity() {
     chatCtx: { items: [] },
     sessionOptions: { turnHandling: { interruption: { minWords: 0 } } },
   };
-  installUnfinishedTurnHold(session, {});
+  installUnfinishedTurnHold(session, {}, asSaid);
   return {
     agentSession: session,
     schedulingPaused: false,
@@ -246,6 +250,36 @@ function activity() {
     userTurnCompleted: vi.fn(),
   };
 }
+
+// GROUP_CALL: while a guest is on, every final is labelled `[unclear] ...` (stt-chain.ts).
+// The label is who spoke, not words: read as one, "stop talking" was held 1.5 s.
+describe('the hold on a group call turn, read without its labels', () => {
+  const holdOn = (call: object) => {
+    const on: { unfinishedTurnHoldMs?: (transcript: string) => number } = {};
+    installUnfinishedTurnHold(on, {}, (transcript) => stripTurnLabel(call, transcript));
+    return (said: string): number | undefined => on.unfinishedTurnHoldMs?.(said);
+  };
+
+  it('a labelled "stop talking" is not held, as on a solo call', () => {
+    const call = {};
+    expect(unfinishedTurnHoldMs('stop talking')).toBe(0);
+    expect(holdOn(call)(labelTurn(call, 'unclear', 'stop talking'))).toBe(0);
+  });
+
+  it('a labelled "mm hmm" is a backchannel there, finals joined or not', () => {
+    const call = {};
+    const hold = holdOn(call);
+    expect(hold(labelTurn(call, 'unclear', 'mm hmm'))).toBe(0);
+    expect(hold(`${labelTurn(call, 'unclear', 'mm')} ${labelTurn(call, 'unclear', 'hmm')}`)).toBe(
+      0
+    );
+  });
+
+  it('still holds a labelled half sentence', () => {
+    const call = {};
+    expect(holdOn(call)(labelTurn(call, 'unclear', 'so I was thinking,'))).toBe(DANGLING_HOLD_MS);
+  });
+});
 
 describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
   beforeEach(() => vi.useFakeTimers());

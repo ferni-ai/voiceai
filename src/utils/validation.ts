@@ -107,7 +107,12 @@ export function normalizePhone(phone: string): string | null {
 
   // Validate the result
   if (!isValidPhone(cleaned)) {
-    log.warn({ phone, cleaned }, 'Invalid phone number after normalization');
+    // Lengths only. Both values are someone's number: `cleaned` is not a key the log
+    // redaction knows, and a number followed by an extension was printed whole.
+    log.warn(
+      { inputLength: phone.length, digitCount: cleaned.replace(/\D/g, '').length },
+      'Invalid phone number after normalization'
+    );
     return null;
   }
 

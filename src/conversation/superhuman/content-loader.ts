@@ -326,7 +326,7 @@ export function clearContentCache(personaId?: string): void {
 /**
  * Get a random phrase from an array
  */
-export function getRandomPhrase(phrases: string[] | undefined): string | null {
+function getRandomPhrase(phrases: string[] | undefined): string | null {
   if (!phrases || phrases.length === 0) return null;
   return seededPick(`${Date.now()}:331`, phrases) ?? phrases[0];
 }
@@ -355,19 +355,6 @@ export function getEmotionalBondPhrase(
     default:
       return null;
   }
-}
-
-/**
- * Get anticipatory presence phrase for time of day
- */
-export function getTemporalPhrase(
-  content: BetterThanHumanContent,
-  timeContext: 'monday_stress' | 'friday_energy' | 'late_night' | 'early_morning' | 'weekend'
-): string | null {
-  const patterns = content.anticipatory_presence?.temporal_patterns;
-  if (!patterns) return null;
-
-  return getRandomPhrase(patterns[timeContext]);
 }
 
 /**
@@ -418,23 +405,6 @@ export function getVulnerabilityPhrase(
   if (!vulnerability) return null;
 
   return getRandomPhrase(vulnerability[vulnerabilityType]);
-}
-
-/**
- * Get superhuman observation phrase
- */
-export function getObservationPhrase(
-  content: BetterThanHumanContent,
-  patternType:
-    | 'linguistic_patterns'
-    | 'behavioral_patterns'
-    | 'emotional_patterns'
-    | 'relationship_patterns'
-): string | null {
-  const observations = content.superhuman_observations;
-  if (!observations) return null;
-
-  return getRandomPhrase(observations[patternType]);
 }
 
 /**

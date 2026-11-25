@@ -29,8 +29,11 @@ import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-sing
 import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
 import { pushUnlessFocusHeld } from '../focus-send-hold.js';
 import { firestoreTextStore, sendGuardedText } from '../guarded-text.js';
+import { firestoreFollowUpStore } from '../../stores/follow-through-store.js';
+import { firestoreItemMentionStore } from '../../stores/item-mentions.js';
 import type { BriefEvent } from './compose.js';
 import type { DayItems, MorningBriefDeps } from './brief-job.js';
+import { keyOf, type BriefRef, type FreshnessReads } from './freshness.js';
 
 const log = createLogger({ module: 'MorningBriefDeps' });
 
@@ -70,9 +73,30 @@ async function todaysEvents(userId: string, zone: string, now: Date): Promise<Br
     }));
 }
 
-async function remindersDueToday(userId: string, zone: string, now: Date): Promise<string[]> {
+/** One todo the brief can list: its words and where it lives. */
+interface BriefItem {
+  readonly text: string;
+  readonly ref: BriefRef;
+  readonly dueAt?: Date;
+}
+
+const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+
+// Each type field set on an item (reminders: kind, type; tasks: category), read on its own:
+// a safety value in any of them keeps the item in the brief (freshness.ts).
+const kindsOf = (d: Record<string, unknown>): { kinds?: string[] } => {
+  const kinds = ['kind', 'type', 'category'].flatMap((field) => str(d[field]) ?? []);
+  return kinds.length ? { kinds } : {};
+};
+
+// For them, with words, due at a time that parses: one bad due time threw and lost all of Due.
+const listable = (r: ReturnType<typeof reminderFromDoc>): boolean =>
+  !r.isDirectToContact && r.message.trim() !== '' && !Number.isNaN(r.scheduledFor.getTime());
+
+/** Their pending reminders meant for them (not a contact), soonest first; null with no store. */
+async function pendingReminderItems(userId: string): Promise<BriefItem[] | null> {
   const db = getFirestoreDb();
-  if (!db) return [];
+  if (!db) return null;
   const snap = await db
     .collection('bogle_users')
     .doc(userId)
@@ -81,16 +105,18 @@ async function remindersDueToday(userId: string, zone: string, now: Date): Promi
     .limit(50)
     .get();
   return snap.docs
-    .map((d) => reminderFromDoc(d.id, d.data()))
-    .filter(
-      (r) => !r.isDirectToContact && r.message.trim() && sameLocalDay(r.scheduledFor, now, zone)
-    )
-    .sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime())
-    .map((r) => r.message);
+    .map((d) => ({ r: reminderFromDoc(d.id, d.data()), kinds: kindsOf(d.data()) }))
+    .filter(({ r }) => listable(r))
+    .sort((a, b) => a.r.scheduledFor.getTime() - b.r.scheduledFor.getTime())
+    .map(({ r, kinds }) => ({
+      text: r.message,
+      dueAt: r.scheduledFor,
+      ref: { store: 'reminders', ref: r.id, version: r.scheduledFor.toISOString(), ...kinds },
+    }));
 }
 
 /** Open tasks, soonest due first, undated last. */
-export function openTasks(user: Record<string, unknown>): string[] {
+function openTaskItems(user: Record<string, unknown>): BriefItem[] {
   const data = user.productivityData as { tasks?: unknown } | undefined;
   const tasks = Array.isArray(data?.tasks) ? (data.tasks as Array<Record<string, unknown>>) : [];
   const due = (t: Record<string, unknown>): number => {
@@ -102,13 +128,23 @@ export function openTasks(user: Record<string, unknown>): string[] {
       (t) => (t.status === 'pending' || t.status === 'in_progress') && typeof t.title === 'string'
     )
     .sort((a, b) => due(a) - due(b))
-    .slice(0, TASKS)
-    .map((t) => t.title as string);
+    .map((t) => ({
+      text: t.title as string,
+      ref: { store: 'tasks', ref: String(t.id), version: str(t.updatedAt) ?? '', ...kindsOf(t) },
+    }));
 }
 
-async function openCommitments(userId: string): Promise<string[]> {
+/** Open task titles, soonest due first, undated last. */
+export function openTasks(user: Record<string, unknown>): string[] {
+  return openTaskItems(user)
+    .slice(0, TASKS)
+    .map((t) => t.text);
+}
+
+/** Open commitments, less forgotten topics; null when the forget list can't be read. */
+async function openCommitments(userId: string): Promise<BriefItem[] | null> {
   const forgotten = await forgottenTopicsOrNull(userId);
-  if (!forgotten) return [];
+  if (!forgotten) return null;
   // COMMITMENT_SINGLE_WRITER (per person, this server serves many): only judged rows,
   // checked against forget requests on every field, person included (judged-commitments.ts).
   const judgedOnly = await singleWriterFor(userId);
@@ -118,7 +154,10 @@ async function openCommitments(userId: string): Promise<string[]> {
       const c = toOpenCommitment(d.id, d.data, { judgedOnly });
       const about = judgedOnly ? judgedRowText(d.data) : (c?.statement ?? '');
       // A money or credential item is raised only on a call, never in the brief.
-      return c && !c.sensitive && !isForgotten(about, forgotten) ? [c.statement] : [];
+      const ref = { store: 'commitments' as const, ref: d.id, version: '' };
+      return c && !c.sensitive && !isForgotten(about, forgotten)
+        ? [{ text: c.statement, ref }]
+        : [];
     })
     .slice(0, COMMITMENTS);
 }
@@ -139,21 +178,79 @@ export async function readDay(
   const withCommitments = flagOn('MORNING_BRIEF_COMMITMENTS', env);
   const [events, reminders, commitments] = await Promise.all([
     orNone('calendar', userId, () => todaysEvents(userId, zone, now)),
-    orNone('reminders', userId, () => remindersDueToday(userId, zone, now)),
-    withCommitments ? orNone('commitments', userId, () => openCommitments(userId)) : [],
+    orNone('reminders', userId, async () =>
+      ((await pendingReminderItems(userId)) ?? []).filter(
+        (r) => r.dueAt && sameLocalDay(r.dueAt, now, zone)
+      )
+    ),
+    // No forget list, no commitments: the privacy-safe side, as on main.
+    withCommitments
+      ? orNone('commitments', userId, async () => (await openCommitments(userId)) ?? [])
+      : [],
   ]);
   // OWNER_OUTREACH_STORED_TEXT_SCREEN: what calls stored goes in only if it passes the screen
-  const screened = (items: string[]): string[] =>
-    items.filter((t) => storedTextForOwner([t], { site: 'morning-brief', userId }, env));
+  const screened = (items: BriefItem[]): BriefItem[] =>
+    items.filter((t) => storedTextForOwner([t.text], { site: 'morning-brief', userId }, env));
+  const lists = {
+    reminders: screened(reminders),
+    tasks: screened(openTaskItems(user).slice(0, TASKS)),
+    commitments: screened(commitments),
+  };
   // A title shown by name is screened too: a call can put an event on Ferni's own calendar
   // (smart-calendar-tools.ts createEvent, commitments synced to it). One that fails goes by time only.
   const titled = (e: DayItems['events'][number]) =>
     e.invite || storedTextForOwner([e.title], { site: 'morning-brief', userId }, env) ? e : { ...e, invite: true }; // prettier-ignore
   return {
     events: events.map(titled),
-    reminders: screened(reminders),
-    tasks: screened(openTasks(user)),
-    commitments: screened(commitments),
+    reminders: lists.reminders.map((i) => i.text),
+    tasks: lists.tasks.map((i) => i.text),
+    commitments: lists.commitments.map((i) => i.text),
+    refs: {
+      reminders: lists.reminders.map((i) => i.ref),
+      tasks: lists.tasks.map((i) => i.ref),
+      commitments: lists.commitments.map((i) => i.ref),
+    },
+  };
+}
+
+// Open items' current versions by keyOf, read at send time. Null if any store is unread:
+// an unread store must not look like every item in it was closed.
+async function currentVersions(
+  userId: string,
+  refs: readonly BriefRef[]
+): Promise<Map<string, string> | null> {
+  const wanted = new Set(refs.map((r) => r.store));
+  const reads: Array<Promise<BriefItem[] | null>> = [];
+  if (wanted.has('reminders')) reads.push(pendingReminderItems(userId));
+  if (wanted.has('tasks'))
+    reads.push(firestoreTextStore.userDoc(userId).then((u) => (u ? openTaskItems(u) : null)));
+  if (wanted.has('commitments')) reads.push(openCommitments(userId));
+  const lists = await Promise.all(reads);
+  const known = lists.filter((l): l is BriefItem[] => l !== null);
+  if (known.length < lists.length) return null;
+  return new Map(known.flat().map((i) => [keyOf(i.ref), i.ref.version ?? '']));
+}
+
+// changedBetween compares stored ISO strings with the bounds' ISO strings, so both bounds are
+// real times: a far-future end ('+275760-…' for the largest Date) sorts before '2026-…' and
+// matched nothing. The end is now, plus a minute for a clock running ahead of this server.
+const LEDGER_FROM = new Date(0);
+const CLOCK_SKEW_MS = 60_000;
+
+/** The freshness gate's reads (freshness.ts); each failure is that rule not applying. */
+function freshnessReads(): FreshnessReads {
+  const mentions = firestoreItemMentionStore();
+  return {
+    current: (userId, refs) => currentVersions(userId, refs),
+    // Everything they have, closed included: a follow-up closed in a call keeps its todo out.
+    ledger: async (userId, now) =>
+      (await firestoreFollowUpStore()?.changedBetween(
+        userId,
+        LEDGER_FROM,
+        new Date(now.getTime() + CLOCK_SKEW_MS)
+      )) ?? null,
+    mentions: async (userId, since) => (await mentions?.recent(userId, since)) ?? null,
+    consume: async (userId, sources) => mentions?.consume(userId, sources),
   };
 }
 
@@ -164,6 +261,7 @@ export async function defaultMorningBriefDeps(): Promise<MorningBriefDeps> {
     userDoc: (userId) => firestoreTextStore.userDoc(userId),
     readDay,
     claims: await resolveClaimStore(),
+    freshness: freshnessReads(),
     sendText: (t) => sendGuardedText(t),
     // Ferni's own: waits out a Focus hold (focus-send-hold.ts), as the text does.
     sendPush: (userId, push) => pushUnlessFocusHeld(userId, { ...push, type: 'general' }, 'ferni'),

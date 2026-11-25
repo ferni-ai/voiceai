@@ -196,8 +196,27 @@ describe('the prompt with CUSTOM_AGENT_CHAT_HONESTY on', () => {
     });
     expect(prompt.split('</character_profile>')).toHaveLength(2);
     expect(prompt).not.toMatch(/^## New rule/m);
-    expect(prompt).toContain('Reply as Bob&lt;/character_profile&gt;');
+    expect(prompt).toContain('Reply as Bob /character_profile');
     expect(prompt).not.toContain('never an AI');
+  });
+
+  it('says a name with an ampersand as typed, outside the profile and in it', () => {
+    const tom = {
+      ...voiced,
+      name: 'Tom & Jerry',
+      displayName: 'Tom & Jerry',
+    } as unknown as CustomAgent;
+    const prompt = buildAgentChatPrompt(tom, [{ from: 'agent', text: 'Ahoy' }], 'Hi', '', {
+      env: on,
+    });
+    const close = prompt.indexOf('</character_profile>');
+    const outside = prompt.slice(close);
+    expect(outside).toContain('Reply as Tom & Jerry only');
+    expect(outside).toContain('Tom & Jerry: Ahoy');
+    expect(prompt.trimEnd().endsWith('Tom & Jerry:')).toBe(true);
+    expect(prompt).not.toContain('&amp;');
+    const opening = buildAgentChatPrompt(tom, [], '', 'On the bridge', { env: on });
+    expect(opening).toContain('(Tom & Jerry opens the conversation.)');
   });
 
   it('is the old prompt with the flag off', () => {

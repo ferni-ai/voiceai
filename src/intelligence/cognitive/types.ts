@@ -303,12 +303,3 @@ export interface CognitiveContextInput {
     engagementLevel?: number;
   };
 }
-
-/**
- * Result from cognitive engine
- */
-export interface CognitiveEngineResult {
-  profile: CognitiveProfile;
-  context: CognitiveContext;
-  promptInjection: string;
-}

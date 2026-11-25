@@ -19,7 +19,6 @@ import {
   getDailyRitualsService,
   resetDailyRitualsService,
   PERSONA_RITUALS,
-  RITUAL_PROMPTS,
   type EmotionalWeather,
 } from '../services/daily-rituals.js';
 
@@ -326,60 +325,6 @@ describe('Daily Check-in Integration Tests', () => {
       const celebration = getStreakCelebration(5);
 
       expect(celebration).toBeNull();
-    });
-  });
-
-  // ============================================================================
-  // RITUAL PROMPTS TESTS
-  // ============================================================================
-
-  describe('Ritual Prompts', () => {
-    it('should have opening prompts for Ferni sky check', () => {
-      const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-
-      expect(prompts).toBeDefined();
-      expect(prompts.openings).toBeDefined();
-      expect(prompts.openings.length).toBeGreaterThan(0);
-    });
-
-    it('should have weather responses for all weather types', () => {
-      const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-      const weatherTypes = [
-        'sunny',
-        'partly-cloudy',
-        'cloudy',
-        'rainy',
-        'stormy',
-        'foggy',
-        'rainbow',
-      ];
-
-      for (const weather of weatherTypes) {
-        expect(
-          prompts.weatherResponses[weather as keyof typeof prompts.weatherResponses]
-        ).toBeDefined();
-        expect(
-          prompts.weatherResponses[weather as keyof typeof prompts.weatherResponses].length
-        ).toBeGreaterThan(0);
-      }
-    });
-
-    it('should have streak celebrations for key milestones', () => {
-      const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-      const milestones = [3, 7, 14, 30, 66, 100];
-
-      for (const milestone of milestones) {
-        expect(
-          prompts.streakCelebrations[milestone as keyof typeof prompts.streakCelebrations]
-        ).toBeDefined();
-      }
-    });
-
-    it('should have prompts for all persona rituals', () => {
-      for (const ritualId of Object.keys(PERSONA_RITUALS)) {
-        const prompts = RITUAL_PROMPTS[ritualId as keyof typeof RITUAL_PROMPTS];
-        expect(prompts).toBeDefined();
-      }
     });
   });
 

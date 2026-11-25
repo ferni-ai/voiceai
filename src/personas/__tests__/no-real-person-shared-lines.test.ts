@@ -14,8 +14,6 @@ import { GENTLE_HUMOR, GENTLE_OBSERVATIONS, MICRO_STORIES } from '../meaningful-
 import { HANDOFF_WARMTH, TEAM_MENTIONS, TEAM_OPINIONS } from '../shared/team-dynamics.js';
 import { PERSONA_BUILDING_BLOCKS } from '../shared/persona-building-blocks.js';
 import { cognitiveProfiles } from '../cognitive-profiles.js';
-import { personaCognitiveQuirks } from '../cognitive-quirks.js';
-import { PETER_MOMENTS } from '../../personality/moments/peter-moments.js';
 import { PERSONA_EVOLUTION_STORIES } from '../../services/team-engagement/evolution-stories.js';
 import { personaFingerprints } from '../../services/evalops/persona-fingerprints.js';
 
@@ -40,8 +38,6 @@ const MODULES: Record<string, unknown> = {
   'shared/team-dynamics': { TEAM_OPINIONS, HANDOFF_WARMTH, TEAM_MENTIONS },
   'shared/persona-building-blocks': PERSONA_BUILDING_BLOCKS,
   'cognitive-profiles': cognitiveProfiles,
-  'cognitive-quirks': personaCognitiveQuirks,
-  'personality/moments/peter-moments': PETER_MOMENTS,
   'team-engagement/evolution-stories': PERSONA_EVOLUTION_STORIES,
   'evalops/persona-fingerprints': personaFingerprints,
 };

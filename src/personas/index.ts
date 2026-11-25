@@ -33,9 +33,6 @@ export { canonPeople, canonPersonIn } from './canon-people.js';
 // generic-advisor and wellness-coach (extendPersona() templates, not production).
 import { personaRegistry } from './persona-registry.js';
 
-// External agents available at marketplace-agents/
-// Install with: npm run agents install <agent-id>
-
 // ============================================================================
 // SHARED UTILITIES EXPORTS
 // ============================================================================
@@ -432,6 +429,7 @@ export {
   isCanonicalId,
   isKnownId,
   isSamePersona,
+  isValidPersonaId,
   livePersonaId,
   toCanonical,
   toFrontend,
@@ -439,44 +437,8 @@ export {
   type CanonicalPersonaId,
   type FrontendPersonaId,
 } from './persona-ids.js';
-
-// ============================================================================
-// RELATIONSHIP MEMORY ENGINE
-// DEPRECATED (Jan 2026): Entire relationship-memory module deleted.
-// These exports have been moved to src/intelligence/relationship/
-// Import from there instead.
-// ============================================================================
-//
-// export {
-//   clearRelationshipEngine,
-//   getRelationshipEngine,
-//   getRelationshipPersistence,
-//   loadAllRelationshipMemories,
-//   loadRelationshipMemory,
-//   RELATIONSHIP_STAGE_CONFIGS,
-//   RelationshipMemoryEngine,
-//   RelationshipMemoryPersistence,
-//   saveRelationshipMemory,
-// } from './relationship-memory/index.js';
-//
-// export type {
-//   CallbackAttempt,
-//   CallbackEffectiveness,
-//   EmotionalTrajectory,
-//   InsideJoke,
-//   InsideJokeSeed,
-//   RelationshipContext,
-//   RelationshipMemory,
-//   RelationshipMilestone,
-//   RelationshipMilestoneType,
-//   RelationshipPromptInjection,
-//   RelationshipStage,
-//   RelationshipStageConfig,
-//   RelationshipUpdateResult,
-//   SharedMoment,
-//   SharedMomentType,
-//   TemporalPattern,
-// } from './relationship-memory/index.js';
+// How each persona is referred to in the third person (the canon)
+export { getPersonaPronouns, type PersonaPronouns } from './persona-pronouns.js';
 
 // ============================================================================
 // COGNITIVE DIFFERENTIATION

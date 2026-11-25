@@ -6,7 +6,7 @@
  * relationships, not isolated transactions.
  */
 
-import type { RelationshipStage, UserProfile } from '../../types/user-profile.js';
+import type { RelationshipStage } from '../../types/user-profile.js';
 
 // ============================================================================
 // RELATIONSHIP STAGE BEHAVIORS
@@ -15,7 +15,7 @@ import type { RelationshipStage, UserProfile } from '../../types/user-profile.js
 /**
  * Different behaviors based on relationship depth
  */
-export const STAGE_BEHAVIORS = {
+const STAGE_BEHAVIORS = {
   // First few conversations - friendly but respectful distance
   new_acquaintance: {
     greeting: [
@@ -127,37 +127,6 @@ export const CALLBACK_TEMPLATES = {
     'You mentioned {topic} was weighing on you. <break time="200ms"/>How are things?',
   ],
 };
-
-/**
- * Generate a conversation callback based on user profile
- */
-export function generateCallback(profile: UserProfile): string | null {
-  // Check for pending follow-ups
-  if (profile.pendingFollowUps.length > 0) {
-    const followUp = profile.pendingFollowUps[0];
-    const template = randomFrom(CALLBACK_TEMPLATES.followUp);
-    return template.replace('{topic}', followUp.topic);
-  }
-
-  // Check for active goals
-  const activeGoals = profile.goals.filter((g) => g.status === 'active' || g.status === 'on_track');
-  if (activeGoals.length > 0) {
-    const goal = activeGoals[Math.floor(Math.random() * activeGoals.length)];
-    const template = randomFrom(CALLBACK_TEMPLATES.goalReference);
-    return template.replace('{goal}', goal.name);
-  }
-
-  // Check for family members
-  if (profile.familyMembers.length > 0) {
-    const member = profile.familyMembers[Math.floor(Math.random() * profile.familyMembers.length)];
-    if (member.name) {
-      const template = randomFrom(CALLBACK_TEMPLATES.familyReference);
-      return template.replace('{person}', member.name);
-    }
-  }
-
-  return null;
-}
 
 // ============================================================================
 // RELATIONSHIP DEEPENING QUESTIONS

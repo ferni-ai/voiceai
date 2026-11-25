@@ -1,0 +1,128 @@
+name: Deploy Marketplace Portal
+
+# Deploys apps/website/marketplace-portal (Eleventy) to the ferni-marketplace
+# Firebase Hosting site, which serves marketplace.ferni.ai. Until this existed
+# the site only moved when someone ran `ferni deploy marketplace` by hand: the
+# link and favicon fixes merged in #1220 never reached the live site.
+#
+# - push to main: build, test the build, deploy to the live channel, then
+#   smoke-check every internal link on the live home page.
+# - pull request: the same build and tests, then a 7-day preview channel
+#   (the action comments its URL on the PR) and the same smoke check against
+#   it. Fork and Dependabot PRs get no Actions secrets, so they build and test
+#   but skip the preview.
+# Same auth and pinned action as deploy-developers.yml.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/website/marketplace-portal/**'
+      - '.github/workflows/deploy-marketplace.yml'
+  pull_request:
+    paths:
+      - 'apps/website/marketplace-portal/**'
+      - '.github/workflows/deploy-marketplace.yml'
+  workflow_dispatch:
+
+# Live deploys run one at a time and are never cut off midway; GitHub keeps
+# only the newest pending one, which checks out a later main. A PR's new push
+# cancels its own running preview.
+concurrency:
+  group: deploy-marketplace-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'live' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy marketplace.ferni.ai
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # The hosting action comments the preview URL on the PR and adds a check.
+      pull-requests: write
+      checks: write
+    env:
+      PORTAL_DIR: apps/website/marketplace-portal
+      LIVE: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+      PREVIEW: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Not a pnpm workspace package: it has its own package-lock.json.
+      - name: Install dependencies
+        working-directory: ${{ env.PORTAL_DIR }}
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        working-directory: ${{ env.PORTAL_DIR }}
+        run: npm run build
+
+      # Checks the build in _site: internal links resolve, no prices, no past
+      # launch dates. `ls` fails first if the glob would match no test file.
+      - name: Test the build
+        working-directory: ${{ env.PORTAL_DIR }}
+        run: |
+          ls __tests__/*.test.js
+          node --test '__tests__/*.test.js'
+
+      - name: Deploy preview channel
+        id: preview
+        if: env.PREVIEW == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          expires: 7d
+          target: ferni-marketplace
+          entryPoint: ./apps/website/marketplace-portal
+
+      - name: Smoke check the preview
+        if: env.PREVIEW == 'true'
+        working-directory: ${{ env.PORTAL_DIR }}
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.details_url }}
+        run: |
+          if [ -z "$PREVIEW_URL" ]; then
+            echo "::error::the hosting action returned no preview URL"
+            exit 1
+          fi
+          node scripts/smoke-check.mjs "$PREVIEW_URL"
+
+      - name: Deploy to Firebase (ferni-marketplace)
+        if: env.LIVE == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          channelId: live
+          target: ferni-marketplace
+          entryPoint: ./apps/website/marketplace-portal
+
+      # No automatic rollback: firebase-tools has no `hosting:rollback`
+      # command. Every PR's preview already passed this same check, so a red
+      # here is rare; roll back from the console's release history.
+      - name: Smoke check marketplace.ferni.ai
+        if: env.LIVE == 'true'
+        working-directory: ${{ env.PORTAL_DIR }}
+        run: |
+          if node scripts/smoke-check.mjs https://marketplace.ferni.ai; then
+            echo "marketplace.ferni.ai deployed and every home-page link answers" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### marketplace.ferni.ai smoke check failed"
+              echo "Roll back: Firebase console, Hosting, site ferni-marketplace, release history, Rollback on the previous release."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

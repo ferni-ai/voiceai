@@ -9,6 +9,7 @@
 
 import '../../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
+import '../../personas/roster/index.js'; // no log line carries a consented clone's voice id
 import { createLogger } from '../../utils/safe-logger.js';
 import { startWorkerServer } from './cloud-run-worker.js';
 import { registerMessagingConsent } from '../messaging/consent.js';

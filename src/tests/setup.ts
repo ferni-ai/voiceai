@@ -104,6 +104,10 @@ const isFirestoreFieldValueImpl = (value: unknown): boolean => {
 const cleanForFirestoreImpl = <T>(obj: T): T => {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString() as T;
+  // Like the real one, keep Timestamps (anything with toDate()) as they are.
+  if (typeof obj === 'object' && typeof (obj as { toDate?: unknown }).toDate === 'function') {
+    return obj;
+  }
   if (isFirestoreFieldValueImpl(obj)) return obj;
   if (Array.isArray(obj)) return obj.map((item) => cleanForFirestoreImpl(item)) as T;
   if (typeof obj === 'object') {
@@ -216,8 +220,12 @@ const mockLogger = {
   child: vi.fn(() => mockLogger),
 };
 
-// Mock safe-logger globally - must export ALL functions used across codebase
-vi.mock('../utils/safe-logger.js', () => {
+// Mock safe-logger globally - must export ALL functions used across codebase.
+// replyForLog, repliesForLog and isFullLoggingEnabled are the REAL ones: with no
+// FIRESTORE_DATABASE set a test sees the prod answer, a length (guarded by
+// utils/__tests__/reply-for-log-setup-mock.test.ts).
+vi.mock('../utils/safe-logger.js', async () => {
+  const { realReplyForLog } = await import('./helpers/real-reply-for-log.js');
   const createMockLogger = () => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -238,7 +246,7 @@ vi.mock('../utils/safe-logger.js', () => {
       }
       return error;
     }),
-    isFullLoggingEnabled: vi.fn(() => false),
+    ...(await realReplyForLog()),
     setErrorLogSink: vi.fn(),
     truncateForLog: vi.fn((value: unknown, maxLength?: number) =>
       typeof value === 'string' && maxLength ? value.slice(0, maxLength) : value
