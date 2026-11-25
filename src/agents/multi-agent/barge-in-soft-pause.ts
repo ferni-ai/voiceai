@@ -48,7 +48,7 @@ export interface SoftPause {
   pause: () => boolean;
   /** Play on from where the pause stopped. */
   resume: () => void;
-  /** SOFT_PAUSE_CUT_DROPS_HELD=on: drop a cut reply's held audio, so the cut ends at once. */
+  /** Drop a cut reply's held audio, so the cut ends at once (set only when cutDropsHeld). */
   dropCut?: () => void;
   confirmMs: number;
   graceMs: number;
@@ -76,12 +76,31 @@ export function softPauseFromEnv(
   io: Omit<SoftPause, 'confirmMs' | 'graceMs' | 'oneOutcome'>
 ): SoftPause | undefined {
   if (env.BARGE_IN_SOFT_PAUSE !== 'on') return undefined;
+  const oneOutcome = flagOn('SOFT_PAUSE_ONE_OUTCOME', env);
   return {
     ...io,
     confirmMs: softPauseConfirmMs(env),
     graceMs: softPauseGraceMs(env),
-    oneOutcome: flagOn('SOFT_PAUSE_ONE_OUTCOME', env),
+    oneOutcome,
+    dropCut: cutDropsHeld(env, oneOutcome, io.log) ? io.dropCut : undefined,
   };
+}
+
+/** Env objects already told that SOFT_PAUSE_CUT_DROPS_HELD was refused (once per process in prod). */
+const refusedCutDrop = new WeakSet<Env>();
+
+/**
+ * SOFT_PAUSE_CUT_DROPS_HELD counts only with SOFT_PAUSE_ONE_OUTCOME on: without it the cut
+ * reply's watchdog still runs after the drop (#3857), so the pair goes on together or not at all.
+ */
+function cutDropsHeld(env: Env, oneOutcome: boolean, log: SoftPause['log']): boolean {
+  if (!flagOn('SOFT_PAUSE_CUT_DROPS_HELD', env)) return false;
+  if (oneOutcome) return true;
+  if (!refusedCutDrop.has(env)) {
+    refusedCutDrop.add(env);
+    log?.({ event: 'cut-drop-refused', reason: 'one-outcome-off' });
+  }
+  return false;
 }
 
 type Handler = (...args: unknown[]) => void;
@@ -126,19 +145,21 @@ export function liveCallSoftPause(
       if (speechPausedForCaller(session)) return;
       output.output.audio?.resume();
     },
-    dropCut: flagOn('SOFT_PAUSE_CUT_DROPS_HELD', env)
-      ? () => {
-          const { audio } = output.output;
-          if (audio instanceof ResumeBufferOutput) audio.dropCutReply();
-        }
-      : undefined,
+    dropCut: () => {
+      const { audio } = output.output;
+      if (audio instanceof ResumeBufferOutput) audio.dropCutReply();
+    },
     log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_SOFT_PAUSE'),
   });
   if (!soft) return undefined;
   const events = input.sessionWithEvents as { on: (event: string, handler: Handler) => void };
   const wrap = () =>
     ensureResumeBuffer(output, (fields) => log.info({ sessionId, ...fields }, 'REPLY_RESUME'), env);
-  wrap();
+  // A session with no audio output can't pause: the fast path interrupts, as with the flag off.
+  if (!wrap()) {
+    soft.log?.({ event: 'no-output' });
+    return undefined;
+  }
   for (const event of ['speech_created', 'agent_state_changed', 'user_state_changed']) {
     events.on(event, wrap);
     sessionEventHandlers.push({ event, handler: wrap });
