@@ -14,6 +14,7 @@
  */
 
 import type { voice } from '@livekit/agents';
+import { errorClass } from '../../utils/error-class.js';
 import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { arrivalCooldownMs } from './arrival-cooldown.js';
 import {
@@ -751,10 +752,8 @@ export class SpeechCoordinator {
       if (isTTSGatewayEnabled()) {
         // Extract SSML for logging (gateway handles actual stripping)
         const ssmlResult = extractSSMLToConfig(request.text);
-
         const debugTTS =
           process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
-
         log.debug(
           {
             original: replyForLog(request.text),
@@ -775,7 +774,6 @@ export class SpeechCoordinator {
           process.stderr.write(`  📝 Text: ${replyForLog(request.text)}\n`);
           process.stderr.write(`  🎙️ Persona: ${this.personaId || 'ferni'}\n`);
         }
-
         // Use gateway - fire and forget (onSpeechEnded handles completion)
         try {
           const handedOver = gatewaySpeak(this.session, request.text, {
@@ -792,7 +790,6 @@ export class SpeechCoordinator {
         }
       } else {
         // LEGACY PATH: Direct SSML stripping (will be removed once gateway validated)
-        // 🔧 FIX: Strip SSML tags before sending to TTS
         // Cartesia's tokenizer fragments SSML tags, causing them to be spoken literally
         const textToSpeak = stripSSMLForTTS(request.text);
 
@@ -804,7 +801,7 @@ export class SpeechCoordinator {
           },
           'Speaking text (SSML stripped) - legacy path'
         );
-
+        if (!textToSpeak.trim()) return this.abandonLine(); // nothing left: no speech-ended follows
         this.session.say(textToSpeak, {
           allowInterruptions: request.allowInterruptions ?? true,
         });
@@ -826,7 +823,12 @@ export class SpeechCoordinator {
   private abandonLine(): void {
     this.currentRequest = null;
     this.transitionTo(CoordinatorState.IDLE);
-    this.processQueue();
+    try {
+      this.processQueue();
+    } catch (error) {
+      log.error({ error: errorClass(error) }, 'Queued line dropped: it threw before speaking');
+      this.abandonLine();
+    }
   }
 
   private expireOldRequests(): void {

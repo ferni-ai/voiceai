@@ -16,6 +16,23 @@ import {
   resetSpeechCoordinator,
 } from '../speech-coordinator.js';
 
+const sink = vi.hoisted(() => {
+  const calls: unknown[][] = [];
+  const record = (...args: unknown[]) => void calls.push(args);
+  const logger: Record<string, unknown> = {
+    debug: record,
+    info: record,
+    warn: record,
+    error: record,
+  };
+  logger.child = () => logger;
+  return { calls, logger };
+});
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
+  createLogger: () => sink.logger,
+}));
+
 const SSML_ONLY = '<break time="500ms"/>';
 const spoken = (say: ReturnType<typeof vi.fn>): string[] => say.mock.calls.map((c) => c[0]);
 
@@ -96,6 +113,104 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     await queueBehindALine('Line B', 'Line C');
 
     expect(spoken(say)).toEqual(['Line A', 'Line B', 'Line C']);
+    expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+  });
+
+  it('a line with nothing left after the SSML strip on the legacy path leaves the coordinator IDLE', async () => {
+    vi.stubEnv('USE_TTS_GATEWAY', 'false');
+
+    await speak(SSML_ONLY);
+
+    expect(say).not.toHaveBeenCalled();
+    expect(coordinator.getState()).toBe(CoordinatorState.IDLE);
+  });
+
+  it('an empty line on the legacy path is followed by the next queued line', async () => {
+    vi.stubEnv('USE_TTS_GATEWAY', 'false');
+
+    await queueBehindALine(SSML_ONLY, 'Line C');
+
+    expect(spoken(say)).toEqual(['Line A', 'Line C']);
+    expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+  });
+
+  it('a line whose onStart throws, after a failed line, is dropped and logged by class only', async () => {
+    sink.calls.length = 0;
+    say
+      .mockImplementationOnce(() => undefined)
+      .mockImplementationOnce(() => {
+        throw new Error('session is gone');
+      });
+    await speak('Line A');
+    await speak('Line B');
+    await coordinator.requestSpeak({
+      text: 'Line C',
+      priority: SpeechPriority.RESPONSE,
+      source: 'direct',
+      onStart: () => {
+        throw new Error('refused To=+12025550142');
+      },
+    });
+    await speak('Line D');
+    coordinator.onSpeechEnded(false, 1000);
+    vi.advanceTimersByTime(5_000);
+
+    expect(spoken(say)).toEqual(['Line A', 'Line B', 'Line D']);
+    expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+    const dropped = sink.calls.find(
+      (c) => c[1] === 'Queued line dropped: it threw before speaking'
+    );
+    expect(dropped?.[0]).toEqual({ error: 'Error' });
+    expect(JSON.stringify(sink.calls)).not.toContain('5550142');
+  });
+
+  it('a second speech-ended event for one line releases the next line once', async () => {
+    await speak('Line A');
+    await speak('Line B');
+    await speak('Line C');
+    coordinator.onSpeechEnded(false, 1000);
+    coordinator.onSpeechEnded(false, 1000);
+    vi.advanceTimersByTime(5_000);
+
+    expect(spoken(say)).toEqual(['Line A', 'Line B']);
+    expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+  });
+
+  it('queued lines play in priority order, then arrival order, after a failed line', async () => {
+    say
+      .mockImplementationOnce(() => undefined)
+      .mockImplementationOnce(() => {
+        throw new Error('session is gone');
+      });
+    await speak('Line A');
+    await speak('Line B');
+    await coordinator.requestSpeak({
+      text: 'Line C',
+      priority: SpeechPriority.CRISIS,
+      source: 'direct',
+    });
+    await speak('Line D');
+    coordinator.onSpeechEnded(false, 1000);
+    vi.advanceTimersByTime(5_000);
+
+    // C (crisis) is first and fails; B plays next and D waits behind it, as it arrived.
+    expect(spoken(say)).toEqual(['Line A', 'Line C', 'Line B']);
+    expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
+  });
+
+  it('several failed lines in a row are skipped in queue order', async () => {
+    say
+      .mockImplementationOnce(() => undefined)
+      .mockImplementationOnce(() => {
+        throw new Error('session is gone');
+      })
+      .mockImplementationOnce(() => {
+        throw new Error('session is gone');
+      });
+
+    await queueBehindALine('Line B', 'Line C', 'Line D');
+
+    expect(spoken(say)).toEqual(['Line A', 'Line B', 'Line C', 'Line D']);
     expect(coordinator.getState()).toBe(CoordinatorState.SPEAKING);
   });
 
