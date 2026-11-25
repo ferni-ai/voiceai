@@ -14,6 +14,9 @@ import {
   type LabReply,
   type LabRequest,
 } from '../../avatar-lab/lab-protocol.js';
+import { createLogger } from '../../utils/logger.js';
+
+const log = createLogger('AvatarLabClient');
 
 type LabNotReady = { ok: false; why: 'lab not ready' };
 export type LabAnswer = LabReply | LabNotReady;
@@ -65,7 +68,15 @@ export function createLabClient(
         const timer = setTimeout(() => settle(id, notReady()), timeoutMs);
         pending.set(id, { resolve, timer });
         const request: LabRequest = { type: LAB_MESSAGE_TYPE, id, command };
-        lab.postMessage(request, origin);
+        try {
+          lab.postMessage(request, origin);
+        } catch (error) {
+          log.warn('Could not post to the avatar lab', {
+            name: command.name,
+            error: String(error),
+          });
+          settle(id, notReady());
+        }
       });
     },
     dispose() {

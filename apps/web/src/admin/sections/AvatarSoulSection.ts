@@ -9,13 +9,14 @@
  * @module AvatarSoulSection
  */
 
-import { setMotionFlagOverride } from '../../config/motion-flags.js';
+import { motionFlagOverride, setMotionFlagOverride } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { createLabClient, isLabNotReady } from './avatar-lab-client.js';
 import {
   describeAnswer,
   describeReducedMotion,
   describeSwitch,
+  describeSwitchNotStored,
   labControl,
   motionFlagFrom,
   overrideChoice,
@@ -72,6 +73,7 @@ export function render(): string {
 let stop: (() => void) | null = null;
 
 export function setupEvents(root: HTMLElement): Promise<void> {
+  cleanup(); // a second setup without a cleanup must not leave the first one listening
   const frame = root.querySelector<HTMLIFrameElement>('#avatarLabFrame');
   if (!frame) {
     log.warn('Avatar Soul has no lab frame to drive');
@@ -83,6 +85,14 @@ export function setupEvents(root: HTMLElement): Promise<void> {
   const text = (id: string, value: string): void => {
     const el = root.querySelector(`#${id}`);
     if (el && !events.signal.aborted) el.textContent = value;
+  };
+  /** Only the newest action (a lab click or a switch change) may write the status line. */
+  let latestAction = 0;
+  const startAction = (): ((value: string) => void) => {
+    const mine = ++latestAction;
+    return (value) => {
+      if (mine === latestAction) text('avatarLabStatus', value);
+    };
   };
   const showReducedMotion = (): void =>
     text('avatarLabReducedMotion', describeReducedMotion(media.matches));
@@ -96,9 +106,10 @@ export function setupEvents(root: HTMLElement): Promise<void> {
   };
 
   const run = async (control: LabControl): Promise<void> => {
-    text('avatarLabStatus', `${control.label}: asking the lab`);
+    const say = startAction();
+    say(`${control.label}: asking the lab`);
     const answer = await client.send(control.command);
-    text('avatarLabStatus', describeAnswer(control.label, answer));
+    say(describeAnswer(control.label, answer));
     if (control.command.name === 'crisisHold') await refreshHeld();
   };
 
@@ -121,11 +132,20 @@ export function setupEvents(root: HTMLElement): Promise<void> {
       const select = event.target instanceof HTMLSelectElement ? event.target : null;
       const flag = motionFlagFrom(select?.dataset.motionFlag);
       const choice = overrideChoice(select?.value ?? '');
-      if (!flag || !choice) return;
-      setMotionFlagOverride(flag, choice === 'default' ? null : choice);
+      if (!select || !flag || !choice) return;
+      const say = startAction();
+      const wanted = choice === 'default' ? null : choice;
+      setMotionFlagOverride(flag, wanted);
+      const stored = motionFlagOverride(flag);
+      if (stored !== wanted) {
+        // storage is blocked (private mode, site data off): the lab would boot unchanged
+        select.value = stored ?? 'default';
+        say(describeSwitchNotStored(flag));
+        return;
+      }
       const src = frame.src;
       frame.src = src; // the same address again reloads the lab, which boots with the new switch
-      text('avatarLabStatus', describeSwitch(flag, choice));
+      say(describeSwitch(flag, choice));
     },
     { signal }
   );

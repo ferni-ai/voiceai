@@ -154,6 +154,10 @@ export function describeSwitch(flag: MotionFlag, choice: OverrideChoice): string
   return `${flag} is now ${now} in this browser; the lab reloaded`;
 }
 
+export function describeSwitchNotStored(flag: MotionFlag): string {
+  return `Could not store ${flag} in this browser, so nothing changed`;
+}
+
 export function describeReducedMotion(on: boolean): string {
   return `Reduced motion: ${onOff(on)} (follows this device; turn ${onOff(!on)} in the OS or DevTools)`;
 }

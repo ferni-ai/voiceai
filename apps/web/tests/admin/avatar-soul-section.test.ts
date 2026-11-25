@@ -180,16 +180,54 @@ describe('the Avatar Soul section', () => {
   });
 
   it('opened, left and opened again, one click posts exactly one request', async () => {
-    const { root } = await mount();
+    const { root, frame } = await mount();
+    const lab = fakeLab(frame, () => ({ ok: true, ran: 'triggerMemorySpark' }));
     entry().cleanup?.();
+    await flush();
+    button('Memory spark').click();
+    await flush();
+    expect(lab.commands()).toEqual([]); // left: the section no longer answers clicks
     await entry().setup?.(root);
-    const lab = fakeLab(root.querySelector('iframe') as HTMLIFrameElement, () => ({
-      ok: true,
-      ran: 'triggerMemorySpark',
-    }));
     button('Memory spark').click();
     await flush();
     expect(lab.commands()).toEqual([{ name: 'moment', moment: 'memorySpark' }]);
+  });
+
+  it('set up twice without a cleanup, one click still posts exactly one request', async () => {
+    const { root, frame } = await mount();
+    await entry().setup?.(root);
+    const lab = fakeLab(frame, () => ({ ok: true, ran: 'triggerMemorySpark' }));
+    button('Memory spark').click();
+    await flush();
+    expect(lab.commands()).toEqual([{ name: 'moment', moment: 'memorySpark' }]);
+  });
+
+  it('a late answer never replaces the status of a newer click', async () => {
+    const { frame } = await mount();
+    const lab = fakeLab(frame, () => null);
+    button('Memory spark').click();
+    button('Warmth bloom').click();
+    const [spark, bloom] = lab.requests;
+    const lab$ = frame.contentWindow as Window;
+    replyFrom(lab$, { type: LAB_MESSAGE_TYPE, id: bloom?.id, ok: true, ran: 'triggerWarmthBloom' });
+    await flush();
+    expect(status()).toBe('Warmth bloom played (triggerWarmthBloom)');
+    replyFrom(lab$, { type: LAB_MESSAGE_TYPE, id: spark?.id, ok: true, ran: 'triggerMemorySpark' });
+    await flush();
+    expect(status()).toBe('Warmth bloom played (triggerWarmthBloom)');
+  });
+
+  it('a request that times out after a switch change does not replace the switch status', async () => {
+    const { root, frame } = await mount();
+    vi.useFakeTimers();
+    fakeLab(frame, () => null);
+    button('Memory spark').click();
+    const select = root.querySelector('select[data-motion-flag="gaze"]') as HTMLSelectElement;
+    select.value = 'on';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(status()).toBe('gaze is now on in this browser; the lab reloaded');
+    setMotionFlagOverride('gaze', null);
   });
 
   it('leaving the section stops listening for lab replies', async () => {
@@ -244,6 +282,27 @@ describe('the Avatar Soul section', () => {
 
 describe('motion switches', () => {
   beforeEach(() => setMotionFlagOverride('gaze', null));
+
+  it('says nothing changed, and does not reload the lab, when the browser cannot store it', async () => {
+    const { root, frame } = await mount();
+    // once: the shared localStorage mock (tests/setup.ts) outlives restoreAllMocks
+    vi.spyOn(window.localStorage, 'setItem').mockImplementationOnce(() => {
+      throw new Error('storage is blocked');
+    });
+    const reloads: MutationRecord[] = [];
+    new MutationObserver((records) => reloads.push(...records)).observe(frame, {
+      attributeFilter: ['src'],
+    });
+    const select = root.querySelector('select[data-motion-flag="gaze"]') as HTMLSelectElement;
+    select.value = 'on';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect(status()).toBe('Could not store gaze in this browser, so nothing changed');
+    expect(reloads).toHaveLength(0);
+    expect(frame.getAttribute('src')).toBe('/avatar-lab');
+    expect(select.value).toBe('default');
+    expect(motionFlagOverride('gaze')).toBeNull();
+  });
 
   it('a switch change stores the override, reloads the lab and says so', async () => {
     const { root, frame } = await mount();
@@ -302,6 +361,20 @@ describe('the lab client', () => {
     const lab = fakeLab(frame, () => null);
     return { frame, lab };
   }
+
+  it('a post that throws answers "lab not ready" at once', async () => {
+    document.body.innerHTML = '<iframe src="/avatar-lab"></iframe>';
+    const frame = document.querySelector('iframe') as HTMLIFrameElement;
+    vi.spyOn(frame.contentWindow as Window, 'postMessage').mockImplementation(() => {
+      throw new Error('cannot clone');
+    });
+    const client = createLabClient(frame, window, 60_000);
+    await expect(client.send({ name: 'status' })).resolves.toEqual({
+      ok: false,
+      why: 'lab not ready',
+    });
+    client.dispose();
+  });
 
   it('dispose answers a waiting request "lab not ready" at once', async () => {
     const { frame } = frameWithLab();
