@@ -38,10 +38,12 @@ function partText(part: Part): string {
   const name = nameOf(c);
   if (part.kind === 'phone') {
     const type = part.phone.type === 'mobile' ? 'mobile cell' : part.phone.type;
-    // Stored as "+14355550142", whose digits miss a topic of "4355550142"; the
-    // national form "(435) 555-0142" matches every way the number is said.
-    // Alone: beside the stored form the two read as one run of digits.
-    return `${name}'s ${type} phone number ${formatPhoneForDisplay(part.phone.number)}`;
+    // Both forms: the national "(435) 555-0142" matches a topic without the
+    // country code ("4355550142", "435-555-0142"), the stored "+14355550142"
+    // one with it ("+1 435 555 0142", "1-435-555-0142", "14355550142"). The
+    // "or" keeps the two apart as words, whatever a matcher does with digits.
+    const { number } = part.phone;
+    return `${name}'s ${type} phone number ${formatPhoneForDisplay(number)} or ${number}`;
   }
   if (part.kind === 'email')
     return `${name}'s ${part.email.type} email address ${part.email.address}`;

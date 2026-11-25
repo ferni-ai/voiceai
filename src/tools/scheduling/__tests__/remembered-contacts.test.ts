@@ -84,9 +84,28 @@ describe('the contacts tools leave out what the caller asked to forget', () => {
     expect(reply).toContain('theo.example@example.com');
   });
 
-  it('a topic that is the number itself hides it too', async () => {
-    book.topics = ['4355550142'];
+  it.each([
+    '4355550142',
+    '435-555-0142',
+    '(435) 555-0142',
+    '+14355550142',
+    '+1 435 555 0142',
+    '1-435-555-0142',
+    '14355550142',
+  ])('a topic that is the number itself, written %s, hides it everywhere', async (topic) => {
+    book.topics = [topic];
     expect(await run('findMyContact', { query: 'Theo' })).not.toMatch(/0142/);
+    expect(await run('listContacts', { filter: 'all', limit: 10 })).not.toMatch(/0142/);
+    expect(await run('callMyContact', { who: 'Theo' })).toBe(
+      'I have Theo saved, but no phone number. Want to add one?'
+    );
+  });
+
+  it("another contact's number hides nothing of Theo's", async () => {
+    for (const topic of ['+18015550111', '8015550111', '1-801-555-0111']) {
+      book.topics = [topic];
+      expect(await run('findMyContact', { query: 'Theo' }), topic).toMatch(/0142/);
+    }
   });
 
   it('"forget Theo": find and list leave the contact out, Mom stays', async () => {
