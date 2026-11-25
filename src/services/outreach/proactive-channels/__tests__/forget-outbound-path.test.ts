@@ -2,7 +2,8 @@
  * "Forget that" on the proactive texts and notes (FORGET_EVERY_READER): a promise, a missed
  * reminder or a pondered note about a forgotten topic is skipped, never sent with a hole, and
  * one about anything else still goes. Off, every one goes as before. No topic source at all
- * skips them (a privacy request fails closed). Firestore is in memory; fictional caller only.
+ * skips them (a privacy request fails closed). A check that throws skips only what it guards:
+ * the other triggers still go. Firestore is in memory; fictional caller only.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
@@ -10,6 +11,7 @@ import { pathFirestore } from './path-firestore.js';
 const h = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   topics: ['Biscuit'] as string[] | null,
+  checkBreaks: false,
 }));
 
 vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
@@ -20,6 +22,15 @@ vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../memory/recall/forget.js')>()),
   forgottenTopicsOrNull: async () => h.topics,
 }));
+// The forget read itself throwing, past its own timeout and fallback.
+vi.mock('../../../../memory/recall/forget-topics-source.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../../memory/recall/forget-topics-source.js')>(); // prettier-ignore
+  return {
+    ...real,
+    topicsWithin: (...args: Parameters<typeof real.topicsWithin>) =>
+      h.checkBreaks ? Promise.reject(new Error('forget read broke')) : real.topicsWithin(...args),
+  };
+});
 vi.mock('../../../human-transfer/crisis-signals.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../human-transfer/crisis-signals.js')>()),
   hadCrisisWithin: async () => false,
@@ -82,6 +93,7 @@ async function notes(): Promise<string[]> {
 beforeEach(() => {
   h.docs.clear();
   h.topics = ['Biscuit'];
+  h.checkBreaks = false;
   resetForgetTopicsSource();
   vi.stubEnv('OUTREACH_PONDERED_NOTES', 'on');
 });
@@ -133,6 +145,20 @@ describe('FORGET_EVERY_READER on', () => {
     expect(said).toHaveLength(1);
     expect(said[0]).toContain('Denver lease');
     expect(said.join('\n')).not.toMatch(/biscuit/i);
+  });
+
+  it('when the check itself throws, skips promises and reminders; other triggers still go', async () => {
+    h.checkBreaks = true;
+    seedPromisesAndReminders();
+    const worldDue = [{ factId: 'f1', text: 'the garden show, today' }];
+    const triggers = await collectTriggers(USER, { now: NOW, localHour: 15, worldDue });
+    expect(triggers.map((t) => t.kind)).toEqual(['world_due']);
+  });
+
+  it('when the check itself throws, sends no pondered note and does not throw', async () => {
+    h.checkBreaks = true;
+    seedPondered([{ text: DENVER_Q, when: '2026-11-10' }]);
+    expect(await notes()).toEqual([]);
   });
 
   it("never quotes the caller's line about a forgotten topic in a pondered note", async () => {

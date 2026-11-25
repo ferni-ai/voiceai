@@ -25,7 +25,7 @@ import {
 } from '../../superhuman/commitment-follow-up.js';
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
-import { forgottenCheck, remembered } from '../../../memory/index.js';
+import { forgetCheckOrClosed, forgottenCheck, remembered } from '../../../memory/index.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
@@ -190,7 +190,8 @@ export async function readDay(
     withCommitments
       ? orNone('commitments', userId, async () => (await openCommitments(userId)) ?? [])
       : [],
-    forgottenCheck(userId, 'morning-brief', env), // FORGET_EVERY_READER
+    // FORGET_EVERY_READER; a failed check leaves out reminders and tasks, never the day
+    forgetCheckOrClosed(forgottenCheck(userId, 'morning-brief', env), 'morning-brief'),
   ]);
   // OWNER_OUTREACH_STORED_TEXT_SCREEN: what calls stored goes in only if it passes the screen
   const screened = (items: BriefItem[]): BriefItem[] =>

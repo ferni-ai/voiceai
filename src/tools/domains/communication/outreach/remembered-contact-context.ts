@@ -8,7 +8,7 @@
  * @module tools/domains/communication/outreach/remembered-contact-context
  */
 
-import { forgottenCheck, remembered } from '../../../../memory/index.js';
+import { forgetCheckOrClosed, forgottenCheck, remembered } from '../../../../memory/index.js';
 
 const RECENT_TOPICS = 5;
 
@@ -27,7 +27,11 @@ export async function rememberedContactContext(
   userId: string,
   contact: ContactPast
 ): Promise<RememberedContactContext> {
-  const forgotten = await forgottenCheck(userId, 'outreach-topics');
+  // A failed check leaves out the topics and the follow-up, never the outreach itself.
+  const forgotten = await forgetCheckOrClosed(
+    forgottenCheck(userId, 'outreach-topics'),
+    'outreach-topics'
+  );
   const topics = (contact.topics ?? []).map((t) => t.topic);
   const pending = contact.pendingFollowUp;
   const reason = pending?.completed === false ? pending.reason : undefined;

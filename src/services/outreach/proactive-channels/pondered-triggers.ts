@@ -40,7 +40,12 @@ import {
   type SourceCall,
 } from '../grounded-checkin.js';
 import { recentOutreach } from './outreach-log.js';
-import { forgottenPassageCheck, remembered, type ForgottenCheck } from '../../../memory/index.js';
+import {
+  forgetCheckOrClosed,
+  forgottenPassageCheck,
+  remembered,
+  type ForgottenCheck,
+} from '../../../memory/index.js';
 import type { ProactiveTrigger } from './types.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -172,7 +177,11 @@ export async function ponderedTriggers(
     (e) => e.sourceId.startsWith(SOURCE_PREFIX) && e.outcome !== 'failed'
   );
   const done = new Set(log.map((e) => e.sourceId));
-  const forgotten = await forgottenPassageCheck(userId, 'pondered-notes'); // FORGET_EVERY_READER
+  // FORGET_EVERY_READER; a failed check leaves out every note (fail closed), never throws
+  const forgotten = await forgetCheckOrClosed(
+    forgottenPassageCheck(userId, 'pondered-notes'),
+    'pondered-notes'
+  );
   const items = followUpsOf(pondering.data()).filter(
     (i) => !done.has(SOURCE_PREFIX + i.id) && !forgotten?.(i.text)
   );

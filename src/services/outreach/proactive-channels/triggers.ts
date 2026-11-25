@@ -30,7 +30,7 @@
 
 import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { forgottenCheck, type ForgottenCheck } from '../../../memory/index.js';
+import { forgetCheckOrClosed, forgottenCheck, type ForgottenCheck } from '../../../memory/index.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { CRISIS_QUIET_DAYS, hadCrisisWithin } from '../../human-transfer/crisis-signals.js';
 import {
@@ -201,7 +201,11 @@ export async function collectTriggers(
       log.warn({ error: String(error), userId, source }, 'Proactive trigger source failed');
       return [] as ProactiveTrigger[];
     });
-  const forgotten = await forgottenCheck(userId, 'proactive-triggers'); // FORGET_EVERY_READER
+  // FORGET_EVERY_READER; a failed check leaves out what it guards, never the other sources
+  const forgotten = await forgetCheckOrClosed(
+    forgottenCheck(userId, 'proactive-triggers'),
+    'proactive-triggers'
+  );
   const sources = await Promise.all([
     safe(promiseTriggers(userId, ctx, forgotten), 'promises'),
     safe(commitmentTriggers(userId, ctx.now), 'commitments'),

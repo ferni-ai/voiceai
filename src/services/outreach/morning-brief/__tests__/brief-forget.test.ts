@@ -2,7 +2,8 @@
  * "Forget that" in the morning brief (FORGET_EVERY_READER): a reminder or a task about a
  * forgotten topic is left out and the rest of the brief still goes; a forgotten task doesn't
  * take one of the three task places. Off, the brief is read as before. With no topic source at
- * all, no reminder or task is listed (fails closed). Firestore is in memory; fictional caller.
+ * all, no reminder or task is listed (fails closed). A check that throws costs only the reminders
+ * and tasks: the calendar still goes. Firestore is in memory; fictional caller.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from '../../proactive-channels/__tests__/path-firestore.js';
@@ -10,9 +11,20 @@ import { pathFirestore } from '../../proactive-channels/__tests__/path-firestore
 const h = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   topics: ['Biscuit'] as string[] | null,
+  checkBreaks: false,
 }));
 
-vi.mock('../../../calendar/calendar-service.js', () => ({ getEventsForDay: async () => [] }));
+const standup = {
+  id: 'standup',
+  title: 'Team standup',
+  startTime: new Date('2026-11-10T15:00:00Z'),
+  endTime: new Date('2026-11-10T15:15:00Z'),
+  isAllDay: false,
+  status: 'confirmed',
+};
+vi.mock('../../../calendar/calendar-service.js', () => ({
+  getEventsForDay: async () => [standup],
+}));
 vi.mock('../../../../utils/firestore-utils.js', () => ({
   getFirestoreDb: () => pathFirestore(h.docs),
 }));
@@ -20,6 +32,15 @@ vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../memory/recall/forget.js')>()),
   forgottenTopicsOrNull: async () => h.topics,
 }));
+// The forget read itself throwing, past its own timeout and fallback.
+vi.mock('../../../../memory/recall/forget-topics-source.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../../memory/recall/forget-topics-source.js')>(); // prettier-ignore
+  return {
+    ...real,
+    topicsWithin: (...args: Parameters<typeof real.topicsWithin>) =>
+      h.checkBreaks ? Promise.reject(new Error('forget read broke')) : real.topicsWithin(...args),
+  };
+});
 
 const { readDay } = await import('../default-deps.js');
 const { resetForgetTopicsSource } =
@@ -50,6 +71,7 @@ const brief = (flag: 'on' | 'off') =>
 beforeEach(() => {
   h.docs.clear();
   h.topics = ['Biscuit'];
+  h.checkBreaks = false;
   resetForgetTopicsSource();
   seed();
 });
@@ -70,6 +92,14 @@ describe('morning brief, FORGET_EVERY_READER on', () => {
     expect(day.reminders).toEqual([]);
     expect(day.tasks).toEqual([]);
   });
+
+  it('when the check itself throws, leaves out reminders and tasks; the calendar still goes', async () => {
+    h.checkBreaks = true;
+    const day = await brief('on');
+    expect(day.events.map((e) => e.title)).toEqual(['Team standup']);
+    expect(day.reminders).toEqual([]);
+    expect(day.tasks).toEqual([]);
+  });
 });
 
 describe('morning brief, FORGET_EVERY_READER off', () => {
@@ -81,5 +111,12 @@ describe('morning brief, FORGET_EVERY_READER off', () => {
       'Pack boxes for Denver',
       'Renew the library card',
     ]);
+  });
+
+  it('a broken forget read changes nothing', async () => {
+    h.checkBreaks = true;
+    const day = await brief('off');
+    expect(day.events.map((e) => e.title)).toEqual(['Team standup']);
+    expect(day.reminders).toEqual(['Give Biscuit his pills', 'Call the Denver landlord']);
   });
 });

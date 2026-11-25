@@ -2,16 +2,27 @@
  * What an outreach to a contact may say about the caller's past with them (FORGET_EVERY_READER):
  * none of the contact's topics, nor the pending follow-up, about a topic the caller asked Ferni
  * to forget; the rest still go. Off, the first five topics and the follow-up, as before. With no
- * topic source at all, none (fails closed). Fictional caller and contact.
+ * topic source at all, none (fails closed); a check that throws gives none too and never aborts
+ * the outreach. Fictional caller and contact.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => ({ topics: ['Biscuit'] as string[] | null }));
+const h = vi.hoisted(() => ({ topics: ['Biscuit'] as string[] | null, checkBreaks: false }));
 
 vi.mock('../../../../../memory/recall/forget.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../../memory/recall/forget.js')>()),
   forgottenTopicsOrNull: async () => h.topics,
 }));
+
+// The forget read itself throwing, past its own timeout and fallback.
+vi.mock('../../../../../memory/recall/forget-topics-source.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../../../memory/recall/forget-topics-source.js')>(); // prettier-ignore
+  return {
+    ...real,
+    topicsWithin: (...args: Parameters<typeof real.topicsWithin>) =>
+      h.checkBreaks ? Promise.reject(new Error('forget read broke')) : real.topicsWithin(...args),
+  };
+});
 
 const { rememberedContactContext } = await import('../remembered-contact-context.js');
 const { resetForgetTopicsSource } =
@@ -38,6 +49,7 @@ function contact(followUp?: string): Contact {
 
 beforeEach(() => {
   h.topics = ['Biscuit'];
+  h.checkBreaks = false;
   resetForgetTopicsSource();
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -59,6 +71,12 @@ describe('FORGET_EVERY_READER on', () => {
 
   it('with no topic source at all, passes on no topic or follow-up (fails closed)', async () => {
     h.topics = null;
+    const ctx = await rememberedContactContext(USER, contact('ask about the Denver move'));
+    expect(ctx).toEqual({ recentTopics: [], pendingFollowUp: undefined });
+  });
+
+  it('when the check itself throws, passes on none and still resolves', async () => {
+    h.checkBreaks = true;
     const ctx = await rememberedContactContext(USER, contact('ask about the Denver move'));
     expect(ctx).toEqual({ recentTopics: [], pendingFollowUp: undefined });
   });
