@@ -358,7 +358,7 @@ export const TEAM_MEMBERS: TeamMemberUnlock[] = [
       'Your communication coach. Manages calendar, email, and helps you navigate difficult conversations with confidence.',
     unlocksAt: 'established',
     introductionMessage:
-      "Alex is going to change how you communicate. They're brilliant at helping people say what they mean and mean what they say. You've earned this introduction.",
+      "Alex is going to change how you communicate. He's brilliant at helping people say what they mean and mean what they say. You've earned this introduction.",
     teaserMessage:
       "There's someone on my team who can transform how you communicate... but that's a deeper level of trust. Keep talking to me.",
   },
@@ -371,7 +371,7 @@ export const TEAM_MEMBERS: TeamMemberUnlock[] = [
       'Turns vague dreams into lived experiences. From vacations to life transitions, helps you design every chapter intentionally.',
     unlocksAt: 'established',
     introductionMessage:
-      "Jordan is special. They help people turn dreams into actual plans. Not someday - this year. I've been waiting to connect you two.",
+      "Jordan is special. She helps people turn dreams into actual plans. Not someday, this year. I've been waiting to connect you two.",
     teaserMessage:
       'I know someone who can help you plan your whole life... but we need to build more trust first.',
   },
@@ -769,7 +769,7 @@ export const UNLOCK_TEASERS = {
       "Peter would have fascinating insights on that... you're getting close to meeting him.",
     communication:
       "Alex could transform that conversation for you... a bit more trust and I'll connect you.",
-    planning: "Jordan lives for this kind of planning... soon you'll meet them.",
+    planning: "Jordan lives for this kind of planning. Soon you'll meet her.",
     wisdom:
       "Nayan... he'd have something profound to say about this. But he only speaks to those who've truly committed.",
   },

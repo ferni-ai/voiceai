@@ -160,9 +160,12 @@ async function lookUpServiceAvailability(userId: string): Promise<ContextInjecti
 
     const connectedServices = availabilityResults.filter((s) => s.isConnected);
     const disconnectedServices = availabilityResults.filter((s) => !s.isConnected && !s.unknown);
+    // A store that couldn't be read is left out; caching that would keep it out for the whole
+    // cache window, so next turn reads it again (#3158). Only LINK_STATUS_V2 marks a read unknown.
+    const cacheable = !availabilityResults.some((s) => s.unknown);
 
     if (disconnectedServices.length === 0) {
-      setCachedInjection(cacheKey, null);
+      if (cacheable) setCachedInjection(cacheKey, null);
       return null;
     }
 
@@ -187,7 +190,7 @@ CRITICAL: Do NOT promise or offer features from disconnected services.
 Instead, say "I'd need you to connect [Service] to do that" if the user asks.${connectedLine}`,
       priority: 80,
     };
-    setCachedInjection(cacheKey, injection);
+    if (cacheable) setCachedInjection(cacheKey, injection);
     return injection;
   } catch (error) {
     diag.debug('Service availability injection failed (graceful skip)', {

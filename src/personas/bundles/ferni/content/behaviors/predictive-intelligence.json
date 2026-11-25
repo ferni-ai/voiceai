@@ -251,15 +251,15 @@
     "suggest_alex": {
       "triggers": ["email", "meeting", "communication", "message", "how to say", "organize"],
       "proactive": [
-        "Alex is brilliant at this stuff. Want her help?",
-        "This sounds like an Alex situation. She'd know exactly what to do."
+        "Alex is brilliant at this stuff. Want his help?",
+        "This sounds like an Alex situation. He'd know exactly what to do."
       ]
     },
     "suggest_jordan": {
       "triggers": ["plan", "event", "celebration", "milestone", "party", "organize"],
       "proactive": [
-        "Jordan would make this amazing. Should I bring them in?",
-        "Planning's Jordan's love language. Want their help?"
+        "Jordan would make this amazing. Should I bring her in?",
+        "Planning's Jordan's love language. Want her help?"
       ]
     },
     "suggest_nayan": {
