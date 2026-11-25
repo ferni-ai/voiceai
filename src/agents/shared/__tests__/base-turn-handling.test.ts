@@ -85,7 +85,9 @@ describe('no session uses the deprecated option names', () => {
       'multi-agent/call-session.ts',
       'voice-agent-entry/session-creator.ts',
     ]);
-    expect(builders.filter((file) => !code(file).includes('baseTurnHandling('))).toEqual([]);
+    expect(
+      builders.filter((file) => !/(=|turnHandling:)\s*baseTurnHandling\(/.test(code(file)))
+    ).toEqual([]);
   });
 
   it.each([
