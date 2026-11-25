@@ -1,11 +1,7 @@
 /**
- * MORNING_BRIEF_WRITER: the facts Alex writes the brief from, and nothing else. They are read
- * from the day the template uses (brief-job.ts, after the freshness gate and the stored-text
- * screen), so the written brief and the template list the same items. Each label is the
- * template's own (cleanItem: no contact details, at most 40 chars); a time is in their zone.
- *
- * Order is what matters most first: today's calendar, then what is due today, then what is
- * overdue, then what is still open. An item listed twice is listed once.
+ * MORNING_BRIEF_WRITER: the facts Alex writes from, read from the same fresh, screened day the
+ * template uses, with the template's own labels (cleanItem) and times in their zone. Order:
+ * today's calendar, due today, overdue, still open; an item listed twice is listed once.
  *
  * @module services/outreach/morning-brief/brief-facts
  */

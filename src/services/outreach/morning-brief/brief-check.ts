@@ -1,16 +1,8 @@
 /**
- * MORNING_BRIEF_WRITER: the deterministic check a written brief passes before it goes (no
- * second model). Any failure sends today's template instead (brief-writer.ts). It passes
- * when:
- * - it is at most MAX_CHARS, without "!", dashes, ellipses, emoji or "hope this finds you";
- * - every fact is named by its label, or the ones left out are the last and counted ("and 2
- *   more");
- * - once the labels, their times and the account name are taken out, none of what is left
- *   offers medical, legal or money advice, and nothing is left that could be a fact the
- *   brief doesn't have: no name (a capital word mid-sentence, or one that starts a sentence
- *   and is followed by "," or "'s"), no number but the count, no date word, no word longer
- *   than three letters outside the voice list or the labels' words;
- * - its opener isn't yesterday's (openerHash: only the hash is stored, never the words).
+ * MORNING_BRIEF_WRITER: the deterministic check on a written brief (no second model); any
+ * failure sends the template. Length and style; every fact named, or the last ones counted;
+ * with the labels, times and name taken out, no advice and no name, number, date or word the
+ * facts don't have; and not yesterday's opener (only its hash is stored).
  *
  * @module services/outreach/morning-brief/brief-check
  */

@@ -1,7 +1,6 @@
 /**
- * MORNING_BRIEF_WRITER: the one prompt Alex writes the morning brief from. It holds the
- * facts and the account name, nothing else: no transcript, no memory, no profile. The words
- * it asks for are the ones brief-check.ts lets through, so a reply that follows it passes.
+ * MORNING_BRIEF_WRITER: the one prompt, holding only the facts and the account name. It asks
+ * for the words brief-check.ts lets through.
  *
  * @module services/outreach/morning-brief/brief-writer-prompt
  */

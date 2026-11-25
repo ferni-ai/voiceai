@@ -1,13 +1,9 @@
 /**
- * MORNING_BRIEF_WRITER: Alex writes the morning brief from the day's facts (brief-facts.ts),
- * one model call in his voice (brief-writer-prompt.ts), and the text goes only if the
- * deterministic check passes (brief-check.ts) and the stored-text screen passes it as sent.
- * The same opener as yesterday is written again once. Everything else that goes wrong sends
- * today's template (briefToSend's text), the known-good brief: a model error or an empty
- * reply, a failed check or screen, a keep-ask item (#4390 asks that in its own words), and a
- * crisis read in the last 24 hours (hadCrisisWithin, where an unreadable record counts as one).
- *
- * Logs BRIEF_WRITTEN with counts only, never the words.
+ * MORNING_BRIEF_WRITER: Alex writes the brief from the day's facts in one model call; it goes
+ * only if brief-check.ts and the stored-text screen pass it. A repeated opener is written
+ * again once. Anything else sends today's template: a keep-ask item (#4390), a crisis read in
+ * the last 24 h (unreadable counts as one), a model error, a failed check or screen. Logs
+ * BRIEF_WRITTEN with counts only.
  *
  * @module services/outreach/morning-brief/brief-writer
  */
