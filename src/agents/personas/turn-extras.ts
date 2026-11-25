@@ -195,7 +195,8 @@ export function extrasFor(
   // "lol my grandma passed" laughed, and is no moment to laugh along.
   const heavy = signals.heavy === true || isHeavyMoment([userText]);
   // THANKS_TAKEN=on (#3877): take a mid-call thank-you instead of stepping past it. No draw.
-  if (on(env, 'THANKS_TAKEN') && !signals.crisisRisk && callerThanked(userText)) {
+  // Not on a heavy turn: "my dad died last month. thanks, i'll be fine" is no thanks to take.
+  if (on(env, 'THANKS_TAKEN') && !signals.crisisRisk && !heavy && callerThanked(userText)) {
     out.lines.push(THANKS_TAKEN_LINE);
     out.fired.push('thanks_taken');
   }
