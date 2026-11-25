@@ -14,10 +14,10 @@
  */
 
 import { lastMoodNote } from '../../../services/session/last-mood-note.js';
-import { placeholderSummaryNote } from '../../../services/session/placeholder-summary.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { callerClockZone } from '../../../utils/caller-clock.js';
 import { calendarDaysSince } from '../../../utils/calendar-days.js';
+import { lastTalkedAbout } from '../../multi-agent/teammate-relationship.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
 
 // ============================================================================
@@ -110,7 +110,8 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
   // Better Than Human #1: Last Conversation Context
   if (isReturningUser && profile.lastConversationSummary) {
     const summary = profile.lastConversationSummary;
-    facts.push(placeholderSummaryNote(summary) ?? `Last time you talked about: ${summary}`);
+    const lastCall = { at: profile.lastContact, now: sessionStartTime, zone: config.timeZone };
+    facts.push(lastTalkedAbout(false, summary, lastCall)); // teammate-relationship.ts
   }
 
   // Better Than Human #2: Emotional Memory

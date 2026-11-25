@@ -33,11 +33,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   retrieveForTurn,
-  formatMemoryContextForPrompt,
-  formatProactiveMemory,
   type MemoryContext,
   type TurnRetrievalInput,
 } from '../../memory/retrieval/turn-memory-retrieval.js';
+import { turnMemoryPrompts } from './memory/turn-memory-time-labels.js';
 import {
   registerContextBuilder,
   createHighInjection,
@@ -192,24 +191,19 @@ export async function buildMemoryRetrievalContext(
       return { injections, memoryContext, surfacedIds };
     }
 
-    // Create memory context injection
-    const memoryPrompt = formatMemoryContextForPrompt(memoryContext);
-    if (memoryPrompt) {
-      const injection = createMemoryInjection(memoryPrompt, config.injectionPriority);
+    // Create memory context injection (time labels: MEMORY_TIME_LABELS)
+    const prompts = turnMemoryPrompts(memoryContext, { sessionId, userId });
+    if (prompts.memory) {
+      const injection = createMemoryInjection(prompts.memory, config.injectionPriority);
       injections.push(injection);
     }
 
     // Add proactive suggestion if available and enabled
-    if (
-      config.enableProactive &&
-      memoryContext.hasProactiveSuggestion &&
-      memoryContext.proactiveMemory
-    ) {
-      const proactivePrompt = formatProactiveMemory(memoryContext.proactiveMemory);
+    if (config.enableProactive && memoryContext.hasProactiveSuggestion && prompts.proactive) {
       injections.push(
-        createHintInjection('memory_proactive', proactivePrompt, {
+        createHintInjection('memory_proactive', prompts.proactive.text, {
           category: 'memory',
-          confidence: memoryContext.proactiveMemory.relevance,
+          confidence: prompts.proactive.relevance,
         })
       );
     }
