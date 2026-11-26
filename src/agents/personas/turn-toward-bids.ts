@@ -57,7 +57,9 @@ const TEASER_TAIL_WORDS = 3;
 function untoldTeaser(said: string): boolean {
   const m = TEASER.exec(said);
   if (!m) return false;
-  const after = said.slice(m.index + m[0].length).match(/[\p{L}\p{N}']+/gu) ?? [];
+  // Only the first few words decide it, so a long turn isn't tokenized whole.
+  const tail = said.slice(m.index + m[0].length, m.index + m[0].length + 80);
+  const after = tail.match(/[\p{L}\p{N}']+/gu) ?? [];
   // "You won't believe who I ran into": a wh- clause still holds the news back.
   return (
     after.length <= TEASER_TAIL_WORDS ||
