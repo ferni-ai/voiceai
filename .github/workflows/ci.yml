@@ -206,7 +206,7 @@ jobs:
         id: deploy-tests
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(\.github/(workflows|actions)/|scripts/ci/|deploy/ui-server/|(docker/)?Dockerfile\.[^/]+$|apps/figma-plugin/(package\.json|src/ui\.html)$|vitest\.config\.integration\.ts$)'
+          include: '^(\.github/(workflows|actions)/|scripts/ci/|scripts/blog/(record-verdict\.sh|exit-codes\.ts)$|deploy/ui-server/|(docker/)?Dockerfile\.[^/]+$|apps/figma-plugin/(package\.json|src/ui\.html)$|vitest\.config\.integration\.ts$)'
 
       - name: Generate cache key
         id: cache-key
