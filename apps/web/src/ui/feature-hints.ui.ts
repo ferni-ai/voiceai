@@ -145,6 +145,7 @@ let dismissedHints: Set<string> = new Set();
 let hintRegistry: FeatureHint[] | null = null; // built on first use, after initI18n
 const registeredHints = (): FeatureHint[] => (hintRegistry ??= getFeatureHints());
 let checkInterval: ReturnType<typeof setInterval> | null = null;
+let stopStageWatch: (() => void) | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -163,9 +164,7 @@ export function initFeatureHints(): void {
 
   // Start checking for hint opportunities
   checkInterval = setInterval(checkForHintOpportunities, 2000);
-
-  // Also check on stage changes
-  relationshipStageService.onStageChange(() => {
+  stopStageWatch = relationshipStageService.onStageChange(() => {
     trackedTimeout(checkForHintOpportunities, 1000);
   });
 
@@ -952,6 +951,7 @@ function injectStyles(): void {
 export function destroyFeatureHints(): void {
   if (checkInterval) clearInterval(checkInterval);
   checkInterval = null;
+  stopStageWatch?.(); // a stage change after teardown must not schedule a check
   clearAllTimeouts(); // a pending hint check must not run after teardown
 
   dismissAllHints();
