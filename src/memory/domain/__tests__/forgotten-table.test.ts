@@ -61,8 +61,19 @@ describe('the forget matcher matches main, cell for cell', () => {
     expect(grid(isForgotten)).toEqual(table.isForgotten);
   });
 
-  it('isForgottenPassage', () => {
-    expect(grid(isForgottenPassage)).toEqual(table.isForgottenPassage);
+  it('isForgottenPassage, with the cells changed on purpose since the capture', () => {
+    // A "number" topic hides a passage holding a phone number (forgotten-numbers.test.ts).
+    const changed: Array<[text: string, topic: string, now: '0' | '1']> = [
+      ["it's uh 435 555 0188 call him", 'brother number', '1'],
+    ];
+    const expected = table.isForgottenPassage.map((row) => row.split(''));
+    for (const [text, topic, now] of changed) {
+      const i = table.texts.indexOf(text);
+      const j = table.topicSets.findIndex((s) => s.join() === topic);
+      expect(expected[i]![j]).not.toBe(now);
+      expected[i]![j] = now;
+    }
+    expect(grid(isForgottenPassage)).toEqual(expected.map((row) => row.join('')));
   });
 
   it('forgetTokens and storedTopic', () => {

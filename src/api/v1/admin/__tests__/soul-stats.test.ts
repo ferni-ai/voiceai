@@ -14,6 +14,7 @@ vi.mock('../../../auth-middleware.js', async (importOriginal) => ({
 }));
 
 import { handleAdminRoutes } from '../index.js';
+import { SOUL_COUNT_KEYS } from '../../../soul-stats/soul-stats-input.js';
 import { handleAdminSoulStatsRoutes, type AdminSoulStatsDeps } from '../soul-stats.js';
 
 const NOW = Date.UTC(2026, 11, 1, 0, 30); // just after midnight: the window crosses a day
@@ -65,22 +66,37 @@ describe('GET soul stats, by what the store holds', () => {
     expect(getDb).not.toHaveBeenCalled();
   });
 
-  it('sums the last 24 hourly docs and ignores the 25th, older one', async () => {
+  it('sums each of the eleven keys over the last 24 hourly docs and ignores the 25th', async () => {
     const { db, asked } = memoryDb(
       Object.fromEntries([
-        hourDoc(0, { micro_expression: 5, comfort_pulse: 1 }),
-        hourDoc(1, { micro_expression: 2, protective_mode: 1 }),
-        hourDoc(23, { micro_expression: 10, memory_spark: 4 }),
-        hourDoc(24, { micro_expression: 1000, protective_mode: 1000, memory_spark: 1000 }),
+        hourDoc(0, { micro_expression: 5, comfort_pulse: 1, warmth_bloom: 2, crisis_hold: 1 }),
+        hourDoc(1, { micro_expression: 2, protective_mode: 1, name_lift_brighten: 3 }),
+        hourDoc(12, { celebrate_growth: 2, cameo_arrival: 1, name_lift_attentive: 1 }),
+        hourDoc(23, {
+          micro_expression: 10,
+          memory_spark: 4,
+          warmth_bloom: 5,
+          name_lift_comfort: 6,
+        }),
+        hourDoc(24, Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 1000]))),
       ])
     );
     expect(await readAdminSoulStats(deps({ getDb: () => db }))).toEqual({
       measured: true,
       windowHours: 24,
-      microExpressions: 17,
-      protectiveModes: 1,
-      comfortPulses: 1,
-      memorySparks: 4,
+      counts: {
+        micro_expression: 17,
+        protective_mode: 1,
+        comfort_pulse: 1,
+        memory_spark: 4,
+        warmth_bloom: 7,
+        celebrate_growth: 2,
+        cameo_arrival: 1,
+        crisis_hold: 1,
+        name_lift_brighten: 3,
+        name_lift_attentive: 1,
+        name_lift_comfort: 6,
+      },
       lastUpdated: new Date(NOW).toISOString(),
     });
     expect(asked).toHaveLength(24);
@@ -88,13 +104,26 @@ describe('GET soul stats, by what the store holds', () => {
     expect(asked[23]).toBe('soul_stats_hourly/2026-11-30T01');
   });
 
+  it('an old doc written before the new keys reads 0 for them (they were not counted then)', async () => {
+    const { db } = memoryDb(
+      Object.fromEntries([hourDoc(2, { micro_expression: 3, memory_spark: 1 })])
+    );
+    const stats = (await readAdminSoulStats(deps({ getDb: () => db }))) as {
+      counts: Record<string, number>;
+    };
+    expect(Object.keys(stats.counts)).toEqual([...SOUL_COUNT_KEYS]);
+    expect(stats.counts).toMatchObject({ micro_expression: 3, memory_spark: 1, warmth_bloom: 0 });
+    expect(stats.counts.name_lift_comfort).toBe(0);
+  });
+
   it('a measured 0: docs exist with nothing in them, or no doc at all', async () => {
+    const zeros = Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 0]));
     const empty = memoryDb(Object.fromEntries([hourDoc(3, {})]));
     const zero = await readAdminSoulStats(deps({ getDb: () => empty.db }));
-    expect(zero).toMatchObject({ measured: true, microExpressions: 0, memorySparks: 0 });
+    expect(zero).toMatchObject({ measured: true, counts: zeros });
     expect(zero).toMatchObject({ lastUpdated: new Date(NOW - 3 * HOUR).toISOString() });
     const none = await readAdminSoulStats(deps({ getDb: () => memoryDb({}).db }));
-    expect(none).toMatchObject({ measured: true, microExpressions: 0, lastUpdated: null });
+    expect(none).toEqual({ measured: true, windowHours: 24, counts: zeros, lastUpdated: null });
   });
 
   it('Firestore unavailable or failing: measured false with a reason, never zeros', async () => {

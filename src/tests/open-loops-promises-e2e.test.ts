@@ -7,10 +7,11 @@
  *   memory-recall-hook) carries the miss once, and only giving it marks it;
  *   another persona on the call and the next call don't raise it again;
  * - a promise another process wrote shows once the 15 s cache expires;
- * - the open-loops note logs OPEN_LOOPS_INJECTED once a call, counts only.
+ * - the open-loops note logs OPEN_LOOPS_INJECTED once a call, counts only;
+ * - the note needs FORGET_EVERY_READER on (its forget check), and says nothing without it.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sharedNestedFirestore as fs } from './helpers/nested-firestore.js';
 
 const logged = vi.hoisted(() => [] as Array<{ fields: unknown; msg: unknown }>);
@@ -144,6 +145,10 @@ beforeEach(() => {
   logged.length = 0;
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
+  vi.stubEnv('FORGET_EVERY_READER', 'on'); // the note's forget check (open-loops-recall.ts)
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("Ferni's promises reach the call once", () => {
@@ -224,6 +229,15 @@ describe('open loops reach the call once, logged with counts only', () => {
     const on = callLoopsRecallFor(UID, 'call-1');
     await on.ready;
     expect(on.note()).toContain('secret words of boss');
-    vi.unstubAllEnvs();
+  });
+
+  it('with FORGET_EVERY_READER off there is no forget check, so no note and nothing logged', async () => {
+    seedLoop('boss', 60_000);
+    seedMiss();
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    const recall = await callRecall('call-1');
+    expect(await turn(recall, 'Hey Ferni, it is me!')).not.toMatch(/OPEN LOOPS|secret words/);
+    expect(logged.filter((l) => l.msg === 'OPEN_LOOPS_INJECTED')).toHaveLength(0);
+    expect(promise('interview')?.ownOfferedAt).toBeUndefined();
   });
 });

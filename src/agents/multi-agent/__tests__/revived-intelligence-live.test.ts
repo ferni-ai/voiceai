@@ -206,6 +206,20 @@ describe('revived intelligence on the live turn path', () => {
     }
   });
 
+  it('a forget another process stored counts at once, inside the 15 s cache', async () => {
+    revivedOn();
+    forgetting.topics = []; // another reader warmed the shared cache: nothing forgotten yet
+    expect(await readTopics('user-revived')).toEqual([]);
+    // Written by another pod or the web app: nothing in this process clears the cache.
+    forgetting.topics = [storedTopic('the move to Denver')];
+    const { hook } = setup(store());
+    await settle();
+    const note = await noteFor(hook);
+    expect(note).toContain('Keep it short.');
+    expect(note).not.toMatch(/denver/i);
+    expect(note).not.toContain(ARC);
+  });
+
   it('without FORGET_EVERY_READER nothing from earlier calls is offered', async () => {
     process.env.REVIVED_INTELLIGENCE = 'on';
     const summaries = vi.fn(async () => [LAST_CALL]);
