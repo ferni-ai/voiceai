@@ -10,7 +10,7 @@
  * A model carrying a follow-up, a tool result or a topic of its own steps over
  * them.
  *
- * With the flag on, a teaser or side-road turn gets one note: take the bid up
+ * With the flag on, a teaser not yet told, or a side-road turn, gets one note: take the bid up
  * first, in a few words of his own. Not a bid here:
  *   - good news ("guess what, I got the job"): GOOD_NEWS_BIGGER's note says
  *     how to meet it (newsNote below picks that one first);
@@ -28,7 +28,7 @@ import { goodNewsNote } from './good-news-bigger.js';
 
 const log = createLogger({ module: 'TurnTowardBids' });
 
-export type Bid = 'teaser' | 'side_road';
+type Bid = 'teaser' | 'side_road';
 
 /** Building up to something, not yet told. */
 const TEASER =
@@ -38,25 +38,42 @@ const TEASER =
 const SIDE_ROAD =
   /(?:^|[.!?]\s+)(?:oh,? and\b|oh,? also\b|random(?:ly)?,? but\b|totally unrelated\b|side note\b|that reminds me\b|speaking of\b|before i forget\b|oh,? (?:wait|hey),? (?:did i tell you|i forgot to tell you)\b)/i;
 
-export const TEASER_NOTE =
+const TEASER_NOTE =
   "They're building up to something. Bite first, in a few words of your own, the way a friend leans in, then let them tell it. Don't guess what it is, and don't bring up anything you had planned in this reply.";
 
-export const SIDE_ROAD_NOTE =
+const SIDE_ROAD_NOTE =
   "They just took a side road onto something of their own. Follow them there; don't steer back to the earlier topic or anything you had planned. Come back to it only if they do.";
 
-export function bidsTurnTowardOn(env: Env = process.env): boolean {
+function bidsTurnTowardOn(env: Env = process.env): boolean {
   return flagOn('BIDS_TURN_TOWARD', env);
 }
 
+/**
+ * A teaser still waiting to be told: at most this many words after it. "Guess what, the car broke
+ * down again" has told it, and gets no teaser note (asking what happened would ignore them).
+ */
+const TEASER_TAIL_WORDS = 3;
+
+function untoldTeaser(said: string): boolean {
+  const m = TEASER.exec(said);
+  if (!m) return false;
+  const after = said.slice(m.index + m[0].length).match(/[\p{L}\p{N}']+/gu) ?? [];
+  // "You won't believe who I ran into": a wh- clause still holds the news back.
+  return (
+    after.length <= TEASER_TAIL_WORDS ||
+    /^(?:who|what|where|how|which|whose|happened)$/i.test(after[0] ?? '')
+  );
+}
+
 /** The bid in the caller's words, if any. */
-export function bidIn(said: string): Bid | undefined {
-  if (TEASER.test(said)) return 'teaser';
+function bidIn(said: string): Bid | undefined {
+  if (untoldTeaser(said)) return 'teaser';
   if (SIDE_ROAD.test(said)) return 'side_road';
   return undefined;
 }
 
 /** The turn-toward note for this reply, or ''. */
-export function bidNote(said: string, opts: { crisis: boolean }, env: Env = process.env): string {
+function bidNote(said: string, opts: { crisis: boolean }, env: Env = process.env): string {
   if (!bidsTurnTowardOn(env) || opts.crisis || !said) return '';
   const bid = bidIn(said);
   if (!bid) return '';
