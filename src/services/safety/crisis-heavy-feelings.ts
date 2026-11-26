@@ -13,7 +13,7 @@
  *
  * These rules say which heavy feelings are risk "none" and narrow that
  * tie-break to words that could be about dying, self-harm or not wanting to
- * live. They ride the everyday rules' backstop (crisis-everyday.ts
+ * live. They ride the everyday rules' backstop (crisis-easing-rules.ts
  * needsPlainRead): when the caller's latest words hold any risk word, the turn
  * is also read without these rules and the more severe read wins, so on those
  * turns the rules can only add. Pattern hits and imminent reads are untouched.

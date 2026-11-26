@@ -4,7 +4,7 @@
  * answer (crisis-reply-never-lower.test.ts), so neither can show such a flag. This home is open
  * only to a flag whose named rows show, with the real classifier path and a stubbed model, that
  * a turn whose words hold a risk word is also read without the rules and the more severe read
- * wins (crisis-everyday.ts needsPlainRead), that a failed plain read never lets "none" stand
+ * wins (crisis-easing-rules.ts needsPlainRead), that a failed plain read never lets "none" stand
  * alone, and that the flag off leaves every prompt byte for byte as it was. What the model
  * does with the rules is measured by the live classifier eval
  * (scripts/crisis-eval/classifier-eval.ts) and pasted in the PR: no turn the corpora must catch

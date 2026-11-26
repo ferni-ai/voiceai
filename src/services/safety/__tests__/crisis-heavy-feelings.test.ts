@@ -14,7 +14,7 @@ import {
   startCrisisClassifier,
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
-import { needsPlainRead } from '../crisis-everyday.js';
+import { needsPlainRead } from '../crisis-easing-rules.js';
 import {
   CRISIS_HEAVY_FEELINGS_RULES,
   resolveCrisisHeavyFeelings,

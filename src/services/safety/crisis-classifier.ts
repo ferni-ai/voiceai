@@ -24,7 +24,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
-import { EASING_RULES_OFF, easingRules, needsPlainRead } from './crisis-everyday.js';
+import { EASING_RULES_OFF, easingRules, needsPlainRead } from './crisis-easing-rules.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import {
