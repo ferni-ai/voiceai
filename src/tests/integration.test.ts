@@ -5,7 +5,7 @@
  * These tests verify that all components work together correctly.
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import {
   createSessionServices,
   initializeServices,
@@ -20,6 +20,11 @@ import {
 } from '../tools/domains/finance/calculators.js';
 import { getEmotionDetector } from '../intelligence/detectors/emotion.js';
 import { getStateMachine } from '../intelligence/state/conversation.js';
+
+// No model here: the code under test asks one on the side and takes its fallback.
+vi.mock('../services/llm-utils.js', async () =>
+  (await import('./helpers/no-model.js')).llmUtilsWithNoModel()
+);
 
 describe('Integration Tests: Tools → Memory → Services', () => {
   // Initialize services ONCE for all tests (expensive operation)

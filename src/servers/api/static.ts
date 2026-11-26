@@ -192,8 +192,8 @@ export function handleStaticRoutes(
     return true;
   }
 
-  // Serve admin page (same SPA, JS handles routing)
-  if (pathname === '/admin') {
+  // Serve admin page and the avatar lab it frames (same SPA, JS handles routing)
+  if (pathname === '/admin' || pathname === '/avatar-lab') {
     serveStaticFile('index.html', res, req);
     return true;
   }

@@ -43,7 +43,7 @@
       "pattern_analysis": ["analyzePatterns", "insightBriefing", "proactiveInsights"],
       "superhuman_memory": [
         "saveInvestmentThesis",
-        "remindThesis",
+        "remindStockThesis",
         "createFinancialGoal",
         "updateGoalProgress",
         "recordLifeEvent"
@@ -388,7 +388,7 @@
       "recordFIREProgress",
       "getNews",
       "saveInvestmentThesis",
-      "remindThesis",
+      "remindStockThesis",
       "createFinancialGoal",
       "updateGoalProgress",
       "predictBehavior",

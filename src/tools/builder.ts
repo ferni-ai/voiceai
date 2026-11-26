@@ -21,6 +21,7 @@ import { getLogger } from '../utils/safe-logger.js';
 
 import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
+import { namedToolLists } from './registry/tool-id-owners.js';
 import {
   EnvironmentServiceRegistry,
   type ServiceRegistry,
@@ -419,9 +420,7 @@ export async function buildAgentTools(
   const manifestSpec: ToolSetSpec = {
     domains:
       manifest.tools?.domains || getDefaultDomainsForRole(manifest.role?.handoff_targets?.[0]),
-    required: manifest.tools?.required || [],
-    optional: manifest.tools?.optional || [],
-    forbidden: manifest.tools?.forbidden || [],
+    ...namedToolLists(manifest.tools), // TOOL_ID_OWNERS: required, optional, forbidden
     domainConfig: manifest.tools?.domain_config as Record<ToolDomain, Record<string, unknown>>,
   };
 

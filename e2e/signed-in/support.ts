@@ -17,22 +17,46 @@ export interface TestUser {
 export async function createUser({ verified = true } = {}): Promise<TestUser> {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@ferni.local`;
   const password = `pw-${Math.random().toString(36).slice(2)}-A1!`;
-  const signUp = await fetch(`${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=emulator`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, returnSecureToken: true }),
-  });
+  const signUp = await fetch(
+    `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=emulator`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    }
+  );
   expect(signUp.ok, `emulator sign-up failed: ${signUp.status}`).toBe(true);
   const { localId } = (await signUp.json()) as { localId: string };
   if (verified) {
-    const update = await fetch(`${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
-      body: JSON.stringify({ localId, emailVerified: true, displayName: 'E2E Tester' }),
-    });
+    const update = await fetch(
+      `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:update`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ localId, emailVerified: true, displayName: 'E2E Tester' }),
+      }
+    );
     expect(update.ok, `emulator verify failed: ${update.status}`).toBe(true);
   }
   return { email, password, uid: localId };
+}
+
+/** A brand-new account with the `admin: true` custom claim the API's requireAdmin reads. */
+export async function createAdminUser(): Promise<TestUser> {
+  const user = await createUser();
+  const update = await fetch(
+    `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:update`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+      body: JSON.stringify({
+        localId: user.uid,
+        customAttributes: JSON.stringify({ admin: true }),
+      }),
+    }
+  );
+  expect(update.ok, `emulator admin claim failed: ${update.status}`).toBe(true);
+  return user;
 }
 
 /** A Firebase ID token for `user` from the Auth emulator, for API calls sent with `Authorization: Bearer`. */
@@ -53,7 +77,9 @@ export async function idTokenFor(user: TestUser): Promise<string> {
 export async function signIn(page: Page, user: TestUser): Promise<void> {
   await page.goto('/');
   await page.evaluate(() => localStorage.setItem('ferni:use-demo-data', 'false'));
-  await expect(page.locator('[data-provider="google"], [data-provider="emulator"]').first()).toBeVisible({
+  await expect(
+    page.locator('[data-provider="google"], [data-provider="emulator"]').first()
+  ).toBeVisible({
     timeout: 30_000,
   });
   await page.evaluate(async ({ email, password }) => {
@@ -116,13 +142,18 @@ export async function rawKeysOnScreen(page: Page): Promise<string[]> {
     const found = new Set<string>();
     for (const el of document.querySelectorAll<HTMLElement>('body *')) {
       const rect = el.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0 || getComputedStyle(el).visibility === 'hidden') continue;
+      if (rect.width === 0 || rect.height === 0 || getComputedStyle(el).visibility === 'hidden')
+        continue;
       const own = [...el.childNodes]
         .filter((n) => n.nodeType === Node.TEXT_NODE)
         .map((n) => n.textContent?.trim() ?? '')
         .join(' ')
         .trim();
-      for (const text of [own, el.getAttribute('aria-label') ?? '', el.getAttribute('placeholder') ?? '']) {
+      for (const text of [
+        own,
+        el.getAttribute('aria-label') ?? '',
+        el.getAttribute('placeholder') ?? '',
+      ]) {
         if (keyLike.test(text)) found.add(text);
       }
     }
@@ -141,10 +172,17 @@ export async function shownDialogs(page: Page): Promise<string[]> {
         const style = getComputedStyle(el);
         const rect = el.getBoundingClientRect();
         let opacity = 1;
-        for (let n: HTMLElement | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity || 1);
+        for (let n: HTMLElement | null = el; n; n = n.parentElement)
+          opacity *= Number(getComputedStyle(n).opacity || 1);
         return (
-          rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.pointerEvents !== 'none' &&
-          opacity > 0.05 && rect.right > 0 && rect.left < innerWidth && !el.closest('.settings-menu') &&
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.visibility !== 'hidden' &&
+          style.pointerEvents !== 'none' &&
+          opacity > 0.05 &&
+          rect.right > 0 &&
+          rect.left < innerWidth &&
+          !el.closest('.settings-menu') &&
           // The "getting ready" shell (panel-loading-shell.ts) only stands in until the real
           // panel draws, so it is never the panel. A real panel that is busy reloading still counts.
           !el.closest('.panel-loading-shell')
@@ -193,8 +231,14 @@ export async function loadersShown(panel: Locator): Promise<string[]> {
       .filter((el) => {
         const rect = el.getBoundingClientRect();
         let opacity = 1;
-        for (let n: Element | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity || 1);
-        return rect.width > 0 && rect.height > 0 && getComputedStyle(el).visibility !== 'hidden' && opacity > 0.05;
+        for (let n: Element | null = el; n; n = n.parentElement)
+          opacity *= Number(getComputedStyle(n).opacity || 1);
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          getComputedStyle(el).visibility !== 'hidden' &&
+          opacity > 0.05
+        );
       })
       .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`);
   }, LOADERS);
@@ -203,6 +247,9 @@ export async function loadersShown(panel: Locator): Promise<string[]> {
 /** Fail if `panel` still shows a loading indicator after LOADER_TIMEOUT_MS. */
 export async function expectNoStuckLoader(panel: Locator, name: string): Promise<void> {
   await expect
-    .poll(() => loadersShown(panel), { message: `${name} is still loading`, timeout: LOADER_TIMEOUT_MS })
+    .poll(() => loadersShown(panel), {
+      message: `${name} is still loading`,
+      timeout: LOADER_TIMEOUT_MS,
+    })
     .toEqual([]);
 }

@@ -41,6 +41,11 @@ export function openLoopsInContextEnabled(
 export interface CallLoopsSources {
   /** Open loops due a follow-up, highest priority first. */
   loops: (userId: string) => Promise<OpenLoop[]>;
+  /**
+   * What the caller asked Ferni to forget, as a filter on raw words; null when it can't be read.
+   * It is asked again when the note is given, so it should count topics forgotten since.
+   */
+  forgotten: (userId: string) => Promise<((text: string) => boolean) | null>;
   /** Ferni's promises for the prompt, and the misses in it. Only reads. */
   promises: (userId: string) => Promise<{ text: string; misses: FerniCommitment[] }>;
   /** Ferni was shown these misses: no later call offers them. */
@@ -53,6 +58,10 @@ const realSources: CallLoopsSources = {
       await import('../../services/superhuman/semantic-intelligence/open-loops.js');
     return getLoopsReadyForFollowUp(userId);
   },
+  async forgotten(userId) {
+    const { forgottenPassageFilter } = await import('../../memory/index.js');
+    return forgottenPassageFilter(userId);
+  },
   async promises(userId) {
     const { promiseContextFor } =
       await import('../../services/superhuman/semantic-intelligence/promise-keeper.js');
@@ -64,6 +73,35 @@ const realSources: CallLoopsSources = {
     return markMissesOffered(userId, misses);
   },
 };
+
+/** A loop's words, folded, so one stored twice ("Whether to take it." / "whether to take it") is one. */
+const loopKey = (loop: OpenLoop): string =>
+  `${loop.type}:${loop.content
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()}`;
+
+/** What a loop says in the caller's words, for the forget check. */
+const loopWords = (loop: OpenLoop): string =>
+  [loop.content, loop.context, loop.description].filter(Boolean).join(' ');
+
+/**
+ * The due loops the caller may hear about (#3995): none about a topic they asked Ferni to
+ * forget (its words, context or description), and each stored wording once, first kept.
+ */
+function loopsToRaise(
+  loops: readonly OpenLoop[],
+  forgotten: (text: string) => boolean
+): OpenLoop[] {
+  const seen = new Set<string>();
+  return loops.filter((loop) => {
+    if (forgotten(loopWords(loop))) return false;
+    const key = loopKey(loop);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 /** The loops formatOpenLoopsContext shows: at most three of each type. */
 function loopsShown(loops: readonly OpenLoop[]): OpenLoop[] {
@@ -128,49 +166,72 @@ export interface CallLoopsDeps {
   userId: string;
   /** The call (its session id): every persona on it shares one note. */
   callId: string;
-  sources?: CallLoopsSources;
+  /** Replaces the real sources it names. */
+  sources?: Partial<CallLoopsSources>;
   now?: () => Date;
 }
 
 /** Loads the call's open loops and Ferni's promises at call start. */
 export function createCallLoopsRecall(deps: CallLoopsDeps): CallLoopsRecall {
-  const sources = deps.sources ?? realSources;
+  const sources: CallLoopsSources = { ...realSources, ...deps.sources };
   const now = deps.now ?? (() => new Date());
   let text = '';
   let shown: OpenLoop[] = [];
   let loopsDue = 0;
   let misses: FerniCommitment[] = [];
   let hasPromises = false;
+  let promiseText = '';
+  let forgottenNow: (text: string) => boolean = () => true;
 
   const ready = (async () => {
-    const [loops, promises] = await Promise.allSettled([
+    const [loops, promises, forgottenRead] = await Promise.allSettled([
       sources.loops(deps.userId),
       sources.promises(deps.userId),
+      sources.forgotten(deps.userId),
     ]);
-    for (const failed of [loops, promises]) {
+    for (const failed of [loops, promises, forgottenRead]) {
       if (failed.status === 'rejected') {
         log.warn({ error: String(failed.reason) }, 'Call loops: a source failed');
       }
     }
+    // Raw words from the caller's past: with no readable forget list, say nothing (fails closed).
+    const forgotten = forgottenRead.status === 'fulfilled' ? forgottenRead.value : null;
+    if (!forgotten) {
+      log.info({ reason: 'forgotten-unreadable' }, 'Call loops: no note');
+      return;
+    }
+    forgottenNow = forgotten;
     const { formatOpenLoopsContext } =
       await import('../../services/superhuman/semantic-intelligence/open-loops.js');
-    const due = loops.status === 'fulfilled' ? loops.value : [];
+    const due = loopsToRaise(loops.status === 'fulfilled' ? loops.value : [], forgotten);
     loopsDue = due.length;
     shown = loopsShown(due);
-    if (promises.status === 'fulfilled') {
+    // The promise block is one text; any forgotten topic in it leaves the whole block out.
+    promiseText =
+      promises.status === 'fulfilled' && !forgotten(promises.value.text) ? promises.value.text : '';
+    if (promiseText && promises.status === 'fulfilled') {
       misses = promises.value.misses;
-      hasPromises = promises.value.text.length > 0;
+      hasPromises = true;
     }
-    const promiseText = promises.status === 'fulfilled' ? promises.value.text : '';
     const loopsText = await formatOpenLoopsContext(deps.userId, due);
     text = [loopsText, promiseText].filter(Boolean).join('\n\n');
   })().catch((error: unknown) => log.warn({ error: String(error) }, 'Call loops not loaded'));
 
+  // The caller-derived words are checked again when the note is given: each shown loop alone,
+  // and all of them with the promise block together, so two loops that only between them name
+  // a topic ("call Bob", "the DUI hearing") leave it out too. A topic forgotten since it loaded
+  // counts. The note's fixed header is never checked, so "these" or "check" can't silence it.
+  const givable = (): boolean =>
+    Boolean(text) &&
+    !raisedCalls.has(deps.callId) &&
+    !shown.some((loop) => forgottenNow(loopWords(loop))) &&
+    !forgottenNow([...shown.map(loopWords), promiseText].filter(Boolean).join(' '));
+
   return {
     ready,
-    note: () => (text && !raisedCalls.has(deps.callId) ? text : null),
+    note: () => (givable() ? text : null),
     raised() {
-      if (!text || raisedCalls.has(deps.callId)) return;
+      if (!givable()) return;
       raisedCalls.add(deps.callId);
       if (raisedCalls.size > MAX_CALLS) {
         const oldest = raisedCalls.values().next().value;

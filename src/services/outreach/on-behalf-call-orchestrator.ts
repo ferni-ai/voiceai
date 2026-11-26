@@ -206,7 +206,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     const { script: scriptTemplate, type: scriptType } = selectScript(contact, request.purpose);
 
     const script = buildCallScript(scriptTemplate, {
-      agentName: 'Ferni',
+      callingPersonaId: request.callingPersonaId, // CALL_AS_PERSONA; unset, Ferni
       userName: request.userName,
       contactName: contact.name,
       purpose: request.purpose,

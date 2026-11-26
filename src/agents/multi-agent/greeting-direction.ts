@@ -301,7 +301,7 @@ export function greetingFacts(
   return facts;
 }
 
-export { firstTalkNote } from '../../services/identity/returning-caller.js';
+export { firstTalkNote } from './first-call-stranger.js';
 
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
@@ -450,14 +450,14 @@ export async function directedGreeting(
         win?.text
       ),
       ...(unknown ? {} : takeRecentTextFacts(sessionId)), // not for a caller not recognised
-      ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
+      ...(firstCall ? stranger.firstCallFacts() : {}),
       ...newsNow?.facts,
       ...dateNow?.facts,
     },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
-    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
+    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.strangerHelloRejects : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();

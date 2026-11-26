@@ -284,7 +284,10 @@ const broadcastMessageDef: ToolDefinition = {
           .describe('Target room or "all" for whole house'),
       }),
       execute: async ({ message, target = 'all' }) => {
-        log.info({ agentId: ctx.agentId, message, target }, '📢 Broadcasting message');
+        log.info(
+          { agentId: ctx.agentId, messageLength: message.length, target },
+          '📢 Broadcasting message'
+        );
 
         const targetStr = target === 'all' ? 'all speakers' : `the ${target.replace('_', ' ')}`;
         return `I couldn't broadcast that to ${targetStr}: ${NO_HOME_SPEAKERS}`;
@@ -335,7 +338,7 @@ const announceDinnerDef: ToolDefinition = {
       }),
       execute: async ({ customMessage }) => {
         const message = customMessage || 'Dinner is ready! Come and get it!';
-        log.info({ agentId: ctx.agentId, message }, '🍽️ Announcing dinner');
+        log.info({ agentId: ctx.agentId, messageLength: message.length }, '🍽️ Announcing dinner');
 
         return `I couldn't announce dinner: ${NO_HOME_SPEAKERS}`;
       },

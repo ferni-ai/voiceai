@@ -490,26 +490,6 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 12. ⚡ FAST-JOIN: Pre-warm session pool for sub-3-second agent joining
-    // This creates ready-to-use Gemini sessions so users hear greeting within 2 seconds
-    tasks.push(
-      (async () => {
-        try {
-          const fastJoinStart = Date.now();
-          const { initializeFastJoin } = await import('./fast-join.js');
-          await initializeFastJoin({
-            poolSize: 5, // PERFORMANCE: Increased from 2 to 5 for better concurrency
-            enablePooling: true,
-          });
-          log('✅ Fast-join session pool warmed', { durationMs: Date.now() - fastJoinStart });
-        } catch (e) {
-          log('⚠️ Fast-join init failed (non-fatal, will create sessions on demand)', {
-            error: String(e),
-          });
-        }
-      })()
-    );
-
     await Promise.all(tasks);
 
     // Wire prewarmed greeting/conversational audio into gateway hot path

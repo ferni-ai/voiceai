@@ -62,6 +62,7 @@
 /src/agents/integrations/slow-turn-wiring.ts @sethdford
 /src/agents/integrations/tool-ack-clip-wiring.ts @sethdford
 /src/agents/integrations/tool-hum.ts @sethdford
+/src/agents/integrations/turn-opening-sound.ts @sethdford
 /src/agents/multi-agent/arrival-once.ts @sethdford
 /src/agents/multi-agent/call-capture-tool.ts @sethdford
 /src/agents/multi-agent/call-news-opener.ts @sethdford
@@ -98,6 +99,8 @@
 /src/agents/shared/phone-goodbye.ts @sethdford
 /src/agents/shared/tts-wrapper.ts @sethdford
 /src/agents/shared/wrap-up-window.ts @sethdford
+/src/agents/voice-agent/phases/idle-checkin.ts @sethdford
+/src/agents/voice-agent/phases/session-end-watch.ts @sethdford
 /src/agents/voice-agent/quiet-presence.ts @sethdford
 /src/agents/voice-agent/turn-handler.ts @sethdford
 /src/api/custom-agent/chat-routes.ts @sethdford

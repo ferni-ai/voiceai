@@ -258,14 +258,6 @@
     "colour": 39,
     "shadow": 3
   },
-  "apps/web/src/ui/admin.ui.ts": {
-    "colour": 72,
-    "shadow": 2,
-    "easing": 3,
-    "duration": 16,
-    "fontSize": 28,
-    "important": 5
-  },
   "apps/web/src/ui/after-call/call-feedback.ts": {
     "colour": 6
   },

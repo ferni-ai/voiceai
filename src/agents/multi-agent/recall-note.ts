@@ -3,9 +3,15 @@
  *
  * @module agents/multi-agent/recall-note
  */
+import type { Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
 import { crisisRiskThisCall, scoreCrisisLanguage } from '../../services/safety/index.js';
+import {
+  crisisNoMemoryRecallOn,
+  memoryFreeText,
+  withoutRecalledMemory,
+} from '../processors/turn-processor/crisis-memory-recall.js';
 import { afterPreemptive, preemptStableMode, restartPreemptive } from './preempt-stable-context.js';
 import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
 
@@ -210,16 +216,24 @@ export function dropSelfNotes(agent: RecallAgent, said?: string): number {
   return dropNotes(agent, (i) => isSelfNote(i?.id), said);
 }
 
+type HeldItem = { id?: string; extra?: Record<string, unknown> };
+
 /**
  * A request without the growth note or any self note: a crisis-guided reply, or
- * any reply on a call with risk noted, never sees them (crisis-gate.ts).
+ * any reply on a call with risk noted, never sees them (crisis-gate.ts). With
+ * CRISIS_NO_MEMORY_RECALL on, nor the caller's recalled memories: a note that
+ * carries them goes in as its text without them (crisis-memory-recall.ts).
  */
-export function withoutCrisisHeldNotes<C extends { items: Array<{ id?: string }>; copy(): C }>(
+export function withoutCrisisHeldNotes<C extends { items: HeldItem[]; copy(): C }>(
   chatCtx: C,
-  when = true
+  when = true,
+  env: Env = process.env
 ): C {
-  if (!when || !chatCtx.items.some((i) => heldOnCrisis(i?.id))) return chatCtx;
+  const memory = when && crisisNoMemoryRecallOn(env);
+  const held = (i: HeldItem) => heldOnCrisis(i?.id) || (memory && memoryFreeText(i) !== undefined);
+  if (!when || !chatCtx.items.some(held)) return chatCtx;
   const ctx = chatCtx.copy();
-  ctx.items = ctx.items.filter((i) => !heldOnCrisis(i?.id));
+  const kept = ctx.items.filter((i) => !heldOnCrisis(i?.id));
+  ctx.items = memory ? withoutRecalledMemory(kept) : kept;
   return ctx;
 }

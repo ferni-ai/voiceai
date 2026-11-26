@@ -20,6 +20,7 @@ import { llm } from '@livekit/agents';
 import { flagOn } from '../../../config/env-flag.js';
 import { dispatchedUserName, opensByFirstName } from '../../../utils/ferni-intro.js';
 import { callOnBehalfSchema } from './call-on-behalf-schema.js';
+import { askingPersonaRecord, callingLead } from './scripts/index.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
 import { pickFromTie, type PickRow } from './contact-pick.js';
@@ -440,6 +441,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             additionalContext,
           },
           recordingConsent: recordingConsent ?? false,
+          ...askingPersonaRecord(ctx.agentId), // CALL_AS_PERSONA: the persona asked places it
           ...(callNow && { callNow, ...(lateConfirmed && { lateConfirmed }) }),
           requiresHIPAA:
             callType === 'business' &&
@@ -458,7 +460,6 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           const why = `I can't make this call because: ${compliance.issues.join(', ')}.`;
           return { success: false, error: `${why} Could you help me resolve these issues?` };
         }
-
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
         const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
         const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
@@ -466,7 +467,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
-          `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
+          `Got it! ${callingLead(request.callingPersonaId)} ${contact.name}${callTypeLabel} now to ${purpose}. ` +
           `I'll let you know how it goes once the call is complete.${others}`
         );
       } catch (error) {

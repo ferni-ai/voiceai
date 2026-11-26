@@ -31,7 +31,9 @@
  * @module services/scheduling/reminder-delivery-job
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { firestoreIdentity, ownerRefusedByGuard } from '../../utils/synthetic-write-guard.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { getChannelStatus, type ChannelStatus } from '../outreach/unified-delivery.js';
 import type { PromiseSweepResult } from '../superhuman/semantic-intelligence/promise-keeper.js';
@@ -102,6 +104,11 @@ export interface ReminderRunResult {
   missed: number;
   /** Claimed by another run first. */
   skipped: number;
+  /**
+   * REMINDER_SKIP_SYNTHETIC_OWNER: left pending, unclaimed, because the write guard refuses
+   * their owner here (a harness owner on prod's data). Absent with the flag off.
+   */
+  syntheticOwner?: number;
   /** Delivered in-app because the chosen channel couldn't be reached. */
   rerouted: number;
   /** Delivered by text (sms or voice message). */
@@ -163,13 +170,16 @@ function tally(result: ReminderRunResult, end: ReminderEnd, reminderId: string):
 }
 
 /** An inbox row no one was told about is missed (promise-keeper verdictFor), never done. */
-function logRun({ due, delivered, failed, held, missed, inboxOnly }: ReminderRunResult): void {
+function logRun(result: ReminderRunResult): void {
+  const { due, delivered, failed, held, missed, inboxOnly, syntheticOwner } = result;
   logPromiseJobRun('deliver-reminders', {
     due,
     done: delivered,
     failed,
     held,
     missed: missed + inboxOnly,
+    // A refused harness owner is skipped, never failed, so the funnel can tell them apart.
+    ...(syntheticOwner !== undefined && { skipped: syntheticOwner }),
   });
 }
 
@@ -207,6 +217,9 @@ export async function deliverDueReminders(
     .get();
   result.due = snapshot.size;
   const channels = snapshot.size > 0 ? await getChannelStatus() : undefined;
+  // The guard would refuse a harness owner's send here and the job would call it failed (#3046).
+  const refusing = flagOn('REMINDER_SKIP_SYNTHETIC_OWNER') ? firestoreIdentity(db) : undefined;
+  if (refusing !== undefined) result.syntheticOwner = 0;
 
   for (const doc of snapshot.docs) {
     // Owner from the document's path (bogle_users/{uid}/reminders/{id}), never
@@ -214,6 +227,10 @@ export async function deliverDueReminders(
     // reminder be delivered to, and recorded under, another user.
     const owner = doc.ref.parent.parent?.id;
     if (!owner) continue;
+    if (refusing && ownerRefusedByGuard(owner, ...refusing)) {
+      result.syntheticOwner = (result.syntheticOwner ?? 0) + 1; // left pending: marking it is refused too
+      continue;
+    }
     const reminder = { ...reminderFromDoc(doc.id, doc.data()), userId: owner };
     const late = now.getTime() - reminder.scheduledFor.getTime() > MISSED_AFTER_MS;
     const textOn = await textOnFor(reach, owner); // a failed read: off, never a direct send
@@ -284,9 +301,9 @@ export async function deliverDueReminders(
     logRun(result);
   }
 
-  const { due, texted, pushed, inboxOnly, missed, held, failed, skipped } = result;
+  const { due, texted, pushed, inboxOnly, missed, held, failed, skipped, syntheticOwner } = result;
   log.info(
-    { due, texted, pushed, inboxOnly, missed, held, failed, skipped, dryRun },
+    { due, texted, pushed, inboxOnly, missed, held, failed, skipped, syntheticOwner, dryRun },
     'Reminder delivery run'
   );
   return result;

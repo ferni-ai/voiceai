@@ -284,7 +284,7 @@ export async function emailUser(
       return { success: false, error: result };
     }
 
-    getLogger().info({ userId, personaId: canonicalId, subject }, '📧 Email sent to user');
+    getLogger().info({ userId, personaId: canonicalId }, '📧 Email sent to user');
 
     // Record outcome for ML timing learning if this message is about a contact
     if (options?.contactId) {

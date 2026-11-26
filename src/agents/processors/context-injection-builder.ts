@@ -927,7 +927,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     const taskManager = await getTaskManagerCached();
     const taskContext = taskManager.processUserTurn(analysis, userText, {
       isReturningUser: userData.isReturningUser,
-      lastSummary: services.userProfile?.lastConversationSummary,
     });
 
     if (taskContext.length > 0) {
