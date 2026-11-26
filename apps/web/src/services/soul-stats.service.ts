@@ -159,7 +159,16 @@ export class SoulStatsService {
     }
   }
 
+  /** Every record call ends here, and never throws: a count must not stop a moment or a crisis hold. */
   private add(key: SoulCountKey): void {
+    try {
+      this.count(key);
+    } catch (error) {
+      log.warn('Soul stat not counted', { key, error: String(error) });
+    }
+  }
+
+  private count(key: SoulCountKey): void {
     // The admin avatar lab plays the avatar for an admin, not for a person: it counts nothing
     if (this.stopped || isAvatarLab()) return;
     this.pending[key] = Math.min(MAX_COUNT, this.pending[key] + 1);

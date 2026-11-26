@@ -53,7 +53,12 @@ export function onCrisisHoldStart(listener: () => void): () => void {
 export function holdCrisisFace(): void {
   if (held) return;
   held = true; // first, so a listener that throws cannot stop the hold
-  soulStatsService.recordCrisisHold(); // a count, never the message or its text
+  try {
+    soulStatsService.recordCrisisHold(); // a count, never the message or its text
+  } catch (error) {
+    // A count must never stop the hold, its listeners or the crisis message behind it
+    log.warn('Crisis hold not counted', { error: String(error) });
+  }
   log.info('Crisis face hold on until the call ends');
   for (const listener of holdStartListeners) {
     try {

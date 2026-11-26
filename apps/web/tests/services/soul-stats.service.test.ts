@@ -176,6 +176,28 @@ describe('SoulStatsService', () => {
     }
   );
 
+  it('a record call never throws when counting fails inside: it warns and returns', () => {
+    log.warn.mockClear();
+    const deps: SoulStatsDeps = {
+      getToken: async () => 'tok',
+      fetch: vi.fn(async () => new Response(null, { status: 202 })),
+      setTimer: () => {
+        throw new Error('fictional timer failure');
+      },
+      onPageHide: () => {
+        throw new Error('fictional listener failure');
+      },
+    };
+    const service = new SoulStatsService(deps);
+    expect(() => service.recordCrisisHold()).not.toThrow();
+    expect(() => service.recordWarmthBloom()).not.toThrow();
+    expect(() => service.recordNameLift('comfort')).not.toThrow();
+    expect(log.warn).toHaveBeenCalledWith('Soul stat not counted', {
+      key: 'crisis_hold',
+      error: 'Error: fictional listener failure',
+    });
+  });
+
   it('a 404 (SOUL_STATS off, as expected) stops it without a warning', async () => {
     log.warn.mockClear();
     log.debug.mockClear();
