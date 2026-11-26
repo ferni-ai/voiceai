@@ -134,7 +134,7 @@ const IGNORE_PATTERNS = [
   'mood.ui.ts',                 // Seasonal decoration SVGs (Santa hat)
   'calendar-settings.ui.ts',    // Provider brand logos (Google, Apple)
   'cli-auth.ui.ts',             // Standalone auth page without CSS variables
-  'admin.ui.ts',                // Admin preview/test panel
+  'marketplace-admin.ui.ts',    // Admin tool, staff-only
   'better-than-human.ui.ts',    // Ferni EQ soul glow effects (WebGL/canvas)
   'calendar-view.ui.ts',        // Google Calendar brand logo SVG
   'celebration.ui.ts',          // Celebration particle colors (canvas)

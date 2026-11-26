@@ -15,7 +15,7 @@
  * @module services/superhuman/proactive-milestone-detector
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
@@ -217,7 +217,7 @@ export async function trackDate(
   }
 
   if (loaded.status !== 'error') await saveMilestoneProfile(userId, profile);
-  log.info({ userId, label, type, date: dateStr }, 'Tracking new date for milestones');
+  log.info({ userId, label: replyForLog(label), type, date: dateStr }, 'Tracking a milestone date');
 
   return trackedDate;
 }
@@ -259,7 +259,7 @@ export async function trackQuietWin(
   }
 
   await saveMilestoneProfile(userId, profile);
-  log.info({ userId, label, daysSinceStart }, 'Tracking quiet win');
+  log.info({ userId, label: replyForLog(label), daysSinceStart }, 'Tracking quiet win');
 }
 
 /**
@@ -278,7 +278,7 @@ export async function resetQuietWin(userId: string, label: string): Promise<void
     profile.quietWins[existingIdx].currentStreak = 0;
     profile.quietWins[existingIdx].lastUpdated = new Date().toISOString();
     await saveMilestoneProfile(userId, profile);
-    log.info({ userId, label }, 'Reset quiet win streak');
+    log.info({ userId, label: replyForLog(label) }, 'Reset quiet win streak');
   }
 }
 
@@ -409,7 +409,7 @@ export async function acknowledgeMilestone(
   );
 
   await saveMilestoneProfile(userId, profile);
-  log.info({ userId, label, date }, 'Acknowledged milestone');
+  log.info({ userId, label: replyForLog(label), date }, 'Acknowledged milestone');
 }
 
 /**

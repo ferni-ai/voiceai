@@ -9,6 +9,7 @@ import type { llm } from '@livekit/agents';
 import { withRevivedIntelligence } from '../../../intelligence/revived/revived-intelligence.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from '../../multi-agent/turn-context-header.js';
 import type { TurnProcessorResult } from '../types.js';
+import { memoryFreeExtra, withoutHeldMemory } from './crisis-memory-recall.js';
 import { isSafetyCategory, safetyExtra } from './safety-note.js';
 
 /**
@@ -21,12 +22,17 @@ export function injectTurnContext(
   result: TurnProcessorResult,
   turn?: { sessionId: string; turnNumber: number }
 ): void {
-  // What Ferni knows from earlier calls (REVIVED_INTELLIGENCE), already loaded.
-  const injections = withRevivedIntelligence(result.context.injections, {
+  // What Ferni knows from earlier calls (REVIVED_INTELLIGENCE), already loaded. A crisis turn
+  // leaves recalled memory out (CRISIS_NO_MEMORY_RECALL, crisis-memory-recall.ts).
+  const revived = withRevivedIntelligence(result.context.injections, {
     sessionId: turn?.sessionId,
     turn: turn?.turnNumber,
     crisis: result.crisis?.isCrisis,
     maxChars: MAX_PUSHED_CONTEXT_CHARS,
+  });
+  const injections = withoutHeldMemory(revived, {
+    crisis: result.crisis,
+    sessionId: turn?.sessionId,
   });
 
   if (injections.length === 0) return;
@@ -60,7 +66,15 @@ export function injectTurnContext(
   if (safety.length > 0) {
     turnCtx.addMessage({ role: 'user', content: join(safety), extra: safetyExtra(categories) });
   }
-  if (rest.length > 0) turnCtx.addMessage({ role: 'user', content: join(rest) });
+  // The note keeps its text without recalled memory, for a crisis reply (CRISIS_NO_MEMORY_RECALL).
+  const memoryFree = memoryFreeExtra(rest, join);
+  if (rest.length > 0) {
+    turnCtx.addMessage({
+      role: 'user',
+      content: join(rest),
+      ...(memoryFree && { extra: memoryFree }),
+    });
+  }
 }
 
 /**

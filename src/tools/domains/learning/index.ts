@@ -79,7 +79,7 @@ const setLearningGoalDef: ToolDefinition = {
         timeframe: z.string().optional().describe('Target timeframe'),
       }),
       execute: async ({ subject, motivation, currentLevel, targetOutcome, timeframe }) => {
-        getLogger().info({ agentId: ctx.agentId, subject }, 'Setting learning goal');
+        getLogger().info({ agentId: ctx.agentId, hasSubject: !!subject }, 'Setting learning goal');
 
         let response = `**Learning Goal: ${subject}**\n\n`;
         if (motivation) response += `**Why:** ${motivation}\n`;
@@ -138,7 +138,7 @@ const trackLearningProgressDef: ToolDefinition = {
         milestoneReached: z.string().optional().describe('Milestone achieved'),
       }),
       execute: async ({ subject, update, hoursLogged, milestoneReached }) => {
-        getLogger().info({ agentId: ctx.agentId, subject }, 'Tracking learning progress');
+        getLogger().info({ agentId: ctx.agentId, hasSubject: !!subject }, 'Learning progress');
 
         let response = `**Learning Progress: ${subject}**\n\n`;
         if (update) response += `**Update:** ${update}\n`;
@@ -248,7 +248,7 @@ const planStudySessionDef: ToolDefinition = {
       }),
       execute: async ({ subject, timeAvailable, goal, energy }) => {
         getLogger().info(
-          { agentId: ctx.agentId, subject, timeAvailable },
+          { agentId: ctx.agentId, subjectLength: subject.length, timeAvailable },
           'Planning study session'
         );
 
@@ -530,7 +530,7 @@ const trackBooksReadDef: ToolDefinition = {
         rating: z.number().optional().describe('Rating 1-5'),
       }),
       execute: async ({ action, title, author, keyTakeaways, rating }) => {
-        getLogger().info({ agentId: ctx.agentId, action, title }, 'Tracking books');
+        getLogger().info({ agentId: ctx.agentId, action, titleLength: title?.length }, 'Book log');
 
         let response = '';
 
@@ -603,7 +603,7 @@ const overcomeLearningBlockDef: ToolDefinition = {
         subject: z.string().optional().describe('What they are trying to learn'),
       }),
       execute: async ({ block, subject }) => {
-        getLogger().info({ agentId: ctx.agentId, block, subject }, 'Overcoming learning block');
+        getLogger().info({ agentId: ctx.agentId, block, hasSubject: !!subject }, 'Learning block');
 
         let response = `**Overcoming: ${block}**\n`;
         if (subject) response += `_While learning: ${subject}_\n`;

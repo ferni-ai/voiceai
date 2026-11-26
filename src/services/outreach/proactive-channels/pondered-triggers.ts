@@ -12,6 +12,12 @@
  * Nothing goes out within CRISIS_QUIET_DAYS of a crisis-level signal (the
  * shared rule in human-transfer/crisis-signals.ts), whatever the pass wrote.
  *
+ * The pass leaves out items about a forgotten topic when it writes them
+ * (ponder-user.ts); with FORGET_EVERY_READER on they are checked again here,
+ * for a topic forgotten since: the item, and the caller's lines it could quote
+ * (forgottenPassageCheck, as for the caller's own words), before planning, so
+ * a dropped one never takes the day's slot.
+ *
  * Off unless OUTREACH_PONDERED_NOTES is on: for everyone (the server's env),
  * or for one person through their cohort flags (COHORT_FLAGS=on, read from
  * Firestore per user, never from this process's env). It is its own switch,
@@ -34,6 +40,12 @@ import {
   type SourceCall,
 } from '../grounded-checkin.js';
 import { recentOutreach } from './outreach-log.js';
+import {
+  forgetCheckOrClosed,
+  forgottenPassageCheck,
+  remembered,
+  type ForgottenCheck,
+} from '../../../memory/index.js';
 import type { ProactiveTrigger } from './types.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -165,19 +177,43 @@ export async function ponderedTriggers(
     (e) => e.sourceId.startsWith(SOURCE_PREFIX) && e.outcome !== 'failed'
   );
   const done = new Set(log.map((e) => e.sourceId));
-  const items = followUpsOf(pondering.data()).filter((i) => !done.has(SOURCE_PREFIX + i.id));
+  // FORGET_EVERY_READER; a failed check leaves out every note (fail closed), never throws
+  const forgotten = await forgetCheckOrClosed(
+    forgottenPassageCheck(userId, 'pondered-notes'),
+    'pondered-notes'
+  );
+  const items = followUpsOf(pondering.data()).filter(
+    (i) => !done.has(SOURCE_PREFIX + i.id) && !forgotten?.(i.text)
+  );
   if (items.length === 0) return [];
   const { planned } = planCheckIns(items, {
     now,
     timezone,
     name: firstName(user),
     lastTalkedAt: lastTalkedAt(user),
-    calls: await loadSourceCalls(
-      ref,
-      items.map((i) => i.basis),
-      timezone
+    calls: rememberedLines(
+      await loadSourceCalls(
+        ref,
+        items.map((i) => i.basis),
+        timezone
+      ),
+      forgotten
     ),
     sent: log.map((e) => new Date(e.at)),
   });
   return dueNow(planned, now).map(toTrigger);
+}
+
+/** The calls with the caller's lines about a forgotten topic left out (all of them, no check). */
+function rememberedLines(
+  calls: Map<string, SourceCall>,
+  forgotten: ForgottenCheck | null
+): Map<string, SourceCall> {
+  if (!forgotten) return calls;
+  return new Map(
+    [...calls].map(([id, c]) => [
+      id,
+      { ...c, userLines: remembered(c.userLines, forgotten, String) },
+    ])
+  );
 }

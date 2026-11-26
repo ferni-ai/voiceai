@@ -137,6 +137,19 @@ describe('prepareBriefing with ARRIVAL_LINE_GROUNDED', () => {
     expect((await brief(caller, invented, ON).done).firstLine).toBeUndefined();
   });
 
+  it("logs a dropped line's added words as lengths on prod, never the words (#4392)", async () => {
+    const { createLogger } = await import('../../../utils/safe-logger.js');
+    const info = (createLogger({}) as unknown as { info: ReturnType<typeof vi.fn> }).info;
+    info.mockClear();
+    const invented = 'Hey, Jordan here! Sounds like a lot going on with a job offer.';
+    await brief(['Can I talk to Jordan about retirement?'], invented, ON).done;
+    const ready = info.mock.calls.find((call) => call[1] === 'Handoff brief ready');
+    const added = (ready?.[0] as { added?: string[] } | undefined)?.added ?? [];
+    expect(added.length).toBeGreaterThan(0); // the line did add words
+    expect(added.every((w) => /^\[\d+ chars\]$/.test(w))).toBe(true);
+    expect(JSON.stringify(ready)).not.toMatch(/offer|job/i);
+  });
+
   it('keeps a line that restates the caller', async () => {
     const caller = ['Can I talk to Jordan about my retirement savings?'];
     const line = "Hey, it's Jordan. Retirement savings, let's dig in.";

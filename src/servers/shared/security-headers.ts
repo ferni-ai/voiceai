@@ -10,15 +10,16 @@
  * - Permissions-Policy
  */
 
-import type { ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { customSiteSubdomain } from './custom-site-host.js';
 
 const log = createLogger({ module: 'SecurityHeaders' });
 
 /**
  * Security headers configuration
  */
-export interface SecurityHeadersConfig {
+interface SecurityHeadersConfig {
   /** Enable HSTS (default: true in production) */
   hsts?: boolean;
   /** HSTS max-age in seconds (default: 1 year) */
@@ -31,8 +32,10 @@ export interface SecurityHeadersConfig {
   cspDirectives?: Record<string, string[]>;
   /** Enable X-Frame-Options (default: true) */
   frameOptions?: boolean;
-  /** X-Frame-Options value (default: DENY) */
+  /** X-Frame-Options value (default: by request path, see frameOptionsFor) */
   frameOptionsValue?: 'DENY' | 'SAMEORIGIN';
+  /** The request's URL path (req.url), which picks the default X-Frame-Options */
+  requestPath?: string;
   /** Enable X-Content-Type-Options (default: true) */
   contentTypeOptions?: boolean;
   /** Enable Referrer-Policy (default: true) */
@@ -130,6 +133,15 @@ const DEFAULT_PERMISSIONS_POLICY = [
   'xr-spatial-tracking=()',
 ].join(', ');
 
+/** Pages the app frames itself: the admin Avatar Soul page frames the avatar lab. */
+const SAME_ORIGIN_FRAMED_PATHS: ReadonlySet<string> = new Set(['/avatar-lab']);
+
+/** SAMEORIGIN for exactly those paths (query ignored); DENY for every other page. */
+function frameOptionsFor(requestPath = ''): 'DENY' | 'SAMEORIGIN' {
+  const pathname = requestPath.split(/[?#]/, 1)[0];
+  return SAME_ORIGIN_FRAMED_PATHS.has(pathname) ? 'SAMEORIGIN' : 'DENY';
+}
+
 /**
  * Check if running in production
  */
@@ -140,7 +152,7 @@ function isProduction(): boolean {
 /**
  * Set security headers on response
  */
-export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersConfig = {}): void {
+function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersConfig = {}): void {
   const inProduction = isProduction();
 
   // HSTS - Only in production with HTTPS
@@ -173,7 +185,10 @@ export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersC
 
   // X-Frame-Options
   if (config.frameOptions !== false) {
-    res.setHeader('X-Frame-Options', config.frameOptionsValue ?? 'DENY');
+    res.setHeader(
+      'X-Frame-Options',
+      config.frameOptionsValue ?? frameOptionsFor(config.requestPath)
+    );
   }
 
   // X-Content-Type-Options
@@ -198,6 +213,16 @@ export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersC
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('X-Download-Options', 'noopen');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+}
+
+/**
+ * Security headers for one request to the UI server: the defaults, with
+ * X-Frame-Options picked by the request's path (frameOptionsFor). A custom
+ * site's subdomain serves /sites/<x>/..., never the app's framed pages: DENY.
+ */
+export function setRequestSecurityHeaders(req: IncomingMessage, res: ServerResponse): void {
+  const appPath = customSiteSubdomain(req.headers.host) ? undefined : req.url;
+  setSecurityHeaders(res, { requestPath: appPath });
 }
 
 /**
