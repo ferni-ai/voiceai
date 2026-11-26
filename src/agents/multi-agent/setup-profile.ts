@@ -30,6 +30,7 @@ export function setupProfileReader<P extends object>(
   sessionId: string
 ): () => Promise<P | null> {
   const settled = deferredProfileSettled(services, PROFILE_ATTACH_WAIT_MS);
+  const scrubbed = forgotten.startProfileForPrompt(services); // FORGET_FRESH_READ: read starts now
   return async () => {
     if (!(await settled)) {
       log.warn(
@@ -37,6 +38,6 @@ export function setupProfileReader<P extends object>(
         'Profile not attached in time: no awareness block'
       );
     }
-    return forgotten.profileForPrompt(services);
+    return scrubbed();
   };
 }

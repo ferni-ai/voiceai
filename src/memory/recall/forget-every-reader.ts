@@ -104,15 +104,17 @@ function checkFor(
 /**
  * The caller's forgotten topics as a check, or null when the flag is off or
  * there is no member (nothing is stored for anonymous or on-behalf callers).
- * `reader` names the caller in logs.
+ * `reader` names the caller in logs. `uncached` reads the store past the 15 s
+ * cache (topicsWithin), for a reader run once a call.
  */
 export async function forgottenCheck(
   userId: string | null | undefined,
   reader = 'reader',
-  env: Env = process.env
+  env: Env = process.env,
+  uncached = false
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  return checkFor(userId, await topicsWithin(userId, reader));
+  return checkFor(userId, await topicsWithin(userId, reader, uncached));
 }
 
 /**
@@ -262,22 +264,46 @@ export { PROFILE_PASS_THROUGH } from './forget-profile.js';
 /**
  * The caller's profile as a prompt reads it, every field but an allowlist
  * filtered (forget-profile.ts). The stored profile is not changed; unchanged
- * when the flag is off.
+ * when the flag is off. `uncached` as forgottenCheck's.
  */
 export async function profileForCaller<P extends object>(
   userId: string | null | undefined,
   profile: P,
-  reader = 'profile'
+  reader = 'profile',
+  uncached = false
 ): Promise<P> {
-  const forgotten = await forgottenCheck(userId, reader);
+  const forgotten = await forgottenCheck(userId, reader, process.env, uncached);
   return forgotten ? scrubProfile(profile, forgotten) : profile;
 }
 
-/** profileForCaller for a session's services (agent-setup.ts, voice-agent-entry). */
-export async function profileForPrompt<P extends object>(services: {
-  userId?: string | null;
-  userProfile?: P | null;
-}): Promise<P | null> {
-  const profile = services.userProfile ?? null;
-  return profile && profileForCaller(services.userId, profile);
+/**
+ * profileForCaller for a session's services at call start (setup-profile.ts, voice-agent-entry):
+ * with FORGET_FRESH_READ, one store read past the 15 s cache, so a forget stored by another pod
+ * or the web app just before the call counts (#2755). Late or failed: the last known topics.
+ */
+export async function profileForPrompt<P extends object>(
+  services: { userId?: string | null; userProfile?: P | null },
+  env: Env = process.env
+): Promise<P | null> {
+  return startProfileForPrompt(services, env)();
+}
+
+/**
+ * profileForPrompt with its store read started now and the scrub applied when called, to the
+ * profile attached by then (setup-profile.ts): the read runs beside the prompt loads instead of
+ * after them. Without FORGET_FRESH_READ nothing starts early: the shared read waits as before.
+ */
+export function startProfileForPrompt<P extends object>(
+  services: { userId?: string | null; userProfile?: P | null },
+  env: Env = process.env
+): () => Promise<P | null> {
+  const early = forgetFreshReadEnabled(env)
+    ? forgottenCheck(services.userId, 'profile', env, true) // never rejects (forgottenTopicsOrNull)
+    : undefined;
+  return async () => {
+    const profile = services.userProfile ?? null;
+    if (!profile) return null;
+    const forgotten = await (early ?? forgottenCheck(services.userId, 'profile', env));
+    return forgotten ? scrubProfile(profile, forgotten) : profile;
+  };
 }
