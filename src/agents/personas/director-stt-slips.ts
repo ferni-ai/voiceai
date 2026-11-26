@@ -30,7 +30,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import type { Cast } from './director-cast.js';
 
 /** DIRECTOR_STT_SLIPS=on: the director treats an odd word as a mishearing. */
-export function directorSttSlipsEnabled(env: Env = process.env): boolean {
+function directorSttSlipsEnabled(env: Env = process.env): boolean {
   return flagOn('DIRECTOR_STT_SLIPS', env);
 }
 
