@@ -84,7 +84,7 @@ async function searchMovie(
       genres,
     };
   } catch (error) {
-    log.warn({ query, error: String(error) }, '🎬 TMDB exception');
+    log.warn({ queryLength: query.length, error: String(error) }, '🎬 TMDB exception');
     return 'unreachable';
   }
 }
@@ -180,7 +180,7 @@ function shortOverview(overview: string): string {
  */
 export async function getMovieInfo(title: string, year?: number): Promise<string> {
   const log = getLogger();
-  log.info({ title }, '🎬 Looking up movie');
+  log.info({ titleLength: title.length }, '🎬 Looking up movie');
 
   const movie = await searchMovie(title, year);
 
@@ -249,7 +249,7 @@ export async function getUpcomingMoviesList(region = 'US'): Promise<string> {
  */
 export async function getMovieShowtimes(title: string, location: string): Promise<string> {
   const log = getLogger();
-  log.info({ title }, '🎬 Getting showtimes');
+  log.info({ titleLength: title.length }, '🎬 Getting showtimes');
 
   const movie = await searchMovie(title);
   const honest = "I can't see theater showtimes, so I won't guess at times.";
@@ -279,7 +279,7 @@ export function createMovieTools(ctx?: Pick<ToolContext, 'userLocation'>) {
         year: z.number().int().optional().describe('Release year, only if the caller said one'),
       }),
       execute: async ({ title, year }) => {
-        logger.info({ title }, '🎬 Movie info tool called');
+        logger.info({ titleLength: title.length }, '🎬 Movie info tool called');
         return getMovieInfo(title, year);
       },
     }),
@@ -312,7 +312,7 @@ export function createMovieTools(ctx?: Pick<ToolContext, 'userLocation'>) {
         location: z.string().describe('City or zip code, empty if unknown'),
       }),
       execute: async ({ title, location }) => {
-        logger.info({ title }, '🎬 Showtimes tool called');
+        logger.info({ titleLength: title.length }, '🎬 Showtimes tool called');
         return getMovieShowtimes(title, location);
       },
     }),
@@ -329,7 +329,7 @@ export function createMovieTools(ctx?: Pick<ToolContext, 'userLocation'>) {
         service: z.string().optional().describe('A service the caller named, like "Netflix"'),
       }),
       execute: async ({ title, type, service }, run) => {
-        logger.info({ title, type }, '🎬 Where to watch tool called');
+        logger.info({ titleLength: title.length, type }, '🎬 Where to watch tool called');
         return whereToWatch(title, region(run), { type, service });
       },
     }),

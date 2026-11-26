@@ -196,7 +196,6 @@ async function main() {
     purpose
   );
   const script = buildCallScript(scriptTemplate, {
-    agentName: 'Ferni',
     userName,
     contactName: resolvedName,
     purpose,

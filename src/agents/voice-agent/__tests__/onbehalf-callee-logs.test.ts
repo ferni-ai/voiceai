@@ -5,9 +5,8 @@
  * safe-logger to stderr under vitest, so every line the process writes is read back.
  *
  * The real transcript handler runs on a final transcript; only persisting writers are faked.
- * A member's turn is the control: its STT trace still carries the words (that line is
- * pending a product decision, call-log-surface-guard.test.ts), which proves the capture
- * sees the field when it is there.
+ * A member's turn on dev is the control: its STT trace carries the words there (on prod it
+ * logs a length for everyone, #4392), which proves the capture sees the field when it is there.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -62,7 +61,10 @@ beforeEach(() => {
   vi.spyOn(process.stdout, 'write').mockImplementation(keep);
   vi.spyOn(process.stderr, 'write').mockImplementation(keep);
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 /** Anything the handler touches that isn't under test: every property is a no-op. */
 function stub(): never {
@@ -114,7 +116,8 @@ describe('the called person on an on-behalf call, through the real loggers', () 
     expect(carried(written)).toEqual([]);
   });
 
-  it("control: a member's turn still carries its words there (so the capture sees them)", async () => {
+  it("control: on dev, a member's turn carries its words there (so the capture sees them)", async () => {
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
     const written = await turn('member-uid-0102');
     expect(written).toContain('E2E_USER_INPUT');
     expect(carried(written)).toContain('zqxcallee');

@@ -10,9 +10,12 @@
  *   later lookup, strict or not, overwrites it, because during an erasure the Firebase
  *   user still exists. 'gone' is never downgraded (a revoke after it changes nothing)
  *   and, like 'revoked', is kept apart from the bounded cache, so no amount of other
- *   traffic evicts it (#3228). Another server instance learns within the minute. A
- *   lookup's read never replaces a newer one, so a slow lookup settling late can't undo
- *   a revoke a newer lookup saw; of two started together, the more refusing read is kept.
+ *   traffic evicts it (#3228). Erasing only the data, with the account kept, holds the
+ *   tokens instead (holdSignIn) until that erasure ends; a failed one keeps them refused
+ *   until a later one fully succeeds (#3292). Another server instance learns within the
+ *   minute. A lookup's read never replaces a newer one, so a slow lookup settling late
+ *   can't undo a revoke a newer lookup saw; of two started together, the more refusing
+ *   read is kept.
  * - One lookup at a time: lax checks of an account that arrive while its lookup is in
  *   flight wait for that lookup instead of starting their own (JOIN_MS), so the app's
  *   burst of authed calls on load spends one budget token, not one each.
@@ -143,8 +146,8 @@ function refusesMore(a: AccountState, b: AccountState): boolean {
   return !a.noProvider && b.noProvider;
 }
 
-/** A check with its own cache and budgets (one per process; tests make their own) */
-export function revocationCheck(limits: Limits = LIMITS) {
+/** The account check with its own cache and budgets; revocationCheck adds the erasure holds */
+function accountCheck(limits: Limits) {
   const accounts = boundedMap<{ state: AccountState; at: number }>();
   // Invalidations, kept apart from the cache so no lookup (lax or strict) overwrites them
   // and no cache bound evicts them: erased or deleted accounts for the life of the process,
@@ -294,6 +297,63 @@ export function revocationCheck(limits: Limits = LIMITS) {
   return { check, invalidate };
 }
 
+/**
+ * Sign-ins held while their data is erased with the account kept (#3292): refused like
+ * 'gone' until released. Each erasure holds its own, so of two at once the first to end
+ * doesn't release the other's; kept apart from 'gone', so a release never reopens a
+ * deleted account. A failed erasure releases its hold but marks the account failed:
+ * refused until an erasure begun after that failure ends fully erased with none still
+ * running, so a retry signs back in but a success overlapping the failure does not.
+ */
+function erasureHolds(): ErasureHolds {
+  let seq = 0;
+  const running = new Map<string, Set<number>>(); // uid → the holds of erasures still running
+  const failedAt = new Map<string, number>(); // uid → when an erasure of it last failed
+  return {
+    refuses: (uid) => running.has(uid) || failedAt.has(uid),
+    hold: (uid) => {
+      const hold = { uid, seq: (seq += 1) };
+      running.set(uid, (running.get(uid) ?? new Set<number>()).add(hold.seq));
+      return hold;
+    },
+    release: ({ uid, seq: began }, outcome) => {
+      const holds = running.get(uid);
+      if (!holds?.delete(began)) return; // released already
+      if (holds.size === 0) running.delete(uid);
+      if (outcome === 'failed') failedAt.set(uid, (seq += 1));
+      else if (!running.has(uid) && began > (failedAt.get(uid) ?? 0)) failedAt.delete(uid);
+    },
+  };
+}
+
+/** A check with its own cache, budgets and erasure holds (one per process; tests make their own) */
+export function revocationCheck(limits: Limits = LIMITS): RevocationCheck {
+  const account = accountCheck(limits);
+  const erasing = erasureHolds();
+  const check: typeof account.check = async (token, ...rest) =>
+    erasing.refuses(token.uid) ? 'gone' : account.check(token, ...rest);
+  return { ...erasing, check, invalidate: account.invalidate };
+}
+
+/** One data-only erasure's hold on one account's sign-in (holdSignIn), released once */
+export interface ErasureHold {
+  readonly uid: string;
+  readonly seq: number;
+}
+
+/** How a data-only erasure ended: every step erased its data, or not */
+export type ErasureOutcome = 'erased' | 'failed';
+
+interface ErasureHolds {
+  refuses: (uid: string) => boolean;
+  hold: (uid: string) => ErasureHold;
+  release: (hold: ErasureHold, outcome: ErasureOutcome) => void;
+}
+
+type AccountCheck = ReturnType<typeof accountCheck>;
+
+interface RevocationCheck extends Pick<AccountCheck, 'check' | 'invalidate'>, ErasureHolds {}
+
 const revocation = revocationCheck();
 
 /**
@@ -302,6 +362,23 @@ const revocation = revocationCheck();
  */
 export function invalidateAccount(uid: string, change: 'gone' | 'revoked'): void {
   revocation.invalidate(uid, change);
+}
+
+/**
+ * Call when a data-only erasure (the account kept) starts: this process refuses the
+ * account's tokens, as for 'gone', until releaseSignIn.
+ */
+export function holdSignIn(uid: string): ErasureHold {
+  return revocation.hold(uid);
+}
+
+/**
+ * Call once, when that erasure ends. 'erased': the tokens work here again, unless another
+ * erasure still holds them or one failed and no erasure begun since has fully succeeded.
+ * 'failed': released, but refused until one begun later does. Never reopens 'gone'.
+ */
+export function releaseSignIn(hold: ErasureHold, outcome: ErasureOutcome): void {
+  revocation.release(hold, outcome);
 }
 
 const REFUSED: Record<'gone' | 'disabled' | 'revoked', string> = {

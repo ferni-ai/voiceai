@@ -10,16 +10,24 @@
  * fictional.
  *
  * Floors are written out per classifier answer, in the order of ANSWERS (none, crisis,
- * imminent, other, throws, never), through this file's own shorthands, not the data file's.
+ * imminent, other, throws, never, for them), through this file's own shorthands, not the data file's.
  */
 import type { Floor, Shown } from './crisis-reply.never-lower.js';
 
-type PerAnswer = readonly [Floor, Floor, Floor, Floor, Floor, Floor];
-const always = (floor: Floor): PerAnswer => [floor, floor, floor, floor, floor, floor];
-/** No pattern reads the line: none, guided, emergency, emergency, none, none. */
-const BY_READ: PerAnswer = ['none', 'guided', 'emergency', 'emergency', 'none', 'none'];
+type PerAnswer = readonly [Floor, Floor, Floor, Floor, Floor, Floor, Floor];
+const always = (floor: Floor): PerAnswer => [floor, floor, floor, floor, floor, floor, floor];
+/** No pattern reads the line: none, guided, emergency, emergency, none, none, guided. */
+const BY_READ: PerAnswer = ['none', 'guided', 'emergency', 'emergency', 'none', 'none', 'guided'];
 /** A pattern reads worry for someone else: guided unless the read is imminent. */
-const WORRY: PerAnswer = ['guided', 'guided', 'emergency', 'emergency', 'guided', 'guided'];
+const WORRY: PerAnswer = [
+  'guided',
+  'guided',
+  'emergency',
+  'emergency',
+  'guided',
+  'guided',
+  'guided',
+];
 
 export interface PinnedCall {
   says: readonly string[];
@@ -81,6 +89,10 @@ export const PINNED_SHOWN_ON: Readonly<Record<string, Shown>> = {
   CRISIS_READ_JOINED_TURN: { call: 'a line still held' },
   CRISIS_SCRIPT_IMMINENT_READ: { call: 'plain', raises: ['imminent', 'emergency'] },
   CRISIS_TIMEOUT_CHECKIN: { call: 'pills', raises: ['throws', '988 spoken'] },
+  CRISIS_CLASSIFIER_OTHER_IMMINENT_911: {
+    call: 'a friend at risk',
+    raises: ['for them', 'emergency'],
+  },
   FERNI_STATE: { call: 'ordinary' },
   SEXUAL_TOPIC_BOUNDARY: { call: 'ordinary' },
 };
@@ -90,6 +102,7 @@ export const PINNED_LOWERS_A_REPLY: readonly string[] = ['THIRD_PARTY_SELF_HARM'
 
 /** What each flag's own sentences must carry, at least (WORDING_NOT_READ.onlyWithFlag). */
 export const PINNED_SAYS: Readonly<Record<string, readonly string[]>> = {
+  CRISIS_CLASSIFIER_OTHER_IMMINENT_911: ['911', '988'],
   CRISIS_GUIDED_LINE_FLOOR: ['988'],
   CRISIS_SCRIPT_IMMINENT_READ: ['911', '988'],
   CRISIS_SELF_HARM_911_LINE: ['911'],

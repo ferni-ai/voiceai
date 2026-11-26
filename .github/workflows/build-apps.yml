@@ -65,6 +65,8 @@ jobs:
       ios: ${{ steps.ios.outputs.matched }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - id: ios
         uses: ./.github/actions/pr-changes
@@ -98,6 +100,8 @@ jobs:
         run: echo "::error::Did the iOS app change? did not succeed ($CHECK)"; exit 1
 
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # The one Xcode for iOS builds (apps/ios-native/.xcode-version), shared with
       # the TestFlight lane; fails loudly if the image lacks it.
@@ -228,6 +232,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Select Xcode
         run: |

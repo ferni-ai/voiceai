@@ -139,7 +139,7 @@ export class TaskManager {
   processUserTurn(
     analysis: ConversationAnalysis,
     userText: string,
-    context?: { isReturningUser?: boolean; lastSummary?: string }
+    context?: { isReturningUser?: boolean }
   ): string[] {
     const contextParts: string[] = [];
 

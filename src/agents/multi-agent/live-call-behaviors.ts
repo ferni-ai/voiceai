@@ -14,6 +14,7 @@ import { installConfirmThreadPort } from '../../services/outreach/confirm-thread
 import { installCallRecallPort } from '../../services/outreach/call-recall.js';
 import { installGatedCallPort } from '../../services/outreach/gated-call-paths.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
+import { installToolErrorPort } from './tool-error-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -60,6 +61,7 @@ import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
+import { installLateWriteResultPort } from './late-write-result.js';
 
 const log = getLogger();
 
@@ -157,6 +159,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installGatedCallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
+  // TOOL_RESULT_ERRORS: a tool's { success: false } reaches the model as an error (result-errors.ts).
+  installToolErrorPort();
+  // LATE_WRITE_RESULT_KEPT: a write that lands after a barge-in still reaches the model.
+  installLateWriteResultPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler

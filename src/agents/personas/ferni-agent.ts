@@ -377,7 +377,7 @@ function buildHandoffTools(): ToolSet {
         return llm.handoff({
           agent: await AlexAgent.create(ctx.session.chatCtx),
           returns:
-            'Connecting you with Alex - they handle calendar and communications like nobody else.',
+            'Connecting you with Alex. He handles calendar and communications like nobody else.',
         });
       },
     }),
@@ -401,7 +401,7 @@ function buildHandoffTools(): ToolSet {
         const { JordanAgent } = await import('./jordan-agent.js');
         return llm.handoff({
           agent: await JordanAgent.create(ctx.session.chatCtx),
-          returns: 'Connecting you with Jordan - they make every milestone feel special.',
+          returns: 'Connecting you with Jordan. She makes every milestone feel special.',
         });
       },
     }),

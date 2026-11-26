@@ -76,6 +76,7 @@ export const LAYER_MAP: Record<string, string> = {
 
   // L3 contexts. Dirs named for a quality ("superhuman") go to the closest context.
   ...under('src', 'L3:identity', ['personas', 'personality']),
+  'src/personas/identity': 'L3:identity', // a second public entry: ids and names, no audio (#4154)
   ...under('src/services', 'L3:identity', ['persona', 'persona-service', 'cameo', 'custom-agent']),
   ...under('src/speech', 'L3:perception', ['audio-prosody', 'fft-analyzer', 'voice-biomarkers', 'human-listening-pipeline']),
   ...under('src/speech', 'L3:perception', ['audio-processing', 'audio-dsp', 'ambient-reactivity']),

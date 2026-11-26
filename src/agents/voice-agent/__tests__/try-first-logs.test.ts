@@ -7,8 +7,9 @@
  * Through the REAL loggers (the global setup mocks safe-logger; this unmocks it): every line
  * the process writes to stdout or stderr is read back, as onbehalf-callee-logs.test.ts does.
  * The real transcript handler and the real session services run; stores record writes only
- * (tests/helpers/write-recorder.ts). A member's turn is the control: both lines still carry
- * the words there, so the capture sees the fields when they are present. All data is fictional.
+ * (tests/helpers/write-recorder.ts). A member's turn is the control: their key moment still
+ * carries a summary, and their STT trace carries the words on dev (a length on prod, #4392),
+ * so the capture sees the fields when they are present. All data is fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -75,7 +76,10 @@ beforeEach(() => {
   vi.spyOn(process.stdout, 'write').mockImplementation(keep);
   vi.spyOn(process.stderr, 'write').mockImplementation(keep);
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 /** Anything the handler touches that isn't under test: every property is a no-op. */
 function stub(): never {
@@ -134,7 +138,23 @@ describe("a try-first visitor's words never reach a log line", { timeout: 60_000
     expect(carried(written)).toEqual([]);
   });
 
-  it('control: a member turn still carries its words there', async () => {
+  it('on dev too, the STT trace never logs their words', async () => {
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
+    const written = await sttTurn(DEMO);
+    expect(written).toContain('E2E_USER_INPUT');
+    expect(carried(written)).toEqual([]);
+  });
+
+  it("a member's STT trace on prod logs the length, never the words (#4392)", async () => {
+    const written = await sttTurn(MEMBER);
+    expect(written).toContain('E2E_USER_INPUT'); // the line ran
+    expect(written).toContain(`"fullLength":${SAID.length}`);
+    expect(written).toContain(`[${SAID.length} chars]`);
+    expect(carried(written)).toEqual([]);
+  });
+
+  it('control: on dev, a member turn carries its words there', async () => {
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
     expect(carried(await sttTurn(MEMBER))).toContain('zqxmarker');
   });
 

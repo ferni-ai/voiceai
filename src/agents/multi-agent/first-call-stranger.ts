@@ -17,6 +17,15 @@ import { returningOnceLoaded } from '../../services/session/deferred-profile.js'
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { isFirstCall } from '../personas/first-call-rapport.js';
+import {
+  DONT_KNOW_THEM_YET,
+  FIRST_TALK_CLAUSE,
+  claimsNoPast,
+  earlierCallNoDenialEnabled,
+  helloWording,
+  noRecordWording,
+} from '../personas/earlier-call-honest.js';
+import { firstTalkNote as talkNote } from '../../services/identity/returning-caller.js';
 import type { CallerHistory } from './greeting-direction.js';
 
 /**
@@ -34,7 +43,7 @@ export const STRANGER_GREETING_DIRECTION =
  * it may be their fifth call. No claim either way, and no shared past.
  */
 export const UNPLACED_GREETING_DIRECTION = STRANGER_GREETING_DIRECTION.replace(
-  ', and this is the first time you have ever talked',
+  FIRST_TALK_CLAUSE,
   ''
 );
 
@@ -85,15 +94,29 @@ export function easyStrangerDirection(
   env: Env = process.env,
   locales?: readonly string[]
 ): string {
+  // EARLIER_CALL_NO_DENIAL: the stranger's hello says you don't know them yet, not "first time".
+  const said = helloWording(base, env);
   return flagOn('STRANGER_GREETING_EASY', env) && englishOnlyCall(locales)
-    ? base.replace(MIND_QUESTION, EASY_QUESTION)
-    : base;
+    ? said.replace(MIND_QUESTION, EASY_QUESTION)
+    : said;
 }
 
 /** The fact that says so, beside the time of day and their name. */
-export const FIRST_CALL_FACTS: Readonly<Record<string, string>> = {
+const FIRST_CALL_FACTS: Readonly<Record<string, string>> = {
   'how well you know each other': 'first time talking',
 };
+
+/** FIRST_CALL_FACTS, or with EARLIER_CALL_NO_DENIAL on, that you don't know them yet. */
+export function firstCallFacts(env: Env = process.env): Readonly<Record<string, string>> {
+  return earlierCallNoDenialEnabled(env)
+    ? { 'how well you know each other': DONT_KNOW_THEM_YET }
+    : FIRST_CALL_FACTS;
+}
+
+/** The call-start note for a caller with no past calls (returning-caller.ts), in no-record words. */
+export function firstTalkNote(sessionId: string, unplaced = false): string {
+  return noRecordWording(talkNote(sessionId, unplaced));
+}
 
 /**
  * Words that only make sense with a shared past. Whole words only: "again" is
@@ -106,6 +129,11 @@ const SHARED_PAST =
 /** True when a line implies the speaker and listener have talked before. */
 export function impliesSharedPast(line: string): boolean {
   return SHARED_PAST.test(line);
+}
+
+/** A stranger's hello turned away: a shared past, or (EARLIER_CALL_NO_DENIAL) a claim of none. */
+export function strangerHelloRejects(line: string, env: Env = process.env): boolean {
+  return impliesSharedPast(line) || claimsNoPast(line, env);
 }
 
 /** How long the hello waits for a deferred profile, like its other lookups. */

@@ -113,8 +113,22 @@ function checkOutputRefs(reader: Job, declared: ReadonlyMap<string, ReadonlySet<
  * The repository is 'o/r'. A pull_request comes from a branch of it (its head repo
  * is 'o/r'; override `github.event.pull_request.head.repo.full_name` for a fork);
  * other events carry no pull request, so that field reads as ''.
+ * A pull_request is 'opened' on PR 101 with no label in its payload; override
+ * `github.event.action` and `github.event.label.name`. merge_group's action is
+ * 'checks_requested'. The run id is 'run-1'; override `github.run_id`.
  */
 function evaluate(cond: string, event: Event, outputs: Record<string, string> = {}): boolean {
+  return Boolean(value(cond, event, outputs));
+}
+
+const ACTION: Partial<Record<Event, string>> = {
+  pull_request: 'opened',
+  merge_group: 'checks_requested',
+};
+
+/** An expression's value for the event (see evaluate). */
+function value(cond: string, event: Event, outputs: Record<string, string>): unknown {
+  const pr = event === 'pull_request';
   const src = cond
     .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
     .replace(OUTPUT_REF, (ref) => `'${outputs[ref] ?? 'true'}'`)
@@ -123,8 +137,14 @@ function evaluate(cond: string, event: Event, outputs: Record<string, string> = 
     .replace(/github\.event\.head_commit\.message/g, (ref) => `'${outputs[ref] ?? ''}'`)
     .replace(/github\.event\.pull_request\.labels\.\*\.name/g, '[]')
     .replace(/github\.event\.pull_request\.head\.repo\.full_name/g, (ref) => {
-      return `'${outputs[ref] ?? (event === 'pull_request' ? 'o/r' : '')}'`;
+      return `'${outputs[ref] ?? (pr ? 'o/r' : '')}'`;
     })
+    .replace(/github\.event\.action\b/g, (ref) => `'${outputs[ref] ?? ACTION[event] ?? ''}'`)
+    .replace(/github\.event\.label\.name\b/g, (ref) => `'${outputs[ref] ?? ''}'`)
+    .replace(/github\.event\.pull_request\.number\b/g, (ref) => {
+      return `'${outputs[ref] ?? (pr ? '101' : '')}'`;
+    })
+    .replace(/github\.run_id\b/g, (ref) => `'${outputs[ref] ?? 'run-1'}'`)
     .replace(/github\.event\.inputs\.\w+/g, "''")
     .replace(/github\.event\.workflow_run\.[\w.]+/g, "''")
     .replace(/github\.event\.issue\.[\w.]+/g, "''")
@@ -201,7 +221,27 @@ function evaluate(cond: string, event: Event, outputs: Record<string, string> = 
   };
   const result = or();
   if (i !== tokens.length) throw new Error(`can't evaluate: ${cond}`);
-  return Boolean(result);
+  return result;
+}
+
+/**
+ * A workflow's top-level concurrency group for the event, its `${{ }}` parts evaluated
+ * as in evaluate (`outputs` overrides; `github.workflow` is the workflow's `name:`).
+ * Two runs cancel each other only when their groups are equal.
+ */
+export function concurrencyGroup(
+  workflow: string,
+  event: Event,
+  outputs: Record<string, string> = {},
+  dir = join(ROOT, DIR)
+): string {
+  const text = readFileSync(join(dir, workflow), 'utf8');
+  const group = /^concurrency:\n(?: {2}.*\n)*? {2}group: (.*)$/m.exec(text)?.[1];
+  if (!group) throw new Error(`${workflow}: no top-level concurrency group`);
+  const name = /^name: (.*)$/m.exec(text)?.[1].replace(/^'(.*)'$/, '$1') ?? workflow;
+  return group.replace(/\$\{\{(.*?)\}\}/g, (_, expr: string) =>
+    String(value(expr.replace(/github\.workflow\b/g, `'${name}'`), event, outputs))
+  );
 }
 
 /**
