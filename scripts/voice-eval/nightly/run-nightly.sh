@@ -1,7 +1,8 @@
 #!/bin/bash
 # Nightly capability sweep on ferni-dev: claim dev, deploy origin/main to dev, run
 # lanes a and b (the 2026-10-21 scenario set), judge, pull the agent logs, analyze,
-# score each capability (scorecard.mjs) and report. Dev only: no prod path exists here.
+# score each capability (scorecard.mjs) and report. Dev only: nothing here changes prod; the
+# flag parity step only reads prod's flag words (lk agent secrets / logs, read-only).
 #
 # usage: scripts/voice-eval/nightly/run-nightly.sh     (from ~/Projects/voiceai at origin/main)
 #   NIGHTLY_DRY_RUN=1   print the plan and run nothing (no claim, deploy, call or write)
