@@ -418,6 +418,51 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
 };
 
 /**
+ * Crisis-lane flags that change what the classifier model is shown, on turns the reply grid
+ * can't build: the grid's classifier answers each call the same whatever it is shown, so
+ * SHOWN_ON cannot see these flags. The grid still sets each of them on every call it places and
+ * fails if any reply moves or lowers. This home is open only to a flag whose named rows drive
+ * the real read (startCrisisClassifier) with a stand-in model that reads its input, flag off then
+ * on, and show both what the flag lowers and that a true risk line still reads at its level
+ * with the flag on.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for TEXT_SHOWN_ON. What a row asserts is a reviewer's check.
+ */
+export const CLASSIFIER_READ_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // #4208: one alarm read with Ferni's own 988 line as context locked every later turn on imminent.
+  CRISIS_COMPANION_EXCLUDES_OWN_LINE: [
+    {
+      file: 'src/services/safety/__tests__/crisis-companion-own-line.test.ts',
+      rows: [
+        'a lock replay: the pushback after an alarm reads imminent with the flag off, none with it on',
+        'a real continued-risk line after the alarm still reads imminent with the flag on',
+        "the caller's answer to Ferni's safety question is read with the question",
+        "the caller's own words are never left out, crisis lines in them included",
+        'with the flag off or unset, the model is shown exactly what main shows',
+        "a read shown less is never shared with another call that sees Ferni's line whole",
+        '#3465: "No. Get me Jordan." after the 988 script and "Are you safe right now?" still reads imminent',
+        '#3465: a bare name after the imminent script and "Is anyone nearby who can be with you?" still reads imminent',
+        "once risk is confirmed, every read sees Ferni's line whole, whatever CRISIS_CONFIRMED_CALL_RISK",
+        'a 200 KB line is read from its tail: the same result as its last 400 characters',
+      ],
+    },
+    {
+      file: 'src/agents/personas/__tests__/crisis-gate-companion-own-line.test.ts',
+      rows: [
+        'prod set: off, the pushback after one alarm keeps crisis guidance; on, it is not',
+        'a plan only the classifier reads, after the false alarm, keeps crisis guidance with the flag on',
+        'a crisis the patterns confirmed keeps crisis turns for the call with the flag on',
+        "a stripped read that still escalates gets an after-check shown no crisis line of Ferni's",
+        'with the after-check stubbed to none, the same calls are never confirmed: the after-check alone confirmed them',
+        'with CRISIS_CONFIRMED_CALL_RISK on, a true crisis line after the alarm reads as with the flag off',
+        'a true imminent the after-check reads in the caller words still confirms the call',
+      ],
+    },
+  ],
+};
+
+/**
  * Crisis-lane flags that act only when the voice gate's own escalation rejects: an easing step,
  * or the wait for the read, throws. No call in the reply grid reaches that: its classifier
  * failures ('throws', 'never') settle as a failed read (a null verdict) on the timeout path, so

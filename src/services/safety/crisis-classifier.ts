@@ -41,6 +41,7 @@ import {
   SharedRuns,
 } from './crisis-read-room.js';
 import { watchBlocked } from './crisis-classifier-blocked.js';
+import { COMPANION_READ_CHARS, inputForRead } from './crisis-companion-own-line.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
@@ -176,9 +177,6 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
   }
 }
 
-/** The companion's line is context, not the subject: its end is what LATEST answers. */
-const MAX_COMPANION_CHARS = 400;
-
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
 export function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
@@ -194,7 +192,7 @@ export function normalizeInput(input: CrisisClassifierInput): {
   // reply) key the same line alike and share one call.
   const companion = stripSSML(input.companion ?? '')
     .trim()
-    .slice(-MAX_COMPANION_CHARS);
+    .slice(-COMPANION_READ_CHARS); // the companion is context: its end is what LATEST answers
   return companion ? { latest, earlier, companion } : { latest, earlier };
 }
 
@@ -427,6 +425,9 @@ export function startCrisisClassifier(
   const { call, pattern, secondRead } = options;
   const lines = [normalized.latest, ...normalized.earlier];
   const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
+  // CRISIS_COMPANION_EXCLUDES_OWN_LINE: what the model is shown. A shared run is keyed on it too,
+  // so a read shown less is never another call's read; the turn's own reads keep the input.
+  const shown = inputForRead(input, options.call, env);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
@@ -436,6 +437,7 @@ export function startCrisisClassifier(
     second.key,
     ...agreementCacheScope(env, options.call),
     ...(on ? [options.call] : []),
+    ...(shown === input ? [] : [normalizeInput(shown).companion ?? '']),
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
@@ -453,7 +455,7 @@ export function startCrisisClassifier(
   const given = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const generate = watchBlocked(given, options.call, normalized.latest, env); // BLOCKED_SIGNAL
   const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+    classifyCrisis(shown, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
     ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })

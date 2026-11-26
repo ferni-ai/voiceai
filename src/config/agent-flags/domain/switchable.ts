@@ -67,6 +67,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   // crisis-classifier-only(-live).ts; live is held (logs, changes nothing) outside tests
   CRISIS_CLASSIFIER_ONLY_CHECKIN: OFF_SHADOW,
   CRISIS_CLASSIFIER_SECOND_READ: WITH_SHADOW, // crisis-classifier-v3.ts
+  CRISIS_COMPANION_EXCLUDES_OWN_LINE: ON_OFF, // crisis-companion-own-line.ts, === 'on'
   CRISIS_CONFIRMED_CALL_RISK: WITH_SHADOW, // crisis-confirmed-risk.ts
   CRISIS_GRADED_RESPONSE: OFF_SHADOW, // crisis-graded-shadow.ts; live runs as shadow
   CRISIS_IMMINENT_NEEDS_AGREEMENT: ON_OFF, // crisis-imminent-agreement.ts
