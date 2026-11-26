@@ -13,7 +13,7 @@ import { guardRuleFor } from '../director-guard.js';
 import { DIRECTOR_SYSTEM, Director, directorSystem, parseNotes } from '../director-notes.js';
 
 const RULE =
-  'The caller\'s words reach you through speech-to-text, which sometimes swaps one word: "it\'s going pretty good for him" was "for me". When a single pronoun or name doesn\'t fit, it was misheard: never write a note about that word, and never tell him to point it out, question it or repeat it. This is only about one swapped word: everything else they say, above all a hint that they won\'t be around or might come to harm, means what it says.';
+  'The caller\'s words reach you through speech-to-text, which sometimes swaps one pronoun or name: "it\'s going pretty good for him" was "for me". Read past a swapped word to what they meant and leave it out of your notes: never tell him to point it out, question it or repeat it. Everything else they say means what it says and gets your notes as usual, above all a hint that they won\'t be around or might come to harm.';
 
 /** Notes that matter, which the filter in #4276 dropped; the rule adds no filter. */
 const KEPT = [

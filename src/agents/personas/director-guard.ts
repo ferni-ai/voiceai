@@ -32,7 +32,7 @@ const log = createLogger({ module: 'DirectorGuard' });
  * reads as a line. `thought`: worded for the deliberator (deliberation.ts).
  * NO_INVENTED_USAGE=on: nor asks for what other callers said or how many there are.
  * EARLIER_CALL_NO_DENIAL adds: a caller citing an earlier call may be right.
- * DIRECTOR_STT_SLIPS adds: one odd word is a mishearing, never a note (director-stt-slips.ts).
+ * DIRECTOR_STT_SLIPS adds: a swapped pronoun or name is misheard, never picked at (director-stt-slips.ts).
  */
 export const guardRuleFor = (
   c: Cast,

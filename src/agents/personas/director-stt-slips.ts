@@ -20,16 +20,20 @@
  * wording ("one word that doesn't fit ... is a mishearing") also taught the
  * director to wave off "I won't be around for it anyway" (flagged in 9 of 10 runs
  * without the rule, 3 of 10 with it). So the rule is narrowed to one swapped
- * pronoun or name, and says outright that a hint of harm means what it says. With
- * that wording, risk lines were flagged in 63/90 runs off and 60/90 on, and
- * "he was flying" (for "I") got no note telling Ferni to ask who "he" is (7/10 off).
+ * pronoun or name. A second wording ("never write a note about that word") still
+ * made the director go quiet: review found a goodbye line ("closing the book on it
+ * all") flagged in 60/60 runs off and 42/60 on, every miss a bare NONE. So the rule
+ * says to leave only the word out of notes, and that everything else gets notes
+ * as usual. With this wording, four risk lines at 30 runs each got no note in 26
+ * runs off and 13 on, and "he was flying" (for "I") got a note to ask about the
+ * slip in 9/10 runs off and 0/10 on.
  *
  * @module agents/personas/director-stt-slips
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { Cast } from './director-cast.js';
 
-/** DIRECTOR_STT_SLIPS=on: the director treats an odd word as a mishearing. */
+/** DIRECTOR_STT_SLIPS=on: the director reads past a swapped pronoun or name. */
 function directorSttSlipsEnabled(env: Env = process.env): boolean {
   return flagOn('DIRECTOR_STT_SLIPS', env);
 }
@@ -37,5 +41,5 @@ function directorSttSlipsEnabled(env: Env = process.env): boolean {
 /** The rule for the guard rule (director-guard.ts), with a leading space; '' with the flag off. */
 export function sttSlipRuleFor(c: Cast, env: Env = process.env): string {
   if (!directorSttSlipsEnabled(env)) return '';
-  return ` The caller's words reach you through speech-to-text, which sometimes swaps one word: "it's going pretty good for him" was "for me". When a single pronoun or name doesn't fit, it was misheard: never write a note about that word, and never tell ${c.p.object} to point it out, question it or repeat it. This is only about one swapped word: everything else they say, above all a hint that they won't be around or might come to harm, means what it says.`;
+  return ` The caller's words reach you through speech-to-text, which sometimes swaps one pronoun or name: "it's going pretty good for him" was "for me". Read past a swapped word to what they meant and leave it out of your notes: never tell ${c.p.object} to point it out, question it or repeat it. Everything else they say means what it says and gets your notes as usual, above all a hint that they won't be around or might come to harm.`;
 }
