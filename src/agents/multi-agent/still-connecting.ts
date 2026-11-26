@@ -12,7 +12,7 @@
  * @module agents/multi-agent/still-connecting
  */
 import { voice } from '@livekit/agents';
-import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { crisisRiskThisCall } from '../../services/safety/index.js';
 import { setStillConnectingPort } from '../../tools/domains/telephony/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisDecidedOn, crisisVerdictPending } from '../safety/crisis-gate-signal.js';
