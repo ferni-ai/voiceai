@@ -103,11 +103,11 @@ describe('the guard', () => {
       callId: 'c2',
       name: 'callStatus',
       output:
-        'Everything Ferni did for the caller in the last 30 days, from the records.\nDone, newest first:\n- Sunday, November 22, in the afternoon (3:00 PM): Ferni called Ottilie (their best friend), and they answered.',
+        'Everything Ferni did for the caller in the last 30 days, from the records.\nDone, newest first:\n- Saturday, November 21, in the afternoon (3:00 PM): Ferni called Marisol (their mom), and they answered.',
       isError: false,
     });
-    const words = 'I did, yeah. She told me she is moving next month.';
-    const asked = [user('Did you end up calling my best friend?'), listed];
+    const words = 'I did, yeah. She told me the lake trip is still on.';
+    const asked = [user('Did you call my mom?'), listed];
     expect(await reply(asked, words)).toBe(words);
   });
 

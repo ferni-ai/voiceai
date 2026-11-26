@@ -102,8 +102,8 @@ const REPORTED = /\bReported from Ferni's call\b/;
  * callStatus (telephony/call-status-tool.ts, also told by callOnBehalf) found the call's result: Ferni
  * called (or tried), so telling how it went stands. Owner call 2026-10-26 18:46: asked about an
  * answered call, Ferni said it didn't "know how that call went yet". The RECALL_ACTIVITY list
- * (services/outreach/activity-recall.ts) dates each line first ("Sunday, ... (3:00 PM): Ferni
- * called Ottilie ..."); dev recall eval 2026-11-26: without reading those, a right answer about
+ * (services/outreach/activity-recall.ts) dates each line first ("Saturday, ... (3:00 PM): Ferni
+ * called Marisol ..."); dev recall eval 2026-11-26: without reading those, a right answer about
  * an answered call became "I haven't heard back", graded as a made-up call.
  */
 const toldByStatus = (item: Item & { output?: unknown }): boolean =>
