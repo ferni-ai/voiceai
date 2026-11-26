@@ -201,9 +201,15 @@ export function activityText(records: ActivityRecords, now: number): string {
   const open = lines.filter((l) => l.open).sort((a, b) => a.at - b.at);
   const past = lines.filter((l) => !l.open).sort((a, b) => b.at - a.at);
   const kept = [...open, ...past].slice(0, MAX_LINES);
+  const cut = lines.length - kept.length;
+  // Past the cap, the oldest are left out: say so, so an older one is never denied (#4490 verify).
+  const absent =
+    cut > 0
+      ? `Anything not listed didn't happen, except that ${cut} older item${cut === 1 ? ' was' : 's were'} left out to keep this short: about anything before the oldest listed, say you'd have to check, never that it didn't happen.`
+      : "Anything not listed didn't happen: say so plainly, never guess.";
   const out = [
     ...(unread ? [unread] : []),
-    `Everything Ferni did for the caller in the last 30 days, from the records (times are the caller's, ${zone}). Answer from this, including "the time before that", "did my reminder go out", "why did you email me" and "what's still open". Anything not listed didn't happen: say so plainly, never guess.`,
+    `Everything Ferni did for the caller in the last 30 days, from the records (times are the caller's, ${zone}). Answer from this, including "the time before that", "did my reminder go out", "why did you email me" and "what's still open". ${absent}`,
     'Still open:',
     ...(kept.some((l) => l.open)
       ? kept.filter((l) => l.open).map((l) => `- ${l.text}`)
