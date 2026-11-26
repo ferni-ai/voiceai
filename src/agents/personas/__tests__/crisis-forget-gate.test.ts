@@ -2,12 +2,26 @@
  * The #4159 dev call, through the live reply gate and the turn pipeline: a request to forget a
  * named thing with a classifier-only crisis read. With CRISIS_FORGET_EVERYDAY on, the caller
  * gets the soft check-in (never nothing); off, or set to any word but "on", crisis guidance as
- * today. Risky lines, imminent reads and an earlier risky read keep full crisis guidance. Lines
- * are fictional.
+ * today. Risky lines, imminent reads, an earlier risky read, a check that throws and a live
+ * adjudicator that escalates all keep full crisis guidance. Lines are fictional.
  */
 import { llm } from '@livekit/agents';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// A step inside the forget check throwing (the risk list here).
+const h = vi.hoisted(() => ({ breaks: false }));
+vi.mock('../../../services/safety/crisis-agreement.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../services/safety/crisis-agreement.js')>(); // prettier-ignore
+  return {
+    ...real,
+    hasRiskContent: (text: string) => {
+      if (h.breaks) throw new Error('risk list broke');
+      return real.hasRiskContent(text);
+    },
+  };
+});
+
+import { allowCrisisAdjudicatorLiveForTests } from '../../../services/safety/crisis-adjudicator.js';
 import { SOFT_CRISIS_CHECK } from '../../../services/safety/crisis-agreement.js';
 import {
   crisisRiskThisCall,
@@ -35,13 +49,19 @@ function request(...turns: Array<['user' | 'assistant', string]>): llm.ChatConte
   return ctx;
 }
 
+const escalate: CrisisGenerateFn = async () =>
+  '{"caller_risk":"","decision":"escalate","confidence":"high"}';
+/** The adjudicator truly live (it is held as shadow outside tests). */
+const LIVE_ADJUDICATOR = { ...ON, CRISIS_ADJUDICATOR: 'live' };
+
 async function effective(
   ctx: llm.ChatContext,
   sessionId: string,
   env: Record<string, string>,
   generate: CrisisGenerateFn = crisisRead
 ): Promise<CrisisGateDecision> {
-  const gate = startCrisisGate(ctx, { services: { sessionId } }, { env, generate });
+  const options = { env, generate, adjudicate: escalate };
+  const gate = startCrisisGate(ctx, { services: { sessionId } }, options);
   if (!gate) throw new Error('gate off');
   return (await gate.escalation) ?? gate.decision;
 }
@@ -51,9 +71,11 @@ const full = (d: CrisisGateDecision): boolean =>
   d.action === 'replace' || (d.action === 'guide' && d.guidance !== SOFT_CRISIS_CHECK);
 
 beforeEach(() => {
+  h.breaks = false;
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
 });
+afterEach(() => allowCrisisAdjudicatorLiveForTests(false));
 
 const COMPANION = 'Two meetings today, and a call at four.';
 const FORGET = "And forget Theo's number too. I'll just keep it in my phone.";
@@ -72,6 +94,16 @@ describe('a forget request through the crisis gate', () => {
       expect(full(await effective(DEV, `dev-${word}`, env))).toBe(true);
     }
   );
+
+  it('keeps crisis guidance when a step inside the forget check throws', async () => {
+    h.breaks = true;
+    expect(full(await effective(DEV, 'dev-breaks', ON))).toBe(true);
+  });
+
+  it('leaves the turn to a live adjudicator, which keeps crisis guidance when it escalates', async () => {
+    allowCrisisAdjudicatorLiveForTests(true);
+    expect(full(await effective(DEV, 'dev-adjudicated', LIVE_ADJUDICATOR))).toBe(true);
+  });
 
   it('never softens an imminent read', async () => {
     expect((await effective(DEV, 'imminent', ON, read('imminent'))).action).toBe('replace');
@@ -101,7 +133,7 @@ describe('a forget request through the turn pipeline (startTurnCrisis)', () => {
     startTurnCrisis(
       line,
       { recentTranscripts: ['What do I have today?'], lastAgentResponse: COMPANION },
-      { sessionId, env, generate: crisisRead }
+      { sessionId, env, generate: crisisRead, adjudicate: escalate }
     );
 
   it('gets the soft check-in with the flag on', async () => {
@@ -117,5 +149,19 @@ describe('a forget request through the turn pipeline (startTurnCrisis)', () => {
     const self = turnFor('pipe-self', ON, 'forget about me');
     expect(await self.softCheck()).toBe(false);
     expect((await self.resolve()).isCrisis).toBe(true);
+  });
+
+  it('keeps crisis handling when a step inside the forget check throws', async () => {
+    h.breaks = true;
+    const turn = turnFor('pipe-breaks', ON);
+    expect(await turn.softCheck()).toBe(false);
+    expect((await turn.resolve()).isCrisis).toBe(true);
+  });
+
+  it('leaves the turn to a live adjudicator, which keeps crisis handling when it escalates', async () => {
+    allowCrisisAdjudicatorLiveForTests(true);
+    const turn = turnFor('pipe-adjudicated', LIVE_ADJUDICATOR);
+    expect(await turn.softCheck()).toBe(false);
+    expect((await turn.resolve()).isCrisis).toBe(true);
   });
 });

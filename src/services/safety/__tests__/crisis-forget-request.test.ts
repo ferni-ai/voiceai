@@ -6,7 +6,7 @@
  * crisis handling. Lines are fictional.
  */
 import { readFileSync } from 'node:fs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CRISIS_CONTEXTUAL } from '../../../agents/__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_HELDOUT_RETIRED } from '../../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases.js';
@@ -17,6 +17,19 @@ import {
 } from '../crisis-classifier.js';
 import { noteCrisisRisk, resetCrisisCallRisk, trackCrisisRead } from '../crisis-call-risk.js';
 import { forgetRequestIsEveryday } from '../crisis-forget-request.js';
+
+// A step inside the check throwing (the risk list here) must leave full crisis handling.
+const h = vi.hoisted(() => ({ breaks: false }));
+vi.mock('../crisis-agreement.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../crisis-agreement.js')>();
+  return {
+    ...real,
+    hasRiskContent: (text: string) => {
+      if (h.breaks) throw new Error('risk list broke');
+      return real.hasRiskContent(text);
+    },
+  };
+});
 
 const ON = { CRISIS_FORGET_EVERYDAY: 'on' };
 const ASKED = 'Got it. Anything else?';
@@ -33,6 +46,7 @@ const everyday = (
 ): boolean => forgetRequestIsEveryday(t, pattern, call, env);
 
 beforeEach(() => {
+  h.breaks = false;
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
 });
@@ -151,6 +165,26 @@ describe('the hard block', () => {
     expect(alone(line)).toBe(false);
   });
 
+  // Putting affairs in order, or clearing what is kept for others: warning signs (owner, 2026-11-26).
+  it.each([
+    'delete my insurance policy details',
+    'erase every photo of us',
+    'delete the voicemail for my mom',
+    "delete my kids' college fund details",
+    'erase the video for my wife',
+    'forget my bank accounts',
+    'forget the life insurance',
+    'delete the pictures from the beach',
+    'erase the messages for my sister',
+    'forget my savings',
+    'delete the recording for Theo',
+    'forget the letters to my kids',
+    'delete my pension details',
+    'forget my retirement plan',
+  ])('refuses "%s" (affairs in order, or kept for others)', (line) => {
+    expect(alone(line)).toBe(false);
+  });
+
   it('lets the same shape through when nothing in it is refused', () => {
     expect(alone('forget my old place')).toBe(true);
     expect(alone('forget the recipe')).toBe(true);
@@ -217,6 +251,12 @@ describe('forgetRequestIsEveryday', () => {
 
   it("keeps it when the companion's line it answers carries risk", () => {
     expect(everyday(turn(line, [], 'Are you thinking about hurting yourself?'))).toBe(false);
+  });
+
+  it('fails closed when a step inside the check throws', () => {
+    expect(everyday(turn(line))).toBe(true); // the control: the same line, nothing broken
+    h.breaks = true;
+    expect(everyday(turn(line))).toBe(false);
   });
 
   it('fails closed on input it cannot read', () => {
