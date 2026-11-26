@@ -10,11 +10,18 @@ import type { llm } from '@livekit/agents';
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
 import { alsoSafe } from './phone-safe-also.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
+import { flagOn } from '../../config/env-flag.js';
 import { heldAfter, lastFerniLine, type YouthNote } from '../../utils/minor-care.js';
+import { careHoldReason, onlyReadRunning } from '../../utils/minor-care-reason.js';
+import {
+  type PhoneSafeCutState,
+  type ToolHolder,
+  withoutAccountTools,
+  withToolsBack,
+} from './phone-safe-cut.js';
 import {
   hasThirdPartyTools,
   mayReachOthers,
@@ -95,10 +102,8 @@ interface TurnSession {
 }
 
 /** Per-agent state: the locked-handoff removal is logged once per agent. */
-export interface TurnToolsState {
+export interface TurnToolsState extends PhoneSafeCutState {
   loggedLockedHandoffs: boolean;
-  /** The agent, so tools a phone-only caller can't use come off it too (phone-safe-tools.ts). */
-  agent?: object;
 }
 
 const sessionIdOf = (userData: unknown): string | undefined =>
@@ -424,17 +429,36 @@ export async function toolsForTurn(
   // on: a held caller under 18 gets no tool that stores anything; the phone-safe set reaches no
   // one, so it covers both. ONBEHALF_WRITE_GATE: a call placed for a member acts on no account.
   const others = mayReachOthers(userId, sessionId, sessionIsVerifiedOwner);
-  const held = heldAfter(sessionId, callerWords(chatCtx), {
+  // PHONE_SAFE_SETTLED_HOLD: a verified owner's tools follow holds that were set, not a read still
+  // running (the 11-18 cut: 94 -> 20 for the rest of the call). Memory writes still wait on it.
+  const settledFlag = flagOn('PHONE_SAFE_SETTLED_HOLD');
+  const settled = settledFlag && !!sessionId && sessionIsVerifiedOwner(sessionId);
+  const careHeld = heldAfter(sessionId, callerWords(chatCtx), {
     asked: lastFerniLine(chatCtx.items),
     userId, // userHeld follows
     careOnly: true, // a crisis hold keeps the call's tools (support, handoffs); each writer refuses
   });
-  const allowed =
-    phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userId)
-      ? await withoutAccountTools(toolCtx, state, alsoSafe(userId, onPlacedCallSession(sessionId)))
-      : others
-        ? toolCtx
-        : await withoutReachingOthers(toolCtx, state);
+  const why = settledFlag && careHeld ? careHoldReason(sessionId, userId) : undefined;
+  const held = careHeld && !(settled && onlyReadRunning(sessionId, userId));
+  const phoneOnly = phoneOnlyIdentity(sessionId);
+  const cut = phoneOnly || held || ownerWritesBlocked(userId);
+  if (!cut && settled) await withToolsBack(toolCtx, state);
+  const allowed = cut
+    ? await withoutAccountTools(
+        toolCtx,
+        state,
+        alsoSafe(userId, onPlacedCallSession(sessionId)),
+        !settledFlag
+          ? undefined
+          : phoneOnly
+            ? 'phone-only'
+            : held
+              ? (why ?? 'care-hold')
+              : 'owner-writes-blocked'
+      )
+    : others
+      ? toolCtx
+      : await withoutReachingOthers(toolCtx, state);
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
     return allowed;
@@ -471,30 +495,4 @@ async function withoutReachingOthers(
     }
   }
   return withoutThirdPartyTools(toolCtx);
-}
-
-/**
- * A caller known only by their phone number, or a session on no account (the
- * person on a call placed for a member): every tool not on the phone-safe
- * allowlist leaves the request and the agent itself, so a call to one can't
- * run (phone-safe-tools.ts). endCall, support and handoffs stay.
- */
-interface ToolHolder {
-  readonly toolCtx: llm.ToolContext;
-  updateTools(
-    tools: llm.ToolContext | Parameters<llm.ToolContext['updateTools']>[0]
-  ): Promise<void>;
-}
-
-async function withoutAccountTools(
-  toolCtx: llm.ToolContext,
-  state: TurnToolsState,
-  also?: ReadonlySet<string> // phone-safe-also.ts
-): Promise<llm.ToolContext> {
-  const agent = state.agent as ToolHolder | undefined;
-  if (agent && onlyPhoneSafeTools(agent.toolCtx, also) !== agent.toolCtx) {
-    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx, also));
-    log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
-  }
-  return onlyPhoneSafeTools(toolCtx, also);
 }
