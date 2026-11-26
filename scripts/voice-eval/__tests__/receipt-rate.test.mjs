@@ -68,7 +68,8 @@ describe('humannessValue (the nightly metric)', () => {
 
   it('skips an event with no text instead of failing the night', () => {
     const run = call(['Huh, Lisbon?']);
-    run.events.push({ who: 'agent', t: 9000 });
+    // Right after a caller turn, where computeHumanness reads the reply's text.
+    run.events.splice(2, 0, { who: 'agent', t: 1200 });
     expect(humannessValue([{ run }], 'receiptRate')).toEqual({ value: 1, n: 1 });
   });
 
