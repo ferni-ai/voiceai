@@ -24,7 +24,7 @@ import type { EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 import type { SpeakerSignals } from '../ui/speaker-cues-signals.js';
 import type { Speaker } from '../ui/speaker-cues.ui.js';
 import { prefersReducedMotion } from '../utils/accessibility.js';
-import type { LabCommand, LabMoment, LabReply, LabStatus } from './lab-protocol.js';
+import type { LabCommand, LabMoment, LabReply, LabStatus } from '../ui/avatar-lab-protocol.js';
 
 /** The avatar soul's own state, as `avatarSoul.getState()` reports it: what its exports check. */
 export interface LabSoulState {

@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startLabBridge } from '../../src/avatar-lab/lab-bridge.js';
 import type { LabDeps } from '../../src/avatar-lab/lab-commands.js';
-import { LAB_MESSAGE_TYPE } from '../../src/avatar-lab/lab-protocol.js';
+import { LAB_MESSAGE_TYPE } from '../../src/ui/avatar-lab-protocol.js';
 import { releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 
 function fakeDeps() {
