@@ -55,6 +55,7 @@ import {
   type ConfirmEvent,
   type PendingAction,
 } from '../outreach-confirm.js';
+import { noteLiveSession } from '../../../../registry/live-session.js';
 
 const ctx: ToolContext = { userId: 'user-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
 const contacts: Record<string, { id: string; name: string; phone: string }> = {
@@ -80,6 +81,7 @@ const TO_DAD = {
 
 function liveCall(speakerIsOwner?: () => boolean) {
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session, speakerIsOwner);
   const tool = (id: string) => {
     if (id === 'quickText') return quickTextDef.create(ctx);

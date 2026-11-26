@@ -10,6 +10,7 @@ import {
   withOutreachConfirmation,
   type ConfirmSpec,
 } from '../../communication/outreach/outreach-confirm.js';
+import { consentNaturalOn } from '../../communication/outreach/consent-judge.js';
 import { askAboutNumber, ownerRefKey, type OwnerContact } from '../owner-contact.js';
 
 describe('ownerRefKey', () => {
@@ -113,6 +114,8 @@ describe('ConfirmSpec.onYes in the confirm gate', () => {
     await g.call('c1');
     g.say('Yes.');
     await g.call('c2');
-    expect(g.onYes).toHaveBeenCalledWith(expect.anything(), 'u-1', undefined);
+    // CALL_CONSENT_NATURAL holds an action with no call id to read the call's crisis state by.
+    if (consentNaturalOn()) expect(g.onYes).not.toHaveBeenCalled();
+    else expect(g.onYes).toHaveBeenCalledWith(expect.anything(), 'u-1', undefined);
   });
 });

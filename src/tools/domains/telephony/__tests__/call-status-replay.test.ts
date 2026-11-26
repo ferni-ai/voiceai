@@ -106,6 +106,7 @@ function liveCall(userId = OWNER_UID, owner: (() => boolean) | null = () => true
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
   const ctx: ToolContext = { userId, agentId: 'ferni', agentDisplayName: 'Ferni' };
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session, owner ?? undefined);
   return {
     session,

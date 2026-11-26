@@ -10,7 +10,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { detectCrisis } from '../../../../../services/safety/index.js';
-import { setConsentAsk } from '../consent-judge.js';
+import { consentNaturalOn, setConsentAsk } from '../consent-judge.js';
 import { setReadBackAsk } from '../consent-readback.js';
 import { pendingFor } from '../outreach-confirm.js';
 import { alwaysReadBack, fairJudge, liveCall, sends } from './consent-call-harness.js';
@@ -28,6 +28,9 @@ const CANCEL_REPLY =
 const CLOSED_REPLY =
   `Nothing was sent, and don't read it back again: the caller hasn't said yes to it. Tell them ` +
   `in a few words: "Okay, I won't call Dad." Only if they ask for it again, in their own words, try again.`;
+// CALL_CONSENT_NATURAL: after a crisis line the tool is held for the rest of the call.
+const HELD_REPLY = "Nothing was sent. Don't read it back, offer it or try it again on this call.";
+const closedReply = (): string => (consentNaturalOn() ? HELD_REPLY : CLOSED_REPLY);
 
 type Step = ['owner' | 'ferni', string];
 const PLACES: Array<[string, Step[]]> = [
@@ -145,12 +148,13 @@ describe('a crisis line only the joined turns read as crisis', () => {
     vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'on');
     const { call, reply } = await play(steps);
     expect(pendingFor(call.session)).toBeUndefined();
-    expect(reply).toBe(CLOSED_REPLY);
+    expect(reply).toBe(closedReply());
     expect(sends).toHaveLength(0);
   });
   // Flag off is main, unchanged: the joined read is not made, so it asks once. Nothing is sent.
   it.each(rows)('flag off: %s %s is main, unchanged: asks once', async (_t, _w, steps) => {
     vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'off');
+    vi.stubEnv('CALL_CONSENT_NATURAL', 'off'); // with it on, a crisis line ends it too
     const { call, reply } = await play(steps);
     expect(pendingFor(call.session)).toBeDefined();
     expect(reply).toBe(ASK_REPLY);
@@ -167,11 +171,12 @@ describe('a crisis line said in one turn is unchanged', () => {
     vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'on');
     const { call, reply } = await play([...steps, ['owner', line]]);
     expect(pendingFor(call.session)).toBeUndefined();
-    expect(reply).toBe(CLOSED_REPLY);
+    expect(reply).toBe(closedReply());
     expect(sends).toHaveLength(0);
   });
   it.each(rows)('flag off: %j %s is main, unchanged: asks once', async (line, _w, steps) => {
     vi.stubEnv('OUTREACH_NO_ANSWERS_READBACK', 'off');
+    vi.stubEnv('CALL_CONSENT_NATURAL', 'off'); // with it on, a crisis line ends it too
     const { call, reply } = await play([...steps, ['owner', line]]);
     expect(pendingFor(call.session)).toBeDefined();
     expect(reply).toBe(ASK_REPLY);

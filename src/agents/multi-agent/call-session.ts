@@ -5,6 +5,7 @@
  * swapped in later joins this session instead of building one of its own.
  */
 import { voice } from '@livekit/agents';
+import { VAD_MIN_SPEECH_MS } from '../../config/vad-timing.js';
 import { loadWorldFactsForCall } from '../../intelligence/world-model/temporal/in-call-load.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
@@ -80,7 +81,10 @@ export async function createCallSession(
       // 350 ms of silence ends the caller's speech (Silero's default is 550).
       // The barge-in fast path reads speech length from these state changes;
       // with 550 ms a 0.45 s "uh-huh" looked like a second of talk-over.
-      vad = await VAD.load({ minSilenceDuration: Number(process.env.VAD_MIN_SILENCE_MS) || 350 });
+      vad = await VAD.load({
+        minSilenceDuration: Number(process.env.VAD_MIN_SILENCE_MS) || 350,
+        minSpeechDuration: VAD_MIN_SPEECH_MS, // Silero's default, read by CALL_CONSENT_NATURAL
+      });
       log.info(
         {
           personaId: persona.id,

@@ -41,6 +41,7 @@ export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-flo
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
+// Risk noted on a call, reads in flight aside: the outreach gate holds outbound (consent-send.ts).
 // Whether a call has crisis risk noted, settled reads only: crisis replies get no recalled memory.
 // Note risk on a call: the reply gate's fail-closed settle (crisis-gate-failure.ts).
 export {

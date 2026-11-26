@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PersonaAgent } from '../orchestrator.js';
 import type { SessionServices } from '../../../services/types.js';
 import type { ToolDefinition } from '../../../tools/registry/types.js';
+import { noteLiveSession } from '../../../tools/registry/live-session.js';
 
 const seen = vi.hoisted(() => ({
   summaries: new Map<string, string | undefined>(),
@@ -86,6 +87,7 @@ const msg = (role: 'user' | 'assistant', text: string) => ({
 async function ferniSessionWithWaitingCall(): Promise<object> {
   const items: unknown[] = [msg('user', 'Hey Ferni, long day.'), msg('user', ASK)];
   const session = { history: { items } };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const def = {
     id: 'callOnBehalf',
     create: () => ({ execute: vi.fn(async () => 'Calling now.') }),

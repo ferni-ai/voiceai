@@ -40,6 +40,15 @@ export const numberOf = (pending: Pick<PendingAction, 'args'>): string => {
 export const STOP = new Set(words('my the a your his her their'));
 export const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
 
+/** CALL_CONSENT_NATURAL: the call and the owner's message for the person, read back together. */
+export function messageAskLine(
+  pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>,
+  message: string
+): string {
+  const ask = `${VERB[channelOf(pending)]} ${personOf(pending)} now and tell them "${message}"`;
+  return `Should I ${ask}? Just say yes or no.`;
+}
+
 /** The one question the gate has Ferni ask when an answer isn't a plain yes (consent-loop.ts). */
 export function askOnceLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
   return `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;

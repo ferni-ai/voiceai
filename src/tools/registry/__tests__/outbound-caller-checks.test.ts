@@ -51,6 +51,7 @@ import { outreachConfirmListeners } from '../../domains/communication/outreach/o
 import { ToolRegistry } from '../index.js';
 import { NO_ACCOUNT_REFUSAL, outboundDispatchRefusal } from '../outbound-gate.js';
 import type { ToolContext } from '../types.js';
+import { noteLiveSession } from '../live-session.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
 const dials = () => sip.createSipParticipant.mock.calls.length + fetchSpy.mock.calls.length;
@@ -60,6 +61,7 @@ function liveCall(userId: string) {
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
   const ctx: ToolContext = { userId, agentId: 'ferni', agentDisplayName: 'Ferni' };
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session);
   return {
     call: async (args: Record<string, unknown>, callId: string) => {

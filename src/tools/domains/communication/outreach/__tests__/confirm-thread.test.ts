@@ -47,6 +47,7 @@ import {
   withOutreachConfirmation,
   type ConfirmSpec,
 } from '../outreach-confirm.js';
+import { noteLiveSession } from '../../../../registry/live-session.js';
 
 const MOM_NUMBER = '+15551230001';
 const sends: Array<Record<string, unknown>> = [];
@@ -82,6 +83,7 @@ const ctx = { userId: 'owner-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
 /** `null`: no owner check on this session, so the speaker is not known to be the owner. */
 function liveCall(speakerIsOwner: (() => boolean) | null = () => true) {
   const session = { agentState: 'listening' };
+  noteLiveSession(session, `call-${Math.random()}`); // the live call's id, as a call registers it
   const listeners = outreachConfirmListeners(session, speakerIsOwner ?? undefined);
   const tool = withOutreachConfirmation(callDef, callSpec).create(ctx);
   return {
