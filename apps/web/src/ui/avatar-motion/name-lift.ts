@@ -19,6 +19,7 @@
  */
 
 import { DURATION } from '../../config/animation-constants.js';
+import { soulStatsService } from '../../services/soul-stats.service.js';
 import { prefersReducedMotion } from '../../utils/accessibility.js';
 import { createLogger } from '../../utils/logger.js';
 import { ferniExpressions, type EmotionalExpression } from '../ferni-expressions.ui.js';
@@ -87,6 +88,7 @@ export async function runNameLift(effect: NameLiftEffect, deps: NameLiftDeps): P
   const soul = await deps.soul();
   const container = deps.container();
   if (!container || covered(container, soul)) return false;
+  soulStatsService.recordNameLift(effect); // shown, even as reduced motion's still warmth
   ensureStyles();
   container.setAttribute(NAME_LIFT_ATTR, effect);
   deps.schedule(() => container.removeAttribute(NAME_LIFT_ATTR), NAME_LIFT_HOLD_MS);

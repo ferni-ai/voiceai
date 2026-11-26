@@ -28,6 +28,7 @@ import {
   CRISIS_CALM_FACES,
   type CrisisAffect,
 } from '../../config/crisis-faces.js';
+import { soulStatsService } from '../../services/soul-stats.service.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('CrisisFaceHold');
@@ -52,6 +53,7 @@ export function onCrisisHoldStart(listener: () => void): () => void {
 export function holdCrisisFace(): void {
   if (held) return;
   held = true; // first, so a listener that throws cannot stop the hold
+  soulStatsService.recordCrisisHold(); // a count, never the message or its text
   log.info('Crisis face hold on until the call ends');
   for (const listener of holdStartListeners) {
     try {

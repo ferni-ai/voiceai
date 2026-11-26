@@ -1,13 +1,17 @@
 /**
  * Soul Stats Service
  *
- * Counts how often the avatar's "soul" responses play in this browser, and
- * sends the counts to POST /api/soul-stats so the admin Human Listening panel
- * can show what people's avatars did in the last 24 h (#4069):
+ * Counts how often each avatar moment plays in this browser, and sends the
+ * counts to POST /api/soul-stats so the admin panel can show what people's
+ * avatars did in the last 24 h (#4069). Each is counted where it plays, after
+ * whatever could refuse it (reduced motion, the crisis hold, a covered avatar):
  * - Micro-expressions: subliminal 40-150 ms emotional flashes
  * - Protective modes: avatar scales up, draws closer during distress
  * - Comfort pulses: warm pulsing glow during self-soothing
  * - Memory sparks: golden flash acknowledging emotional peaks
+ * - Warmth blooms, growth celebrations and cameo arrivals
+ * - Crisis holds: counted when a hold starts, not while it is held
+ * - Name lifts, by kind: brighten, attentive, comfort
  *
  * Counts only, kept in memory: never the trigger, a session id, the uid or any
  * text, and nothing in localStorage. Sent for a signed-in person at most once a
@@ -23,8 +27,21 @@ import { getAuthToken } from './firebase-auth.service.js';
 
 const log = createLogger('SoulStatsService');
 
-export type SoulCountKey =
-  'micro_expression' | 'protective_mode' | 'comfort_pulse' | 'memory_spark';
+/** The same keys, in the same order, as the server's SOUL_COUNT_KEYS (src/api/soul-stats/). */
+export const SOUL_COUNT_KEYS = [
+  'micro_expression',
+  'protective_mode',
+  'comfort_pulse',
+  'memory_spark',
+  'warmth_bloom',
+  'celebrate_growth',
+  'cameo_arrival',
+  'crisis_hold',
+  'name_lift_brighten',
+  'name_lift_attentive',
+  'name_lift_comfort',
+] as const;
+export type SoulCountKey = (typeof SOUL_COUNT_KEYS)[number];
 export type SoulCounts = Record<SoulCountKey, number>;
 
 const SOUL_STATS_URL = '/api/soul-stats';
@@ -34,13 +51,8 @@ const MAX_COUNT = 500;
 /** Off on the server (404), or a body it will never take (400, 413): stop for this page. */
 const STOP_STATUSES = new Set([400, 404, 413]);
 
-const noCounts = (): SoulCounts => ({
-  micro_expression: 0,
-  protective_mode: 0,
-  comfort_pulse: 0,
-  memory_spark: 0,
-});
-const KEYS = Object.keys(noCounts()) as SoulCountKey[];
+const noCounts = (): SoulCounts =>
+  Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 0])) as SoulCounts;
 
 export interface SoulStatsDeps {
   /** The signed-in person's ID token, or null when nobody is signed in. */
@@ -90,9 +102,30 @@ export class SoulStatsService {
     this.add('memory_spark');
   }
 
+  recordWarmthBloom(): void {
+    this.add('warmth_bloom');
+  }
+
+  recordCelebrateGrowth(): void {
+    this.add('celebrate_growth');
+  }
+
+  recordCameoArrival(): void {
+    this.add('cameo_arrival');
+  }
+
+  /** Once per hold, when it starts. */
+  recordCrisisHold(): void {
+    this.add('crisis_hold');
+  }
+
+  recordNameLift(effect: 'brighten' | 'attentive' | 'comfort'): void {
+    this.add(`name_lift_${effect}`);
+  }
+
   /** Sends what is pending: nothing when every count is 0, nobody is signed in, or once stopped. */
   async send(): Promise<void> {
-    if (this.stopped || KEYS.every((k) => this.pending[k] === 0)) return;
+    if (this.stopped || SOUL_COUNT_KEYS.every((k) => this.pending[k] === 0)) return;
     // Taken before any await, so a timer send and a page-hide send never carry the same counts
     const counts = this.pending;
     this.pending = noCounts();
@@ -135,7 +168,9 @@ export class SoulStatsService {
 
   /** Puts counts that were not stored back, so the next send carries them. */
   private keep(counts: SoulCounts, retry = true): void {
-    for (const k of KEYS) this.pending[k] = Math.min(MAX_COUNT, this.pending[k] + counts[k]);
+    for (const k of SOUL_COUNT_KEYS) {
+      this.pending[k] = Math.min(MAX_COUNT, this.pending[k] + counts[k]);
+    }
     if (retry) this.schedule();
   }
 

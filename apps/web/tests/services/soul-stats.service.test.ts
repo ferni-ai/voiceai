@@ -11,9 +11,17 @@ vi.mock('../../src/services/firebase-auth.service.js', () => ({
   getAuthToken: vi.fn(async () => null),
 }));
 
-import { SoulStatsService, type SoulStatsDeps } from '../../src/services/soul-stats.service.js';
+import {
+  SOUL_COUNT_KEYS,
+  SoulStatsService,
+  type SoulStatsDeps,
+} from '../../src/services/soul-stats.service.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
+/** Every count at 0, with `some` on top: the body the service sends. */
+const body = (some: Record<string, number>) => ({
+  counts: { ...Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 0])), ...some },
+});
 
 interface Opts {
   token?: string | null;
@@ -56,15 +64,37 @@ describe('SoulStatsService', () => {
     h.service.recordComfortPulse();
     h.service.recordComfortPulse();
     h.service.recordMemorySpark();
+    h.service.recordWarmthBloom();
+    h.service.recordCelebrateGrowth();
+    h.service.recordCameoArrival();
+    h.service.recordCrisisHold();
+    h.service.recordNameLift('brighten');
+    h.service.recordNameLift('attentive');
+    h.service.recordNameLift('comfort');
+    h.service.recordNameLift('comfort');
     expect(h.timers).toHaveLength(1); // one 60 s timer, not one per count
     expect(h.sent).toHaveLength(0); // nothing leaves before it fires
     await h.tick();
     expect(h.bodies()).toEqual([
-      { counts: { micro_expression: 2, protective_mode: 1, comfort_pulse: 3, memory_spark: 1 } },
+      {
+        counts: {
+          micro_expression: 2,
+          protective_mode: 1,
+          comfort_pulse: 3,
+          memory_spark: 1,
+          warmth_bloom: 1,
+          celebrate_growth: 1,
+          cameo_arrival: 1,
+          crisis_hold: 1,
+          name_lift_brighten: 1,
+          name_lift_attentive: 1,
+          name_lift_comfort: 2,
+        },
+      },
     ]);
   });
 
-  it('sends only the four counts, as JSON with the bearer token and keepalive', async () => {
+  it('sends only the eleven counts, as JSON with the bearer token and keepalive', async () => {
     const h = harness({ token: 'tok-123' });
     h.service.recordMicroExpression();
     await h.tick();
@@ -76,13 +106,20 @@ describe('SoulStatsService', () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer tok-123',
     });
-    const body = JSON.parse(String(init.body)) as { counts: Record<string, number> };
-    expect(Object.keys(body)).toEqual(['counts']);
-    expect(Object.keys(body.counts).sort()).toEqual([
-      'comfort_pulse',
-      'memory_spark',
+    const sentBody = JSON.parse(String(init.body)) as { counts: Record<string, number> };
+    expect(Object.keys(sentBody)).toEqual(['counts']);
+    expect(Object.keys(sentBody.counts)).toEqual([
       'micro_expression',
       'protective_mode',
+      'comfort_pulse',
+      'memory_spark',
+      'warmth_bloom',
+      'celebrate_growth',
+      'cameo_arrival',
+      'crisis_hold',
+      'name_lift_brighten',
+      'name_lift_attentive',
+      'name_lift_comfort',
     ]);
   });
 
@@ -103,9 +140,7 @@ describe('SoulStatsService', () => {
     expect(h.hides).toHaveLength(1);
     h.hides[0]();
     await flush();
-    expect(h.bodies()).toEqual([
-      { counts: { micro_expression: 0, protective_mode: 1, comfort_pulse: 0, memory_spark: 0 } },
-    ]);
+    expect(h.bodies()).toEqual([body({ protective_mode: 1 })]);
   });
 
   it.each([
@@ -145,9 +180,7 @@ describe('SoulStatsService', () => {
     h.hides[0](); // the page is hidden before the token arrives
     release('tok');
     await flush();
-    expect(h.bodies()).toEqual([
-      { counts: { micro_expression: 2, protective_mode: 0, comfort_pulse: 0, memory_spark: 0 } },
-    ]);
+    expect(h.bodies()).toEqual([body({ micro_expression: 2 })]);
   });
 
   it('holds counts while signed out and sends them once signed in', async () => {
@@ -159,9 +192,7 @@ describe('SoulStatsService', () => {
     token = 'tok';
     h.hides[0]();
     await flush();
-    expect(h.bodies()).toEqual([
-      { counts: { micro_expression: 0, protective_mode: 0, comfort_pulse: 0, memory_spark: 1 } },
-    ]);
+    expect(h.bodies()).toEqual([body({ memory_spark: 1 })]);
   });
 
   it('sends nothing for a signed-out visitor', async () => {
@@ -193,9 +224,11 @@ describe('SoulStatsService', () => {
   it('caps each count at 500, the most the server takes', async () => {
     const h = harness();
     for (let i = 0; i < 520; i++) h.service.recordMicroExpression();
+    for (let i = 0; i < 520; i++) h.service.recordNameLift('attentive');
     await h.tick();
-    const [body] = h.bodies() as { counts: { micro_expression: number } }[];
-    expect(body.counts.micro_expression).toBe(500);
+    const [sentBody] = h.bodies() as { counts: Record<string, number> }[];
+    expect(sentBody.counts.micro_expression).toBe(500);
+    expect(sentBody.counts.name_lift_attentive).toBe(500);
   });
 });
 
@@ -206,6 +239,13 @@ describe('SoulStatsService in the admin avatar lab', () => {
     service.recordProtectiveMode();
     service.recordComfortPulse();
     service.recordMemorySpark();
+    service.recordWarmthBloom();
+    service.recordCelebrateGrowth();
+    service.recordCameoArrival();
+    service.recordCrisisHold();
+    service.recordNameLift('brighten');
+    service.recordNameLift('attentive');
+    service.recordNameLift('comfort');
   };
 
   afterEach(() => {
@@ -233,7 +273,7 @@ describe('SoulStatsService in the admin avatar lab', () => {
     expect(h.timers).toHaveLength(1);
     await h.tick();
     expect(h.bodies()).toEqual([
-      { counts: { micro_expression: 1, protective_mode: 1, comfort_pulse: 1, memory_spark: 1 } },
+      { counts: Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 1])) },
     ]);
   });
 });
