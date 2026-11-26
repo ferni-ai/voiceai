@@ -616,15 +616,15 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
   private async notifyOriginalSession(call: OnBehalfCall): Promise<void> {
     try {
-      // Dynamic import to avoid circular dependencies
-      const { captureCallResult } = await import('./call-result-capture.js');
+      const { captureCallResult } = await import('./call-result-capture.js'); // dynamic: circular
+      const { retryOffer } = await import('../background-agents/call-follow-up/index.js');
 
       const outcome: CallOutcome = {
         callId: call.id,
         status: call.status as CallOutcome['status'],
         objectiveAchieved: call.status === 'completed',
         outcome: this.generateOutcomeSummary(call),
-        callbackRequired: call.status === 'no_answer' || call.status === 'busy',
+        ...retryOffer(call.status === 'no_answer' || call.status === 'busy'), // #4468
       };
 
       await captureCallResult(call.id, outcome, call.request);

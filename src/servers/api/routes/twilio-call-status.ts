@@ -20,6 +20,7 @@ import { captureCallResult } from '../../../services/outreach/call-result-captur
 import { userTimezone } from '../../../services/outreach/call-hours-guard.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
 import { agentNeverJoinedOutcome } from '../../../services/outreach/agent-join.js';
+import { retryOffer } from '../../../services/background-agents/call-follow-up/index.js';
 import { isSignedByTwilio } from '../../../api/twilio-callback-signature.js';
 import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
 import {
@@ -105,7 +106,7 @@ export function twilioStatusToOutcome(
           ...baseOutcome,
           status: 'voicemail',
           outcome: voicemailWords(false, pendingCall.contactName).outcome,
-          callbackRequired: true,
+          ...retryOffer(),
           voicemailLeft: false,
           recordingUrl: RecordingUrl,
         };
@@ -124,7 +125,7 @@ export function twilioStatusToOutcome(
         ...baseOutcome,
         status: 'busy',
         outcome: `${pendingCall.contactName}'s line was busy`,
-        callbackRequired: true,
+        ...retryOffer(),
         callbackTime: 'in 15 minutes',
       };
 
@@ -133,7 +134,7 @@ export function twilioStatusToOutcome(
         ...baseOutcome,
         status: 'no_answer',
         outcome: `${pendingCall.contactName} didn't answer`,
-        callbackRequired: true,
+        ...retryOffer(),
         callbackTime: 'in 30 minutes',
       };
 
@@ -142,7 +143,7 @@ export function twilioStatusToOutcome(
         ...baseOutcome,
         status: 'failed',
         outcome: ErrorMessage || `Call to ${pendingCall.contactName} failed`,
-        callbackRequired: true,
+        ...retryOffer(),
       };
 
     case 'canceled':

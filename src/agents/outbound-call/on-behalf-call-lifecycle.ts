@@ -32,6 +32,12 @@ import {
   screenedCallerText,
 } from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
+import {
+  callbackMeansAskedOn,
+  declinedWords,
+  retryOffer,
+  spokenOutcome,
+} from '../../services/background-agents/call-follow-up/index.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
 import {
   isRecordedGreeting,
@@ -139,22 +145,17 @@ function heardOutcome(
       status: 'voicemail',
       objectiveAchieved: false,
       outcome: `I got ${name}'s voicemail. Want me to try again later?`,
-      callbackRequired: true,
+      ...retryOffer(),
       voicemailLeft: voicemailSpoken,
     };
   }
   if (how === 'opted_out' || how === 'declined') {
-    const promise =
-      how === 'opted_out' ? " and asked not to be called again, so I won't call them" : '';
     return {
       callId: call.callId,
       status: 'completed',
       objectiveAchieved: false,
-      // Crisis words still reach the requester when they opt out (#2861).
-      outcome: withFlags(
-        `I reached ${name}, but they didn't want to talk${promise}.`,
-        flaggedLines(heard, name)
-      ),
+      // Crisis words still reach the requester when they opt out (#2861); on, they lead.
+      outcome: declinedWords(call.contact, how, flaggedLines(heard, name), heardCrisis(heard)),
     };
   }
   if (how === 'hung_up_early') {
@@ -198,7 +199,7 @@ export function buildCallOutcome(
       status: 'voicemail',
       objectiveAchieved: false,
       outcome: voicemailWords(voicemailSpoken, name).outcome,
-      callbackRequired: !voicemailSpoken,
+      ...retryOffer(!voicemailSpoken),
       voicemailLeft: voicemailSpoken,
     };
   }
@@ -208,7 +209,7 @@ export function buildCallOutcome(
       status: 'no_answer',
       objectiveAchieved: false,
       outcome: `I couldn't reach ${name}; their voicemail wasn't taking messages. Want me to try again later?`,
-      callbackRequired: true,
+      ...retryOffer(),
     };
   }
   if (disposition === 'wrong_number') {
@@ -225,8 +226,8 @@ export function buildCallOutcome(
       callId: call.callId,
       status: 'completed',
       objectiveAchieved: false,
-      outcome: `${name} picked up but didn't want to talk with me. It might be better coming from you.`,
-      callbackRequired: true,
+      outcome: declinedWords(call.contact, 'refused'),
+      ...retryOffer(!callbackMeansAskedOn()), // on: a no is handed back, never redialled
     };
   }
   if (turns === null) {
@@ -235,7 +236,7 @@ export function buildCallOutcome(
       status: 'failed',
       objectiveAchieved: false,
       outcome: `I called ${name}, but something went wrong on my end and I lost track of how it went. Want me to try again?`,
-      callbackRequired: true,
+      ...retryOffer(),
     };
   }
 
@@ -246,7 +247,7 @@ export function buildCallOutcome(
       status: 'no_answer',
       objectiveAchieved: false,
       outcome: `I called ${name} but couldn't reach them. Want me to try again later?`,
-      callbackRequired: true,
+      ...retryOffer(),
     };
   }
 
@@ -436,13 +437,11 @@ async function reportCall(
     }
 
     const request = toOnBehalfCallRequest(call);
-    let outcome = buildCallOutcome(
-      call,
-      turns,
-      analysis,
-      disposition,
-      durationSeconds,
-      voicemailSpoken
+    // A missed call in Ferni's words (#4468) before "I'll try again tomorrow" can follow;
+    // captureCallResult rewords it again, to the same words.
+    let outcome = spokenOutcome(
+      buildCallOutcome(call, turns, analysis, disposition, durationSeconds, voicemailSpoken),
+      call.contact.name
     );
     const followthrough = isCallFollowthroughEnabled();
     const heardAs = followthrough ? classifyAnsweredCall(heard, durationSeconds) : 'answered';
@@ -466,7 +465,7 @@ async function reportCall(
         outcome = {
           ...outcome,
           outcome: `${said} I'll try again tomorrow.`,
-          callbackRequired: false,
+          ...retryOffer(false),
         };
       }
     }
