@@ -27,6 +27,7 @@ import {
   loadMessages as loadPersistedMessages,
 } from './thread-persistence.js';
 import { writeHeld } from '../../utils/minor-care.js';
+import { rememberedThread } from './remembered-thread.js';
 
 const log = createLogger({ module: 'ThreadManager' });
 /** MINOR_CARE: every writer's thread doc passes here; nothing is stored for a caller under 18. */
@@ -377,22 +378,21 @@ export async function buildAgentContext(
   }
 ): Promise<AgentThreadContext> {
   const thread = threadIndex.get(threadId);
-  if (!thread) {
-    throw new Error(`Thread not found: ${threadId}`);
-  }
+  if (!thread) throw new Error(`Thread not found: ${threadId}`);
 
-  const messages = await getMessages(threadId, LLM_CONTEXT_MESSAGE_LIMIT);
+  const { thread: shown, messages } = await rememberedThread(
+    thread, // FORGET_EVERY_READER
+    await getMessages(threadId, LLM_CONTEXT_MESSAGE_LIMIT)
+  );
   const isNewToThread =
     !thread.ownershipHistory.some((h) => h.toAgentId === agentId) &&
     thread.currentOwnerId !== agentId;
 
-  // Find previous owner if this is a handoff
   const lastTransfer = thread.ownershipHistory[thread.ownershipHistory.length - 1];
   const previousOwner =
     lastTransfer && thread.currentOwnerId === agentId ? lastTransfer.fromAgentId : undefined;
 
-  // Build LLM context string
-  const llmContext = formatLLMContext(thread, messages, {
+  const llmContext = formatLLMContext(shown, messages, {
     agentId,
     isNewToThread,
     previousOwner,

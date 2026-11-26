@@ -2,6 +2,17 @@
 
 Date: 2026-10-27 · Owner: lead session (sethford-ee) · Status: approved by Seth ("fix lane 0 first, then write the plan and staff lanes 1–7"; "fully built, production ready, green e2e")
 
+## Update 2026-11-26: lanes 1 to 5 read the existing stores
+
+The ledger store (lanes 1a and 1b) merged, then was deleted in #3715 because nothing wrote to it or read it. Lanes 2 to 5 now reach the same goal without it (issue #4489):
+
+- **Read, don't rebuild.** `services/outreach/activity-records.ts` reads the owner's last 30 days from the stores that already hold each record (`on_behalf_calls`, `deferred_calls`, `reminders`, `outreach_history`, `follow_through`); `activity-recall.ts` turns them into one list (what's still open first, then what happened, newest first, with weekday and date in the owner's zone). `callStatus` answers from it behind `RECALL_ACTIVITY` (off). This is lane 5's `recallActivity`, in the tool slot every lean tool set already holds.
+- **Lane 4** (the `onbehalf:*` write gate) is on main as `ONBEHALF_WRITE_GATE`, on by default.
+- **Still to do here:** open items at session start with `told` recorded when spoken, and the owner's updated contact numbers (the nightly "update" bucket). Lane 3 (errand waker, deferred-call lease) is not a recall gap and waits.
+- **Bar:** the nightly recall-ledger score on dev (#2407), before and after `RECALL_ACTIVITY=on`.
+
+Sections 1, 2 and 2b below describe the dropped store and are kept for the record.
+
 ## The problem, in one line
 
 Ask Ferni "did you call my dad?" a day later and it can't tell you, because what it did for you is spread across five systems, none of which the call path writes to, and the only recall surface forgets after one mention.

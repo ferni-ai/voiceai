@@ -10,7 +10,7 @@
  * rate limiting are mocked.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PassThrough } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -25,6 +25,10 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
   isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object',
   claimsFirebaseIssuer: () => true,
 }));
+// No model answers: the case this route must not paper over.
+vi.mock('../../services/llm-utils.js', async () =>
+  (await import('../../tests/helpers/no-model.js')).llmUtilsWithNoModel()
+);
 vi.mock('../auth-middleware.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../auth-middleware.js')>()),
   rateLimit: () => false,
@@ -63,11 +67,7 @@ const request = {
 };
 
 describe('POST /api/journal/twin-response', () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  it('answers 503 with no reply when no model is configured', async () => {
-    vi.stubEnv('OPENAI_API_KEY', '');
-
+  it('answers 503 with no reply when no model answers', async () => {
     const { status, body } = await post(request);
 
     expect(status).toBe(503);

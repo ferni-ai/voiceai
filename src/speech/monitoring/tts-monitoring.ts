@@ -4,13 +4,11 @@
  * Monitors text-to-speech output for potential issues:
  * - Stage directions that slipped through sanitization
  * - Suspicious patterns that might be spoken literally
- * - Tracks sanitization effectiveness over time
  *
  * What it records: a match is a piece of Ferni's reply, and replies echo callers' words.
  * Anywhere but dev (any process not on dev's Firestore database, by its exact name) the
- * log line and the stats hold each issue's fixed pattern label and the reply's length,
- * never the matched text or a preview. A dev process records the matched text and a
- * preview, for debugging.
+ * log line holds each issue's fixed pattern label and the reply's length, never the
+ * matched text. A dev process logs the matched text, for debugging.
  *
  * @module TTSMonitoring
  */
@@ -25,8 +23,8 @@ const log = getLogger();
 // ============================================================================
 
 /**
- * One kind of text that should never reach TTS. `label` is what prod logs and counts in
- * place of the match, so it is a fixed string: never build it from the text.
+ * One kind of text that should never reach TTS. `label` is what prod logs in place of
+ * the match, so it is a fixed string: never build it from the text.
  */
 interface SuspiciousPattern {
   readonly label: string;
@@ -114,7 +112,7 @@ function unsafeMatches(text: string, pattern: SuspiciousPattern): string[] {
   );
 }
 
-/** What a log line or the stats may hold for an issue: its match on dev, its label anywhere else. */
+/** What a log line may hold for an issue: its match on dev, its label anywhere else. */
 function recordedIssue(issue: TTSIssue): string {
   return isKnownDevDatabase() ? issue.match : issue.label;
 }
@@ -189,89 +187,6 @@ function escapeRegex(str: string): string {
 }
 
 // ============================================================================
-// ANALYTICS TRACKING
-// ============================================================================
-
-interface SanitizationStats {
-  totalChecks: number;
-  issuesFound: number;
-  patternCounts: Map<string, number>;
-  lastIssueTime?: Date;
-  /** First 100 chars of the last flagged text; set on a dev process only */
-  lastIssueText?: string;
-  lastIssueLength?: number;
-}
-
-const stats: SanitizationStats = {
-  totalChecks: 0,
-  issuesFound: 0,
-  patternCounts: new Map(),
-};
-
-/**
- * Track sanitization check for analytics
- */
-export function trackTTSCheck(result: TTSMonitorResult): void {
-  stats.totalChecks++;
-
-  if (result.hasIssues) {
-    stats.issuesFound++;
-    stats.lastIssueTime = new Date();
-    stats.lastIssueText = isKnownDevDatabase() ? result.originalText.substring(0, 100) : undefined;
-    stats.lastIssueLength = result.originalText.length;
-
-    // Count pattern occurrences
-    for (const issue of result.issues) {
-      const counted = recordedIssue(issue).toLowerCase();
-      stats.patternCounts.set(counted, (stats.patternCounts.get(counted) ?? 0) + 1);
-    }
-  }
-}
-
-/**
- * Get current sanitization statistics
- */
-export function getTTSStats(): {
-  totalChecks: number;
-  issuesFound: number;
-  issueRate: number;
-  topPatterns: Array<{ pattern: string; count: number }>;
-  /** textPreview is set on a dev process only (no key on prod); textLength is always set. */
-  lastIssue?: { time: Date; textLength: number; textPreview?: string };
-} {
-  const topPatterns = Array.from(stats.patternCounts.entries())
-    .map(([pattern, count]) => ({ pattern, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  return {
-    totalChecks: stats.totalChecks,
-    issuesFound: stats.issuesFound,
-    issueRate: stats.totalChecks > 0 ? stats.issuesFound / stats.totalChecks : 0,
-    topPatterns,
-    lastIssue: stats.lastIssueTime
-      ? {
-          time: stats.lastIssueTime,
-          textLength: stats.lastIssueLength ?? 0,
-          ...(stats.lastIssueText !== undefined && { textPreview: stats.lastIssueText }),
-        }
-      : undefined,
-  };
-}
-
-/**
- * Reset statistics (for testing)
- */
-export function resetTTSStats(): void {
-  stats.totalChecks = 0;
-  stats.issuesFound = 0;
-  stats.patternCounts.clear();
-  stats.lastIssueTime = undefined;
-  stats.lastIssueText = undefined;
-  stats.lastIssueLength = undefined;
-}
-
-// ============================================================================
 // WRAPPER FUNCTION FOR EASY INTEGRATION
 // ============================================================================
 
@@ -290,7 +205,6 @@ export function monitorTTSText(
     turnNumber?: number;
     personaId?: string;
     autoFix?: boolean;
-    trackStats?: boolean;
   } = {}
 ): { text: string; result: TTSMonitorResult } {
   const result = checkTTSText(text, {
@@ -298,10 +212,6 @@ export function monitorTTSText(
     turnNumber: options.turnNumber,
     personaId: options.personaId,
   });
-
-  if (options.trackStats !== false) {
-    trackTTSCheck(result);
-  }
 
   // Auto-fix if enabled and issues found
   const finalText =
@@ -313,7 +223,4 @@ export function monitorTTSText(
 export default {
   checkTTSText,
   monitorTTSText,
-  getTTSStats,
-  resetTTSStats,
-  trackTTSCheck,
 };

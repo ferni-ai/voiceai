@@ -8,6 +8,7 @@
 
 import { log } from '@livekit/agents';
 import type { EmotionalCheckIn } from '../../intelligence/tracking/emotional-memory.js';
+import { forgottenPassageCheck, remembered } from '../../memory/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import { exceedsDistressThreshold } from '../../tasks/constants.js';
@@ -72,8 +73,12 @@ export async function getProactiveContext(
   // Get open thread conversation starter for proactive greeting
   let threadStarter: string | undefined;
   const openThreads = services.getOpenThreads();
+  // FORGET_EVERY_READER: a thread holds the caller's own words, read with the passage check
+  const said =
+    openThreads.length > 0 ? await forgottenPassageCheck(services.userId, 'greeting') : null;
   if (openThreads.length > 0 && isReturningUser) {
     threadStarter = services.getThreadConversationStarter() || undefined;
+    if (threadStarter && said?.(threadStarter)) threadStarter = undefined;
     if (threadStarter) {
       diag.session('Found cross-session thread to surface', {
         threadCount: openThreads.length,
@@ -83,7 +88,8 @@ export async function getProactiveContext(
   }
 
   // Get open questions from threads
-  const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
+  const questions = openThreads.flatMap((t) => t.questionsToAnswer || []);
+  const openQuestions = remembered(questions, said).slice(0, 3);
 
   // Get high-priority proactive insights for check-ins
   let proactiveInsight: string | undefined;

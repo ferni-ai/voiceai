@@ -11,11 +11,12 @@
  * topic counts, so "the Denver job" leaves out "the offer from the Denver
  * office".
  *
- * The topics come from the shared read (forget-topics-source.ts) without the
- * last-known fallback. That read is still served from its short per-process
- * cache, so a topic forgotten on another pod seconds ago can be missed until
- * the cache expires (#2755 adds an uncached read). A read that is late, fails
- * or throws keeps no turn.
+ * The topics are read from the store itself (forget-topics-source.ts, the
+ * uncached read of #2755): no last-known fallback and not the shared 15 s
+ * cache, which only a forget in this process clears. A reconnect comes seconds
+ * after the earlier call, while that cache is warm, so a topic forgotten on
+ * another pod or in the web app would otherwise come straight back. One store
+ * read per restore. A read that is late (300 ms), fails or throws keeps no turn.
  *
  * @module agents/multi-agent/restored-turns-remembered
  */
@@ -47,7 +48,7 @@ export async function restoredTurnsFilter(
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return keepAll;
   let forgotten: Awaited<ReturnType<typeof forgottenPassageWithin>>;
   try {
-    forgotten = await forgottenPassageWithin(userId, reader, env);
+    forgotten = await forgottenPassageWithin(userId, reader, env, true);
   } catch (error) {
     log.warn({ error: String(error), reader }, 'Forgotten topics read threw, restoring no turns');
     return keepNone;

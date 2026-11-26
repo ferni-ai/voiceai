@@ -10,8 +10,19 @@
  * Run with: npm run test:performance
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { perfBudget } from '../../src/tests/perf-budget.js';
+
+// No model here. The batched analysis falls back to OpenAI when Gemini gives nothing, and
+// the SDK refuses to build a client without a key: this fake refuses the same way, with a
+// key in the shell or without.
+vi.mock('openai', () => ({
+  default: class {
+    constructor() {
+      throw new Error('no OpenAI key in tests');
+    }
+  },
+}));
 
 // Performance targets (in milliseconds)
 // Note: These targets are relaxed for CI environments where resources may be limited
