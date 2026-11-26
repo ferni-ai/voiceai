@@ -66,8 +66,18 @@ export function nameLiftEffectFrom(value: unknown): NameLiftEffect | null {
   return value === 'brighten' || value === 'attentive' || value === 'comfort' ? value : null;
 }
 
-/** True when a lift would cover something already showing. */
-function covered(container: HTMLElement | null, soul: NameLiftSoul | null | undefined): boolean {
+const findContainer = (): HTMLElement | null =>
+  document.querySelector<HTMLElement>('.avatar-container');
+
+/**
+ * True when a lift would not show: it would cover something already showing
+ * (another lift, a comfort pulse, protective mode, an open dialog), the page is
+ * hidden, or there is no avatar. The avatar lab asks this before it plays one.
+ */
+export function nameLiftCovered(
+  soul: Pick<NameLiftSoul, 'getState'> | null | undefined,
+  container: HTMLElement | null = findContainer()
+): boolean {
   if (!container?.isConnected || document.hidden) return true;
   if (container.hasAttribute(NAME_LIFT_ATTR)) return true;
   if (document.querySelector('dialog[open], [aria-modal="true"]')) return true;
@@ -87,7 +97,7 @@ function ensureStyles(): void {
 export async function runNameLift(effect: NameLiftEffect, deps: NameLiftDeps): Promise<boolean> {
   const soul = await deps.soul();
   const container = deps.container();
-  if (!container || covered(container, soul)) return false;
+  if (!container || nameLiftCovered(soul, container)) return false;
   soulStatsService.recordNameLift(effect); // shown, even as reduced motion's still warmth
   ensureStyles();
   container.setAttribute(NAME_LIFT_ATTR, effect);
@@ -109,7 +119,7 @@ const liveDeps: NameLiftDeps = {
   express: (expression, transitionMs, holdMs) =>
     ferniExpressions.setExpression(expression, transitionMs, holdMs),
   reducedMotion: prefersReducedMotion,
-  container: () => document.querySelector<HTMLElement>('.avatar-container'),
+  container: findContainer,
   schedule: (fn, delayMs) => {
     setTimeout(fn, delayMs);
   },

@@ -1,8 +1,8 @@
 /**
  * The avatar lab is the second caller of the shared avatar boot: it starts the
  * theme and waveform, runs the same boot the app runs (now steps at once,
- * deferred steps at their delay), follows turns with no room, and keeps a turn
- * driver for the command bridge.
+ * deferred steps at their delay), follows turns with no room, and starts the
+ * command bridge on its turn driver and the real avatar exports.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AvatarBootOptions, AvatarBootRunner } from '../../src/ui/avatar-boot.js';
@@ -19,6 +19,9 @@ const m = vi.hoisted(() => {
     step,
     driver: { update: () => undefined, shown: () => 'none', dispose: () => undefined },
     logError: vi.fn(),
+    stopBridge: vi.fn(),
+    realBridge: false,
+    soul: { getState: () => ({ isInitialized: false }) },
   };
 });
 
@@ -45,6 +48,17 @@ vi.mock('../../src/ui/avatar-motion/turn-driver.js', async (importOriginal) => (
     return m.driver;
   }),
 }));
+// A stand-in bridge, or the real one when a test sets m.realBridge.
+vi.mock('../../src/avatar-lab/lab-bridge.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/avatar-lab/lab-bridge.js')>();
+  return {
+    startLabBridge: vi.fn((win: Window, deps: LabDeps) => {
+      m.order.push('startLabBridge');
+      return m.realBridge ? actual.startLabBridge(win, deps) : m.stopBridge;
+    }),
+  };
+});
+vi.mock('../../src/ui/avatar-soul.ui.js', () => ({ avatarSoul: m.soul }));
 vi.mock('../../src/utils/logger.js', () => ({
   createLogger: () => ({
     debug: () => undefined,
@@ -56,6 +70,11 @@ vi.mock('../../src/utils/logger.js', () => ({
 
 import { initializeTheme } from '../../src/app/app-theme.js';
 import { startAvatarLab } from '../../src/avatar-lab/index.js';
+import { startLabBridge } from '../../src/avatar-lab/lab-bridge.js';
+import type { LabDeps } from '../../src/avatar-lab/lab-commands.js';
+import { LAB_MESSAGE_TYPE } from '../../src/avatar-lab/lab-protocol.js';
+import { playNameLift } from '../../src/ui/avatar-motion/name-lift.js';
+import { holdCrisisFace, releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 import { bootAvatarNow, scheduleAvatar } from '../../src/ui/avatar-boot.js';
 import {
   createTurnDriver,
@@ -120,8 +139,20 @@ describe('startAvatarLab', () => {
       'bootAvatarNow',
       'scheduleAvatar',
       'createTurnDriver',
+      'startLabBridge',
     ]);
     expect(vi.mocked(initializeTheme)).toHaveBeenCalledWith();
+  });
+
+  it('drops the sign-in placeholder, as the app does, so its aria-modal cannot cover a name lift', async () => {
+    document.documentElement.classList.add('gate-first');
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div id="gateFirst" role="dialog" aria-modal="true" hidden></div>'
+    );
+    await startAvatarLab();
+    expect(document.getElementById('gateFirst')).toBeNull();
+    expect(document.documentElement.classList.contains('gate-first')).toBe(false);
   });
 
   it('follows turns without a room and adds no tracked listener', async () => {
@@ -180,5 +211,54 @@ describe('startAvatarLab', () => {
       defaultTargets,
       TURN_SETTLE_REDUCED_MS
     );
+  });
+
+  it('starts the command bridge on this window with the turn driver and the real exports', async () => {
+    await startAvatarLab();
+    expect(vi.mocked(startLabBridge)).toHaveBeenCalledOnce();
+    const [win, deps] = vi.mocked(startLabBridge).mock.calls[0] as [Window, LabDeps];
+    expect(win).toBe(window);
+    expect(deps.driver).toBe(m.driver);
+    expect(deps.soul).toBe(m.soul);
+    expect(deps.playNameLift).toBe(playNameLift);
+    expect(deps.holdCrisisFace).toBe(holdCrisisFace);
+    expect(deps.releaseCrisisFace).toBe(releaseCrisisFace);
+    expect(deps.soul.getState().isInitialized).toBe(false);
+    document.documentElement.style.setProperty('--color-ferni', ' #4a6741');
+    expect(deps.personaColor()).toBe('#4a6741');
+    document.documentElement.style.removeProperty('--color-ferni');
+  });
+
+  it('stops the previous bridge when the lab starts again, so listeners never stack', async () => {
+    await startAvatarLab(); // module state: an earlier test's bridge may be stopped here
+    m.stopBridge.mockClear();
+    await startAvatarLab();
+    expect(m.stopBridge).toHaveBeenCalledOnce();
+    expect(vi.mocked(startLabBridge)).toHaveBeenCalledTimes(2);
+  });
+
+  it('two concurrent starts leave one listener and one reply per request', async () => {
+    m.realBridge = true;
+    const added = vi.spyOn(window, 'addEventListener');
+    const removed = vi.spyOn(window, 'removeEventListener');
+    const posted = vi.spyOn(window, 'postMessage').mockImplementation(() => undefined);
+    const messageCalls = (spy: { mock: { calls: unknown[][] } }): number =>
+      spy.mock.calls.filter(([type]) => type === 'message').length;
+    try {
+      await Promise.all([startAvatarLab(), startAvatarLab()]);
+      expect(messageCalls(added) - messageCalls(removed)).toBe(1);
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { type: LAB_MESSAGE_TYPE, id: 'twice', command: { name: 'status' } },
+          origin: window.location.origin,
+          source: window,
+        })
+      );
+      expect(posted).toHaveBeenCalledOnce();
+      expect(posted.mock.calls[0][0]).toMatchObject({ id: 'twice', ok: true });
+    } finally {
+      m.realBridge = false;
+      await startAvatarLab(); // stops the real bridge this test started
+    }
   });
 });
