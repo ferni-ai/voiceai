@@ -25,12 +25,15 @@ import type {
 } from '../../tools/domains/telephony/types.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { liveRoomFor, type LiveRoom } from '../../tools/registry/live-session.js';
+import { callingPersonaOf } from '../../tools/domains/telephony/scripts/index.js';
 
 export interface OnBehalfDispatch {
   type: 'on_behalf_call';
   callId: string;
   /** Gives the agent session its own identity for the call (see module doc). */
   session_id: string;
+  /** The persona that places the call (CALL_AS_PERSONA): the session loads its voice (metadata-parser.ts). */
+  persona_id?: string;
   requester: {
     userId: string;
     name: string;
@@ -202,6 +205,7 @@ export function onBehalfDispatchFor(
     script,
     userPreferences: request.userPreferences,
     retryOf: request.retryOf,
+    persona_id: request.callingPersonaId ? callingPersonaOf(request.callingPersonaId) : undefined,
   });
 }
 
@@ -220,6 +224,7 @@ export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCal
     userName: call.requester.name,
     recordingConsent: false,
     retryOf: call.retryOf,
+    ...(call.persona_id && { callingPersonaId: call.persona_id }),
   };
 }
 
@@ -300,5 +305,6 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
     retryOf: str(metadata.retryOf) || undefined,
+    ...(metadata.persona_id !== undefined && { persona_id: callingPersonaOf(metadata.persona_id) }),
   });
 }

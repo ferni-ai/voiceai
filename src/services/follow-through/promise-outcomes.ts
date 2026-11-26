@@ -85,6 +85,8 @@ export interface PromiseJobCounts {
   failed: number;
   held: number;
   missed: number;
+  /** Not attempted on purpose, and not a failure (deliver-reminders: REMINDER_SKIP_SYNTHETIC_OWNER). */
+  skipped?: number;
 }
 
 export function logPromiseJobRun(job: PromiseJob, counts: PromiseJobCounts): void {

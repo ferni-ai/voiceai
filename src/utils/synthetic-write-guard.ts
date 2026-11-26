@@ -107,6 +107,36 @@ function parseName(name: string): [string, string, string[]] | null {
 }
 
 /**
+ * Whether the guard refuses a write owned by `owner` in this project and database: a harness
+ * owner, on prod's data, off the emulator, unless PROD_EVAL_WRITES lets its class through.
+ * The one rule: refusedOwner applies it to each owner a write names, and a job that must not
+ * count a refused send as a failure (reminder-delivery-job.ts) asks it before sending.
+ */
+export function ownerRefusedByGuard(
+  owner: unknown,
+  project: string,
+  database: string,
+  env: Env = process.env
+): boolean {
+  if (env.FIRESTORE_EMULATOR_HOST || !isProdFirestore(project, database)) return false;
+  const prefix = syntheticOwnerPrefix(owner);
+  if (!prefix) return false;
+  return !(prefix === ALLOWABLE && env.PROD_EVAL_WRITES === PROD_EVAL_WRITES_VALUE);
+}
+
+/** A live client's [project, database], or null when it can't say (not yet connected, or not a client). */
+export function firestoreIdentity(db: unknown): [string, string] | null {
+  try {
+    const { projectId, databaseId } = db as { projectId?: unknown; databaseId?: unknown };
+    return typeof projectId === 'string' && typeof databaseId === 'string'
+      ? [projectId, databaseId]
+      : null;
+  } catch {
+    return null; // projectId throws until the client has made its first request
+  }
+}
+
+/**
  * The synthetic owner a write is for, or null when it may go ahead. Exported
  * for tests; the guard calls it for every write of a commit.
  */
@@ -126,10 +156,7 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
   candidates.push(fields?.metadata?.mapValue?.fields?.userId?.stringValue);
 
   for (const owner of candidates) {
-    const prefix = syntheticOwnerPrefix(owner);
-    if (!prefix) continue;
-    if (prefix === ALLOWABLE && env.PROD_EVAL_WRITES === PROD_EVAL_WRITES_VALUE) continue;
-    return owner as string;
+    if (ownerRefusedByGuard(owner, parsed[0], parsed[1], env)) return owner as string;
   }
   if (segs[0] === 'phone_mappings') {
     const phone = fields?.phone?.stringValue;

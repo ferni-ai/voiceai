@@ -18,7 +18,8 @@
  * path every result takes; every reader says it couldn't confirm, never that it
  * failed. Durable: a restart of the agent or the server loses no watch. A sweep
  * claims a watch by a lease (LEASE_MS): one whose process died is due again when
- * the lease ends, and every watch is deleted by its expireAt (TTL) in the end.
+ * the lease ends. A watch goes once settled; one that still can't be settled is
+ * dropped once it is a day late (LATE_AFTER_MS). No Firestore TTL policy is involved.
  *
  * A no-report result is stored only while the call has none, in one transaction
  * (writeCallResult), so it never replaces a real one. A real result that comes
@@ -55,8 +56,6 @@ const RECHECK_MS = 5 * 60 * 1000;
 const MAX_WATCH_MS = 4 * 60 * 60 * 1000;
 /** A watch found later than this (the job was down) is still settled, then dropped. */
 const LATE_AFTER_MS = 24 * 60 * 60 * 1000;
-/** A watch is deleted by Firestore's TTL this long after it is armed, settled or not. */
-const WATCH_TTL_MS = 2 * 24 * 60 * 60 * 1000;
 /** A claimed watch is due again this long after its claim, unless its sweep settled it. */
 const LEASE_MS = 10 * 60 * 1000;
 
@@ -110,8 +109,7 @@ export async function armCallResultWatchdog(
     const db = getFirestoreDb();
     if (!db) throw new Error('Firestore not available');
     const dueAt = new Date(now.getTime() + NO_REPORT_AFTER_MS).toISOString();
-    const expireAt = new Date(now.getTime() + WATCH_TTL_MS); // a Date: TTL reads a Timestamp
-    const watch = { ...cleanForFirestore({ status: 'pending', dueAt, armedAt: now.toISOString(), request }), expireAt }; // prettier-ignore
+    const watch = cleanForFirestore({ status: 'pending', dueAt, armedAt: now.toISOString(), request }); // prettier-ignore
     await db.collection('bogle_users').doc(request.userId).collection(COLLECTION).doc(callId).set(watch); // prettier-ignore
     return true;
   } catch (error) {

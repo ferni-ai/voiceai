@@ -40,7 +40,7 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the call-watch TTL and the activity, BTH, call-watch and waitlist indexes', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions and the activity, BTH, call-watch, waitlist and wisdom indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
@@ -53,10 +53,16 @@ describe('firestore index drift', () => {
       'composite bth_production_events (COLLECTION): capability ASCENDING, timestamp ASCENDING',
       // the no-report watch sweep (call-result-watchdog.ts, CALL_RESULT_WATCHDOG), not deployed yet
       'composite call_result_watchdogs (COLLECTION_GROUP): status ASCENDING, dueAt ASCENDING',
+      // the wisdom reads' filtered lists (wisdom-intelligence-services.ts): prod 11-16..23
+      // failed 4 of them with FAILED_PRECONDITION, and the other 2 share the shape
+      'composite enough_statements (COLLECTION): domain ASCENDING, recordedAt DESCENDING',
+      'composite legacy_statements (COLLECTION): importance ASCENDING, recordedAt DESCENDING',
+      'composite life_chapters (COLLECTION): status ASCENDING, startDate DESCENDING',
+      'composite paradoxes (COLLECTION): status ASCENDING, recordedAt DESCENDING',
       // the waitlist wave store's lapse query (wave-store.ts), not deployed yet
       'composite waitlist (COLLECTION): status ASCENDING, seatExpiresAt ASCENDING',
-      // the no-report watch's TTL (call-result-watchdog.ts expireAt), not deployed yet
-      'field override call_result_watchdogs.expireAt [TTL policy] indexes=[ASCENDING/COLLECTION, DESCENDING/COLLECTION, CONTAINS/COLLECTION]',
+      'composite wisdom_incubation (COLLECTION): status ASCENDING, recordedAt DESCENDING',
+      'composite wisdom_patterns (COLLECTION): patternType ASCENDING, occurrences DESCENDING',
       'field override memory_vectors.text indexes=[none (exempt)]',
       'field override unified_memories.content indexes=[none (exempt)]',
       'field override vectors.text indexes=[none (exempt)]',

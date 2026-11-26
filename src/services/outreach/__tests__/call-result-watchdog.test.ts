@@ -280,9 +280,10 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(told(NO_REPORT_LINE)).toBe(1);
   });
 
-  it('the watch carries an expireAt for the TTL and its arm time; both warns carry a hash, never the id', async () => {
+  it('the watch carries its arm time and no expireAt (no TTL policy); both warns carry a hash, never the id', async () => {
     expect(await armCallResultWatchdog(request(), callId, T0)).toBe(true);
-    expect(watchDoc()).toMatchObject({ armedAt: T0.toISOString(), expireAt: at(2 * 86_400_000) });
+    expect(watchDoc()).toMatchObject({ armedAt: T0.toISOString() });
+    expect(watchDoc()).not.toHaveProperty('expireAt');
     const failing = { ...store.db, collection: () => { throw new Error('UNAVAILABLE'); } }; // prettier-ignore
     const spy = vi.spyOn(store.db, 'collection').mockImplementation(failing.collection);
     expect(await armCallResultWatchdog(request(), `${callId}_b`, T0)).toBe(false); // not armed
@@ -308,8 +309,10 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(watchDoc()).toMatchObject({ status: 'pending', dueAt: at(NO_REPORT_AFTER_MS).toISOString() }); // prettier-ignore
     expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 61_000) })).toMatchObject({ due: 1, failed: 1 }); // prettier-ignore
     expect(watchDoc()).toBeDefined();
+    await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 24 * 3600_000 - 60_000) });
+    expect(watchDoc()).toBeDefined(); // not yet a day late: kept, tried again
     await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 24 * 3600_000 + 1000) });
-    expect(watchDoc()).toBeUndefined(); // a day late and still failing: dropped
+    expect(watchDoc()).toBeUndefined(); // a day late and still failing: dropped (no TTL does this)
     expect(push).not.toHaveBeenCalled();
   });
 
