@@ -12,8 +12,7 @@
 import { createMindNote, type MindNoteDeps } from '../../intelligence/theory-of-mind/note.js';
 import { firestoreMindStore } from '../../memory/storage/mind-store.js';
 import { forgottenFilter } from './forgotten-filter.js';
-import type { RecallAgent } from './memory-recall-hook.js';
-import { addRecallNotes, callerMemoryNote } from './recall-note.js';
+import { addRecallNotes, callerMemoryNote, type RecallAgent } from './recall-note.js';
 
 export { theoryOfMindMode } from '../../intelligence/theory-of-mind/after-call.js';
 

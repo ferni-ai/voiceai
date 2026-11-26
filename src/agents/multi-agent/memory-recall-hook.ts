@@ -494,5 +494,5 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   });
 }
 
-export { addRecallNote, type RecallAgent } from './recall-note.js';
+export { type RecallAgent } from './recall-note.js';
 export { firestoreRecallStore };
