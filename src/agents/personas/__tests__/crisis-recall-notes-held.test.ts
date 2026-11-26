@@ -94,7 +94,12 @@ function hear(recall: MemoryRecall, c: ReturnType<typeof chat>, said: string): s
 }
 
 /** Ask the real gate about `said` over the chat as it stands; the text of every request it sent. */
-async function ask(c: { agent: { chatCtx: llm.ChatContext } }, sessionId: string, said: string, env: object) {
+async function ask(
+  c: { agent: { chatCtx: llm.ChatContext } },
+  sessionId: string,
+  said: string,
+  env: object
+) {
   const request = c.agent.chatCtx.copy();
   request.addMessage({ role: 'user', content: said });
   const sent: string[] = [];
