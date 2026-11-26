@@ -143,7 +143,7 @@ async function execute(
       return 'What would you like to schedule?';
     }
 
-    log.info({ title, date, time, userId: ctx.userId }, '📅 Creating calendar event');
+    log.info({ titleLength: title.length, userId: ctx.userId }, '📅 Creating calendar event');
 
     if (ctx.userId) {
       try {
@@ -189,7 +189,7 @@ async function execute(
       return 'What should the meeting be about?';
     }
 
-    log.info({ title, attendees, userId: ctx.userId }, '📧 Sending meeting invite');
+    log.info({ titleLength: title.length, userId: ctx.userId }, '📧 Sending meeting invite');
 
     // Conversational fallback
     const attendeeList = Array.isArray(attendees) ? attendees.join(', ') : attendees;

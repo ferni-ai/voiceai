@@ -111,7 +111,10 @@ function getSchedulingToolDefinitions(): ToolDefinition[] {
             contact: z.string().optional().describe('Phone/email for reminder'),
           }),
           execute: async (params) => {
-            log.info({ type: params.type, title: params.title }, '⏰ Schedule tool called');
+            log.info(
+              { type: params.type, titleLength: params.title.length },
+              '⏰ Schedule tool called'
+            );
 
             try {
               if (params.type === 'event') {

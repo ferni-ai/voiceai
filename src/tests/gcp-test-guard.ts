@@ -37,7 +37,7 @@ type Env = Record<string, string | undefined>;
 export const NO_GCP_CREDENTIALS_PATH = '/nonexistent/ferni-tests-have-no-gcp-credentials.json';
 export const TEST_GCP_PROJECT = 'ferni-test-no-gcp';
 
-const PROJECT_ID_VARS = [
+export const PROJECT_ID_VARS = [
   'GOOGLE_CLOUD_PROJECT',
   'GCLOUD_PROJECT',
   'GCP_PROJECT_ID',

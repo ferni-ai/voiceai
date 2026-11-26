@@ -14,6 +14,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { ALARM_CANT_RING } from './alarm-ring.js';
+import { alarmOneShape, storedAlarms } from './alarm-shape.js';
 
 const log = getLogger();
 
@@ -51,13 +52,10 @@ async function loadAlarms(userId: string): Promise<Alarm[]> {
   try {
     const db = getFirestoreDb();
     if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('alarms')
-        .where('enabled', '==', true)
-        .get();
-
+      const alarms = db.collection('bogle_users').doc(userId).collection('alarms');
+      const parse = { time: parseAlarmTime, repeat: parseRepeatPattern }; // ALARM_ONE_SHAPE, #4316
+      if (alarmOneShape()) return storedAlarms((await alarms.get()).docs, parse);
+      const snapshot = await alarms.where('enabled', '==', true).get();
       return snapshot.docs.map(
         (doc: FirebaseFirestore.QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() }) as Alarm
       );
@@ -70,18 +68,20 @@ async function loadAlarms(userId: string): Promise<Alarm[]> {
   return alarmStore.get(userId) || [];
 }
 
-async function saveAlarm(userId: string, alarm: Alarm): Promise<Alarm> {
+/** False when Firestore did not take the alarm and it was not to be kept in memory instead. */
+async function saveAlarm(userId: string, alarm: Alarm, keepInMemory = true): Promise<boolean> {
   try {
     const db = getFirestoreDb();
     if (db) {
       const ref = db.collection('bogle_users').doc(userId).collection('alarms').doc(alarm.id);
       await ref.set(cleanForFirestore(alarm));
       log.info({ alarmId: alarm.id, userId }, 'Alarm saved to Firestore');
-      return alarm;
+      return true;
     }
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Firestore not available, using in-memory');
+    log.warn({ error: String(error), userId }, 'Firestore not available for an alarm save');
   }
+  if (!keepInMemory) return false;
 
   // Fallback to in-memory
   const userAlarms = alarmStore.get(userId) || [];
@@ -93,7 +93,7 @@ async function saveAlarm(userId: string, alarm: Alarm): Promise<Alarm> {
   }
   alarmStore.set(userId, userAlarms);
 
-  return alarm;
+  return true;
 }
 
 async function deleteAlarm(userId: string, alarmId: string): Promise<boolean> {
@@ -316,44 +316,44 @@ const setAlarmDef: ToolDefinition = {
           .optional()
           .describe('Optional label for the alarm (e.g., "Wake up", "Take medicine")'),
       }),
-      execute: async ({ time, repeat = 'once', label }) => {
-        const { time: parsedTime, error: timeError } = parseAlarmTime(time);
-        if (timeError) {
-          return timeError;
-        }
-
-        const { repeat: parsedRepeat, customDays, error: repeatError } = parseRepeatPattern(repeat);
-        if (repeatError) {
-          return repeatError;
-        }
-
-        const alarm: Alarm = {
-          id: generateAlarmId(),
-          userId: ctx.userId,
-          label: label || 'Alarm',
-          time: parsedTime,
-          repeat: parsedRepeat,
-          customDays,
-          enabled: true,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-
-        await saveAlarm(ctx.userId, alarm);
-
-        log.info({ alarmId: alarm.id, time: parsedTime, repeat: parsedRepeat }, 'Alarm set');
-
-        // Build response
-        const timeDisplay = formatTimeForSpeech(parsedTime);
-        const repeatDisplay = formatRepeatForSpeech(alarm);
-
-        const when =
-          alarm.repeat === 'once' ? timeDisplay : `${timeDisplay}, repeating ${repeatDisplay}`;
-        return `Saved an alarm for ${when}${label ? ` ("${label}")` : ''}. ${ALARM_CANT_RING}`;
-      },
+      execute: async ({ time, repeat = 'once', label }) =>
+        createAlarm(ctx.userId, { time, repeat, label }),
     });
   },
 };
+
+const ALARM_NOT_SAVED = "I couldn't save that alarm. Set it on your phone for now?";
+
+/**
+ * The one alarm-save path: voice, and chat with ALARM_ONE_SHAPE on (#4316). If Firestore fails,
+ * each does as on main: `memory` keeps it and says saved (voice; #4275), `report` says it can't.
+ */
+export async function createAlarm(
+  userId: string,
+  { time, repeat = 'once', label }: { time: string; repeat?: string; label?: string },
+  failedSave: 'memory' | 'report' = 'memory'
+): Promise<string> {
+  const { time: parsedTime, error: timeError } = parseAlarmTime(time);
+  if (timeError) return timeError;
+  const { repeat: parsedRepeat, customDays, error: repeatError } = parseRepeatPattern(repeat);
+  if (repeatError) return repeatError;
+  const alarm: Alarm = {
+    id: generateAlarmId(),
+    userId,
+    label: label || 'Alarm',
+    time: parsedTime,
+    repeat: parsedRepeat,
+    customDays,
+    enabled: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  if (!(await saveAlarm(userId, alarm, failedSave === 'memory'))) return ALARM_NOT_SAVED;
+  log.info({ alarmId: alarm.id, time: parsedTime, repeat: parsedRepeat }, 'Alarm set');
+  const [display, repeats] = [formatTimeForSpeech(parsedTime), formatRepeatForSpeech(alarm)];
+  const when = alarm.repeat === 'once' ? display : `${display}, repeating ${repeats}`;
+  return `Saved an alarm for ${when}${label ? ` ("${label}")` : ''}. ${ALARM_CANT_RING}`;
+}
 
 // ============================================================================
 // GET ALARMS TOOL

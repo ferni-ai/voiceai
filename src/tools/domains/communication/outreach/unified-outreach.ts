@@ -44,6 +44,7 @@ import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import { craftPersonalizedMessage } from './message-crafting.js';
 import { emailSender, sendOutreachEmail, type EmailFrom } from './outreach-email.js';
 import { PLAN_ONLY, PLANNED, type Planned } from './outreach-confirm.js';
+import { rememberedContactContext } from './remembered-contact-context.js';
 
 const log = createLogger({ module: 'unified-outreach' });
 const notAgreed = (why: string): string =>
@@ -256,10 +257,8 @@ async function gatherOutreachContext(
   const last = contact.lastInteraction;
   const daysSinceLastContact = last ? Math.floor((Date.now() - last.getTime()) / 86_400_000) : 0;
 
-  const recentTopics = contact.topics?.slice(0, 5).map((t) => t.topic) || [];
-
-  const pendingFollowUp =
-    contact.pendingFollowUp?.completed === false ? contact.pendingFollowUp.reason : undefined;
+  // contact.topics and its pending follow-up, none about a forgotten topic (FORGET_EVERY_READER)
+  const { recentTopics, pendingFollowUp } = await rememberedContactContext(userId, contact);
 
   return {
     contact,

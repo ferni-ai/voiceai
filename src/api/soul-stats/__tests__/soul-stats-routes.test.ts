@@ -7,10 +7,18 @@ import { EventEmitter } from 'node:events';
 import { FieldValue, Timestamp } from '@google-cloud/firestore';
 import { describe, expect, it, vi } from 'vitest';
 import { handleSoulStatsRoutes, type SoulStatsDeps } from '../soul-stats-routes.js';
+import { SOUL_COUNT_KEYS } from '../soul-stats-input.js';
 import { addSoulCounts, soulStatsOn } from '../soul-stats-store.js';
 
 const NOW = Date.UTC(2026, 10, 19, 7, 42);
-const COUNTS = { micro_expression: 3, protective_mode: 0, comfort_pulse: 1, memory_spark: 0 };
+const ZEROS = Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 0]));
+const COUNTS = {
+  ...ZEROS,
+  micro_expression: 3,
+  comfort_pulse: 1,
+  crisis_hold: 1,
+  name_lift_comfort: 2,
+};
 
 /** Records every set(data, options) by doc path. */
 function memoryDb() {
@@ -90,12 +98,16 @@ describe('what is stored', () => {
     expect(path).toBe('soul_stats_hourly/2026-11-19T07');
     expect(Object.keys(data).sort()).toEqual([
       'comfort_pulse',
+      'crisis_hold',
       'expireAt',
       'micro_expression',
+      'name_lift_comfort',
       'updatedAt',
     ]);
     expect((data.micro_expression as FieldValue).isEqual(FieldValue.increment(3))).toBe(true);
     expect((data.comfort_pulse as FieldValue).isEqual(FieldValue.increment(1))).toBe(true);
+    expect((data.crisis_hold as FieldValue).isEqual(FieldValue.increment(1))).toBe(true);
+    expect((data.name_lift_comfort as FieldValue).isEqual(FieldValue.increment(2))).toBe(true);
     // Timestamps survive safeSet's cleaner; a Date would be stored as a string,
     // which a TTL policy never expires and the admin read can't date.
     expect(data.expireAt).toBeInstanceOf(Timestamp);
@@ -107,9 +119,18 @@ describe('what is stored', () => {
 
   it('writes nothing when every count is 0', async () => {
     const { db, writes } = memoryDb();
-    const zeros = { micro_expression: 0, protective_mode: 0, comfort_pulse: 0, memory_spark: 0 };
-    expect((await call({ counts: zeros }, { getDb: () => db })).status).toBe(202);
+    expect((await call({ counts: ZEROS }, { getDb: () => db })).status).toBe(202);
     expect(writes).toHaveLength(0);
+  });
+
+  it('takes all eleven counts at 500 (under the 1 KB cap): one increment each', async () => {
+    const { db, writes } = memoryDb();
+    const full = Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 500]));
+    expect((await call({ counts: full }, { getDb: () => db })).status).toBe(202);
+    const [{ data }] = writes;
+    for (const k of SOUL_COUNT_KEYS) {
+      expect((data[k] as FieldValue).isEqual(FieldValue.increment(500))).toBe(true);
+    }
   });
 
   it('answers 503 without Firestore, and 500 when the write fails', async () => {

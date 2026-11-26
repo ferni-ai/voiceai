@@ -147,6 +147,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Did code change?
@@ -300,6 +301,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -395,8 +398,9 @@ jobs:
   test-unit-shard:
     name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # A shard runs ~8 min of tests; a cold cargo cache adds the native build.
-    timeout-minutes: 25
+    # A green shard takes a median of ~17 min, at most ~25 (80 runs, 2026-11-26); 40 leaves
+    # room for a busy runner or a cold cargo cache (#3301, unit-shard-timeout.test.ts).
+    timeout-minutes: 40
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     strategy:
@@ -430,10 +434,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -594,7 +599,7 @@ jobs:
       # uploads for a commit. vitest.config.unit.ts sets no coverage thresholds, so
       # there is no merged total to enforce here.
       - name: Upload unit coverage
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always() && steps.full-unit.outcome != 'skipped'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -666,10 +671,12 @@ jobs:
       - name: Checkout
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
@@ -774,7 +781,7 @@ jobs:
           fi
 
       - name: Upload integration coverage
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always() && github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -804,6 +811,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Changed src files
         id: changed
@@ -823,7 +832,7 @@ jobs:
 
       - name: Setup pnpm
         if: steps.changed.outputs.count != '0'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Setup Node.js
         if: steps.changed.outputs.count != '0'
@@ -909,6 +918,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -951,6 +962,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1004,6 +1017,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1068,6 +1083,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1350,6 +1367,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -1461,6 +1480,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6

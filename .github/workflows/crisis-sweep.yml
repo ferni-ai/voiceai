@@ -9,8 +9,14 @@ name: Crisis Sweep
 # job-level `if:` instead. A skipped job reports success, and so does one whose
 # `needs:` failed, so the check to require is "Crisis Sweep Verdict", which is
 # green only when the sweep passed or had a reason to skip. labeled/unlabeled
-# re-run it, so adding or removing the approval label takes effect. It runs in
-# the merge queue too, against main and every PR in the group.
+# re-run it, so adding or removing the approval label takes effect. Any other
+# label runs the whole check in a group of its own: opening a PR with a label
+# fires opened and labeled a second apart, and a shared group cancelled one of
+# them, leaving its fail-closed Verdict red on a head that passed (#4198). It
+# must not skip instead: a skipped Verdict counts as passing, and as the newest
+# run of that name it would stand in for a red one. The event carries the PR's
+# current labels, so the label run's Verdict is the head's real result. It runs
+# in the merge queue too, against main and every PR in the group.
 on:
   pull_request:
     branches: [main]
@@ -18,7 +24,7 @@ on:
   merge_group:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'crisis:lowering-approved' && github.run_id) || github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -43,13 +49,30 @@ jobs:
           sparse-checkout: |
             .github/actions
             scripts/ci
-      # The scoring code (detectCrisis + assessSafety and everything they import
-      # that can change a read), the crisis personas and turn handling, the
-      # fixtures, the sweep itself and this workflow.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # What can change a crisis read is the crisis lane of autonomy-policy.json (the
+      # scoring code, every module that reads it, the fixtures and the sweep), which
+      # crisis-paths-complete.test.ts keeps complete, plus what decides this step. Read
+      # from the policy so the two can't drift: the hand-kept list here missed
+      # heavy-moment.ts, which the crisis gate reads, and the sweep skipped green (#4332).
+      # The script prints "." (every path, so the sweep runs) when it can't read the
+      # policy, and so does this step when the script fails or prints nothing. Pinned by
+      # scripts/ci/__tests__/crisis-sweep-detect.test.ts.
+      - name: Which paths can change a crisis read?
+        id: crisis-paths
+        run: |
+          if include=$(node --experimental-strip-types scripts/ci/crisis-lane-include.ts --sweep) && [ -n "$include" ]; then
+            echo "include=$include" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::could not read the crisis lane's paths, so the sweep runs"
+            echo "include=." >> "$GITHUB_OUTPUT"
+          fi
       - id: crisis
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(src/services/safety/|src/agents/personas/crisis|src/agents/processors/turn-processor/turn-crisis|src/tools/domains/life-coaching-shared/safety-guards\.ts$|src/utils/(safety-whole-word|phrase-match)|src/agents/__tests__/fixtures/crisis-|src/services/superhuman/validation/crisis-test-cases\.ts$|src/services/wellbeing-tracking/__tests__/crisis-|scripts/crisis-eval/|scripts/ci/queue-lowering-approved\.sh$|\.github/workflows/crisis-sweep\.yml$)'
+          include: ${{ steps.crisis-paths.outputs.include }}
           # In the queue: every file the group changes against main.
           merge-group: 'true'
 

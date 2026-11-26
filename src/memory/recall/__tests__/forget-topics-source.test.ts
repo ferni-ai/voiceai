@@ -41,6 +41,7 @@ import {
   forgottenWithin,
   snapshotTopics,
 } from '../forget-every-reader.js';
+import { forgetTopic, type ForgetStore } from '../forget.js';
 
 const U = 'member-topics-source';
 
@@ -207,6 +208,32 @@ describe('forgottenPassageWithin: the passage match, fresh reads only', () => {
     read.fn.mockResolvedValueOnce(null); // forgotten elsewhere since; this read fails
     expect(await forgottenPassageWithin(U)).toBeNull();
     expect(forgetReadStats()).toMatchObject({ fallbacks: 0, failClosed: 1 });
+  });
+
+  it('a check held for a call counts a topic forgotten in this process after it was made', async () => {
+    const user = 'member-held-check'; // its own: this process's forgets outlive the test
+    read.fn.mockResolvedValue([]);
+    const check = await forgottenPassageWithin(user);
+    expect(check?.('plant the tomatoes this weekend')).toBe(false);
+    const store: ForgetStore = {
+      facts: async () => [],
+      markForgotten: async () => undefined,
+      addTopic: async () => 1,
+      topics: async () => [],
+    };
+    await forgetTopic(user, 'the tomatoes', store, new Date(), {});
+    expect(check?.('plant the tomatoes this weekend')).toBe(true);
+  });
+
+  it('uncached reads the store past a fresh cached list (#2755)', async () => {
+    read.fn.mockResolvedValueOnce([]);
+    expect((await forgottenPassageWithin(U))?.('the Denver job')).toBe(false); // cached, fresh
+    read.fn.mockResolvedValueOnce(['the Denver job']); // forgotten in another process
+    expect((await forgottenPassageWithin(U))?.('the Denver job')).toBe(false);
+    read.fn.mockResolvedValueOnce(['the Denver job']);
+    expect((await forgottenPassageWithin(U, 'r', process.env, true))?.('the Denver job')).toBe(
+      true
+    );
   });
 
   it('null with the flag off or no member, and nothing is read', async () => {

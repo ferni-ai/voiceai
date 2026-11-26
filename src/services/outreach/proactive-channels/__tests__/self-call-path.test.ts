@@ -42,7 +42,7 @@ vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
     return { success: true, messageSid: 'SM1' };
   }),
 }));
-vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
+vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     async createRoom() {}

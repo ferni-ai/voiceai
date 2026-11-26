@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import base from './playwright.signed-in.config';
 
 /**
@@ -10,6 +10,10 @@ import base from './playwright.signed-in.config';
  * that skip on purpose are left out here, by name, and each entry says why.
  * If one of them should run again, delete its entry; if a new test has to skip,
  * add it here with its reason instead of letting the gate tolerate skips.
+ *
+ * It also runs e2e/avatar-lab.spec.ts (project "avatar-lab"): the lab the admin
+ * Avatar Soul section frames, driven over its bridge on the same Vite app. It needs
+ * no sign-in, so it lives outside e2e/signed-in, and runs on desktop only.
  */
 
 /** Panels hidden from the menu (apps/web/src/config/menu-visibility.ts, #1683, #1695). */
@@ -56,6 +60,12 @@ export default defineConfig({
       ...project('mobile'),
       testIgnore: [...HIDDEN_PANEL_SPECS, ...NOT_ON_PHONE],
       grepInvert: HIDDEN_PANELS,
+    },
+    {
+      name: 'avatar-lab',
+      testDir: './e2e',
+      testMatch: /[\\/]e2e[\\/]avatar-lab\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
 });
