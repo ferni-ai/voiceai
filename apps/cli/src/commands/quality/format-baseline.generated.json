@@ -611,7 +611,6 @@
   "src/tools/domains/self-compassion/index.ts",
   "src/tools/domains/shared/persistence.ts",
   "src/tools/domains/simple-utilities/__tests__/timer-alerts.test.ts",
-  "src/tools/domains/simple-utilities/alarm-tools.ts",
   "src/tools/domains/stories/index.ts",
   "src/tools/domains/telephony/__tests__/owner-contact-parity.main.json",
   "src/tools/domains/ui-navigation/navigation-tools.ts",
