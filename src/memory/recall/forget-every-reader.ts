@@ -285,8 +285,25 @@ export async function profileForPrompt<P extends object>(
   services: { userId?: string | null; userProfile?: P | null },
   env: Env = process.env
 ): Promise<P | null> {
-  const profile = services.userProfile ?? null;
-  return (
-    profile && profileForCaller(services.userId, profile, 'profile', forgetFreshReadEnabled(env))
-  );
+  return startProfileForPrompt(services, env)();
+}
+
+/**
+ * profileForPrompt with its store read started now and the scrub applied when called, to the
+ * profile attached by then (setup-profile.ts): the read runs beside the prompt loads instead of
+ * after them. Without FORGET_FRESH_READ nothing starts early: the shared read waits as before.
+ */
+export function startProfileForPrompt<P extends object>(
+  services: { userId?: string | null; userProfile?: P | null },
+  env: Env = process.env
+): () => Promise<P | null> {
+  const early = forgetFreshReadEnabled(env)
+    ? forgottenCheck(services.userId, 'profile', env, true) // never rejects (forgottenTopicsOrNull)
+    : undefined;
+  return async () => {
+    const profile = services.userProfile ?? null;
+    if (!profile) return null;
+    const forgotten = await (early ?? forgottenCheck(services.userId, 'profile', env));
+    return forgotten ? scrubProfile(profile, forgotten) : profile;
+  };
 }
