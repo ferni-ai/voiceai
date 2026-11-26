@@ -13,7 +13,7 @@ import {
   type LabCommand,
   type LabReply,
   type LabRequest,
-} from '../../avatar-lab/lab-protocol.js';
+} from '../../ui/avatar-lab-protocol.js';
 import { createLogger } from '../../utils/logger.js';
 
 const log = createLogger('AvatarLabClient');

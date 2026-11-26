@@ -4,7 +4,7 @@
  *
  * @module admin/sections/avatar-lab-controls
  */
-import type { LabCommand, LabMoment } from '../../avatar-lab/lab-protocol.js';
+import type { LabCommand, LabMoment } from '../../ui/avatar-lab-protocol.js';
 import {
   MOTION_FLAGS,
   motionFlagBuildDefault,

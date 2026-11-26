@@ -6,9 +6,9 @@
  * is not exactly one of these shapes (a name the lab does not know, a face not
  * in EMOTIONAL_EXPRESSIONS, `__proto__`) is rejected and nothing from it runs.
  */
-import { EMOTIONAL_EXPRESSIONS, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
-import { nameLiftEffectFrom, type NameLiftEffect } from '../ui/avatar-motion/name-lift.js';
-import type { Speaker } from '../ui/speaker-cues.ui.js';
+import { EMOTIONAL_EXPRESSIONS, type EmotionalExpression } from './ferni-expressions.ui.js';
+import { nameLiftEffectFrom, type NameLiftEffect } from './avatar-motion/name-lift.js';
+import type { Speaker } from './speaker-cues.ui.js';
 
 export const LAB_MESSAGE_TYPE = 'ferni:avatar-lab';
 

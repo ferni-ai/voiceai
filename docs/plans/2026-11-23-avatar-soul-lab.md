@@ -81,7 +81,7 @@ Rulings made while planning, each with what it costs if wrong:
 
 The message protocol is shared:
 
-- `apps/web/src/avatar-lab/lab-protocol.ts` (new): `LabRequest`, `LabReply`, `LAB_MESSAGE_TYPE = 'ferni:avatar-lab'`.
+- `apps/web/src/ui/avatar-lab-protocol.ts` (new): `LabRequest`, `LabReply`, `LAB_MESSAGE_TYPE = 'ferni:avatar-lab'`.
 
 ---
 
@@ -201,7 +201,7 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
 
 **Files:**
 
-- Create: `apps/web/src/avatar-lab/lab-protocol.ts`, `lab-commands.ts`, `lab-bridge.ts`
+- Create: `apps/web/src/ui/avatar-lab-protocol.ts`, `apps/web/src/avatar-lab/lab-commands.ts`, `apps/web/src/avatar-lab/lab-bridge.ts`
 - Modify:
   - `apps/web/src/ui/ferni-expressions.ui.ts`: export `EMOTIONAL_EXPRESSIONS` as a `const` tuple and derive `EmotionalExpression` from it (one source; the file may not grow, so move one helper out if needed);
   - `apps/web/src/avatar-lab/index.ts`: start the bridge.
@@ -209,7 +209,7 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
 
 **Interfaces:**
 
-- Produces (`lab-protocol.ts`):
+- Produces (`avatar-lab-protocol.ts`):
   ```ts
   export const LAB_MESSAGE_TYPE = 'ferni:avatar-lab';
   export type LabCommand =

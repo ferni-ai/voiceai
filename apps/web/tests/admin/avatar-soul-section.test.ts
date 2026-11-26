@@ -10,7 +10,7 @@ import {
   type LabCommand,
   type LabRequest,
   type LabStatus,
-} from '../../src/avatar-lab/lab-protocol.js';
+} from '../../src/ui/avatar-lab-protocol.js';
 import { createLabClient } from '../../src/admin/sections/avatar-lab-client.js';
 import { motionFlagOverride, setMotionFlagOverride } from '../../src/config/motion-flags.js';
 
