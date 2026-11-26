@@ -2,7 +2,8 @@
  * What callOnBehalf and callAndConverse read back before the caller's yes
  * (outreach-confirm.ts): who, the exact number that will ring, and why. The
  * confirmed call dials that number and no other, so a number the model
- * misheard or invented is heard by the caller before anything rings.
+ * misheard or invented is heard by the caller before anything rings. A saved
+ * contact may be read back by name only (saved-contact-readback.ts).
  *
  * @module tools/domains/telephony/call-confirm
  */
@@ -18,6 +19,7 @@ import {
   savableNumber,
   type GivenNumber,
 } from './owner-contact.js';
+import { readBackNumber } from './saved-contact-readback.js';
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 /** "My Dad" and "dad" are the same person to call. */
@@ -53,6 +55,7 @@ export const callConfirm: ConfirmSpec = {
     let name = who;
     let raw = text(args.phoneNumber);
     let relationship: string | undefined;
+    let savedName = ''; // stays '' for a number the owner gave
     const given = raw !== ''; // the owner's own number for them, not one looked up
     if (!raw) {
       const { findContact } = await import('./call-on-behalf.js');
@@ -60,6 +63,7 @@ export const callConfirm: ConfirmSpec = {
       // CONTACT_PICK_V2: several match, or only a name like "Father Tom": ask, read back nothing
       if (contact && 'ask' in contact) return contact.ask;
       raw = text(contact?.phone);
+      savedName = text(contact?.name);
       if (contact?.name) name = contact.name;
       relationship = contact?.relationship;
     }
@@ -83,9 +87,12 @@ export const callConfirm: ConfirmSpec = {
     if (told) return told;
     // CONTACT_SAVE_ON_YES: what a yes also saves for them (owner-contact.ts); nothing is saved yet
     const save = given ? await numberToSave(userId, who, number.e164) : undefined;
+    // CALL_READBACK_SAVED_NAME_ONLY: a saved contact by name, not digit by digit (2026-11-26)
+    const { at, aside } = readBackNumber(number.spoken, savedName);
     return {
       args: { ...args, phoneNumber: number.e164, ...(save && { [GIVEN]: save.given }) },
-      readBack: `a call to ${name} at ${number.spoken}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}${save?.note ?? ''}`,
+      readBack: `a call to ${name}${at}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}${save?.note ?? ''}`,
+      ...(aside ? { aside } : {}),
     };
   },
   onYes: rememberOnYes,

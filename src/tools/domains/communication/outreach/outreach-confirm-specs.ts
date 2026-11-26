@@ -1,6 +1,7 @@
 /** What each outreach tool fixes and reads back before the caller's yes (outreach-confirm.ts). */
 
 import { emergencyDialRefusal } from '../../../../utils/dialable-number.js';
+import { readBackNumber } from '../../telephony/saved-contact-readback.js';
 import { ownerKnown, PLANNED, type ConfirmSpec, type Planned } from './outreach-confirm.js';
 import type { OutreachResult } from './unified-outreach.js';
 
@@ -25,9 +26,13 @@ export const reachOutConfirm: ConfirmSpec = {
     const article = r.channel === 'email' ? 'an' : 'a';
     const how = CALLS.includes(r.channel) ? 'a call' : `${article} ${r.channel}`;
     const words = CALLS.includes(r.channel) ? 'where Ferni will open with' : 'saying';
+    // CALL_READBACK_SAVED_NAME_ONLY: a call to this saved contact by name only (2026-11-26);
+    // a text or email keeps its address (no saved name passed)
+    const { at, aside } = readBackNumber(r.to, CALLS.includes(r.channel) ? r.contactName : '');
     return {
       args: { ...args, customMessage: r.message, preferredChannel: r.channel, [PLANNED]: planned },
-      readBack: `${how} to ${r.contactName} at ${r.to}${fromWhere(r, session)}, ${words} "${r.message}"`,
+      readBack: `${how} to ${r.contactName}${at}${fromWhere(r, session)}, ${words} "${r.message}"`,
+      ...(aside ? { aside } : {}),
     };
   },
 };

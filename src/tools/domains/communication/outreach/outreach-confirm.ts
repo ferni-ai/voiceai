@@ -48,7 +48,7 @@ import {
   windowState,
   type ConfirmState,
 } from './consent-window.js';
-import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
+import { notSentYetReply, serverConfirmOn, type Kin } from './outreach-confirm-family.js';
 import {
   gateInFamily,
   settleThenSend,
@@ -282,13 +282,15 @@ export interface ConfirmSpec {
   /**
    * Fix the exact args to send and the read-back, without sending (`plan`
    * runs the tool with PLAN_ONLY). A string answers without storing anything.
+   * `aside`: told to the model after the read-back, never read out (e.g. a
+   * saved contact's number, said only if asked: saved-contact-readback.ts).
    */
   prepare: (
     args: Record<string, unknown>,
     userId: string,
     plan: (args: Record<string, unknown>) => Promise<unknown>,
     session?: object
-  ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
+  ) => Promise<{ args: Record<string, unknown>; readBack: string; aside?: string } | string>;
   /**
    * Whether a call (to any tool with this spec) is the action read back, `stored` being the
    * prepared args. Omitted: only the same tool is. The stored args are what run, so tools sharing
@@ -428,10 +430,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           ownerVerified: ownerKnown(session),
         });
         log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
-        return (
-          `NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: ` +
-          `${prepared.readBack}. Call ${def.id} again only after the caller says yes.`
-        );
+        return notSentYetReply(def.id, prepared.readBack, prepared.aside);
       };
       return { ...tool, execute: gated } as Tool;
     },
