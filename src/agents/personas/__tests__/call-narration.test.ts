@@ -98,6 +98,19 @@ describe('the guard', () => {
     expect(await reply([reported, ...OPENED], STORY)).toBe(STORY);
   });
 
+  it('with the call in the RECALL_ACTIVITY list from callStatus, the answer stands', async () => {
+    const listed = llm.FunctionCallOutput.create({
+      callId: 'c2',
+      name: 'callStatus',
+      output:
+        'Everything Ferni did for the caller in the last 30 days, from the records.\nDone, newest first:\n- Sunday, November 22, in the afternoon (3:00 PM): Ferni called Ottilie (their best friend), and they answered.',
+      isError: false,
+    });
+    const words = 'I did, yeah. She told me she is moving next month.';
+    const asked = [user('Did you end up calling my best friend?'), listed];
+    expect(await reply(asked, words)).toBe(words);
+  });
+
   it('with no call in play, a story of his own stands', async () => {
     const chat = [said('How was your weekend?'), user('Good. How about you?')];
     expect(await reply(chat, 'My buddy and I, we talked for hours.')).toBe(
