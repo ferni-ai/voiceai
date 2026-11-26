@@ -34,9 +34,9 @@ type Bid = 'teaser' | 'side_road';
 const TEASER =
   /\b(?:guess what|you(?:'ll| will)? never guess|you won'?t believe|you(?:'re| are) not gonna believe|wait (?:till|until) you hear|(?:so|okay),? funny story|(?:wanna|want to) hear something|i have to tell you something|i gotta tell you something|get this)\b/i;
 
-/** Off the current topic, onto something of their own. */
+/** Off the current topic, onto something of their own (after a lead-in like "yeah," too). */
 const SIDE_ROAD =
-  /(?:^|[.!?]\s+)(?:oh,? and\b|oh,? also\b|random(?:ly)?,? but\b|totally unrelated\b|side note\b|that reminds me\b|speaking of\b|before i forget\b|oh,? (?:wait|hey),? (?:did i tell you|i forgot to tell you)\b)/i;
+  /(?:^|[.!?]\s+)(?:(?:yeah|oh|okay|ok|so|hey|well|um),?\s+)?(?:oh,? and\b|oh,? also\b|random(?:ly)?,? but\b|totally unrelated\b|side note\b|that reminds me\b|speaking of\b|before i forget\b|oh,? (?:wait|hey),? (?:did i tell you|i forgot to tell you)\b)/i;
 
 const TEASER_NOTE =
   "They're building up to something. Bite first, in a few words of your own, the way a friend leans in, then let them tell it. Don't guess what it is, and don't bring up anything you had planned in this reply.";

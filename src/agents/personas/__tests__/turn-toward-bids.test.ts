@@ -30,6 +30,8 @@ describe('newsNote: bids (BIDS_TURN_TOWARD)', () => {
     'Oh, and my cousin Priya is visiting.',
     'Yeah. That reminds me, I never fixed the gate.',
     'Random, but have you ever had quince?',
+    'Yeah, that reminds me, the gate is still broken.',
+    'Oh, speaking of dogs, ours ran off again.',
   ])('asks him to follow a side road: %j', (said) => {
     expect(note(said)).toMatch(SIDE_ROAD);
   });
