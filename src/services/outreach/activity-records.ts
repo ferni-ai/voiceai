@@ -21,12 +21,14 @@ const WINDOW_MS = 30 * 86_400_000;
 const PER_STORE = 200;
 
 /**
- * Which documents of a store to read: the newest by `orderBy`, or those whose `where` field equals
- * the value (no order, so no composite index), filtered before the limit so other kinds of
- * documents (texts, pushes, the caller's own follow-ups) can't crowd out the ones listed.
+ * Which documents of a store to read, without a composite index: the newest by `orderBy` (only
+ * those at or after `since` on that same field, when given), or all whose `where` field equals the
+ * value. An equality read has no time order (Firestore returns it by document id), so it is only
+ * for a store whose matching documents stay well under the limit; hitting the limit is logged.
  */
 export interface StoreQuery {
   readonly orderBy?: string;
+  readonly since?: string;
   readonly where?: readonly [field: string, value: string];
 }
 
@@ -48,8 +50,12 @@ async function firestoreRecent(
   if (!db) return [];
   const col = db.collection('bogle_users').doc(userId).collection(store);
   const filtered = query.where ? col.where(query.where[0], '==', query.where[1]) : col;
-  const ordered = query.orderBy ? filtered.orderBy(query.orderBy, 'desc') : filtered;
+  const from =
+    query.orderBy && query.since ? filtered.where(query.orderBy, '>=', query.since) : filtered;
+  const ordered = query.orderBy ? from.orderBy(query.orderBy, 'desc') : from;
   const snap = await ordered.limit(limit).get();
+  if (snap.size >= limit)
+    log.warn({ userId, store, limit }, 'RECALL_ACTIVITY: store read hit the limit');
   return snap.docs.map((d) => d.data());
 }
 
@@ -96,7 +102,13 @@ export async function loadActivity(
     safely(
       'outreach_history',
       async () =>
-        stores.recent(userId, 'outreach_history', { where: ['channel', 'email'] }, PER_STORE),
+        stores.recent(
+          userId,
+          'outreach_history',
+          // every delivery in the window, newest first; activity-recall keeps the emails
+          { orderBy: 'deliveredAt', since: new Date(now - WINDOW_MS).toISOString() },
+          PER_STORE
+        ),
       []
     ),
     safely(

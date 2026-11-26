@@ -222,13 +222,13 @@ describe('loadActivity', () => {
     expect(got.unread).toBeUndefined();
   });
 
-  it('filters emails and Ferni promises before the limit, so other documents cannot crowd them out', async () => {
+  it('reads deliveries newest first within the window, and Ferni promises by owner', async () => {
     const s = stores();
     await loadActivity('owner-1', NOW, s);
     expect(s.recent).toHaveBeenCalledWith(
       'owner-1',
       'outreach_history',
-      { where: ['channel', 'email'] },
+      { orderBy: 'deliveredAt', since: iso(NOW - 30 * DAY) },
       200
     );
     expect(s.recent).toHaveBeenCalledWith(
