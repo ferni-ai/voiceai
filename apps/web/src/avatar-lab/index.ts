@@ -53,7 +53,6 @@ html[data-avatar-lab='on'] #app :not(:has(#coach, #waveformContainer)):not(#coac
  */
 const FORCED_VISIBLE_IDS = ['helperText'] as const;
 
-const PERSONA_COLOR_TOKEN = '--color-persona-ferni';
 /**
  * Ferni's colour token from the design tokens (design-system/dist/tokens.css),
  * for the cameo arrival's bloom. `--persona-ferni-primary` is not defined in the
