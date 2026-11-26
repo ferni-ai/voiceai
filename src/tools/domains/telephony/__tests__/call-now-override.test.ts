@@ -110,6 +110,10 @@ vi.mock('../../../../services/contacts/contact-relationship-service.js', () => (
   upsertContact: vi.fn(async () => undefined),
 }));
 vi.mock('../../../../services/global-services.js', () => ({ getGlobalServicesSync: () => null }));
+// No model here: the call message is reworded by one, and falls back to its template.
+vi.mock('../../../../services/llm-utils.js', async () =>
+  (await import('../../../../tests/helpers/no-model.js')).llmUtilsWithNoModel()
+);
 
 process.env.LIVEKIT_URL = 'wss://example.livekit.cloud';
 process.env.LIVEKIT_API_KEY = 'k';

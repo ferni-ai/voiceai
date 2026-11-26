@@ -2448,7 +2448,6 @@
   "src/api/v1/admin/better-than-human-analytics.ts -> src/services/better-than-human-validation/production-telemetry.ts",
   "src/api/v1/admin/dashboard.ts -> src/intelligence/capability-learning.ts",
   "src/api/v1/admin/dashboard.ts -> src/personas/registry/unified-registry.ts",
-  "src/api/v1/admin/tts-monitoring.ts -> src/speech/tts-monitoring.ts",
   "src/api/v1/developers/voice-routes.ts -> src/services/custom-agent/custom-agent-voice-policy.ts",
   "src/api/v1/integrations/handler.ts -> src/services/context-awareness/location-calendar.ts",
   "src/api/v1/integrations/handler.ts -> src/services/finance/prediction.ts",

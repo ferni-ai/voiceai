@@ -252,7 +252,7 @@ const createCalendarEventDef: ToolDefinition = {
         }
 
         const formattedTime = formatStoredLocalTime(startTime, zone);
-        log.info({ userId, eventTitle: params.title }, 'Created calendar event');
+        log.info({ userId, titleLength: params.title.length }, 'Created calendar event');
         // createEvent keeps it in Ferni's own calendar; nothing pushes it to Google.
         return `Saved to the Ferni calendar only, not Google Calendar: "${params.title}", ${formattedTime}, ${durationMinutes} minutes.`;
       },
@@ -907,7 +907,7 @@ const getPostMeetingFollowUpDef: ToolDefinition = {
           response += followUp.suggestedActions.map((a) => `- ${a}`).join('\n');
         }
 
-        log.info({ userId, eventTitle: followUp.eventTitle }, 'Delivered post-meeting follow-up');
+        log.info({ userId, eventId: followUp.eventId }, 'Delivered post-meeting follow-up');
         return response;
       },
     }),
@@ -974,7 +974,7 @@ const recordMeetingOutcomeDef: ToolDefinition = {
           response += `\n\n💡 I'll remember this for next time you meet with them!`;
 
           log.info(
-            { userId, attendee: params.attendeeEmail, topicCount: params.topics.length },
+            { userId, hasAttendee: !!params.attendeeEmail, topicCount: params.topics.length },
             'Recorded meeting outcome'
           );
           return response;
@@ -1533,7 +1533,7 @@ const blockRecoveryTimeDef: ToolDefinition = {
           minute: '2-digit',
         });
 
-        log.info({ userId, eventId: createdEvent.id, title }, 'Recovery time blocked');
+        log.info({ userId, eventId: createdEvent.id }, 'Recovery time blocked');
 
         return `Done! I've blocked "${title}" on ${date} from ${startTimeStr} to ${endTimeStr}.\n\nThis time is now protected on your calendar. Take care of yourself! 💚`;
       },

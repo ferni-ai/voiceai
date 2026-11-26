@@ -25,7 +25,7 @@
  * @module @ferni/agents/integrations/better-than-human
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 
 // BTH Validation Telemetry
@@ -1569,7 +1569,7 @@ export function processUserResponseForResonance(
       sessionId,
       capability: pending.capability,
       reaction,
-      transcript: userTranscript.slice(0, 50),
+      transcript: replyForLog(userTranscript, 50), // a length on prod (#4392)
     },
     '📊 Resonance response recorded'
   );

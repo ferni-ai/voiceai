@@ -69,7 +69,10 @@ const active = vi.hoisted(() => vi.fn<(userId: string) => Promise<Array<{ id: st
 
 vi.mock('../../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => fake.db }));
 vi.mock('../../../calendar/calendar-service.js', () => ({ getEventsForDay: async () => [] }));
-vi.mock('../../../../memory/recall/forget.js', () => ({ forgottenTopicsOrNull: forgotten }));
+vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  forgottenTopicsOrNull: forgotten,
+}));
 vi.mock('../../../superhuman/commitment-follow-up.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   firestoreCommitmentStore: { active },

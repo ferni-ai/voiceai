@@ -602,19 +602,19 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
-      // 🔍 E2E TRACE: STT complete. Never the words of a called person or a try-first visitor.
+      // 🔍 E2E TRACE: a length on prod for everyone, words on dev only (replyForLog, #4392).
       const sttCompleteTime = Date.now();
       const said = wordsNeverLogged(userId) ? '' : event.transcript;
       log().info(
         {
           trace: 'E2E_USER_INPUT',
-          transcript: said.slice(0, 100),
+          transcript: replyForLog(said, 100),
           fullLength: event.transcript.length,
           sessionId,
           userId,
           turnNumber: userData.turnCount || 0,
         },
-        `🔍 E2E TRACE [STT] User said: "${said.slice(0, 50)}..." (${event.transcript.length} chars)`
+        `🔍 E2E TRACE [STT] User said (${event.transcript.length} chars)` // miner marker, no words
       );
 
       // 📊 E2E LATENCY: Start tracking this turn

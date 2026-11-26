@@ -20,12 +20,6 @@ const SKIP_DIR = /^(__tests__|__mocks__|node_modules|tests|cli)$/;
 const SKIP_FILE = /\.(test|spec)\.ts$|\.d\.ts$/;
 
 /** Reviewed calls per file. Each group says why its calls may stay. */
-const PENDING_2656: Record<string, number> = {
-  // Held as pending Seth's call in call-log-surface-guard.test.ts EXEMPT (#2656): what the
-  // caller said. Ferni's own words are out: replyForLog logs their length, never the text.
-  'src/agents/integrations/better-than-human-integration.ts': 1, // resonance transcript (#2663)
-  'src/agents/voice-agent/transcript-handler.ts': 1, // E2E_USER_INPUT
-};
 const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/tools/domains/marketing/content-generator.ts': 1, // LLM marketing copy that failed to parse
   'src/services/performance/performance-metrics.ts': 1, // contextInjections: builder timings
@@ -232,10 +226,7 @@ const PENDING_3215B: Record<string, string[]> = {
   'src/tools/domains/research/superhuman-tools/research-synthesis.ts': ['topic: params.topic'],
   'src/workers/analytics-worker.ts': ['topic: data.topic'],
 };
-const ALLOWED: Record<string, number> = {
-  ...PENDING_2656,
-  ...NOT_ANYONES_WORDS,
-};
+const ALLOWED: Record<string, number> = { ...NOT_ANYONES_WORDS };
 
 function productionFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -426,19 +417,5 @@ describe('log calls in src/ carry no conversation text (#2689, #3215)', () => {
       if (leaks.length) found[relative(ROOT, file)] = leaks;
     }
     expect(unreviewed(found, ALLOWED, PENDING_3215B)).toEqual([]);
-  });
-
-  it('holds exactly the 2 caller-text calls call-log-surface-guard keeps pending (#2656)', () => {
-    expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(2);
-  });
-
-  // 82 at first, plus 47 found by the topic, canonicalName and bound-name shapes (#3724),
-  // less the 2 query-threads.ts calls #3744 removed
-  it('holds exactly the 115 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
-    expect(Object.values(PENDING_3215B).flat()).toHaveLength(115);
-  });
-
-  it('keeps pending calls out of the other lists', () => {
-    expect(Object.keys(PENDING_3215B).filter((rel) => rel in ALLOWED)).toEqual([]);
   });
 });

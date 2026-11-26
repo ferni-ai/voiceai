@@ -382,7 +382,7 @@ export function createRoutine(params: {
   persistRoutine(params.userId, routine);
 
   getLogger().info(
-    { routineId: routine.id, name: routine.name, steps: steps.length },
+    { routineId: routine.id, nameLength: routine.name.length, steps: steps.length },
     '🌅 Routine created'
   );
 

@@ -16,7 +16,7 @@
  * @module GoalTracking
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'GoalTracking' });
 
@@ -317,7 +317,7 @@ function createGoal(
   profile.goals.push(goal);
   profile.stats.totalGoalsSet++;
 
-  log.info({ userId, goalId: goal.id, title: goal.title, domain: goal.domain }, '🎯 Goal created');
+  log.info({ userId, goalId: goal.id, domain: goal.domain }, '🎯 Goal created');
 
   return goal;
 }
@@ -385,7 +385,7 @@ function updateProgress(userId: string, goalId: string, progress: number, note?:
     goal.status = 'completed';
     goal.completedAt = new Date();
     profile.stats.goalsCompleted++;
-    log.info({ userId, goalId, title: goal.title }, '🎉 Goal completed!');
+    log.info({ userId, goalId, title: replyForLog(goal.title) }, '🎉 Goal completed!');
   }
 
   // Update streak if progress increased
@@ -428,7 +428,7 @@ function completeMilestone(userId: string, goalId: string, milestoneId: string):
     goal.currentMilestoneIndex = nextIndex;
   }
 
-  log.info({ userId, goalId, milestoneId, title: milestone.title }, '✅ Milestone completed');
+  log.info({ userId, goalId, milestoneId, title: replyForLog(milestone.title) }, 'Milestone done');
 
   return true;
 }

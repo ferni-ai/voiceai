@@ -28,7 +28,7 @@ const isVerbose = process.argv.includes('--verbose');
 // Files to skip (already localized or dev-only)
 const SKIP_FILES = [
   'dev-panel.ui.ts',
-  'admin.ui.ts',
+  'marketplace-admin.ui.ts',
   'evalops-dashboard.ui.ts',
   'insights-debug-panel.ui.ts',
   'trigger-debug-panel.ui.ts',
