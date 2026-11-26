@@ -73,6 +73,8 @@ jobs:
 
       - if: steps.paths.outputs.run == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - if: steps.paths.outputs.run == 'true'
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       - if: steps.paths.outputs.run == 'true'
@@ -133,6 +135,8 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # The changed paths decide the suites (see the header). If the change set
       # cannot be read, every suite runs: this fails toward measuring, not skipping.

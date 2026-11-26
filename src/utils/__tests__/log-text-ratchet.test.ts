@@ -38,12 +38,6 @@ const WHOLE_KEY =
   /^(?:text|content|utterance|transcript|speech|starter|reflection)$|(?:Text|Content|Utterance|Transcript|Speech|Starter|Reflection)$/;
 
 /** Reviewed calls per file. Each group says why its calls may stay. */
-const PENDING_2656: Record<string, number> = {
-  // Held as pending Seth's call in call-log-surface-guard.test.ts EXEMPT (#2656): what the
-  // caller said. Ferni's own words are out: replyForLog logs their length, never the text.
-  'src/agents/integrations/better-than-human-integration.ts': 1, // resonance transcript (#2663)
-  'src/agents/voice-agent/transcript-handler.ts': 1, // E2E_USER_INPUT
-};
 const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/tools/domains/marketing/content-generator.ts': 1, // LLM marketing copy that failed to parse
   'src/services/performance/performance-metrics.ts': 1, // contextInjections: builder timings
@@ -56,10 +50,7 @@ const NOT_ANYONES_WORDS: Record<string, number> = {
   'src/agents/voice-agent/turn-handler.ts': 1, // hasGrowthReflection: a boolean
   'src/audio/music-transition-analytics.ts': 1, // timeToSpeech: ms
 };
-const ALLOWED: Record<string, number> = {
-  ...PENDING_2656,
-  ...NOT_ANYONES_WORDS,
-};
+const ALLOWED: Record<string, number> = { ...NOT_ANYONES_WORDS };
 
 function slicesText(call: string): boolean {
   return [...call.matchAll(SLICE)].some(
@@ -159,9 +150,5 @@ describe('log calls in src/ carry no conversation text (#2689)', () => {
       if (!found[rel]) where.push(`${rel}: prune from ALLOWED`);
     }
     expect(where).toEqual([]);
-  });
-
-  it('holds exactly the 2 caller-text calls call-log-surface-guard keeps pending (#2656)', () => {
-    expect(Object.values(PENDING_2656).reduce((a, b) => a + b, 0)).toBe(2);
   });
 });

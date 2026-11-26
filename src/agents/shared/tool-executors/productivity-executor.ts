@@ -12,8 +12,8 @@
  * @module agents/shared/tool-executors/productivity-executor
  */
 
-import { ALARM_CANT_RING } from '../../../tools/domains/simple-utilities/alarm-ring.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { lengthsOf } from '../../../utils/reply-for-log.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 import {
@@ -22,6 +22,7 @@ import {
   getAlarms,
   getReminders,
   getTimer,
+  setAlarm,
   snoozeAlarm,
   updateGoal,
 } from './productivity-time-bridge.js';
@@ -175,7 +176,7 @@ async function addTask(args: Record<string, unknown>, ctx: ToolExecutionContext)
     return 'What task would you like me to add?';
   }
 
-  log.info({ title, userId: ctx.userId }, '📝 Adding task');
+  log.info({ ...lengthsOf({ title }), userId: ctx.userId }, '📝 Adding task');
 
   if (!ctx.userId) {
     return `Got it! I'll remember you want to "${title}".`;
@@ -275,7 +276,7 @@ async function completeTask(
     return 'Which task did you complete?';
   }
 
-  log.info({ taskName, userId: ctx.userId }, '✅ Completing task');
+  log.info({ ...lengthsOf({ taskName }), userId: ctx.userId }, '✅ Completing task');
 
   if (!ctx.userId) {
     return `Nice work completing "${taskName}"! 🎉`;
@@ -364,7 +365,7 @@ async function addGoal(args: Record<string, unknown>, ctx: ToolExecutionContext)
     return 'What goal are you working toward?';
   }
 
-  log.info({ title, category, userId: ctx.userId }, '🎯 Adding goal');
+  log.info({ ...lengthsOf({ title }), category, userId: ctx.userId }, '🎯 Adding goal');
 
   if (!ctx.userId) {
     return `Great goal! "${title}" - I'll keep that in mind.`;
@@ -467,7 +468,7 @@ async function scheduleReminder(
     return 'What would you like me to remind you about?';
   }
 
-  log.info({ message, when, userId: ctx.userId }, '🔔 Scheduling reminder');
+  log.info({ ...lengthsOf({ message, when }), userId: ctx.userId }, '🔔 Scheduling reminder');
 
   if (!ctx.userId) {
     return `I'll remind you: "${message}"${when ? ` at ${when}` : ''}.`;
@@ -546,7 +547,7 @@ async function setTimer(args: Record<string, unknown>, ctx: ToolExecutionContext
     return 'How long should I set the timer for?';
   }
 
-  log.info({ duration, label, userId: ctx.userId }, '⏱️ Setting timer');
+  log.info({ ...lengthsOf({ duration, label }), userId: ctx.userId }, '⏱️ Setting timer');
 
   // Parse duration (e.g., "5 minutes", "1 hour", "30 seconds")
   let seconds = 0;
@@ -625,7 +626,7 @@ async function addNote(args: Record<string, unknown>, ctx: ToolExecutionContext)
 
   const noteContent = content || title || '';
 
-  log.info({ title, userId: ctx.userId }, '📝 Adding note');
+  log.info({ ...lengthsOf({ title, noteContent }), userId: ctx.userId }, '📝 Adding note');
 
   if (!ctx.userId) {
     return `Noted: "${noteContent.slice(0, 50)}${noteContent.length > 50 ? '...' : ''}"`;
@@ -747,34 +748,9 @@ async function execute(
       return 'What time would you like me to set the alarm for?';
     }
 
-    log.info({ time, label, recurring, userId: ctx.userId }, '⏰ Setting alarm');
+    log.info({ ...lengthsOf({ time, label, recurring }), userId: ctx.userId }, '⏰ Setting alarm');
 
-    if (!ctx.userId) return "I couldn't save that alarm, I don't know whose it is.";
-    try {
-      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
-      const alarmId = `alarm_${Date.now()}`;
-      await getAdminFirestore()
-        .collection('bogle_users')
-        .doc(ctx.userId)
-        .collection('alarms')
-        .doc(alarmId)
-        .set(
-          cleanForFirestore({
-            id: alarmId,
-            time,
-            label,
-            recurring,
-            createdAt: new Date(),
-            active: true,
-          })
-        );
-      log.info({ alarmId, userId: ctx.userId }, '✅ Alarm saved');
-    } catch (err) {
-      log.warn({ error: String(err) }, 'Alarm storage failed');
-      return "I couldn't save that alarm. Set it on your phone for now?";
-    }
-
-    return `Saved an alarm for ${time}${label ? ` (${label})` : ''}${recurring ? `, repeating ${recurring}` : ''}. ${ALARM_CANT_RING}`;
+    return setAlarm({ time, label, recurring }, ctx);
   }
 
   if (fnLower === 'getalarms') return getAlarms(ctx);
@@ -785,8 +761,7 @@ async function execute(
   if (fnLower === 'addnote') return addNote(args, ctx);
   if (fnLower === 'getnotes') return getNotes(args, ctx);
   if (fnLower === 'searchnotes') {
-    const query = args.query as string;
-    log.info({ query }, '🔍 Searching notes');
+    log.info(lengthsOf({ query: args.query }), '🔍 Searching notes');
     return getNotes(args, ctx); // For now, return all notes
   }
 
@@ -794,7 +769,7 @@ async function execute(
   if (fnLower === 'addjournal') {
     const entry = args.entry as string;
     const mood = args.mood as string;
-    log.info({ mood, userId: ctx.userId }, '📔 Journal entry');
+    log.info({ ...lengthsOf({ mood }), userId: ctx.userId }, '📔 Journal entry');
 
     if (!entry) {
       return 'What would you like to journal about?';

@@ -132,6 +132,7 @@ import { getMicroMomentDetector } from '../../intelligence/deep-understanding/mi
 import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
 import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
 import { crisisReadTurn, momentRecorder } from './crisis-turn-memory.js';
+import { skipsRecall } from '../processors/turn-processor/crisis-memory-recall.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
 // NEW: Unified Intelligence System (Levels 2-5)
@@ -802,11 +803,10 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       : Promise.resolve(null);
 
     // ================================================================
-    // 🧠 BETTER THAN HUMAN: Memory Retrieval (Phase 9)
-    // Retrieve relevant memories to inject into the conversation
-    // This runs in parallel with turn processing for minimal latency (<100ms target)
+    // 🧠 BTH Memory Retrieval (Phase 9), beside turn processing; none on a crisis line (skipsRecall)
     // ================================================================
-    const memoryRetrievalPromise = services.userId
+    const recallsMemory = !!services.userId && !skipsRecall(services.sessionId, userText);
+    const memoryRetrievalPromise = recallsMemory
       ? buildMemoryRetrievalContext({
           userText,
           analysis: {

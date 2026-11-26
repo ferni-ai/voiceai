@@ -77,6 +77,16 @@ describe('agentFlags', () => {
     });
   });
 
+  it('lists both soft pause switches as on/off experiments', () => {
+    for (const name of ['SOFT_PAUSE_ONE_OUTCOME', 'SOFT_PAUSE_CUT_DROPS_HELD']) {
+      expect(byName(name)).toMatchObject({
+        kind: 'experiment',
+        switchable: true,
+        modes: ['off', 'on'],
+      });
+    }
+  });
+
   it('gives a flagModeOf flag the shadow mode as well', () => {
     expect(byName('SOUND_CONDUCTOR').modes).toEqual(['off', 'shadow', 'on']);
   });

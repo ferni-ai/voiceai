@@ -349,7 +349,7 @@ export async function createTask(params: {
   }
 
   getLogger().info(
-    { taskId: task.id, title: sanitizedTitle, dueDate: dueDate?.toISOString() },
+    { taskId: task.id, titleLength: sanitizedTitle.length, dueDate: dueDate?.toISOString() },
     'Task created'
   );
 
@@ -392,7 +392,7 @@ export async function completeTask(
     }
   }
 
-  getLogger().info({ taskId, title: task.title, hasNext: !!nextInstance }, 'Task completed');
+  getLogger().info({ taskId, hasNext: !!nextInstance }, 'Task completed');
 
   return { task, nextInstance };
 }

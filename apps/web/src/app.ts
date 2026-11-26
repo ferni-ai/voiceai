@@ -5,21 +5,16 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import { isLegendId, isValidPersonaId, type PersonaId, type SpeakerId } from './types/persona.js';
+import { type PersonaId } from './types/persona.js';
 
-// Theme system
-import {
-  initTheme,
-  onThemeChange,
-  setPersona as setThemePersona,
-  startAmbientCycle,
-  toggleTheme,
-  watchSystemTheme,
-} from './theme/index.js';
+// Theme system (shared with the avatar lab)
+import { applyPersonaTheme, initializeTheme } from './app/app-theme.js';
+import { isAvatarLab, openAvatarLab } from './avatar-lab/lab-mode.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
 import { holdUntilFirstCall } from './app/calm-boot.js';
+import { openAdminRoute } from './app/admin-route.js';
 import {
   openCalendarView,
   openChronicle,
@@ -101,9 +96,10 @@ import { requireAccessForRestoredSession } from './ui/restored-session-access.js
 import { roadmapService } from './services/roadmap.service.js';
 
 // Core UI Components
-import { coachUI, initCoachUI } from './ui/coach.ui.js';
+import { coachUI } from './ui/coach.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
-import { expressiveEyes, initExpressiveEyes } from './ui/expressive-eyes.ui.js';
+import { expressiveEyes } from './ui/expressive-eyes.ui.js';
+import { bootAvatarNow, scheduleAvatar, type AvatarBootRunner } from './ui/avatar-boot.js';
 import { initMessageUI, messageUI } from './ui/message.ui.js';
 import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
@@ -132,13 +128,13 @@ import { disposeMobileDelights } from './ui/mobile-delights.ui.js';
 // 📱 Mobile Bottom Sheet - Zen Mode settings access
 import { disposeMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
-import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
+import { avatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
 import { greetingUI } from './ui/greeting.ui.js';
 import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
-import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
+import { thinkingUI } from './ui/thinking.ui.js';
 import { initAvatarTurns, trackTurnFallback } from './ui/avatar-motion/turn-driver.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 import {
@@ -325,9 +321,6 @@ import { getPersona } from './config/personas.js';
 // Platform Detection
 import { initPlatform, platform } from './utils/platform.js';
 
-// Magnetic hover effect
-import { initMagneticHover } from './ui/magnetic-hover.ui.js';
-
 // 🌟 Soul System - The living presence that makes people fall in love
 // 🎬 Narrative Director - Cinematic story beats for connection moments
 import { playBeat, updateNarrativeContext } from './narrative/narrative-director.js';
@@ -465,6 +458,10 @@ class VoiceAIApp {
       void this.initializeAdmin();
       return;
     }
+    if (isAvatarLab()) {
+      this.isInitialized = true; // first: a second initialize() must not boot the lab again
+      return openAvatarLab(); // the real avatar alone, framed by the admin; logs its own failure
+    }
 
     // Pages opened from a text link that replace the app (/a/:id, /connect#i=…)
     const { openStandalonePage } = await import('./app/standalone-pages.js');
@@ -502,7 +499,7 @@ class VoiceAIApp {
       await initI18n(); // before any UI renders
 
       // Initialize theme system (affects all UI)
-      this.initializeTheme();
+      initializeTheme((target, type, handler) => this.addTrackedListener(target, type, handler));
 
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
@@ -905,111 +902,11 @@ class VoiceAIApp {
   // PRIVATE METHODS
   // ============================================================================
 
-  /**
-   * Initialize admin dashboard (alternate route).
-   * Uses the new unified Admin Portal for centralized management.
-   */
+  /** /admin, whatever its query string: the unified Admin Portal. */
   private async initializeAdmin(): Promise<void> {
     log.info('Initializing Admin Portal...');
-
-    // Check for legacy admin route (backwards compatibility)
-    const useLegacyAdmin = window.location.search.includes('legacy');
-
-    if (useLegacyAdmin) {
-      // Legacy admin dashboard (for backward compatibility)
-      const appContent = document.getElementById('app') || document.body;
-      // Set body to allow scrolling for admin dashboard
-      document.body.style.overflow = 'auto';
-      document.body.style.height = 'auto';
-      appContent.innerHTML = `
-        <div id="adminDashboard" style="min-height: 100vh; background: var(--color-background-surface, #0d0d1a); color: var(--color-text-primary, #fff); overflow-y: auto; padding-bottom: 2rem;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni-on-surface); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
-          ← Back to App
-        </a>
-      `;
-      const { injectAdminStyles, initAdminDashboard } = await import('./ui/admin.ui.js');
-      injectAdminStyles();
-      await initAdminDashboard();
-    } else {
-      // New unified Admin Portal
-      const { openAdminPortal } = await import('./admin/index.js');
-      await openAdminPortal();
-    }
-
+    await openAdminRoute();
     this.isInitialized = true;
-  }
-
-  /**
-   * Initialize the theme system.
-   * Sets up theme from localStorage/system preference and wires up toggle button.
-   */
-  private initializeTheme(): void {
-    // Initialize theme from stored preference or system
-    initTheme();
-    watchSystemTheme();
-
-    // ========================================================================
-    // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)
-    // Layered theming: Circadian (time) + Warmth (relationship) + Persona
-    // ========================================================================
-
-    // 1. Circadian: Time-aware theming (dawn warmth, midday clarity, night intimacy)
-    circadianManager.injectStyles();
-    circadianManager.init();
-
-    // 2. Warmth: Relationship-based visual evolution (deepens as bond grows)
-    warmthManager.injectStyles();
-    warmthManager.init();
-
-    // 3. Persona Aura: Ambient glow reflecting the active team member
-    personaAura.injectStyles();
-    personaAura.init();
-
-    // Start ambient warmth cycle (WALL-E style time-aware lighting)
-    startAmbientCycle();
-
-    // Initialize magnetic hover effect (WALL-E curiosity)
-    initMagneticHover();
-
-    // Wire up theme toggle button
-    const toggleBtn = document.getElementById('themeToggle');
-    if (toggleBtn) {
-      this.addTrackedListener(toggleBtn, 'click', () => {
-        toggleTheme();
-      });
-
-      // Add keyboard shortcut (T) for theme toggle
-      this.addTrackedListener(document, 'keydown', ((e: KeyboardEvent) => {
-        if (e.key === 't' || e.key === 'T') {
-          // Don't toggle if user is typing in an input
-          if (
-            document.activeElement?.tagName !== 'INPUT' &&
-            document.activeElement?.tagName !== 'TEXTAREA'
-          ) {
-            toggleTheme();
-          }
-        }
-      }) as EventListener);
-    }
-
-    // Listen for theme changes (for analytics or other systems)
-    onThemeChange((_newTheme) => {
-      // Reserved for future analytics/telemetry
-    });
-
-    // Set initial persona theme
-    const persona = appState.get('selectedPersona');
-    if (persona?.id) {
-      this.updatePersonaTheme(persona.id);
-    }
-  }
-
-  /**
-   * Update the persona theme colors.
-   */
-  private updatePersonaTheme(personaId: SpeakerId): void {
-    // Canonical ids, and a Legend while one speaks (their colours: setActivePersona)
-    setThemePersona(isValidPersonaId(personaId) || isLegendId(personaId) ? personaId : 'ferni');
   }
 
   /**
@@ -1193,8 +1090,11 @@ class VoiceAIApp {
     // Core UI - Initialize in order of dependency (these are critical)
     this.safeInit('MessageUI', () => initMessageUI());
     this.safeInit('WaveformUI', () => initWaveformUI());
-    this.safeInit('CoachUI', () => initCoachUI());
-    this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
+    const avatarRunner: AvatarBootRunner = {
+      now: (name, fn) => this.safeInit(name, fn),
+      later: (name, delayMs, fn) => this.deferredInit(name, delayMs, async () => fn()),
+    };
+    bootAvatarNow(avatarRunner); // coach + expressive eyes; the rest of the avatar is scheduled below
     this.safeInit('RosterPreferences', () => initRosterPreferences()); // saved teammates, before the bar renders
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('ControlsUI', () =>
@@ -1229,11 +1129,13 @@ class VoiceAIApp {
     this.deferredInit('TranscriptUI', 100, async () => {
       initTranscriptUI();
     });
-    this.deferredInit('ThinkingUI', 100, async () => {
-      initThinkingUI();
-      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
-      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
-      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
+    // Every deferred avatar init (ThinkingUI, AvatarFeedback ... AmbientLife), shared with the avatar lab
+    scheduleAvatar(avatarRunner, {
+      startCues: async () => {
+        (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
+      },
+      startTurns: () => initAvatarTurns(),
+      listen: (target, type, handler) => this.addTrackedListener(target, type, handler),
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -1241,9 +1143,6 @@ class VoiceAIApp {
     });
     this.deferredInit('MoodUI', 100, async () => {
       initMoodUI();
-    });
-    this.deferredInit('AvatarFeedback', 100, async () => {
-      initAvatarFeedback();
     });
 
     // Premium features - load after 300ms (nice to have)
@@ -1290,10 +1189,6 @@ class VoiceAIApp {
       const { initStatsUI } = await import('./ui/stats.ui.js');
       initStatsUI();
     });
-    this.deferredInit('PresenceUI', 300, async () => {
-      const { initPresenceUI } = await import('./ui/presence.ui.js');
-      initPresenceUI();
-    });
     this.deferredInit('RippleUI', 300, async () => {
       const { initRippleUI } = await import('./ui/ripple.ui.js');
       initRippleUI();
@@ -1315,11 +1210,6 @@ class VoiceAIApp {
     this.deferredInit('MoodBackgroundsUI', 200, async () => {
       const { initMoodBackgroundsUI } = await import('./ui/mood-backgrounds.ui.js');
       initMoodBackgroundsUI();
-    });
-    // 👆 Avatar Tap Reactions - tap avatar for laugh/wink reactions
-    this.deferredInit('AvatarTapReactionsUI', 400, async () => {
-      const { initAvatarTapReactionsUI } = await import('./ui/avatar-tap-reactions.ui.js');
-      initAvatarTapReactionsUI();
     });
     // 😴 Sleep Mode - gentle resting animation when idle
     this.deferredInit('SleepModeUI', 1000, async () => {
@@ -1440,27 +1330,6 @@ class VoiceAIApp {
       initUnifiedIndicator();
     });
 
-    // 🎬 Ferni Expressions - load after 300ms
-    this.deferredInit('FerniExpressions', 300, async () => {
-      const { initFerniExpressions } = await import('./ui/ferni-expressions.ui.js');
-      initFerniExpressions();
-    });
-
-    // 🔗 Emotion ↔ Expression Bridge - load after 400ms
-    this.deferredInit('EmotionExpressionBridge', 400, async () => {
-      const { enableEmotionExpressionBridge } =
-        await import('./emotion/emotion-expression-bridge.js');
-      enableEmotionExpressionBridge();
-    });
-
-    // 🎨 Logo Expressions - load after 400ms
-    this.deferredInit('LogoExpressions', 400, async () => {
-      const { initLogoExpressions, hookIntoAvatarFeedback } =
-        await import('./ui/logo-expressions.ui.js');
-      initLogoExpressions();
-      hookIntoAvatarFeedback();
-    });
-
     // 🎉 Celebration Service - load after 600ms
     this.deferredInit('CelebrationService', 600, async () => {
       const { initCelebrationService } = await import('./services/celebration.service.js');
@@ -1508,30 +1377,6 @@ class VoiceAIApp {
           messageUI.show(t('app.hereWithYou'), 'info', 3000);
         }
       }) as EventListener);
-    });
-
-    // ✨ Avatar Soul - load after 600ms
-    this.deferredInit('AvatarSoul', 600, async () => {
-      const { initAvatarSoul, avatarSoul } = await import('./ui/avatar-soul.ui.js');
-      initAvatarSoul();
-      this.addTrackedListener(document, 'ferni:conversation-turn', () => {
-        avatarSoul.recordInteraction(0.5);
-      });
-    });
-
-    // 🎬 Avatar Lamp - load after 700ms
-    this.deferredInit('AvatarLamp', 700, async () => {
-      const { initAvatarLamp, avatarLamp } = await import('./ui/avatar-lamp.ui.js');
-      initAvatarLamp();
-      if (typeof window !== 'undefined') {
-        (window as unknown as Record<string, unknown>).__avatarLamp = avatarLamp;
-      }
-    });
-
-    // 🌿 Ambient Life - load after 800ms
-    this.deferredInit('AmbientLife', 800, async () => {
-      const { initAmbientLife } = await import('./ui/ambient-life.ui.js');
-      initAmbientLife();
     });
 
     // 🌅 Mood Context - load after 400ms
@@ -2330,7 +2175,7 @@ class VoiceAIApp {
     setSelectedPersona(personaId);
 
     // Update theme persona colors
-    this.updatePersonaTheme(personaId);
+    applyPersonaTheme(personaId);
 
     // Update UI
     coachUI.updatePersona(persona);
@@ -2934,7 +2779,7 @@ class VoiceAIApp {
         log.info('Restoring UI systems to rollback persona:', rollbackTo);
         waveformUI.setPersona(rollbackTo);
         gesturesUI.setCurrentPersona(rollbackTo);
-        this.updatePersonaTheme(rollbackTo);
+        applyPersonaTheme(rollbackTo);
       }
 
       thinkingUI.hide();
@@ -2974,7 +2819,7 @@ class VoiceAIApp {
       // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
-      this.updatePersonaTheme(newPersona.id);
+      applyPersonaTheme(newPersona.id);
 
       // Update all UI systems
       waveformUI.setPersona(newPersona.id);

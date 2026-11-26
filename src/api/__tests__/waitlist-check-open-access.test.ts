@@ -3,12 +3,25 @@ import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 // In-memory Firestore: collection -> doc id -> data
-const { store, email } = vi.hoisted(() => ({
+const { store, email, outage } = vi.hoisted(() => ({
   store: new Map<string, Map<string, Record<string, unknown>>>(),
   email: { value: 'newcomer@example.com', verified: true },
+  outage: { cohorts: false }, // the cohort lookup throws, as a Firestore outage would
 }));
 const coll = (name: string) => store.get(name) ?? store.set(name, new Map()).get(name)!;
+type FakeRef = {
+  get: () => Promise<unknown>;
+  set: (d: Record<string, unknown>, o?: { merge?: boolean }) => Promise<void>;
+  update: (d: Record<string, unknown>) => Promise<void>;
+};
 const fakeDb = {
+  // Transactions run straight through: each step reads and writes the docs directly
+  runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
+    fn({
+      get: (ref: FakeRef) => ref.get(),
+      set: (ref: FakeRef, d: Record<string, unknown>, o?: { merge?: boolean }) => ref.set(d, o),
+      update: (ref: FakeRef, d: Record<string, unknown>) => ref.update(d),
+    }),
   collection: (name: string) => ({
     doc: (id: string) => ({
       get: async () => ({ exists: coll(name).has(id), data: () => coll(name).get(id) }),
@@ -24,7 +37,10 @@ const fakeDb = {
     where: (field: string, _op: string, value: string) => ({
       limit: () => ({ get: async () => ({ empty: true, docs: [] }) }),
       // feature_cohorts membership (array-contains), for the admission rules
-      get: async () => ({ docs: [...coll(name)].filter(([, d]) => (d[field] as string[] | undefined)?.includes(value)).map(([id, d]) => ({ id, data: () => d })) }), // prettier-ignore
+      get: async () => {
+        if (outage.cohorts && name === 'feature_cohorts') throw new Error('unavailable');
+        return { docs: [...coll(name)].filter(([, d]) => (d[field] as string[] | undefined)?.includes(value)).map(([id, d]) => ({ id, data: () => d })) }; // prettier-ignore
+      },
     }),
   }),
 };
@@ -39,7 +55,10 @@ vi.mock('firebase-admin/auth', () => ({
     getUser: async () => ({ disabled: false }), // a live account (token-revocation.ts)
   }),
 }));
-vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => fakeDb,
+  FieldValue: { arrayUnion: (...v: unknown[]) => ({ arrayUnion: v }) },
+}));
 vi.mock('../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),
   getFirestoreDb: () => fakeDb, // the queue store (services/waitlist) writes to the same docs
@@ -95,6 +114,22 @@ async function approve(target: string): Promise<{ status: number }> {
     method: 'POST',
     headers: { host: 'localhost', 'content-type': 'application/json' },
   });
+  let status = 0;
+  const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} };
+  await handleWaitlistRoutes(req as never, res as never);
+  return { status };
+}
+/** POST /api/waitlist/vote (public, unauthenticated) for this address. */
+async function vote(target: string, featureId = 'memory-lane'): Promise<{ status: number }> {
+  const req = Object.assign(
+    Readable.from([Buffer.from(JSON.stringify({ featureId, email: target }))]),
+    {
+      // prettier-ignore
+      url: '/api/waitlist/vote',
+      method: 'POST',
+      headers: { host: 'localhost', 'content-type': 'application/json' },
+    }
+  );
   let status = 0;
   const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} };
   await handleWaitlistRoutes(req as never, res as never);
@@ -279,5 +314,142 @@ describe('waitlist check', () => {
       email: email.value,
       subscription: { tier: 'partner', status: 'active' },
     });
+  });
+});
+
+// DURABLE_ACCESS_GRANTS (#2264): a grant stored for a reason that ends stops admitting when it does
+describe('stored grants under the gate', () => {
+  const gateOn = (flag: 'on' | 'off') => {
+    forgetAdmissionCache();
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+  };
+  const entry = () => coll('waitlist').get(docId(email.value));
+  afterEach(() => {
+    store.clear();
+    outage.cohorts = false;
+    forgetAdmissionCache();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    ['on', { approved: false, status: 'pending' }],
+    ['off', { approved: true, status: 'approved' }], // main: the open-access grant never ends
+  ] as const)(
+    'flag %s: a grant made while the gate was off, once the gate is on',
+    async (flag, want) => {
+      vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+      expect((await check()).body).toMatchObject({ approved: true }); // gate off: open access
+      expect(entry()).toMatchObject({ status: 'approved', source: 'open_access' });
+      gateOn(flag);
+      expect((await check()).body).toMatchObject(want);
+      if (flag === 'on') {
+        expect(entry()).toMatchObject({ status: 'pending', inQueue: true, lapsedApproval: { source: 'open_access' } }); // prettier-ignore
+      } else {
+        expect(entry()).toMatchObject({ status: 'approved', source: 'open_access' });
+      }
+    }
+  );
+
+  it.each([
+    ['on', { approved: false, status: 'pending' }],
+    ['off', { approved: true, status: 'approved' }], // main: membership ended, access did not
+  ] as const)('flag %s: a friends-and-family grant when membership ends', async (flag, want) => {
+    gateOn(flag);
+    coll('feature_cohorts').set('friends-and-family', { members: ['uid-1'] });
+    expect((await check()).body).toMatchObject({ approved: true });
+    const granted = (coll('user_profiles').get(docId(email.value)) as Profile).subscription;
+    expect(granted).toMatchObject({ grantedVia: 'admission' });
+    gateOn(flag);
+    expect((await check()).body).toMatchObject({ approved: true }); // still a member
+    expect((coll('user_profiles').get(docId(email.value)) as Profile).subscription.subscribedAt).toBe(granted.subscribedAt); // prettier-ignore
+    coll('feature_cohorts').set('friends-and-family', { members: [] });
+    gateOn(flag);
+    expect((await check()).body).toMatchObject(want);
+  });
+
+  it('flag on: an explicit admin approval still lets them in, even over an open-access approval', async () => {
+    const { setEmailSenderForTests } = await import('../../services/email-transport/index.js');
+    setEmailSenderForTests({ provider: 'gmail', isConfigured: () => false, send: vi.fn() });
+    onTestFinished(() => setEmailSenderForTests(null));
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    await check(); // gate off: open access
+    expect((await approve(email.value)).status).toBe(200); // not "already approved"
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: true, status: 'approved' });
+    expect(entry()).toMatchObject({ status: 'approved', approvedBy: 'admin-api' });
+  });
+
+  it('flag on: a legacy grant with no recorded reason keeps admitting', async () => {
+    coll('waitlist').set(docId(email.value), { email: email.value, status: 'approved', source: 'landing' }); // prettier-ignore
+    coll('user_profiles').set(docId(email.value), { email: email.value, subscription: { tier: 'free', status: 'active' } }); // prettier-ignore
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: true, status: 'approved' });
+  });
+
+  it('flag on: a failed re-check answers a retryable 500 and writes nothing (fails closed)', async () => {
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    await check(); // gate off: open access
+    const before = { ...entry() };
+    outage.cohorts = true;
+    gateOn('on');
+    expect((await check()).status).toBe(500);
+    expect(entry()).toEqual(before);
+  });
+  it('the open-access approval records approvedVia, written with status approved', async () => {
+    await check(); // gate off: open access
+    expect(entry()).toMatchObject({ status: 'approved', source: 'open_access', approvedVia: 'open_access' }); // prettier-ignore
+  });
+
+  it('flag on: an open-access approval whose source a past vote overwrote still lapses', async () => {
+    await check(); // gate off: open access
+    coll('waitlist').set(docId(email.value), { ...entry(), source: 'feature' }); // what votes did before #2264
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: false, status: 'pending' });
+    expect(entry()).toMatchObject({ status: 'pending', lapsedApproval: { source: 'open_access' } });
+  });
+
+  it.each(['on', 'off'] as const)(
+    'flag %s: a vote on an existing approved entry only adds the feature',
+    async (flag) => {
+      vi.stubEnv('DURABLE_ACCESS_GRANTS', flag);
+      const id = docId(email.value);
+      const before = { email: email.value, status: 'approved', source: 'open_access', timestamp: 'then' }; // prettier-ignore
+      coll('waitlist').set(id, { ...before });
+      expect((await vote(email.value)).status).toBe(200);
+      expect(coll('waitlist').get(id)).toEqual({ ...before, interestedFeatures: { arrayUnion: ['memory-lane'] } }); // prettier-ignore
+    }
+  );
+
+  it.each([
+    ['open-access', { approved: false, status: 'pending' }],
+    [undefined, { approved: true, status: 'approved' }],
+  ] as const)(
+    'flag on: an old approval relabelled by a vote, profile grant %s',
+    async (grantedVia, want) => {
+      const id = docId(email.value);
+      coll('waitlist').set(id, { email: email.value, status: 'approved', source: 'feature', approvedAt: new Date('2026-10-10') }); // prettier-ignore
+      if (grantedVia) coll('user_profiles').set(id, { email: email.value, subscription: { tier: 'free', status: 'active', grantedVia } }); // prettier-ignore
+      gateOn('on');
+      expect((await check()).body).toMatchObject(want);
+      expect(entry()).toMatchObject({ status: grantedVia ? 'pending' : 'approved' });
+    }
+  );
+
+  it('a vote from a new address creates its entry', async () => {
+    expect((await vote('voter@example.com')).status).toBe(200);
+    expect(coll('waitlist').get(docId('voter@example.com'))).toMatchObject({ email: 'voter@example.com', source: 'feature' }); // prettier-ignore
+  });
+
+  it.each([
+    ['a live Stripe plan', { tier: 'partner', status: 'active', provider: 'stripe', stripeSubscriptionId: 'sub_0101' }, true], // prettier-ignore
+    ['a live App Store plan', { tier: 'friend', status: 'active', provider: 'apple', currentPeriodEnd: new Date('2099-01-01') }, true], // prettier-ignore
+    ['a cancelled Stripe plan', { tier: 'partner', status: 'canceled', provider: 'stripe', stripeSubscriptionId: 'sub_0101' }, false], // prettier-ignore
+  ] as const)('flag on: an open-access grant plus %s on the account', async (_, plan, admitted) => {
+    vi.stubEnv('DURABLE_ACCESS_GRANTS', 'on');
+    await check(); // gate off: open access
+    coll('bogle_users').set('uid-1', { subscription: plan }); // where Stripe and Apple write
+    gateOn('on');
+    expect((await check()).body).toMatchObject({ approved: admitted });
   });
 });

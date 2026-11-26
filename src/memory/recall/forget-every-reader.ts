@@ -23,6 +23,7 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { foldedWords } from '../domain/forget-tokens.js';
 import { isForgottenPassage } from '../domain/forgotten.js';
@@ -30,8 +31,15 @@ import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
 
+const log = createLogger({ module: 'ForgetEveryReader' });
+
 export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
   return flagOn('FORGET_EVERY_READER', env);
+}
+
+/** FORGET_FRESH_READ: the rare readers' `uncached` for forgottenWithin (#2755). */
+export function forgetFreshReadEnabled(env: Env = process.env): boolean {
+  return flagOn('FORGET_FRESH_READ', env);
 }
 
 /** True when a text is about something the caller asked to forget. */
@@ -88,8 +96,9 @@ function checkFor(
   match: (text: string, topics: readonly string[]) => boolean = aboutForgotten
 ): ForgottenCheck {
   if (stored === null) return () => true; // no source at all: fail closed
-  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-  return (text) => match(text, topics);
+  // This process's forgets are read at each check, so a check held for a call (the open-loops
+  // note, revived intelligence) counts a topic forgotten after it was made.
+  return (text) => match(text, [...new Set([...stored, ...forgottenInProcess(userId)])]);
 }
 
 /**
@@ -122,31 +131,53 @@ export async function forgottenPassageCheck(
 }
 
 /**
+ * A forget check that never rejects, so a failed read costs only what it guards: pass
+ * forgottenCheck(...) or forgottenPassageCheck(...). A rejection is logged and gives the
+ * fail-closed check (every item it would have checked is left out), and the reader still sends
+ * the rest: the brief's calendar, the other proactive triggers, the outreach itself.
+ */
+export async function forgetCheckOrClosed(
+  check: Promise<ForgottenCheck | null>,
+  reader: string
+): Promise<ForgottenCheck | null> {
+  try {
+    return await check;
+  } catch (error) {
+    log.warn({ reader, error: String(error) }, 'Forget check failed; leaving out what it guards');
+    return () => true;
+  }
+}
+
+/**
  * forgottenPassageCheck without the last-known fallback, for a reader that
  * fails closed when the read is late or failed (revived intelligence, whose
  * earlier calls' summaries must not come back on an old list: #2623). Null
- * then, and when the flag is off or there is no member.
+ * then, and when the flag is off or there is no member. `uncached` reads the store itself, as
+ * forgottenWithin's does (#2755), so a forget in another process counts at once.
  */
 export async function forgottenPassageWithin(
   userId: string | null | undefined,
   reader = 'passage-fresh',
-  env: Env = process.env
+  env: Env = process.env,
+  uncached = false
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  const stored = await topicsFreshWithin(userId, reader);
+  const stored = await topicsFreshWithin(userId, reader, uncached);
   return stored === null ? null : checkFor(userId, stored, isForgottenPassage);
 }
 
 /**
  * The check for a reader that fails closed without the flag (recentContext,
  * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
- * is late or failed. No last-known fallback until #2623 bounds its age.
+ * is late or failed. No last-known fallback until #2623 bounds its age. `uncached` skips the
+ * shared cache (topicsFreshWithin), so a forget in another process counts at once (#2755).
  */
 export async function forgottenWithin(
   userId: string,
-  reader = 'fresh'
+  reader = 'fresh',
+  uncached = false
 ): Promise<ForgottenCheck | null> {
-  const stored = await topicsFreshWithin(userId, reader);
+  const stored = await topicsFreshWithin(userId, reader, uncached);
   return stored === null ? null : checkFor(userId, stored);
 }
 

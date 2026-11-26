@@ -42,6 +42,7 @@ import { directSpeech, type DirectSpeechOptions, type TurnContext } from './dire
 import { prosodyTags } from './providers/cartesia.js';
 import { tagReplyAudioId } from './reply-audio-id.js';
 import type { SSMLProsodyConfig } from './types.js';
+import { inReplyLanguage, type TTSLanguage } from './reply-language.js';
 import { emotionContextOpener } from './emotion-context.js';
 
 // ============================================================================
@@ -137,6 +138,7 @@ export interface GatewayTTSNodeConfig {
    * Target: -100–200ms E2E by sending first sentence to TTS while LLM continues streaming.
    */
   enableStreamingOverlap?: boolean;
+  language?: () => TTSLanguage; // the reply's spoken language, read per request (#4062)
 }
 
 export interface GatewayTTSMetrics {
@@ -641,9 +643,7 @@ export function createGatewayTTSNode(
     enableStreamingOverlap = process.env.STREAMING_TTS_OVERLAP !== 'false',
   } = config;
 
-  // Get gateway components
-  const cache = getTTSCache();
-  const provider = getTTSProvider();
+  const { cache, provider } = inReplyLanguage(getTTSCache(), getTTSProvider(), config.language);
   // Connect now so the socket handshake overlaps the LLM's thinking.
   provider.prewarm?.();
   const ssmlProcessor = getSSMLProcessor();

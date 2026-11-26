@@ -73,6 +73,7 @@ import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
+import { earlierCallNote } from '../personas/earlier-call-honest.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -152,8 +153,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
 import { isUnplacedCaller, unsavedCallerNote } from './unknown-caller-honest.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
-import { lastTalkedAwareness } from './welcome-back.js';
-import { calendarDaysSince } from '../../utils/calendar-days.js';
+import { lastCallAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 import { recentTextsBlock } from './recent-texts-awareness.js';
 import { callerCardText, whoYoureTalkingTo } from './caller-card/index.js';
@@ -352,7 +352,6 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
-    stableBase = baseInstructions;
 
     // DATE/TIME AWARENESS: in the model-level instructions so the agent knows the date and
     // time from the VERY FIRST MOMENT (including greeting)
@@ -369,8 +368,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
     const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
-    modelBaseInstructions =
-      baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
+    stableBase = baseInstructions + earlierCallNote(outboundPartiesFor(sessionId)); // cached prefix
+    modelBaseInstructions = stableBase + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : await readProfile();
@@ -379,7 +378,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
       rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
-      const sessionStartTime = new Date();
+      const lastCall = { at: userProfile.lastContact, now: new Date(), zone: callZone };
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
       if (displayName) userAwareness.push(`You're talking to ${displayName}.`);
@@ -406,8 +405,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
         // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
-          userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
+          userAwareness.push(...lastCallAwareness(lastCall, userProfile.lastCallerSummary)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
         userAwareness.push(firstTalkNote(sessionId, isUnplacedCaller(userId, false)));
@@ -432,7 +430,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
       if (isReturningUser && userProfile.lastCallerSummary) {
-        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary));
+        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary, lastCall));
       }
 
       // =========================================================================

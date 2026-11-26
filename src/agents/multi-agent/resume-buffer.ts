@@ -75,6 +75,8 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   private flushedWhilePaused = false;
   /** Bumped by every cut, so a frame that waited out a pause the reply didn't survive is dropped. */
   private cuts = 0;
+  /** The paused reply was cut (dropCutReply): its frames are dropped until the next resume. */
+  private dropping = false;
 
   constructor(
     readonly inner: voice.AudioOutput,
@@ -97,7 +99,7 @@ export class ResumeBufferOutput extends voice.AudioOutput {
     const cuts = this.cuts;
     await this.gate;
     await this.replaying;
-    if (cuts !== this.cuts) return; // the reply was cut while this frame waited
+    if (cuts !== this.cuts || this.dropping) return; // the reply was cut while this frame waited
     // Counted only once forwarded: a reply cut at the gate before its first frame went
     // on must not leave a segment here that no "playout finished" will ever close.
     if (this.driftGuard) await super.captureFrame(frame);
@@ -166,6 +168,7 @@ export class ResumeBufferOutput extends voice.AudioOutput {
 
   resume(): void {
     super.resume();
+    this.dropping = false;
     if (!this.paused) return;
     this.paused = false;
     pausedSessions.delete(this.owner);
@@ -200,6 +203,22 @@ export class ResumeBufferOutput extends voice.AudioOutput {
       return;
     }
     void this.replaying.then(() => this.inner.flush());
+  }
+
+  /**
+   * SOFT_PAUSE_CUT_DROPS_HELD: a soft pause was decided 'interrupted' (#3857). The reply's
+   * forwarder is waiting at the closed gate, and LiveKit clears the buffer only once that
+   * forwarder has stopped (it waits up to 2 s for it). Drop the reply's frames unplayed from
+   * now on, so the forwarder stops at once. The output stays paused; the next reply's launch
+   * resumes it, and that resume ends the drop.
+   */
+  dropCutReply(): void {
+    if (!this.paused || this.dropping) return;
+    this.dropping = true;
+    this.replay = [];
+    this.cuts += 1;
+    this.openGate();
+    this.log({ event: 'cut_dropped' });
   }
 
   clearBuffer(): void {
@@ -237,18 +256,19 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   }
 }
 
-/** Put a resume buffer in front of the session's audio output (again if the room replaced it). */
+/**
+ * Put a resume buffer in front of the session's audio output (again if the room replaced it).
+ * Returns the session's output, or null when it has none (nothing to put a buffer in front of).
+ */
 export function ensureResumeBuffer(
-  session: { output: { audio: voice.AudioOutput | null } },
+  session: { output?: { audio: voice.AudioOutput | null } },
   log?: (fields: Record<string, unknown>) => void,
   env: Record<string, string | undefined> = process.env
-): void {
-  const audio = session.output.audio;
-  if (!audio || audio instanceof ResumeBufferOutput || !audio.canPause) return;
-  session.output.audio = new ResumeBufferOutput(
-    audio,
-    session,
-    log,
-    env.PLAYOUT_DRIFT_GUARD === 'on'
-  );
+): { audio: voice.AudioOutput | null } | null {
+  const { output } = session;
+  if (!output) return null;
+  const audio = output.audio;
+  if (!audio || audio instanceof ResumeBufferOutput || !audio.canPause) return output;
+  output.audio = new ResumeBufferOutput(audio, session, log, env.PLAYOUT_DRIFT_GUARD === 'on');
+  return output;
 }

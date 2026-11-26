@@ -42,6 +42,7 @@ export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
 // Risk noted on a call, reads in flight aside: the outreach gate holds outbound (consent-send.ts).
+// Whether a call has crisis risk noted, settled reads only: crisis replies get no recalled memory.
 // Note risk on a call: the reply gate's fail-closed settle (crisis-gate-failure.ts).
 export {
   crisisReadInFlight,
@@ -58,7 +59,9 @@ export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
 export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts).
-export { checkin } from './crisis-timeout-checkin.js';
+export { checkin, holdsCheckinWords } from './crisis-timeout-checkin.js';
+// CRISIS_GATE_TURN_READS: a pipeline read that starts after the gate's (crisis-gate-turn-reads.ts).
+export { nextTurnRead } from './crisis-turn-read-arrival.js';
 // CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
 export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).

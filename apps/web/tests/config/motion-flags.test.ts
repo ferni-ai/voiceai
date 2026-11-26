@@ -10,8 +10,12 @@ import ts from 'typescript';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  MOTION_FLAGS,
   MOTION_FLAG_KEYS,
   isMotionFlagOn,
+  motionFlagBuildDefault,
+  motionFlagOverride,
+  setMotionFlagOverride,
   type MotionFlag,
 } from '../../src/config/motion-flags.js';
 
@@ -95,6 +99,85 @@ describe('isMotionFlagOn', () => {
     expect(isMotionFlagOn('gaze')).toBe(false);
     build('gaze', 'on');
     expect(isMotionFlagOn('gaze')).toBe(true);
+  });
+});
+
+describe('motion switch overrides', () => {
+  it('lists the 13 switches in table order', () => {
+    expect([...MOTION_FLAGS]).toEqual(FLAGS);
+  });
+
+  describe.each(FLAGS)('%s', (flag) => {
+    const key = MOTION_FLAG_KEYS[flag];
+
+    it('reports the build value alone as its build default', () => {
+      localStorage.setItem(key, 'on');
+      build(flag, '');
+      expect(motionFlagBuildDefault(flag)).toBe(false);
+      localStorage.setItem(key, 'off');
+      build(flag, 'on');
+      expect(motionFlagBuildDefault(flag)).toBe(true);
+    });
+
+    it('reads no override as null, and on, off, true and false as set', () => {
+      expect(motionFlagOverride(flag)).toBeNull();
+      localStorage.setItem(key, 'on');
+      expect(motionFlagOverride(flag)).toBe('on');
+      localStorage.setItem(key, 'true');
+      expect(motionFlagOverride(flag)).toBe('on');
+      localStorage.setItem(key, 'off');
+      expect(motionFlagOverride(flag)).toBe('off');
+      localStorage.setItem(key, 'false');
+      expect(motionFlagOverride(flag)).toBe('off');
+      localStorage.setItem(key, '1');
+      expect(motionFlagOverride(flag)).toBeNull();
+    });
+
+    it("an override of 'on' turns it on with the build off", () => {
+      build(flag, '');
+      setMotionFlagOverride(flag, 'on');
+      expect(isMotionFlagOn(flag)).toBe(true);
+      expect(motionFlagOverride(flag)).toBe('on');
+    });
+
+    it("an override of 'off' turns it off with the build on", () => {
+      build(flag, 'on');
+      setMotionFlagOverride(flag, 'off');
+      expect(isMotionFlagOn(flag)).toBe(false);
+      expect(motionFlagOverride(flag)).toBe('off');
+    });
+
+    it('clearing the override falls back to the build default', () => {
+      build(flag, 'on');
+      setMotionFlagOverride(flag, 'off');
+      setMotionFlagOverride(flag, null);
+      expect(localStorage.getItem(key)).toBeNull();
+      expect(isMotionFlagOn(flag)).toBe(motionFlagBuildDefault(flag));
+      expect(isMotionFlagOn(flag)).toBe(true);
+    });
+  });
+
+  it('only touches the key of the switch it is given', () => {
+    setMotionFlagOverride('gaze', 'on');
+    expect(FLAGS.filter((f) => motionFlagOverride(f) !== null)).toEqual(['gaze']);
+  });
+
+  it('reads null and does not throw when storage is blocked', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(motionFlagOverride('gaze')).toBeNull();
+  });
+
+  it('does not throw when storage refuses a write or a removal', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(() => setMotionFlagOverride('gaze', 'on')).not.toThrow();
+    expect(() => setMotionFlagOverride('gaze', null)).not.toThrow();
   });
 });
 
