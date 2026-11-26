@@ -12,7 +12,6 @@
  * @module agents/shared/tool-executors/productivity-executor
  */
 
-import { ALARM_CANT_RING } from '../../../tools/domains/simple-utilities/alarm-ring.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
@@ -22,6 +21,7 @@ import {
   getAlarms,
   getReminders,
   getTimer,
+  setAlarm,
   snoozeAlarm,
   updateGoal,
 } from './productivity-time-bridge.js';
@@ -749,32 +749,7 @@ async function execute(
 
     log.info({ time, label, recurring, userId: ctx.userId }, '⏰ Setting alarm');
 
-    if (!ctx.userId) return "I couldn't save that alarm, I don't know whose it is.";
-    try {
-      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
-      const alarmId = `alarm_${Date.now()}`;
-      await getAdminFirestore()
-        .collection('bogle_users')
-        .doc(ctx.userId)
-        .collection('alarms')
-        .doc(alarmId)
-        .set(
-          cleanForFirestore({
-            id: alarmId,
-            time,
-            label,
-            recurring,
-            createdAt: new Date(),
-            active: true,
-          })
-        );
-      log.info({ alarmId, userId: ctx.userId }, '✅ Alarm saved');
-    } catch (err) {
-      log.warn({ error: String(err) }, 'Alarm storage failed');
-      return "I couldn't save that alarm. Set it on your phone for now?";
-    }
-
-    return `Saved an alarm for ${time}${label ? ` (${label})` : ''}${recurring ? `, repeating ${recurring}` : ''}. ${ALARM_CANT_RING}`;
+    return setAlarm({ time, label, recurring }, ctx);
   }
 
   if (fnLower === 'getalarms') return getAlarms(ctx);
