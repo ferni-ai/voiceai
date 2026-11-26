@@ -8,7 +8,8 @@
 #   NIGHTLY_DRY_RUN=1   print the plan and run nothing (no claim, deploy, call or write)
 #   NIGHTLY_DEPLOY=0    skip the deploy and test whatever dev runs now (default 1)
 #   NIGHTLY_OUT         default ~/Documents/voiceai-evidence/nightly/<YYYY-MM-DD>
-#   NIGHTLY_ISSUE       tracking issue for the public comment, verdicts only (default 2407)
+#   NIGHTLY_ISSUE       tracking issue for the public comment: verdicts plus the dev vs prod flag
+#                       names and words (no secret values) (default 2407)
 #   NIGHTLY_CLEANUP_MIN_AGE_H  cleanup-users --min-age-hours (default 1)
 #   NIGHTLY_LANES       directory holding a.txt and b.txt (default lanes/ beside this script)
 #   NIGHTLY_LANE_B_DELAY_S  seconds lane B starts after lane A (default 20)

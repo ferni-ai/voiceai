@@ -266,6 +266,49 @@ describe('the CLI reads the whole log backlog', () => {
   }, 30_000);
 });
 
+describe('a hung lk cannot hold the nightly', () => {
+  it('gives up on lk agent secrets at the log timeout and cannot verify', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'secrets-parity-hang-'));
+    writeFileSync(join(dir, 'lk'), '#!/bin/sh\nexec sleep 60\n'); // never answers
+    chmodSync(join(dir, 'lk'), 0o755);
+    const script = fileURLToPath(new URL('../secrets-parity.ts', import.meta.url));
+    const t0 = Date.now();
+    let status = 0;
+    let err = '';
+    try {
+      execFileSync(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          script,
+          '--dev-project',
+          'dev-p',
+          '--dev-config',
+          'x',
+          '--prod-project',
+          'prod-p',
+          '--prod-config',
+          'y',
+          '--log-timeout',
+          '1',
+        ],
+        {
+          encoding: 'utf8',
+          env: { ...process.env, PATH: `${dir}:${process.env.PATH}` },
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 25_000,
+        }
+      );
+    } catch (e) {
+      ({ status, stderr: err } = e as { status: number; stderr: string });
+    }
+    expect(status).toBe(2);
+    expect(err).toMatch(/lk agent secrets failed for (dev|prod)/);
+    expect(Date.now() - t0).toBeLessThan(20_000);
+  }, 30_000);
+});
+
 describe('round 2: fail closed on missing times and rolling restarts', () => {
   it('cannot verify when the agent has secrets but lk gives no updatedAt', () => {
     const fresh = snap('prod', ['X_FLAG'], [line(T0, 'hA', { X_FLAG: 'on' }, {})]);

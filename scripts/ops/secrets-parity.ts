@@ -41,11 +41,16 @@ type Target = { label: 'dev' | 'prod'; project?: string; config?: string };
 
 const lkArgs = (t: Target) => ['--project', t.project ?? '', '--config', t.config ?? ''];
 
-/** Secret names and update times of one agent. lk's output is never echoed, only which call failed. */
-async function lkSecrets(t: Target): Promise<Secrets> {
+/**
+ * Secret names and update times of one agent. lk's output is never echoed, only which call failed.
+ * Bounded by the log timeout: the nightly runs this inside its finish step, where a hung lk would
+ * hold the scorecard comment and the dev claim.
+ */
+async function lkSecrets(t: Target, timeoutMs: number): Promise<Secrets> {
   try {
     const args = ['agent', 'secrets', ...lkArgs(t), '--json'];
-    const { stdout } = await promisify(execFile)('lk', args, { maxBuffer: 64 << 20 });
+    const opts = { maxBuffer: 64 << 20, timeout: timeoutMs, killSignal: 'SIGKILL' as const };
+    const { stdout } = await promisify(execFile)('lk', args, opts);
     return parseSecrets(stdout);
   } catch {
     throw new Error(`lk agent secrets failed for ${t.label} (${lkArgs(t).join(' ')})`);
@@ -84,7 +89,7 @@ function lkBoot(t: Target, collector: BootCollector, timeoutMs: number): Promise
 async function snapshot(t: Target, seal: Sealer, fixtures: string | undefined, ms: number) {
   const collector = new BootCollector(isFlag, seal);
   const read = (ext: string) => readFileSync(join(fixtures ?? '', `${t.label}.${ext}`), 'utf8');
-  const secrets = fixtures ? parseSecrets(read('secrets.json')) : await lkSecrets(t);
+  const secrets = fixtures ? parseSecrets(read('secrets.json')) : await lkSecrets(t, ms);
   if (fixtures) for (const line of read('logs.txt').split('\n')) collector.add(line);
   else await lkBoot(t, collector, ms);
   return snapshotOf(t.label, secrets, collector.result());
