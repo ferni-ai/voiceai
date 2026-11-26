@@ -217,7 +217,7 @@ export const FORGET_READERS: readonly ForgetReader[] = [
   {
     id: 'prompt.profile',
     file: 'src/agents/multi-agent/setup-profile.ts',
-    site: 'profileForPrompt',
+    site: 'startProfileForPrompt',
     reaches: 'prompt',
     check: 'flag',
     probe: EVERY_READER,
