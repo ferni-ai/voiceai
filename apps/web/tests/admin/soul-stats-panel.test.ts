@@ -110,8 +110,20 @@ describe('the Avatar Soul counts panel', () => {
   it('measured but a count is missing: that tile says not measured, never a made-up 0', async () => {
     const counts = Object.fromEntries(KEYS.filter((k) => k !== 'crisis_hold').map((k) => [k, 2]));
     const el = await panel(json({ measured: true, windowHours: 24, counts, lastUpdated: null }));
-    expect(el.querySelector('#soulCrisisHolds')?.textContent).toBe('not measured');
+    expect(el.querySelector('#soulCrisisHolds')?.textContent).toBe(
+      'not measured: the server sent no count for this moment'
+    );
     expect(el.querySelector('#soulWarmthBlooms')?.textContent).toBe('2');
+  });
+
+  it('measured: the note says the tiles overlap, so they are not read as 11 separate moments', async () => {
+    const counts = Object.fromEntries(KEYS.map((k) => [k, 1]));
+    const el = await panel(json({ measured: true, windowHours: 24, counts, lastUpdated: null }));
+    const note = el.querySelector('.soul-stats-note')?.textContent ?? '';
+    expect(note).toContain(
+      'The tiles overlap: a cameo arrival and a brighten or comfort name lift each also count a warmth bloom'
+    );
+    expect(note).toContain('so they are not 11 separate moments');
   });
 
   it('measured with no counts object at all: not measured, and no number', async () => {

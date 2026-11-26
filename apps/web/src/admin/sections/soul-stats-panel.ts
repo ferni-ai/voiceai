@@ -2,7 +2,7 @@
  * The Avatar Soul counts: how often people's avatars played each moment in the
  * last 24 h, as their browsers reported them (GET /api/v1/admin/soul/stats,
  * behind SOUL_STATS). When the server has no numbers the panel says why, and
- * draws no number; a count the server did not send says "not measured" (#4069).
+ * draws no number; a count the server did not send says "not measured" and why (#4069).
  *
  * @module admin/sections/soul-stats-panel
  */
@@ -48,6 +48,14 @@ export function loadSoulStats(): Promise<AdminSoulStats | Unavailable> {
 
 const note = (html: string): string => `<p class="soul-stats-note">${html}</p>`;
 
+/** A tile the server sent no count for: the reason, never a stand-in number. */
+const MISSING_COUNT = `${NOT_MEASURED}: the server sent no count for this moment`;
+
+/** Some moments play others, so the eleven tiles are not eleven separate moments. */
+const OVERLAP =
+  'The tiles overlap: a cameo arrival and a brighten or comfort name lift each also count a warmth bloom ' +
+  '(a brighten and a first cameo also count a memory spark), so they are not 11 separate moments.';
+
 /** The eleven counts labelled with their window, or the reason there are none. */
 export function renderSoulStats(
   stats: AdminSoulStats | Unavailable,
@@ -64,12 +72,15 @@ export function renderSoulStats(
   return `${SOUL_COUNT_KEYS.map((key) => {
     const [id, label] = TILES[key];
     const value = counts[key];
-    const shown = typeof value === 'number' && Number.isFinite(value) ? value : NOT_MEASURED;
+    const shown =
+      typeof value === 'number' && Number.isFinite(value)
+        ? value
+        : renderUnavailable(MISSING_COUNT);
     return `
           <div class="soul-stat">
             <div class="soul-stat-value" id="${id}">${shown}</div>
             <div class="soul-stat-label">${label} (${span})</div>
           </div>`;
   }).join('')}
-          ${note(`Counted by people's browsers when the avatar responded. ${updated}`)}`;
+          ${note(`Counted by people's browsers when the avatar responded. ${OVERLAP} ${updated}`)}`;
 }
