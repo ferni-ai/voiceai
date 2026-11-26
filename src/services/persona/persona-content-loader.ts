@@ -1733,13 +1733,13 @@ export async function loadPredictiveIntelligence(
 ): Promise<PredictiveIntelligence | null> {
   const content = await loadPersonaContent<PredictiveIntelligence>(
     personaId,
-    'predictive_intelligence'
+    'predictive-intelligence' // the bundle loader's key (bundles/loader.ts), #2636
   );
   if (content) return content;
 
   // Fall back to Ferni
   if (personaId !== 'ferni') {
-    return loadPersonaContent<PredictiveIntelligence>('ferni', 'predictive_intelligence');
+    return loadPersonaContent<PredictiveIntelligence>('ferni', 'predictive-intelligence');
   }
   return null;
 }

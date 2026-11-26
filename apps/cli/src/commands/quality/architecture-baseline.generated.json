@@ -1583,7 +1583,6 @@
   "src/tools/domains/wisdom/wisdom.ts -> @livekit/agents",
   "src/tools/domains/workflow-mastery/index.ts -> @livekit/agents",
   "src/tools/domains/workflows/index.ts -> @livekit/agents",
-  "src/tools/expression.ts -> @livekit/agents",
   "src/tools/habit-coaching/tools.ts -> @livekit/agents",
   "src/tools/handoff/handoff-consent.ts -> @livekit/agents",
   "src/tools/handoff/handoff-factory.ts -> @livekit/agents",

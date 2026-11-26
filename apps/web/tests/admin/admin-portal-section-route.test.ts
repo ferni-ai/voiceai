@@ -73,7 +73,9 @@ describe('admin portal ?section=', () => {
 
     expect(document.getElementById('adminSectionTitle')?.textContent).toBe('Agent flags (dev)');
     await vi.waitFor(() =>
-      expect(content()).toContain('Agent flags can only be changed on the dev admin server.')
+      expect(content()).toContain(
+        'Agent flags unavailable (HTTP 404): they can only be changed on the dev admin server.'
+      )
     );
   });
 

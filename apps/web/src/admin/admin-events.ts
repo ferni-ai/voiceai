@@ -9,10 +9,10 @@
 
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/whisper.ui.js';
-import { getAdminHeadersAsync } from './admin-api.js';
 import { adminFetch } from './admin-fetch.js';
+import { handleApiTesterClick } from './api-tester.js';
 import { previewAgentVoice } from './admin-voice-preview.js';
-import { unavailableReason } from './unavailable-state.js';
+import { unavailableReason } from '../utils/unavailable.js';
 
 export { previewAgentVoice };
 
@@ -943,47 +943,6 @@ export function showConfirmDialog(
 }
 
 // ============================================================================
-// API TESTER
-// ============================================================================
-
-export async function sendApiRequest(
-  method: string,
-  url: string,
-  body?: string
-): Promise<{ status: number; data: unknown; error?: string }> {
-  log.debug({ method, url }, 'Sending API request');
-  
-  try {
-    const adminHeaders = await getAdminHeadersAsync();
-    const options: RequestInit = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...adminHeaders,
-      },
-    };
-    
-    if (body && (method === 'POST' || method === 'PUT')) {
-      options.body = body;
-    }
-    
-    const response = await fetch(url, options);
-    const data: unknown = await response.json().catch(() => response.text());
-    
-    return {
-      status: response.status,
-      data,
-    };
-  } catch (error) {
-    return {
-      status: 0,
-      data: null,
-      error: (error as Error).message,
-    };
-  }
-}
-
-// ============================================================================
 // GLOBAL EVENT DELEGATION
 // ============================================================================
 
@@ -1061,6 +1020,9 @@ async function handleAdminClick(e: Event): Promise<void> {
     }
   }
   
+  // API Docs tester (catalogue rows, quick requests, Send), before the generic actions below
+  if (await handleApiTesterClick(target)) return;
+
   // Quick actions on dashboard
   const quickAction = target.closest('[data-action]');
   if (quickAction) {
@@ -1069,41 +1031,6 @@ async function handleAdminClick(e: Event): Promise<void> {
       e.preventDefault();
       await runQuickAction(action);
       return;
-    }
-  }
-  
-  // API endpoint click (populate tester)
-  const endpoint = target.closest('.api-endpoint');
-  if (endpoint) {
-    const path = endpoint.getAttribute('data-path');
-    const method = endpoint.getAttribute('data-method');
-    if (path && method) {
-      const urlInput = document.getElementById('testerUrl') as HTMLInputElement;
-      const methodSelect = document.getElementById('testerMethod') as HTMLSelectElement;
-      if (urlInput) urlInput.value = path;
-      if (methodSelect) methodSelect.value = method;
-    }
-  }
-  
-  // Send API request button
-  if (target.closest('[data-action="send-request"]')) {
-    e.preventDefault();
-    const method = (document.getElementById('testerMethod') as HTMLSelectElement)?.value ?? 'GET';
-    const url = (document.getElementById('testerUrl') as HTMLInputElement)?.value ?? '/health';
-    const body = (document.getElementById('testerBody') as HTMLTextAreaElement)?.value;
-    const responseEl = document.getElementById('testerResponse');
-    
-    if (responseEl) {
-      responseEl.innerHTML = '<p class="tester-hint">Sending request...</p>';
-      
-      const result = await sendApiRequest(method, url, body);
-      
-      const statusClass = result.status >= 200 && result.status < 300 ? 'tester-success' : 'tester-error';
-      responseEl.innerHTML = `
-        <div class="${statusClass}">Status: ${result.status}</div>
-        <pre>${JSON.stringify(result.data, null, 2)}</pre>
-        ${result.error ? `<div class="tester-error">Error: ${result.error}</div>` : ''}
-      `;
     }
   }
 }
@@ -1353,7 +1280,6 @@ export default {
   validateAgents,
   updateAgentOrder,
   runQuickAction,
-  sendApiRequest,
   initAdminEvents,
   cleanupAdminEvents,
 };

@@ -89,6 +89,16 @@ const settleReads = () =>
   new Promise((r) => {
     setTimeout(r, 20);
   });
+const calendarEvent = (userId: string, id: string) => ({
+  id,
+  userId,
+  title: id,
+  startTime: new Date(ISO),
+  endTime: new Date(ISO),
+  isAllDay: false,
+  reminders: [{ id: `${id}-r`, minutesBefore: 30, type: 'push' as const, sent: false }],
+  source: 'manual' as const,
+});
 const later = (ms: number) => {
   const now = Date.now();
   vi.spyOn(Date, 'now').mockReturnValue(now + ms);
@@ -107,16 +117,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('calendar reminders: two first-touch loads at once, the newer read fails', () => {
   const USER = 'u-cal-race';
   const PATH = `bogle_users/${USER}/calendar_reminders/data`;
-  const event = (id: string) => ({
-    id,
-    userId: USER,
-    title: id,
-    startTime: new Date(ISO),
-    endTime: new Date(ISO),
-    isAllDay: false,
-    reminders: [{ id: `${id}-r`, minutesBefore: 30, type: 'push' as const, sent: false }],
-    source: 'manual' as const,
-  });
+  const event = (id: string) => calendarEvent(USER, id);
 
   it('after recovery, writes resume and keep the stored events', async () => {
     state.docs.set(PATH, {
@@ -145,6 +146,53 @@ describe('calendar reminders: two first-touch loads at once, the newer read fail
     expect(ids[0]).toBe('old-standup'); // the stored list is kept, not overwritten
     expect(ids).toContain('after-recovery');
     expect(reads.filter((p) => p === PATH)).toHaveLength(1); // the race shared one read, one outcome
+  });
+});
+
+describe('calendar reminders: two first-touch upserts for one user, every read succeeds (#3195)', () => {
+  const PATH = (user: string) => `bogle_users/${user}/calendar_reminders/data`;
+  const event = calendarEvent;
+  const stored = (user: string) => {
+    state.docs.set(PATH(user), {
+      events: [{ ...event(user, 'old'), startTime: ISO, endTime: ISO }],
+      remindersSent: [],
+    });
+  };
+
+  // Offsets: a probe swept 0-39 microtasks and 1-40 macrotasks on main; none lost an event
+  // (from 4 microtasks the two land in either order), so the rows compare ids order-free.
+  const startSecond = {
+    // n chained hops, one microtask each
+    microtasks: (n: number) => async () =>
+      Array.from({ length: n }).reduce<Promise<void>>(
+        async (hop) => hop.then(() => undefined),
+        Promise.resolve()
+      ),
+    macrotask: async () =>
+      new Promise((r) => {
+        setTimeout(r, 0);
+      }),
+  };
+  it.each([
+    ['started in the same tick', 'same', async () => undefined],
+    ['the second started a microtask later', 'micro1', startSecond.microtasks(1)],
+    [
+      'the second started four microtasks later (either order)',
+      'micro4',
+      startSecond.microtasks(4),
+    ],
+    ['the second started a macrotask later', 'macro1', startSecond.macrotask],
+  ])('%s: both are stored beside the old one, from one read', async (_shape, key, wait) => {
+    const user = `u-cal-both-${key}`;
+    stored(user);
+    const first = calendar.upsertEvent(event(user, 'a') as never);
+    await wait();
+    const second = calendar.upsertEvent(event(user, 'b') as never);
+    await Promise.all([first, second]);
+    await calendar.flushCalendarPersistence();
+
+    expect(idsAt(PATH(user), 'events').sort()).toEqual(['a', 'b', 'old']);
+    expect(reads.filter((p) => p === PATH(user))).toHaveLength(1);
   });
 });
 

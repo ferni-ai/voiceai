@@ -23,7 +23,7 @@ import {
   ICON_SEARCH,
   iconSm,
 } from '../icons.js';
-import { isUnavailable, loadJson, renderUnavailable } from '../unavailable-state.js';
+import { isUnavailable, loadJson, renderUnavailable } from '../../utils/unavailable.js';
 
 const log = createLogger('FlagsSection');
 

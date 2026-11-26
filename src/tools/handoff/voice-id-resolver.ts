@@ -18,16 +18,9 @@
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { isSeth } from '../../config/seth-teammate.js';
 import { getVoiceId } from '../../personas/voice-registry.js';
-import { isConsentedCloneVoice } from '../../services/voice/consented-clone-voice.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
-
-/** What a log line may show of a voice id: never a consented clone's (Seth's, a legend's). */
-function loggableVoice(value: unknown, found: boolean): unknown {
-  if (!found) return '(empty)';
-  return typeof value === 'string' && isConsentedCloneVoice(value) ? '[consented-clone]' : value;
-}
 
 // ============================================================================
 // TYPES
@@ -127,7 +120,8 @@ export function resolveVoiceId(
     if (logLevel === 'none') return;
     const logFn = logLevel === 'info' ? log.info.bind(log) : log.debug.bind(log);
     logFn(
-      { source, value: loggableVoice(value, found), personaId },
+      // A consented clone's id is replaced in the written line by the logger.
+      { source, value: found ? value : '(empty)', personaId },
       found ? `✓ Voice ID found from ${source}` : `✗ No voice ID from ${source}`
     );
   };

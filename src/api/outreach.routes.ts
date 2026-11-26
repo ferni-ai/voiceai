@@ -103,7 +103,7 @@ export async function handleOutreachRoutes(
   try {
     // Handle webhook routes first (webhooks have their own auth via signatures)
     if (route.startsWith('/webhooks')) {
-      return handleOutreachWebhookRoutes(req, res, pathname);
+      return await handleOutreachWebhookRoutes(req, res, pathname);
     }
 
     // Apply rate limiting

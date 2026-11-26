@@ -153,6 +153,10 @@ const isFirestoreFieldValueImpl = (value: unknown): boolean => {
 const cleanForFirestoreImpl = <T>(obj: T): T => {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString() as T;
+  // Like the real one, keep Timestamps (anything with toDate()) as they are.
+  if (typeof obj === 'object' && typeof (obj as { toDate?: unknown }).toDate === 'function') {
+    return obj;
+  }
   if (isFirestoreFieldValueImpl(obj)) return obj;
   if (Array.isArray(obj)) return obj.map((item) => cleanForFirestoreImpl(item)) as T;
   if (typeof obj === 'object') {

@@ -15,8 +15,10 @@ import type { ContextInjection } from '../types.js';
 
 // Static imports for performance
 import { buildTrustContext } from '../../../services/trust-systems/index.js';
+import { forgottenPassageCheck } from '../../../memory/index.js';
 import { recordTrustSystemTiming } from '../../../services/performance-metrics.js';
 
+import { rememberedTrust } from './remembered-trust.js';
 import type { InjectionBuilderContext, TrustSystemsResult } from './types.js';
 
 /**
@@ -36,11 +38,13 @@ export async function buildTrustSystemsInjections(
   const startTime = Date.now();
 
   try {
-    const trustContext = buildTrustContext(services.userId || 'unknown', userText, {
+    const said = forgottenPassageCheck(services.userId, 'trust'); // FORGET_EVERY_READER
+    const built = buildTrustContext(services.userId || 'unknown', userText, {
       currentTopic,
       detectedEmotion: emotionalState.primary,
       emotionIntensity: emotionalState.intensity,
     });
+    const trustContext = rememberedTrust(built, await said);
 
     // Add celebration opportunity if detected
     if (trustContext.celebrationOpportunity) {

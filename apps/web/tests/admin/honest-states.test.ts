@@ -63,7 +63,7 @@ afterEach(() => {
 
 describe('shared unavailable state', () => {
   it('names the HTTP status, or a network error when nothing answered', async () => {
-    const { unavailableReason, loadJson } = await import('../../src/admin/unavailable-state.js');
+    const { unavailableReason, loadJson } = await import('../../src/utils/unavailable.js');
     expect(unavailableReason(401)).toBe('unavailable (HTTP 401)');
     expect(unavailableReason(0)).toBe('unavailable (network error)');
     routes = { '/x': 'network-error' };
@@ -240,14 +240,16 @@ describe('Experiments (EX2, EX3)', () => {
 });
 
 describe('Operations (OP5 and a failed load)', () => {
+  const unread = {
+    latencyMs: { p50: null, p95: null, p99: null },
+    errorRate: null,
+    requestCount: null,
+    instances: null,
+    missing: {},
+  };
   const ops = (budget: Record<string, unknown>) => ({
     services: [],
-    metrics: {
-      latency: { voiceAgent: { p50: 1, p95: 1, p99: 1 }, uiServer: { p50: 1, p95: 1, p99: 1 } },
-      errorRate: { voiceAgent: 0, uiServer: 0 },
-      requestCount: { voiceAgent: 0, uiServer: 0 },
-      instances: { voiceAgent: 1, uiServer: 1 },
-    },
+    metrics: { windowMinutes: 60, uiServer: unread, voiceAgent: unread },
     budget: { spent: null, currency: 'USD', period: 'monthly', alertThresholds: [], ...budget },
     links: { dashboard: '#', uptime: '#', alerts: '#', logs: '#', budget: '#' },
     lastUpdated: new Date().toISOString(),

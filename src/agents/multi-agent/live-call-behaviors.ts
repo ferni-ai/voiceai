@@ -60,6 +60,7 @@ import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
+import { installLateWriteResultPort } from './late-write-result.js';
 
 const log = getLogger();
 
@@ -157,6 +158,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installGatedCallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
+  // LATE_WRITE_RESULT_KEPT: a write that lands after a barge-in still reaches the model.
+  installLateWriteResultPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler

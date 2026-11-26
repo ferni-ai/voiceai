@@ -29,6 +29,7 @@ import {
   CIRCUIT_RESET_TIMEOUT_MS,
   CIRCUIT_SUCCESS_THRESHOLD,
 } from '../config/resilience-config.js';
+import { TimeoutError, withTimeout } from '../utils/async.js';
 import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { vertexText, type VertexTextModel } from './llm/vertex-text.js';
@@ -154,31 +155,20 @@ async function callVertexAI(
       timeout = LLM_TIMEOUT_MS,
     } = options;
 
-    // Use AbortController for timeout
-    // eslint-disable-next-line no-undef
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     try {
+      // The timeout races inside the breaker, so a model that hangs counts as a failure (#3872).
       const response = await vertexAICircuitBreaker.execute(async () => {
         // Use Vertex AI SDK - extraction model for supplementary analysis
         // NOTE: Do NOT use getDefaultModel() as it may return a realtime-only model
         // that doesn't work with generateContent API
         const name = getExtractionModel();
-        return vertexText(
-          client.getGenerativeModel({ model: name }),
-          name,
-          prompt,
-          maxTokens,
-          temperature
-        );
+        const model = client.getGenerativeModel({ model: name });
+        return withTimeout(vertexText(model, name, prompt, maxTokens, temperature), timeout);
       });
 
-      clearTimeout(timeoutId);
       return typeof response === 'string' ? response : null;
     } catch (error) {
-      clearTimeout(timeoutId);
-      if ((error as Error).name === 'AbortError') {
+      if (error instanceof TimeoutError) {
         getLogger().debug('LLM call timed out');
         return null;
       }
@@ -236,12 +226,8 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
       timeout = LLM_TIMEOUT_MS,
     } = options;
 
-    // Use AbortController for timeout
-    // eslint-disable-next-line no-undef
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
     try {
+      // The timeout races inside the breaker, so a model that hangs counts as a failure (#3872).
       const response = await geminiAPICircuitBreaker.execute(async () => {
         // Use centralized Gemini client (respects USE_VERTEX_AI setting)
         // NOTE: Use extraction model, NOT default model (may be realtime-only)
@@ -263,15 +249,13 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
             temperature,
           },
         });
-        const result = await model;
+        const result = await withTimeout(model, timeout);
         return result?.text?.trim() || null;
       });
 
-      clearTimeout(timeoutId);
       return typeof response === 'string' ? response : null;
     } catch (error) {
-      clearTimeout(timeoutId);
-      if ((error as Error).name === 'AbortError') {
+      if (error instanceof TimeoutError) {
         getLogger().debug('Gemini API call timed out');
         return null;
       }
