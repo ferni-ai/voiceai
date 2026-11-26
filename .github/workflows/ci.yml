@@ -1277,6 +1277,14 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking: the format, mock-paths and web design-value baselines may only shrink
+      # against the merge base, so a PR can't pass its own gate by listing new debt
+      # (apps/cli/src/commands/quality/baseline-shrink.ts; replaces code-owner review of
+      # those three files). Here, not in Lint: it needs this job's depth-50 checkout and
+      # origin/main fetch for the merge-queue base.
+      - name: Baselines only shrink
+        run: pnpm quality:baseline-shrink
+
       # Blocking: a file this PR touches gains a crisis word list, voice resolver, quiet-hours
       # rule, tool cap, forget checker or Twilio sender outside its owner (decisions.ts). ~3 s.
       - name: Decision gate

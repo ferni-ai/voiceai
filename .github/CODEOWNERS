@@ -23,6 +23,12 @@
 # The gate code itself, the flag tooling and the flag lifecycle rules (code-owner review
 # required, as above).
 /apps/cli/src/commands/quality/ @sethdford
+# Shrink-only debt baselines: no owner, because the "Baselines only shrink" CI step
+# (quality/baseline-shrink.ts) fails any PR that grows them against its merge base.
+# Owning them held every debt-fixing PR for review (2026-11-26).
+/apps/cli/src/commands/quality/format-baseline.generated.json
+/apps/cli/src/commands/quality/mock-paths-baseline.generated.json
+/scripts/ci/web-design-values-baseline.generated.json
 /scripts/flags/ @sethdford
 /src/config/flag-lifecycle* @sethdford
 # The ESLint configs and rules whose error counts CI ratchets per rule (web, and the
