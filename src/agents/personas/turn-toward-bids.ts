@@ -30,8 +30,8 @@ const log = createLogger({ module: 'TurnTowardBids' });
 
 type Bid = 'teaser' | 'side_road';
 
-/** Where a bid can start: the turn or a sentence, after a short lead-in ("yeah,", "oh,", "so,"). */
-const BID_START = String.raw`(?:^|[.!?]\s+)(?:(?:yeah|oh|okay|ok|so|hey|well|um),?\s+)?`;
+/** Where a bid can start: the turn or a sentence, after up to two lead-in words ("yeah,", "oh yeah,", "so,"). */
+const BID_START = String.raw`(?:^|[.!?]\s+)(?:(?:yeah|oh|okay|ok|so|hey|well|um),?\s+){0,2}`;
 
 /** Building up to something. Anchored, so "I can't get this to work" is no teaser. */
 const TEASER = new RegExp(
@@ -63,13 +63,14 @@ function bidsTurnTowardOn(env: Env = process.env): boolean {
  * note (asking what happened would ignore them).
  */
 const NEXT_WORD = /[\p{L}\p{N}']+/u;
+const LATER_SENTENCE = /[.!?]\s+[\p{L}\p{N}]/u;
 
 function untoldTeaser(said: string): boolean {
   const m = TEASER.exec(said);
   if (!m) return false;
   const rest = said.slice(m.index + m[0].length);
   // A later sentence tells it: "Guess what happened? I got the job!"
-  if (/[.!?]\s+[\p{L}\p{N}]/u.test(rest)) return false;
+  if (LATER_SENTENCE.test(rest)) return false;
   const next = NEXT_WORD.exec(rest);
   return !next || /^(?:who|what|where|when|how|which|whose|happened)$/i.test(next[0]);
 }

@@ -11,6 +11,7 @@ const SIDE_ROAD = /^They just took a side road/;
 describe('newsNote: bids (BIDS_TURN_TOWARD)', () => {
   it.each([
     'Guess what.',
+    'Oh yeah, guess what.',
     "You won't believe who I ran into.",
     'Okay, funny story.',
     'So, wait till you hear this.',
