@@ -23,7 +23,7 @@
  */
 
 /** One way the caller's own words carry risk under a heavy feeling. */
-export interface HeavyRiskShape {
+interface HeavyRiskShape {
   /** How the rules name it, after "that": the rule text is built from these. */
   readonly names: string;
   /** Example lines the rules quote for it. */
@@ -40,7 +40,7 @@ export interface HeavyRiskShape {
  * says one of these and get the last word. Broad on purpose: a match only adds
  * a read, and the more severe read wins.
  */
-export const HEAVY_RISK_SHAPES: readonly HeavyRiskShape[] = [
+const HEAVY_RISK_SHAPES: readonly HeavyRiskShape[] = [
   {
     names: "they don't want to live or be here",
     pattern:

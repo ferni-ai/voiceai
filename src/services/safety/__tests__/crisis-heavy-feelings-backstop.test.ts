@@ -16,11 +16,7 @@ import {
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
 import { needsPlainRead } from '../crisis-easing-rules.js';
-import {
-  CRISIS_HEAVY_FEELINGS_RULES,
-  HEAVY_RISK_SHAPES,
-  hasHeavyRiskShape,
-} from '../crisis-heavy-feelings.js';
+import { CRISIS_HEAVY_FEELINGS_RULES, hasHeavyRiskShape } from '../crisis-heavy-feelings.js';
 
 const HEAVY = { CRISIS_CLASSIFIER_HEAVY_FEELINGS: 'on' };
 const BOTH = { ...HEAVY, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on' };
@@ -43,15 +39,20 @@ const SHAPE_LINES = [
   'My life is meaningless.',
 ];
 
-/** One line per shape, in the order of HEAVY_RISK_SHAPES. */
-const EXAMPLE_PER_SHAPE = [
-  'I don’t want to be here anymore.',
-  'Everyone would be better off without me.',
-  'I want it all to stop.',
-  'There is no way out of this.',
-  'I keep thinking about hurting myself.',
-  'My life is meaningless.',
-];
+/**
+ * The risk shapes the rule text names, in order, each with one line that says
+ * that shape and no other, so dropping or breaking any one shape in the
+ * backstop turns its line green-to-red here.
+ */
+const SHAPES = [
+  ["they don't want to live or be here", 'I don’t want to be here anymore.'],
+  ['others would be better off without them', 'Everyone would be better off without me.'],
+  ['they want everything to stop or end for good', 'I want it all to stop.'],
+  ['there is no way out', 'There is no way out of this.'],
+  ['they think of hurting themselves', 'I keep thinking about hurting myself.'],
+  ['their life itself (not a job or a task) has no point', 'My life is meaningless.'],
+] as const;
+const QUOTED = ['nothing in my life matters', "I don't see the point of anything anymore"];
 
 const heavyCases = JSON.parse(
   readFileSync(
@@ -62,32 +63,23 @@ const heavyCases = JSON.parse(
 const mustCatch = heavyCases.filter((c) => c.label === 'crisis' || c.label === 'block');
 const nightlyNone = heavyCases.filter((c) => c.label === 'none');
 
-describe('HEAVY_RISK_SHAPES is the one list behind the rule text and the backstop', () => {
-  it('names each shape in the rule text, and the rule text names no other', () => {
-    expect(HEAVY_RISK_SHAPES.map((s) => s.names)).toEqual([
-      "they don't want to live or be here",
-      'others would be better off without them',
-      'they want everything to stop or end for good',
-      'there is no way out',
-      'they think of hurting themselves',
-      'their life itself (not a job or a task) has no point',
-    ]);
-    for (const { names, quoted } of HEAVY_RISK_SHAPES) {
-      expect(CRISIS_HEAVY_FEELINGS_RULES).toContain(`that ${names}`);
-      for (const q of quoted ?? []) expect(CRISIS_HEAVY_FEELINGS_RULES).toContain(`"${q}"`);
-    }
+describe('the rule text and the backstop cover the same risk shapes', () => {
+  it('names exactly these shapes, in order, with these quoted lines', () => {
+    const named = SHAPES.map(
+      ([names], i) => `${i === SHAPES.length - 1 ? 'or ' : ''}that ${names}`
+    );
+    named[named.length - 1] += ` (${QUOTED.map((q) => `"${q}"`).join(', ')})`;
+    expect(CRISIS_HEAVY_FEELINGS_RULES).toContain(
+      `These are risk when the caller also says, in their own words, ${named.join(', ')}. A crisis counselor`
+    );
   });
 
-  it('asks for a plain read, flag on, on an example of every shape and every quoted line', () => {
-    expect(EXAMPLE_PER_SHAPE).toHaveLength(HEAVY_RISK_SHAPES.length);
-    HEAVY_RISK_SHAPES.forEach((shape, i) => {
-      const lines = [EXAMPLE_PER_SHAPE[i] as string, ...(shape.quoted ?? [])];
-      for (const line of lines) {
-        expect(shape.pattern.test(line.toLowerCase().replace(/’/g, "'")), line).toBe(true);
-        expect(needsPlainRead(line, HEAVY), line).toBe(true);
-        expect(needsPlainRead(line, BOTH), line).toBe(true);
-      }
-    });
+  it('asks for a plain read, flag on, on a line of every named shape and every quoted line', () => {
+    for (const line of [...SHAPES.map(([, example]) => example), ...QUOTED]) {
+      expect(hasHeavyRiskShape(line), line).toBe(true);
+      expect(needsPlainRead(line, HEAVY), line).toBe(true);
+      expect(needsPlainRead(line, BOTH), line).toBe(true);
+    }
   });
 
   it('reads curly apostrophes and punctuation between words', () => {

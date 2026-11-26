@@ -33,8 +33,8 @@ export const PROMPT_RULES_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
     {
       file: 'src/services/safety/__tests__/crisis-heavy-feelings-backstop.test.ts',
       rows: [
-        'names each shape in the rule text, and the rule text names no other',
-        'asks for a plain read, flag on, on an example of every shape and every quoted line',
+        'names exactly these shapes, in order, with these quoted lines',
+        'asks for a plain read, flag on, on a line of every named shape and every quoted line',
         'asks for a plain read on each shape the risk words miss',
         'asks for a plain read on every must-catch line in the heavy-feelings eval file',
         'adds no plain read on the nightly none lines beyond the risk words',
