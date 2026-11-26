@@ -246,6 +246,21 @@ describe('SpeechCoordinator: a line that never reaches the speaker (#4446)', () 
     }
   });
 
+  it('the gateway speak-path debug log carries the line as a length, not as text', async () => {
+    vi.stubEnv('USE_TTS_GATEWAY', 'true');
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
+    const sentence = 'quixlethorp the fictional ladder is back by the shed';
+    sink.calls.length = 0;
+
+    await speak(sentence);
+
+    const entry = sink.calls.find((c) => c[1] === '🎤 Speaking via TTS Gateway');
+    expect(entry).toBeDefined();
+    const fields = entry?.[0] as Record<string, unknown>;
+    expect(fields.textChars).toBe(sentence.length); // a number: the planted `request.text` is a string
+    expect(JSON.stringify(sink.calls)).not.toContain('quixlethorp');
+  });
+
   it('a session that closed under a line logs the class and the line id, not the error text', async () => {
     vi.stubEnv('USE_TTS_GATEWAY', 'false');
     say.mockReset();
