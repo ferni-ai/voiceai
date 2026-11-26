@@ -12,6 +12,14 @@ import { restaurantScript } from './restaurant.js';
 import { businessScript } from './business.js';
 import { personalScript } from './personal.js';
 import type { CallScriptTemplate, CallObjective, ResolvedContact } from '../types.js';
+import { callingPersonaName } from './calling-persona.js';
+
+export {
+  askingPersonaRecord,
+  callingPersonaName,
+  callingPersonaOf,
+  callingLead,
+} from './calling-persona.js';
 
 // ============================================================================
 // SCRIPT SELECTION
@@ -119,7 +127,8 @@ export function selectScript(
 export function buildCallScript(
   template: CallScriptTemplate,
   params: {
-    agentName: string;
+    /** The persona placing the call (calling-persona.ts); Ferni when unset. */
+    callingPersonaId?: string;
     userName: string;
     contactName: string;
     purpose: string;
@@ -129,7 +138,7 @@ export function buildCallScript(
   }
 ): string {
   const {
-    agentName,
+    callingPersonaId,
     userName,
     contactName,
     purpose,
@@ -138,6 +147,7 @@ export function buildCallScript(
     preferredTimes,
   } = params;
 
+  const agentName = callingPersonaName(callingPersonaId);
   const parts: string[] = [];
 
   // -------------------------------------------------------------------------

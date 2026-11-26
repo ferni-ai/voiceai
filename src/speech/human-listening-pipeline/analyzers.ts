@@ -4,6 +4,7 @@
  * Analysis functions for audio, text, and conversation signals.
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type {
   AudioAnalysis,
@@ -19,7 +20,11 @@ import { getEnergyDynamicsTracker, type EnergyDynamicsResult } from '../energy-d
 import { getFillerAnalyzer } from '../filler-analysis.js';
 import { getFluencyAnalyzer } from '../fluency-analysis.js';
 import { getVoiceTremorDetector, type VoiceTremorResult } from '../voice-tremor.js';
-import { getVolumeDynamicsTracker, type VolumeDynamicsState } from '../volume-dynamics.js';
+import {
+  getVolumeDynamicsTracker,
+  volumeLevelOfDb,
+  type VolumeDynamicsState,
+} from '../volume-dynamics.js';
 
 // Text-based analyzers
 import { getCognitiveLoadDetector } from '../../intelligence/cognitive-load.js';
@@ -85,6 +90,17 @@ export async function analyzeAudio(
 }
 
 /**
+ * A quiet voice. energyMean is in dBFS (audio-prosody calculateEnergy), so main's `< 40` is true
+ * for every reading; HUMAN_LISTENING_ENERGY_DB=on calls only a soft voice or a whisper quiet.
+ */
+function quietVoice(energyMean: number | undefined): boolean {
+  if (!flagOn('HUMAN_LISTENING_ENERGY_DB')) return (energyMean ?? 50) < 40;
+  if (energyMean === undefined) return false;
+  const level = volumeLevelOfDb(energyMean);
+  return level === 'soft' || level === 'whisper';
+}
+
+/**
  * Derive audio analysis from pre-computed prosody features.
  * This allows us to get human listening insights without raw audio.
  */
@@ -138,7 +154,7 @@ function deriveAudioFromProsody(prosody: ProsodyFeaturesInput, _text: string): A
   // Derive volume dynamics from energy features
   let volumeDynamics: VolumeDynamicsState | null = null;
   if (prosody.energyMean !== undefined || prosody.energyVariance !== undefined) {
-    const lowEnergy = (prosody.energyMean ?? 50) < 40;
+    const lowEnergy = quietVoice(prosody.energyMean);
 
     volumeDynamics = {
       baseline: 50,
@@ -158,7 +174,7 @@ function deriveAudioFromProsody(prosody: ProsodyFeaturesInput, _text: string): A
   let energyDynamics: EnergyDynamicsResult | null = null;
   if (prosody.speechRate !== undefined || prosody.energyMean !== undefined) {
     const slowSpeech = (prosody.speechRate ?? 3) < 2;
-    const lowEnergy = (prosody.energyMean ?? 50) < 40;
+    const lowEnergy = quietVoice(prosody.energyMean);
 
     if (slowSpeech || lowEnergy) {
       const interpretationText = slowSpeech

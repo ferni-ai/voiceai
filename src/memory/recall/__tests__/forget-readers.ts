@@ -17,7 +17,7 @@ export type ForgetCheck = 'always' | 'flag' | 'none';
 /** Who hears it: the model (prompt, greeting, tool result), the caller on the web, or a text/call out. */
 export type Reach = 'prompt' | 'greeting' | 'tool' | 'web' | 'outbound' | 'third-party';
 /** The PR that makes a `none` reader check, in the forget plan's order (outbound first). */
-export type FixPr = 'PR2a' | 'PR2b' | 'PR2c';
+export type FixPr = 'PR2a' | 'PR2b';
 
 export interface ForgetReader {
   id: string;
@@ -51,6 +51,15 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     site: 'isForgotten',
     reaches: 'prompt',
     check: 'always',
+  },
+  {
+    // open_loops is outside STORE_SIGNATURE, so this row is how the call's loops note is held to it (#3995).
+    id: 'recall.openLoops',
+    file: 'src/agents/multi-agent/open-loops-recall.ts',
+    site: 'loopsToRaise',
+    reaches: 'prompt',
+    check: 'always',
+    probe: 'src/agents/multi-agent/__tests__/open-loops-recall-forget.test.ts',
   },
   {
     id: 'recall.episodes',
@@ -285,6 +294,146 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     check: 'flag',
     probe: EVERY_READER,
   },
+  {
+    id: 'greeting.singleAgent',
+    file: 'src/agents/voice-agent/greeting-handler.ts',
+    site: 'greetingProfile(services)',
+    reaches: 'greeting',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'greeting.intentions',
+    file: 'src/agents/voice-agent/greeting-handler.ts',
+    site: 'greetingIntentions(services.userId)',
+    reaches: 'greeting',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'greeting.threadStarter',
+    file: 'src/agents/voice-agent/greeting-proactive-context.ts',
+    site: 'said?.(threadStarter)',
+    reaches: 'greeting',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'tool.getUserContext',
+    file: 'src/tools/domains/awareness/index.ts',
+    site: "profileForCaller(userId, stored, 'getUserContext')",
+    reaches: 'tool',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'tool.getProactiveInsights',
+    file: 'src/tools/domains/awareness/index.ts',
+    site: "profileForCaller(userData?.userId, stored, 'getProactiveInsights')",
+    reaches: 'tool',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'prompt.semanticThreads',
+    file: 'src/services/superhuman/semantic-intelligence/cross-session-threading.ts',
+    site: 'rememberedThreads(userId, found)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  // Trust systems: caller words kept in trust_profiles, loaded into memory at call start
+  // (trust-systems/persistence.ts). STORE_SIGNATURE can't see that store, so these are by hand.
+  {
+    id: 'prompt.trustWins',
+    file: 'src/agents/processors/injection-builders/trust-builders.ts',
+    site: 'rememberedTrust(built, await said)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'prompt.trustGrowth',
+    file: 'src/agents/processors/injection-builders/trust-builders.ts',
+    site: 'rememberedTrust(built, await said)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'prompt.trustCallbacks',
+    file: 'src/agents/processors/injection-builders/trust-builders.ts',
+    site: 'rememberedTrust(built, await said)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'prompt.trustOutreach',
+    file: 'src/agents/processors/injection-builders/trust-builders.ts',
+    site: 'rememberedTrust(built, await said)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+  {
+    id: 'prompt.trustProtective',
+    file: 'src/agents/processors/injection-builders/trust-builders.ts',
+    site: 'rememberedTrust(built, await said)',
+    reaches: 'prompt',
+    check: 'flag',
+    probe: PROBE_PROMPT,
+  },
+
+  {
+    id: 'web.conversations',
+    file: 'src/api/routes/conversations.ts',
+    site: 'rememberedHistory',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/routes/__tests__/conversations-forget.test.ts',
+  },
+  {
+    id: 'web.threads',
+    file: 'src/api/routes/conversation-threads.ts',
+    site: 'rememberedThreads',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/routes/__tests__/conversation-threads-forget.test.ts',
+  },
+  {
+    id: 'web.voiceAuthMemory',
+    file: 'src/api/voice-auth/memory-routes.ts',
+    site: 'forgottenFor',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/voice-auth/__tests__/memory-routes-forget.test.ts',
+  },
+  {
+    id: 'web.yearInReview',
+    file: 'src/api/year-in-review-routes.ts',
+    site: 'forgottenPassageCheck',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/api/__tests__/year-in-review-forget.test.ts',
+  },
+  {
+    id: 'web.creativeYou',
+    file: 'src/services/creative-you/better-than-human-memory.ts',
+    site: 'rememberedMemories',
+    reaches: 'web',
+    check: 'flag',
+    probe: 'src/services/creative-you/__tests__/better-than-human-memory-forget.test.ts',
+  },
+  {
+    id: 'sms.threadTurns',
+    file: 'src/services/conversation-thread/thread-manager.ts',
+    site: 'rememberedThread',
+    reaches: 'outbound',
+    check: 'flag',
+    probe: 'src/services/conversation-thread/__tests__/thread-forget.test.ts',
+  },
+
   // Outbound and third-party (PR2a): an item about a forgotten topic is skipped, never sent with a hole.
   {
     id: 'thirdParty.outreachTopics',
@@ -333,66 +482,6 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     reaches: 'outbound',
     check: 'flag',
     probe: PROBE_OUTBOUND,
-  },
-
-  // ── Not checked: PR2a, outbound and third-party first ──────────────────────
-  {
-    id: 'greeting.singleAgent',
-    file: 'src/agents/voice-agent/greeting-handler.ts',
-    site: 'lastConversationSummary: services.userProfile',
-    reaches: 'greeting',
-    check: 'none',
-    fix: 'PR2a',
-    probe: PROBE_PROMPT,
-  },
-  {
-    id: 'greeting.threadStarter',
-    file: 'src/agents/voice-agent/greeting-proactive-context.ts',
-    site: 'threadStarter',
-    reaches: 'greeting',
-    check: 'none',
-    fix: 'PR2a',
-  },
-  {
-    id: 'tool.getUserContext',
-    file: 'src/tools/domains/awareness/index.ts',
-    site: 'last_conversation',
-    reaches: 'tool',
-    check: 'none',
-    fix: 'PR2a',
-    probe: PROBE_PROMPT,
-  },
-  {
-    id: 'prompt.taskWisdom',
-    file: 'src/agents/processors/turn-processor/context-injections.ts',
-    site: 'lastSummary: services.userProfile',
-    reaches: 'prompt',
-    check: 'none',
-    fix: 'PR2a',
-  },
-  {
-    id: 'prompt.taskWisdomBuilder',
-    file: 'src/agents/processors/context-injection-builder.ts',
-    site: 'lastSummary: services.userProfile',
-    reaches: 'prompt',
-    check: 'none',
-    fix: 'PR2a',
-  },
-  {
-    id: 'prompt.sharedContent',
-    file: 'src/personas/shared/content-injector.ts',
-    site: 'context.lastConversationSummary',
-    reaches: 'prompt',
-    check: 'none',
-    fix: 'PR2a',
-  },
-  {
-    id: 'prompt.semanticThreads',
-    file: 'src/services/superhuman/semantic-intelligence/cross-session-threading.ts',
-    site: 'semantic_threads',
-    reaches: 'prompt',
-    check: 'none',
-    fix: 'PR2a',
   },
 
   // ── Not checked: PR2b ──────────────────────────────────────────────────────
@@ -451,56 +540,6 @@ export const FORGET_READERS: readonly ForgetReader[] = [
     reaches: 'prompt',
     check: 'none',
     fix: 'PR2b',
-  },
-
-  // ── Not checked: PR2c ──────────────────────────────────────────────────────
-  {
-    id: 'web.conversations',
-    file: 'src/api/routes/conversations.ts',
-    site: 'highlights',
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.threads',
-    file: 'src/api/routes/conversation-threads.ts',
-    site: "collection('conversation_threads')",
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.voiceAuthMemory',
-    file: 'src/api/voice-auth/memory-routes.ts',
-    site: 'export',
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.yearInReview',
-    file: 'src/api/year-in-review-routes.ts',
-    site: "collection('summaries')",
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'web.creativeYou',
-    file: 'src/services/creative-you/better-than-human-memory.ts',
-    site: "collection('summaries')",
-    reaches: 'web',
-    check: 'none',
-    fix: 'PR2c',
-  },
-  {
-    id: 'sms.threadTurns',
-    file: 'src/services/conversation-thread/thread-manager.ts',
-    site: 'buildAgentContext',
-    reaches: 'outbound',
-    check: 'none',
-    fix: 'PR2c',
   },
 ];
 
@@ -565,10 +604,13 @@ export const NOT_A_READER: Readonly<Record<string, string>> = {
 /**
  * Readers whose memory text reaches the prompt only through the dead context-builder registry
  * (context-builders/core/builder-imports.ts: buildConversationContext has no production caller).
- * Memory plan step 6 deletes that registry, so they get no forget check. They may stop existing;
+ * Memory plan step 6 deletes that registry, so they get no forget check. Also readers whose
+ * memory branch no live caller reaches (each reason names the caller). They may stop existing;
  * they may not also be listed as a reader, NOT_A_READER or UNCLASSIFIED.
  */
 export const DEAD_PATH: Readonly<Record<string, string>> = {
+  'src/personas/shared/content-injector.ts':
+    'reads the last summary only for isGreeting, and its one caller (ContextManager.buildPromptContext, via session-manager getPromptContext) never passes it; process-turn reads only .phase',
   'src/memory/orchestrator.ts':
     'its session-priming text reaches the prompt only through unified-memory-orchestrator; the live persona briefings call getMemoryHealth (counts). The live session primer is session-manager → handoff.summary',
 };
@@ -617,6 +659,10 @@ export const UNCLASSIFIED: readonly string[] = [
 /**
  * What marks a file as touching a memory store: a direct collection read or the profile's
  * last-summary fields. A file that reads through a store module is caught at that module.
+ * Not the trust systems' store (trust_profiles): persistence.ts loads it into in-memory profiles
+ * under a constant name, so no file here names it. Its prompt readers are registered by hand
+ * (prompt.trust*, greeting.intentions); the rest (handoff-context, outreach-integration) are
+ * untraced, #3682.
  */
 export const STORE_SIGNATURE = new RegExp(
   [

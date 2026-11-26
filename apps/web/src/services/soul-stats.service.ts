@@ -17,6 +17,7 @@
  * @module SoulStatsService
  */
 
+import { isAvatarLab } from '../utils/avatar-lab-path.js';
 import { createLogger } from '../utils/logger.js';
 import { getAuthToken } from './firebase-auth.service.js';
 
@@ -122,7 +123,8 @@ export class SoulStatsService {
   }
 
   private add(key: SoulCountKey): void {
-    if (this.stopped) return;
+    // The admin avatar lab plays the avatar for an admin, not for a person: it counts nothing
+    if (this.stopped || isAvatarLab()) return;
     this.pending[key] = Math.min(MAX_COUNT, this.pending[key] + 1);
     if (!this.listening) {
       this.listening = true;

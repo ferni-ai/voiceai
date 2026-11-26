@@ -19,6 +19,7 @@ import { callerClockZone } from '../../../utils/caller-clock.js';
 import { calendarDaysSince } from '../../../utils/calendar-days.js';
 import { lastTalkedAbout } from '../../multi-agent/teammate-relationship.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
+import { noRecordWording } from '../../personas/earlier-call-honest.js';
 
 // ============================================================================
 // TYPES
@@ -172,7 +173,8 @@ function addRelationshipContext(
       addLastContactContext(facts, profile.lastContact, sessionStartTime, timeZone);
     }
   } else if (!isReturningUser) {
-    facts.push('This is your first conversation with them - be welcoming but not overwhelming.');
+    const first = 'This is your first conversation with them - be welcoming but not overwhelming.';
+    facts.push(noRecordWording(first)); // EARLIER_CALL_NO_DENIAL (earlier-call-honest.ts)
   }
 
   // Relationship stage
@@ -264,6 +266,7 @@ const FACT_KINDS: Array<[RegExp, string]> = [
   [/^Last time you talked about/, 'last conversation'],
   [/^(Life context|Current goal|On their mind):/, '$1'],
   [/^This is your first conversation/, 'first conversation'],
+  [/^You have no earlier calls/, 'first conversation'],
   [/\b(earlier today|yesterday|days ago|weeks since|months? since)\b/, 'last contact'],
   [/\b(talked once|talked \d+ times|conversations?\b)/, 'conversation count'],
 ];

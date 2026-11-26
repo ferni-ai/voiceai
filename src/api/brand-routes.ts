@@ -57,11 +57,11 @@ export async function handleBrandRoutes(
     }
 
     if (path === '/api/brand/validate' && method === 'POST') {
-      return handleValidate(req, res);
+      return await handleValidate(req, res);
     }
 
     if (path === '/api/brand/quick-validate' && method === 'POST') {
-      return handleQuickValidate(req, res);
+      return await handleQuickValidate(req, res);
     }
 
     if (path === '/api/brand/personas' && method === 'GET') {
@@ -79,39 +79,39 @@ export async function handleBrandRoutes(
     if (!authResult) return true; // 401 already sent
 
     if (path === '/api/brand/context' && method === 'GET') {
-      return handleGetContext(req, res);
+      return await handleGetContext(req, res);
     }
 
     if (path === '/api/brand/generate' && method === 'POST') {
-      return handleGenerate(req, res);
+      return await handleGenerate(req, res);
     }
 
     if (path === '/api/brand/generate-variants' && method === 'POST') {
-      return handleGenerateVariants(req, res);
+      return await handleGenerateVariants(req, res);
     }
 
     if (path === '/api/brand/auto-fix' && method === 'POST') {
-      return handleAutoFix(req, res);
+      return await handleAutoFix(req, res);
     }
 
     if (path === '/api/brand/adapt' && method === 'POST') {
-      return handleAdapt(req, res);
+      return await handleAdapt(req, res);
     }
 
     if (path === '/api/brand/multi-channel' && method === 'POST') {
-      return handleMultiChannel(req, res);
+      return await handleMultiChannel(req, res);
     }
 
     if (path === '/api/brand/health' && method === 'GET') {
-      return handleGetHealth(req, res);
+      return await handleGetHealth(req, res);
     }
 
     if (path === '/api/brand/evolution/run' && method === 'POST') {
-      return handleRunEvolution(req, res);
+      return await handleRunEvolution(req, res);
     }
 
     if (path === '/api/brand/evolution/changes' && method === 'GET') {
-      return handleGetChanges(req, res);
+      return await handleGetChanges(req, res);
     }
 
     return false; // Route not handled

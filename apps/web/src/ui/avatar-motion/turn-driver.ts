@@ -182,6 +182,11 @@ function prefersReducedMotion(): boolean {
   );
 }
 
+/** The settle time for this viewer, longer under reduced motion. The app and the avatar lab use it. */
+export function turnSettleMs(): number {
+  return prefersReducedMotion() ? TURN_SETTLE_REDUCED_MS : TURN_SETTLE_MS;
+}
+
 type GetRoom = () => CueRoom | null;
 const defaultGetRoom: GetRoom = () => connectionService.getRoom() as CueRoom | null;
 
@@ -205,8 +210,7 @@ function attach(): void {
     log.warn('No room on connect; avatar keeps its last pose');
     return;
   }
-  const settleMs = prefersReducedMotion() ? TURN_SETTLE_REDUCED_MS : TURN_SETTLE_MS;
-  const current = createTurnDriver(targets, settleMs);
+  const current = createTurnDriver(targets, turnSettleMs());
   driver = current;
   stopWatching = watchSpeakerSignals(room, (signals) => current.update(signals));
 }
