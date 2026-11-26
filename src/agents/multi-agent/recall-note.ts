@@ -53,18 +53,23 @@ function update(agent: RecallAgent, ctx: unknown): void {
 export interface RecallNote {
   note: string;
   id: string;
-  /** Set on a note that carries the caller's recalled memory (generalRecallNote). */
+  /** Set on a note that carries the caller's recalled memory (callerMemoryNote). */
   extra?: Record<string, unknown>;
 }
 
 /**
- * Recall's general note, as a RecallNote. With CRISIS_NO_MEMORY_RECALL on it carries the
- * caller's recalled memory, so it is marked as made of nothing without it: a request the crisis
- * gate takes crisis-held notes out of leaves it out (withoutCrisisHeldNotes). Off: unmarked.
+ * A note that carries the caller's recalled memory (recall's general note, the mind note), as a
+ * RecallNote. With CRISIS_NO_MEMORY_RECALL on it is marked as made of nothing without that
+ * memory: a request the crisis gate takes crisis-held notes out of leaves it out
+ * (withoutCrisisHeldNotes). Off: unmarked, as before.
  */
-export function generalRecallNote(note: string, env: Env = process.env): RecallNote {
+export function callerMemoryNote(
+  note: string,
+  id = recallNoteId(),
+  env: Env = process.env
+): RecallNote {
   const extra = crisisNoMemoryRecallOn(env) ? { [WITHOUT_RECALLED_MEMORY]: '' } : undefined;
-  return { note, id: recallNoteId(), ...(extra && { extra }) };
+  return { note, id, ...(extra && { extra }) };
 }
 
 /** A fresh id for a recall note, under `prefix`. */

@@ -14,10 +14,10 @@
  *   read counts as a crisis), or a call with risk noted (a read that failed or came late notes
  *   it), builds its note without that memory;
  * - every other note carries, in its `extra`, its text without that memory (recall's general
- *   note, recall-note.ts generalRecallNote, carries nothing: it is left out whole), and a request the
- *   crisis gate takes crisis-held notes out of (recall-note.ts withoutCrisisHeldNotes: every
- *   guided request, every request on a call with risk noted, and a held reply whose read failed)
- *   gets that text instead.
+ *   note and the mind note, recall-note.ts callerMemoryNote, carry nothing: left out whole),
+ *   and a request the crisis gate takes crisis-held notes out of (recall-note.ts
+ *   withoutCrisisHeldNotes: every guided request, every request on a call with risk noted, and
+ *   a held reply whose read failed) gets that text instead.
  *
  * An ordinary turn's request is byte-equal to the flag off: the model never reads `extra`.
  *

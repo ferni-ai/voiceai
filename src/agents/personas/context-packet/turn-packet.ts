@@ -18,7 +18,7 @@ import {
   addRecallNotes,
   dropForgottenNotes,
   dropSelfNotes,
-  generalRecallNote,
+  callerMemoryNote,
   recallNoteId,
   SELF_NOTE_ID_PREFIX,
   type RecallNote,
@@ -139,7 +139,7 @@ export function sendRecall(
     const pick = contextPacketEnabled() ? recall.lastPick() : null;
     if (pick) rememberForPacket(session, pick);
     const general = pick ? pick.rest : note;
-    if (general) notes.push(generalRecallNote(general));
+    if (general) notes.push(callerMemoryNote(general));
   }
   if (self.note && !forgotten?.(self.note)) {
     notes.push({ note: self.note, id: recallNoteId(SELF_NOTE_ID_PREFIX) });

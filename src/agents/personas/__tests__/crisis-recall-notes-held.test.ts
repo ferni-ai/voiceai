@@ -6,9 +6,15 @@
  * fact store, the models and the network are fakes. Invented caller: Sam, whose dog is Biscuit.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { llm } from '@livekit/agents';
+import { EventEmitter } from 'node:events';
+import { llm, voice } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { createMemoryRecall, type MemoryRecall } from '../../multi-agent/memory-recall-hook.js';
+import type { RecallAgent } from '../../multi-agent/memory-recall-hook.js';
+import { attachMindNote } from '../../multi-agent/mind-note-hook.js';
+import { updateTheoryOfMindAfterCall } from '../../../intelligence/theory-of-mind/after-call.js';
+import { memoryMindStore } from '../../../intelligence/theory-of-mind/store.js';
+import { CALL_1, READING_1, T0 } from '../../../intelligence/theory-of-mind/__tests__/fixtures.js';
 import { RECALL_NOTE_ID_PREFIX } from '../../multi-agent/turn-context-header.js';
 import { sendRecall } from '../context-packet/turn-packet.js';
 import { gatedReply } from '../crisis-gate.js';
@@ -88,7 +94,7 @@ function hear(recall: MemoryRecall, c: ReturnType<typeof chat>, said: string): s
 }
 
 /** Ask the real gate about `said` over the chat as it stands; the text of every request it sent. */
-async function ask(c: ReturnType<typeof chat>, sessionId: string, said: string, env: object) {
+async function ask(c: { agent: { chatCtx: llm.ChatContext } }, sessionId: string, said: string, env: object) {
   const request = c.agent.chatCtx.copy();
   request.addMessage({ role: 'user', content: said });
   const sent: string[] = [];
@@ -204,5 +210,37 @@ describe('flag off is main', () => {
     expect(on.ids).toEqual(off.ids);
     expect(on.texts).toEqual(off.texts);
     expect(on.sent).toEqual(off.sent);
+  });
+});
+
+describe.each([true, false])('the mind note, %s = CRISIS_NO_MEMORY_RECALL on', (on) => {
+  /** An agent that has heard its first words on a call after one the mind model learned from. */
+  async function afterFirstWords() {
+    const store = memoryMindStore();
+    await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 'call-1', turns: CALL_1, summary: null },
+      { store, llm: async () => READING_1, env: { THEORY_OF_MIND: 'on' }, now: () => T0 }
+    );
+    const session = new EventEmitter();
+    const agent = new voice.Agent({ instructions: 'You are Ferni.' });
+    const mind = attachMindNote(session, agent as unknown as RecallAgent, {
+      userId: 'u1',
+      store,
+      now: () => new Date(T0.getTime() + 86_400_000),
+    });
+    await mind.ready;
+    session.emit('user_input_transcribed', { transcript: 'Hey, ugh, my car died this morning.' });
+    return { agent };
+  }
+  const MIND = 'Stripe interview on Monday';
+
+  it(`${on ? 'is taken out of' : 'stays in'} a crisis-guided reply`, async () => {
+    vi.stubEnv(FLAG, on ? 'on' : '');
+    const c = await afterFirstWords();
+    const text = c.agent.chatCtx.items.map((i) => (i as llm.ChatMessage).textContent).join('\n');
+    expect(text).toContain(MIND); // precondition: the note is in the chat
+    const sent = await ask(c, newCall(), CRISIS, flagEnv(on));
+    expect(sent.length).toBeGreaterThan(0);
+    for (const request of sent) expect(request.includes(MIND)).toBe(!on);
   });
 });
