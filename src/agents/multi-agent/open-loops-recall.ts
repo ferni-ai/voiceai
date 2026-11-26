@@ -59,12 +59,13 @@ const realSources: CallLoopsSources = {
       await import('../../services/superhuman/semantic-intelligence/open-loops.js');
     return getLoopsReadyForFollowUp(userId);
   },
-  // The fresh read, never a last-known list: the note is the caller's words from earlier calls and
+  // The store itself, once a call: never a last-known list or the shared 15 s cache, which only a
+  // forget in this process clears (#2755). The note is the caller's words from earlier calls and
   // stays in the chat for the call, as revived intelligence's are (#2623). Null with
   // FORGET_EVERY_READER off, so the note then needs that flag on too.
   async forgotten(userId) {
     const { forgottenPassageWithin } = await import('../../memory/index.js');
-    return forgottenPassageWithin(userId, 'open-loops-note');
+    return forgottenPassageWithin(userId, 'open-loops-note', process.env, true);
   },
   async promises(userId) {
     const { promiseContextFor } =

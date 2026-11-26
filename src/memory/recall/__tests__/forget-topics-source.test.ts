@@ -225,6 +225,17 @@ describe('forgottenPassageWithin: the passage match, fresh reads only', () => {
     expect(check?.('plant the tomatoes this weekend')).toBe(true);
   });
 
+  it('uncached reads the store past a fresh cached list (#2755)', async () => {
+    read.fn.mockResolvedValueOnce([]);
+    expect((await forgottenPassageWithin(U))?.('the Denver job')).toBe(false); // cached, fresh
+    read.fn.mockResolvedValueOnce(['the Denver job']); // forgotten in another process
+    expect((await forgottenPassageWithin(U))?.('the Denver job')).toBe(false);
+    read.fn.mockResolvedValueOnce(['the Denver job']);
+    expect((await forgottenPassageWithin(U, 'r', process.env, true))?.('the Denver job')).toBe(
+      true
+    );
+  });
+
   it('null with the flag off or no member, and nothing is read', async () => {
     vi.stubEnv('FORGET_EVERY_READER', 'off');
     expect(await forgottenPassageWithin(U)).toBeNull();

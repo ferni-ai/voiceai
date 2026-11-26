@@ -147,6 +147,24 @@ describe('open-loops note, real forget filter (#3995)', () => {
     }
   });
 
+  it('a forget another process stored shows at the next call, inside the 15 s cache', async () => {
+    stored([]);
+    expect((await loaded('u-elsewhere', [GARDEN])).note()).toContain('tomatoes');
+    stored(['the tomatoes']); // written elsewhere: nothing in this process clears the cache
+    const r = createCallLoopsRecall({
+      userId: 'u-elsewhere',
+      callId: 'c-u-elsewhere-2',
+      now: () => NOW,
+      sources: {
+        loops: async () => [GARDEN],
+        promises: async () => ({ text: '', misses: [] }),
+        markOffered: async () => undefined,
+      },
+    });
+    await r.ready;
+    expect(r.note()).toBeNull();
+  });
+
   it('FORGET_EVERY_READER off: no note (no forget check, so nothing is said)', async () => {
     vi.stubEnv('FORGET_EVERY_READER', 'off');
     stored([]);

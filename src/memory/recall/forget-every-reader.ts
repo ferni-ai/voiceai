@@ -131,15 +131,17 @@ export async function forgottenPassageCheck(
  * forgottenPassageCheck without the last-known fallback, for a reader that
  * fails closed when the read is late or failed (revived intelligence, whose
  * earlier calls' summaries must not come back on an old list: #2623). Null
- * then, and when the flag is off or there is no member.
+ * then, and when the flag is off or there is no member. `uncached` reads the store itself, as
+ * forgottenWithin's does (#2755), so a forget in another process counts at once.
  */
 export async function forgottenPassageWithin(
   userId: string | null | undefined,
   reader = 'passage-fresh',
-  env: Env = process.env
+  env: Env = process.env,
+  uncached = false
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  const stored = await topicsFreshWithin(userId, reader);
+  const stored = await topicsFreshWithin(userId, reader, uncached);
   return stored === null ? null : checkFor(userId, stored, isForgottenPassage);
 }
 
