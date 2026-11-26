@@ -6,7 +6,11 @@
 // `sound_played { kind, wireDelayMs, label }` (CLIENT_SIGNALS_V2, every kind)
 // or else `backchannel_played { kind, wireDelayMs }` (live backchannels only),
 // each matched to the side-track audio segment the harness heard. A side-track
-// segment with no message is still a sound the caller heard, kind 'sound'. A
+// segment with no message is still a sound the caller heard, kind 'sound', except
+// while music is audible (musicIntervalsOf): songs share that track, so unsignalled
+// audio then is taken as the song, and an unsignalled clip during music is not
+// counted. Only a segment's start is checked, so a phrase that starts just before
+// the 'playing' message still counts as a sound. A
 // message with no audio was cut before it was heard (22 of 280 on dev runs,
 // 2026-10-24): it is left out, or the judge would read "[Ferni: mm-hm, over
 // their words]" for a sound nobody heard. Only a run with no side track

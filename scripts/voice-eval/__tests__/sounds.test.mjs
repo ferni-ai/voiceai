@@ -256,13 +256,48 @@ describe('music on the background track', () => {
     expect(soundMetrics(placed).intoSilence).toBe(2);
   });
 
-  it('keeps playing to the end of the run, through ducking, when no stop comes', () => {
-    const run = withMusic([
-      [14000, 'playing'],
-      [20000, 'ducking'],
-      [24000, 'playing'],
-    ]);
-    expect(placeSounds(run)).toEqual([]);
+  const kept = (states) => placeSounds(withMusic(states)).map((s) => s.t);
+
+  it.each(['playing', 'ducking', 'fading', 'changing'])(
+    'a song is audible while music_state is %s',
+    (state) => {
+      expect(
+        kept([
+          [14000, state],
+          [16000, 'stopped'],
+        ])
+      ).toEqual([25000, 35000, 45000]);
+    }
+  );
+
+  it('paused ends the song: a segment starting while paused is a sound', () => {
+    expect(
+      kept([
+        [14000, 'playing'],
+        [14500, 'paused'],
+        [16000, 'playing'],
+        [30000, 'idle'],
+      ])
+    ).toEqual([15000, 35000, 45000]);
+  });
+
+  it('includes the playing moment and excludes the stopping moment', () => {
+    expect(
+      kept([
+        [15000, 'playing'],
+        [25000, 'stopped'],
+      ])
+    ).toEqual([25000, 35000, 45000]);
+  });
+
+  it('keeps playing to the end of the run when no stop comes, and reads states in time order', () => {
+    expect(kept([[14000, 'playing']])).toEqual([]);
+    expect(
+      kept([
+        [30000, 'stopped'],
+        [14000, 'playing'],
+      ])
+    ).toEqual([35000, 45000]);
   });
 
   it('still counts a signalled sound during music, and every segment with no music_state', () => {
