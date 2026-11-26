@@ -30,5 +30,19 @@ export const PROMPT_RULES_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
         'drops both easing rule sets from the plain read',
       ],
     },
+    {
+      file: 'src/services/safety/__tests__/crisis-heavy-feelings-backstop.test.ts',
+      rows: [
+        'names each shape in the rule text, and the rule text names no other',
+        'asks for a plain read, flag on, on an example of every shape and every quoted line',
+        'asks for a plain read on each shape the risk words miss',
+        'asks for a plain read on every must-catch line in the heavy-feelings eval file',
+        'adds no plain read on the nightly none lines beyond the risk words',
+        'gives the lawyer line and everyday heavy lines a single read',
+        'matches main for every line with the heavy flag off',
+        'restores crisis after two reads when the eased read says none on a heavy risk shape',
+        'reads the lawyer, grief and bone-tired lines once, and the eased none stands',
+      ],
+    },
   ],
 };

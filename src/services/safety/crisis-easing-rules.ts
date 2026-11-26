@@ -13,6 +13,7 @@ import { hasRiskContent } from './crisis-agreement.js';
 import { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-everyday.js';
 import {
   CRISIS_HEAVY_FEELINGS_RULES,
+  hasHeavyRiskShape,
   resolveCrisisHeavyFeelings,
 } from './crisis-heavy-feelings.js';
 
@@ -36,13 +37,17 @@ export const EASING_RULES_OFF = {
 
 /**
  * With the everyday or heavy-feelings rules on, whether this turn is also read
- * without them (the backstop).
+ * without them (the backstop): a risk word in the caller's latest words, or,
+ * with the heavy-feelings rules on, one of the risk shapes those rules keep as
+ * crisis (HEAVY_RISK_SHAPES: wanting it all to stop, nothing mattering, ...).
+ * The shapes are checked only with that flag on, so with it off this is the
+ * everyday backstop exactly as before.
  */
 export function needsPlainRead(
   latest: string,
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return (
-    (resolveCrisisEverydayRules(env) || resolveCrisisHeavyFeelings(env)) && hasRiskContent(latest)
-  );
+  const heavy = resolveCrisisHeavyFeelings(env);
+  if (!resolveCrisisEverydayRules(env) && !heavy) return false;
+  return hasRiskContent(latest) || (heavy && hasHeavyRiskShape(latest));
 }
