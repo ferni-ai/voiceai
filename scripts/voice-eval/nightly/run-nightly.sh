@@ -219,6 +219,12 @@ do_judge() {
   tonight | JUDGE_K=2 JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 1 -P 4 node "$EVAL/judge.mjs" >> "$OUT/judge.log" 2>&1 \
     || log "some judge calls failed (see judge.log)"
 }
+# The blind listener (audio-judge.mjs, #4513): voice scores merged into each judge verdict, so it
+# runs after do_judge (which rewrites the verdicts) and before do_collect copies them.
+do_listen() {
+  tonight | JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 4 -P 2 node "$EVAL/audio-judge.mjs" >> "$OUT/listen.log" 2>&1 \
+    || log "some audio judge calls failed (see listen.log)"
+}
 do_collect() {
   mkdir -p "$OUT/runs" && cp -p "$EVAL"/out/*-"$TAG"*.json "$OUT/runs/" \
     && git rev-parse --short=9 HEAD > "$OUT/build.txt"
@@ -302,6 +308,7 @@ step lanes "lanes a + b in parallel, label $TAG<label>, memlive uid $MEMLIVE" do
 [ -f "$RECALL_SET" ] && { step recall "recall-eval.mjs: ${NIGHTLY_RECALL_WORLDS:-3} held-out worlds -> $OUT/recall.json" do_recall \
   || log "recall eval failed (see recall.log)"; }
 step judge "judge.mjs (JUDGE_K=2, JUDGE_MODEL=pro, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
+step listen "audio-judge.mjs on tonight's runs: voice scores into each judge verdict" do_listen
 step collect "copy scripts/voice-eval/out/*-$TAG*.json to $OUT/runs" do_collect
 step logs "gcloud logging read cloud-agents for agent $DEV_AGENT over the lanes' window + boot lines" do_logs \
   || log "log capture failed; summary will be missing"
