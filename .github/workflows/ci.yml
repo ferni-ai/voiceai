@@ -368,6 +368,13 @@ jobs:
       - name: Format ratchet
         run: pnpm quality:format --cache="$RUNNER_TEMP/prettier-cache/cache.json"
 
+      # Blocking: the format, mock-paths and web design-value baselines may only shrink
+      # against the merge base, so a PR can't pass its own gate by listing new debt
+      # (apps/cli/src/commands/quality/baseline-shrink.ts). Replaces code-owner review of
+      # those three files.
+      - name: Baselines only shrink
+        run: pnpm quality:baseline-shrink
+
       - name: Save prettier cache
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule')
         uses: actions/cache/save@v6
