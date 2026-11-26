@@ -34,6 +34,34 @@ const PLACES = ['pause', 'mid-utterance', 'silence', 'over-ferni', 'before-reply
 
 const isSide = (t) => /background/i.test(t.name);
 
+// music_state values while a song is audible; any other state (paused, stopped, idle) ends it.
+const MUSIC_AUDIBLE = new Set(['playing', 'ducking', 'fading', 'changing']);
+
+/**
+ * When music was audible, from the agent's music_state messages: [[start, end]].
+ * Music plays through the same background track as clips (BackgroundAudioPlayer),
+ * so each phrase of a song is a side-track segment with no sound message. Counted
+ * as sounds, the 2026-11-24 nightly's two music runs gave 11 of its 17 "into
+ * silence" sounds. A song still playing at the end of the run runs to Infinity.
+ */
+export function musicIntervalsOf(run) {
+  const states = (run.data ?? [])
+    .filter((d) => d?.payload?.type === 'music_state')
+    .sort((a, b) => a.t - b.t);
+  const out = [];
+  let start = null;
+  for (const { t, payload } of states) {
+    const audible = MUSIC_AUDIBLE.has(payload.state);
+    if (audible && start === null) start = t;
+    else if (!audible && start !== null) {
+      out.push([start, t]);
+      start = null;
+    }
+  }
+  if (start !== null) out.push([start, Infinity]);
+  return out;
+}
+
 /** Signalled and recorded sounds: { heard: [{ t, kind, label, source }], cut: [...] }. */
 function matchSounds(run) {
   const msgs = (run.data ?? []).map((d) => ({ t: d.t, p: d.payload ?? {} }));
@@ -61,8 +89,11 @@ function matchSounds(run) {
     };
     (i >= 0 || !recorded ? out : cut).push(sound);
   }
+  // Unsignalled side-track audio while music was audible is the song, not a sound.
+  const music = musicIntervalsOf(run);
   segs.forEach((s, j) => {
-    if (!used.has(j)) out.push({ t: s, kind: 'sound', label: null, source: 'track' });
+    if (used.has(j) || music.some(([a, b]) => a <= s && s < b)) return;
+    out.push({ t: s, kind: 'sound', label: null, source: 'track' });
   });
   return { heard: out.sort((a, b) => a.t - b.t), cut };
 }
