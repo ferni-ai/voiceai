@@ -108,7 +108,7 @@ export class UserLearningEngine {
     if (keyMoment) {
       this.sessionKeyMoments.push(keyMoment);
       const { type, summary } = keyMoment;
-      getLogger().info(logsWords ? { type, summary } : { type }, 'Captured key moment');
+      getLogger().info(logsWords ? { type, len: summary.length } : { type }, 'Captured key moment');
     }
 
     // 5. Learn preferences every 5 turns

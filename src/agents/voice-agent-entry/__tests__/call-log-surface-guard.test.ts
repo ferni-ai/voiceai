@@ -147,12 +147,11 @@ const EXEMPT: Exemptions = {
     ['agent-setup.ts', '', 'JSON.stringify(timings, null, 2)'], // setup timings
     ['tts-wrapper.ts', 'fallback', 'fallback.slice(0, 50)'], // the character codes of a garbage reply's first 20 characters (punctuation or empty)
     ['tts-wrapper.ts', 'detectedArgs', 'analysis.detectedArgs.slice(0, 5)'], // argument key names found in leaked JSON, never values
-    ['tts-wrapper.ts', 'leakSample', "leakedJson.slice(0, 100).replace(/[a-zA-Z]{4,}/g, 'xxx')"], // letters of 4+ replaced: JSON structure only
     [
       'tts-wrapper.ts',
       'charCodes',
-      "rawLLMBuffer\n                  .slice(0, 20)\n                  .split('')\n                  .map((c) => c.charCodeAt(0))",
-    ], // the character codes of a garbage reply's first 20 characters (punctuation or empty)
+      'isKnownDevDatabase()\n                  ? [...rawLLMBuffer.slice(0, 20)].map((c) => c.charCodeAt(0))\n                  : undefined',
+    ], // a garbage reply's first 20 character codes, on dev only: they decode to the reply
     ['e2e-latency-tracker.ts', 'context', 'context'], // a label for the LLM request (generate-reply-gateway)
     ['e2e-latency-tracker.ts', 'context', 'timeline.context'], // a label for the LLM request (generate-reply-gateway)
     ['weather.ts', 'condition', 'condition'], // the weather API's condition text

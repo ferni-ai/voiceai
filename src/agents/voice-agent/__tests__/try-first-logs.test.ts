@@ -7,9 +7,9 @@
  * Through the REAL loggers (the global setup mocks safe-logger; this unmocks it): every line
  * the process writes to stdout or stderr is read back, as onbehalf-callee-logs.test.ts does.
  * The real transcript handler and the real session services run; stores record writes only
- * (tests/helpers/write-recorder.ts). A member's turn is the control: their key moment still
- * carries a summary, and their STT trace carries the words on dev (a length on prod, #4392),
- * so the capture sees the fields when they are present. All data is fictional.
+ * (tests/helpers/write-recorder.ts). A member's STT trace is the control: it carries the words
+ * on dev (a length on prod, #4392), so the capture sees the field when it is present. A member's
+ * key moment logs its length, never the summary. All data is fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -165,9 +165,11 @@ describe("a try-first visitor's words never reach a log line", { timeout: 60_000
     expect(carried(written)).toEqual([]);
   });
 
-  it("control: a member's key moment still logs its summary", async () => {
+  it("a member's key moment logs its type and length, never its summary", async () => {
     const written = await analyzedTurn(MEMBER);
-    expect(written).toContain('"summary"');
-    expect(carried(written).length).toBeGreaterThan(0);
+    expect(written).toContain('"type":"decision"'); // the line ran
+    expect(written).toMatch(/"len":\d+/);
+    expect(written).not.toContain('"summary"');
+    expect(carried(written)).toEqual([]);
   });
 });
