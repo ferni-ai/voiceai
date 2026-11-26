@@ -158,7 +158,7 @@ export interface Leak {
 const NAME_BINDING =
   /\{[^{}]*\bnames?\b[^{}]*\}\s*(?:=(?!=)|\bof\b)\s*([^;\n]+)|(?<![\w$.])names?\s*=(?!=)\s*([^;\n]+)/g;
 /** What a person's name is pulled from when it isn't a record: names found in the turn. */
-const FROM_TURN = /extracted|mention/i;
+const FROM_TURN = /extracted|extractNames|mention/i;
 
 /**
  * A bare `{ name }` (or `{ names }`) whose last binding before the call is a person or

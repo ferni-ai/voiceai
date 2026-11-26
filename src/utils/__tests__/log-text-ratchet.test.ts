@@ -53,9 +53,6 @@ const NOT_ANYONES_WORDS: Record<string, number> = {
  * edits elsewhere in a file don't move it. Never move one of these to NOT_ANYONES_WORDS.
  */
 const PENDING_3215B: Record<string, string[]> = {
-  'src/agents/processors/injection-builders/safety-coaching-builders.ts': [
-    'goal: coachingAnalysis.goalText',
-  ],
   'src/agents/processors/injection-builders/trust-builders.ts': [
     'description: trustContext.celebrationOpportunity.win.description',
     'topic: vuln.topic',
@@ -106,11 +103,6 @@ const PENDING_3215B: Record<string, string[]> = {
   ],
   'src/memory/knowledge-graph/storage/thread-store.ts': ['topic: thread.topic'],
   'src/personas/bundles/ferni/superhuman-memory-integration.ts': ['topic: insight.topic'],
-  'src/services/coaching/goal-tracking.ts': [
-    'title: goal.title',
-    'title: goal.title',
-    'title: milestone.title',
-  ],
   'src/services/concierge/outreach/phone-caller.ts': ['summary: result.summary'],
   'src/services/contacts/personalized-outreach.ts': ['contactName: context.contact.name'],
   'src/services/creative-you/intelligent-curator.ts': ['this.userContext.recentTopics.slice('],
@@ -143,15 +135,12 @@ const PENDING_3215B: Record<string, string[]> = {
     'event: event.description',
   ],
   'src/services/persona/per-persona-relationship.ts': ['data?.frequentTopics.slice('],
-  'src/services/stores/life-data-store.ts': ['name: milestone.name', 'title: goal.title'],
-  'src/services/superhuman/commitment-calendar-integration.ts': ['commitment: commitment.text'],
   'src/services/superhuman/commitment-keeper.ts': [
     'commitment: commitment.summary',
     'summary: commitment.summary',
   ],
   'src/services/superhuman/relationship-network.ts': ['personName: newPerson.name'],
   'src/services/superhuman/semantic-intelligence/relationship-graph.ts': ['person: person.name'],
-  'src/services/trust-systems/small-wins.ts': ['intention: intentionText'],
   'src/tools/domains/communication/outreach/multi-outreach.ts': [
     'contact: contact.name',
     'contact: contact.name',
@@ -329,6 +318,8 @@ describe('textLeaksInLogs', () => {
     "log.debug({ userId, entityId: entity.id, name: entity.canonicalName }, 'Integrated');",
     "for (const { name, context } of turn.extractedNames) { log.warn({ error: String(error), name }, 'Failed'); }",
     "const name = person.fullName; log.info({ name }, 'tracked');",
+    // process-turn's shape: names a helper pulled from the turn, logged one by one
+    "const names = await recordNamesSaid(uid, extractNames(userText)); for (const name of names) diag.state('Recorded', { name });",
   ])('flags %s', (code) => {
     expect(lines(code)).toEqual([1]);
   });
