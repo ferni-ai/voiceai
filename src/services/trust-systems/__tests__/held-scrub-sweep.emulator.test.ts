@@ -18,6 +18,19 @@ vi.mock('../../../utils/firestore-utils.js', async () =>
 vi.mock('../../superhuman/semantic-intelligence/index.js', () => ({
   clearSemanticIntelligenceCache: () => undefined,
 }));
+// The scrub path embeds through Vertex here (the emulator suite keeps its project id), and
+// embeddings.ts asks a new GoogleAuth for a token. Before the guard that built 2 real auth clients
+// in the emulator job. Each build is counted and refused instead; the last row pins the count.
+const auth = vi.hoisted(() => ({ builds: 0 }));
+// outbound-guard: own-refusing-mock (each GoogleAuth build is counted, then throws before any token request)
+vi.mock('google-auth-library', () => ({
+  GoogleAuth: class {
+    constructor() {
+      auth.builds++;
+      throw new Error('held-scrub-sweep test: no real auth client');
+    }
+  },
+}));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 // Its own emulator project: the sweep reads every hold doc, and other emulator tests leave failed
@@ -182,4 +195,8 @@ describe.skipIf(!emulator)('MINOR_CARE: the held-scrub sweep (Firestore emulator
     expect(JSON.stringify(await read(`bogle_users/${u}/voice_prosody/data`))).toBe(before);
     expect(await read(`minor_care_holds/${u}`)).toBeNull();
   }, 90_000);
+
+  it('builds no real auth client: the 2 the scrub path asks for are each counted and refused', () => {
+    expect(auth.builds).toBe(2);
+  });
 });

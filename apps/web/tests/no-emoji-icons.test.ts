@@ -33,7 +33,6 @@ const ALLOWANCES: Record<string, { count: number; reason: string }> = {
   'dev-panel.ui.ts': { count: 23, reason: DEV_ONLY },
   'insights-debug-panel.ui.ts': { count: 4, reason: DEV_ONLY },
   'routing-stats.ui.ts': { count: 9, reason: DEV_ONLY },
-  'admin.ui.ts': { count: 2, reason: 'admin agent dashboard, staff-only' },
   'visualizations/builders/micro-trend.ts': {
     count: 6,
     reason: 'typographic trend arrows (text, not icons)',

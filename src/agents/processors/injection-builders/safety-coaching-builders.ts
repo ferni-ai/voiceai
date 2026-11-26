@@ -14,6 +14,7 @@ import {
   DEEP_MOMENT_INTENSITY,
 } from '../../../config/emotion-thresholds.js';
 import { diag } from '../../../services/diagnostic-logger.js';
+import { replyForLog } from '../../../utils/safe-logger.js';
 import type { ContextInjection } from '../types.js';
 import {
   mapToLegacyPhase,
@@ -251,7 +252,7 @@ export async function buildLifeCoachingInjections(
     // Log coaching opportunities
     if (coachingAnalysis.hasGoalStatement) {
       diag.info('🎯 Goal statement detected', {
-        goal: coachingAnalysis.goalText,
+        goal: replyForLog(coachingAnalysis.goalText), // their words: a length on prod (#4392)
         domain: coachingAnalysis.domain,
       });
     }

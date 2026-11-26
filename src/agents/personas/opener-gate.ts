@@ -23,7 +23,13 @@ import { ReadableStream, type ReadableStreamDefaultController } from 'node:strea
 import { flagOn } from '../../config/env-flag.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { firstClauseFlushEnabled } from './first-clause-flush.js';
-import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
+import {
+  burstPermits,
+  leadingBurst,
+  withoutBurst,
+  withRenderedBurst,
+  type BurstPermit,
+} from './vocal-bursts.js';
 import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 export const OPENER_EVERY = 3;
@@ -141,13 +147,14 @@ export class OpenerGate {
    * goes, and the clip counts as this reply's kept opener. `burst`
    * (VOCAL_BURSTS=on) is whether this reply may open with a vocal burst: one it
    * may is kept, in the spelling that renders; one it may not is dropped, as is
-   * any burst after a turn-opening clip. Undefined: as before. `bright`: the
+   * any burst after a turn-opening clip. VOCAL_BURSTS_PER_PERSONA=on: the ids
+   * offered, and one outside them is dropped. Undefined: as before. `bright`: the
    * reminder invited a reaction word on a bright turn (FERNI_PLAYFUL).
    */
-  decide(opening: string, openedBySound = false, burst?: boolean, bright = false): string {
+  decide(opening: string, openedBySound = false, burst?: BurstPermit, bright = false): string {
     this.turnsSinceKept++;
     const found = burst === undefined ? null : leadingBurst(opening);
-    if (found && burst && !openedBySound) {
+    if (found && burstPermits(burst, found.burst.id) && !openedBySound) {
       this.kept(null);
       return capitalizeStart(withRenderedBurst(opening, found));
     }
@@ -206,7 +213,7 @@ export class OpenerGate {
   wrap(
     input: ReadableStream<Chunk>,
     openedBySound: () => boolean = () => false,
-    burst?: boolean,
+    burst?: BurstPermit,
     bright = false
   ): ReadableStream<Chunk> {
     const decide = (opening: string): string =>
