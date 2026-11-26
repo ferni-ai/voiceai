@@ -7,6 +7,7 @@
 
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { nameForLog } from '../../../utils/name-for-log.js';
 import { isFerniSpelling, nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
 import { z } from 'zod';
 // Import directly from types to avoid circular dependency through services/index
@@ -69,19 +70,17 @@ export function createConversationTools() {
 
         const nameLower = name.toLowerCase().trim();
         if (personaNames.has(nameLower) || isFerniSpelling(name)) {
-          getLogger().warn(
-            `Blocked saving persona name "${name}" as user name - this is a team member, not the user!`
-          );
+          getLogger().warn('Blocked saving a team member name as the user name');
           return `[INTERNAL: "${name}" is a team member name, not the user's name. Ask the user for their actual name.]`;
         }
         // NAME_CAPTURE_STRICT=on: a common word ("not", "sure") or a teammate's speech-to-text
         // spelling is not a name either (utils/caller-name.ts).
         if (nameCaptureStrict() && rejectsAsName(nameLower.split(/\s+/)[0] ?? '')) {
-          getLogger().warn({ name }, 'Blocked saving a non-name as the user name');
+          getLogger().warn(nameForLog(name), 'Blocked saving a non-name as the user name');
           return `[INTERNAL: "${name}" is not a name. Do not call them that; ask their name if you need it.]`;
         }
 
-        getLogger().info(`Remembering user name: ${name}`);
+        getLogger().info(nameForLog(name), 'Remembering user name');
         const userData = ctx.userData as UserData;
 
         // Store in session memory
@@ -96,12 +95,12 @@ export function createConversationTools() {
           try {
             await userData.services.saveProfile();
             getLogger().info(
-              { name, userId: userData.services.userProfile.id },
+              { ...nameForLog(name), userId: userData.services.userProfile.id },
               '🎉 User name persisted to Firestore!'
             );
           } catch (saveError) {
             getLogger().error(
-              { error: String(saveError), name },
+              { error: String(saveError), ...nameForLog(name) },
               'Failed to persist name to Firestore - will be saved at session end'
             );
           }
@@ -481,7 +480,7 @@ export function createConversationTools() {
         const sessionId = userData.services?.sessionId;
 
         getLogger().info(
-          { callerName, sponsorName, relationship, sessionId },
+          { ...nameForLog(callerName), hasSponsor: !!sponsorName, relationship, sessionId },
           '👨‍👩‍👧 Registering family caller'
         );
 
@@ -525,8 +524,8 @@ export function createConversationTools() {
           if (notifyResult.notifiedCount > 0) {
             getLogger().info(
               {
-                callerName,
-                sponsorName,
+                ...nameForLog(callerName),
+                hasSponsor: !!sponsorName,
                 notifiedCount: notifyResult.notifiedCount,
                 identityId: identity.id,
               },
@@ -626,7 +625,7 @@ export function createConversationTools() {
 
         getLogger().info(
           {
-            confirmedName,
+            confirmed: nameForLog(confirmedName),
             isSamePerson,
             createNewProfile,
             relationship,
@@ -662,7 +661,7 @@ export function createConversationTools() {
             : "Calling from another user's phone";
 
           getLogger().info(
-            { confirmedName, relationship, note: noteForProfile },
+            { confirmed: nameForLog(confirmedName), relationship, note: noteForProfile },
             '📱 Creating context for borrowed phone caller'
           );
 

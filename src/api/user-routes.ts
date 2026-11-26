@@ -228,7 +228,7 @@ export async function handleUserRoutes(
       if (body?.name && (!profile.name || profile.name === 'User')) {
         profile.name = body.name;
         profile.preferredName = body.name;
-        log.info({ userId, name: body.name }, '✨ Name set from onboarding');
+        log.info({ userId, nameChars: body.name.length }, '✨ Name set from onboarding');
       }
 
       // Link device ID if provided
@@ -343,7 +343,7 @@ export async function handleUserRoutes(
         profile.name = body.userName;
         profile.preferredName = body.userName;
         onboarding.userName = body.userName;
-        log.info({ userId, name: body.userName }, '✨ Name set from onboarding step');
+        log.info({ userId, nameChars: body.userName.length }, '✨ Name set from onboarding step');
       }
 
       // Mark completed if all steps done

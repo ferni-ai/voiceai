@@ -14,6 +14,7 @@ import type { ConversationState } from '../conversation-state.js';
 import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors.js';
 import { getCommunityInsights } from '../community-insights.js';
 import { getAgentEvolution } from '../agent-evolution.js';
+import { nameForLog } from '../../utils/name-for-log.js';
 import {
   extractSmallDetails,
   type SmallDetail,
@@ -79,10 +80,7 @@ export class UserLearningEngine {
     const userNameDetail = details.find((d) => d.type === 'user_name');
     if (userNameDetail && profile && !profile.name) {
       profile.name = userNameDetail.value;
-      getLogger().info(
-        { name: userNameDetail.value, context: userNameDetail.context },
-        '🎉 Learned user name!'
-      );
+      getLogger().info(nameForLog(userNameDetail.value), '🎉 Learned user name!');
     }
 
     // 2. Track emotional patterns

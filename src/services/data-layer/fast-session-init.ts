@@ -18,6 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getIntelligentLoader, cleanupLoader } from './intelligent-loader.js';
 import { pruneProfileOnSessionEnd } from './profile-pruning.js';
 import { clearUserCaches, startCacheCleanup } from './memory-cache-manager.js';
+import { nameForLog } from '../../utils/name-for-log.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'FastSessionInit' });
@@ -93,7 +94,7 @@ export async function fastSessionStart(
       const { createUserProfile } = await import('../../types/user-profile.js');
       profile = createUserProfile(userId, options.userName);
       await store.saveProfile(profile);
-      log.info({ userId, name: options.userName }, '🆕 Created new user profile');
+      log.info({ userId, ...nameForLog(options.userName) }, '🆕 Created new user profile');
     }
 
     isReturningUser = profile ? profile.totalConversations > 0 : false;
@@ -140,7 +141,10 @@ export async function fastSessionStart(
         const extractedName = await syncNameFromMemories(userId, profile);
         if (extractedName && profile) {
           profile.name = extractedName;
-          log.info({ userId, name: extractedName }, '✅ Name synced from memories to profile');
+          log.info(
+            { userId, ...nameForLog(extractedName) },
+            '✅ Name synced from memories to profile'
+          );
         }
       } catch {
         // Non-critical - name sync can fail silently

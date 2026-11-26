@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { extractCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
+import { nameForLog } from '../../utils/name-for-log.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
@@ -80,7 +81,7 @@ export async function syncNameFromMemories(
   try {
     // If profile provided, check if name already set
     if (profile?.name) {
-      log.debug({ userId, name: profile.name }, 'Name already set in profile');
+      log.debug({ userId, ...nameForLog(profile.name) }, 'Name already set in profile');
       return profile.name;
     }
 
@@ -99,7 +100,7 @@ export async function syncNameFromMemories(
 
       if (extractedName) {
         log.info(
-          { userId, extractedName, sourceLen: content.length },
+          { userId, ...nameForLog(extractedName), sourceLen: content.length },
           '✅ Extracted name from memory, syncing to profile'
         );
 
