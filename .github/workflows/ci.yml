@@ -398,8 +398,9 @@ jobs:
   test-unit-shard:
     name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # A shard runs ~8 min of tests; a cold cargo cache adds the native build.
-    timeout-minutes: 25
+    # A green shard takes a median of ~17 min, at most ~25 (80 runs, 2026-11-26); 40 leaves
+    # room for a busy runner or a cold cargo cache (#3301, unit-shard-timeout.test.ts).
+    timeout-minutes: 40
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     strategy:
