@@ -24,6 +24,8 @@ describe('newsNote: bids (BIDS_TURN_TOWARD)', () => {
     'Guess what, the car broke down again on the highway.',
     'Guess what, I bought a table for the kitchen.',
     'Guess what? I passed!',
+    'Guess what happened? I got the job!',
+    'You won\u2019t believe who called. My old teacher!',
   ])('gives no teaser note once they have told it: %j', (said) => {
     expect(note(said)).toBe('');
   });
@@ -65,7 +67,7 @@ describe('newsNote: bids (BIDS_TURN_TOWARD)', () => {
 describe('newsNote: good news first', () => {
   it('gives good news its own note, never both', () => {
     // Both rules fire on these (a side road or a teaser, and good news): only one note.
-    for (const said of ['Oh, and I got the job!', 'Guess what happened? I got the job!']) {
+    for (const said of ['Oh, and I got the job!', 'Oh, and guess what, I got the job!']) {
       expect(note(said, { ...ON, GOOD_NEWS_BIGGER: 'on' })).toBe(GOOD_NEWS_NOTE);
     }
   });

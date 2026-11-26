@@ -62,13 +62,15 @@ function bidsTurnTowardOn(env: Env = process.env): boolean {
  * ("you won't believe who I ran into"). "Guess what? I passed!" has told it, and gets no teaser
  * note (asking what happened would ignore them).
  */
+const NEXT_WORD = /[\p{L}\p{N}']+/u;
+
 function untoldTeaser(said: string): boolean {
   const m = TEASER.exec(said);
   if (!m) return false;
-  // Only the next word decides it, so a long turn isn't tokenized whole.
-  const next = said
-    .slice(m.index + m[0].length, m.index + m[0].length + 40)
-    .match(/[\p{L}\p{N}']+/u);
+  const rest = said.slice(m.index + m[0].length);
+  // A later sentence tells it: "Guess what happened? I got the job!"
+  if (/[.!?]\s+[\p{L}\p{N}]/u.test(rest)) return false;
+  const next = NEXT_WORD.exec(rest);
   return !next || /^(?:who|what|where|when|how|which|whose|happened)$/i.test(next[0]);
 }
 
