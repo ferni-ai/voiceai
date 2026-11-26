@@ -169,6 +169,21 @@ describe('activityText', () => {
     expect(text).not.toContain('errand number 19');
   });
 
+  it('with more open items than the cap, never claims only older items were left out', () => {
+    const ahead = Array.from({ length: 16 }, (_, i) => ({
+      ...reminderAhead,
+      message: `chore number ${i}`,
+      scheduledFor: iso(NOW + (i + 1) * DAY),
+    }));
+    const text = activityText(
+      { calls: [], reminders: ahead, emails: [], promises: [], zone: ZONE },
+      NOW
+    );
+    expect(text).toContain('2 items were left out, 2 of them still open');
+    expect(text).not.toContain('older item');
+    expect(text).not.toContain("Anything not listed didn't happen");
+  });
+
   it('under the cap, anything not listed is said not to have happened', () => {
     expect(activityText(all(), NOW)).toContain(
       "Anything not listed didn't happen: say so plainly, never guess."
