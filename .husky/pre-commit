@@ -201,7 +201,15 @@ echo "🔐 Secret scan of the staged changes..."
 # working tree), in every text file. A line with "gitleaks:allow" in it is skipped,
 # the marker CI's gitleaks honors too. A scan that can't run blocks: an empty
 # result from a failed read is not a clean scan. CI runs trufflehog and gitleaks.
-SCAN_DIR=$(mktemp -d)
+# A sandboxed session may not be able to write to $TMPDIR (the Mac pr-reviver's
+# commits failed here), so fall back to a directory inside this checkout's git dir,
+# which a commit can always write to.
+SCAN_DIR=$(mktemp -d 2>/dev/null) || SCAN_DIR=$(mktemp -d "$(git rev-parse --absolute-git-dir)/secret-scan.XXXXXX") || {
+  echo ""
+  echo "  ❌ SECRET SCAN COULD NOT RUN (no writable temp dir) - COMMIT BLOCKED"
+  echo ""
+  exit 1
+}
 scan_failed() {
   rm -rf "$SCAN_DIR"
   echo ""
