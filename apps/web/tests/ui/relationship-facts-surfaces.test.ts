@@ -50,8 +50,10 @@ beforeEach(() => {
   progressReply = async () => ({ ok: true, status: 200, data: RECORD });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.useRealTimers();
+  // initProgressiveFeatures() starts the hint checks; a check left pending runs after jsdom is gone
+  (await import('../../src/ui/feature-hints.ui.js')).destroyFeatureHints();
 });
 
 describe('app startup loads the record', () => {

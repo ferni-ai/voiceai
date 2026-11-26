@@ -15,6 +15,7 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { forgottenPassageCheck, profileForCaller, remembered } from '../../../memory/index.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -82,6 +83,7 @@ const getUserContextDef: ToolDefinition = {
 
         const userData = toolCtx.userData as {
           name?: string;
+          userId?: string;
           services?: {
             userProfile?: {
               name?: string;
@@ -97,8 +99,11 @@ const getUserContextDef: ToolDefinition = {
           topics?: string[];
         };
 
-        const services = userData?.services;
-        const profile = services?.userProfile;
+        // FORGET_EVERY_READER: the profile scrubbed as the prompt reads it; moments are their words
+        const userId = userData?.userId;
+        const stored = userData?.services?.userProfile;
+        const profile = stored && (await profileForCaller(userId, stored, 'getUserContext'));
+        const said = await forgottenPassageCheck(userId, 'getUserContext');
 
         const context: Record<string, unknown> = {
           name: profile?.name || userData?.name || 'Unknown',
@@ -113,7 +118,7 @@ const getUserContextDef: ToolDefinition = {
           },
           emotional_context: {
             recent_moods: profile?.recentMoods || [],
-            key_moments_today: userData?.keyMoments || [],
+            key_moments_today: remembered(userData?.keyMoments || [], said),
           },
           goals: {
             active_goals: profile?.goals?.filter((g) => g.status === 'active') || [],
@@ -356,6 +361,7 @@ const getProactiveInsightsDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, focus }, 'Getting proactive insights');
 
         const userData = toolCtx.userData as {
+          userId?: string;
           services?: {
             userProfile?: {
               goals?: Array<{ name: string; status: string; deadline?: string }>;
@@ -365,7 +371,9 @@ const getProactiveInsightsDef: ToolDefinition = {
           };
         };
 
-        const profile = userData?.services?.userProfile;
+        const stored = userData?.services?.userProfile; // FORGET_EVERY_READER: goals are quoted
+        const profile =
+          stored && (await profileForCaller(userData?.userId, stored, 'getProactiveInsights'));
         const insights: string[] = [];
         const suggestions: string[] = [];
 

@@ -171,7 +171,6 @@ tools/
 ├── awareness.ts              # Tool awareness
 ├── context-carrier.ts        # Context passing between tools
 ├── dynamic-tool-router.ts    # Dynamic routing
-├── expression.ts             # Expression tools
 ├── handoff-state.ts          # Handoff state management
 ├── memory-aware-router.ts    # Memory-aware routing
 ├── proactive-coaching.ts     # Proactive coaching triggers

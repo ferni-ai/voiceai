@@ -22,6 +22,7 @@ import type { Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Cast } from './director-cast.js';
 import { noInventedUsageEnabled, pushesUsage, usageDirectorRule } from './no-invented-usage.js';
+import { earlierCallRuleFor } from './earlier-call-honest.js';
 
 const log = createLogger({ module: 'DirectorGuard' });
 
@@ -29,12 +30,13 @@ const log = createLogger({ module: 'DirectorGuard' });
  * The system-prompt rule: nothing erodes a boundary, honesty or tool truth, or
  * reads as a line. `thought`: worded for the deliberator (deliberation.ts).
  * NO_INVENTED_USAGE=on: nor asks for what other callers said or how many there are.
+ * EARLIER_CALL_NO_DENIAL adds: a caller citing an earlier call may be right.
  */
 export const guardRuleFor = (
   c: Cast,
   { thought = false, env = process.env }: { thought?: boolean; env?: Env } = {}
 ): string =>
-  `Never suggest ${c.name} drop or soften a boundary or a refusal, stop being honest that ${c.p.subject} ${c.p.subject === 'they' ? 'are' : 'is'} an AI, or hide or misstate what a tool reported. ${thought ? 'Your thought is private' : 'Your notes are private coaching'}, never words for ${c.p.object} to read out.${noInventedUsageEnabled(env) ? ` ${usageDirectorRule(c.name, c.p.object)}` : ''}`;
+  `Never suggest ${c.name} drop or soften a boundary or a refusal, stop being honest that ${c.p.subject} ${c.p.subject === 'they' ? 'are' : 'is'} an AI, or hide or misstate what a tool reported. ${thought ? 'Your thought is private' : 'Your notes are private coaching'}, never words for ${c.p.object} to read out.${noInventedUsageEnabled(env) ? ` ${usageDirectorRule(c.name, c.p.object)}` : ''}${earlierCallRuleFor(c, env)}`;
 
 export type GuardReason =
   'boundary_erosion' | 'honesty_erosion' | 'tool_concealment' | 'usage_invention';

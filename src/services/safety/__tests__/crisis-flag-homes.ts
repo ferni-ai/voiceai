@@ -275,6 +275,18 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'a phone call held while the turns were read: none go back',
     ],
   },
+  // Takes the caller's recalled memories out of what a crisis reply's request reads: a crisis
+  // turn's background note is built without them, and every crisis-guided request, or request on
+  // a call with risk noted, gets the note without them. It only removes words: the guidance, the
+  // override and every other note are the flag off's, and nothing is kept. The grid's calls carry
+  // no recalled memory, so no reply there moves.
+  CRISIS_NO_MEMORY_RECALL: {
+    file: 'src/agents/voice-agent/__tests__/crisis-no-memory-recall.test.ts',
+    rows: [
+      'crisis-guided turn, flag on: no recalled memory reaches the model, every other word as with the flag off',
+      'crisis read pending (reply held), flag on: the guided re-ask carries no recalled memory, every other word as with the flag off',
+    ],
+  },
   // Logs where the fast lane would send a turn (TURN_RECEIPT prompt.laneShadow); only the receipt
   // builder reads it. Crisis half: the first three rows. Held half: the fourth. Reply unchanged:
   // the last (the request the model gets is left as it came, flag on or off).
