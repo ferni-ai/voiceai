@@ -24,11 +24,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
-import {
-  CRISIS_EVERYDAY_RULES,
-  needsPlainRead,
-  resolveCrisisEverydayRules,
-} from './crisis-everyday.js';
+import { EASING_RULES_OFF, easingRules, needsPlainRead } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import {
@@ -136,10 +132,10 @@ export { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-ever
 export function crisisClassifierPrompt(
   env: Record<string, string | undefined> = process.env
 ): string {
-  const everyday = resolveCrisisEverydayRules(env);
+  const extra = easingRules(env);
   const rules = [
-    everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
-    everyday ? CRISIS_EVERYDAY_RULES : '',
+    extra || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
+    extra,
   ].join('');
   return rules
     ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
@@ -456,7 +452,7 @@ export function startCrisisClassifier(
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
-    ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
+    ? crisisClassifierPrompt({ ...env, ...EASING_RULES_OFF })
     : null;
   const base = readTurn(read, [prompt, plain], { ...options, ...normalized, env });
   const reads = second.apply(base, read, prompt);

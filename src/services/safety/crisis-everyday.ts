@@ -21,6 +21,10 @@
 
 import { hasRiskContent } from './crisis-agreement.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
+import {
+  CRISIS_HEAVY_FEELINGS_RULES,
+  resolveCrisisHeavyFeelings,
+} from './crisis-heavy-feelings.js';
 
 export const CRISIS_EVERYDAY_RULES = `
 Everyday call business is risk "none" unless the caller's own words, in LATEST or EARLIER, carry risk as above:
@@ -36,12 +40,35 @@ export function resolveCrisisEverydayRules(
   return env.CRISIS_CLASSIFIER_EVERYDAY_RULES?.trim().toLowerCase() === 'on';
 }
 
-/** With the rules on, whether this turn is also read without them. */
+/**
+ * The prompt rules that can move a read toward "none": the everyday rules,
+ * then the heavy-feelings rules, each only with its flag on. Empty when both
+ * are off. Either brings the attribution rules (crisis-classifier.ts).
+ */
+export function easingRules(env: Record<string, string | undefined> = process.env): string {
+  return [
+    resolveCrisisEverydayRules(env) ? CRISIS_EVERYDAY_RULES : '',
+    resolveCrisisHeavyFeelings(env) ? CRISIS_HEAVY_FEELINGS_RULES : '',
+  ].join('');
+}
+
+/** Both easing flags off: the backstop's plain read. */
+export const EASING_RULES_OFF = {
+  CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off',
+  CRISIS_CLASSIFIER_HEAVY_FEELINGS: 'off',
+} as const;
+
+/**
+ * With the everyday or heavy-feelings rules on, whether this turn is also read
+ * without them (crisis-heavy-feelings.ts rides the same backstop).
+ */
 export function needsPlainRead(
   latest: string,
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return resolveCrisisEverydayRules(env) && hasRiskContent(latest);
+  return (
+    (resolveCrisisEverydayRules(env) || resolveCrisisHeavyFeelings(env)) && hasRiskContent(latest)
+  );
 }
 
 const SEVERITY = { none: 0, crisis: 1, imminent: 2 } as const;
