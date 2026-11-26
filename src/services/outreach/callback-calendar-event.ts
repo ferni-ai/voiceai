@@ -1,7 +1,8 @@
 /**
- * The "Call them back" calendar event after a call Ferni placed for the user, moved here
- * from call-result-capture.ts. It is made only when the person on the call asked for a
- * call back (callbackAsked).
+ * What the "Call them back" calendar event after a call Ferni placed for the user is: its
+ * title, description, times, reminder and colour. Pure; call-result-capture.ts decides
+ * whether to make one (only for the person's own ask, callbackAsked) and asks the calendar
+ * store to create it.
  *
  * CALLBACK_MEANS_ASKED on (#4468): its times are the user's own wall clock, in their saved
  * zone (userTimezone, validated, never a default), and with no valid zone there is no
@@ -11,13 +12,10 @@
  *
  * @module services/outreach/callback-calendar-event
  */
-import { getLogger } from '../../utils/safe-logger.js';
 import { WallClock, wallTimeIn } from '../../utils/time-zone.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/index.js';
-import { userTimezone } from './call-hours-guard.js';
-import { callbackAsked, callbackMeansAskedOn } from '../background-agents/call-follow-up/index.js';
+import type { CreateEventInput } from '../calendar/index.js';
 
-const log = getLogger().child({ service: 'callback-calendar-event' });
 const HOUR_MS = 60 * 60 * 1000;
 
 /** "3pm" / "3:30 pm" in a hint, as 24-hour time. */
@@ -79,58 +77,35 @@ function callbackStart(hint: string | undefined, now: Date, zone?: string): Date
   return at(1, 10);
 }
 
-/** Add the event to the user's calendar, if they asked and one is connected. Never throws. */
-export async function createCallbackCalendarEvent(
+/** The callback event for this call; `zone` is the user's (flag on), none for the server clock. */
+export function callbackEventFor(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
-  callId: string,
-  now: Date = new Date()
-): Promise<void> {
-  if (!callbackAsked(outcome)) return;
-  try {
-    const on = callbackMeansAskedOn();
-    const zone = on ? await userTimezone(request.userId) : undefined;
-    if (on && !zone) {
-      log.info({ callId, hasZone: false }, 'No user time zone, skipping callback event');
-      return;
-    }
-    const { createEvent, hasAnyProviderConnected } = await import('../calendar/index.js');
-    if (!(await hasAnyProviderConnected(request.userId))) {
-      log.debug({ callId }, 'No calendar connected, skipping callback event');
-      return;
-    }
+  zone: string | undefined,
+  now: Date
+): CreateEventInput {
+  const contactName = request.resolvedContact?.name || request.contactQuery;
+  const contactPhone = request.resolvedContact?.phone;
+  const startTime = callbackStart(outcome.callbackTime, now, zone);
+  const description = [
+    `Follow up on your earlier call with ${contactName}.`,
+    '',
+    `📞 Original purpose: ${request.purpose}`,
+    `📝 What happened: ${outcome.outcome}`,
+    '',
+    contactPhone ? `Phone: ${contactPhone}` : '',
+    '',
+    `Created by Ferni`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
-    const contactPhone = request.resolvedContact?.phone;
-    const startTime = callbackStart(outcome.callbackTime, now, zone);
-    const description = [
-      `Follow up on your earlier call with ${contactName}.`,
-      '',
-      `📞 Original purpose: ${request.purpose}`,
-      `📝 What happened: ${outcome.outcome}`,
-      '',
-      contactPhone ? `Phone: ${contactPhone}` : '',
-      '',
-      `Created by Ferni`,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    await createEvent(request.userId, {
-      title: `📞 Call ${contactName} back`,
-      description,
-      startTime,
-      endTime: new Date(startTime.getTime() + 15 * 60 * 1000), // 15 min
-      reminders: [{ method: 'popup', minutesBefore: 10 }],
-      color: '#FF9800', // Tangerine - stands out
-    });
-
-    log.info(
-      { callId, userId: request.userId, scheduledFor: startTime.toISOString() },
-      'Created calendar event for callback'
-    );
-  } catch (error) {
-    // Don't fail the whole capture if calendar fails
-    log.warn({ error: String(error), callId }, 'Failed to create callback calendar event');
-  }
+  return {
+    title: `📞 Call ${contactName} back`,
+    description,
+    startTime,
+    endTime: new Date(startTime.getTime() + 15 * 60 * 1000), // 15 min
+    reminders: [{ method: 'popup', minutesBefore: 10 }],
+    color: '#FF9800', // Tangerine - stands out
+  };
 }

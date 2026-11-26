@@ -44,7 +44,6 @@ vi.mock('../user-contact.js', async (importOriginal) => ({
 const { resetToldClaimsForTests } = await import('../call-result-claims.js');
 const { captureCallResult } = await import('../call-result-capture.js');
 const { callbackOfResult } = await import('../../background-agents/call-follow-up/index.js');
-const { createCallbackCalendarEvent } = await import('../callback-calendar-event.js');
 const { buildCallOutcome, completeOnBehalfCall } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
 const { twilioStatusToOutcome } = await import('../../../servers/api/routes/twilio-call-status.js');
@@ -65,6 +64,16 @@ const {
   useCallbackHarness,
 } = await import('./callback-harness.js');
 const { placed, nextCall, toldSam, twilio, eventStarts } = useCallbackHarness({ store, calendar, saved }); // prettier-ignore
+let captures = 0;
+/** captureCallResult under a fresh callId each time: the event is made once per call, so a
+ * second capture under the same id would make none and pass a no-event row for nothing. */
+async function captureAgain(
+  at: { request: Parameters<typeof captureCallResult>[2] },
+  outcome: CallOutcome
+): Promise<void> {
+  const callId = `${outcome.callId}-${++captures}`;
+  await captureCallResult(callId, { ...outcome, callId }, at.request);
+}
 
 describe('CALLBACK_MEANS_ASKED on', () => {
   it('1. no answer: nobody says Linda asked for a call back, and each report offers once', async () => {
@@ -143,13 +152,13 @@ describe('CALLBACK_MEANS_ASKED on', () => {
   it("2b. the event reads her hint on Sam's saved zone; none or an invalid one, no event", async () => {
     const la = placed(); // the request still carries the tool's Los Angeles default
     const asked: CallOutcome = { ...buildCallOutcome(la.call, TALKED, lindaAsked()), callbackTime: '3pm' }; // prettier-ignore
-    await createCallbackCalendarEvent(la.request, asked, asked.callId, NOW);
+    await captureAgain(la, asked);
     expect(eventStarts()).toEqual(['2026-11-26T23:00:00.000Z']); // 15:00 PST today
 
     for (const zone of [undefined, 'Pacific Time']) {
       calendar.createEvent.mockClear();
       saved.zone = zone;
-      await createCallbackCalendarEvent(la.request, asked, asked.callId, NOW);
+      await captureAgain(la, asked);
       expect(calendar.createEvent).not.toHaveBeenCalled();
     }
   });
@@ -158,7 +167,8 @@ describe('CALLBACK_MEANS_ASKED on', () => {
     const la = placed();
     const asked = buildCallOutcome(la.call, TALKED, lindaAsked());
     const evening = new Date('2026-11-27T03:30:00Z'); // 19:30 PST on the 26th
-    await createCallbackCalendarEvent(la.request, asked, asked.callId, evening);
+    vi.setSystemTime(evening);
+    await captureAgain(la, asked);
     expect(eventStarts()).toEqual(['2026-11-27T04:30:00.000Z']);
   });
 
@@ -166,7 +176,7 @@ describe('CALLBACK_MEANS_ASKED on', () => {
     const la = placed();
     const asked = buildCallOutcome(la.call, TALKED, lindaAsked());
     for (const callbackTime of ['tonight at 8pm', 'tomorrow at 3pm'])
-      await createCallbackCalendarEvent(la.request, { ...asked, callbackTime }, asked.callId, NOW);
+      await captureAgain(la, { ...asked, callbackTime });
     // 20:00 PST today, 15:00 PST tomorrow
     expect(eventStarts()).toEqual(['2026-11-27T04:00:00.000Z', '2026-11-27T23:00:00.000Z']);
   });
@@ -322,7 +332,7 @@ describe('CALLBACK_MEANS_ASKED off: as on main', () => {
     saved.zone = undefined; // and no zone is needed
     const asked = buildCallOutcome(at.call, TALKED, lindaAsked());
     for (const callbackTime of ['tonight', 'tomorrow at 3pm'])
-      await createCallbackCalendarEvent(at.request, { ...asked, callbackTime }, asked.callId, NOW);
+      await captureAgain(at, { ...asked, callbackTime });
     expect(eventStarts()).toEqual([serverAt(1, 10), serverAt(1, 10)]);
   });
 });

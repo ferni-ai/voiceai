@@ -23,7 +23,8 @@ import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telep
 import { voicemailWords } from './voicemail-outcome.js';
 import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
 import { callResultExpireAt } from './call-result-expiry.js';
-import { createCallbackCalendarEvent } from './callback-calendar-event.js';
+import { callbackEventFor } from './callback-calendar-event.js';
+import { userTimezone } from './call-hours-guard.js';
 import {
   askedLine,
   callbackAsked,
@@ -589,6 +590,42 @@ async function getUserEmail(userId: string): Promise<string | null> {
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to get user email');
     return null;
+  }
+}
+
+/**
+ * Add the "Call them back" event (callback-calendar-event.ts) to the user's calendar, only
+ * when the person on the call asked and a calendar is connected. With CALLBACK_MEANS_ASKED
+ * on it needs the user's saved zone; none, no event. Never throws.
+ */
+async function createCallbackCalendarEvent(
+  request: OnBehalfCallRequest,
+  outcome: CallOutcome,
+  callId: string
+): Promise<void> {
+  const now = new Date();
+  if (!callbackAsked(outcome)) return;
+  try {
+    const on = callbackMeansAskedOn();
+    const zone = on ? await userTimezone(request.userId) : undefined;
+    if (on && !zone) {
+      log.info({ callId, hasZone: false }, 'No user time zone, skipping callback event');
+      return;
+    }
+    const { createEvent, hasAnyProviderConnected } = await import('../calendar/index.js');
+    if (!(await hasAnyProviderConnected(request.userId))) {
+      log.debug({ callId }, 'No calendar connected, skipping callback event');
+      return;
+    }
+    const event = callbackEventFor(request, outcome, zone, now);
+    await createEvent(request.userId, event);
+    log.info(
+      { callId, userId: request.userId, scheduledFor: event.startTime.toISOString() },
+      'Created calendar event for callback'
+    );
+  } catch (error) {
+    // Don't fail the whole capture if calendar fails
+    log.warn({ error: String(error), callId }, 'Failed to create callback calendar event');
   }
 }
 
