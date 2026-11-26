@@ -66,6 +66,12 @@ describe('humannessValue (the nightly metric)', () => {
     expect(humannessValue(runs, 'questionEndRate').value).toBe(1);
   });
 
+  it('skips an event with no text instead of failing the night', () => {
+    const run = call(['Huh, Lisbon?']);
+    run.events.push({ who: 'agent', t: 9000 });
+    expect(humannessValue([{ run }], 'receiptRate')).toEqual({ value: 1, n: 1 });
+  });
+
   it('is no data without a recording or a field', () => {
     expect(humannessValue([{ run: null }], 'receiptRate')).toEqual({ value: null, n: 0 });
     expect(humannessValue([{ run: call(['Oh.']) }], undefined)).toEqual({ value: null, n: 0 });
