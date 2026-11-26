@@ -97,8 +97,9 @@ const NAMED_FORGET = new RegExp(`(?:^| )${LEAD}${ASK}(?:${NAMED_CLAUSE})(?: |$)`
  *
  * Nor putting affairs in order or clearing what is kept for others, both on the usual
  * warning-sign lists (owner's decision, 2026-11-26, after the #4277 verify): insurance, money and
- * accounts, possessions, and photos, videos, voicemails, messages, recordings and letters ("delete
- * my insurance policy details", "erase every photo of us", "delete the voicemail for my mom").
+ * accounts, possessions, and photos, videos, voicemails, messages, recordings, letters, texts,
+ * emails, journals, notes and related keepsakes ("delete my insurance policy details", "erase every
+ * photo of us", "delete the voicemail for my mom").
  * A false check-in there costs little; a missed one does not.
  */
 const NEVER = new RegExp(
@@ -110,7 +111,7 @@ const NEVER = new RegExp(
     // affairs in order: insurance, money, accounts, possessions
     'insur\\w*|polic(?:y|ies)|beneficiar\\w*|bank\\w*|account\\w*|money|cash|savings?|funds?|financ\\w*|pension\\w*|retire\\w*|401k|invest\\w*|stocks?|crypto|wallets?|estate|inherit\\w*|deeds?|belongings|possessions|valuables',
     // what is kept for others
-    'photo\\w*|pic|pics|pictures?|videos?|voicemails?|voice ?mails?|messages?|recordings?|letters?',
+    'photo\\w*|pic|pics|pictures?|videos?|voicemails?|voice ?mails?|messages?|recordings?|letters?|texts?|emails?|journals?|jornal|diar(?:y|ies)|notebooks?|notes?|noet|memos?|drafts?|cards?|poems?|songs?|playlists?|funeral|dogs?|cars?|leter|lettr',
   ].join('|')})\\b`
 );
 
