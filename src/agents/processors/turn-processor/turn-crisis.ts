@@ -43,13 +43,13 @@ import {
   screenIdeation,
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
-import { requestIsEveryday } from '../../../services/safety/index.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   abuseCallRisk,
   abuseOnlyRead,
   blockedReadGuidance,
   noteMeansInHandShadow,
+  requestIsEveryday,
   resolveCrisisClassifierTimeoutMs,
   shadowPipelineGrade,
   trackAbuseRead,

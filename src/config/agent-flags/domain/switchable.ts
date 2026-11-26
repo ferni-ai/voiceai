@@ -68,6 +68,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   CRISIS_CLASSIFIER_ONLY_CHECKIN: OFF_SHADOW,
   CRISIS_CLASSIFIER_SECOND_READ: WITH_SHADOW, // crisis-classifier-v3.ts
   CRISIS_CONFIRMED_CALL_RISK: WITH_SHADOW, // crisis-confirmed-risk.ts
+  CRISIS_FORGET_EVERYDAY: ON_OFF, // crisis-forget-request.ts, trimmed lower-case === 'on'
   CRISIS_GRADED_RESPONSE: OFF_SHADOW, // crisis-graded-shadow.ts; live runs as shadow
   CRISIS_IMMINENT_NEEDS_AGREEMENT: ON_OFF, // crisis-imminent-agreement.ts
   CRISIS_MEANS_IN_HAND: SHADOW_LIVE, // crisis-means-in-hand.ts, default shadow
