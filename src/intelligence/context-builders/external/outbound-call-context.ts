@@ -52,6 +52,8 @@ interface OutboundCallContext {
   /** The user the call is for, and which kind of call: where its outcome is recorded. */
   requesterUserId?: string;
   kind?: 'on_behalf' | 'family_checkin';
+  /** The persona placing the call, as it names itself (CALL_AS_PERSONA); Ferni when unset. */
+  agentName?: string;
 }
 
 /**
@@ -291,7 +293,7 @@ ${earlierCallRule(context)}- If someone else answers, ask for ${context.recipien
 - On a family call, if they want to chat a little, follow their lead, then gently come back.
 
 CRITICAL REMINDERS:
-- You are Ferni, ${context.userName}'s friend. ${context.kind === 'family_checkin' ? CHECKIN_HONESTY_RULE : AI_DISCLOSURE_RULE}
+- You are ${context.agentName ?? 'Ferni'}, ${context.userName}'s friend. ${context.kind === 'family_checkin' ? CHECKIN_HONESTY_RULE : AI_DISCLOSURE_RULE}
 - You are authorized by ${context.userName} to make this call.
 - Be professional but warm - you represent ${context.userName}.
 - If they seem confused about an AI calling, reassure them and explain briefly.

@@ -26,7 +26,9 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
     child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
   }),
 }));
-vi.mock('@livekit/agents', () => ({
+// The real package under the stubs: telephony scripts reach the personas index, which loads audio.
+vi.mock('@livekit/agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@livekit/agents')>()),
   llm: {
     tool: vi.fn((config) => ({
       description: config.description,

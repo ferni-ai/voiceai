@@ -5,7 +5,7 @@
  * The I/O (token, fetch, timer, page-hide events) is injected; the service is real.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../src/services/firebase-auth.service.js', () => ({
   getAuthToken: vi.fn(async () => null),
@@ -196,5 +196,44 @@ describe('SoulStatsService', () => {
     await h.tick();
     const [body] = h.bodies() as { counts: { micro_expression: number } }[];
     expect(body.counts.micro_expression).toBe(500);
+  });
+});
+
+describe('SoulStatsService in the admin avatar lab', () => {
+  // The lab plays the real avatar for an admin: none of it is a person's avatar life.
+  const recordEach = (service: SoulStatsService) => {
+    service.recordMicroExpression();
+    service.recordProtectiveMode();
+    service.recordComfortPulse();
+    service.recordMemorySpark();
+  };
+
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
+
+  it.each(['/avatar-lab', '/avatar-lab/'])(
+    'at %s, the record calls leave nothing pending and send nothing',
+    async (path) => {
+      window.history.replaceState(null, '', path);
+      const h = harness();
+      recordEach(h.service);
+      expect(h.timers).toHaveLength(0); // no send scheduled
+      expect(h.hides).toHaveLength(0); // no page-hide send either
+      await h.service.send(); // a send now finds nothing pending
+      await h.tick();
+      expect(h.sent).toHaveLength(0);
+    }
+  );
+
+  it('at /, the same calls still count and send', async () => {
+    window.history.replaceState(null, '', '/');
+    const h = harness();
+    recordEach(h.service);
+    expect(h.timers).toHaveLength(1);
+    await h.tick();
+    expect(h.bodies()).toEqual([
+      { counts: { micro_expression: 1, protective_mode: 1, comfort_pulse: 1, memory_spark: 1 } },
+    ]);
   });
 });

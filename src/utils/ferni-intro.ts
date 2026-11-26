@@ -21,6 +21,8 @@ export interface IntroParties {
   personal: boolean;
   /** A family check-in: the person agreed to Ferni's calls, so Ferni just says its name. */
   checkin?: boolean;
+  /** The persona placing the call (CALL_AS_PERSONA): "it's Alex, Sam's AI friend". Ferni when unset. */
+  agentName?: string;
 }
 
 /** Defaults the metadata and dispatch parsers fill in when a name is missing. */
@@ -41,13 +43,20 @@ function realName(name: string | undefined): string | undefined {
   return trimmed && !PLACEHOLDER_NAMES.has(trimmed.toLowerCase()) ? trimmed : undefined;
 }
 
-/** How Ferni names itself on the call: "it's Ferni, Sam's AI friend". */
-export function ferniIntro({ sponsorName, personal, checkin }: IntroParties): string {
-  if (checkin) return "it's Ferni";
+/** How Ferni (or the persona placing the call) names itself: "it's Ferni, Sam's AI friend". */
+export function ferniIntro({
+  sponsorName,
+  personal,
+  checkin,
+  agentName = 'Ferni',
+}: IntroParties): string {
+  if (checkin) return `it's ${agentName}`;
   if (personal) {
-    return sponsorName ? `it's Ferni, ${sponsorName}'s AI friend` : "it's Ferni, an AI friend";
+    return sponsorName
+      ? `it's ${agentName}, ${sponsorName}'s AI friend`
+      : `it's ${agentName}, an AI friend`;
   }
-  return `this is Ferni, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}`;
+  return `this is ${agentName}, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}`;
 }
 
 /** A title said before a name, with or without its period: never the first name. */

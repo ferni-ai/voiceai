@@ -93,6 +93,8 @@ export interface OnBehalfCallRequest {
   userId: string;
   userTimezone: string;
   userName: string;
+  /** The persona that was asked and places the call (CALL_AS_PERSONA, scripts/calling-persona.ts). */
+  callingPersonaId?: string;
   userPreferences?: {
     preferredTimes?: string[];
     constraints?: string[];
