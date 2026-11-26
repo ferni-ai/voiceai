@@ -30,13 +30,22 @@ const log = createLogger({ module: 'TurnTowardBids' });
 
 type Bid = 'teaser' | 'side_road';
 
-/** Building up to something, not yet told. */
-const TEASER =
-  /\b(?:guess what|you(?:'ll| will)? never guess|you won'?t believe|you(?:'re| are) not gonna believe|wait (?:till|until) you hear|(?:so|okay),? funny story|(?:wanna|want to) hear something|i have to tell you something|i gotta tell you something|get this)\b/i;
+/** Where a bid can start: the turn or a sentence, after a short lead-in ("yeah,", "oh,", "so,"). */
+const BID_START = String.raw`(?:^|[.!?]\s+)(?:(?:yeah|oh|okay|ok|so|hey|well|um),?\s+)?`;
 
-/** Off the current topic, onto something of their own (after a lead-in like "yeah," too). */
-const SIDE_ROAD =
-  /(?:^|[.!?]\s+)(?:(?:yeah|oh|okay|ok|so|hey|well|um),?\s+)?(?:oh,? and\b|oh,? also\b|random(?:ly)?,? but\b|totally unrelated\b|side note\b|that reminds me\b|speaking of\b|before i forget\b|oh,? (?:wait|hey),? (?:did i tell you|i forgot to tell you)\b)/i;
+/** Building up to something. Anchored, so "I can't get this to work" is no teaser. */
+const TEASER = new RegExp(
+  BID_START +
+    String.raw`(?:guess what|you(?:'ll| will)? never guess|you won'?t believe|you(?:'re| are) not gonna believe|wait (?:till|until) you hear(?: this)?|funny story|(?:wanna|want to) hear something|i have to tell you something|i gotta tell you something|get this)\b`,
+  'i'
+);
+
+/** Off the current topic, onto something of their own. */
+const SIDE_ROAD = new RegExp(
+  BID_START +
+    String.raw`(?:oh,? and\b|oh,? also\b|random(?:ly)?,? but\b|totally unrelated\b|side note\b|that reminds me\b|speaking of\b|before i forget\b|oh,? (?:wait|hey),? (?:did i tell you|i forgot to tell you)\b)`,
+  'i'
+);
 
 const TEASER_NOTE =
   "They're building up to something. Bite first, in a few words of your own, the way a friend leans in, then let them tell it. Don't guess what it is, and don't bring up anything you had planned in this reply.";
@@ -49,22 +58,18 @@ function bidsTurnTowardOn(env: Env = process.env): boolean {
 }
 
 /**
- * A teaser still waiting to be told: at most this many words after it. "Guess what, the car broke
- * down again" has told it, and gets no teaser note (asking what happened would ignore them).
+ * A teaser still waiting to be told: nothing after it, or a wh- clause that holds the news back
+ * ("you won't believe who I ran into"). "Guess what? I passed!" has told it, and gets no teaser
+ * note (asking what happened would ignore them).
  */
-const TEASER_TAIL_WORDS = 3;
-
 function untoldTeaser(said: string): boolean {
   const m = TEASER.exec(said);
   if (!m) return false;
-  // Only the first few words decide it, so a long turn isn't tokenized whole.
-  const tail = said.slice(m.index + m[0].length, m.index + m[0].length + 80);
-  const after = tail.match(/[\p{L}\p{N}']+/gu) ?? [];
-  // "You won't believe who I ran into": a wh- clause still holds the news back.
-  return (
-    after.length <= TEASER_TAIL_WORDS ||
-    /^(?:who|what|where|how|which|whose|happened)$/i.test(after[0] ?? '')
-  );
+  // Only the next word decides it, so a long turn isn't tokenized whole.
+  const next = said
+    .slice(m.index + m[0].length, m.index + m[0].length + 40)
+    .match(/[\p{L}\p{N}']+/u);
+  return !next || /^(?:who|what|where|when|how|which|whose|happened)$/i.test(next[0]);
 }
 
 /** The bid in the caller's words, if any. */
@@ -77,7 +82,8 @@ function bidIn(said: string): Bid | undefined {
 /** The turn-toward note for this reply, or ''. */
 function bidNote(said: string, opts: { crisis: boolean }, env: Env = process.env): string {
   if (!bidsTurnTowardOn(env) || opts.crisis || !said) return '';
-  const bid = bidIn(said);
+  // Curly apostrophes from the transcript ("won’t") match like straight ones.
+  const bid = bidIn(said.replace(/[\u2018\u2019]/g, "'"));
   if (!bid) return '';
   log.info({ behaviour: 'bids_turn_toward', bid }, 'Turn-toward note added to the turn reminder');
   return bid === 'teaser' ? TEASER_NOTE : SIDE_ROAD_NOTE;
