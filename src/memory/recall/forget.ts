@@ -52,7 +52,13 @@ import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
+import {
+  factText,
+  forgetTokens,
+  isForgotten,
+  isForgottenPassage,
+  storedTopic,
+} from '../domain/forgotten.js';
 import {
   addForgottenTopic,
   bumpForgetGeneration,
@@ -299,6 +305,13 @@ export async function forgottenTopicsOrNull(
     log.warn({ error: String(error) }, 'Forgotten topics not loaded');
     return null;
   });
+}
+
+export async function forgottenPassageFilter(
+  userId: string
+): Promise<((text: string) => boolean) | null> {
+  const topics = await forgottenTopicsOrNull(userId);
+  return topics && ((text) => isForgottenPassage(text, [...topics, ...forgottenInProcess(userId)]));
 }
 
 /**

@@ -40,13 +40,15 @@ import { backgroundTurnVoice } from './background-voice-emotion.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
 import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
-import { carriesSafety, carriesCrisisOverride } from '../processors/turn-processor/safety-note.js';
+import { WITHOUT_RECALLED_MEMORY } from '../processors/turn-processor/crisis-memory-recall.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
+  memoryFreeNotesText,
   pushedNotesText,
   safetyOnlyNote,
   safetyText,
   TURN_CONTEXT_SAFETY,
+  turnNotesOf,
   type TurnNote,
   withHeldSafety,
 } from './pushed-notes.js';
@@ -360,6 +362,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
 
   let pendingFor = '';
   let pendingSafety: TurnNote[] = []; // its crisis or safety notes (safety-note.ts), whole
+  let pendingBare: string | undefined; // without recalled memory (CRISIS_NO_MEMORY_RECALL)
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
@@ -368,12 +371,15 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     if (pendingSafety.length === 0 && heldForPreemptive(agent, 'turn-context', retry)) return;
     const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
     const safety = safetyText(pendingSafety);
+    const bare = pendingBare && `${TURN_CONTEXT_HEADER}\n${pendingBare}`;
     const extra = {
       [TURN_CONTEXT_FOR]: pendingFor,
       ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
+      ...(bare !== undefined && { [WITHOUT_RECALLED_MEMORY]: bare }),
     };
     pending = null;
     pendingSafety = [];
+    pendingBare = undefined;
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
@@ -416,18 +422,13 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
         llm.ChatMessage.create({ role: 'user', content: forText, extra: { [CALLER_TURN_KEY]: forKey } })
       );
       if (mine !== run) return; // a later segment of this turn superseded it
-      const notes = scratch.items
-        .map((item) => ({
-          safety: carriesSafety(item as never),
-          override: carriesCrisisOverride(item as never),
-          text: (item as { textContent?: string }).textContent?.trim() ?? '',
-        }))
-        .filter((note) => note.text !== '');
+      const notes = turnNotesOf(scratch.items);
       if (notes.length === 0) return;
       // Safety guidance still waiting goes ahead of a later note, never replaced by it (#2642).
       const all = withHeldSafety(pendingSafety, notes);
       pending = pushedNotesText(all); // safety guidance last and never cut, the override last of all
       pendingSafety = all.filter((note) => note.safety);
+      pendingBare = memoryFreeNotesText(all);
       pendingFor = forText;
       await tryPush();
     },

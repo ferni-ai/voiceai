@@ -37,19 +37,19 @@ export async function handleCommandsRoutes(
     // GET /api/commands/:personaId - List commands for a persona
     const listMatch = path.match(/^\/api\/commands\/([^/]+)$/);
     if (listMatch && method === 'GET') {
-      return handleListCommands(req, res, listMatch[1]);
+      return await handleListCommands(req, res, listMatch[1]);
     }
 
     // GET /api/commands/:personaId/:commandId - Get a specific command
     const getMatch = path.match(/^\/api\/commands\/([^/]+)\/([^/]+)$/);
     if (getMatch && method === 'GET') {
-      return handleGetCommand(req, res, getMatch[1], getMatch[2]);
+      return await handleGetCommand(req, res, getMatch[1], getMatch[2]);
     }
 
     // POST /api/commands/:personaId/:commandId/render - Render command with args
     const renderMatch = path.match(/^\/api\/commands\/([^/]+)\/([^/]+)\/render$/);
     if (renderMatch && method === 'POST') {
-      return handleRenderCommand(req, res, renderMatch[1], renderMatch[2]);
+      return await handleRenderCommand(req, res, renderMatch[1], renderMatch[2]);
     }
 
     return false; // Route not handled
