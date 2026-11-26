@@ -28,6 +28,7 @@ import {
   importFromCSV,
   type Contact,
 } from '../../services/contacts.js';
+import { rememberedContacts } from './remembered-contacts.js';
 
 /** Contacts are per caller; without a session user there's no address book to read. */
 export const NO_SESSION_USER =
@@ -89,7 +90,8 @@ export function createContactsTools() {
         const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
         if (!userId) return NO_SESSION_USER;
 
-        const results = await searchContacts(userId, query);
+        const found = (await searchContacts(userId, query)).map((r) => r.contact);
+        const results = (await rememberedContacts(userId, found)).map((contact) => ({ contact }));
 
         if (results.length === 0) {
           return `I don't have "${query}" in your contacts. Would you like to add them?`;
@@ -148,7 +150,8 @@ export function createContactsTools() {
         const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
         if (!userId) return NO_SESSION_USER;
 
-        const contact = await findContact(userId, who);
+        const found = await findContact(userId, who);
+        const [contact] = found ? await rememberedContacts(userId, [found]) : [];
 
         if (!contact) {
           return `I don't have "${who}" in your contacts. Do you have their number, or should I look them up?`;
@@ -205,6 +208,7 @@ export function createContactsTools() {
             title = '📇 Your Contacts';
         }
 
+        contacts = await rememberedContacts(userId, contacts);
         if (contacts.length === 0) {
           if (filter === 'all') {
             return `You don't have any contacts saved yet. Say "add contact" to get started!`;
