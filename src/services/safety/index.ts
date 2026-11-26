@@ -33,6 +33,7 @@ export {
   getCrisisResponse,
   LATE_911_LINE,
   namesCrisisLine,
+  SPANISH_911_FIRST,
   TALK_TO_988_ES,
 } from './crisis-guard-replies.js';
 export { SELF_HARM_911_LINE } from './crisis-script-lines.js';
