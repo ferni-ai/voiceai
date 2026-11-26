@@ -111,6 +111,31 @@ describe('the guard', () => {
     expect(await reply(asked, words)).toBe(words);
   });
 
+  const LIST_HEAD =
+    'Everything Ferni did for the caller in the last 30 days, from the records.\nDone, newest first:\n';
+  const status = (output: string) =>
+    llm.FunctionCallOutput.create({ callId: 'c3', name: 'callStatus', output, isError: false });
+
+  it('a listed call to someone else never backs a story about the person asked about', async () => {
+    const listed = status(
+      `No call to dad in the last 30 days.\n\n${LIST_HEAD}- Saturday, November 21, in the afternoon (3:00 PM): Ferni called Marisol (their mom), and they answered.`
+    );
+    const asked = [user('Did you call my dad?'), listed];
+    expect(await reply(asked, "I did, yeah. He said he's doing fine.")).toBe(
+      `I did, yeah. ${UNHEARD_LINE}`
+    );
+  });
+
+  it("a reminder's own words never count as a call", async () => {
+    const listed = status(
+      `${LIST_HEAD}- Friday, November 20, in the morning (9:00 AM): reminder "Note: Ferni called the dentist, ask again" went out.`
+    );
+    const asked = [user('Did you call the dentist?'), listed];
+    expect(await reply(asked, 'I did, yeah. We ended up talking for a bit.')).toBe(
+      `I did, yeah. ${UNHEARD_LINE}`
+    );
+  });
+
   it('with no call in play, a story of his own stands', async () => {
     const chat = [said('How was your weekend?'), user('Good. How about you?')];
     expect(await reply(chat, 'My buddy and I, we talked for hours.')).toBe(

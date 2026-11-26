@@ -101,15 +101,36 @@ const REPORTED = /\bReported from Ferni's call\b/;
 /**
  * callStatus (telephony/call-status-tool.ts, also told by callOnBehalf) found the call's result: Ferni
  * called (or tried), so telling how it went stands. Owner call 2026-10-26 18:46: asked about an
- * answered call, Ferni said it didn't "know how that call went yet". The RECALL_ACTIVITY list
- * (services/outreach/activity-recall.ts) dates each line first ("Saturday, ... (3:00 PM): Ferni
- * called Marisol ..."); dev recall eval 2026-11-26: without reading those, a right answer about
- * an answered call became "I haven't heard back", graded as a made-up call.
+ * answered call, Ferni said it didn't "know how that call went yet".
  */
-const toldByStatus = (item: Item & { output?: unknown }): boolean =>
-  item.type === 'function_call_output' &&
-  (item.name === 'callStatus' || item.name === 'callOnBehalf') &&
-  /(?:^|[.:] )Ferni (?:called|tried to call) /.test(String(item.output ?? ''));
+const STATUS_TOLD = /(?:^|\. )Ferni (?:called|tried to call) /;
+/**
+ * A line of the RECALL_ACTIVITY list (services/outreach/activity-recall.ts): "- <when>: Ferni called
+ * <who>, and ...". No quote may come before it, so a reminder's own text ("Note: Ferni called the
+ * dentist") never counts. Dev recall eval 2026-11-26: without reading these, a right answer about an
+ * answered call became "I haven't heard back", graded as a made-up call.
+ */
+const LISTED_CALL = /^- [^\n"]*?: Ferni (?:called|tried to call) ([^,\n]+?)(?:,|\.)/gm;
+/** "Marisol (their mom)" -> ["Marisol", "mom"]. */
+const whoNames = (who: string): string[] => {
+  const m = /^(.*?)(?: \(their (.+)\))?$/.exec(who.trim());
+  return [m?.[1], m?.[2]].filter((w): w is string => !!w && w.length > 1);
+};
+const escaped = (w: string): string => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * A listed call counts only for the person the caller is asking about: the list holds every call of
+ * the last 30 days, so a call to their mom never backs a story about their dad (#4516 verify).
+ */
+const listedFor = (output: string, callerWords: string): boolean =>
+  [...output.matchAll(LISTED_CALL)].some((m) =>
+    whoNames(m[1]).some((w) => new RegExp(`\\b${escaped(w)}\\b`, 'i').test(callerWords))
+  );
+const toldByStatus = (item: Item & { output?: unknown }, callerWords: string): boolean => {
+  if (item.type !== 'function_call_output') return false;
+  if (item.name !== 'callStatus' && item.name !== 'callOnBehalf') return false;
+  const output = String(item.output ?? '');
+  return STATUS_TOLD.test(output) || listedFor(output, callerWords);
+};
 /** The caller asks Ferni about a call he was asked to make; the group names the person, if any. */
 const ASKED_ABOUT = [
   /\bhow(?:'d| did| was) (?:it|things|that|the call|your call) go(?:ing)? with (?:my |the |your )?([a-z]+)/i,
@@ -242,8 +263,14 @@ export interface Unheard {
 }
 
 /** A call result in the conversation: a report from Ferni's call, or callStatus saying he called. */
-const callResultIn = (items: readonly Item[]): boolean =>
-  items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item));
+const callResultIn = (items: readonly Item[]): boolean => {
+  const callerWords = items
+    .filter((item) => item.type === 'message' && item.role === 'user')
+    .slice(-3)
+    .map(spoken)
+    .join(' ');
+  return items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item, callerWords));
+};
 /** The caller asks what Ferni did before: "did you text my sister yesterday?", "have you called her?". */
 const ASKS_BEFORE =
   /\b(?:did|have) you (?:ever |already |actually )?(?:call|called|ring|rung|phone|phoned|reach|reached|text|texted|message|messaged|email|emailed|send|sent|talk(?:ed)? to)\b/i;
