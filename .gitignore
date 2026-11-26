@@ -194,6 +194,9 @@ test_higgs_output.wav
 # Claude Code agent worktrees created inside a checkout (isolation: worktree).
 # Untracked, they make the deploy checkout look dirty and block the nightly sweep's deploy.
 .claude/worktrees/
+# Claude Code's per-session preview/launch config. Untracked, it skipped the 11-18 and 11-19
+# nightly sweeps (exit 3, "has changes or untracked files") the same way.
+.claude/launch.json
 
 # Real LinkedIn OAuth tokens — the .example template stays tracked.
 # apps/website/ferni-website/.env.linkedin held a live 350-char access token

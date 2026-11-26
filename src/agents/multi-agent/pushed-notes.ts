@@ -15,6 +15,11 @@
  *
  * @module agents/multi-agent/pushed-notes
  */
+import {
+  memoryFreeText,
+  withoutMemoryFreeText,
+} from '../processors/turn-processor/crisis-memory-recall.js';
+import { carriesCrisisOverride, carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from './turn-context-header.js';
 
@@ -26,6 +31,23 @@ export interface TurnNote {
   /** It is the crisis override (safety-note.ts carriesCrisisOverride), which always goes last. */
   override?: boolean;
   text: string;
+  /** Its text without recalled memory, when it carries some (CRISIS_NO_MEMORY_RECALL). */
+  bare?: string;
+}
+
+/** The notes a turn's context build wrote, in order, empty ones left out. */
+export function turnNotesOf(items: readonly unknown[]): TurnNote[] {
+  return items
+    .map((item) => {
+      const bare = memoryFreeText(item as never)?.trim();
+      return {
+        safety: carriesSafety(item as never),
+        override: carriesCrisisOverride(item as never),
+        text: (item as { textContent?: string }).textContent?.trim() ?? '',
+        ...(bare !== undefined && { bare }),
+      };
+    })
+    .filter((note) => note.text !== '');
 }
 
 /** The safety notes among these, in order, with the crisis override moved last. */
@@ -62,6 +84,19 @@ export function pushedNotesText(
   return rest && room > 0 ? `${rest.slice(0, room)}\n\n${kept}` : kept;
 }
 
+/** The pushed note's body without recalled memory; undefined when no note carries any. */
+export function memoryFreeNotesText(
+  notes: readonly TurnNote[],
+  maxChars = MAX_PUSHED_CONTEXT_CHARS
+): string | undefined {
+  if (!notes.some((note) => note.bare !== undefined)) return undefined;
+  const bare = notes.map((note) => (note.bare === undefined ? note : { ...note, text: note.bare }));
+  return pushedNotesText(
+    bare.filter((note) => note.text !== ''),
+    maxChars
+  );
+}
+
 /** The safety notes still waiting go ahead of a later note's, each once (#2642). */
 export function withHeldSafety(held: readonly TurnNote[], notes: readonly TurnNote[]): TurnNote[] {
   const fresh = new Set(notes.filter((note) => note.safety).map((note) => note.text));
@@ -83,5 +118,7 @@ export function safetyOnlyNote<T extends { extra?: Record<string, unknown> }>(
   const safety = note.extra?.[TURN_CONTEXT_SAFETY];
   if (typeof safety !== 'string' || safety === '') return undefined;
   const copy = Object.create(Object.getPrototypeOf(note) as object) as T;
-  return Object.assign(copy, note, { content: [`${header}\n${safety}`] });
+  // Cut to its safety part, it no longer carries the memory-free text (crisis-memory-recall.ts).
+  const extra = withoutMemoryFreeText(note.extra);
+  return Object.assign(copy, note, { content: [`${header}\n${safety}`], extra });
 }

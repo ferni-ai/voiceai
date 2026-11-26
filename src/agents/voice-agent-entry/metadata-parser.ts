@@ -22,6 +22,7 @@ import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
 import { livePersonaId } from '../../personas/identity/index.js';
+import { callingPersonaName } from '../../tools/domains/telephony/scripts/index.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -309,6 +310,8 @@ export async function setupCallTypeContexts(
         // Where answered-by writes (and a voicemail reports): only a signed requester.
         requesterUserId: trusted ? call?.requester.userId : undefined,
         kind: 'on_behalf' as const,
+        // CALL_AS_PERSONA: who the call says is calling; only a signed dispatch names a persona.
+        ...(trusted && call?.persona_id && { agentName: callingPersonaName(call.persona_id) }),
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);
