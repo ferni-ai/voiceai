@@ -13,7 +13,7 @@ import { guardRuleFor } from '../director-guard.js';
 import { DIRECTOR_SYSTEM, Director, directorSystem, parseNotes } from '../director-notes.js';
 
 const RULE =
-  'The caller\'s words reach you through speech-to-text, which mishears: "it\'s going pretty good for him" was "for me". One word that doesn\'t fit what they\'re saying (a pronoun, a name, a word that sounds like another) is a mishearing, not something they meant. Never write a note about it, and never tell him to point it out, question it or repeat it: Ferni answers what they meant.';
+  'The caller\'s words reach you through speech-to-text, which sometimes swaps one word: "it\'s going pretty good for him" was "for me". When a single pronoun or name doesn\'t fit, it was misheard: never write a note about that word, and never tell him to point it out, question it or repeat it. This is only about one swapped word: everything else they say, above all a hint that they won\'t be around or might come to harm, means what it says.';
 
 /** Notes that matter, which the filter in #4276 dropped; the rule adds no filter. */
 const KEPT = [
@@ -43,7 +43,7 @@ describe("the director's and deliberator's rule", () => {
     vi.stubEnv('DIRECTOR_STT_SLIPS', 'on');
     const maya = { ...FERNI_CAST, name: 'Maya', p: { ...FERNI_CAST.p, object: 'her' } };
     expect(guardRuleFor(maya)).toContain('never tell her to point it out');
-    expect(guardRuleFor(maya)).toContain('Maya answers what they meant.');
+    expect(guardRuleFor(maya)).not.toContain('tell him');
   });
 
   it('reaches the model through a live Director turn only with the flag on', async () => {

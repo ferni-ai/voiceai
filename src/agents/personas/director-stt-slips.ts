@@ -16,6 +16,14 @@
  * director and deliberator prompt does. It names the mishearing with the prod
  * example, because an example steers the model where a description doesn't.
  *
+ * Offline A/B, 2026-11-26 (the live director model, temperature 0.7): a first
+ * wording ("one word that doesn't fit ... is a mishearing") also taught the
+ * director to wave off "I won't be around for it anyway" (flagged in 9 of 10 runs
+ * without the rule, 3 of 10 with it). So the rule is narrowed to one swapped
+ * pronoun or name, and says outright that a hint of harm means what it says. With
+ * that wording, risk lines were flagged in 63/90 runs off and 60/90 on, and
+ * "he was flying" (for "I") got no note telling Ferni to ask who "he" is (7/10 off).
+ *
  * @module agents/personas/director-stt-slips
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
@@ -29,5 +37,5 @@ export function directorSttSlipsEnabled(env: Env = process.env): boolean {
 /** The rule for the guard rule (director-guard.ts), with a leading space; '' with the flag off. */
 export function sttSlipRuleFor(c: Cast, env: Env = process.env): string {
   if (!directorSttSlipsEnabled(env)) return '';
-  return ` The caller's words reach you through speech-to-text, which mishears: "it's going pretty good for him" was "for me". One word that doesn't fit what they're saying (a pronoun, a name, a word that sounds like another) is a mishearing, not something they meant. Never write a note about it, and never tell ${c.p.object} to point it out, question it or repeat it: ${c.name} answers what they meant.`;
+  return ` The caller's words reach you through speech-to-text, which sometimes swaps one word: "it's going pretty good for him" was "for me". When a single pronoun or name doesn't fit, it was misheard: never write a note about that word, and never tell ${c.p.object} to point it out, question it or repeat it. This is only about one swapped word: everything else they say, above all a hint that they won't be around or might come to harm, means what it says.`;
 }
