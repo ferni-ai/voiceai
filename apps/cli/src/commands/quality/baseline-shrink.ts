@@ -51,7 +51,7 @@ export function loosened(
     if (!isRecord(base)) return [`${at}: became an object`];
     return Object.entries(head).flatMap(([key, value]) => {
       const baseKey = old(key);
-      if (!(baseKey in base)) return [`${at}: adds ${JSON.stringify(key)}`];
+      if (!Object.hasOwn(base, baseKey)) return [`${at}: adds ${JSON.stringify(key)}`];
       return loosened(base[baseKey], value, renamedFrom, `${at}[${JSON.stringify(key)}]`);
     });
   }
@@ -66,16 +66,21 @@ export function loosened(
 /** Check every shrink-only baseline in `root` against its merge base. Returns the exit code. */
 export function checkBaselines(
   root: string,
-  log: (line: string) => void = (l) => process.stdout.write(`${l}\n`)
+  log: (line: string) => void = (l) => process.stdout.write(`${l}\n`),
+  env: NodeJS.ProcessEnv = process.env
 ): number {
-  const base = resolveBase(root);
+  const base = resolveBase(root, env);
   const atBase = readAtBase(base, [...SHRINK_ONLY_BASELINES], root);
   const { renamedFrom } = diffAgainstBase(base, ['.'], root);
   let failed = 0;
   for (const path of SHRINK_ONLY_BASELINES) {
     const baseText = atBase.get(path);
     const headPath = join(root, path);
-    if (baseText === undefined || !existsSync(headPath)) continue; // new or removed baseline: its gate decides
+    if (baseText === undefined || !existsSync(headPath)) {
+      // A new or removed baseline: its own gate reads a missing list as strictest.
+      log(`- ${path}: not at both ${base.slice(0, 9)} and HEAD, left to its own gate`);
+      continue;
+    }
     const problems = loosened(
       JSON.parse(baseText),
       JSON.parse(readFileSync(headPath, 'utf8')),
