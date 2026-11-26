@@ -82,15 +82,21 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean; firstCall?: boolean; unplaced?: boolean } = {},
+  last: {
+    topic?: string;
+    tender?: boolean;
+    firstCall?: boolean;
+    unplaced?: boolean;
+    locales?: readonly string[];
+  } = {},
   introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
   const base = last.firstCall
-    ? stranger.easyStrangerDirection(stranger.STRANGER_GREETING_DIRECTION, env)
+    ? stranger.easyStrangerDirection(stranger.STRANGER_GREETING_DIRECTION, env, last.locales)
     : last.unplaced
-      ? stranger.easyStrangerDirection(stranger.UNPLACED_GREETING_DIRECTION, env)
+      ? stranger.easyStrangerDirection(stranger.UNPLACED_GREETING_DIRECTION, env, last.locales)
       : playful && !careful
         ? PLAYFUL_GREETING_DIRECTION
         : GREETING_DIRECTION;
@@ -295,7 +301,7 @@ export function greetingFacts(
   return facts;
 }
 
-export { firstTalkNote } from '../../services/identity/returning-caller.js';
+export { firstTalkNote } from './first-call-stranger.js';
 
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
@@ -312,6 +318,8 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
 
 export interface GreetingUserData {
   callerTimezone?: string;
+  /** The call's language tags (metadata-parser.ts callLocales): STRANGER_GREETING_EASY is English-only. */
+  callerLocales?: readonly string[];
   userName?: string;
   userId?: string;
   isReturningUser?: unknown;
@@ -415,6 +423,7 @@ export async function directedGreeting(
           tender: careful,
           firstCall,
           unplaced,
+          locales: userData?.callerLocales,
         },
         introAs
       )) +
@@ -441,14 +450,14 @@ export async function directedGreeting(
         win?.text
       ),
       ...(unknown ? {} : takeRecentTextFacts(sessionId)), // not for a caller not recognised
-      ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
+      ...(firstCall ? stranger.firstCallFacts() : {}),
       ...newsNow?.facts,
       ...dateNow?.facts,
     },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
-    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
+    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.strangerHelloRejects : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();

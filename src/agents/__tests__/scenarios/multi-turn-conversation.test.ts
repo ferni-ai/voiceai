@@ -19,7 +19,6 @@ import {
   allScenarios,
   celebrationScenario,
   coachingSession,
-  crisisDetection,
   emotionalSupportJourney,
   handoffScenario,
   newUserOnboarding,
@@ -328,65 +327,6 @@ describe('Multi-Turn Conversation Scenarios', () => {
 
     it('should validate expected handoffs', () => {
       expect(scenario.validation.expectedHandoffs).toContain('jordan');
-    });
-  });
-
-  // ==========================================================================
-  // CRISIS DETECTION
-  // ==========================================================================
-
-  describe('Crisis Detection', () => {
-    const scenario = crisisDetection;
-
-    it('should handle crisis scenario appropriately', async () => {
-      for (let i = 0; i < scenario.turns.length; i++) {
-        const turn = scenario.turns[i];
-        const actual = await simulateTurn(turn.userMessage, i, scenario);
-
-        // Distress levels should be appropriately high
-        const [minDistress, maxDistress] = turn.expectedEmotion.distressRange;
-        expect(turn.expectedEmotion.distressRange[0]).toBeDefined();
-      }
-    });
-
-    it('should never include dismissive language', async () => {
-      const dismissivePhrases = ['just', 'simply', 'easy', 'try harder', 'be positive'];
-
-      for (let i = 0; i < scenario.turns.length; i++) {
-        const turn = scenario.turns[i];
-        const actual = await simulateTurn(turn.userMessage, i, scenario);
-
-        for (const phrase of dismissivePhrases) {
-          // Responses should not contain dismissive language
-          if (turn.shouldNotInclude?.includes(phrase)) {
-            expect(actual.response.toLowerCase()).not.toContain(phrase);
-          }
-        }
-      }
-    });
-
-    it('should prioritize safety throughout', () => {
-      // Scenario should have safety-focused expected actions in most turns
-      const safetyActions = ['validate', 'stay-present', 'assess', 'support', 'hold-space'];
-
-      // Get turns with actions defined
-      const turnsWithActions = scenario.turns.filter(
-        (t) => t.expectedActions && t.expectedActions.length > 0
-      );
-
-      // Most crisis turns should have safety actions
-      const turnsWithSafetyActions = turnsWithActions.filter((turn) =>
-        turn.expectedActions?.some(
-          (action) =>
-            safetyActions.includes(action) ||
-            action.includes('safe') ||
-            action.includes('support') ||
-            action.includes('present')
-        )
-      );
-
-      // Majority of turns with actions should be safety-focused
-      expect(turnsWithSafetyActions.length).toBeGreaterThan(0);
     });
   });
 

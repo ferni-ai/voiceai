@@ -50,6 +50,8 @@ import {
 import { getRelationshipSummaryDef } from '../../../tools/domains/memory/tools.js';
 
 type Source = 'store' | 'process';
+/** A recall with no note of its own to send: only the re-check of the chat runs. */
+const NO_RECALL = { lastPick: () => null, takeSelfNote: () => ({ note: null, crisis: false }) };
 let userSeq = 0;
 let user = '';
 
@@ -193,7 +195,7 @@ describe.each([
       { id: 'user_1', textContent: 'Biscuit did it again' }, // the caller's words, never touched
     ]);
     await primeStore(user);
-    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, 'again', user);
+    sendRecall(agent as never, {}, NO_RECALL as never, null, 'again', user);
     if (on) expect(ids()).toEqual(['recall_2', 'user_1']);
     else expect(ids()).toEqual(['recall_1', 'recall_2', 'user_1']);
   });
@@ -213,7 +215,7 @@ describe.each([
       { id: 'user_1', textContent: 'I miss Biscuit so much' },
     ]);
     await primeStore(user);
-    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, 'so much', user);
+    sendRecall(agent as never, {}, NO_RECALL as never, null, 'so much', user);
     if (on) expect(ids()).toEqual(['note_1', 'user_1']);
     else expect(ids()).toEqual(['recall_1', 'note_1', 'user_1']);
   });
@@ -263,7 +265,7 @@ describe('dropForgottenNotes and PREEMPT_STABLE_CONTEXT', () => {
     user = `member-preempt-drop-${++userSeq}`;
     await primeStore(user);
     const { agent, ids, restart } = inFlight();
-    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, SAID, user);
+    sendRecall(agent as never, {}, NO_RECALL as never, null, SAID, user);
     expect(ids()).toEqual(['user_1']);
     expect(restart).toHaveBeenCalledTimes(1);
   });

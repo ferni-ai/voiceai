@@ -29,6 +29,7 @@ vi.mock('../../intelligence/relationship/index.js', () => ({
   initializeRelationship: vi.fn(() => ({
     recordMoment: vi.fn(),
   })),
+  isWordlessMoment: vi.fn(() => false),
 }));
 
 // Mock the PersonalityService v2

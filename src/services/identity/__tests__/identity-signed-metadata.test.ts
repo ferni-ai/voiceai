@@ -1,11 +1,9 @@
 /**
  * identifyFromMetadata acts on account-naming claims only from a signed dispatch.
  *
- * The web /token route copies `device_id` from its query string into the
- * dispatch, and the agent used to auto-migrate `device:<that id>` into the
- * caller's fresh account. `user_id` and `auth_token` were trusted outright.
- * A signed dispatch still identifies and migrates; the verified `firebase_uid`
- * /token writes keeps working unsigned.
+ * `user_id` and `auth_token` used to be trusted outright. A signed dispatch
+ * still identifies; the verified `firebase_uid` /token writes keeps working
+ * unsigned. No dispatch migrates a device (identity-no-device-migration.test.ts).
  */
 import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,10 +13,8 @@ import { createUserProfile } from '../../../types/user-profile.js';
 import { signDispatch, verifyOnBehalfDispatch } from '../../outreach/on-behalf-dispatch.js';
 import { SIGNED_IDENTITY_MAX_AGE_MS } from '../signed-dispatch-identity.js';
 
-// One store for the file: user-migration caches the store it gets first.
 const store = new InMemoryStore();
 vi.mock('../../../memory/firestore-store.js', () => ({ getFirestoreStore: () => store }));
-vi.mock('../identity-linking.js', () => ({ autoLinkOnAuth: vi.fn(async () => undefined) }));
 
 const { identifyFromMetadata, setGlobalStore } = await import('../user-identification.js');
 
@@ -71,17 +67,6 @@ describe('identifyFromMetadata trusts identity claims only from a signed dispatc
     expect(device?.customData?.migratedTo).toBeUndefined();
   });
 
-  it('still migrates the device named by a signed dispatch', async () => {
-    const deviceId = fresh('device_owner');
-    await seedDevice(deviceId);
-    const owner = fresh('owner');
-    const result = await identifyFromMetadata(
-      signDispatch({ firebase_uid: owner, device_id: deviceId }, SECRET)
-    );
-    expect(result.userId).toBe(owner);
-    expect(result.profile?.name).toBe('Victim on her phone');
-  });
-
   it('keeps identifying web callers by the verified firebase_uid /token writes', async () => {
     const result = await identifyFromMetadata({ firebase_uid: VICTIM, source: 'web' });
     expect(result.userId).toBe(VICTIM);
@@ -128,7 +113,7 @@ describe('a signed identity claim is refused when stale, forged or unverifiable'
     expect(result.source.type).toBe('anonymous');
   });
 
-  it('refuses a user_id signed with someone else\'s key', async () => {
+  it("refuses a user_id signed with someone else's key", async () => {
     const result = await identifyFromMetadata(signDispatch({ user_id: VICTIM }, 'not-our-secret'));
     expect(result.source.type).toBe('anonymous');
   });

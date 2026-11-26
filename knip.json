@@ -97,7 +97,10 @@
     "src/services/contacts/outreach-nudges.ts": ["exports"],
     "src/services/superhuman/commitment-checkin-cooldown.ts": ["exports"],
     "src/types/user-profile.ts": ["types"],
-    "src/utils/cognitive-metrics.ts": ["exports"]
+    "src/utils/cognitive-metrics.ts": ["exports"],
+    // The one owner-keyed write-hold check, built before its caller: only its tests call
+    // writeHold until the held-write guard does. Remove this entry in that PR.
+    "src/utils/write-hold.ts": ["exports", "types"]
   },
   "ignoreDependencies": [".*"],
   "ignoreBinaries": [".*"],

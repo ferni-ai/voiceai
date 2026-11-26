@@ -52,7 +52,13 @@ import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
+import {
+  factText,
+  forgetTokens,
+  isForgotten,
+  isForgottenPassage,
+  storedTopic,
+} from '../domain/forgotten.js';
 import {
   addForgottenTopic,
   bumpForgetGeneration,
@@ -61,6 +67,7 @@ import {
   noteUnstoredForget,
 } from '../adapters/firestore/forgotten-store.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
+import { forgetRelated, relatedNumbers, relatedPhrases } from './forget-related.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
@@ -237,14 +244,28 @@ export function forgetDoneNote(result: Extract<ForgetResult, { kind: 'forgotten'
     : `It's kept out of what you recall from now on, not erased. Tell them this, briefly, and carry on: "${line}" Don't say you've forgotten, deleted or erased it.`;
 }
 
-/** forgetTopic for a call's user, if any. Never throws: a failure is logged and reported as such. */
+/**
+ * forgetTopic for a call's user, if any, then each phrase the model named as
+ * part of it (`alsoAbout`, forget-related.ts; FORGET_RELATED_WORDS). Never
+ * throws: a failure is logged and reported as such.
+ */
 export async function forgetForCaller(
   userId: string | undefined,
   topic: string,
-  store: ForgetStore = firestoreForgetStore
+  store: ForgetStore = firestoreForgetStore,
+  alsoAbout?: readonly unknown[]
 ): Promise<ForgetResult> {
   if (!isMemberIdentity(userId)) return { kind: 'not-saved' };
-  return forgetTopic(userId, topic, store).catch((error: unknown) => {
+  const related = relatedPhrases(topic, alsoAbout);
+  const forgetAll = async () => {
+    const result = await forgetTopic(userId, topic, store);
+    if (result.kind !== 'forgotten') return result;
+    const numbers = await relatedNumbers([topic, ...related], () => store.facts(userId));
+    const phrases = [...related, ...numbers];
+    await forgetRelated(userId, phrases, (phrase) => forgetTopic(userId, phrase, store));
+    return result;
+  };
+  return forgetAll().catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Could not forget from stored memory');
     return { kind: 'failed' as const };
   });
@@ -286,6 +307,13 @@ export async function forgottenTopicsOrNull(
   });
 }
 
+export async function forgottenPassageFilter(
+  userId: string
+): Promise<((text: string) => boolean) | null> {
+  const topics = await forgottenTopicsOrNull(userId);
+  return topics && ((text) => isForgottenPassage(text, [...topics, ...forgottenInProcess(userId)]));
+}
+
 /**
  * Recorded topics (their words). Never throws: an unreadable list is empty.
  * For readers whose own records carry forgottenAt (facts); readers of raw
@@ -302,9 +330,10 @@ export async function forgottenTopics(
 /**
  * Take forgotten dynamic facts out of the indexes recall searches: the memory
  * tool's (now, not at the next re-index, user-memory-indexer.ts;
- * recallFromMemory also checks by id meanwhile) and the graph sync's copy
- * (spanner-graph insertFact), read by per-turn memory search. Call after the
- * facts are marked forgotten with syncedToSpanner: false.
+ * recallFromMemory also checks by id meanwhile) and the semantic memory
+ * index, read by per-turn memory search. The graph sync that copied facts
+ * into that index has been removed; this still removes any copy it left.
+ * Call after the facts are marked forgotten with syncedToSpanner: false.
  */
 export async function removeIndexCopies(userId: string, factIds: string[]): Promise<void> {
   if (factIds.length === 0) return;
@@ -379,8 +408,9 @@ export const firestoreForgetStore: ForgetStore = {
     for (let i = 0; i < refs.length; i += 400) {
       const batch = db.batch();
       for (const r of refs.slice(i, i + 400)) {
-        // A fact already copied to the graph store is picked up by the next
-        // sync again (firestore-spanner-sync.ts), which removes the copy.
+        // syncedToSpanner: false was the mark that sent a fact back through the
+        // graph sync, which removed its copy. That sync has been removed and
+        // nothing picks the mark up now; mayHaveGraphCopy still reads the field.
         const resync =
           r.collection === 'dynamic_facts'
             ? { syncedToSpanner: false, ...withoutDerivedCopies() }

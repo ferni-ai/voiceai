@@ -20,6 +20,9 @@ auditConfig:
   ignoreGhsas:
     # braces <=3.0.3 via typescript-eslint's globby (lint only): stack-exhaustion DoS
     - GHSA-vfj7-8cjw-p6xm
+    # picomatch <=4.0.7 via typescript-eslint's tinyglobby and apps/web's archunit (dev only):
+    # ReDoS on repeated extglobs, no patched release yet; review 2026-12-17
+    - GHSA-fc5q-39xc-vjpf
 
 overrides:
   '@livekit/agents': '1.9.3'

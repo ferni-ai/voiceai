@@ -1304,17 +1304,17 @@ function createProgressPanel(): void {
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon">${ICONS.messageCircle}</div>
-            <p class="stat-value conversations-count">0</p>
+            <p class="stat-value conversations-count"></p>
             <p class="stat-label">${t('stages.conversations')}</p>
           </div>
           <div class="stat-card">
             <div class="stat-icon">${ICONS.calendar}</div>
-            <p class="stat-value days-together">0</p>
+            <p class="stat-value days-together"></p>
             <p class="stat-label">${t('stages.daysTogether')}</p>
           </div>
           ${isNoStreaksOn() ? '' : `<div class="stat-card">
             <div class="stat-icon">${ICONS.trophy}</div>
-            <p class="stat-value current-streak">0</p>
+            <p class="stat-value current-streak"></p>
             <p class="stat-label">${t('stages.dayStreak')}</p>
           </div>`}
         </div>

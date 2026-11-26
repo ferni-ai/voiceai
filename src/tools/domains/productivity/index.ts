@@ -6,7 +6,7 @@
  *
  * DOMAIN: productivity
  * TOOLS:
- *   Tasks: addTask, completeTask, getTasks, rescheduleTask, getTaskSummary
+ *   Tasks: addTask, completeTask, getTasks (+ updateTask with TASK_EDITS on)
  *   Notes: saveNote, getRecentNotes, searchNotes, startJournal
  *   Shopping: addToShoppingList, getShoppingList, checkOffItem
  */
@@ -16,6 +16,7 @@ import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Import legacy tool creators
 import { createTaskTools } from './tasks.js';
+import { taskEditsOn, taskRegistryText, UPDATE_TASK_DESCRIPTION } from './task-tool-text.js';
 import { createNotesTools } from './notes.js';
 import {
   callJournalGratitude,
@@ -66,36 +67,55 @@ function whileCallJournal(def: ToolDefinition, journalTool: unknown): ToolDefini
 }
 
 // ============================================================================
-// TASK TOOLS (Consolidated: 7 → 4 essential tools)
+// TASK TOOLS
 // ============================================================================
 
 function getTaskToolDefinitions(): ToolDefinition[] {
   const legacyTools = createTaskTools();
 
-  // Consolidated: addTask, completeTask, getTasks, getTaskSummary
-  // Removed: updateTaskPriority, rescheduleTask, deleteTask (can be handled via addTask with update semantics)
+  // TASK_EDITS (off): honest text, plus updateTask for rename, move, priority and remove.
   return [
     wrapLegacyTool(
       'addTask',
       'Add Task',
-      'Create a new task or to-do item with optional due date and priority. Can also update existing tasks by providing the task ID.',
+      taskRegistryText(
+        'addTask',
+        'Create a new task or to-do item with optional due date and priority. Can also update existing tasks by providing the task ID.'
+      ),
       legacyTools.addTask,
-      ['tasks', 'create', 'update']
+      taskEditsOn() ? ['tasks', 'create'] : ['tasks', 'create', 'update']
     ),
     wrapLegacyTool(
       'completeTask',
       'Complete Task',
-      'Mark a task as completed, or delete it entirely if no longer needed',
+      taskRegistryText(
+        'completeTask',
+        'Mark a task as completed, or delete it entirely if no longer needed'
+      ),
       legacyTools.completeTask,
-      ['tasks', 'complete', 'delete']
+      taskEditsOn() ? ['tasks', 'complete'] : ['tasks', 'complete', 'delete']
     ),
     wrapLegacyTool(
       'getTasks',
       'Get Tasks',
-      'Get list of tasks filtered by status, category, or due date. Also shows upcoming items and anything waiting for attention.',
+      taskRegistryText(
+        'getTasks',
+        'Get list of tasks filtered by status, category, or due date. Also shows upcoming items and anything waiting for attention.'
+      ),
       legacyTools.getTasks,
       ['tasks', 'list', 'summary']
     ),
+    ...(taskEditsOn()
+      ? [
+          wrapLegacyTool(
+            'updateTask',
+            'Update Task',
+            UPDATE_TASK_DESCRIPTION,
+            legacyTools.updateTask,
+            ['tasks', 'update', 'reschedule', 'priority', 'delete']
+          ),
+        ]
+      : []),
   ];
 }
 

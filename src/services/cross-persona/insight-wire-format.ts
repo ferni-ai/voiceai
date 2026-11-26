@@ -11,6 +11,7 @@
  */
 
 import type { CrossPersonaInsight } from './cross-persona-insights.js';
+import { wasToasted } from './insight-visibility.js';
 
 export interface ClientInsight {
   id: string;
@@ -22,6 +23,8 @@ export interface ClientInsight {
   priority: string;
   createdAt: number;
   isNew: boolean;
+  /** Already shown as a toast: the app doesn't toast it again (issue 3945). */
+  toasted: boolean;
 }
 
 /** Long enough for a sentence, short enough for a toast. */
@@ -40,16 +43,54 @@ export function summarizeInsight(content: string, max = SUMMARY_MAX_CHARS): stri
   return `${(lastSpace > max / 2 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:-]+$/, '')}…`;
 }
 
+/**
+ * A spaced hyphen or dash, or any em dash, used as a pause reads as a comma: no dashes in
+ * Ferni's lines (docs/decisions/register.md D4), spaced or not: "Just checking in - no
+ * pressure." becomes "Just checking in, no pressure." A range between numbers is left alone.
+ */
+function withoutDashPauses(text: string): string {
+  return text.replace(/\s+[-\u2013\u2014]+\s+|\s*\u2014+\s*/g, (dash, at: number) =>
+    /\d/.test(text[at - 1] ?? '') && /\d/.test(text[at + dash.length] ?? '') ? dash : ', '
+  );
+}
+
 /** Strips internal fields (target, metadata, expiry) and adds the summary. */
 export function toClientInsight(insight: CrossPersonaInsight): ClientInsight {
+  const content = withoutDashPauses(insight.content ?? '');
   return {
     id: insight.id,
     source: insight.source,
     category: insight.category,
-    summary: summarizeInsight(insight.content ?? ''),
-    content: insight.content,
+    summary: summarizeInsight(content),
+    content,
     priority: insight.priority,
     createdAt: insight.createdAt,
     isNew: insight.oneTime,
+    toasted: wasToasted(insight),
   };
+}
+
+/**
+ * The team's high-priority proactive notes for the app's team panel, beside `listed` (the
+ * insights it already shows): one per persona and wording, newest first, none listed twice.
+ * GET /api/team-insights sent these only as "From ferni: ..." strings, which the panel never
+ * read, so a long-time user with seven notes saw the first-run empty state (2026-11-16).
+ * Callers pass only notes the user has not hidden (insight-visibility.ts).
+ */
+export function toClientDiscoveries(
+  notes: readonly CrossPersonaInsight[],
+  listed: readonly ClientInsight[]
+): ClientInsight[] {
+  const seen = new Set(listed.map((i) => `${i.source}|${i.content}`));
+  const listedIds = new Set(listed.map((i) => i.id));
+  return [...notes]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .filter((n) => !listedIds.has(n.id))
+    .map((n) => ({ ...toClientInsight(n), isNew: false }))
+    .filter((n) => {
+      const key = `${n.source}|${n.content}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }

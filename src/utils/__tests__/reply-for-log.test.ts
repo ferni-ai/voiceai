@@ -1,7 +1,8 @@
 /**
- * Words in a log line are a length on prod. A dev process (a Firestore database other than
- * prod's) logs them, cut at a limit that LOG_FULL_RESPONSES lifts. "Dev" is the database,
- * not NODE_ENV: the agent image runs NODE_ENV=production on dev too (docker/Dockerfile.agent).
+ * Words in a log line are a length everywhere but dev. A dev process (dev's Firestore
+ * database, by its exact name) logs them, cut at a limit that LOG_FULL_RESPONSES lifts. "Dev"
+ * is the database, not NODE_ENV: the agent image runs NODE_ENV=production on dev too
+ * (docker/Dockerfile.agent). A name that is neither prod's nor dev's is not dev.
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -44,6 +45,25 @@ describe('replyForLog', () => {
       expect(isFullLoggingEnabled()).toBe(false);
       expect(truncateForLog(long, 50)).toBe(`${'x'.repeat(50)}...`);
     }
+  });
+
+  // A prod process whose FIRESTORE_DATABASE is wrong must not start logging what callers say.
+  it.each([
+    ['a single space', ' '],
+    ["prod's name with space around it", ' (default)\n'],
+    ["dev's name with space before it", ' ferni-dev'],
+    ["dev's name with a newline after it", 'ferni-dev\n'],
+    ["prod's name in another case", '(Default)'],
+    ["prod's name without its brackets", 'default'],
+    ["dev's name in another case", 'Ferni-Dev'],
+    ["dev's name misspelt", 'ferni-dve'],
+    ["a longer name that starts with dev's", 'ferni-dev-2'],
+    ['a name that says prod', 'ferni-prod'],
+  ])('logs only the length on %s, with LOG_FULL_RESPONSES set', (_name, FIRESTORE_DATABASE) => {
+    as({ NODE_ENV: 'production', LOG_FULL_RESPONSES: 'true', FIRESTORE_DATABASE });
+    expect(replyForLog(TEXT)).toBe(`[${TEXT.length} chars]`);
+    expect(repliesForLog([TEXT])).toEqual([`[${TEXT.length} chars]`]);
+    expect(isFullLoggingEnabled()).toBe(false);
   });
 
   it('gives the text on dev, cut at the limit, whatever NODE_ENV says', () => {

@@ -510,7 +510,7 @@ describe('Ferni Coordinator Intelligence', () => {
 describe('E2E Insight Flow', () => {
   it('should broadcast high-priority insights when added', async () => {
     const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
-    const { insightsBroadcast } = await import('../services/insights-broadcast.js');
+    const { insightsBroadcast } = await import('../services/communication/insights-broadcast.js');
 
     const userId = `e2e-test-${Date.now()}`;
     const broadcastEvents: unknown[] = [];
@@ -550,7 +550,7 @@ describe('E2E Insight Flow', () => {
 
   it('should NOT broadcast low-priority insights', async () => {
     const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
-    const { insightsBroadcast } = await import('../services/insights-broadcast.js');
+    const { insightsBroadcast } = await import('../services/communication/insights-broadcast.js');
 
     const userId = `e2e-low-${Date.now()}`;
     const broadcastEvents: unknown[] = [];
@@ -589,7 +589,7 @@ describe('E2E Insight Flow', () => {
 
   it('should broadcast proactive insights regardless of priority', async () => {
     const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
-    const { insightsBroadcast } = await import('../services/insights-broadcast.js');
+    const { insightsBroadcast } = await import('../services/communication/insights-broadcast.js');
 
     const userId = `e2e-proactive-${Date.now()}`;
     const broadcastEvents: unknown[] = [];

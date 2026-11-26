@@ -81,7 +81,7 @@ export async function handleVoiceAuthRoutes(
   try {
     // Enrollment routes (enroll/start, enroll/sample, etc.)
     if (route.startsWith('/enroll')) {
-      return handleEnrollmentRoutes(req, res, route);
+      return await handleEnrollmentRoutes(req, res, route);
     }
 
     // Verification routes (verify, auth/*, profile, status). No 1:N identify
@@ -92,22 +92,22 @@ export async function handleVoiceAuthRoutes(
       route.startsWith('/auth') ||
       route === '/profile'
     ) {
-      return handleVerificationRoutes(req, res, route);
+      return await handleVerificationRoutes(req, res, route);
     }
 
     // Household routes
     if (route.startsWith('/household')) {
-      return handleHouseholdRoutes(req, res, route);
+      return await handleHouseholdRoutes(req, res, route);
     }
 
     // Memory routes
     if (route.startsWith('/memory')) {
-      return handleMemoryRoutes(req, res, route);
+      return await handleMemoryRoutes(req, res, route);
     }
 
     // Inbound call routes (for phone-based calling)
     if (route.startsWith('/inbound')) {
-      return handleInboundCallRoutes(req, res, route);
+      return await handleInboundCallRoutes(req, res, route);
     }
 
     // Route not found under /api/voice

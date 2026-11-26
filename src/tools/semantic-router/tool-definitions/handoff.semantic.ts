@@ -146,7 +146,7 @@ export const handoffTool: SemanticToolDefinition = {
     const greetings: Record<string, string> = {
       maya: "Connecting you with Maya, she'll help with your habits and routines.",
       peter: "Connecting you with Peter, he's great with research and data.",
-      alex: "Connecting you with Alex, they're here to help with communication.",
+      alex: "Connecting you with Alex, he's here to help with communication.",
       jordan: "Connecting you with Jordan, she'll help with planning and events.",
       nayan: 'Connecting you with Nayan, he brings wisdom and perspective.',
       ferni: "I'm Ferni, I'm right here! How can I help?",

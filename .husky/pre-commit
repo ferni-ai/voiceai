@@ -9,6 +9,12 @@
 
 set -e  # Exit on first error
 
+# A check that warns without blocking adds to this, and the closing line says so:
+# "all passed" after a warning would say the opposite of what happened (#3884).
+# No check below hides its stderr, so a check that crashed says it crashed.
+WARNINGS=0
+warn() { WARNINGS=$((WARNINGS + 1)); }
+
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  FERNI PRE-COMMIT QUALITY GATES                              ║"
@@ -31,9 +37,15 @@ NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --pretty
 echo "  → ESLint..."
 npm run lint --silent 2>/dev/null || npm run lint
 
-# Format check (ensures consistent formatting)
-echo "  → Prettier format check..."
-npm run format:check --silent 2>/dev/null || true
+# Format ratchet: a src file prettier would reformat fails unless it is in the
+# baseline of files unformatted before 2026-11-02 (the same gate CI runs).
+echo "  → Prettier format ratchet..."
+npx tsx apps/cli/src/commands/quality/format-ratchet.ts || {
+  echo ""
+  echo "  ❌ FORMATTING - COMMIT BLOCKED (files named above; 'npx prettier --write <file>')"
+  echo ""
+  exit 1
+}
 
 echo ""
 echo "  ✓ Quick checks passed"
@@ -45,11 +57,11 @@ echo ""
 echo "🚀 Deployment safety check..."
 
 # Check for unsafe deployment patterns
-npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts 2>/dev/null || {
+npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts || {
   echo ""
-  echo "  ❌ UNSAFE DEPLOYMENT PATTERN DETECTED - COMMIT BLOCKED"
+  echo "  ❌ DEPLOYMENT SAFETY CHECK FAILED - COMMIT BLOCKED"
   echo ""
-  echo "  Run 'npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts' for details"
+  echo "  Its output is above: an unsafe pattern, or the check itself crashed."
   echo "  Use 'ferni deploy' instead of direct gcloud/firebase commands"
   echo ""
   exit 1
@@ -64,9 +76,10 @@ echo ""
 echo "📊 Running code quality audit..."
 
 # Run quality check but don't block on warnings
-npx tsx apps/cli/src/commands/quality/code-quality-check.ts 2>/dev/null || {
+npx tsx apps/cli/src/commands/quality/code-quality-check.ts || {
+  warn
   echo ""
-  echo "  ⚠ Quality check found issues (non-blocking)"
+  echo "  ⚠ Quality check failed, output above (non-blocking)"
   echo "  Run 'npm run audit quality' for details"
 }
 
@@ -116,9 +129,10 @@ echo ""
 echo "🔍 Design system compliance..."
 
 # Check for hardcoded colors, durations, console.logs in staged files
-node design-system/check-design-compliance.js --staged 2>/dev/null || {
+node design-system/check-design-compliance.js --staged || {
+  warn
   echo ""
-  echo "  ⚠ Design compliance issues found (review recommended)"
+  echo "  ⚠ Design compliance check failed, output above (non-blocking)"
   echo "  Run 'npm run design:check' for details"
 }
 
@@ -131,9 +145,10 @@ echo ""
 echo "🌿 Brand compliance check..."
 
 # Run brand check on staged files - warns but doesn't block
-npx tsx apps/cli/src/commands/quality/check-brand-compliance.ts --staged 2>/dev/null || {
+npx tsx apps/cli/src/commands/quality/check-brand-compliance.ts --staged || {
+  warn
   echo ""
-  echo "  ⚠ Brand check found issues (review recommended)"
+  echo "  ⚠ Brand check failed, output above (non-blocking)"
   echo "  Run 'npm run brand:check' for details"
 }
 
@@ -151,7 +166,7 @@ if [ -n "$SCHEMA_FILES" ]; then
   echo "  Tool schemas modified - validating and regenerating..."
   
   # Validate schemas
-  if ! npx tsx scripts/tools/validate-tool-schemas.ts 2>/dev/null; then
+  if ! npx tsx scripts/tools/validate-tool-schemas.ts; then
     echo ""
     echo "  ❌ TOOL SCHEMA VALIDATION FAILED - COMMIT BLOCKED"
     echo ""
@@ -161,7 +176,8 @@ if [ -n "$SCHEMA_FILES" ]; then
   fi
   
   # Regenerate files
-  npx tsx scripts/tools/generate-all.ts 2>/dev/null || {
+  npx tsx scripts/tools/generate-all.ts || {
+    warn
     echo ""
     echo "  ⚠ Tool schema generation failed (non-blocking)"
     echo "  Run 'pnpm tools:schemas:generate' to fix"
@@ -176,49 +192,62 @@ else
 fi
 
 # =============================================================================
-# FRONTEND VALIDATION
+# SECRET SCAN (BLOCKS COMMIT)
 # =============================================================================
 echo ""
-echo "🎨 Frontend checks..."
+echo "🔐 Secret scan of the staged changes..."
 
-# Run lint-staged in frontend if it exists
-if [ -d "frontend-typescript" ]; then
-  cd frontend-typescript
-  npx lint-staged 2>/dev/null || true
-  cd ..
+# Reads the lines this commit adds, from the index (what is committed, not the
+# working tree), in every text file. A line with "gitleaks:allow" in it is skipped,
+# the marker CI's gitleaks honors too. A scan that can't run blocks: an empty
+# result from a failed read is not a clean scan. CI runs trufflehog and gitleaks.
+SCAN_DIR=$(mktemp -d)
+scan_failed() {
+  rm -rf "$SCAN_DIR"
+  echo ""
+  echo "  ❌ SECRET SCAN COULD NOT RUN ($1) - COMMIT BLOCKED"
+  echo ""
+  exit 1
+}
+git diff --cached --no-color --no-ext-diff -U0 --diff-filter=ACMR > "$SCAN_DIR/diff" || scan_failed "git diff"
+# File headers come before a file's first @@; after it, a "+" line is content even
+# when it reads "+++ ..." (an added line that starts with "++ ").
+awk '/^diff --git /{ h = 0 } /^@@ /{ h = 1; next }
+  !h && /^\+\+\+ /{ f = substr($0, 7); next }
+  h && /^\+/{ print f "\t" substr($0, 2) }' "$SCAN_DIR/diff" > "$SCAN_DIR/added" || scan_failed "awk"
+rc=0; grep -v -F 'gitleaks:allow' "$SCAN_DIR/added" > "$SCAN_DIR/checked" || rc=$?
+[ "$rc" -le 1 ] || scan_failed "grep"
+rc=0; grep -E '(sk_live_|AKIA[A-Z0-9]{16}|-----BEGIN.*PRIVATE KEY)' "$SCAN_DIR/checked" > "$SCAN_DIR/hits" || rc=$? # gitleaks:allow
+[ "$rc" -le 1 ] || scan_failed "grep"
+if [ "$rc" -eq 0 ]; then
+  echo ""
+  echo "  ❌ POSSIBLE SECRET STAGED - COMMIT BLOCKED, in:"
+  cut -f1 "$SCAN_DIR/hits" | sort -u | sed 's/^/    /'
+  echo ""
+  echo "  Unstage it and rotate the key if it is real. A fake key in a test: end its"
+  echo "  line with a 'gitleaks:allow' comment."
+  echo ""
+  rm -rf "$SCAN_DIR"
+  exit 1
 fi
+rm -rf "$SCAN_DIR"
 
-echo "  ✓ Frontend checks passed"
-
-# =============================================================================
-# SECURITY QUICK SCAN (Non-blocking)
-# =============================================================================
-echo ""
-echo "🔐 Security quick scan..."
-
-# Quick secret scan on staged files only
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|json)$' || true)
-if [ -n "$STAGED_FILES" ]; then
-  # Check for obvious secrets patterns
-  SECRETS_FOUND=$(echo "$STAGED_FILES" | xargs grep -l -E "(sk_live_|AKIA[A-Z0-9]{16}|-----BEGIN.*PRIVATE KEY)" 2>/dev/null || true)
-  if [ -n "$SECRETS_FOUND" ]; then
-    echo ""
-    echo "  ⚠ POTENTIAL SECRETS DETECTED in:"
-    echo "$SECRETS_FOUND" | sed 's/^/    /'
-    echo ""
-    echo "  Run 'ferni security secrets' for full scan"
-  fi
-fi
-
-echo "  ✓ Security scan complete"
+echo "  ✓ No secret pattern in the staged lines"
 
 # =============================================================================
 # DONE
 # =============================================================================
 echo ""
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║  ✅ ALL PRE-COMMIT CHECKS PASSED                             ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
+if [ "$WARNINGS" -eq 0 ]; then
+  echo "╔══════════════════════════════════════════════════════════════╗"
+  echo "║  ✅ ALL PRE-COMMIT CHECKS PASSED                             ║"
+  echo "╚══════════════════════════════════════════════════════════════╝"
+else
+  echo "╔══════════════════════════════════════════════════════════════╗"
+  echo "║  ⚠  BLOCKING CHECKS PASSED, WITH NON-BLOCKING WARNINGS       ║"
+  echo "╚══════════════════════════════════════════════════════════════╝"
+  echo "  $WARNINGS non-blocking check(s) failed: see the ⚠ lines above."
+fi
 echo ""
 echo "┌──────────────────────────────────────────────────────────────┐"
 echo "│  💭 HUMAN-NESS CHECK                                         │"

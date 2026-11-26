@@ -115,6 +115,8 @@ export const API_ERRORS = {
   VISUAL_FETCH_FAILED: "Couldn't load that visual memory. Try again?",
   VISUAL_DELETE_FAILED: "Couldn't delete that visual memory. Try again?",
 
+  CALLS_NOT_CONFIGURED: "Calls aren't set up on this server.",
+
   // Smart Home Integrations (Oura, Ecobee)
   INTEGRATION_NOT_CONFIGURED: (name: string) => `${name} integration isn't set up yet.`,
   OAUTH_MISSING_PARAMS: 'Something went wrong with the connection. Mind trying again?',

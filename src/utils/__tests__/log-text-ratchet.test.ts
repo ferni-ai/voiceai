@@ -111,7 +111,6 @@ const PENDING_3215B: Record<string, string[]> = {
     'entityNames: entityExtractionResult.entities.map((e) => e.name).slice(0, 5)',
   ],
   'src/memory/knowledge-graph/storage/thread-store.ts': ['topic: thread.topic'],
-  'src/memory/spanner-graph/client.ts': ['name: entity.name'],
   'src/personas/bundles/ferni/superhuman-memory-integration.ts': ['topic: insight.topic'],
   'src/services/coaching/goal-tracking.ts': [
     'title: goal.title',
@@ -435,8 +434,8 @@ describe('log calls in src/ carry no conversation text (#2689, #3215)', () => {
 
   // 82 at first, plus 47 found by the topic, canonicalName and bound-name shapes (#3724),
   // less the 2 query-threads.ts calls #3744 removed
-  it('holds exactly the 116 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
-    expect(Object.values(PENDING_3215B).flat()).toHaveLength(116);
+  it('holds exactly the 115 calls #3215 PR (b) fixes: lower it as they go, never raise it', () => {
+    expect(Object.values(PENDING_3215B).flat()).toHaveLength(115);
   });
 
   it('keeps pending calls out of the other lists', () => {

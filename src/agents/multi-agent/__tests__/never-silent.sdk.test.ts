@@ -13,15 +13,21 @@ import {
   voice,
 } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
+import type { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { RenderedLine } from '../fallback-line-render.js';
 import { FALLBACK_LINES } from '../never-silent.js';
+import { tapToolCalls } from '../../personas/turn-request-tools.js';
 import { installNeverSilent } from '../never-silent-install.js';
 
 const SAMPLE_RATE = 24_000;
+/** NEVER_SILENT_TOOL_WAIT's line (never-silent-tool-wait.ts), pinned here. */
+const STILL_WORKING_LINE = 'Still on it, one sec.';
+const VOICE_ID = 'voice-riley-test';
 const BUDGET_MS = 2500;
 
-type Step = 'ok' | 'fail' | 'hang' | 'tool';
+type Step = 'ok' | 'fail' | 'hang' | 'tool' | 'slowTool' | 'leadInSlowTool';
 
 /** One scripted behaviour per LLM call; the last one repeats. */
 class ScriptedLLM extends llm.LLM {
@@ -63,13 +69,16 @@ class ScriptedStream extends llm.LLMStream {
       return new Promise<void>((resolve) => {
         this.abortController.signal.addEventListener('abort', () => resolve());
       });
+    const tool = this.step === 'tool' ? 'lookup' : 'slowLookup';
     const delta: llm.ChoiceDelta =
-      this.step === 'tool'
-        ? {
+      this.step === 'ok'
+        ? { role: 'assistant', content: 'Sure, happy to help.' }
+        : {
             role: 'assistant',
-            toolCalls: [llm.FunctionCall.create({ callId: 'c1', name: 'lookup', args: '{}' })],
-          }
-        : { role: 'assistant', content: 'Sure, happy to help.' };
+            // A spoken lead-in before the tool call, as the model often does.
+            ...(this.step === 'leadInSlowTool' && { content: 'Sure.' }),
+            toolCalls: [llm.FunctionCall.create({ callId: 'c1', name: tool, args: '{}' })],
+          };
     this.queue.put({ id: 'r', delta });
   }
 }
@@ -86,8 +95,13 @@ class FakeTTS extends tts.TTS {
   down = false;
   garbled = false;
   requests = 0;
+  /** Lines rendered for the fallback (fallback-line-render.ts), by the voice asked for. */
+  renders: string[] = [];
   constructor() {
     super(SAMPLE_RATE, 1, { streaming: false });
+  }
+  getVoiceId(): string {
+    return VOICE_ID;
   }
   synthesize(text: string): tts.ChunkedStream {
     this.requests += 1;
@@ -96,6 +110,12 @@ class FakeTTS extends tts.TTS {
   stream(): tts.SynthesizeStream {
     throw new Error('not streaming');
   }
+  /** Stands in for renderFallbackLine: the same audio this TTS would make, or a failed request. */
+  readonly render = async (_text: string, voiceId: string): Promise<RenderedLine> => {
+    this.renders.push(voiceId);
+    if (this.down) return { failure: 'http_status', statusClass: '5xx' };
+    return { frames: [toneOrNoise(this.garbled)] };
+  };
 }
 
 class FakeChunked extends tts.ChunkedStream {
@@ -110,13 +130,22 @@ class FakeChunked extends tts.ChunkedStream {
   }
   protected async run(): Promise<void> {
     if (this.down) return;
-    const samples = this.garbled ? 552 : SAMPLE_RATE;
-    const data = Int16Array.from({ length: samples }, (_, i) =>
-      this.garbled ? 0x7b22 : Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / SAMPLE_RATE))
-    );
-    const frame = new AudioFrame(data, SAMPLE_RATE, 1, samples);
-    this.queue.put({ requestId: 'r', segmentId: 's', frame, final: true });
+    this.queue.put({
+      requestId: 'r',
+      segmentId: 's',
+      frame: toneOrNoise(this.garbled),
+      final: true,
+    });
   }
+}
+
+/** 1 s of a voiced tone, or 23 ms of noise: a failed REST body read as PCM. */
+function toneOrNoise(garbled: boolean): AudioFrame {
+  const samples = garbled ? 552 : SAMPLE_RATE;
+  const data = Int16Array.from({ length: samples }, (_, i) =>
+    garbled ? 0x7b22 : Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / SAMPLE_RATE))
+  );
+  return new AudioFrame(data, SAMPLE_RATE, 1, samples);
 }
 
 /** An audio sink that "plays" each segment instantly and records what it played. */
@@ -161,13 +190,27 @@ class ToolAgent extends voice.Agent {
             throw new Error('tool exploded');
           },
         }),
+        // A tool that hangs well past every wait in these rows.
+        slowLookup: llm.tool({
+          description: 'Look something up slowly',
+          parameters: z.object({}),
+          execute: async () =>
+            new Promise<string>((resolve) => {
+              setTimeout(() => resolve('found'), 8000).unref();
+            }),
+        }),
       },
     });
   }
   async llmNode(...args: Parameters<voice.Agent['llmNode']>): ReturnType<voice.Agent['llmNode']> {
     // The 2026-10-11 incident: a package pruned from the image, thrown inside the turn.
     if (this.crash) throw new Error("Cannot find package 'suffix-thumb' (ERR_MODULE_NOT_FOUND)");
-    return super.llmNode(...args);
+    // As in production (crisis-gate.ts): the reply reports its tool calls to the guards.
+    const reply = await super.llmNode(...args);
+    return tapToolCalls(
+      reply as ReadableStream<llm.ChatChunk | string> | null,
+      this.session
+    ) as never;
   }
 }
 
@@ -176,6 +219,8 @@ interface Harness {
   ttsModel: FakeTTS;
   out: FakeAudioOutput;
   log: Array<Record<string, unknown>>;
+  /** Every assistant line committed to the chat, in order. */
+  heard: string[];
   /** Ask as the caller; resolves with ms from the commit to the fallback line, or null. */
   ask: (text: string, waitMs?: number) => Promise<number | null>;
 }
@@ -184,7 +229,7 @@ const open: voice.AgentSession[] = [];
 
 async function harness(
   script: Step[],
-  opts: { mode?: string; crash?: boolean; hangMs?: string } = {}
+  opts: { mode?: string; crash?: boolean; hangMs?: string; toolWait?: string } = {}
 ): Promise<Harness> {
   const ttsModel = new FakeTTS();
   const session = new voice.AgentSession({ llm: new ScriptedLLM(script), tts: ttsModel });
@@ -203,11 +248,22 @@ async function harness(
     sessionId: `ns-${open.length}`,
     userId: undefined,
   };
-  installNeverSilent(input, {
-    NEVER_SILENT: opts.mode ?? 'on',
-    NEVER_SILENT_HANG_MS: opts.hangMs ?? '1000',
-  });
+  installNeverSilent(
+    input,
+    {
+      NEVER_SILENT: opts.mode ?? 'on',
+      NEVER_SILENT_HANG_MS: opts.hangMs ?? '1000',
+      ...(opts.toolWait && { NEVER_SILENT_TOOL_WAIT: opts.toolWait }),
+    },
+    ttsModel.render
+  );
 
+  const heard: string[] = [];
+  session.on(voice.AgentSessionEventTypes.ConversationItemAdded, ((ev: {
+    item: { role?: string; textContent?: string };
+  }) => {
+    if (ev.item.role === 'assistant' && ev.item.textContent) heard.push(ev.item.textContent);
+  }) as never);
   const ask = async (text: string, waitMs = 3000): Promise<number | null> => {
     let committedAt = 0;
     let fallbackAt: number | null = null;
@@ -228,7 +284,7 @@ async function harness(
     session.off(voice.AgentSessionEventTypes.ConversationItemAdded, onItem as never);
     return fallbackAt === null ? null : fallbackAt - committedAt;
   };
-  return { session, ttsModel, out, log, ask };
+  return { session, ttsModel, out, log, heard, ask };
 }
 
 describe('never silent: fault injection on a real AgentSession', () => {
@@ -260,8 +316,8 @@ describe('never silent: fault injection on a real AgentSession', () => {
   it('TTS gateway down: the pre-rendered fallback still plays', async () => {
     const h = await harness(['ok']);
     await h.ask('warm up', 1000); // first reply, then the lines are rendered
-    const rendered = h.ttsModel.requests;
-    expect(rendered).toBeGreaterThanOrEqual(1 + FALLBACK_LINES.length);
+    // Rendered in the session's voice, read from its TTS.
+    expect(h.ttsModel.renders).toEqual(FALLBACK_LINES.map(() => VOICE_ID));
     h.ttsModel.down = true;
     const framesBefore = h.out.frames;
     const ms = await h.ask('tell me more');
@@ -303,8 +359,38 @@ describe('never silent: fault injection on a real AgentSession', () => {
     expect(await h.ask('click', 2000)).toBeNull();
   });
 
+  it('NEVER_SILENT shadow: nothing is rendered, and no synthesis beyond the replies', async () => {
+    const off = await harness(['ok'], { mode: 'off' });
+    await off.ask('warm up', 1000);
+    await off.ask('and again', 1000);
+    const shadow = await harness(['ok'], { mode: 'shadow' });
+    await shadow.ask('warm up', 1000); // first reply: under 'on' the lines render here
+    await shadow.ask('and again', 1000);
+    expect(shadow.ttsModel.renders).toEqual([]);
+    expect(shadow.ttsModel.requests).toBeGreaterThan(0); // the replies did synthesize
+    expect(shadow.ttsModel.requests).toBe(off.ttsModel.requests);
+  });
+
   it('NEVER_SILENT off: the same failure is silent (the bug this fixes)', async () => {
     const h = await harness(['fail'], { mode: 'off' });
     expect(await h.ask('anyone home', 2000)).toBeNull();
+  });
+
+  it('a tool that hangs after a spoken lead-in: flag off, nothing more is said', async () => {
+    const h = await harness(['leadInSlowTool'], { hangMs: '1000' });
+    await h.ask('check my calendar', 3500);
+    expect(h.heard).toEqual(['Sure.']);
+  });
+
+  it('a tool that hangs after a spoken lead-in: NEVER_SILENT_TOOL_WAIT says it is still on it', async () => {
+    const h = await harness(['leadInSlowTool'], { hangMs: '1000', toolWait: 'on' });
+    await h.ask('check my calendar', 3500);
+    expect(h.heard).toEqual(['Sure.', STILL_WORKING_LINE]);
+  });
+
+  it('a tool that hangs with no lead-in: NEVER_SILENT_TOOL_WAIT says it is still on it, no re-ask', async () => {
+    const h = await harness(['slowTool'], { hangMs: '1000', toolWait: 'on' });
+    await h.ask('check my calendar', 3500);
+    expect(h.heard).toEqual([STILL_WORKING_LINE]);
   });
 });

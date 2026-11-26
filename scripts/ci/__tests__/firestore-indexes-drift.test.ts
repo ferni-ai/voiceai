@@ -40,7 +40,7 @@ describe('firestore index drift', () => {
     ]);
   });
 
-  it('the repo file deletes nothing in prod; it only creates the 3 exemptions, the activity and the waitlist indexes', () => {
+  it('the repo file deletes nothing in prod; it only creates the 3 exemptions and the activity, BTH, waitlist and wisdom indexes', () => {
     const drift = computeDrift(indexFile(), prod());
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.allowedDelete).toEqual([]);
@@ -49,8 +49,18 @@ describe('firestore index drift', () => {
       'composite activity (COLLECTION): state ASCENDING, updatedAt DESCENDING',
       'composite activity (COLLECTION): subjectKeys CONTAINS, state ASCENDING, updatedAt DESCENDING',
       'composite activity (COLLECTION): subjectKeys CONTAINS, updatedAt DESCENDING',
+      // the admin BTH telemetry query (getCapabilityTelemetry), not deployed yet
+      'composite bth_production_events (COLLECTION): capability ASCENDING, timestamp ASCENDING',
+      // the wisdom reads' filtered lists (wisdom-intelligence-services.ts): prod 11-16..23
+      // failed 4 of them with FAILED_PRECONDITION, and the other 2 share the shape
+      'composite enough_statements (COLLECTION): domain ASCENDING, recordedAt DESCENDING',
+      'composite legacy_statements (COLLECTION): importance ASCENDING, recordedAt DESCENDING',
+      'composite life_chapters (COLLECTION): status ASCENDING, startDate DESCENDING',
+      'composite paradoxes (COLLECTION): status ASCENDING, recordedAt DESCENDING',
       // the waitlist wave store's lapse query (wave-store.ts), not deployed yet
       'composite waitlist (COLLECTION): status ASCENDING, seatExpiresAt ASCENDING',
+      'composite wisdom_incubation (COLLECTION): status ASCENDING, recordedAt DESCENDING',
+      'composite wisdom_patterns (COLLECTION): patternType ASCENDING, occurrences DESCENDING',
       'field override memory_vectors.text indexes=[none (exempt)]',
       'field override unified_memories.content indexes=[none (exempt)]',
       'field override vectors.text indexes=[none (exempt)]',
@@ -116,7 +126,7 @@ describe('firestore index drift', () => {
     const prodTtls = prod().ttls.map((f) =>
       f.name.split('/collectionGroups/')[1].replace('/fields/', '.')
     );
-    expect(prodTtls).toHaveLength(19);
+    expect(prodTtls).toHaveLength(20);
     // Each prod policy is either already on dev or one the next dev deploy adds.
     const devTtls = new Set(
       dev().ttls.map((f) => f.name.split('/collectionGroups/')[1].replace('/fields/', '.'))

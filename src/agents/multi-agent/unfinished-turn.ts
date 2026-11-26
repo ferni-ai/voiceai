@@ -59,6 +59,13 @@ const DANGLING_WORDS = new Set([
   'i',
 ]);
 
+/**
+ * Words no sentence ends on, even one ink closed with a period: "...and." / "...um." is a
+ * thought that stopped (#4242). Narrower than DANGLING_WORDS, whose other words end real
+ * sentences ("I think so.", "I wanted to.", "Just because.", "Turn it on.").
+ */
+const NEVER_LAST_WORDS = new Set(['and', 'but', 'or', 'um', 'uh', 'er', 'erm']);
+
 /** Short replies that are whole turns even when ink leaves them unpunctuated. */
 const WHOLE_SHORT_REPLIES = new Set(['no', 'nope', 'nah', 'hi', 'hello', 'hey', 'bye', 'thanks']);
 
@@ -125,6 +132,12 @@ export function unfinishedness(transcript: string, env: Env = process.env): Unfi
   const text = transcript.trim().replace(/["')\]]+$/, '');
   const ws = words(text);
   if (ws.length === 0) return 'finished';
+  if (
+    text.endsWith('.') &&
+    NEVER_LAST_WORDS.has(ws[ws.length - 1]) &&
+    flagOn('UNFINISHED_TURN_PERIOD_DANGLING', env)
+  )
+    return 'dangling';
   if (/[.?!]$/.test(text) && !/\.\.\.$/.test(text)) return 'finished';
   if (/(,|-|—|…|\.\.\.)$/.test(text)) return 'dangling';
   // Before the dangling words: "hold on" ends on one.
@@ -149,13 +162,19 @@ export interface UnfinishedTurnHoldSession {
   unfinishedTurnHoldMs?: (transcript: string) => number;
 }
 
-/** Install the hold on a live session. Returns whether it was installed. */
+/**
+ * Install the hold on a live session. Returns whether it was installed. `unlabel` gives a
+ * turn's words without its group call labels (turn-label.ts stripTurnLabel). It is required
+ * so the live wiring can't drop it unnoticed; a caller with no labels passes the text back.
+ */
 export function installUnfinishedTurnHold(
   session: object,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined>,
+  unlabel: (transcript: string) => string
 ): boolean {
   if (env.UNFINISHED_TURN_HOLD === 'off') return false;
-  (session as UnfinishedTurnHoldSession).unfinishedTurnHoldMs = unfinishedTurnHoldMs;
+  (session as UnfinishedTurnHoldSession).unfinishedTurnHoldMs = (transcript) =>
+    unfinishedTurnHoldMs(unlabel(transcript));
   return true;
 }
 
@@ -211,19 +230,20 @@ interface EndpointingSession {
   updateOptions(options: { turnHandling: { endpointing: { minDelay: number } } }): void;
 }
 
-/** Install the fast floor on a live session. Returns a detach, or null when off. */
+/** Install the fast floor on a live session (`unlabel` as above). A detach, or null when off. */
 export function installFinishedTurnEndpointing(
   session: EndpointingSession,
   baseMs: number,
-  env: Record<string, string | undefined> = process.env,
-  onChange: (minDelayMs: number) => void = () => undefined
+  env: Record<string, string | undefined>,
+  onChange: (minDelayMs: number) => void,
+  unlabel: (transcript: string) => string
 ): (() => void) | null {
   if (env.ENDPOINT_FAST_FINISHED !== 'on') return null;
   const raw = Number(env.ENDPOINT_FINISHED_MIN_MS ?? DEFAULT_FINISHED_MIN_MS);
   const fastMs = Number.isFinite(raw) && raw >= 50 ? raw : DEFAULT_FINISHED_MIN_MS;
   let current = baseMs;
   const onTranscript = (ev: unknown): void => {
-    const transcript = (ev as { transcript?: string } | undefined)?.transcript ?? '';
+    const transcript = unlabel((ev as { transcript?: string } | undefined)?.transcript ?? '');
     if (!transcript.trim() || session.agentState === 'speaking') return;
     const next = finishedTurnMinDelayMs(transcript, baseMs, fastMs);
     if (next === current) return;

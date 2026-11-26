@@ -525,7 +525,7 @@ function buildTablet(
     }
     
     // Phase label - positioned above or below based on y position
-    const labelY = y < 60 ? y + 22 : y - 14;
+    const labelY = y < 60 ? y + (isCurrent ? 30 : 20) : y - (isCurrent ? 22 : 12); // clear of the dot and its glow (r 16)
     const label = createSvgElement('text');
     label.setAttribute('x', String(x));
     label.setAttribute('y', String(labelY));

@@ -21,6 +21,9 @@ import {
   fetchWithDeadline,
   valueWithin,
 } from './request-deadline.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('API');
 
 // Track if we've ensured auth is ready
 let authReadyPromise: Promise<void> | null = null;
@@ -28,22 +31,40 @@ let authReadyPromise: Promise<void> | null = null;
 /**
  * Ensure Firebase Auth is initialized before making API calls.
  * This prevents race conditions where API calls happen before auth is ready.
+ * The one copy for utils/api.ts and this file.
  *
  * - First call initializes auth (if not already)
  * - Subsequent calls return immediately
  * - Safe to call multiple times
  * - Waits at most AUTH_READY_TIMEOUT_MS: auth that fails or never starts leaves
- *   API calls on the X-User-Id fallback instead of holding them up
+ *   API calls on the X-User-Id fallback instead of holding them up. The timer
+ *   is cleared once auth answers, so the warning means auth really was late
+ *   (an uncleared timer here logged it 5 s into every load, signed in or not).
  */
-async function ensureAuthReady(): Promise<void> {
+export async function ensureAuthReady(): Promise<void> {
   if (!authReadyPromise) {
     const started = initAuth().then(
-      () => undefined,
-      () => undefined
+      () => true,
+      (error: unknown) => {
+        log.warn('Auth init failed - continuing without auth', error);
+        return true;
+      }
     );
-    authReadyPromise = valueWithin(started, AUTH_READY_TIMEOUT_MS, undefined);
+    authReadyPromise = valueWithin(started, AUTH_READY_TIMEOUT_MS, false).then((answered) => {
+      if (!answered) log.warn(`Auth init timed out after ${AUTH_READY_TIMEOUT_MS / 1000}s - continuing without auth`);
+    });
   }
   return authReadyPromise;
+}
+
+/**
+ * The signed-in person's Firebase uid once auth has answered, else null.
+ * For per-person work started at app load: the device id names no one the
+ * server knows, so a signed-out visitor gets null rather than a stand-in.
+ */
+export async function getSignedInUid(): Promise<string | null> {
+  await ensureAuthReady();
+  return getFirebaseUid();
 }
 
 /**

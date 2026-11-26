@@ -107,16 +107,27 @@ export function docSource(
  * What's true about Ferni today, from PR #1176's audit of the blog. Every
  * consumer draft gets it so the model can't fill a gap with an invented user.
  */
+const NO_USERS_YET = [
+  'Ferni is new and has essentially no users yet. There are no user stories, quotes, testimonials or usage numbers to share.',
+  'Example people in a post are composites we wrote, and the post must say so.',
+];
+const PRODUCT_STATUS = [
+  'A reply from Ferni takes around two seconds today, slower than we want.',
+  'Changes run on a development agent first and reach production later.',
+];
+
 export const HOUSE_FACTS: Source = {
   label: 'PR #1176: fix(website): stop presenting invented stories and stats as real in the blog',
   url: 'https://github.com/ferni-ai/voiceai/pull/1176',
-  text: [
-    'Ferni is new and has essentially no users yet. There are no user stories, quotes, testimonials or usage numbers to share.',
-    'Example people in a post are composites we wrote, and the post must say so.',
-    'A reply from Ferni takes around two seconds today, slower than we want.',
-    'Changes run on a development agent first and reach production later.',
-  ].join('\n'),
+  text: [...NO_USERS_YET, ...PRODUCT_STATUS].join('\n'),
 };
+
+/**
+ * The house facts for a character's letter, without the product status: a
+ * character who says "changes run on a development agent first" breaks frame,
+ * which the judge scores 1 or 2 on honesty (rubric.ts).
+ */
+export const LETTER_HOUSE_FACTS: Source = { ...HOUSE_FACTS, text: NO_USERS_YET.join('\n') };
 
 /** The pack as the model reads it: numbered, each with its source. */
 export function renderPack(sources: Source[]): string {

@@ -55,6 +55,7 @@ import {
 } from '../shared/openai-health-monitor.js';
 import * as forgotten from '../../memory/recall/forget-every-reader.js';
 import { setupProfileReader } from './setup-profile.js';
+import { startCallSheet } from './call-sheet/index.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -72,6 +73,7 @@ import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
+import { earlierCallNote } from '../personas/earlier-call-honest.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -151,8 +153,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
 import { isUnplacedCaller, unsavedCallerNote } from './unknown-caller-honest.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
-import { lastTalkedAwareness } from './welcome-back.js';
-import { calendarDaysSince } from '../../utils/calendar-days.js';
+import { lastCallAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 import { recentTextsBlock } from './recent-texts-awareness.js';
 import { callerCardText, whoYoureTalkingTo } from './caller-card/index.js';
@@ -332,11 +333,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   //   - Concise, critical rules that must never be forgotten
   // Agent-level: Full persona prompt (identity, detailed tools, personality)
   //   - Sent via updateInstructions() after session starts: full identity and tool catalog
-
   let systemPrompt: string;
   let modelBaseInstructions: string;
   // The model-level text before this call's date, time and caller are added.
   let stableBase = '';
+  const callSheet = startCallSheet(sessionId, services.userId, { phoneCall: config.phoneCaller });
   try {
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
@@ -351,7 +352,6 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
-    stableBase = baseInstructions;
 
     // DATE/TIME AWARENESS: in the model-level instructions so the agent knows the date and
     // time from the VERY FIRST MOMENT (including greeting)
@@ -368,8 +368,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
     const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
-    modelBaseInstructions =
-      baseInstructions + dateTimeContext + worldNowRule + cityContext + who + texts;
+    stableBase = baseInstructions + earlierCallNote(outboundPartiesFor(sessionId)); // cached prefix
+    modelBaseInstructions = stableBase + dateTimeContext + worldNowRule + cityContext + who + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : await readProfile();
@@ -378,7 +378,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
       rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
-      const sessionStartTime = new Date();
+      const lastCall = { at: userProfile.lastContact, now: new Date(), zone: callZone };
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
       if (displayName) userAwareness.push(`You're talking to ${displayName}.`);
@@ -405,8 +405,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
         // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
-          userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
+          userAwareness.push(...lastCallAwareness(lastCall, userProfile.lastCallerSummary)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
         userAwareness.push(firstTalkNote(sessionId, isUnplacedCaller(userId, false)));
@@ -431,7 +430,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       // Ferni remembers EXACTLY what you talked about
       // =========================================================================
       if (isReturningUser && userProfile.lastCallerSummary) {
-        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary));
+        userAwareness.push(lastTalkedAbout(!!teammate, userProfile.lastCallerSummary, lastCall));
       }
 
       // =========================================================================
@@ -1124,10 +1123,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   // See: https://github.com/livekit/agents/issues/4423
   // See: https://github.com/googleapis/python-genai/issues/1780
   //
-  // For TEXT modality + Cartesia TTS, use standard models like:
-  // - gemini-2.0-flash-live-preview-04-09 (WORKING on Vertex AI Live API)
-  // - gemini-2.0-flash-exp (NOT supported by Live API)
-  //
+  // For TEXT modality + Cartesia TTS use a standard model: gemini-2.0-flash-live-preview-04-09
+  // works on the Vertex AI Live API; gemini-2.0-flash-exp is not supported there.
   const VOICE_MODEL = getRealtimeModel();
 
   log.info(
@@ -1135,6 +1132,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     `${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}`
   );
 
+  if (callSheet) modelBaseInstructions += callSheet.take(); // PERSON_MODEL_READ, never awaited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const llmModel: any = await modelProvider.createLLMModel({
     model: VOICE_MODEL,

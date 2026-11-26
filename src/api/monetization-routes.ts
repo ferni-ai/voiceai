@@ -64,8 +64,8 @@ interface RequestContext {
    * Only populated after proper authentication via requireAuth middleware.
    */
   authUserId?: string;
-  /** Whether the authenticated user is an admin */
-  isAdmin?: boolean;
+  isAdmin?: boolean; // whether the authenticated user is an admin
+  voter?: { signInProvider?: string; emailVerified?: boolean }; // from the verified token
 }
 
 interface ResponseContext {

@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "bth_production_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "capability", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "memories",
       "queryScope": "COLLECTION",
       "fields": [
@@ -1883,6 +1891,54 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "started_at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "paradoxes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "enough_statements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "domain", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wisdom_incubation",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wisdom_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "patternType", "order": "ASCENDING" },
+        { "fieldPath": "occurrences", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "legacy_statements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "importance", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "life_chapters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "startDate", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
@@ -2121,6 +2177,16 @@
     },
     {
       "collectionGroup": "musical_challenges",
+      "fieldPath": "ttlAt",
+      "ttl": true,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
+      ]
+    },
+    {
+      "collectionGroup": "guest_invites",
       "fieldPath": "ttlAt",
       "ttl": true,
       "indexes": [

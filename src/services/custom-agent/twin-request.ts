@@ -13,6 +13,7 @@
  * @module services/custom-agent/twin-request
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { getJournalService } from '../journal/index.js';
 import { getCustomAgent, listCustomAgents } from './custom-agent-persistence-service.js';
@@ -46,8 +47,41 @@ function describeStyle(personality: Record<string, unknown>): string {
   return picked.length > 0 ? picked.join(', ') : 'natural and authentic';
 }
 
-/** The twin agent's profile, as talk-to-twin builds it (talk-to-twin.ui.ts buildTwinContext). */
-export function twinProfileFromAgent(agent: CustomAgent): TwinResponseRequest['profile'] {
+const records = (value: unknown): Array<Record<string, unknown>> =>
+  Array.isArray(value)
+    ? value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null)
+    : [];
+const textOf = (value: unknown): string => (typeof value === 'string' ? value : '');
+const fieldOf = (value: unknown, key: string): unknown =>
+  typeof value === 'object' && value !== null ? Reflect.get(value, key) : undefined;
+
+/** The twin's life events and people, mapped as talk-to-twin maps them (buildTwinContext). */
+function lifeAndPeople(
+  agent: CustomAgent
+): Pick<TwinResponseRequest['profile'], 'lifeChapters' | 'relationships'> {
+  // Stored on the agent document, though not on the API type (as the client reads them)
+  const memories: unknown = agent.memories;
+  return {
+    lifeChapters: records(fieldOf(memories, 'lifeEvents')).map((event) => ({
+      title: textOf(event.title),
+      years: textOf(event.date),
+      description: textOf(event.description),
+    })),
+    relationships: records(fieldOf(memories, 'relationships')).map((person) => ({
+      name: textOf(person.personName),
+      relationship: textOf(person.relationship),
+    })),
+  };
+}
+
+/**
+ * The twin agent's profile, as talk-to-twin builds it (talk-to-twin.ui.ts buildTwinContext).
+ * Its life events and people only under TWIN_CONVERSATION_V2.
+ */
+export function twinProfileFromAgent(
+  agent: CustomAgent,
+  env: Env = process.env
+): TwinResponseRequest['profile'] {
   const personality = (agent.personality ?? {}) as unknown as Record<string, unknown>;
   const behaviors = (agent.behaviors ?? {}) as unknown as Record<string, unknown>;
   const celebrations = strings(behaviors.celebrationPhrases);
@@ -66,6 +100,7 @@ export function twinProfileFromAgent(agent: CustomAgent): TwinResponseRequest['p
     },
     greetingStyle: strings(behaviors.greetings)[0] ?? '',
     farewellStyle: strings(behaviors.farewells)[0] ?? '',
+    ...(flagOn('TWIN_CONVERSATION_V2', env) ? lifeAndPeople(agent) : {}),
   };
 }
 
@@ -94,17 +129,39 @@ const words = (text: string) =>
  * The request with a profile, relevant journal entries and themes filled in
  * from the caller's twin when the client sent no profile. Unchanged when it
  * already has one, or when the caller has no twin (the route then answers 400).
+ *
+ * TWIN_CONVERSATION_V2: the entries are picked here for talk-to-twin too, by the one
+ * rule below, and the client's own pick is replaced. Limit: this reads the caller's
+ * journal by uid, the client read its twin's entries. With one twin and JOURNAL_ONE_STORE
+ * those are the same entries; a caller with several twins gets entries from all of them.
  */
-export async function withOwnTwin(uid: string, body: TwinRequestBody): Promise<TwinRequestBody> {
-  if (hasTwinProfile(body.profile) || !body.userMessage) return body;
+export async function withOwnTwin(
+  uid: string,
+  body: TwinRequestBody,
+  env: Env = process.env
+): Promise<TwinRequestBody> {
+  if (!body.userMessage) return body;
+  if (hasTwinProfile(body.profile)) {
+    if (!flagOn('TWIN_CONVERSATION_V2', env)) return body;
+    const { relevantJournals } = await readJournal(uid, body.userMessage);
+    return { ...body, relevantJournals };
+  }
   const twin = await findTwin(uid, body.agentId);
   if (!twin) return body;
+  const journal = await readJournal(uid, body.userMessage);
+  return { ...body, profile: twinProfileFromAgent(twin, env), ...journal };
+}
 
+/** The entries the message is about (shared words, stopwords left out) and the journal's main themes. */
+async function readJournal(
+  uid: string,
+  message: string
+): Promise<Pick<Required<TwinRequestBody>, 'relevantJournals' | 'keyThemes'>> {
   const entries = await getJournalService().getAllEntries(uid, {
     limit: JOURNAL_LOOKBACK,
     sortOrder: 'desc',
   });
-  const asked = words(body.userMessage);
+  const asked = words(message);
   const relevantJournals = entries
     .map((entry) => ({
       entry,
@@ -127,5 +184,5 @@ export async function withOwnTwin(uid: string, body: TwinRequestBody): Promise<T
     .slice(0, 5)
     .map(([t]) => t);
 
-  return { ...body, profile: twinProfileFromAgent(twin), relevantJournals, keyThemes };
+  return { relevantJournals, keyThemes };
 }

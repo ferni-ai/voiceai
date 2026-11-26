@@ -117,11 +117,19 @@ export function turnOpenedSince(session: object, since: number): boolean {
 export interface EarlyOpening {
   waitMs: number;
   /** Whether the reply's words reached TTS at or after this time. */
-  replyTextSince(since: number): boolean;
+  replyTextSince: (since: number) => boolean;
   /** The clip's length in ms (0 when unknown). */
-  clipMs(text: string): number;
+  clipMs: (text: string) => number;
   /** Hold the reply's first audio this long. */
-  holdReply(ms: number): void;
+  holdReply: (ms: number) => void;
+  /**
+   * The pause hold has this turn's reply waiting (pauseHoldHolding, pause-hold.ts). The clip is
+   * then skipped: played 120 ms after a hesitant commit, it lands in the pause the hold waits
+   * out, and the reply comes up to ~2.5 s later, so the "Mm" reads as a cut-in, then dead air.
+   */
+  replyHeld?: () => boolean;
+  /** Logged with each early clip and skip, so a night's logs can join them to the hold's lines. */
+  sessionId?: string;
 }
 
 export interface TurnOpeningMoment {
@@ -149,8 +157,8 @@ export function turnOpeningClip(
 }
 
 interface SessionEvents {
-  on(event: string, handler: (ev: unknown) => void): unknown;
-  off(event: string, handler: (ev: unknown) => void): unknown;
+  on: (event: string, handler: (ev: unknown) => void) => unknown;
+  off: (event: string, handler: (ev: unknown) => void) => unknown;
 }
 
 /**
@@ -198,6 +206,13 @@ export function attachTurnOpeningSound(
     if (slowSoundBlocksEarly(session)) return; // one sound a turn (opening-sound-ledger.ts)
     // Not right after a backchannel either: "mm-hm ... Mm".
     if (Date.now() - clips.lastPlayedAt() < TURN_OPENING.afterBackchannelMs) return;
+    if (early.replyHeld?.()) {
+      log.info(
+        { sessionId: early.sessionId, afterCommitMs: Date.now() - thinkingAt },
+        'TURN_OPENING_SKIPPED_HOLD'
+      );
+      return;
+    }
     const text = earlyOpeningClip(lastUserTranscript(), lastClip, heavy());
     playedLastTurn = text !== null && clips.playClip(text);
     if (!playedLastTurn || text === null) return;
@@ -210,7 +225,13 @@ export function attachTurnOpeningSound(
     const wireMs = clips.wireDelayMs?.() ?? 0;
     early.holdReply(clipMs + wireMs);
     log.info(
-      { text: replyForLog(text), afterCommitMs: Date.now() - thinkingAt, clipMs, wireMs },
+      {
+        sessionId: early.sessionId,
+        text: replyForLog(text),
+        afterCommitMs: Date.now() - thinkingAt,
+        clipMs,
+        wireMs,
+      },
       'TURN_OPENING_EARLY'
     );
   };

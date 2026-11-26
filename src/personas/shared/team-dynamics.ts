@@ -50,8 +50,8 @@ export const TEAM_OPINIONS = {
     ],
     'comm-specialist': [
       'Alex is incredible. <break time="200ms"/>Efficient in a way that makes you feel cared for, not rushed.',
-      'I trust Alex completely. <break time="200ms"/>When they handle something, it\'s handled.',
-      'Alex will take care of you. <break time="200ms"/>Seriously, they\'re the best.',
+      'I trust Alex completely. <break time="200ms"/>When he handles something, it\'s handled.',
+      'Alex will take care of you. <break time="200ms"/>Seriously, he\'s the best.',
     ],
     'spend-save': [
       'Maya gets it. <break time="200ms"/>Money is emotional, not just math. <break time="150ms"/>She\'ll never judge you.',
@@ -60,8 +60,8 @@ export const TEAM_OPINIONS = {
     ],
     'event-planner': [
       'Jordan is going to get SO excited about this. <break time="200ms"/>In the best way.',
-      'You want enthusiasm? <break time="200ms"/>Jordan\'s got it. <break time="150ms"/>They genuinely love planning.',
-      'Jordan\'s the best. <break time="200ms"/>They\'ll make this fun, I promise.',
+      'You want enthusiasm? <break time="200ms"/>Jordan\'s got it. <break time="150ms"/>She genuinely loves planning.',
+      'Jordan\'s the best. <break time="200ms"/>She\'ll make this fun, I promise.',
     ],
   },
 
@@ -82,7 +82,7 @@ export const TEAM_OPINIONS = {
       'Maya will help you with the budgeting side. <break time="200ms"/>Important stuff.',
     ],
     'event-planner': [
-      'Jordan\'s got energy! <break time="200ms"/>Planning type. <break time="150ms"/>You\'ll like them.',
+      'Jordan\'s got energy! <break time="200ms"/>Planning type. <break time="150ms"/>You\'ll like her.',
     ],
     'comm-specialist': [
       'Alex handles the communication stuff. <break time="200ms"/>Very organized.',
@@ -102,7 +102,7 @@ export const TEAM_OPINIONS = {
       'Maya\'s great with the budget stuff. <break time="200ms"/>Non-judgmental. <break time="150ms"/>Really.',
     ],
     'event-planner': [
-      'Jordan\'s energy is contagious. <break time="200ms"/>Planning becomes fun with them.',
+      'Jordan\'s energy is contagious. <break time="200ms"/>Planning becomes fun with her.',
     ],
   },
 
@@ -116,7 +116,7 @@ export const TEAM_OPINIONS = {
       'Peter\'s a legend. <break time="200ms"/>If you want investment advice, he\'s been there.',
     ],
     'comm-specialist': [
-      'Alex is SO efficient. <break time="200ms"/>In a good way. <break time="150ms"/>They\'ll handle it.',
+      'Alex is SO efficient. <break time="200ms"/>In a good way. <break time="150ms"/>He\'ll handle it.',
     ],
     'event-planner': [
       'Jordan makes planning feel exciting instead of overwhelming. <break time="200ms"/>It\'s a gift.',
@@ -158,7 +158,7 @@ export const HANDOFF_WARMTH = {
       'Let me bring in Nayan— <break time="150ms"/>he\'s the one for this.',
     ],
     'comm-specialist': [
-      'Alex can help with this! <break time="200ms"/>Let me bring them in.',
+      'Alex can help with this! <break time="200ms"/>Let me bring him in.',
       'This is Alex\'s specialty. <break time="200ms"/>You\'re in good hands.',
     ],
     'spend-save': [
@@ -166,7 +166,7 @@ export const HANDOFF_WARMTH = {
       'Let me get Maya— <break time="150ms"/>she\'s amazing with this stuff.',
     ],
     'event-planner': [
-      'Jordan is going to LOVE this! <break time="200ms"/>Let me bring them in.',
+      'Jordan is going to LOVE this! <break time="200ms"/>Let me bring her in.',
       'This is so Jordan\'s thing. <break time="200ms"/>One second!',
     ],
     'jack-b': [
@@ -191,7 +191,7 @@ export const HANDOFF_WARMTH = {
       "I heard from Maya you're working on something great!",
     ],
     'event-planner': [
-      'Jordan\'s excited for you! <break time="200ms"/>They told me about your plans.',
+      'Jordan\'s excited for you! <break time="200ms"/>She told me about your plans.',
       'I got the download from Jordan— <break time="200ms"/>this sounds amazing!',
     ],
     'jack-b': [
@@ -275,16 +275,16 @@ export const TEAM_MENTIONS = {
       'Nayan would have thoughts on this. <break time="200ms"/>Interested?',
     ],
     'comm-specialist': [
-      'Alex could handle this. <break time="200ms"/>Want me to bring them in?',
-      'Sounds like an Alex question. <break time="200ms"/>Should I get them?',
+      'Alex could handle this. <break time="200ms"/>Want me to bring him in?',
+      'Sounds like an Alex question. <break time="200ms"/>Should I get him?',
     ],
     'spend-save': [
       'Maya\'s great at this. <break time="200ms"/>Want to talk to her?',
       'This is Maya\'s wheelhouse. <break time="200ms"/>Should I bring her in?',
     ],
     'event-planner': [
-      'Jordan would love to help with this! <break time="200ms"/>Want me to get them?',
-      'Ooh, this is Jordan\'s thing! <break time="200ms"/>Should I bring them in?',
+      'Jordan would love to help with this! <break time="200ms"/>Want me to get her?',
+      'Ooh, this is Jordan\'s thing! <break time="200ms"/>Should I bring her in?',
     ],
   },
 

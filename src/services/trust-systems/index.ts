@@ -14,3 +14,6 @@ export { default } from '../trust/index.js';
 export { heldSince, loadHeldWindows, noteStoredHeldWindows } from './held-window.js';
 // Persona growth after the call (agents/personas/persona-growth-after-call.ts) reads and saves here
 export { loadUnifiedProfile, saveSystemData } from './unified-persistence.js';
+// Story So Far counts Ferni's promises kept the way Trust & Growth does (api/story-routes.ts)
+export { loadFerniPromises } from './together-store.js';
+export { tallyPromises } from './together-signals.js';
