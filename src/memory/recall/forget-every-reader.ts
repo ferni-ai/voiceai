@@ -93,8 +93,9 @@ function checkFor(
   match: (text: string, topics: readonly string[]) => boolean = aboutForgotten
 ): ForgottenCheck {
   if (stored === null) return () => true; // no source at all: fail closed
-  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-  return (text) => match(text, topics);
+  // This process's forgets are read at each check, so a check held for a call (the open-loops
+  // note, revived intelligence) counts a topic forgotten after it was made.
+  return (text) => match(text, [...new Set([...stored, ...forgottenInProcess(userId)])]);
 }
 
 /**

@@ -42,8 +42,9 @@ export interface CallLoopsSources {
   /** Open loops due a follow-up, highest priority first. */
   loops: (userId: string) => Promise<OpenLoop[]>;
   /**
-   * What the caller asked Ferni to forget, as a filter on raw words; null when it can't be read.
-   * It is asked again when the note is given, so it should count topics forgotten since.
+   * What the caller asked Ferni to forget, as a filter on raw words; null when it can't be read
+   * (or isn't kept): then no note. It is asked again when the note is given, so it should count
+   * topics forgotten since.
    */
   forgotten: (userId: string) => Promise<((text: string) => boolean) | null>;
   /** Ferni's promises for the prompt, and the misses in it. Only reads. */
@@ -58,9 +59,12 @@ const realSources: CallLoopsSources = {
       await import('../../services/superhuman/semantic-intelligence/open-loops.js');
     return getLoopsReadyForFollowUp(userId);
   },
+  // The fresh read, never a last-known list: the note is the caller's words from earlier calls and
+  // stays in the chat for the call, as revived intelligence's are (#2623). Null with
+  // FORGET_EVERY_READER off, so the note then needs that flag on too.
   async forgotten(userId) {
-    const { forgottenPassageFilter } = await import('../../memory/index.js');
-    return forgottenPassageFilter(userId);
+    const { forgottenPassageWithin } = await import('../../memory/index.js');
+    return forgottenPassageWithin(userId, 'open-loops-note');
   },
   async promises(userId) {
     const { promiseContextFor } =
