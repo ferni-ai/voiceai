@@ -10,6 +10,7 @@ import { crisisRiskThisCall, scoreCrisisLanguage } from '../../services/safety/i
 import {
   crisisNoMemoryRecallOn,
   memoryFreeText,
+  WITHOUT_RECALLED_MEMORY,
   withoutRecalledMemory,
 } from '../processors/turn-processor/crisis-memory-recall.js';
 import { afterPreemptive, preemptStableMode, restartPreemptive } from './preempt-stable-context.js';
@@ -30,7 +31,12 @@ interface NoteItem {
 export interface RecallAgent {
   readonly chatCtx: {
     copy(): {
-      addMessage(msg: { role: 'system'; content: string; id?: string }): unknown;
+      addMessage(msg: {
+        role: 'system';
+        content: string;
+        id?: string;
+        extra?: Record<string, unknown>;
+      }): unknown;
       items?: unknown[];
     };
   };
@@ -47,6 +53,18 @@ function update(agent: RecallAgent, ctx: unknown): void {
 export interface RecallNote {
   note: string;
   id: string;
+  /** Set on a note that carries the caller's recalled memory (generalRecallNote). */
+  extra?: Record<string, unknown>;
+}
+
+/**
+ * Recall's general note, as a RecallNote. With CRISIS_NO_MEMORY_RECALL on it carries the
+ * caller's recalled memory, so it is marked as made of nothing without it: a request the crisis
+ * gate takes crisis-held notes out of leaves it out (withoutCrisisHeldNotes). Off: unmarked.
+ */
+export function generalRecallNote(note: string, env: Env = process.env): RecallNote {
+  const extra = crisisNoMemoryRecallOn(env) ? { [WITHOUT_RECALLED_MEMORY]: '' } : undefined;
+  return { note, id: recallNoteId(), ...(extra && { extra }) };
 }
 
 /** A fresh id for a recall note, under `prefix`. */
@@ -78,7 +96,9 @@ export function addRecallNotes(agent: RecallAgent, notes: RecallNote[], said?: s
   if (notes.length === 0) return;
   const write = () => {
     const ctx = agent.chatCtx.copy();
-    for (const { note, id } of notes) ctx.addMessage({ role: 'system', content: note, id });
+    for (const { note, id, extra } of notes) {
+      ctx.addMessage({ role: 'system', content: note, id, ...(extra && { extra }) });
+    }
     agent.updateChatCtx(ctx).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Recall note not added');
     });

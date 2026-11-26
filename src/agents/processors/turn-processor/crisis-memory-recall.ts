@@ -8,11 +8,13 @@
  * one included: a note from an earlier ordinary turn too. With the flag on:
  *
  * - a line with crisis words, or a call with risk noted or a read in flight, runs no memory
- *   search at all (skipsRecall, turn-handler.ts);
+ *   search at all (skipsRecall, turn-handler.ts), and builds no recall note
+ *   (memory-recall-hook.ts noteFor);
  * - a turn whose own crisis read replaced, guided or eased the reply (crisisReadTurn, where no
  *   read counts as a crisis), or a call with risk noted (a read that failed or came late notes
  *   it), builds its note without that memory;
- * - every other note carries, in its `extra`, its text without that memory, and a request the
+ * - every other note carries, in its `extra`, its text without that memory (recall's general
+ *   note, recall-note.ts generalRecallNote, carries nothing: it is left out whole), and a request the
  *   crisis gate takes crisis-held notes out of (recall-note.ts withoutCrisisHeldNotes: every
  *   guided request, every request on a call with risk noted, and a held reply whose read failed)
  *   gets that text instead.
