@@ -18,7 +18,7 @@
  * @module SmallWins
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'SmallWins' });
@@ -254,7 +254,7 @@ function checkIntentionCompletion(
       intention.linkedWinId = win.id;
 
       log.info(
-        { userId: profile.userId, intention: intention.intention },
+        { userId: profile.userId, intention: replyForLog(intention.intention) }, // #4392
         '🎯 Intention completed!'
       );
 
@@ -347,7 +347,7 @@ export function detectIntention(userId: string, userMessage: string): PendingInt
         profile.pendingIntentions = profile.pendingIntentions.slice(-20);
       }
 
-      log.debug({ userId, intention: intentionText }, '📋 Intention recorded');
+      log.debug({ userId, intention: replyForLog(intentionText) }, '📋 Intention recorded'); // #4392
 
       return intention;
     }

@@ -114,7 +114,7 @@ import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { withLookupBridge } from './lookup-bridge.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
-import { burstAllowed } from './vocal-bursts.js';
+import { burstAllowed, type BurstPermit } from './vocal-bursts.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -356,7 +356,7 @@ export async function gatedReply(
     wrap(
       stream: ReadableStream<Chunk>,
       openedBySound?: () => boolean,
-      burst?: boolean,
+      burst?: BurstPermit,
       bright?: boolean
     ): ReadableStream<Chunk>;
   },

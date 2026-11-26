@@ -227,7 +227,6 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
     | 'protectiveOn'
     | 'protectiveOff'
     | 'celebrateGrowth'
-    | 'shimmer'
     | 'cameoArrival'
     | 'cameoReturn';
   export interface LabRequest {
@@ -263,11 +262,12 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
   - `face` → `ferniExpressions.setExpression(expression)`. It is refused when `!crisisFaceAllows(expression)`, with why `'The crisis hold allows only calm faces'`.
   - `moment` → the `avatar-soul.ui.ts` export:
     - `warmthBloom`: `triggerWarmthBloom(1)`;
-    - `shimmer`: `flashShimmer(1)`;
-    - `cameoArrival`: `triggerCameoArrival` with the persona colour token `var(--color-persona-ferni)` resolved from computed style.
+    - `cameoArrival`: `triggerCameoArrival` with the persona colour token `var(--color-ferni)` resolved from computed style.
+
+    There is no `shimmer` moment: `flashShimmer` draws on `irisShimmerElement`, which is always null, so a shimmer control could never play.
 
     Gate each moment on the real predicate for the affect it plays:
-    - `memorySpark`, `shimmer`, `celebrateGrowth`, `cameoArrival`: `crisisAffectAllows('sparkle' | 'celebration')`, whichever the export plays. The implementer reads each export and names the affect in the table.
+    - `memorySpark`, `celebrateGrowth`, `cameoArrival`: `crisisAffectAllows('sparkle' | 'celebration')`, whichever the export plays. The implementer reads each export and names the affect in the table.
     - `comfortPulseStart`: `avatarMotionAllowed('comfortPulse')`.
     - `protectiveOn`: refused when reduced motion is on, because `enterProtectiveMode` returns early then, with why `'Reduced motion is on, so protective mode does not play'`.
 
