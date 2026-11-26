@@ -112,7 +112,10 @@ describe('greeting reads, FORGET_FRESH_READ (#2755)', () => {
     vi.stubEnv('FORGET_FRESH_READ', 'on');
     const release: Array<(topics: string[]) => void> = [];
     vi.spyOn(firestoreForgetStore, 'topics').mockImplementation(
-      async () => new Promise<string[]>((resolve) => release.push(resolve))
+      async () =>
+        new Promise<string[]>((resolve) => {
+          release.push(resolve);
+        })
     );
     const userProfile = { lifeEvents: [{ id: 'l1', title: 'Biscuit is sick' }] };
     const services = { userId: U, userProfile } as unknown as SessionServices;

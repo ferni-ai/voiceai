@@ -29,8 +29,6 @@ import { foldedWords } from '../domain/forget-tokens.js';
 import { isForgottenPassage } from '../domain/forgotten.js';
 import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
-/** For a reader outside memory that reads the topics past the cache (the caller card). */
-export { topicsWithin };
 import { isForgotten } from './session-recall.js';
 
 const log = createLogger({ module: 'ForgetEveryReader' });

@@ -4,7 +4,11 @@
  *
  * @module agents/multi-agent/caller-card/wiring
  */
-import { forgetFreshReadEnabled, forgottenInProcess, topicsWithin } from '../../../memory/index.js';
+import {
+  forgetFreshReadEnabled,
+  forgottenInProcess,
+  forgottenTopicsOrNull,
+} from '../../../memory/index.js';
 import { sharedHeldStrict } from '../../../services/outreach/minor-care-shared-hold.js';
 import { profileOnceLoaded } from '../../../services/session/deferred-profile.js';
 import type { SessionServices } from '../../../services/types.js';
@@ -17,6 +21,8 @@ import { choosePlace } from './place.js';
 import type { CallerCardPorts } from './ports.js';
 
 const HOME_SOURCE_MS = 300; // each home source alone, inside the budget (minor care runs first)
+/** FORGET_FRESH_READ's wait for the store itself, inside CARD_BUDGET_MS so off's answer still fits. */
+const FRESH_WAIT_MS = 350;
 /** What the card reads from the session: the caller's id and the profile once it has loaded. */
 export type CardServices = Pick<SessionServices, 'userId' | 'userProfile'>;
 
@@ -42,6 +48,17 @@ async function source<T>(work: Promise<T>, what: string): Promise<T | null> {
   return typeof got === 'object' ? got.value : null;
 }
 
+/**
+ * FORGET_FRESH_READ: the store itself, past the 15 s cache (#2755), when it answers within
+ * FRESH_WAIT_MS; else (late or failed) the snapshot's read, started beside it, so the card is
+ * never checked against less than with the flag off.
+ */
+async function freshOrSnapshot(userId: string): Promise<string[] | null> {
+  const snapshot = Promise.resolve(firestoreRecallStore.forgotten?.(userId) ?? null);
+  const fresh = await within(forgottenTopicsOrNull(userId), FRESH_WAIT_MS, 'caller card fresh');
+  return (typeof fresh === 'object' ? fresh.value : null) ?? snapshot;
+}
+
 export function callerCardPorts(services: CardServices): CallerCardPorts {
   return {
     async home(userId) {
@@ -57,11 +74,10 @@ export function callerCardPorts(services: CardServices): CallerCardPorts {
         fact,
       });
     },
-    // The reader recall's snapshot uses, plus forgets made in this process mid-call. With
-    // FORGET_FRESH_READ, the store itself, not the 15 s cache (#2755); late, the last known.
+    // The reader recall's snapshot uses, plus forgets made in this process mid-call.
     async forgotten(userId) {
       const stored = forgetFreshReadEnabled()
-        ? await topicsWithin(userId, 'caller-card', true)
+        ? await freshOrSnapshot(userId)
         : ((await firestoreRecallStore.forgotten?.(userId)) ?? null);
       return stored && [...stored, ...forgottenInProcess(userId)];
     },

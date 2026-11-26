@@ -11,9 +11,10 @@ import {
   readTopics,
   resetForgetTopicsSource,
 } from '../../../memory/recall/forget-topics-source.js';
-import type { SessionServices } from '../../../services/types.js';
 import type { UserData } from '../../shared/types.js';
 import { getProactiveContext } from '../greeting-proactive-context.js';
+
+type SessionServices = Parameters<typeof getProactiveContext>[0];
 
 const U = 'member-greeting-proactive';
 const STARTER = 'How did the Denver interview go?';
@@ -87,7 +88,10 @@ describe('greeting open threads, FORGET_FRESH_READ (#2755)', () => {
     vi.stubEnv('FORGET_FRESH_READ', 'on');
     let release!: (topics: string[]) => void;
     vi.spyOn(firestoreForgetStore, 'topics').mockImplementation(
-      async () => new Promise<string[]>((resolve) => (release = resolve))
+      async () =>
+        new Promise<string[]>((resolve) => {
+          release = resolve;
+        })
     );
     const insights = vi.fn(async () => ({ highPriorityCount: 0 }));
     const pending = getProactiveContext(
