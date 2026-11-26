@@ -42,9 +42,16 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
     'recall-score.mjs',
     'recall-world.mjs',
     'tool-grounding.mjs',
+    'humanness-bar.mjs',
   ])
     cpSync(join(NIGHTLY, f), join(n, f));
-  for (const f of ['recall-facts.mjs', 'eval-database.mjs'])
+  for (const f of [
+    'recall-facts.mjs',
+    'eval-database.mjs',
+    'humanness.mjs',
+    'sounds.mjs',
+    'presence.mjs',
+  ])
     cpSync(join(EVAL, f), join(n, '..', f));
   lanes.forEach((body, i) => writeFileSync(join(n, 'lanes', `${'ab'[i]}.txt`), body));
   exe(

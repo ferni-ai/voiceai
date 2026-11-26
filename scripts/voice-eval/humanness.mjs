@@ -37,8 +37,22 @@ const REACTION_OPENER =
   /^(?:oh|ooh|wait|really|no way|wow|whoa|ha(?:ha)*|hah|aw+|ugh|oof|yikes|ouch|huh|hm+|god|man|okay wait|seriously|nice|ah)\b/i;
 const STOCK_OPENER =
   /^(?:i'?m (?:so )?sorry|that'?s (?:great|awesome|amazing|wonderful|tough|hard|rough)|that sounds|sounds (?:like|good)|glad to hear|i hear you|got it|i understand|i see|thanks for sharing|that makes sense|absolutely|of course)\b/i;
-/** The first clause of a reply, or its first six words. */
-const openerOf = (t) => (t.trim().split(/[.,!?;:]/)[0] ?? '').split(/\s+/).slice(0, 6).join(' ');
+/** The first clause of a reply, or its first six words (curly apostrophes made straight). */
+const openerOf = (t) =>
+  (
+    t
+      .replace(/[\u2018\u2019]/g, "'")
+      .trim()
+      .split(/[.,!?;:]/)[0] ?? ''
+  )
+    .split(/\s+/)
+    .slice(0, 6)
+    .join(' ');
+/** A stock receipt, also behind a reaction word: "Oh, I'm sorry" is still "I'm sorry". */
+const stockOpen = (t) =>
+  STOCK_OPENER.test(openerOf(t)) ||
+  (REACTION_OPENER.test(openerOf(t)) &&
+    STOCK_OPENER.test(openerOf(t.replace(/^[^.,!?;:]*[.,!?;:]\s*/, ''))));
 
 const STOP = new Set(
   'that this they them their with what have from about your just like been were when then there some would could should into only also very really going want know think yeah okay'.split(
@@ -205,12 +219,12 @@ export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
     // Replies to a caller turn (hello and goodbye aside) that open on a reaction or on one of the
     // caller's own content words, and that don't open on a stock receipt ("I'm sorry", "that sounds").
     receiptRate: rate(answers, (a) => {
+      if (stockOpen(a.text)) return false;
       const open = openerOf(a.text);
-      if (STOCK_OPENER.test(open)) return false;
       const theirs = contentWords(a.before);
       return REACTION_OPENER.test(open) || [...contentWords(open)].some((w) => theirs.has(w));
     }),
-    stockOpenerRate: rate(answers, (a) => STOCK_OPENER.test(openerOf(a.text))),
+    stockOpenerRate: rate(answers, (a) => stockOpen(a.text)),
     selfDisclosureRate: rate(agent, (a) => SELF_DISCLOSURE.test(a.text)),
     // Picks up one of the caller's own content words, the way people echo.
     echoRate: rate(

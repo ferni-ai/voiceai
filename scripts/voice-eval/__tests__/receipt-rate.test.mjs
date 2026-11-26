@@ -40,6 +40,19 @@ describe('receiptRate', () => {
     expect(m.stockOpenerRate).toBe(1);
   });
 
+  it('sees a stock receipt behind a reaction word or a curly apostrophe', () => {
+    const m = computeHumanness([
+      call([
+        "Oh, I'm sorry, that's a lot.",
+        'I\u2019m so sorry.',
+        'Oh, I see.',
+        'Oh no, the plant?',
+      ]),
+    ]);
+    expect(m.receiptRate).toBe(0.25);
+    expect(m.stockOpenerRate).toBe(0.75);
+  });
+
   it('leaves out goodbyes', () => {
     const m = computeHumanness([call(['Wow, Lisbon.', 'Okay, take care.'])]);
     expect(m.receiptRate).toBe(1);
