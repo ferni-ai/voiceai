@@ -4,13 +4,15 @@
  * admin control is real). Each control posts one lab command and the status
  * line says what the lab answered: the export that ran, why it was refused,
  * or that the lab did not answer. The motion switches set this browser's
- * overrides (config/motion-flags.ts) and reload the lab to show them.
+ * overrides (config/motion-flags.ts) and reload the lab to show them. The field
+ * data below is how often people's avatars played each moment (soul-stats-panel.ts).
  *
  * @module AvatarSoulSection
  */
 
 import { motionFlagOverride, setMotionFlagOverride } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
+import { renderUnavailable } from '../../utils/unavailable.js';
 import { createLabClient, isLabNotReady } from './avatar-lab-client.js';
 import {
   describeAnswer,
@@ -24,10 +26,14 @@ import {
   renderMotionSwitches,
   type LabControl,
 } from './avatar-lab-controls.js';
+import { loadSoulStats, renderSoulStats } from './soul-stats-panel.js';
 
 const log = createLogger('AvatarSoulSection');
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+/** Shown in the field data box when loading or drawing the counts threw. */
+const FIELD_DATA_FAILED = 'unavailable: the counts could not be shown';
 
 const STYLES = `<style>
   .soul-lab { padding: var(--space-6); display: grid; gap: var(--space-6); }
@@ -43,6 +49,12 @@ const STYLES = `<style>
   .soul-row-name { min-width: 7rem; font-weight: 600; }
   .soul-muted, .soul-lab-note { color: var(--color-text-muted); font-size: var(--text-sm); }
   .soul-switches { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+  .soul-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--space-3); }
+  .soul-stat { text-align: center; }
+  .soul-stat-value { font: 700 var(--text-xl) var(--font-mono); color: var(--color-accent-primary); }
+  .soul-stat-value .admin-unavailable { font-weight: var(--font-weight-regular); font-family: var(--font-body); }
+  .soul-stat-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+  .soul-stats-note { grid-column: 1 / -1; margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 </style>`;
 
 export function render(): string {
@@ -65,7 +77,10 @@ export function render(): string {
         <h2>Motion switches (this browser; also changes your webapp)</h2>
         ${renderMotionSwitches()}
       </section>
-      <section id="avatarSoulFieldData"></section>
+      <section>
+        <h2>Field data (people's calls)</h2>
+        <div id="avatarSoulFieldData" class="soul-counts"><p class="soul-stats-note">Loading the counts</p></div>
+      </section>
     </div>`;
 }
 
@@ -160,7 +175,22 @@ export function setupEvents(root: HTMLElement): Promise<void> {
     client.dispose();
     media.removeEventListener('change', showReducedMotion);
   };
+  // Not returned: the portal's late cleanup for a slow first visit would stop a later visit's lab
+  void showFieldData(root, signal);
   return Promise.resolve();
+}
+
+/** The counts, or why there are none; nothing is written once the section was left. */
+async function showFieldData(root: HTMLElement, signal: AbortSignal): Promise<void> {
+  let html: string;
+  try {
+    html = renderSoulStats(await loadSoulStats(), (iso) => new Date(iso).toLocaleString());
+  } catch (error) {
+    log.warn({ error }, 'Avatar Soul field data could not be shown');
+    html = `<p class="soul-stats-note">${renderUnavailable(FIELD_DATA_FAILED)}</p>`;
+  }
+  const el = root.querySelector('#avatarSoulFieldData');
+  if (el && !signal.aborted) el.innerHTML = html;
 }
 
 /** Stops the lab client and every listener setupEvents added. */

@@ -13,6 +13,15 @@ import {
 } from '../../src/ui/avatar-lab-protocol.js';
 import { createLabClient } from '../../src/admin/sections/avatar-lab-client.js';
 import { motionFlagOverride, setMotionFlagOverride } from '../../src/config/motion-flags.js';
+import { SOUL_COUNT_KEYS } from '../../src/services/soul-stats.service.js';
+
+/** The field data's one request, faked: no request leaves the test. */
+const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>();
+vi.mock('../../src/admin/admin-fetch.js', () => ({
+  adminFetch: (url: string, init?: RequestInit) => fetchMock(url, init),
+}));
+const json = (body: unknown, status = 200): Response =>
+  new Response(JSON.stringify(body), { status });
 
 const { ADMIN_SECTIONS } = await import('../../src/admin/section-registry.js');
 const soul = await import('../../src/admin/sections/AvatarSoulSection.js');
@@ -60,6 +69,13 @@ const button = (label: string): HTMLButtonElement => {
   return found;
 };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  fetchMock.mockImplementation(() =>
+    Promise.resolve(json({ measured: false, reason: 'SOUL_STATS is off' }))
+  );
+});
 
 afterEach(() => {
   soul.cleanup();
@@ -277,6 +293,96 @@ describe('the Avatar Soul section', () => {
     await flush();
     expect(status()).toBe('Hold played (holdCrisisFace)');
     expect(document.getElementById('avatarLabHeld')?.textContent).toBe('Held: yes');
+  });
+});
+
+describe('field data', () => {
+  const fieldData = () => document.getElementById('avatarSoulFieldData');
+  /** setupEvents does not wait for the counts, so wait for the box to leave its loading line. */
+  const drawn = () =>
+    vi.waitFor(() => expect(fieldData()?.textContent).not.toContain('Loading the counts'));
+  const labStillWired = async (root: HTMLElement, frame: HTMLIFrameElement) => {
+    const lab = fakeLab(frame, () => ({ ok: true, ran: 'triggerMemorySpark' }));
+    button('Memory spark').click();
+    await flush();
+    expect(lab.commands()).toEqual([{ name: 'moment', moment: 'memorySpark' }]);
+    expect(root.textContent).not.toContain('Failed to load');
+  };
+
+  it('setup resolves before the counts arrive, with the lab already wired', async () => {
+    fetchMock.mockReturnValueOnce(new Promise<Response>(() => undefined)); // never answers
+    const { root, frame } = await mount();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fieldData()?.textContent).toContain('Loading the counts');
+    await labStillWired(root, frame);
+  });
+
+  it.each([
+    ['null', null],
+    ['an array', [1, 2]],
+    ['a string', 'soul'],
+  ])('a body of %s: says the server sent no counts, and the lab stays wired', async (_, body) => {
+    fetchMock.mockResolvedValueOnce(json(body));
+    const { root, frame } = await mount();
+    await drawn();
+    expect(fieldData()?.textContent).toContain('not measured: the server sent no counts');
+    expect(fieldData()?.querySelector('.soul-stat-value')).toBeNull();
+    await labStillWired(root, frame);
+  });
+
+  it('loading the counts throws: says unavailable with a reason, and the lab stays wired', async () => {
+    fetchMock.mockImplementationOnce(() => {
+      throw new Error('token refresh failed');
+    });
+    const { root, frame } = await mount();
+    await drawn();
+    expect(fieldData()?.textContent).toContain('unavailable: the counts could not be shown');
+    expect(fieldData()?.textContent).not.toMatch(/\d/);
+    await labStillWired(root, frame);
+  });
+
+  it('measured: shows the eleven counts from the admin soul stats route', async () => {
+    const counts = Object.fromEntries(SOUL_COUNT_KEYS.map((k, i) => [k, i + 3]));
+    fetchMock.mockResolvedValueOnce(
+      json({ measured: true, windowHours: 24, counts, lastUpdated: null })
+    );
+    await mount();
+    await drawn();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/admin/soul/stats', undefined);
+    const values = [...(fieldData()?.querySelectorAll('.soul-stat-value') ?? [])];
+    expect(values.map((v) => v.textContent)).toEqual(SOUL_COUNT_KEYS.map((_, i) => `${i + 3}`));
+    expect(fieldData()?.querySelector('#soulCrisisHolds')?.textContent).toBe('10');
+    expect(fieldData()?.textContent).toContain('Crisis Holds (last 24 h)');
+  });
+
+  it('not measured: says why, and shows no number', async () => {
+    await mount();
+    await drawn();
+    expect(fieldData()?.textContent).toContain('not measured: SOUL_STATS is off');
+    expect(fieldData()?.querySelector('.soul-stat-value')).toBeNull();
+  });
+
+  it('a failed request: "unavailable (HTTP 503)", and no number', async () => {
+    fetchMock.mockResolvedValueOnce(json({ error: 'down' }, 503));
+    await mount();
+    await drawn();
+    expect(fieldData()?.textContent).toContain('unavailable (HTTP 503)');
+    expect(fieldData()?.querySelector('.soul-stat-value')).toBeNull();
+  });
+
+  it('left before the counts arrive: nothing is written', async () => {
+    let answer: (r: Response) => void = () => undefined;
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (answer = resolve)));
+    document.body.innerHTML = `<div id="adminContent">${await entry().component()}</div>`;
+    const root = document.getElementById('adminContent') as HTMLElement;
+    await soul.setupEvents(root);
+    const before = fieldData()?.innerHTML;
+    soul.cleanup();
+    answer(json({ measured: false, reason: 'SOUL_STATS is off' }));
+    await flush();
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fieldData()?.innerHTML).toBe(before);
   });
 });
 
