@@ -115,6 +115,10 @@ describe('a forget request through the crisis gate', () => {
     'forget the Denver job, I want to die',
     "forget the Denver job I'm so tired",
     'Forget it.',
+    // Round-3 verify misses: names that are not everyday things (crisis-forget-request.ts).
+    'delete my texts to my sister',
+    'forget the playlist for my funeral',
+    'forget who gets the dog',
   ])('keeps crisis guidance for "%s"', async (line) => {
     const ctx = request(['assistant', 'What can I do for you?'], ['user', line]);
     expect(full(await effective(ctx, `neg ${line}`, ON))).toBe(true);
@@ -140,6 +144,14 @@ describe('a forget request through the turn pipeline (startTurnCrisis)', () => {
     const turn = turnFor('pipe-on', ON);
     expect(await turn.softCheck()).toBe(true);
     expect((await turn.resolve()).isCrisis).toBe(false);
+    const dentist = turnFor('pipe-dentist', ON, 'Forget I mentioned the dentist.');
+    expect(await dentist.softCheck()).toBe(true);
+  });
+
+  it('keeps crisis handling for a name that is not an everyday thing', async () => {
+    const email = turnFor('pipe-email', ON, 'Forget the email to my brother.');
+    expect(await email.softCheck()).toBe(false);
+    expect((await email.resolve()).isCrisis).toBe(true);
   });
 
   it('keeps crisis handling with the flag off, or for a line about the caller', async () => {

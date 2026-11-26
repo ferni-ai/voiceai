@@ -19,6 +19,9 @@
  *   exist", "forget I said that"), never "everything" alone, never an emergency or crisis line.
  *   A bare "forget it" never counts: callers also say it to take back something heavy. Nor does
  *   "I've decided": the risk list below reads it as resolve, so that line keeps its handling;
+ * - every thing it names ends in an everyday noun (a job, a number, the move, a trip, the
+ *   dentist: EVERYDAY_NOUN). Texts, a journal, a letter, who gets the dog, anything for after or
+ *   for a person, and every typo keep crisis handling;
  * - the call is known, and no earlier read on it found risk, failed or is still running, and
  *   nothing on it escalated (crisis-call-risk.ts);
  * - nothing the caller said this call, nor the companion's line they answer, holds a word from
@@ -60,7 +63,7 @@ const NAME_WORD = `(?!${NOT_IN_NAME}(?: |$))[a-z0-9']+`;
 const NAMED = `(?!(?:everything|anything|all|about)(?: |$))${NAME_WORD}(?: ${NAME_WORD}){0,5}`;
 
 const VERB = `(?:forget|erase|delete|remove)`;
-const SCOPE = `(?:(?:everything|anything|all) )?(?:(?:about|of|on) )?(?:(?:what|everything) i (?:said|told you) about )?`;
+const SCOPE = `(?:(?:everything|anything|all) )?(?:(?:about|of|on) )?(?:(?:what|everything) i (?:said|told you) about |(?:that )?i (?:mentioned|brought up|told you about) )?`;
 const MEMORY = `(?: (?:from|out of) (?:your|ur) (?:memory|notes))?`;
 const AGAIN = `(?: (?:again|ever again|too|as well|please|now))*`;
 
@@ -111,6 +114,36 @@ const NEVER = new RegExp(
   ].join('|')})\\b`
 );
 
+/**
+ * The named thing must end in an everyday noun (the Denver job, Theo's number, the move, the
+ * Lisbon trip): the only names that soften. A block list (NEVER) fails open: three verify rounds
+ * each found new risky names it lacked (texts to a sister, a journal, the playlist for a funeral,
+ * who gets the dog, typos like "lettr"). An allowlist fails closed: any name not on it, and any
+ * name that runs on into "to my mom", "for after" or "for my funeral", keeps crisis handling.
+ */
+const EVERYDAY_NOUN = new Set([
+  ...['job', 'jobs', 'offer', 'interview', 'role', 'position', 'promotion', 'project', 'deadline'],
+  ...['presentation', 'meeting', 'meetings', 'appointment', 'appointments', 'dentist', 'haircut'],
+  ...['call', 'recruiter', 'move', 'trip', 'vacation', 'holiday', 'flight', 'hotel', 'commute'],
+  ...['apartment', 'place', 'neighborhood'],
+  ...['number', 'address', 'restaurant', 'recipe', 'show', 'movie', 'book', 'podcast', 'game'],
+  ...['concert', 'class', 'course', 'gym', 'workout', 'diet', 'schedule', 'reminder', 'idea'],
+]);
+/** A named thing as the forget forms capture it, then cut back to the name alone. */
+const NAMED_FORM = new RegExp(
+  `(?:^| )${LEAD}${ASK}(?:${VERB} ${SCOPE}(${NAMED})|(?:don't|dont|do not|never) (?:bring up|mention|ask about|talk about) (${NAMED})|i (?:don't|dont|do not) want (?!to )(${NAMED}) (?:brought up|mentioned))`,
+  'g'
+);
+const NAME_TAIL = / (?:(?:from|out of) (?:your|ur) (?:memory|notes)|ever)$/;
+
+/** True when every thing the line names ends in an everyday noun, and it names at least one. */
+function namesOnlyEverydayThings(said: string): boolean {
+  const names = [...said.matchAll(NAMED_FORM)].map((m) =>
+    (m[1] ?? m[2] ?? m[3] ?? '').replace(NAME_TAIL, '')
+  );
+  return names.length > 0 && names.every((name) => EVERYDAY_NOUN.has(name.split(' ').pop() ?? ''));
+}
+
 /** NFKC, lower case, every apostrophe variant as ', only letters, digits, apostrophes and spaces. */
 const words = (text: string): string =>
   text
@@ -126,7 +159,7 @@ function isForgetRequestOnly(text: string): boolean {
   if (typeof text !== 'string') return false;
   const said = words(text);
   if (!said || said.split(' ').length > 24 || NEVER.test(said)) return false;
-  return FORGET_LINE.test(said) && NAMED_FORGET.test(said);
+  return FORGET_LINE.test(said) && NAMED_FORGET.test(said) && namesOnlyEverydayThings(said);
 }
 
 /**
