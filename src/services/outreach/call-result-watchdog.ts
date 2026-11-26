@@ -98,22 +98,46 @@ async function callRoom(callId: string): Promise<'open' | 'gone' | 'unknown'> {
   }
 }
 
-/** Watch a call just placed for the owner: true once the watch is written. Never throws. */
+/** A watch is written for this call: the flag is on and it is a member's call. */
+const watched = (request: OnBehalfCallRequest): boolean =>
+  callResultWatchdogOn() && isMemberIdentity(request.userId?.trim());
+
+const errorClassOf = (error: unknown): string =>
+  error instanceof Error ? error.name : typeof error;
+
+/**
+ * Watch a call just placed, off the reply path: true when its watch is being written.
+ * The write runs on its own and is never waited on, so a hung Firestore write can't
+ * hold the caller's reply; a failure is logged by armCallResultWatchdog.
+ */
+export function startCallResultWatchdog(request: OnBehalfCallRequest, callId: string): boolean {
+  if (!watched(request)) return false;
+  void armCallResultWatchdog(request, callId);
+  return true;
+}
+
+/**
+ * Write a call's watch: true once written. Never throws; a failure is logged as
+ * {callHash, errorClass, reason}, never the error's text. Awaited only off the reply
+ * path (the held-call job); a reply uses startCallResultWatchdog.
+ */
 export async function armCallResultWatchdog(
   request: OnBehalfCallRequest,
   callId: string,
   now = new Date()
 ): Promise<boolean> {
-  if (!callResultWatchdogOn() || !isMemberIdentity(request.userId?.trim())) return false;
+  if (!watched(request)) return false;
+  let reason: 'no_store' | 'write_failed' = 'no_store';
   try {
     const db = getFirestoreDb();
     if (!db) throw new Error('Firestore not available');
+    reason = 'write_failed';
     const dueAt = new Date(now.getTime() + NO_REPORT_AFTER_MS).toISOString();
     const watch = cleanForFirestore({ status: 'pending', dueAt, armedAt: now.toISOString(), request }); // prettier-ignore
     await db.collection('bogle_users').doc(request.userId).collection(COLLECTION).doc(callId).set(watch); // prettier-ignore
     return true;
   } catch (error) {
-    log.warn({ callHash: callHashOf(callId), error: String(error) }, 'CALL_RESULT_WATCHDOG not armed'); // prettier-ignore
+    log.warn({ callHash: callHashOf(callId), errorClass: errorClassOf(error), reason }, 'CALL_RESULT_WATCHDOG not armed'); // prettier-ignore
     return false;
   }
 }

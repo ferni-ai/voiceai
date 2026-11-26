@@ -30,7 +30,7 @@ import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-c
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
 import { watchCallResult } from './call-result-watch.js';
-import { armCallResultWatchdog } from './call-result-watchdog.js';
+import { armCallResultWatchdog, startCallResultWatchdog } from './call-result-watchdog.js';
 import { callResultPromise } from './call-result-promise.js';
 import {
   alreadyRingingReply,
@@ -345,9 +345,10 @@ export async function placeOrHold(
   const held = deferredCallReply(callId, name, purposeForRequester(request), now);
   // CALL_RESULT_LIVE_REPORT: the owner's call hears the result, whichever worker captures it.
   if (!held) watchCallResult(request, callId);
-  const armed = !held && (await armCallResultWatchdog(request, callId)); // CALL_RESULT_WATCHDOG
+  // CALL_RESULT_WATCHDOG: started, never waited on: a hung write must not hold the reply.
+  const armed = !held && startCallResultWatchdog(request, callId);
   const also = otherCallsLine(others, now, callId);
-  // CALL_RESULT_WATCHDOG: how the result will reach them, only once it is watched (off: no key).
+  // CALL_RESULT_WATCHDOG: how the result will reach them, once its watch is started (off: no key).
   const promise = held ? undefined : callResultPromise(armed);
   return { callId, held: held && held + also, others: also, ...(promise !== undefined && { promise }) }; // prettier-ignore
 }

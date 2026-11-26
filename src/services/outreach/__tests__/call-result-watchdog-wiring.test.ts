@@ -12,6 +12,8 @@ import { fakeFirestore, type Row } from '../../scheduling/__tests__/fake-firesto
 let rows: Row[] = [];
 /** Every write of a watch fails. */
 let failArm = false;
+/** Every write of a watch hangs: Firestore never answers. */
+let hangArm = false;
 /** Transactions wait for the one before them, as Firestore's contention makes them. */
 let lastTx: Promise<unknown> = Promise.resolve();
 const db = () => {
@@ -56,6 +58,8 @@ const db = () => {
                 doc.set = async () => {
                   throw new Error('UNAVAILABLE');
                 };
+              if (c === 'call_result_watchdogs' && hangArm)
+                doc.set = async () => new Promise<never>(() => undefined);
               return doc;
             },
             where: (f: string, op: string, v: unknown) => ({
@@ -112,6 +116,7 @@ const flushed = async () =>
 beforeEach(() => {
   rows = [];
   failArm = false;
+  hangArm = false;
   lastTx = Promise.resolve();
   initiateCall.mockClear();
   captured.mockClear();
@@ -132,18 +137,29 @@ describe('CALL_RESULT_WATCHDOG wiring', () => {
     const out = await placeOrHold(request(), async () => 'onbehalf_now_1', NOW);
     expect(out.callId).toBe('onbehalf_now_1');
     expect(out.promise).toBe("You'll see how it went in the app."); // on: with the call it rang
+    await flushed(); // the watch is written off the reply path
     expect(watches()).toHaveLength(1);
     expect(watches()[0]).toMatchObject({ id: 'onbehalf_now_1', userId: OWNER });
     expect(watches()[0]?.data).toMatchObject({ status: 'pending', dueAt: new Date(NOW.getTime() + 25 * 60_000).toISOString() }); // prettier-ignore
   });
 
-  it('arming throws: the call still places, and it carries no promise', async () => {
+  it('arming throws: the call still places with its promise; the write was never waited on', async () => {
     failArm = true;
     const place = vi.fn(async () => 'onbehalf_noarm_1');
     const out = await placeOrHold(request(), place, NOW);
     expect(place).toHaveBeenCalledTimes(1);
-    expect(out).toStrictEqual({ callId: 'onbehalf_noarm_1', held: undefined, others: '', promise: '' }); // prettier-ignore
-    expect(watches()).toHaveLength(0);
+    expect(out).toStrictEqual({ callId: 'onbehalf_noarm_1', held: undefined, others: '', promise: "You'll see how it went in the app." }); // prettier-ignore
+    await flushed();
+    expect(watches()).toHaveLength(0); // logged off the reply path (call-result-watchdog.test.ts)
+  });
+
+  it('a hung watch write never holds the reply: placeOrHold answers on time', async () => {
+    hangArm = true;
+    const late = new Promise<'late'>((resolve) => {
+      setTimeout(() => resolve('late'), 1000);
+    });
+    const out = await Promise.race([placeOrHold(request(), async () => 'onbehalf_hang_1', NOW), late]); // prettier-ignore
+    expect(out).toStrictEqual({ callId: 'onbehalf_hang_1', held: undefined, others: '', promise: "You'll see how it went in the app." }); // prettier-ignore
   });
 
   it('a call held for its calling hours: no watch and no promise when held; the job arms it when it rings', async () => {

@@ -62,8 +62,9 @@ describe('callOnBehalf starts the owner call watch', () => {
     const calling = "Got it! I'm calling Sam now to say happy birthday.";
     expect(await run()).toBe(`${calling} I'll let you know how it goes once the call is complete.`);
     vi.stubEnv('CALL_RESULT_WATCHDOG', 'on');
-    // No store here, so the watch can't be armed: the call still places, with no promise.
-    expect(await run()).toBe(calling);
+    // No store here, so the watch's write fails, but off the reply path: the reply never
+    // waits on it, so a member's call keeps its promise (the failure is logged as no_store).
+    expect(await run()).toBe(`${calling} You'll see how it went in the app.`);
   });
 
   it('a call held for later: nothing watched', async () => {

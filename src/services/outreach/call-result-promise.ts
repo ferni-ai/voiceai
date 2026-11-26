@@ -6,8 +6,9 @@
  * they asked three times whether the call happened. The promise now says what
  * the delivery path (call-result-capture.ts) will do, read from its own switches:
  * the live report or the guarded text tell them; otherwise the app does (its
- * card and push). It is said only once the call's watch is written: a call
- * that might never report gets no promise at all (''). A call held for the
+ * card and push). It is said once the call's watch is started (a member's call;
+ * the write itself is never waited on, and a failed one is logged): a call with no
+ * watch gets no promise at all (''). A call held for the
  * recipient's hours never gets this line: its held reply already says when it
  * will ring (deferred-calls.ts). Off, there is none, and callOnBehalf keeps its
  * own line.

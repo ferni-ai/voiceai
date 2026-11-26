@@ -66,9 +66,11 @@ const store = vi.hoisted(() => {
   return { docs, db };
 });
 vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => store.db }));
+/** No Firestore at all (the arm's 'no_store' reason). */
+const noStore = vi.hoisted(() => ({ on: false }));
 vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../utils/firestore-utils.js')>()),
-  getFirestoreDb: () => store.db,
+  getFirestoreDb: () => (noStore.on ? null : store.db),
 }));
 const push = vi.hoisted(() => vi.fn(async (_p: { body: string }) => [{ success: true }]));
 vi.mock('../delivery/push-notifications.js', () => ({
@@ -280,7 +282,7 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     expect(told(NO_REPORT_LINE)).toBe(1);
   });
 
-  it('the watch carries its arm time and no expireAt (no TTL policy); both warns carry a hash, never the id', async () => {
+  it('the watch carries its arm time and no expireAt (no TTL policy); every warn carries a hash, never the id; an arm failure carries no error text', async () => {
     expect(await armCallResultWatchdog(request(), callId, T0)).toBe(true);
     expect(watchDoc()).toMatchObject({ armedAt: T0.toISOString() });
     expect(watchDoc()).not.toHaveProperty('expireAt');
@@ -288,17 +290,22 @@ describe('CALL_RESULT_WATCHDOG on', () => {
     const spy = vi.spyOn(store.db, 'collection').mockImplementation(failing.collection);
     expect(await armCallResultWatchdog(request(), `${callId}_b`, T0)).toBe(false); // not armed
     spy.mockRestore();
+    noStore.on = true;
+    expect(await armCallResultWatchdog(request(), `${callId}_c`, T0)).toBe(false); // no store
+    noStore.on = false;
     // A watch its sweep can't settle: its request can't be read.
     const unreadable = new Proxy({}, { ownKeys: () => { throw new Error('unreadable'); } }); // prettier-ignore
     store.docs.set(`bogle_users/${OWNER}/call_result_watchdogs/${callId}`, { ...watchDoc(), request: unreadable }); // prettier-ignore
     expect(await sweepCallResultWatchdogs({ now: at(NO_REPORT_AFTER_MS + 1000) })).toMatchObject({ failed: 1 }); // prettier-ignore
     const hash = expect.stringMatching(/^[0-9a-f]{12}$/);
     expect(warned).toEqual([
-      { callHash: hash, error: 'Error: UNAVAILABLE' }, // not armed
+      { callHash: hash, errorClass: 'Error', reason: 'write_failed' }, // not armed: no error text
+      { callHash: hash, errorClass: 'Error', reason: 'no_store' }, // not armed: no Firestore
       { callHash: hash, error: 'Error: unreadable' }, // not settled
     ]);
-    expect(warned[0]?.callHash).not.toBe(warned[1]?.callHash); // each its own call's hash
+    expect(new Set(warned.map((w) => w.callHash)).size).toBe(3); // each its own call's hash
     expect(JSON.stringify(warned)).not.toContain(callId);
+    expect(JSON.stringify(warned)).not.toContain('UNAVAILABLE');
   });
 
   it('a watch that cannot be settled keeps its due time, is tried again, and goes once a day late', async () => {
