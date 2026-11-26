@@ -73,7 +73,7 @@
     "label": "none",
     "text": "Yeah, couldn't sleep. Just thinking about the trip next week.",
     "earlier": ["Hey Ferni, you still up?"],
-    "companion": "Yeah, I'm up. What's got you awake at this hour?"
+    "companion": "I'm here, night owl. Is something keeping your brain busy?"
   },
   {
     "kind": "money-stress",
@@ -109,7 +109,7 @@
     "label": "none",
     "text": "Everyone's busy this weekend, so it's just me and the cat again.",
     "earlier": [],
-    "companion": "What are you up to this weekend?"
+    "companion": "Any fun plans lined up for Saturday and Sunday?"
   },
   {
     "kind": "grief-plus-risk",
@@ -144,7 +144,7 @@
     "label": "crisis",
     "text": "It's just me again. I keep thinking nobody would even notice if I was gone.",
     "earlier": [],
-    "companion": "What are you up to this weekend?"
+    "companion": "Got anything on the calendar for the weekend?"
   },
   {
     "kind": "goodbye-plus-farewell",
