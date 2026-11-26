@@ -88,8 +88,9 @@ const NAMED: Record<string, number> = {
   'src/services/custom-agent/__tests__/transcribe-budget.test.ts': 1,
   'src/services/custom-agent/__tests__/vertex-transcribe.test.ts': 1,
   'src/services/llm/__tests__/call-llm-claude-route.test.ts': 1,
-  // Its own VertexAI (the row's model) and an empty OpenAI class.
+  // Their own VertexAI (the row's model) and an empty OpenAI class.
   'src/services/__tests__/llm-utils-retry.test.ts': 2,
+  'src/services/__tests__/llm-utils-timeout.test.ts': 2,
   // Their own @google/genai: no client class (phases), or a bare vi.fn (emotion analysis).
   'src/agents/voice-agent/phases/__tests__/phases.test.ts': 1,
   'src/services/emotion-analysis/__tests__/emotion-analysis.test.ts': 1,
@@ -116,6 +117,9 @@ const PLUGIN_BUILDERS = [
   'src/agents/model-provider/__tests__/prompt-prefix.test.ts',
   'src/agents/shared/__tests__/append-only-tools.test.ts',
   'src/agents/shared/__tests__/static-core-tools.test.ts',
+  // Builds nothing: it names the plugin and a RealtimeModel build only in strings its own regex
+  // rows read. This census reads text, so it stays listed.
+  'src/agents/gce/__tests__/startup-builds-no-realtime-model.test.ts',
 ];
 const PLUGIN = new RegExp(
   String.raw`['"\`]@livekit/agents-plugin-(?:google|openai)(?:/[^'"\`]*)?['"\`]`
@@ -281,8 +285,8 @@ describe('files that step around the outbound guard', () => {
     expect(problems).toEqual([]);
   });
 
-  it('the list has 19 entries: one more is a decision, made here as well', () => {
-    expect(Object.keys(NAMED)).toHaveLength(19);
+  it('the list has 20 entries: one more is a decision, made here as well', () => {
+    expect(Object.keys(NAMED)).toHaveLength(20);
   });
 
   it('the test files that build through a LiveKit plugin are the list', () => {
