@@ -20,13 +20,8 @@
  * @module tests/stage-direction-sanitization
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  checkTTSText,
-  getTTSStats,
-  monitorTTSText,
-  resetTTSStats,
-} from '../speech/tts-monitoring.js';
+import { describe, expect, it } from 'vitest';
+import { checkTTSText } from '../speech/tts-monitoring.js';
 import { STAGE_DIRECTION_KEYWORDS } from '../ssml/constants.js';
 import { sanitizeSsml, stripSsmlTags } from '../ssml/core.js';
 
@@ -167,10 +162,6 @@ const TONE_DESCRIPTORS = [
 // =============================================================================
 
 describe('Stage Direction Sanitization - Unit Tests', () => {
-  beforeEach(() => {
-    resetTTSStats();
-  });
-
   describe('Asterisk-Wrapped Stage Directions', () => {
     it.each(ASTERISK_STAGE_DIRECTIONS)('should remove or convert "%s"', (stageDirection) => {
       const input = `${stageDirection} That's really interesting.`;
@@ -410,10 +401,6 @@ describe('Stage Direction Sanitization - Unit Tests', () => {
 // =============================================================================
 
 describe('TTS Monitoring - Integration Tests', () => {
-  beforeEach(() => {
-    resetTTSStats();
-  });
-
   describe('checkTTSText Detection', () => {
     it('should detect suspicious patterns that slipped through', () => {
       // If something slips through sanitization, monitoring should catch it
@@ -448,18 +435,6 @@ describe('TTS Monitoring - Integration Tests', () => {
 
       // [sigh] is not supported by Cartesia
       expect(result.hasIssues).toBe(true);
-    });
-
-    it('should track statistics over time', () => {
-      // Use monitorTTSText which tracks stats (checkTTSText doesn't auto-track)
-      monitorTTSText('smiles warmly Hello', { trackStats: true });
-      monitorTTSText('Clean text here', { trackStats: true });
-      monitorTTSText('nods That is right', { trackStats: true });
-
-      const stats = getTTSStats();
-
-      expect(stats.totalChecks).toBe(3);
-      expect(stats.issuesFound).toBeGreaterThan(0);
     });
   });
 });

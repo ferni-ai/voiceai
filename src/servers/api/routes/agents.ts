@@ -356,37 +356,6 @@ export async function handleAgentRoutes(
     return true;
   }
 
-  // Validate agent configuration
-  if (pathname === '/api/agents/validate' && req.method === 'POST') {
-    try {
-      const { AgentRegistry } = await import('../../../personas/registry/unified-registry.js');
-      const agents = await AgentRegistry.getEnabledAgents();
-
-      const issues: string[] = [];
-      for (const agent of agents) {
-        if (!agent.voiceId) {
-          issues.push(`Agent ${agent.id} has no voiceId`);
-        }
-        if (!agent.ui?.initials) {
-          issues.push(`Agent ${agent.id} has no initials`);
-        }
-      }
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          valid: issues.length === 0,
-          issues,
-          agentCount: agents.length,
-        })
-      );
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Validation failed', message: (err as Error).message }));
-    }
-    return true;
-  }
-
   // Enable/disable agent
   if (pathname.match(/^\/api\/agents\/[^/]+\/enable$/) && req.method === 'POST') {
     if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000, keyPrefix: 'agent-enable' })) {
