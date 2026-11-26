@@ -37,6 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           sparse-checkout: scripts/ci
       - name: Update armed PRs that are missing a required check
         env:

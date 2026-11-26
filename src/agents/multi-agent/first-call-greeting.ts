@@ -13,13 +13,17 @@
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { returningOnceLoaded } from '../../services/session/deferred-profile.js';
 import { firstCallIntroEnabled, isFirstCall } from '../personas/first-call-rapport.js';
+import { helloWording } from '../personas/earlier-call-honest.js';
 import type { CallerHistory, GreetingUserData } from './greeting-direction.js';
 
 /** How long the hello waits for a deferred profile, like its other lookups. */
 const PROFILE_WAIT_MS = 400;
 
 export function firstCallIntroDirection(personaName: string): string {
-  return ` This is your first call together and they may not know your voice yet: open with hello, their name if you have it, and who you are, in a few words, the way a friend calling for the first time would ("Hi Sam, it's ${personaName}."). Your name comes first; anything playful comes after it and stays gentle, since you have only just met.`;
+  // EARLIER_CALL_NO_DENIAL: "you don't know them yet", never a first meeting (earlier-call-honest.ts)
+  return helloWording(
+    ` This is your first call together and they may not know your voice yet: open with hello, their name if you have it, and who you are, in a few words, the way a friend calling for the first time would ("Hi Sam, it's ${personaName}."). Your name comes first; anything playful comes after it and stays gentle, since you have only just met.`
+  );
 }
 
 /** The base directions forbid an intro; a first call's hello needs one. */

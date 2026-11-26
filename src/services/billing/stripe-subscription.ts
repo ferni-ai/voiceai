@@ -34,7 +34,7 @@ import {
   type SeedFundInvoice,
   type SeedFundPaymentIntent,
 } from '../seeds/payment-bonuses.js';
-import { finops } from '../observability/finops.js';
+import { finopsSettings } from '../observability/finops-settings/index.js';
 import { billingSourceOf, type BillingSource } from './billing-source.js';
 import { nextSubscriptionFromStripe } from './paying-twice.js';
 
@@ -804,8 +804,8 @@ export async function syncMRRToFinOps(): Promise<{ mrr: number; subscriptionCoun
     subscriptionCount++;
   }
 
-  // Update FinOps with the calculated MRR
-  finops.setMonthlyRevenue(mrr);
+  // Save it as FinOps' MRR (throws FinOpsSettingsUnavailableError when the store is down)
+  await finopsSettings.save({ monthlyRevenue: mrr }, 'stripe-sync');
 
   log.info({ mrr, subscriptionCount }, 'Synced MRR to FinOps');
   return { mrr, subscriptionCount };
