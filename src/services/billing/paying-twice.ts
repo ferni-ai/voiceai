@@ -84,6 +84,16 @@ function liveApple(sub: SubscriptionData, now: Date): LiveApple | undefined {
   return unexpired(expiresAt, now) ? { tier, expiresAt, inCharge: false } : undefined;
 }
 
+/**
+ * Paying now, through either store: a live Stripe plan, or a live App Store plan on a paid
+ * tier (in charge, or remembered under Stripe). The admission check uses it (#2264).
+ */
+export function hasLivePaidPlan(sub: SubscriptionData, now: Date): boolean {
+  if (hasLiveStripePlan(sub)) return true;
+  const tier = liveApple(sub, now)?.tier;
+  return tier !== undefined && (TIER_RANK[tier] ?? 0) > 0;
+}
+
 /** A Stripe subscription as a webhook reports it. */
 export interface StripePlan {
   tier: SubscriptionTier;

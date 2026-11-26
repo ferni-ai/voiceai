@@ -103,6 +103,7 @@ import {
 // 5D: Continuous prosody stream for rolling window updates
 import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
 import { cueSay } from '../../speech/direction/index.js';
+import { IDLE_CHECKIN_CUE } from './idle-checkin-cue.js';
 import { silenceResponseInstructions } from './character-silence.js';
 import { silenceResponseBlocked } from './silence-response-blockers.js';
 import { quietPresenceFor } from './quiet-presence.js';
@@ -329,17 +330,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // Gentle check-in, in the character's own words
       try {
-        cueSay(
-          sessionId,
-          {
-            moment: 'idle_checkin',
-            direction:
-              "They've gone quiet for a while. Gently let them know you're still here, with no pressure to talk. Don't ask if everything is okay.",
-            fallback: "Hey, I'm still here if you need me. Just let me know when you want to continue.",
-            urgency: 'soon',
-          },
-          { allowInterruptions: true }
-        );
+        cueSay(sessionId, IDLE_CHECKIN_CUE, { allowInterruptions: true });
       } catch (e) {
         getLogger().debug({ error: e }, 'Failed to say idle warning');
       }

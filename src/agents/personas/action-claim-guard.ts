@@ -60,6 +60,7 @@ import { isLookupTool, lookupKind, withAnnouncedCheckLog } from './announced-che
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
 import type { HouseFactsWho } from './grounded-addresses.js';
 import { withHouseFactsGuard } from './house-facts.js';
+import { withPauseReplyCap } from './pause-request.js';
 import { CRISIS_TALK } from './emergency-claim.js';
 import { honestLine, inPlace, type ClaimKind, type MissReason } from './honest-line.js';
 import type { Kinds, SeenActions } from './honest-line.js';
@@ -78,7 +79,7 @@ import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './actio
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
-import { keptStepUp, stepUpOffered } from '../shared/phone-step-up.js';
+import { keptStepUp, noToolReason, stepUpOffered } from '../shared/phone-step-up.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -209,8 +210,9 @@ export async function withActionClaimCheck<T>(
   const asked = actionClaimGuardEnabled(env)
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
+  // PAUSE_REQUEST_WAIT=on: a pause request's reply keeps one sentence; the guards check what's left.
   // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
-  const facts = withHouseFactsGuard(reply, chatCtx, env, who);
+  const facts = withHouseFactsGuard(withPauseReplyCap(reply, chatCtx, env), chatCtx, env, who);
   const stepUp = (): boolean => stepUpOffered(sessionIdIn(caller), env); // PHONE_STEP_UP, per claim
   const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords, stepUp);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
@@ -248,9 +250,7 @@ async function checkActionClaims<T>(
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     !open.has(kind)
-      ? stepUp() && (kind === 'call' || kind === 'send')
-        ? 'step_up'
-        : 'no_tool'
+      ? noToolReason(kind, stepUp())
       : failed.has(kind)
         ? 'failed'
         : elsewhere.has(kind)

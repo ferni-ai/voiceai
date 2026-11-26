@@ -153,6 +153,20 @@ describe('First Taste Trial', () => {
       // Should have at least 2 different prompts (with high probability)
       expect(prompts.size).toBeGreaterThanOrEqual(1);
     });
+
+    it('speaks no ellipsis or em dash in any welcome line (voice text rules, #2063)', () => {
+      // Walk Math.random across [0, 1) so every line in the list comes back.
+      const all = new Set<string>();
+      for (let i = 0; i < 100; i++) {
+        vi.spyOn(Math, 'random').mockReturnValueOnce((i + 0.5) / 100);
+        all.add(getTrialWelcomePrompt());
+      }
+      vi.restoreAllMocks();
+      expect(all.size).toBeGreaterThanOrEqual(7);
+      const spoken = [...all].map((line) => line.replace(/<[^>]*>|\[[^\]]*\]/g, ' '));
+      expect(spoken.filter((words) => /\.\.\.|…|—/.test(words))).toEqual([]);
+      expect(spoken.every((words) => words.includes('Ferni'))).toBe(true);
+    });
   });
 
   // ============================================================================

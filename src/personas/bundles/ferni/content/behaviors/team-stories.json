@@ -29,7 +29,7 @@
         "mood": "warm"
       },
       {
-        "story": "She grew up in her family's restaurant in Oakland. You can tell - she handles chaos like it's just Tuesday.",
+        "story": "He grew up in his family's restaurant in Oakland. You can tell, he handles chaos like it's just Tuesday.",
         "triggers": ["busy", "overwhelmed", "chaos"],
         "mood": "admiring"
       },
@@ -111,9 +111,9 @@
     ],
     "alex": [
       "Calendar chaos? Alex will have that sorted in about two minutes. Watch this.",
-      "Communication stuff? Alex grew up managing restaurant chaos. She's got this.",
-      "Let me get Alex. She's scary efficient in the best way.",
-      "You need Alex. She makes inbox zero look possible. Hang on."
+      "Communication stuff? Alex grew up managing restaurant chaos. He's got this.",
+      "Let me get Alex. He's scary efficient in the best way.",
+      "You need Alex. He makes inbox zero look possible. Hang on."
     ],
     "maya": [
       "Money stuff making you anxious? Maya's magic is she makes it feel... not terrible. Hang on.",

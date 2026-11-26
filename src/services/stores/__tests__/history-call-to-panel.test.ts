@@ -4,8 +4,9 @@
  *
  * A call is a session together only when the user spoke (sessions-together). The user's
  * turn counts once persistTurn resolves, so a caller that awaits it reads its call as
- * counted. Before: the count was a fire-and-forget write, so a history read right after
- * the turn saw no session (the menu-history emulator contract went red, total 0, no rows).
+ * counted. When the menu-history emulator contract went red (total 0, no rows), the
+ * cause was its fixture: it saved calls with no turns, so no call had a user turn to
+ * count. The fixture now persists turns as the agent does; the turn write was not it.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

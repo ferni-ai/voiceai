@@ -80,6 +80,14 @@ vi.mock('../../semantic-router/compat.js', () => ({
   },
 }));
 
+// No built dist/tool-embeddings.json: without this, a machine that has run `pnpm dev` takes the
+// precomputed fast path and the router stub above never runs (#4036)
+vi.mock('../../semantic-router/precomputed-embeddings.js', () => ({
+  areEmbeddingsLoaded: () => false,
+  loadPrecomputedEmbeddings: vi.fn().mockRejectedValue(new Error('not built in tests')),
+  semanticSearchTools: vi.fn().mockResolvedValue([]),
+}));
+
 // Mock tool lifecycle
 vi.mock('../../advanced/tool-lifecycle.js', () => ({
   initializeToolLifecycle: vi.fn().mockResolvedValue(undefined),
@@ -111,7 +119,21 @@ vi.mock('../../builder.js', () => ({
 }));
 
 // Import after mocks
+import { initializeToolRegistry } from '../../registry/loader.js';
+import { semanticRouter } from '../../semantic-router/compat.js';
 import { UnifiedToolOrchestrator } from '../tool-orchestrator.js';
+
+// Tools from the always-on domains in the config below (entertainment, memory, handoff, information)
+const ALWAYS_ON = ['getWeather', 'handoffToMaya', 'playMusic', 'rememberUser'];
+
+/** A semantic match for a tool outside the always-on domains: only the router can select it. */
+function pushSemanticMatch(toolId: string, domain: string, similarity = 0.92): void {
+  mockSemanticMatches.push({ toolId, domain, similarity, description: toolId });
+}
+
+function toolIds(tools: Record<string, unknown>): string[] {
+  return Object.keys(tools).sort();
+}
 
 describe('UnifiedToolOrchestrator', () => {
   let orchestrator: UnifiedToolOrchestrator;
@@ -168,10 +190,10 @@ describe('UnifiedToolOrchestrator', () => {
 
     it('should not reinitialize if already initialized', async () => {
       await orchestrator.initialize();
-      await orchestrator.initialize(); // Should not throw
+      await orchestrator.initialize();
 
-      const stats = orchestrator.getStats();
-      expect(stats.initialized).toBe(true);
+      expect(orchestrator.getStats().initialized).toBe(true);
+      expect(initializeToolRegistry).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -180,14 +202,8 @@ describe('UnifiedToolOrchestrator', () => {
       await orchestrator.initialize();
     });
 
-    it('should return tools for a music-related intent', async () => {
-      // Set up semantic matches for music query
-      mockSemanticMatches.push({
-        toolId: 'playMusic',
-        domain: 'entertainment',
-        similarity: 0.92,
-        description: 'Play music',
-      });
+    it('adds a semantic match from outside the always-on domains', async () => {
+      pushSemanticMatch('guidedBreathing', 'presence');
 
       const result = await orchestrator.getToolsForIntent({
         transcript: 'play some relaxing jazz',
@@ -195,23 +211,23 @@ describe('UnifiedToolOrchestrator', () => {
         agentId: 'ferni',
       });
 
-      expect(result.tools).toBeDefined();
-      expect(result.meta.selected).toBeGreaterThan(0);
-      expect(result.meta.selectionTimeMs).toBeGreaterThanOrEqual(0);
+      expect(toolIds(result.tools)).toEqual([...ALWAYS_ON, 'guidedBreathing'].sort());
+      expect(result.meta.sources.semantic).toBe(1);
+      expect(result.meta.semanticMatches.map((m) => m.toolId)).toEqual(['guidedBreathing']);
     });
 
-    it('should always include essential domain tools', async () => {
+    it('selects exactly the always-on tools when nothing else matches', async () => {
       const result = await orchestrator.getToolsForIntent({
         transcript: 'hello',
         userId: 'test-user',
         agentId: 'ferni',
       });
 
-      // Should include tools from always-available domains
-      expect(result.meta.sources.essential).toBeGreaterThanOrEqual(0);
+      expect(toolIds(result.tools)).toEqual(ALWAYS_ON);
+      expect(result.meta.sources).toMatchObject({ essential: 4, semantic: 0, contextual: 0 });
     });
 
-    it('should detect intent and load contextual tools', async () => {
+    it('detects a presence intent and loads presence tools for a stressed caller', async () => {
       const result = await orchestrator.getToolsForIntent({
         transcript: 'I am feeling really stressed about my job',
         userId: 'test-user',
@@ -221,7 +237,9 @@ describe('UnifiedToolOrchestrator', () => {
         },
       });
 
-      expect(result.meta.sources.contextual).toBeGreaterThanOrEqual(0);
+      expect(result.meta.detectedIntent?.domains).toEqual(['presence']);
+      expect(result.meta.sources.contextual).toBe(1);
+      expect(result.tools['guidedBreathing']).toBeDefined();
     });
 
     it('should respect forceInclude option', async () => {
@@ -229,37 +247,33 @@ describe('UnifiedToolOrchestrator', () => {
         transcript: 'hello',
         userId: 'test-user',
         agentId: 'ferni',
-        forceInclude: ['getWeather'],
+        forceInclude: ['processGrief'],
       });
 
-      expect(result.tools).toBeDefined();
+      expect(toolIds(result.tools)).toEqual([...ALWAYS_ON, 'processGrief'].sort());
     });
 
     it('should respect forceExclude option', async () => {
-      mockSemanticMatches.push({
-        toolId: 'playMusic',
-        domain: 'entertainment',
-        similarity: 0.92,
-        description: 'Play music',
-      });
+      pushSemanticMatch('guidedBreathing', 'presence');
+      pushSemanticMatch('processGrief', 'grief', 0.8);
 
       const result = await orchestrator.getToolsForIntent({
         transcript: 'play some music',
         userId: 'test-user',
         agentId: 'ferni',
-        forceExclude: ['playMusic'],
+        forceExclude: ['playMusic', 'processGrief'],
       });
 
-      expect(result.tools['playMusic']).toBeUndefined();
+      expect(toolIds(result.tools)).toEqual([
+        'getWeather',
+        'guidedBreathing',
+        'handoffToMaya',
+        'rememberUser',
+      ]);
     });
 
     it('should cache results for identical requests', async () => {
-      mockSemanticMatches.push({
-        toolId: 'playMusic',
-        domain: 'entertainment',
-        similarity: 0.92,
-        description: 'Play music',
-      });
+      pushSemanticMatch('guidedBreathing', 'presence');
 
       const request = {
         transcript: 'play some jazz',
@@ -270,8 +284,9 @@ describe('UnifiedToolOrchestrator', () => {
       const result1 = await orchestrator.getToolsForIntent(request);
       const result2 = await orchestrator.getToolsForIntent(request);
 
-      // Second call should be faster (cached)
-      expect(result2.meta.selectionTimeMs).toBeLessThanOrEqual(result1.meta.selectionTimeMs + 10);
+      expect(result1.tools['guidedBreathing']).toBeDefined();
+      expect(result2).toBe(result1);
+      expect(semanticRouter.findRelevantToolsAsync).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -282,7 +297,7 @@ describe('UnifiedToolOrchestrator', () => {
 
     it('should load presence tools for stressed emotion', async () => {
       const result = await orchestrator.getToolsForIntent({
-        transcript: 'I feel overwhelmed',
+        transcript: 'hello',
         userId: 'test-user',
         agentId: 'ferni',
         context: {
@@ -290,7 +305,8 @@ describe('UnifiedToolOrchestrator', () => {
         },
       });
 
-      expect(result.meta.sources.contextual).toBeGreaterThanOrEqual(0);
+      expect(result.meta.sources.contextual).toBe(1);
+      expect(toolIds(result.tools)).toEqual([...ALWAYS_ON, 'guidedBreathing'].sort());
     });
 
     it('should load grief tools for sad emotion', async () => {
@@ -303,10 +319,18 @@ describe('UnifiedToolOrchestrator', () => {
         },
       });
 
-      expect(result.meta).toBeDefined();
+      expect(result.meta.sources.contextual).toBe(1);
+      expect(toolIds(result.tools)).toEqual([...ALWAYS_ON, 'processGrief'].sort());
     });
 
     it('should load morning-appropriate tools', async () => {
+      mockTools.set('morningRoutine', {
+        id: 'morningRoutine',
+        domain: 'habits',
+        description: 'Morning routine',
+        create: () => ({ description: 'Morning routine' }),
+      } as never);
+
       const result = await orchestrator.getToolsForIntent({
         transcript: 'good morning',
         userId: 'test-user',
@@ -316,7 +340,8 @@ describe('UnifiedToolOrchestrator', () => {
         },
       });
 
-      expect(result.meta.sources.contextual).toBeGreaterThanOrEqual(0);
+      expect(result.meta.sources.contextual).toBe(1);
+      expect(result.tools['morningRoutine']).toBeDefined();
     });
   });
 
@@ -332,10 +357,11 @@ describe('UnifiedToolOrchestrator', () => {
         sessionId: 'test-session',
       });
 
-      // Grief topic should trigger refresh
-      expect(result).toBeDefined();
-      expect(typeof result.shouldRefresh).toBe('boolean');
-      expect(Array.isArray(result.toolsToAdd)).toBe(true);
+      expect(result).toMatchObject({
+        shouldRefresh: true,
+        toolsToAdd: ['processGrief'],
+        toolsToRemove: [],
+      });
     });
 
     it('should not recommend refresh for similar topics', async () => {
@@ -345,8 +371,12 @@ describe('UnifiedToolOrchestrator', () => {
         sessionId: 'test-session',
       });
 
-      expect(result).toBeDefined();
-      expect(result.reason).toBeDefined();
+      expect(result).toEqual({
+        shouldRefresh: false,
+        toolsToAdd: [],
+        toolsToRemove: [],
+        reason: 'Current tools sufficient for detected intent',
+      });
     });
   });
 
@@ -356,12 +386,7 @@ describe('UnifiedToolOrchestrator', () => {
     });
 
     it('should generate human-readable explanation', async () => {
-      mockSemanticMatches.push({
-        toolId: 'playMusic',
-        domain: 'entertainment',
-        similarity: 0.92,
-        description: 'Play music',
-      });
+      pushSemanticMatch('guidedBreathing', 'presence');
 
       const result = await orchestrator.getToolsForIntent({
         transcript: 'play some jazz',
@@ -372,8 +397,9 @@ describe('UnifiedToolOrchestrator', () => {
       const explanation = orchestrator.explainSelection(result);
 
       expect(explanation).toContain('Tool Selection Breakdown');
-      expect(explanation).toContain('Selected');
-      expect(explanation).toContain('Sources');
+      expect(explanation).toContain('Selected 5 of 6 tools');
+      expect(explanation).toContain('Semantic (matched): 1');
+      expect(explanation).toContain('guidedBreathing (92%)');
     });
   });
 
@@ -383,10 +409,8 @@ describe('UnifiedToolOrchestrator', () => {
 
       const stats = orchestrator.getStats();
 
-      expect(stats.initialized).toBe(true);
-      expect(typeof stats.totalTools).toBe('number');
-      expect(typeof stats.cacheSize).toBe('number');
-      expect(stats.config).toBeDefined();
+      expect(stats).toMatchObject({ initialized: true, totalTools: 6, cacheSize: 0 });
+      expect(stats.config.maxTools).toBe(35);
     });
 
     it('should clear caches on demand', async () => {
@@ -398,6 +422,7 @@ describe('UnifiedToolOrchestrator', () => {
         userId: 'test-user',
         agentId: 'ferni',
       });
+      expect(orchestrator.getStats().cacheSize).toBe(1);
 
       orchestrator.clearCaches();
 
@@ -443,10 +468,8 @@ describe('Intent Detection Integration', () => {
       agentId: 'ferni',
     });
 
-    // Should detect grief intent
-    if (result.meta.detectedIntent) {
-      expect(result.meta.detectedIntent.categories).toContain('grief');
-    }
+    expect(result.meta.detectedIntent?.categories).toEqual(['grief']);
+    expect(result.tools['processGrief']).toBeDefined();
   });
 
   it('should detect decision-related intent', async () => {
@@ -456,13 +479,8 @@ describe('Intent Detection Integration', () => {
       agentId: 'ferni',
     });
 
-    // Should detect decisions intent
-    if (result.meta.detectedIntent) {
-      expect(
-        result.meta.detectedIntent.categories.includes('decisions') ||
-          result.meta.detectedIntent.triggerKeywords.some((k) => k.includes('should'))
-      ).toBe(true);
-    }
+    expect(result.meta.detectedIntent?.categories).toContain('decisions');
+    expect(result.tools['decisionFramework']).toBeDefined();
   });
 
   it('should detect relationship-related intent', async () => {
@@ -472,7 +490,7 @@ describe('Intent Detection Integration', () => {
       agentId: 'ferni',
     });
 
-    // Check for relationship detection
-    expect(result.meta).toBeDefined();
+    expect(result.meta.detectedIntent?.categories).toEqual(['relationships']);
+    expect(result.tools['relationshipAdvice']).toBeDefined();
   });
 });

@@ -49,3 +49,8 @@ export function keptStepUp<R extends string>(
 ): R | 'no_tool' | null {
   return reason === 'step_up' && offersCrisisLine(sentence) ? 'no_tool' : reason;
 }
+
+/** Why a call or send claim has no tool: a step-up could open it (offered), or none is open. */
+export function noToolReason(kind: string, offered: boolean): 'step_up' | 'no_tool' {
+  return offered && (kind === 'call' || kind === 'send') ? 'step_up' : 'no_tool';
+}

@@ -14,7 +14,12 @@ const {
   ouraSleepToolEnabled,
   callerOf,
 } = await import('../sleep-summary.js');
-type Summary = { status: string; message: string; instruction: string; date?: string };
+interface Summary {
+  status: string;
+  message: string;
+  instruction: string;
+  date?: string;
+}
 const sleepSummaryFor = (...args: Parameters<typeof summaryFor>) =>
   summaryFor(...args) as Promise<Summary>;
 const { toolAvailable } = await import('../../../registry/tool-availability.js');
@@ -131,6 +136,22 @@ describe('sleepSummaryFor', () => {
       expect(night.get).not.toHaveBeenCalled();
     }
   );
+
+  it.each(['2026-13-45', '2026-02-30', '2026-00-10', '2026-04-31'])(
+    'refuses the impossible date %j as a day that does not exist, without reading Oura',
+    async (date) => {
+      const result = await sleepSummaryFor(VERIFIED, date, NOW);
+      expect(result).toMatchObject({ status: 'invalid_date' });
+      expect(result.message).toMatch(/doesn't exist/);
+      expect(night.get).not.toHaveBeenCalled();
+    }
+  );
+
+  it('a real past day still reads Oura', async () => {
+    night.get.mockResolvedValue({ status: 'ok', night: NIGHT });
+    expect(await sleepSummaryFor(VERIFIED, '2024-02-29', NOW)).toMatchObject({ status: 'ok' });
+    expect(night.get).toHaveBeenCalledWith('u1', '2024-02-29', NOW);
+  });
 });
 
 describe('who is calling', () => {
@@ -175,7 +196,9 @@ describe('who is calling', () => {
 });
 
 describe('the tool', () => {
-  type Runnable = { execute: (args: unknown, opts: unknown) => Promise<unknown> };
+  interface Runnable {
+    execute: (args: unknown, opts: unknown) => Promise<unknown>;
+  }
   const tool = () => getSleepSummaryDef.create({} as never) as unknown as Runnable;
 
   it('a verified call reads that call’s caller, whoever built the tool', async () => {
