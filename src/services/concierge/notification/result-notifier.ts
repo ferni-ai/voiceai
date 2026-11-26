@@ -8,7 +8,7 @@
  * helpful info, not a corporate notification.
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../../utils/safe-logger.js';
 import type {
   ConciergeRequest,
   ConciergeResult,
@@ -193,7 +193,7 @@ async function sendSms(phone: string, message: string): Promise<NotificationResu
 
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_NUMBER) {
     log.warn('Twilio not configured, simulating SMS');
-    log.info({ phone, messageLen: message.length }, 'Would send SMS');
+    log.info({ phone: replyForLog(phone), messageLen: message.length }, 'Would send SMS');
     return { success: true, channel: 'sms', messageId: `sim_${Date.now()}` };
   }
 
@@ -207,10 +207,10 @@ async function sendSms(phone: string, message: string): Promise<NotificationResu
     // });
     // return { success: true, channel: 'sms', messageId: msg.sid };
 
-    log.info({ phone }, 'SMS would be sent via Twilio');
+    log.info({ phone: replyForLog(phone) }, 'SMS would be sent via Twilio');
     return { success: true, channel: 'sms', messageId: `twilio_${Date.now()}` };
   } catch (error) {
-    log.error({ error: String(error), phone }, 'Failed to send SMS');
+    log.error({ error: String(error), phone: replyForLog(phone) }, 'Failed to send SMS');
     return { success: false, channel: 'sms', error: String(error) };
   }
 }
@@ -261,7 +261,7 @@ async function sendEmailNotification(
       await import('../../outreach/delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
-      log.debug({ email }, 'Email delivery not available, skipping');
+      log.debug({ email: replyForLog(email) }, 'Email delivery not available, skipping');
       return { success: false, channel: 'email', error: 'Email delivery not configured' };
     }
 
@@ -276,14 +276,17 @@ async function sendEmailNotification(
     });
 
     if (result.success) {
-      log.info({ email, subject, messageId: result.messageId }, '📧 Concierge result email sent');
+      log.info(
+        { email: replyForLog(email), subject, messageId: result.messageId },
+        '📧 Concierge result email sent'
+      );
       return { success: true, channel: 'email', messageId: result.messageId };
     } else {
-      log.warn({ email, error: result.error }, 'Email delivery failed');
+      log.warn({ email: replyForLog(email), error: result.error }, 'Email delivery failed');
       return { success: false, channel: 'email', error: result.error };
     }
   } catch (error) {
-    log.error({ error: String(error), email }, 'Failed to send email');
+    log.error({ error: String(error), email: replyForLog(email) }, 'Failed to send email');
     return { success: false, channel: 'email', error: String(error) };
   }
 }
