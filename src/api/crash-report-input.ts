@@ -58,6 +58,31 @@ export const crashReportBodySchema = z.object({
 
 export type FrontendCrashReport = z.infer<typeof crashReportBodySchema>;
 
+/** A client crash as kept: the caller's last line only as its length (#3215). */
+export type StoredCrash = Omit<FrontendCrashReport, 'lastUserMessage'> & {
+  lastUserMessageLen?: number;
+  crashId: string;
+  receivedAt: string;
+};
+
+/**
+ * Older web builds still send the caller's last line, on the report and in a dropped call's
+ * customData. Neither is kept: only its length.
+ */
+export function withoutCallerWords(
+  report: FrontendCrashReport
+): Omit<StoredCrash, 'crashId' | 'receivedAt'> {
+  const { lastUserMessage, customData, ...rest } = report;
+  const data =
+    customData &&
+    Object.fromEntries(Object.entries(customData).filter(([key]) => key !== 'lastUserMessage'));
+  return {
+    ...rest,
+    ...(data && { customData: data }),
+    lastUserMessageLen: lastUserMessage?.length,
+  };
+}
+
 export const disconnectDiagnosticBodySchema = z.object({
   timestamp: text(40),
   sessionDurationMs: z.number().finite().min(0),
