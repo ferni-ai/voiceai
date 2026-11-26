@@ -42,8 +42,22 @@ const TILES: Record<SoulCountKey, [id: string, label: string]> = {
   name_lift_comfort: ['soulNameLiftsComfort', 'Name Lifts, Comfort'],
 };
 
-export function loadSoulStats(): Promise<AdminSoulStats | Unavailable> {
-  return loadJson<AdminSoulStats>(adminFetch('/api/v1/admin/soul/stats'), 'soul stats');
+/** What the panel shows for a body that is not the route's shape (null, an array, a string). */
+const NO_COUNTS: AdminSoulStats = { measured: false, reason: 'the server sent no counts' };
+
+/** The route's answer, or NO_COUNTS when the body is not its shape; never throws on a body. */
+function soulStatsFrom(body: unknown): AdminSoulStats {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return NO_COUNTS;
+  const fields = body as Record<string, unknown>;
+  const hours = fields.windowHours;
+  const measured = fields.measured === true && typeof hours === 'number' && Number.isFinite(hours);
+  const refused = fields.measured === false && typeof fields.reason === 'string';
+  return measured || refused ? (body as AdminSoulStats) : NO_COUNTS;
+}
+
+export async function loadSoulStats(): Promise<AdminSoulStats | Unavailable> {
+  const body = await loadJson<unknown>(adminFetch('/api/v1/admin/soul/stats'), 'soul stats');
+  return isUnavailable(body) ? body : soulStatsFrom(body);
 }
 
 const note = (html: string): string => `<p class="soul-stats-note">${html}</p>`;
@@ -53,8 +67,8 @@ const MISSING_COUNT = `${NOT_MEASURED}: the server sent no count for this moment
 
 /** Some moments play others, so the eleven tiles are not eleven separate moments. */
 const OVERLAP =
-  'The tiles overlap: a cameo arrival and a brighten or comfort name lift each also count a warmth bloom ' +
-  '(a brighten and a first cameo also count a memory spark), so they are not 11 separate moments.';
+  'The tiles overlap: a cameo arrival and a brighten or comfort name lift can also count a warmth bloom ' +
+  '(a brighten and a first cameo can also count a memory spark), so they are not 11 separate moments.';
 
 /** The eleven counts labelled with their window, or the reason there are none. */
 export function renderSoulStats(

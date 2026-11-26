@@ -121,7 +121,7 @@ describe('the Avatar Soul counts panel', () => {
     const el = await panel(json({ measured: true, windowHours: 24, counts, lastUpdated: null }));
     const note = el.querySelector('.soul-stats-note')?.textContent ?? '';
     expect(note).toContain(
-      'The tiles overlap: a cameo arrival and a brighten or comfort name lift each also count a warmth bloom'
+      'The tiles overlap: a cameo arrival and a brighten or comfort name lift can also count a warmth bloom'
     );
     expect(note).toContain('so they are not 11 separate moments');
   });

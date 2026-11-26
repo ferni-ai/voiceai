@@ -298,6 +298,48 @@ describe('the Avatar Soul section', () => {
 
 describe('field data', () => {
   const fieldData = () => document.getElementById('avatarSoulFieldData');
+  /** setupEvents does not wait for the counts, so wait for the box to leave its loading line. */
+  const drawn = () =>
+    vi.waitFor(() => expect(fieldData()?.textContent).not.toContain('Loading the counts'));
+  const labStillWired = async (root: HTMLElement, frame: HTMLIFrameElement) => {
+    const lab = fakeLab(frame, () => ({ ok: true, ran: 'triggerMemorySpark' }));
+    button('Memory spark').click();
+    await flush();
+    expect(lab.commands()).toEqual([{ name: 'moment', moment: 'memorySpark' }]);
+    expect(root.textContent).not.toContain('Failed to load');
+  };
+
+  it('setup resolves before the counts arrive, with the lab already wired', async () => {
+    fetchMock.mockReturnValueOnce(new Promise<Response>(() => undefined)); // never answers
+    const { root, frame } = await mount();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fieldData()?.textContent).toContain('Loading the counts');
+    await labStillWired(root, frame);
+  });
+
+  it.each([
+    ['null', null],
+    ['an array', [1, 2]],
+    ['a string', 'soul'],
+  ])('a body of %s: says the server sent no counts, and the lab stays wired', async (_, body) => {
+    fetchMock.mockResolvedValueOnce(json(body));
+    const { root, frame } = await mount();
+    await drawn();
+    expect(fieldData()?.textContent).toContain('not measured: the server sent no counts');
+    expect(fieldData()?.querySelector('.soul-stat-value')).toBeNull();
+    await labStillWired(root, frame);
+  });
+
+  it('loading the counts throws: says unavailable with a reason, and the lab stays wired', async () => {
+    fetchMock.mockImplementationOnce(() => {
+      throw new Error('token refresh failed');
+    });
+    const { root, frame } = await mount();
+    await drawn();
+    expect(fieldData()?.textContent).toContain('unavailable: the counts could not be shown');
+    expect(fieldData()?.textContent).not.toMatch(/\d/);
+    await labStillWired(root, frame);
+  });
 
   it('measured: shows the eleven counts from the admin soul stats route', async () => {
     const counts = Object.fromEntries(SOUL_COUNT_KEYS.map((k, i) => [k, i + 3]));
@@ -305,6 +347,7 @@ describe('field data', () => {
       json({ measured: true, windowHours: 24, counts, lastUpdated: null })
     );
     await mount();
+    await drawn();
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/admin/soul/stats', undefined);
     const values = [...(fieldData()?.querySelectorAll('.soul-stat-value') ?? [])];
     expect(values.map((v) => v.textContent)).toEqual(SOUL_COUNT_KEYS.map((_, i) => `${i + 3}`));
@@ -314,6 +357,7 @@ describe('field data', () => {
 
   it('not measured: says why, and shows no number', async () => {
     await mount();
+    await drawn();
     expect(fieldData()?.textContent).toContain('not measured: SOUL_STATS is off');
     expect(fieldData()?.querySelector('.soul-stat-value')).toBeNull();
   });
@@ -321,6 +365,7 @@ describe('field data', () => {
   it('a failed request: "unavailable (HTTP 503)", and no number', async () => {
     fetchMock.mockResolvedValueOnce(json({ error: 'down' }, 503));
     await mount();
+    await drawn();
     expect(fieldData()?.textContent).toContain('unavailable (HTTP 503)');
     expect(fieldData()?.querySelector('.soul-stat-value')).toBeNull();
   });
@@ -330,11 +375,12 @@ describe('field data', () => {
     fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (answer = resolve)));
     document.body.innerHTML = `<div id="adminContent">${await entry().component()}</div>`;
     const root = document.getElementById('adminContent') as HTMLElement;
-    const setup = soul.setupEvents(root);
+    await soul.setupEvents(root);
     const before = fieldData()?.innerHTML;
     soul.cleanup();
     answer(json({ measured: false, reason: 'SOUL_STATS is off' }));
-    await setup;
+    await flush();
+    await flush();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fieldData()?.innerHTML).toBe(before);
   });

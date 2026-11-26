@@ -12,6 +12,7 @@
 
 import { motionFlagOverride, setMotionFlagOverride } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
+import { renderUnavailable } from '../../utils/unavailable.js';
 import { createLabClient, isLabNotReady } from './avatar-lab-client.js';
 import {
   describeAnswer,
@@ -31,6 +32,9 @@ const log = createLogger('AvatarSoulSection');
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
+/** Shown in the field data box when loading or drawing the counts threw. */
+const FIELD_DATA_FAILED = 'unavailable: the counts could not be shown';
+
 const STYLES = `<style>
   .soul-lab { padding: var(--space-6); display: grid; gap: var(--space-6); }
   .soul-lab h1 { font-size: var(--text-2xl); margin: 0; }
@@ -48,6 +52,7 @@ const STYLES = `<style>
   .soul-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--space-3); }
   .soul-stat { text-align: center; }
   .soul-stat-value { font: 700 var(--text-xl) var(--font-mono); color: var(--color-accent-primary); }
+  .soul-stat-value .admin-unavailable { font-weight: var(--font-weight-regular); font-family: var(--font-body); }
   .soul-stat-label { font-size: var(--text-xs); color: var(--color-text-muted); }
   .soul-stats-note { grid-column: 1 / -1; margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 </style>`;
@@ -170,15 +175,22 @@ export function setupEvents(root: HTMLElement): Promise<void> {
     client.dispose();
     media.removeEventListener('change', showReducedMotion);
   };
-  return showFieldData(root, signal);
+  // Not returned: the portal's late cleanup for a slow first visit would stop a later visit's lab
+  void showFieldData(root, signal);
+  return Promise.resolve();
 }
 
 /** The counts, or why there are none; nothing is written once the section was left. */
 async function showFieldData(root: HTMLElement, signal: AbortSignal): Promise<void> {
-  const stats = await loadSoulStats();
+  let html: string;
+  try {
+    html = renderSoulStats(await loadSoulStats(), (iso) => new Date(iso).toLocaleString());
+  } catch (error) {
+    log.warn({ error }, 'Avatar Soul field data could not be shown');
+    html = `<p class="soul-stats-note">${renderUnavailable(FIELD_DATA_FAILED)}</p>`;
+  }
   const el = root.querySelector('#avatarSoulFieldData');
-  if (el && !signal.aborted)
-    el.innerHTML = renderSoulStats(stats, (iso) => new Date(iso).toLocaleString());
+  if (el && !signal.aborted) el.innerHTML = html;
 }
 
 /** Stops the lab client and every listener setupEvents added. */
