@@ -79,6 +79,7 @@ export default defineConfig({
       ...configDefaults.forceRerunTriggers,
       '**/src/tests/setup.ts',
       '**/src/tests/gcp-test-guard.ts',
+      '**/src/tests/outbound-guard.ts',
       '**/pnpm-lock.yaml',
       '**/pnpm-workspace.yaml',
       '**/tsconfig*.json',
