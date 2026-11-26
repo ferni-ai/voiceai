@@ -4,7 +4,11 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { withoutCallerWords, type FrontendCrashReport } from '../crash-report-input.js';
+import {
+  withoutCallerWords,
+  type FrontendCrashReport,
+  type StoredCrash,
+} from '../crash-report-input.js';
 
 const WORDS = 'SAMPLE-CALLER-WORDS my neighbour Pat Example called about the garden';
 
@@ -29,6 +33,19 @@ describe('a client crash as kept', () => {
     );
     expect(kept.customData).toEqual({ disconnectReason: 'network' });
     expect(JSON.stringify(kept)).not.toContain('SAMPLE-CALLER');
+  });
+
+  it('a report spread in whole is not a stored crash (pnpm typecheck)', () => {
+    const raw = report({ lastUserMessage: WORDS });
+    // @ts-expect-error the caller's words cannot be stored: StoredCrash.lastUserMessage is never
+    const stored: StoredCrash = { ...raw, crashId: 'client_1', receivedAt: 'now' };
+    expect(stored.lastUserMessage).toBe(WORDS); // why the type must refuse it
+    const kept: StoredCrash = {
+      ...withoutCallerWords(raw),
+      crashId: 'client_1',
+      receivedAt: 'now',
+    };
+    expect(kept).not.toHaveProperty('lastUserMessage');
   });
 
   it('keeps everything else as sent', () => {

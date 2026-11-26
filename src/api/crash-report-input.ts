@@ -60,6 +60,8 @@ export type FrontendCrashReport = z.infer<typeof crashReportBodySchema>;
 
 /** A client crash as kept: the caller's last line only as its length (#3215). */
 export type StoredCrash = Omit<FrontendCrashReport, 'lastUserMessage'> & {
+  /** Never kept. A report spread in whole carries a string here, which fails the typecheck. */
+  lastUserMessage?: never;
   lastUserMessageLen?: number;
   crashId: string;
   receivedAt: string;
