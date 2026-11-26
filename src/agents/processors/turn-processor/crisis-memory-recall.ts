@@ -49,11 +49,29 @@ const isRecalledMemory = carriesCallerMemory;
 export function skipsRecall(sessionId: string | undefined, said: string, env: Env = process.env) {
   if (!crisisNoMemoryRecallOn(env)) return false;
   try {
-    return (!!sessionId && crisisRiskThisCall(sessionId)) || scoreCrisisLanguage(said).isCrisis;
+    const callRisk = !!sessionId && crisisRiskThisCall(sessionId);
+    const crisisWords = scoreCrisisLanguage(said).isCrisis;
+    if (callRisk && !crisisWords) countOrdinarySkip(sessionId);
+    return callRisk || crisisWords;
   } catch (error) {
     log.warn({ error: String(error) }, 'Crisis recall check failed; skipping the memory search');
     return true;
   }
+}
+
+/** Skips on lines the patterns read as ordinary, in this process. */
+let ordinarySkips = 0;
+
+/**
+ * Counts a skip the call's risk caused on a line the patterns read as ordinary, words-free.
+ * `why` tells risk noted on the call apart from only a read still in flight: preemptive replies
+ * start the gate's read before a turn's later final arrives, so 'read_in_flight' on ordinary
+ * turns is the over-hold the dev count must show near zero before the flag goes on in prod.
+ */
+function countOrdinarySkip(sessionId: string | undefined) {
+  ordinarySkips += 1;
+  const why = sessionId && crisisRiskNoted(sessionId) ? 'risk_noted' : 'read_in_flight';
+  log.info({ sessionId, why, ordinarySkips }, 'CRISIS_RECALL_ORDINARY_SKIP');
 }
 
 /** Whether this turn's note leaves recalled memory out. A check that throws leaves it out. */
