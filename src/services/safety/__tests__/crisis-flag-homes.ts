@@ -418,6 +418,29 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
 };
 
 /**
+ * Crisis-lane flags that act on a voice reply after the reply gate (llmNode's tail,
+ * stream-repair.ts), where the six readers and SHOWN_ON (the gate's reply) never see them. This
+ * home is open only to a flag whose named rows drive the real tail on a fictional line with the
+ * flag on, and assert that on a call with crisis risk (a guided turn, risk noted earlier, a read
+ * still in flight) the reply is exactly what main gives: nothing added, nothing removed.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const REPLY_TAIL_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  STREAM_ERROR_REPAIR: [
+    {
+      file: 'src/agents/personas/__tests__/stream-repair.test.ts',
+      rows: [
+        'a crisis-guided turn (its own crisis read found risk), then a stream error with the flag on: the same error, no line',
+        'crisis risk earlier on the call: a later mid-reply error is rethrown, no repair line',
+        'a crisis read still in flight: the error is rethrown, no repair line',
+      ],
+    },
+  ],
+};
+
+/**
  * Crisis-lane flags that act only when the voice gate's own escalation rejects: an easing step,
  * or the wait for the read, throws. No call in the reply grid reaches that: its classifier
  * failures ('throws', 'never') settle as a failed read (a null verdict) on the timeout path, so

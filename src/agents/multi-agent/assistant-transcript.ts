@@ -12,6 +12,7 @@
  */
 
 import { stripSSML } from '../../speech/tts-gateway/ssml/processor.js';
+import { withoutStreamRepair } from '../personas/stream-repair.js';
 import { heldOutOfMemory } from './arrival-grounding.js';
 
 /** What was said, without the speech markup (emotion/speed/break tags, [laughter]). */
@@ -46,8 +47,8 @@ export function assistantTranscriptHandler(
   return (event: unknown) => {
     const item = (event as ItemAddedEvent)?.item;
     if (!item || (item.type && item.type !== 'message') || item.role !== 'assistant') return;
-    const content = transcriptText(item.textContent ?? '');
     const { userId, sessionId, personaId, threadId } = getContext();
+    const content = withoutStreamRepair(sessionId, transcriptText(item.textContent ?? ''));
     if (!content || !userId) return;
     if (heldOutOfMemory(sessionId, content)) return; // a teammate's hello (arrival-grounding.ts)
     void record({

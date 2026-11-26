@@ -28,8 +28,7 @@ import {
 // Centralized generateReply gateway - NEVER use session.generateReply directly!
 import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-import { filterSilenceReply } from '../voice-agent/presence-check.js';
-import { dropLeadingSaidBy } from './said-by.js';
+import { finishedReply } from './stream-repair.js';
 import { withCutReplyCheck } from './cut-reply-guard.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { withLane } from '../model-provider/lane-request.js';
@@ -670,7 +669,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * did (action-claim-guard.ts), no capped "you still there?" (presence-check.ts), no leading
    * "(Name said:)" off a handoff's history (said-by.ts), no copied cut-off mark, repeats logged
    * (cut-reply-guard.ts). An unprompted reply gets a caller turn (caller-turn.ts), and a tool
-   * call written as text is never spoken, captioned or saved (tool-markup-strip.ts).
+   * call written as text is never spoken, captioned or saved (tool-markup-strip.ts). A stream
+   * that fails after spoken words ends with one repair line, off a crisis call (stream-repair.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
@@ -689,7 +689,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       return withActionClaimCheck(text, ctx, turn.tools, this.session.userData) as never;
     });
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
-    return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
+    return finishedReply(sessionId, this.session, reply) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };

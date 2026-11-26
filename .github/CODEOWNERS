@@ -82,6 +82,7 @@
 /src/agents/personas/listen-offer.ts @sethdford
 /src/agents/personas/phrase-loops.ts @sethdford
 /src/agents/personas/question-pace.ts @sethdford
+/src/agents/personas/stream-repair.ts @sethdford
 /src/agents/personas/told-this-call.ts @sethdford
 /src/agents/personas/turn-call-report.ts @sethdford
 /src/agents/personas/turn-holds.ts @sethdford

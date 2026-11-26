@@ -25,6 +25,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { UserData } from '../shared/types.js';
 import { createLedgerRecorder } from '../personas/life-ledger.js';
+import { withoutStreamRepair } from '../personas/stream-repair.js';
 import { heldOutOfMemory } from '../multi-agent/arrival-grounding.js';
 import { recordAgentTurn } from './agent-turn-recorder.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
@@ -107,7 +108,8 @@ export async function recordCommittedAgentReply(
   const message = item as llm.ChatMessage;
   if (message.role !== 'assistant') return false;
 
-  const text = stripSSML(message.textContent ?? '').trim();
+  // STREAM_ERROR_REPAIR: the repair line is not something Ferni said (stream-repair.ts)
+  const text = withoutStreamRepair(ctx.sessionId, stripSSML(message.textContent ?? '').trim());
   if (!text || isAcknowledgementOnly(text)) return false;
   try {
     // CRISIS_GRADED_RESPONSE=shadow: whether a crisis-guided turn's reply named 988 as heard.

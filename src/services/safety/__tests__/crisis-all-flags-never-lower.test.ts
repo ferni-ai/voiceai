@@ -21,7 +21,8 @@
  * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
  * (NOT_YET_COVERED). A flag acting on a text channel, on the turn's tool routing, or only on a
  * rejected gate escalation, which neither reader sees, names rows that show it there
- * (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON). All of these lists are in
+ * (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON), and so does a flag acting on the
+ * voice reply after the gate (REPLY_TAIL_SHOWN_ON). All of these lists are in
  * crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
@@ -60,6 +61,7 @@ import {
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
   READ_CACHE_SHOWN_ON,
+  REPLY_TAIL_SHOWN_ON,
   TEXT_SHOWN_ON,
   TURN_ROUTING_SHOWN_ON,
 } from './crisis-flag-homes.js';
@@ -402,6 +404,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         name in TEXT_SHOWN_ON && 'TEXT_SHOWN_ON',
         name in READ_CACHE_SHOWN_ON && 'READ_CACHE_SHOWN_ON',
         name in TURN_ROUTING_SHOWN_ON && 'TURN_ROUTING_SHOWN_ON',
+        name in REPLY_TAIL_SHOWN_ON && 'REPLY_TAIL_SHOWN_ON',
         name in GATE_FAILURE_SHOWN_ON && 'GATE_FAILURE_SHOWN_ON',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
@@ -429,6 +432,7 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     ['TEXT_SHOWN_ON', TEXT_SHOWN_ON],
     ['READ_CACHE_SHOWN_ON', READ_CACHE_SHOWN_ON],
     ['TURN_ROUTING_SHOWN_ON', TURN_ROUTING_SHOWN_ON],
+    ['REPLY_TAIL_SHOWN_ON', REPLY_TAIL_SHOWN_ON],
     ['GATE_FAILURE_SHOWN_ON', GATE_FAILURE_SHOWN_ON],
   ] as const)('finds each %s row in the test file it names', (_home, home) => {
     const missing = Object.entries(home).flatMap(([name, rows]) =>
