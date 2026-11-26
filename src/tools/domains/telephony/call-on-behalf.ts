@@ -97,10 +97,8 @@ async function findContact(
         }
       }
     } catch (entityError) {
-      log.debug(
-        errorFields(entityError), // class and status: a store error can quote the number
-        'Entity store lookup failed, falling back to legacy'
-      );
+      // class and status only: a store error can quote the number
+      log.debug(errorFields(entityError), 'Entity store lookup failed, falling back to legacy');
     }
 
     // =========================================================================
