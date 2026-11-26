@@ -23,8 +23,9 @@ export function isFullLoggingEnabled(env: Env = process.env): boolean {
 }
 
 /**
- * Ferni's own words (a reply, TTS text, LLM output) for a log line. Prod logs how long it
- * is, e.g. `[148 chars]`, and never the text: a reply can echo what the caller said or their
+ * Words for a log line: Ferni's own (a reply, TTS text, LLM output) or what the caller said
+ * (a transcript, an intention, a commitment). Prod logs how long they are, e.g. `[148 chars]`,
+ * and never the text, for everyone (#4392): a reply can echo what the caller said or their
  * name, so a logged reply is a logged caller. A dev process (isKnownDevDatabase) logs the
  * text, cut at `maxLength` unless isFullLoggingEnabled().
  */
