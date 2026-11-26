@@ -47,7 +47,7 @@ const WINDOW_MS = 30 * 86_400_000;
 const MAX_LINES = 14;
 
 /** A Firestore Timestamp, a Date, an ISO string or epoch ms, as epoch ms; 0 when none. */
-export function millis(v: unknown): number {
+function millis(v: unknown): number {
   if (v instanceof Date) return v.getTime() || 0;
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   if (typeof v === 'string') return Date.parse(v) || 0;
@@ -75,7 +75,7 @@ function partOfDay(hour: number): string {
 }
 
 /** "Tuesday, November 24, in the morning (10:00 AM)" in `zone`. */
-export function whenSaid(at: number, zone: string): string {
+function whenSaid(at: number, zone: string): string {
   const d = new Date(at);
   const day = d.toLocaleDateString('en-US', {
     timeZone: zone,

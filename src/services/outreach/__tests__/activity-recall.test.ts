@@ -5,7 +5,7 @@
  * temporal, open-items and email questions scored 0 to 0.2 on 2026-11-24.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { activityText, millis, recallActivityOn, validZone, whenSaid } from '../activity-recall.js';
+import { activityText, recallActivityOn, validZone } from '../activity-recall.js';
 import { loadActivity, type ActivityStores } from '../activity-records.js';
 import { callHistory } from '../call-recall.js';
 
@@ -84,22 +84,6 @@ describe('RECALL_ACTIVITY flag', () => {
   });
 });
 
-describe('whenSaid and millis', () => {
-  it('names the weekday, date and part of day in the owner zone', () => {
-    expect(whenSaid(Date.parse(String(answered.capturedAt)), ZONE)).toMatch(
-      /^Tuesday, November 24, in the morning \(10:00\sAM\)$/
-    );
-  });
-  it('reads ISO strings, Dates, epoch ms and Timestamps; 0 for anything else', () => {
-    expect(millis(iso(NOW))).toBe(NOW);
-    expect(millis(new Date(NOW))).toBe(NOW);
-    expect(millis(NOW)).toBe(NOW);
-    expect(millis({ toMillis: () => NOW })).toBe(NOW);
-    expect(millis('not a date')).toBe(0);
-    expect(millis(undefined)).toBe(0);
-  });
-});
-
 describe('callHistory', () => {
   it('lists every call, newest first, with the held one ahead first, and relationships', () => {
     const calls = callHistory(records([heldDad], [voicemail, answered]), NOW);
@@ -134,7 +118,9 @@ describe('activityText', () => {
     const before = text.indexOf('Saturday, November 21, in the evening');
     expect(latest).toBeGreaterThan(-1);
     expect(before).toBeGreaterThan(latest);
-    expect(text).toContain('Ferni called Marisol (their mom), and they answered.');
+    expect(text).toMatch(
+      /Tuesday, November 24, in the morning \(10:00\sAM\): Ferni called Marisol \(their mom\), and they answered\./
+    );
     expect(text).toContain('it went to voicemail and Ferni left a message');
   });
 
@@ -143,7 +129,8 @@ describe('activityText', () => {
     const [open, done] = text.split('Done, newest first:');
     expect(open).toContain('A call to Hal (their dad) is set for');
     expect(open).toContain('not placed yet');
-    expect(open).toContain('Reminder "pick up the dry cleaning" is set for');
+    // a Firestore Timestamp, read as its instant: Saturday 11-28, 10 AM
+    expect(open).toMatch(/Reminder "pick up the dry cleaning" is set for Saturday, November 28/);
     expect(open).toContain('Ferni still owes this');
     expect(open).toContain('find a quote for the gutter repair');
     expect(done).toContain('reminder "renew the car registration" went out');

@@ -46,7 +46,7 @@ async function firestoreRecent(
   return snap.docs.map((d) => d.data());
 }
 
-export const firestoreActivityStores: ActivityStores = {
+const firestoreActivityStores: ActivityStores = {
   calls: firestoreCallRecords,
   recent: firestoreRecent,
 };
