@@ -113,9 +113,13 @@ const STATUS_TOLD = /(?:^|\. )Ferni (?:called|tried to call) /;
  */
 const LISTED_CALL =
   /^- \w+day, \w+ \d+, (?:in the \w+|at night) \(\d{1,2}:\d\d\s[AP]M\): Ferni (?:called|tried to call) (.+?), (?:and|but) /gm;
+/** Who a call verb names: one word, or two ("Dr. Kim", "mom yesterday"), never "mom and". */
+const OBJECT = "(?:my |the |your )?([a-z][\\w.'-]*(?: (?!(?:and|or)\\b)[a-z][\\w.'-]*)?)";
 /** Who the caller's latest turn asks about: "did you call my dad?", "how did it go with my best friend". */
-const ASKED_WHO =
-  /\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?hold|ahold) of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\s+(?:my |the |your )?([a-z][\w.'-]*(?: [a-z][\w.'-]*)?)/i;
+const ASKED_WHO = new RegExp(
+  `\\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?hold|ahold) of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\\s+${OBJECT}`,
+  'gi'
+);
 /** "mother" is "mom", as call records name people (call-status.ts personWord). */
 const norm = (w: string): string =>
   w
@@ -132,14 +136,32 @@ const whoOf = (who: string): { names: string[]; role?: string } => {
   };
 };
 const escaped = (w: string): string => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const wholeWordIn = (word: string, text: string): boolean =>
+  new RegExp(`(?:^|\\s)${escaped(word)}(?:$|\\s)`).test(text);
 const HONORIFIC = /^(?:dr|mr|mrs|ms|miss|aunt|auntie|uncle|grandma|grandpa|cousin)\.?$/i;
-/** The asked-about person: "my dad yesterday" is "dad", "Dr. Smith" and "Aunt June" stay whole. */
-const askedPerson = (latestCaller: string): string | null => {
-  const raw = ASKED_WHO.exec(latestCaller.replace(/[\u2018\u2019]/g, "'"))?.[1];
-  if (!raw) return null;
-  const [first, second] = raw.split(' ');
+/** A second person joined to the first: "my mom and my dad", "my mom or dad". */
+const JOINED = new RegExp(
+  `^,? (?:and|or) (?!(?:did|do|have|has|had|could|can|will|would|how|what|when|is|was)\\b)${OBJECT}`,
+  'i'
+);
+const personOf = (raw: string): string => {
+  const [first, second] = raw.replace(/\.$/, '').split(' ');
   const keep = second && (HONORIFIC.test(first) || /^[A-Z]/.test(second));
   return norm(keep ? `${first} ${second}` : first);
+};
+/**
+ * Everyone the latest turn asks about: "my dad yesterday" is "dad", "Dr. Smith" and "Aunt June"
+ * stay whole, and "did you call my mom and dad?" is both.
+ */
+const askedPeople = (latestCaller: string): string[] => {
+  const text = latestCaller.replace(/[\u2018\u2019]/g, "'");
+  const people: string[] = [];
+  for (const m of text.matchAll(ASKED_WHO)) {
+    people.push(personOf(m[1]));
+    const joined = JOINED.exec(text.slice((m.index ?? 0) + m[0].length));
+    if (joined) people.push(personOf(joined[1]));
+  }
+  return people;
 };
 /**
  * A listed call counts only for the person the caller's latest turn asks about: by the whole
@@ -148,19 +170,14 @@ const askedPerson = (latestCaller: string): string | null => {
  * their dad, however near "mom" was said (#4516 verify).
  */
 const listedFor = (output: string, latestCaller: string): boolean => {
-  const person = askedPerson(latestCaller);
-  if (!person) return false;
-  return [...output.matchAll(LISTED_CALL)].some((m) => {
-    const { names, role } = whoOf(m[1]);
-    return (
-      role === person ||
-      names.some(
-        (n) =>
-          new RegExp(`(?:^|\\s)${escaped(n)}(?:$|\\s)`).test(person) ||
-          new RegExp(`(?:^|\\s)${escaped(person)}(?:$|\\s)`).test(n)
-      )
+  const people = askedPeople(latestCaller);
+  const calls = [...output.matchAll(LISTED_CALL)].map((m) => whoOf(m[1]));
+  const listed = (person: string): boolean =>
+    calls.some(
+      ({ names, role }) =>
+        role === person || names.some((n) => wholeWordIn(n, person) || wholeWordIn(person, n))
     );
-  });
+  return people.length > 0 && people.every(listed);
 };
 const toldByStatus = (item: Item & { output?: unknown }, latestCaller: string): boolean => {
   if (item.type !== 'function_call_output') return false;
