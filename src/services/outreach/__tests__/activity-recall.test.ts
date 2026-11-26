@@ -153,6 +153,43 @@ describe('activityText', () => {
     expect(text).toContain("times are the caller's, UTC");
   });
 
+  it('past the line cap, names how many older items were left out instead of denying them', () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({
+      ...reminderSent,
+      message: `errand number ${i}`,
+      scheduledFor: iso(NOW - (i + 1) * DAY),
+    }));
+    const text = activityText(
+      { calls: [], reminders: many, emails: [], promises: [], zone: ZONE },
+      NOW
+    );
+    expect(text).toContain('6 older items were left out');
+    expect(text).toContain("say you'd have to check, never that it didn't happen");
+    expect(text).toContain('errand number 0');
+    expect(text).not.toContain('errand number 19');
+  });
+
+  it('with more open items than the cap, never claims only older items were left out', () => {
+    const ahead = Array.from({ length: 16 }, (_, i) => ({
+      ...reminderAhead,
+      message: `chore number ${i}`,
+      scheduledFor: iso(NOW + (i + 1) * DAY),
+    }));
+    const text = activityText(
+      { calls: [], reminders: ahead, emails: [], promises: [], zone: ZONE },
+      NOW
+    );
+    expect(text).toContain('2 items were left out, 2 of them still open');
+    expect(text).not.toContain('older item');
+    expect(text).not.toContain("Anything not listed didn't happen");
+  });
+
+  it('under the cap, anything not listed is said not to have happened', () => {
+    expect(activityText(all(), NOW)).toContain(
+      "Anything not listed didn't happen: say so plainly, never guess."
+    );
+  });
+
   it('says plainly when nothing is on record', () => {
     const none = { calls: [], reminders: [], emails: [], promises: [] };
     expect(activityText(none, NOW)).toMatch(/^Nothing else Ferni did for the caller/);
@@ -198,6 +235,24 @@ describe('loadActivity', () => {
     expect(got.promises).toEqual([promise]);
     expect(got.zone).toBe(ZONE);
     expect(got.unread).toBeUndefined();
+  });
+
+  it('reads deliveries newest first within the window, and Ferni promises by owner', async () => {
+    const s = stores();
+    await loadActivity('owner-1', NOW, s);
+    expect(s.recent).toHaveBeenCalledWith(
+      'owner-1',
+      'outreach_history',
+      { orderBy: 'deliveredAt', since: iso(NOW - 30 * DAY) },
+      200
+    );
+    expect(s.recent).toHaveBeenCalledWith(
+      'owner-1',
+      'follow_through',
+      { where: ['owner', 'ferni'] },
+      200
+    );
+    expect(s.recent).toHaveBeenCalledWith('owner-1', 'reminders', { orderBy: 'scheduledFor' }, 200);
   });
 
   it('a failed store is named as unread; the others still come back', async () => {

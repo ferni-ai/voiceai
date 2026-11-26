@@ -17,32 +17,45 @@ const log = createLogger({ module: 'ActivityRecords' });
 
 type Doc = Record<string, unknown>;
 const WINDOW_MS = 30 * 86_400_000;
-/** At most this many documents per store: the list shows 14 lines. */
-const PER_STORE = 60;
+/** At most this many documents per store. */
+const PER_STORE = 200;
+
+/**
+ * Which documents of a store to read, without a composite index: the newest by `orderBy` (only
+ * those at or after `since` on that same field, when given), or all whose `where` field equals the
+ * value. An equality read has no time order (Firestore returns it by document id), so it is only
+ * for a store whose matching documents stay well under the limit; hitting the limit is logged.
+ */
+interface StoreQuery {
+  readonly orderBy?: string;
+  readonly since?: string;
+  readonly where?: readonly [field: string, value: string];
+}
 
 /** The reads, as functions, so tests hand in fakes. */
 export interface ActivityStores {
   calls: CallRecords;
-  /** Newest documents of bogle_users/{uid}/{store}, ordered by `field`, at most `limit`. */
-  recent: (userId: string, store: string, field: string, limit: number) => Promise<Doc[]>;
+  /** Documents of bogle_users/{uid}/{store} matching `query`, at most `limit`. */
+  recent: (userId: string, store: string, query: StoreQuery, limit: number) => Promise<Doc[]>;
 }
 
 async function firestoreRecent(
   userId: string,
   store: string,
-  field: string,
+  query: StoreQuery,
   limit: number
 ): Promise<Doc[]> {
   const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
   const db = getFirestoreDb();
   if (!db) return [];
-  const snap = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection(store)
-    .orderBy(field, 'desc')
-    .limit(limit)
-    .get();
+  const col = db.collection('bogle_users').doc(userId).collection(store);
+  const filtered = query.where ? col.where(query.where[0], '==', query.where[1]) : col;
+  const from =
+    query.orderBy && query.since ? filtered.where(query.orderBy, '>=', query.since) : filtered;
+  const ordered = query.orderBy ? from.orderBy(query.orderBy, 'desc') : from;
+  const snap = await ordered.limit(limit).get();
+  if (snap.size >= limit)
+    log.warn({ userId, store, limit }, 'RECALL_ACTIVITY: store read hit the limit');
   return snap.docs.map((d) => d.data());
 }
 
@@ -83,17 +96,24 @@ export async function loadActivity(
     }),
     safely(
       'reminders',
-      async () => stores.recent(userId, 'reminders', 'scheduledFor', PER_STORE),
+      async () => stores.recent(userId, 'reminders', { orderBy: 'scheduledFor' }, PER_STORE),
       []
     ),
     safely(
       'outreach_history',
-      async () => stores.recent(userId, 'outreach_history', 'deliveredAt', PER_STORE),
+      async () =>
+        stores.recent(
+          userId,
+          'outreach_history',
+          // every delivery in the window, newest first; activity-recall keeps the emails
+          { orderBy: 'deliveredAt', since: new Date(now - WINDOW_MS).toISOString() },
+          PER_STORE
+        ),
       []
     ),
     safely(
       'follow_through',
-      async () => stores.recent(userId, 'follow_through', 'createdAt', PER_STORE),
+      async () => stores.recent(userId, 'follow_through', { where: ['owner', 'ferni'] }, PER_STORE),
       []
     ),
   ]);
