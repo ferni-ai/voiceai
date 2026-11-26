@@ -31,8 +31,6 @@
 import { flagOn, type Env } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
 
-const log = createLogger({ module: 'GuestNamesOwner' });
-
 export function guestNamesOwnerEnabled(env: Env = process.env): boolean {
   return flagOn('NAME_GUEST_NAMES_OWNER', env);
 }
@@ -58,7 +56,14 @@ export function setGuestOnLineCheck(check: (userData: object) => boolean): void 
 export function accountNameHeld(userData: object, env: Env = process.env): boolean {
   if (!guestNamesOwnerEnabled(env)) return false;
   if (guestCheck) return guestCheck(userData);
-  if (!unsetLogged) log.error({}, 'NAME_GUEST_NAMES_OWNER: no guest check registered');
+  // Made here, not at load: this module sits under conversation-tools.ts, whose test
+  // importers mock safe-logger without createLogger.
+  if (!unsetLogged) {
+    createLogger({ module: 'GuestNamesOwner' }).error(
+      {},
+      'NAME_GUEST_NAMES_OWNER: no guest check registered'
+    );
+  }
   unsetLogged = true;
   return false;
 }

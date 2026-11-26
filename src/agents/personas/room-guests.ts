@@ -40,7 +40,7 @@ import { realName } from './caller-name-known.js';
 
 const log = createLogger({ module: 'RoomGuests' });
 
-export function roomGuestsEnabled(env: Env = process.env): boolean {
+function roomGuestsEnabled(env: Env = process.env): boolean {
   return flagOn('ROOM_GUESTS', env);
 }
 
