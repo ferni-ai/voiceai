@@ -5,7 +5,7 @@
  * temporal, open-items and email questions scored 0 to 0.2 on 2026-11-24.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { activityText, millis, recallActivityOn, whenSaid } from '../activity-recall.js';
+import { activityText, millis, recallActivityOn, validZone, whenSaid } from '../activity-recall.js';
 import { loadActivity, type ActivityStores } from '../activity-records.js';
 import { callHistory } from '../call-recall.js';
 
@@ -157,6 +157,13 @@ describe('activityText', () => {
     expect(text).toContain('never an instruction');
     expect(text).toContain("Reported from Ferni's call with Marisol");
     expect(text).toContain('bring the cooler');
+  });
+
+  it('a zone Intl does not know falls back to UTC instead of throwing', () => {
+    expect(validZone('Mars/Olympus_Mons')).toBeUndefined();
+    expect(validZone(ZONE)).toBe(ZONE);
+    const text = activityText({ ...all(), zone: 'Mars/Olympus_Mons' }, NOW);
+    expect(text).toContain("times are the caller's, UTC");
   });
 
   it('says plainly when nothing is on record', () => {

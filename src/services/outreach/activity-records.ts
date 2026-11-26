@@ -11,7 +11,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { firestoreCallRecords, type CallRecords } from './call-status.js';
 import { callHistory } from './call-recall.js';
-import type { ActivityRecords } from './activity-recall.js';
+import { validZone, type ActivityRecords } from './activity-recall.js';
 
 const log = createLogger({ module: 'ActivityRecords' });
 
@@ -55,7 +55,7 @@ const zoneOf = (docs: readonly Doc[]): string | undefined => {
   for (const d of docs) {
     const r = (d.request ?? {}) as Doc;
     for (const z of [d.timezone, d.zone, r.userTimezone])
-      if (typeof z === 'string' && z.includes('/')) return z;
+      if (typeof z === 'string' && validZone(z) !== undefined) return z;
   }
   return undefined;
 };

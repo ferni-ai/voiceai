@@ -55,6 +55,17 @@ export function millis(v: unknown): number {
   return typeof t?.toMillis === 'function' ? t.toMillis() : 0;
 }
 
+/** `zone` when Intl knows it, else undefined: a bad zone in a record must never throw here. */
+export function validZone(zone: string | undefined): string | undefined {
+  if (zone === undefined || zone === '') return undefined;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone });
+    return zone;
+  } catch {
+    return undefined; // RangeError: not an IANA zone
+  }
+}
+
 function partOfDay(hour: number): string {
   if (hour < 5) return 'at night';
   if (hour < 12) return 'in the morning';
@@ -172,7 +183,7 @@ function promiseLine(d: Doc, zone: string): Line | null {
  * reported speech. Empty records: say there is nothing, plainly.
  */
 export function activityText(records: ActivityRecords, now: number): string {
-  const zone = records.zone ?? 'UTC';
+  const zone = validZone(records.zone) ?? 'UTC';
   const lines = [
     ...records.calls.map((c) => callLine(c, zone)),
     ...records.reminders.map((d) => reminderLine(d, zone)),
