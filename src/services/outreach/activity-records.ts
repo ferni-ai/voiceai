@@ -26,7 +26,7 @@ const PER_STORE = 200;
  * value. An equality read has no time order (Firestore returns it by document id), so it is only
  * for a store whose matching documents stay well under the limit; hitting the limit is logged.
  */
-export interface StoreQuery {
+interface StoreQuery {
   readonly orderBy?: string;
   readonly since?: string;
   readonly where?: readonly [field: string, value: string];
