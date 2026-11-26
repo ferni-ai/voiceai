@@ -66,7 +66,7 @@ import {
   clearThreadCache,
 } from '../../../services/superhuman/semantic-intelligence/cross-session-threading.js';
 import { importSmallWinsProfile } from '../../../services/trust-systems/small-wins.js';
-import { greetingProfile } from '../../../agents/voice-agent/greeting-remembered.js';
+import { greetingRemembered } from '../../../agents/voice-agent/greeting-remembered.js';
 import { rememberedTrust } from '../../../agents/processors/injection-builders/remembered-trust.js';
 import { rememberedThreads } from '../../../services/superhuman/semantic-intelligence/remembered-threads.js';
 import { forgottenPassageCheck } from '../forget-every-reader.js';
@@ -310,7 +310,9 @@ describe('FORGET_EVERY_READER off: the readers say what they said before', () =>
 
   it('each new check hands back the very object it was given', async () => {
     const userProfile = profile();
-    expect(await greetingProfile({ userId: USER, userProfile } as never)).toBe(userProfile);
+    expect((await greetingRemembered({ userId: USER, userProfile } as never)).profile).toBe(
+      userProfile
+    );
     const trust = { ...EMPTY_TRUST, ...TRUST_ITEM['prompt.trustWins']!('walked Biscuit') };
     const said = await forgottenPassageCheck(USER, 'trust');
     expect(rememberedTrust(trust as never, said)).toBe(trust);

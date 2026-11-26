@@ -4,7 +4,7 @@
  *
  * @module agents/multi-agent/caller-card/wiring
  */
-import { forgottenInProcess } from '../../../memory/index.js';
+import { forgetFreshReadEnabled, forgottenInProcess, topicsWithin } from '../../../memory/index.js';
 import { sharedHeldStrict } from '../../../services/outreach/minor-care-shared-hold.js';
 import { profileOnceLoaded } from '../../../services/session/deferred-profile.js';
 import type { SessionServices } from '../../../services/types.js';
@@ -57,9 +57,12 @@ export function callerCardPorts(services: CardServices): CallerCardPorts {
         fact,
       });
     },
-    // The reader recall's snapshot uses, plus forgets made in this process mid-call.
+    // The reader recall's snapshot uses, plus forgets made in this process mid-call. With
+    // FORGET_FRESH_READ, the store itself, not the 15 s cache (#2755); late, the last known.
     async forgotten(userId) {
-      const stored = (await firestoreRecallStore.forgotten?.(userId)) ?? null;
+      const stored = forgetFreshReadEnabled()
+        ? await topicsWithin(userId, 'caller-card', true)
+        : ((await firestoreRecallStore.forgotten?.(userId)) ?? null);
       return stored && [...stored, ...forgottenInProcess(userId)];
     },
     // The account-level MINOR_CARE hold, failing closed: unreadable or late means held.

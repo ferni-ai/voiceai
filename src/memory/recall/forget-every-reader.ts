@@ -29,6 +29,8 @@ import { foldedWords } from '../domain/forget-tokens.js';
 import { isForgottenPassage } from '../domain/forgotten.js';
 import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
+/** For a reader outside memory that reads the topics past the cache (the caller card). */
+export { topicsWithin };
 import { isForgotten } from './session-recall.js';
 
 const log = createLogger({ module: 'ForgetEveryReader' });
@@ -166,6 +168,21 @@ export async function forgottenPassageWithin(
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
   const stored = await topicsFreshWithin(userId, reader, uncached);
   return stored === null ? null : checkFor(userId, stored, isForgottenPassage);
+}
+
+/**
+ * The passage check for a call-start reader of the caller's own words (the greeting's intentions
+ * and open threads). FORGET_FRESH_READ on: the store itself, and everything left out when that
+ * read is late or failed (#2755). Off: forgottenPassageCheck, exactly as before.
+ */
+export async function callStartPassageCheck(
+  userId: string | null | undefined,
+  reader: string,
+  env: Env = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetFreshReadEnabled(env)) return forgottenPassageCheck(userId, reader, env);
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null; // no check: as off
+  return (await forgottenPassageWithin(userId, reader, env, true)) ?? (() => true);
 }
 
 /**
