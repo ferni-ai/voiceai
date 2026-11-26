@@ -10,6 +10,8 @@ import { afterEach, describe, it, expect, vi } from 'vitest';
 vi.mock('../../src/services/firebase-auth.service.js', () => ({
   getAuthToken: vi.fn(async () => null),
 }));
+const log = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+vi.mock('../../src/utils/logger.js', () => ({ createLogger: () => log }));
 
 import {
   SOUL_COUNT_KEYS,
@@ -159,6 +161,31 @@ describe('SoulStatsService', () => {
     await h.tick();
     expect(h.sent).toHaveLength(1);
     expect(h.timers).toHaveLength(0);
+  });
+
+  it.each([400, 413])(
+    'warns with the status when a %i stops it (this page and the server disagree)',
+    async (status) => {
+      log.warn.mockClear();
+      const h = harness({ status });
+      h.service.recordCrisisHold();
+      await h.tick();
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('not sending again'), {
+        status,
+      });
+    }
+  );
+
+  it('a 404 (SOUL_STATS off, as expected) stops it without a warning', async () => {
+    log.warn.mockClear();
+    log.debug.mockClear();
+    const h = harness({ status: 404 });
+    h.service.recordCrisisHold();
+    await h.tick();
+    expect(log.warn).not.toHaveBeenCalled();
+    expect(log.debug).toHaveBeenCalledWith(expect.stringContaining('not sending again'), {
+      status: 404,
+    });
   });
 
   it.each([401, 429, 500])('keeps counts and retries after a %i', async (status) => {

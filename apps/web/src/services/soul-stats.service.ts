@@ -140,9 +140,13 @@ export class SoulStatsService {
       });
       if (STOP_STATUSES.has(response.status)) {
         this.stopped = true;
-        log.debug('Soul stats not taken; not sending again on this page', {
-          status: response.status,
-        });
+        const why = { status: response.status };
+        // 404 is SOUL_STATS off, as expected; a 400 or 413 means this page and the server disagree
+        if (response.status === 404) {
+          log.debug('Soul stats off; not sending again on this page', why);
+        } else {
+          log.warn('Soul stats refused; not sending again on this page', why);
+        }
       } else if (!response.ok) {
         log.warn('Soul stats not stored; keeping them for the next send', {
           status: response.status,
