@@ -17,6 +17,7 @@ import { ANSWERED_BY } from '../../services/outreach/proactive-channels/self-cal
 import { markCallAnswered } from '../../services/analytics/call-start-stages.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { noteVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
+import { ferniIntro } from '../../services/outreach/opening-line.js';
 import {
   waitForCallAnswered,
   type AnswerWatchRoom,
@@ -55,27 +56,20 @@ export function classifyLine(e: LineEvidence): Answerer | undefined {
   return undefined;
 }
 
-/** The one message left on a machine: the opener's disclosure, no callback asked. */
-export function voicemailMessage({
-  recipientName,
-  sponsorName,
-  personal,
-  checkin,
-}: OutboundParties): string {
+/**
+ * The one message left on a machine: the opener's disclosure (ferniIntro, so a
+ * check-in says only the name and a persona placing the call says its own), no
+ * callback asked.
+ */
+export function voicemailMessage(parties: OutboundParties): string {
+  const { recipientName, sponsorName, personal, checkin } = parties;
   const hi = recipientName ? `Hi ${recipientName}` : 'Hi';
+  const intro = ferniIntro(parties);
   const later = "No need to call back, I'll try again another time.";
-  if (checkin) {
-    // They agreed to Ferni's check-ins and know who Ferni is: no "AI friend" here
-    return sponsorName
-      ? `${hi}, it's Ferni. ${sponsorName} asked me to check in, no need to call back, I'll try again another time.`
-      : `${hi}, it's Ferni, just calling to check in. ${later}`;
-  }
-  if (!personal) {
-    return `Hi, this is Ferni, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}. ${later}`;
-  }
+  if (!personal && !checkin) return `Hi, ${intro}. ${later}`;
   return sponsorName
-    ? `${hi}, it's Ferni, ${sponsorName}'s AI friend. ${sponsorName} asked me to check in, no need to call back, I'll try again another time.`
-    : `${hi}, it's Ferni, an AI friend, just calling to check in. ${later}`;
+    ? `${hi}, ${intro}. ${sponsorName} asked me to check in, no need to call back, I'll try again another time.`
+    : `${hi}, ${intro}, just calling to check in. ${later}`;
 }
 
 // Sessions screening a call: FerniAgent.onUserTurnCompleted holds the reply.

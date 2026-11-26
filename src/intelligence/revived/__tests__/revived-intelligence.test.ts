@@ -10,6 +10,7 @@ import {
   withRevivedIntelligence,
   type RevivedStore,
 } from '../revived-intelligence.js';
+import { isForgottenPassage } from '../../../memory/domain/forgotten.js';
 
 const ON = { REVIVED_INTELLIGENCE: 'on' };
 const NOW = new Date('2026-10-10T18:00:00Z');
@@ -306,5 +307,37 @@ describe('forget during the call, and a forget list that never answers', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// The predicate as turn-intelligence builds it. A stored summary's id carries the epoch in ms
+// (#4042 bot verifier): under "his number" it dropped every summary, number or not.
+describe('rememberable: a forgotten number and the stored shape', () => {
+  const forgetHisNumber = (text: string) => isForgottenPassage(text, ['his number']);
+  const stored = (summary: string) => ({
+    ...OLDER,
+    // As the voice agent mints them (voice-agent-entry: session-<jobId>-<ms>; summarizer)
+    id: 'summary_session-AJ_FhDLDpE3gTFu-1763478000123_1763478000456',
+    sessionId: 'session-AJ_FhDLDpE3gTFu-1763478000123',
+    timestamp: '2026-11-18T15:00:00.000Z',
+    summary,
+  });
+
+  it('keeps a summary that holds no number', () => {
+    const plain = stored('Talked about the garden beds');
+    expect(rememberable([plain], forgetHisNumber)).toEqual([plain]);
+  });
+
+  it('still drops one that holds the number', () => {
+    expect(rememberable([stored('His cell is 435 555 0199')], forgetHisNumber)).toEqual([]);
+  });
+
+  it('keeps one whose job id ends in a digit', () => {
+    const plain = {
+      ...stored('Talked about the garden beds'),
+      id: 'summary_session-AJ_FhDLDpE3gTF7-1763478000123_1763478000456',
+      sessionId: 'session-AJ_FhDLDpE3gTF7-1763478000123',
+    };
+    expect(rememberable([plain], forgetHisNumber)).toEqual([plain]);
   });
 });

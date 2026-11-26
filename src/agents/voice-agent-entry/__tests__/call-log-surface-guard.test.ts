@@ -77,6 +77,11 @@ const SURFACE = [
   'src/services/trust-and-identity/identity-orchestrator.ts',
   // The caller's contact and purpose pass here: yes/no and lengths only (#4442).
   'src/agents/shared/tool-executors/telephony-executor.ts',
+  // #4392: what the person said they'd do, their commitments, and Ferni's handoff line.
+  'src/services/trust-systems/small-wins.ts',
+  'src/services/superhuman/commitment-calendar-integration.ts',
+  'src/agents/multi-agent/handoff-brief.ts',
+  'src/agents/processors/injection-builders/safety-coaching-builders.ts',
 ];
 
 /**
@@ -107,6 +112,11 @@ const REQUIRED = [
   'src/tools/domains/information/weather-tools.ts',
   'src/agents/shared/tool-executors/information-executor.ts',
   'src/agents/shared/tool-executors/telephony-executor.ts',
+  'src/agents/integrations/better-than-human-integration.ts',
+  'src/services/trust-systems/small-wins.ts',
+  'src/services/superhuman/commitment-calendar-integration.ts',
+  'src/agents/multi-agent/handoff-brief.ts',
+  'src/agents/processors/injection-builders/safety-coaching-builders.ts',
 ];
 
 /**
@@ -117,21 +127,8 @@ const REQUIRED = [
  * object logged whole or spread that holds none.
  */
 const EXEMPT: Exemptions = {
-  pending: [
-    // E2E_USER_INPUT: the call reviewer reads what the caller said here (#2656): pending Seth's call.
-    // On a call placed for a member, `said` is empty: the person called never signed up.
-    [
-      'transcript-handler.ts',
-      '(\n        {\n          trace: \'E2E_USER_INPUT\',\n          transcript: said.slice(0, 100),\n          fullLength: event.transcript.length,\n          sessionId,\n          userId,\n          turnNumber: userData.turnCount || 0,\n        },\n        `🔍 E2E TRACE [STT] User said: "${said.slice(0, 50)}..." (${event.transcript.length} chars)`\n      )',
-    ],
-    // voice-eval reads this preview (review-calls, turn-taking): pending Seth's call.
-    ['process-turn.ts', "('Processing user turn', {\n    preview: userText.slice(0, 100),\n  })"],
-    // resonance response transcript slice (#2663 round 2): pending Seth's call.
-    [
-      'better-than-human-integration.ts',
-      "(\n    {\n      sessionId,\n      capability: pending.capability,\n      reaction,\n      transcript: userTranscript.slice(0, 50),\n    },\n    '📊 Resonance response recorded'\n  )",
-    ],
-  ],
+  // The owner decided (11-12): what anyone said is a length on prod; nothing is pending (#4392).
+  pending: [],
   values: [
     ['index.ts', '', 'JSON.stringify(summary.turnProfiling || {})'], // timing numbers
     [
@@ -169,6 +166,7 @@ const EXEMPT: Exemptions = {
     ['twilio-webhooks.ts', 'phoneLast4', 'last4(payload.To)'], // a number's last four digits
     ['twilio-webhooks.ts', 'messageSid', 'payload.MessageSid'], // a Twilio id
     ['twilio-webhooks.ts', 'callSid', 'payload.CallSid'], // a Twilio id
+    ['handoff-brief.ts', 'stockCut', 'cut !== said'], // yes/no: was the stock opener cut
   ],
   whole: [
     ['session-creator.ts', 'record'], // TURN_METRICS: latencies and token counts
@@ -186,23 +184,52 @@ describe('the call and turn logs', () => {
     expect(offences(path, undefined, EXEMPT)).toEqual([]);
   });
 
-  it('a pending call is left only as it is, word for word: one field added is caught', () => {
-    const path = 'src/agents/voice-agent/transcript-handler.ts';
+  // #4392: E2E_USER_INPUT logged every member's final transcript in prod. Each plant puts the
+  // words back (in a field or in the message) and must be caught.
+  const FINAL = 'src/agents/voice-agent/transcript-handler.ts';
+  const LENGTH_ONLY = 'transcript: replyForLog(said, 100),';
+  const NO_WORDS_MSG = 'User said (${event.transcript.length} chars)';
+  it.each([
+    ['a slice in the field', LENGTH_ONLY, 'transcript: said.slice(0, 100),'],
+    ['the words whole in the field', LENGTH_ONLY, 'transcript: event.transcript,'],
+    ['a slice in the message', NO_WORDS_MSG, 'User said: "${said.slice(0, 50)}..."'],
+    ['the words whole in the message', NO_WORDS_MSG, 'User said: "${said}"'],
+    ['a name added', "trace: 'E2E_USER_INPUT',", "trace: 'E2E_USER_INPUT',\n          userName,"],
+  ])('the final-transcript trace logs a length, never words: %s is caught', (_, from, to) => {
+    const src = readFileSync(FINAL, 'utf8');
+    const planted = src.replace(from, to);
+    expect(planted).not.toBe(src);
+    expect(offences(FINAL, src, EXEMPT)).toEqual([]);
+    expect(offences(FINAL, planted, EXEMPT)).not.toEqual([]);
+  });
+
+  it.each([
+    ['src/services/trust-systems/small-wins.ts', 'replyForLog(intentionText)', 'intentionText'],
+    [
+      'src/services/superhuman/commitment-calendar-integration.ts',
+      'replyForLog(commitment.text)',
+      'commitment.text',
+    ],
+    [
+      'src/agents/integrations/better-than-human-integration.ts',
+      'replyForLog(userTranscript, 50)',
+      'userTranscript.slice(0, 50)',
+    ],
+    [
+      'src/services/superhuman/commitment-calendar-integration.ts',
+      'repliesForLog(highPriorityConflicts.map((c) => c.commitmentText))',
+      'highPriorityConflicts.map((c) => c.commitmentText)',
+    ],
+    [
+      'src/agents/processors/injection-builders/safety-coaching-builders.ts',
+      'replyForLog(coachingAnalysis.goalText)',
+      'coachingAnalysis.goalText',
+    ],
+  ])('%s: the words put back are caught (#4392)', (path, from, to) => {
     const src = readFileSync(path, 'utf8');
-    const changed = src.replace(
-      "trace: 'E2E_USER_INPUT',",
-      "trace: 'E2E_USER_INPUT',\n          userName,"
-    );
-    expect(changed).not.toBe(src);
-    expect(offences(path, src, EXEMPT)).toEqual([]);
-    expect(offences(path, changed, EXEMPT).some((o) => o.includes('said.slice'))).toBe(true);
-    // A slice lengthened at the end of the call, its start unchanged, is caught too.
-    const longer = src.replace(
-      'User said: "${said.slice(0, 50)}',
-      'User said: "${said.slice(0, 90)}'
-    );
-    expect(longer).not.toBe(src);
-    expect(offences(path, longer, EXEMPT)).not.toEqual([]);
+    const planted = src.replace(from, to);
+    expect(planted).not.toBe(src);
+    expect(offences(path, planted, EXEMPT)).not.toEqual([]);
   });
 
   it('a contact or purpose put back in the telephony logs is caught (#4442)', () => {

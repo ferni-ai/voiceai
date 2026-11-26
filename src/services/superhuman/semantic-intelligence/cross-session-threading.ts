@@ -17,6 +17,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { onCrossSessionThreadChange } from '../../data-layer/hooks/better-than-human-hooks.js';
+import { rememberedThreads } from './remembered-threads.js';
 import type { SemanticThread, ThreadMoment } from './types.js';
 
 const log = createLogger({ module: 'cross-session-threading' });
@@ -514,9 +515,7 @@ export async function markThreadSurfaced(
   }
 }
 
-/**
- * Build context string for LLM injection.
- */
+/** Build context string for LLM injection, less threads about a forgotten topic. */
 export async function buildThreadingContext(
   userId: string,
   currentContext?: {
@@ -524,14 +523,12 @@ export async function buildThreadingContext(
     topic?: string;
   }
 ): Promise<string> {
-  const relevant = await getRelevantThreads(userId, {
+  const found = await getRelevantThreads(userId, {
     currentContent: currentContext?.content,
     currentTopic: currentContext?.topic,
   });
-
-  if (relevant.length === 0) {
-    return '';
-  }
+  const relevant = await rememberedThreads(userId, found); // FORGET_EVERY_READER
+  if (relevant.length === 0) return '';
 
   const sections: string[] = [
     '[CROSS-SESSION SEMANTIC THREADING - Hidden Connections]',

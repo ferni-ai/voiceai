@@ -18,6 +18,11 @@ import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import { getEmotionDetector } from '../intelligence/detectors/emotion.js';
 import { getTopicTracker } from '../intelligence/topic-tracker.js';
 
+// No model here: the code under test asks one on the side and takes its fallback.
+vi.mock('../services/llm-utils.js', async () =>
+  (await import('./helpers/no-model.js')).llmUtilsWithNoModel()
+);
+
 describe('Agent Orchestration Tests', () => {
   // Initialize services ONCE for all tests (expensive operation)
   beforeAll(async () => {

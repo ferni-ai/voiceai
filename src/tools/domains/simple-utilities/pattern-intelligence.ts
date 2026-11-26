@@ -183,7 +183,7 @@ export function recordUsage(
       break;
   }
 
-  getLogger().debug({ userId, tool, params }, 'Utility usage recorded');
+  getLogger().debug({ userId, tool, paramNames: Object.keys(params) }, 'Utility usage recorded');
 }
 
 // ============================================================================

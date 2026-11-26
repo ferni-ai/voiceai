@@ -18,6 +18,10 @@ const rec = await vi.hoisted(async () => {
   return createWriteRecorder();
 });
 
+// No model here: the code under test asks one on the side and takes its fallback.
+vi.mock('../../../services/llm-utils.js', async () =>
+  (await import('../../../tests/helpers/no-model.js')).llmUtilsWithNoModel()
+);
 vi.mock('../../../utils/firestore-utils.js', async (orig) => ({
   ...(await orig<object>()),
   getFirestoreDb: () => rec.db,
