@@ -59,9 +59,10 @@ describe('newsNote: bids (BIDS_TURN_TOWARD)', () => {
     expect(note(said)).toBe('');
   });
 
-  it('adds nothing with the flag off or with crisis guidance', () => {
+  it('adds nothing with the flag off, with crisis guidance or on a held turn', () => {
     expect(note('Guess what.', {})).toBe('');
     expect(note('Guess what.', ON, true)).toBe('');
+    expect(newsNote('Guess what.', ['Guess what.'], { crisis: false, held: true }, ON)).toBe('');
   });
 });
 

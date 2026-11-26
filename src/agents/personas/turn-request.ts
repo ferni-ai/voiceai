@@ -261,8 +261,8 @@ function buildTurnReminder(
     safe.attunementNote(chatCtx, session, { careful: held }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     attempt('invite', () => inviteFor(chatCtx, session, words, options.shape === false), ''),
-    // GOOD_NEWS_BIGGER=on: one question about the moment; else BIDS_TURN_TOWARD=on: take the bid up.
-    safe.newsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false, session }),
+    // GOOD_NEWS_BIGGER=on: one question about the moment; else BIDS_TURN_TOWARD=on (never held).
+    safe.newsNote(words, callerTurnsOf(chatCtx), { crisis, session, held }),
     // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
     safe.callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never if held.

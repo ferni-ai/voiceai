@@ -16,7 +16,7 @@
  *     how to meet it (newsNote below picks that one first);
  *   - "anyway", "never mind", "it's fine": the caller closing a topic, which
  *     CALLER_SETS_DEPTH says to follow, never to probe;
- *   - any reply with crisis guidance.
+ *   - any reply with crisis guidance, or a held turn (crisis risk already noted on the call).
  * Whole-word patterns only.
  *
  * @module agents/personas/turn-toward-bids
@@ -83,8 +83,13 @@ function bidIn(said: string): Bid | undefined {
 }
 
 /** The turn-toward note for this reply, or ''. */
-function bidNote(said: string, opts: { crisis: boolean }, env: Env = process.env): string {
-  if (!bidsTurnTowardOn(env) || opts.crisis || !said) return '';
+function bidNote(
+  said: string,
+  opts: { crisis: boolean; held?: boolean },
+  env: Env = process.env
+): string {
+  // Held (crisis risk noted on the call, exits-held.ts): no note that steers off the safety thread.
+  if (!bidsTurnTowardOn(env) || opts.crisis || opts.held || !said) return '';
   // Curly apostrophes from the transcript ("won’t") match like straight ones.
   const bid = bidIn(said.replace(/[\u2018\u2019]/g, "'"));
   if (!bid) return '';
@@ -99,7 +104,7 @@ function bidNote(said: string, opts: { crisis: boolean }, env: Env = process.env
 export function newsNote(
   said: string,
   callerTurns: readonly string[],
-  opts: { crisis: boolean; session?: object },
+  opts: { crisis: boolean; session?: object; held?: boolean },
   env: Env = process.env
 ): string {
   return goodNewsNote(said, callerTurns, opts, env) || bidNote(said, opts, env);
