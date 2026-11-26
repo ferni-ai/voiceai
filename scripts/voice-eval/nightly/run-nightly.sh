@@ -266,12 +266,33 @@ do_report() {
     > /dev/null || log "issue comment failed"
 }
 
+# Dev vs prod flag words from each agent's EFFECTIVE_SETTINGS boot line (ops:secrets-parity,
+# read-only: lk agent secrets names and lk agent logs; it prints names and flag words, never a
+# value). The sweep tests what dev runs, so a flag on in prod but off in dev goes untested, and
+# a flag on in dev but off in prod is a promotion candidate (2026-11-26: 3 and 21). Appended to
+# REPORT.md and COMMENT.md on every claimed night; its exit (0 clean, 1 drift, 2 cannot verify)
+# never changes the sweep's.
+PROD_P=ferni-prod PROD_CONF=$ROOT/livekit.prod-cloud.toml
+do_parity() {
+  local f="$OUT/flag-parity.md" rc m
+  pnpm -s ops:secrets-parity --dev-project $P --dev-config "$CONF" \
+    --prod-project $PROD_P --prod-config "$PROD_CONF" > "$f" 2>> "$OUT/parity.log"
+  rc=$?
+  [ -s "$f" ] || { log "flag parity printed nothing (exit $rc, see parity.log)"; return 0; }
+  for m in REPORT.md COMMENT.md; do
+    [ -f "$OUT/$m" ] || continue
+    printf '\n<details><summary>Flags, dev vs prod (parity exit %s)</summary>\n\n%s\n\n</details>\n' \
+      "$rc" "$(cat "$f")" >> "$OUT/$m"
+  done
+}
+
 finish() {
   trap '' INT TERM
   # shellcheck disable=SC2086 # pid list
   [ "$DRY" = 1 ] || stop_jobs $LANE_PIDS
   [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only if dev resolves to (default))" do_cleanup
   [ "$STATUS" = ok ] || [ "$DRY" = 1 ] || write_status "$STATUS" "$REASON"
+  [ "$CLAIMED" = 1 ] && step parity "pnpm ops:secrets-parity $P vs $PROD_P (read-only) -> REPORT.md, COMMENT.md" do_parity
   step report "board.md line + gh issue comment ${ISSUE:-<unset: skipped>} --body-file $OUT/COMMENT.md" do_report
   [ "$DRY" = 1 ] || stop_jobs $RENEW_PID
   [ "$CLAIMED" = 1 ] && step release "claim.py release $P" python3 "$CLAIM" release $P --note "nightly sweep $DATE: exit $RC"
