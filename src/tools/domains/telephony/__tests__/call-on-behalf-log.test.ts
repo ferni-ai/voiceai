@@ -26,7 +26,9 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
   createLogger: () => sink.logger,
 }));
 
-vi.mock('@livekit/agents', () => ({
+// Partial: call-on-behalf now imports the scripts, which reach `voice` through the audio modules.
+vi.mock('@livekit/agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@livekit/agents')>()),
   llm: {
     tool: vi.fn((config) => ({ parameters: config.parameters, execute: config.execute })),
   },
