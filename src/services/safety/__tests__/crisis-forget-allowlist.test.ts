@@ -97,8 +97,23 @@ describe('a forget request about anything else keeps crisis handling', () => {
     'forget the trip to see my dad one last time',
     'forget the book I wrote for my kids',
   ];
+  // Ends in an everyday noun, but a word inside makes it more (security review on 2a51c8b8e2).
+  const EVERYDAY_INSIDE = [
+    'forget who gets my apartment',
+    'forget the spare key for my place',
+    'forget the instructions for after the move',
+    'forget what happens to the apartment',
+    'forget where the address book is',
+    'forget my last appointment',
+    'forget the final call',
+    'forget the trip to the bridge',
+    'forget the number of the pharmacy',
+  ];
 
-  it.each([...VERIFY_EXAMPLES, ...FRESH, ...EVERYDAY_RUN_ON])('"%s"', (line) => {
-    expect(alone(line)).toBe(false);
-  });
+  it.each([...VERIFY_EXAMPLES, ...FRESH, ...EVERYDAY_RUN_ON, ...EVERYDAY_INSIDE])(
+    '"%s"',
+    (line) => {
+      expect(alone(line)).toBe(false);
+    }
+  );
 });

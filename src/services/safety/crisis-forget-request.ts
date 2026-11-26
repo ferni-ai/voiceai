@@ -136,13 +136,32 @@ const NAMED_FORM = new RegExp(
   'g'
 );
 const NAME_TAIL = / (?:(?:from|out of) (?:your|ur) (?:memory|notes)|ever)$/;
+/**
+ * A word that makes a name more than a plain everyday thing, wherever it sits: a preposition or
+ * question word ("the key for my place", "who gets my apartment", "the instructions for after the
+ * move" all end in an everyday noun), a giving-away verb, or a final-sounding modifier.
+ */
+const NOT_EVERYDAY_WORD = new Set([
+  ...['for', 'to', 'after', 'before', 'until', 'at', 'in', 'into', 'on', 'onto', 'with', 'without'],
+  ...['by', 'of', 'about', 'from', 'out', 'over', 'under', 'off', 'than', 'like', 'if'],
+  ...['who', 'whom', 'whose', 'what', 'which', 'where', 'when', 'how', 'why', 'whoever'],
+  ...['get', 'gets', 'getting', 'take', 'takes', 'give', 'gives', 'go', 'goes', 'keep', 'keeps'],
+  ...['last', 'final', 'one', 'once'],
+]);
 
-/** True when every thing the line names ends in an everyday noun, and it names at least one. */
+/** True when every thing the line names is a plain everyday thing, and it names at least one. */
 function namesOnlyEverydayThings(said: string): boolean {
   const names = [...said.matchAll(NAMED_FORM)].map((m) =>
-    (m[1] ?? m[2] ?? m[3] ?? '').replace(NAME_TAIL, '')
+    (m[1] ?? m[2] ?? m[3] ?? '').replace(NAME_TAIL, '').split(' ')
   );
-  return names.length > 0 && names.every((name) => EVERYDAY_NOUN.has(name.split(' ').pop() ?? ''));
+  return (
+    names.length > 0 &&
+    names.every(
+      (name) =>
+        EVERYDAY_NOUN.has(name[name.length - 1] ?? '') &&
+        !name.some((word) => NOT_EVERYDAY_WORD.has(word))
+    )
+  );
 }
 
 /** NFKC, lower case, every apostrophe variant as ', only letters, digits, apostrophes and spaces. */
