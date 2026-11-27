@@ -8,7 +8,7 @@
 import { Readable } from 'node:stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { llm } from '@livekit/agents';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CRISIS_HELDOUT_RETIRED } from '../../agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_CONTEXTUAL } from '../../agents/__tests__/fixtures/crisis-contextual.js';
 
@@ -178,6 +178,48 @@ describe('journal twin reply: the crisis read', () => {
     expect(body).toEqual({ response: 'honestly, I remember.' });
     expect(prompt()).toContain(GUIDE);
     expect(prompt()).toContain(`(${voice.action === 'guide' && voice.guidance})`);
+  });
+
+  describe('a guided reply carries no canned greeting or sign-off', () => {
+    const styled = {
+      ...profile,
+      greetingStyle: 'hey you, again',
+      farewellStyle: 'catch you later',
+    };
+    const styleLines = (sent: string) =>
+      ['hey you, again', 'catch you later', 'How you greet', 'How you say goodbye'].filter((s) =>
+        sent.includes(s)
+      );
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('guided: neither line is offered, and the guidance is still read last', async () => {
+      const voice = voiceDecision(GUIDE);
+      expect(voice.action).toBe('guide');
+      await twin({ userMessage: GUIDE, profile: styled });
+      expect(styleLines(prompt())).toEqual([]);
+      expect(prompt().endsWith(`(${voice.action === 'guide' && voice.guidance})`)).toBe(true);
+    });
+
+    it('no crisis: both lines are offered, as before', async () => {
+      await twin({ userMessage: PLAIN, profile: styled });
+      expect(styleLines(prompt())).toEqual([
+        'hey you, again',
+        'catch you later',
+        'How you greet',
+        'How you say goodbye',
+      ]);
+    });
+
+    it('TWIN_CONVERSATION_V2, first turn: guided offers no greeting, unguided does', async () => {
+      vi.stubEnv('TWIN_CONVERSATION_V2', 'true');
+      await twin({ userMessage: GUIDE, profile: styled });
+      expect(styleLines(prompt())).toEqual([]);
+      callLLM.mockClear();
+      await twin({ userMessage: PLAIN, profile: styled });
+      expect(styleLines(prompt())).toContain('How you greet');
+    });
   });
 
   it('no crisis: the twin gets the same prompt as before', async () => {

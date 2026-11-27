@@ -134,7 +134,12 @@ async function execute(
   const channelDisplay = channel ? CHANNEL_DISPLAY[channel] || channel : 'the best available channel';
 
   log.info(
-    { recipient, channel: channel || 'auto', messageLength: message.length, userId: ctx.userId },
+    {
+      hasRecipient: !!recipient,
+      channel: channel || 'auto',
+      messageLength: message.length,
+      userId: ctx.userId,
+    },
     `📨 OpenClaw message requested via ${channelDisplay}`
   );
 
@@ -150,11 +155,11 @@ async function execute(
       const usedChannel = result.channel
         ? CHANNEL_DISPLAY[result.channel] || result.channel
         : channelDisplay;
-      log.info({ recipient, channel: result.channel || channel }, '📨 Message sent via OpenClaw');
+      log.info({ channel: result.channel || channel }, '📨 Message sent via OpenClaw');
       return `Sent your message to ${recipient} on ${usedChannel}.`;
     }
 
-    log.error({ error: result.error, recipient, channel }, '📨 OpenClaw send failed');
+    log.error({ error: result.error, channel }, '📨 OpenClaw send failed');
 
     if (result.error?.includes('not connected') || result.error?.includes('not found')) {
       return `${recipient} isn't available on ${channelDisplay} right now. Want me to try another way?`;
@@ -163,7 +168,7 @@ async function execute(
     return `Couldn't send that message. Want me to try again?`;
   } catch (err) {
     const errMsg = String(err);
-    log.error({ error: errMsg, recipient, channel }, '📨 OpenClaw executor error');
+    log.error({ error: errMsg, channel }, '📨 OpenClaw executor error');
 
     if (errMsg.includes('ECONNREFUSED') || errMsg.includes('fetch failed')) {
       return `The messaging gateway isn't running right now. I can't send messages until it's started.`;

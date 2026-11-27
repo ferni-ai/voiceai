@@ -22,6 +22,10 @@ vi.mock('../../../intelligence/theory-of-mind/after-call.js', () => ({
     }
   ),
 }));
+// No model here: endSession asks one for its summary and takes its fallback.
+vi.mock('../../llm-utils.js', async () =>
+  (await import('../../../tests/helpers/no-model.js')).llmUtilsWithNoModel()
+);
 
 // The one import the voice agent entry makes; it must register the task.
 await import('../../../agents/after-call-register.js');

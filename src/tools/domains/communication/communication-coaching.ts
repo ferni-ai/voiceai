@@ -159,7 +159,7 @@ export function createCommunicationCoachingTools() {
         tone,
       }) => {
         getLogger().info(
-          { conversationType, recipient, format },
+          { conversationType, hasRecipient: !!recipient, format },
           '💬 Alex: Coaching on difficult message'
         );
 

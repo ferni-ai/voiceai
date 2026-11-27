@@ -154,7 +154,7 @@ export function render(): string {
           <a href="#avatar-soul" class="soul-action-btn" data-navigate="avatar-soul">
             Open Avatar Soul Lab →
           </a>
-          <a href="/design-system/preview/index.html#avatar-soul" target="_blank" class="soul-action-link">
+          <a href="/design-system/preview.html" target="_blank" class="soul-action-link">
             View Full Preview
           </a>
         </div>

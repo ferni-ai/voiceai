@@ -6,6 +6,10 @@
  *
  * Privacy: an enum, booleans and a count. Never caller, companion or model text.
  *
+ * The record's two run markers come last, as before #4211: `everydayBackstop: true` when the
+ * plain prompt also read the turn, `shared: false` when runs are per call. Each is present only
+ * when true, so the record is unchanged for runs without them.
+ *
  * @module services/safety/crisis-classifier-log-fields
  */
 
@@ -25,11 +29,20 @@ export interface ClassifierLogFields {
   companionIsScript: boolean;
 }
 
+/** How the run was made: the record's run markers (see the module comment). */
+interface ClassifierRunMarkers {
+  /** The plain prompt also read the turn (CRISIS_CLASSIFIER_EVERYDAY_RULES backstop). */
+  plainRead: boolean;
+  /** Runs are shared within one call only (CRISIS_CLASSIFIER_RUN_PER_CALL). */
+  perCall: boolean;
+}
+
 /** From the input as the model sees it (normalizeInput in crisis-classifier.ts). */
 export function classifierLogFields(
   read: { latest: string; earlier: readonly string[]; companion?: string },
-  source: SecondReadPath | undefined
-): ClassifierLogFields {
+  source: SecondReadPath | undefined,
+  run: ClassifierRunMarkers = { plainRead: false, perCall: false }
+): ClassifierLogFields & { everydayBackstop?: true; shared?: false } {
   const companion = read.companion ?? '';
   const has = companion !== '';
   return {
@@ -39,5 +52,7 @@ export function classifierLogFields(
     latestRiskWords: riskWordsIn(read.latest),
     companionRiskWords: has && riskWordsIn(companion),
     companionIsScript: has && (names988(companion) || names911(companion)),
+    ...(run.plainRead ? { everydayBackstop: true as const } : {}),
+    ...(run.perCall ? { shared: false as const } : {}),
   };
 }

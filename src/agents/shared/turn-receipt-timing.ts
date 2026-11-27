@@ -35,6 +35,8 @@ export interface TimedTurn {
   llm?: LlmMetric;
   ttsTtfbMs?: number;
   ttsPushMs?: number;
+  /** The reply's first full sentence in at the gateway ('replySentence', turn-timing.ts). */
+  ttsSentenceMs?: number;
   thinkingAt?: number;
   speakingAt?: number;
   att: TurnAttribution;
@@ -42,14 +44,18 @@ export interface TimedTurn {
 
 export const newAttribution = (): TurnAttribution => ({ holds: {} });
 
-/** A hold or an opening clip on the open turn; holds after Ferni was heard don't count. */
+/**
+ * A hold, an opening clip or the reply's first sentence on the open turn; holds after Ferni
+ * was heard don't count. The first sentence counts whenever it comes: the turn's first reply's.
+ */
 export function noteTiming(
   turn: TimedTurn,
   kind: Exclude<TurnTimingKind, 'unfinishedTurn' | StepKind>,
   heldMs: number,
   now: number
 ): void {
-  if (kind === 'openerAudio') turn.att.openerAudioAt ??= now + Math.max(0, heldMs);
+  if (kind === 'replySentence') turn.ttsSentenceMs ??= Math.max(0, heldMs);
+  else if (kind === 'openerAudio') turn.att.openerAudioAt ??= now + Math.max(0, heldMs);
   else if (turn.speakingAt === undefined) turn.att.holds[kind] = Math.max(0, heldMs);
 }
 
@@ -93,6 +99,8 @@ export function timingField(turn: TimedTurn, replyDone?: number): Record<string,
     ttsTtfbMs: ms(turn.ttsTtfbMs),
     /** Gateway: first text sent to the provider, from the start of the TTS node. */
     ttsPushMs: ms(turn.ttsPushMs),
+    /** Gateway: the reply's first full sentence in from the model, on ttsPushMs's clock. */
+    ttsSentenceMs: ms(turn.ttsSentenceMs),
     /** Commit (thinking) to Ferni's first audio, as REPLY_GAP measures it. */
     commitToAudioMs: since(thinkingAt ?? 0, speakingAt),
     /** End of the caller's speech to Ferni's first audio. */

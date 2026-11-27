@@ -229,8 +229,14 @@ let appSink: pino.Logger | null = null;
  */
 function appStream(): pino.DestinationStream {
   if (process.env.VITEST) return process.stderr;
+  appDest = pino.destination({ dest: 2, sync: false, maxWrite: 4096 });
   // Writes to fd 2 itself, past process.stderr, so it needs the phone redaction of its own
-  return redactLogDestination(pino.destination({ dest: 2, sync: false, maxWrite: 4096 }));
+  return redactLogDestination(appDest);
+}
+let appDest: (ReturnType<typeof pino.destination> & { _writing?: boolean }) | null = null;
+interface FlushedDest {
+  once: (event: 'drain', listener: () => void) => unknown;
+  _writing?: boolean; // SonicBoom's, not public: a version without it gets the bounded wait
 }
 
 function appLogger(): pino.Logger {
@@ -309,16 +315,23 @@ export function droppedLogLines(): number {
 }
 
 /**
- * Writes out what the stderr sink still holds (it writes off the event loop). For a process
- * about to exit on purpose; resolves even if the flush fails, after saying so on stderr.
+ * Writes out what the stderr sink holds, for a process about to exit on purpose; resolves even if
+ * the flush fails, after saying so on stderr. SonicBoom's flush answers at once with a write in
+ * flight, so this waits (up to waitMs) for it to land or fail: a closed reader's EPIPE turns off
+ * pino's exit flushSync, which else retries the dead pipe forever (#3320). No 'error' listener.
  */
-export function flushLogs(): Promise<void> {
+export function flushLogs(waitMs = 1_000, dest: FlushedDest | null = appDest): Promise<void> {
   const sink = appSink;
   if (!sink) return Promise.resolve();
   return new Promise((resolve) => {
     sink.flush((error) => {
       if (error) process.stderr.write(`log flush failed: ${String(error)}\n`);
-      resolve();
+      if (!dest || dest._writing === false) return void resolve();
+      const timer = setTimeout(resolve, waitMs);
+      dest.once('drain', () => {
+        clearTimeout(timer);
+        resolve();
+      });
     });
   });
 }

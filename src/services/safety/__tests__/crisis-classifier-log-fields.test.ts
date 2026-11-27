@@ -32,12 +32,15 @@ const RISKY_COMPANION = 'Some days I feel hopeless too, honestly.';
 /** The one CRISIS_CLASSIFIER record a fresh read logs. */
 async function loggedRead(
   input: CrisisClassifierInput,
-  path?: SecondReadPath
+  path?: SecondReadPath,
+  env: Record<string, string> = ENV,
+  call?: string
 ): Promise<Record<string, unknown>> {
   const secondRead = path ? { path, thirdParty: false } : undefined;
   const run = startCrisisClassifier(input, {
     pattern: 'none',
-    env: ENV,
+    env,
+    ...(call ? { call } : {}),
     generate: replying,
     ...(secondRead ? { secondRead } : {}),
   });
@@ -164,6 +167,27 @@ describe('the record is words-free (#4211)', () => {
     for (const word of ['canoe', 'paddles', 'Riley', 'right here', 'mentioned']) {
       expect(logged).not.toContain(word);
     }
+  });
+});
+
+describe('the run markers', () => {
+  const risky: CrisisClassifierInput = { latest: 'I feel hopeless tonight', earlier: [] };
+
+  it('come last and only when on: everydayBackstop with the plain read, shared: false per call', async () => {
+    const off = await loggedRead(risky, 'gate');
+    expect(off).not.toHaveProperty('everydayBackstop');
+    expect(off).not.toHaveProperty('shared');
+
+    info.mockClear();
+    resetCrisisClassifierCache();
+    const env = {
+      ...ENV,
+      CRISIS_CLASSIFIER_EVERYDAY_RULES: 'on',
+      CRISIS_CLASSIFIER_RUN_PER_CALL: 'on',
+    };
+    const on = await loggedRead(risky, 'gate', env, 'call-riley-test');
+    expect(on).toMatchObject({ everydayBackstop: true, shared: false });
+    expect(Object.keys(on).slice(-2)).toEqual(['everydayBackstop', 'shared']);
   });
 });
 

@@ -65,7 +65,12 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
     join(t, 'bin/npx'),
     `echo "npx $*" >> ${ev}\necho "Dry run. To delete these ${cleanupCount}:"`
   );
-  for (const b of ['gh', 'pnpm']) exe(join(t, 'bin', b), `echo "${b} $*" >> ${ev}`);
+  exe(join(t, 'bin/gh'), `echo "gh $*" >> ${ev}`);
+  // pnpm: ops:secrets-parity prints a drift report (flag words only) and exits 1, as on 2026-11-26
+  exe(
+    join(t, 'bin/pnpm'),
+    `echo "pnpm $*" >> ${ev}\ncase "$*" in *ops:secrets-parity*) printf '## Secrets parity: dev vs prod\\nOn in dev, off in prod (1): CALLER_CARD\\nResult: DRIFT (exit 1)\\n'; exit 1 ;; esac`
+  );
   const env = {
     HOME: join(t, 'home'),
     PATH: `${join(t, 'bin')}:${dirname(process.execPath)}:${dirname(python3)}:/usr/bin:/bin:/usr/sbin:/sbin`,
@@ -177,6 +182,27 @@ echo '{"replyTexts":["you can call 988"],"talkOver":{}}' > "$b.score.json"`;
     expect(board).toMatch(/nightly \d{4}-\d{2}-\d{2}: SAFETY FAIL: crisis-false-alarm; .*exit 1/);
     expect(sb.out('COMMENT.md')).toMatch(/^\*\*SAFETY FAIL: crisis-false-alarm/);
     expect(sb.events().some((e) => e.startsWith('gh issue comment 7'))).toBe(true);
+  }, 30_000);
+
+  it('appends dev vs prod flags to REPORT.md and COMMENT.md; a drift exit does not change the sweep', async () => {
+    const sb = sandbox(['EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n', '']);
+    expect(await exited(run(sb))).toBe(2); // the scorecard's harness error, not parity's 1
+    const call = sb.events().find((e) => e.startsWith('pnpm -s ops:secrets-parity'));
+    expect(call).toMatch(/--dev-project ferni-dev .*--prod-project ferni-prod /);
+    for (const f of ['REPORT.md', 'COMMENT.md']) {
+      expect(sb.out(f)).toMatch(/Flags, dev vs prod \(parity exit 1\)/);
+      expect(sb.out(f)).toMatch(/On in dev, off in prod \(1\): CALLER_CARD/);
+    }
+    const order = sb.events().map((e) => e.split(' ')[0] + ' ' + (e.split(' ')[1] ?? ''));
+    expect(order.indexOf('pnpm -s')).toBeLessThan(order.indexOf('gh issue'));
+  }, 30_000);
+
+  it('a held claim runs no parity check', async () => {
+    const sb = sandbox(['- | timer | s1 | | timer\n', ''], {
+      claimErr: 'HELD by lead (abc) for ~5 more min: x',
+    });
+    expect(await exited(run(sb))).toBe(3);
+    expect(sb.events().some((e) => e.includes('ops:secrets-parity'))).toBe(false);
   }, 30_000);
 
   it('a scorecard harness error still writes REPORT.md and COMMENT.md and says so on the board', async () => {

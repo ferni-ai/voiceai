@@ -101,12 +101,12 @@ export async function handleWebhooksRoutes(
   try {
     // POST /webhooks - Create new subscription
     if (method === 'POST' && (subPath === '' || subPath === '/')) {
-      return handleCreateWebhook(req, res);
+      return await handleCreateWebhook(req, res);
     }
 
     // GET /webhooks - List subscriptions
     if (method === 'GET' && (subPath === '' || subPath === '/')) {
-      return handleListWebhooks(req, res);
+      return await handleListWebhooks(req, res);
     }
 
     // Routes with :id parameter
@@ -118,27 +118,27 @@ export async function handleWebhooksRoutes(
 
     // POST /webhooks/:id/test - Test webhook
     if (method === 'POST' && subPath.endsWith('/test')) {
-      return handleTestWebhook(req, res, webhookId);
+      return await handleTestWebhook(req, res, webhookId);
     }
 
     // GET /webhooks/:id/logs - Get delivery logs
     if (method === 'GET' && subPath.endsWith('/logs')) {
-      return handleGetWebhookLogs(req, res, webhookId);
+      return await handleGetWebhookLogs(req, res, webhookId);
     }
 
     // GET /webhooks/:id - Get webhook
     if (method === 'GET' && subPath === `/${webhookId}`) {
-      return handleGetWebhook(req, res, webhookId);
+      return await handleGetWebhook(req, res, webhookId);
     }
 
     // PUT /webhooks/:id - Update webhook
     if (method === 'PUT' && subPath === `/${webhookId}`) {
-      return handleUpdateWebhook(req, res, webhookId);
+      return await handleUpdateWebhook(req, res, webhookId);
     }
 
     // DELETE /webhooks/:id - Delete webhook
     if (method === 'DELETE' && subPath === `/${webhookId}`) {
-      return handleDeleteWebhook(req, res, webhookId);
+      return await handleDeleteWebhook(req, res, webhookId);
     }
 
     return false;

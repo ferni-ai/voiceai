@@ -1276,7 +1276,7 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgetGeneration, forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js'; // prettier-ignore
-export { aboutForgotten, forgottenPassageCheck, forgottenPassageWithin, forgottenWithin, keepRemembered, profileForCaller, remembered } from './recall/forget-every-reader.js'; // prettier-ignore
+export { aboutForgotten, callStartPassageCheck, forgetCheckOrClosed, forgetEveryReaderEnabled, forgetFreshReadEnabled, forgottenCheck, forgottenPassageCheck, forgottenPassageWithin, forgottenWithin, keepRemembered, profileForCaller, remembered, type ForgottenCheck } from './recall/forget-every-reader.js'; // prettier-ignore
 export { isPersonaSubject } from './entity-hygiene.js';
 export { dualWriteFacts, mapDynamicFact, mapWorldFact, type DualWriteDeps } from './writer/facts-dual-write.js'; // prettier-ignore
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';

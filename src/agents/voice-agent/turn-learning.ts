@@ -24,6 +24,7 @@ import { learnTemporalPattern } from '../../intelligence/context-builders/intell
 import { recordSharedMoment } from '../../intelligence/context-builders/relationship/deep-relationship.js';
 import { questionShapeOf, safeTopic } from '../../intelligence/collective/community-labels.js';
 import { recordTrustSystemsData } from './index.js';
+import { ownerLearningContext } from './learning-owner.js';
 
 // Capability learning - track engagement with surfaced capabilities
 import {
@@ -306,14 +307,11 @@ function calculateEngagementScore(
 // ============================================================================
 
 /**
- * Record all learning data (trust systems + collective learning + temporal patterns).
- *
- * This is the main entry point for recording learning data during turn processing.
- * Also triggers:
- * - Temporal pattern learning (when the user engages, what topics at what times)
- * - Shared moment detection (inside jokes, meaningful phrases, callbacks), never of a crisis turn
+ * Record all learning for a turn: trust, collective, corrections, preferences, temporal patterns,
+ * shared moments (never of a crisis turn). None for an id nothing is kept for (learning-owner).
  */
-export async function recordAllLearningData(ctx: LearningContext): Promise<LearningResult> {
+export async function recordAllLearningData(turn: LearningContext): Promise<LearningResult> {
+  const ctx = ownerLearningContext(turn);
   const logger = log();
 
   // Core learning (existing)

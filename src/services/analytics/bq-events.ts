@@ -48,6 +48,8 @@ export const BQ_TABLES = {
     user_kind: S, eou_delay_ms: I, commit_to_audio_ms: I, prompt_tokens: I,
     prompt_cached_tokens: I, model: S, lane: S, tools_offered: I, preemptive: S,
     pause_hold_ms: I, barge_in_source: S, reply_chars: I,
+    // first audio of any kind: an opening or tool-ack clip counts, reply_delay_ms doesn't
+    first_any_audio_ms: I,
   },
   followthrough_outcomes: {
     event_ts: T, env: S, user_hash: S, item_hash: S, item_kind: S, outcome: S,
@@ -73,7 +75,7 @@ export type BqIds = { userId?: string; sessionId?: string; itemId?: string };
 type Purpose = 'user' | 'session' | 'item';
 
 export const MAX_STRING = 64;
-const MAX_LIST = 200;
+export const MAX_LIST = 200;
 const HASH_HEX = 32;
 const FLUSH_ROWS = 50;
 const FLUSH_MS = 5_000;
@@ -204,6 +206,14 @@ function coerce(field: string, col: Col, v: unknown): unknown {
   }
 }
 
+/** What a refused list looked like: type names and a length, never the values. */
+function listShape(v: unknown): string {
+  if (!Array.isArray(v)) return ` (${typeof v}, not an array)`;
+  const at = v.findIndex((x) => typeof x !== 'string' && typeof x !== 'number');
+  const odd = v[at] === null ? 'null' : typeof v[at];
+  return ` (array of ${v.length}${at < 0 ? '' : `, has a ${odd}`})`;
+}
+
 /** The row as BigQuery JSON, or why it was refused. Exported for tests. */
 export function buildRow(
   table: BqTable,
@@ -220,7 +230,8 @@ export function buildRow(
       return { refused: `field ${field}` };
     if (value === null || value === undefined) continue;
     const coerced = coerce(field, col, value);
-    if (coerced === undefined) return { refused: `value of ${field}` };
+    if (coerced === undefined)
+      return { refused: `value of ${field}${col === 'STRING[]' ? listShape(value) : ''}` };
     out[field] = coerced;
   }
   const hashes = {
