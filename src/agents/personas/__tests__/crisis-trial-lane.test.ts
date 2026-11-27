@@ -10,7 +10,7 @@
  */
 import { EventEmitter } from 'node:events';
 import { DEFAULT_API_CONNECT_OPTIONS, llm } from '@livekit/agents';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CrisisGenerateFn } from '../../../services/safety/crisis-classifier.js';
 
 const stub = vi.hoisted(() => ({
@@ -48,8 +48,8 @@ vi.mock('../crisis-gate.js', async (load) => {
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
-import { trialArm, withTrialLane } from '../../model-provider/trial-lane.js';
-import type { TurnReceipt } from '../../shared/turn-receipt.js';
+import { fillArmPools, idIn } from '../../model-provider/__tests__/trial-arm-ids.js';
+import { withTrialLane } from '../../model-provider/trial-lane.js';
 import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import { PersonaVoiceAgent } from '../ferni-agent.js';
 import { OpenerGate } from '../opener-gate.js';
@@ -101,17 +101,10 @@ class StubStream extends llm.LLMStream {
   }
 }
 
-let calls = 0;
 let fetches = 0;
 
-/** A session id whose call draws `arm`. */
-function idIn(arm: 'trial' | 'control'): string {
-  for (let tries = 0; tries < 200; tries++) {
-    const id = `crisis-trial-lane-${++calls}`;
-    if (trialArm(id) === arm) return id;
-  }
-  throw new Error(`no ${arm} call in 200 session ids: the arm split is broken`);
-}
+// Session ids by the arm their call draws (trial-arm-ids.ts): 17 trial and 2 control calls below.
+beforeAll(() => fillArmPools('crisis-trial-lane', 30));
 
 /** One call through the real llmNode, its model built by withTrialLane under `env`. */
 function startCall(o: { arm?: 'trial' | 'control'; env?: Record<string, string> } = {}) {
@@ -128,12 +121,11 @@ function startCall(o: { arm?: 'trial' | 'control'; env?: Record<string, string> 
   const session = Object.assign(new EventEmitter(), {
     userData: { personaId: 'ferni', services },
   });
-  const receipts: TurnReceipt[] = [];
   attachTurnReceipts(session as never, {
     sessionId: sessionId ?? 'no-call-id',
     userId: undefined,
     persona: () => 'ferni',
-    emit: (r) => receipts.push(r),
+    emit: () => undefined, // the receipt path runs as on a real call; nothing here reads it
     env: { ...env },
   });
   const agent: Record<string, unknown> = {
@@ -147,11 +139,10 @@ function startCall(o: { arm?: 'trial' | 'control'; env?: Record<string, string> 
   agent.turnTools = { loggedLockedHandoffs: false, agent };
   agent.openerGate = new OpenerGate().forSession(() => session as never);
 
-  const turn = async (words: string): Promise<{ said: string; receipt: TurnReceipt }> => {
+  const turn = async (words: string): Promise<{ said: string }> => {
     const ctx = llm.ChatContext.empty();
     ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
     ctx.addMessage({ role: 'user', content: words });
-    const before = receipts.length;
     session.emit('metrics_collected', {
       metrics: { type: 'eou_metrics', endOfUtteranceDelayMs: 300, transcriptionDelayMs: 90 },
     });
@@ -170,7 +161,7 @@ function startCall(o: { arm?: 'trial' | 'control'; env?: Record<string, string> 
             : ((chunk as { delta?: { content?: string } }).delta?.content ?? '');
     session.emit('agent_state_changed', { newState: 'speaking' });
     session.emit('agent_state_changed', { newState: 'listening' });
-    return { said: said.toLowerCase(), receipt: receipts[before] };
+    return { said: said.toLowerCase() };
   };
   return { sessionId, model, trial, main, order, turn };
 }
@@ -197,14 +188,13 @@ afterEach(() => {
 });
 
 describe('crisis turns on a trial call keep today’s model (dev, trial on)', () => {
-  it('T1 a pattern-guided turn goes to today’s model; the receipt says held', async () => {
+  it('T1 a pattern-guided turn goes to today’s model', async () => {
     stub.verdict = CRISIS_VERDICT;
     const c = startCall({ arm: 'trial' });
-    const { said, receipt } = await c.turn(GUIDED);
+    const { said } = await c.turn(GUIDED);
     expect(c.trial.requests).toHaveLength(0);
     expect(c.order[0]).toBe('main');
     expect(said).toContain('main');
-    expect(receipt.trial).toEqual({ arm: 'trial', held: true, model: 'main', backup: false });
   });
 
   it('T2 every later turn on that call goes to today’s model, a chat line included', async () => {
@@ -219,9 +209,8 @@ describe('crisis turns on a trial call keep today’s model (dev, trial on)', ()
   it('T3 a turn on a call with risk noted goes to today’s model', async () => {
     const c = startCall({ arm: 'trial' });
     noteCrisisRisk(c.sessionId!);
-    const { receipt } = await c.turn(CHAT);
+    await c.turn(CHAT);
     expect(c.order).toEqual(['main']);
-    expect(receipt.trial).toMatchObject({ arm: 'trial', held: true, model: 'main' });
   });
 
   it('T4 a read that escalates sends the guided reply to today’s model', async () => {
@@ -249,25 +238,22 @@ describe('the trial off', () => {
     ['on prod’s database', { ...DEV, FIRESTORE_DATABASE: '(default)' }],
     ['a misspelt dev database', { ...DEV, FIRESTORE_DATABASE: 'ferni_dev' }],
     ['an unlisted model', { ...DEV, CASCADE_TRIAL_MODEL: 'gemini-3.8-live' }],
-  ] as const)(
-    'T6 %s: the session’s model is today’s itself and the receipt has no trial field',
-    async (_how, env) => {
-      const c = startCall({ arm: 'trial', env });
-      expect(c.model).toBe(c.main);
-      const { said, receipt } = await c.turn(CHAT);
-      expect(c.order).toEqual(['main']);
-      expect(said).toBe('main');
-      expect(receipt).not.toHaveProperty('trial');
-    }
-  );
+  ] as const)('T6 %s: the session’s model is today’s itself', async (_how, env) => {
+    const c = startCall({ arm: 'trial', env });
+    expect(c.model).toBe(c.main);
+    const { said } = await c.turn(CHAT);
+    expect(c.order).toEqual(['main']);
+    expect(said).toBe('main');
+  });
 });
 
 describe('a control call (dev, trial on)', () => {
-  it('T7 every turn goes to today’s model, and the receipt says control', async () => {
+  it('T7 every turn goes to today’s model', async () => {
     const c = startCall({ arm: 'control' });
-    const { receipt } = await c.turn(CHAT);
+    await c.turn(CHAT);
+    await c.turn(CHAT);
     expect(c.trial.requests).toHaveLength(0);
-    expect(receipt.trial).toEqual({ arm: 'control', held: false, model: 'main', backup: false });
+    expect(c.order).toEqual(['main', 'main']);
   });
 });
 
@@ -279,23 +265,24 @@ function gate(): { held: Promise<void>; release: () => void } {
   });
   return { held, release };
 }
-const settle = () => new Promise<void>((r) => setTimeout(r, 20));
+const settle = () =>
+  new Promise<void>((r) => {
+    setTimeout(r, 20);
+  });
 
 describe('a held reply on a trial call (dev, trial on)', () => {
   it('T8 fail-closed on: an ordinary turn reaches the trial model, and its clean read lets it out', async () => {
     const c = startCall({ arm: 'trial', env: DEV_CLOSED });
-    const { said, receipt } = await c.turn(CHAT);
+    const { said } = await c.turn(CHAT);
     expect(c.order).toEqual(['trial']);
     expect(said).toBe('trial');
-    expect(receipt.trial).toEqual({ arm: 'trial', held: false, model: 'trial', backup: false });
   });
 
   it('T9 fail-closed off: a turn held on its own pending verdict goes to today’s model', async () => {
     const c = startCall({ arm: 'trial', env: { ...DEV, CRISIS_GATE_FAIL_CLOSED: 'off' } });
-    const { said, receipt } = await c.turn(CHAT);
+    const { said } = await c.turn(CHAT);
     expect(c.order).toEqual(['main']);
     expect(said).toBe('main');
-    expect(receipt.trial).toMatchObject({ arm: 'trial', held: true, model: 'main' });
   });
 
   it('T10 a read that fails: the held trial reply is dropped and today’s model answers', async () => {
@@ -309,7 +296,9 @@ describe('a held reply on a trial call (dev, trial on)', () => {
 
   it('T11 a read that times out: the held trial reply is dropped and today’s model answers', async () => {
     vi.stubEnv('CRISIS_CLASSIFIER_TIMEOUT_MS', '40');
-    stub.held = new Promise<void>(() => undefined); // never answers
+    stub.held = new Promise<void>(() => {
+      // never answers
+    });
     const c = startCall({ arm: 'trial', env: DEV_CLOSED });
     const { said } = await c.turn(CHAT);
     expect(c.order).toEqual(['trial', 'main']);

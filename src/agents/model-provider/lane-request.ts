@@ -8,9 +8,10 @@
  * and the turn receipt read the mark. Kept by object, so a mark lives exactly as long as its
  * request.
  *
- * It also keeps the gate that sent a request, for the dev model trial (trial-lane.ts): the
- * trial reads the call's crisis state when the request reaches the model. A request the gate did
- * not send (around llmNode) has none, and the trial sends it to today's model.
+ * It also keeps the gate's crisis clearance for a request, for the dev model trial
+ * (trial-lane.ts): the gate builds it (agents/safety/crisis-trial-clearance.ts) and the trial
+ * asks it when the request reaches the model. A request the gate did not send (around llmNode)
+ * has none, and the trial sends it to today's model.
  *
  * @module agents/model-provider/lane-request
  */
@@ -18,37 +19,33 @@
 /** How the crisis gate asks for one reply (gatedReply's model). */
 export interface ReplyLane {
   mainLane: boolean;
-  /** The call's session, for the dev model trial's crisis clearance (trial-lane.ts). */
-  session?: object;
-  /** The classifier verdict this turn's reply is held on, and the caller words it reads. */
-  held?: HeldVerdict;
+  /** The gate's crisis clearance for the dev model trial (trial-lane.ts); none: today's model. */
+  trial?: TrialClearance;
 }
 
-/** A reply held until this turn's own classifier verdict settles (crisis-gate-hold.ts). */
-export interface HeldVerdict {
-  verdict: Promise<unknown>;
-  latest: string;
-}
-
-/** The gate that sent a request: its call's session and the verdict holding its reply. */
-export interface SentBy {
-  session: object;
-  held?: HeldVerdict;
+/** What the dev model trial asks the gate about one request, when it reaches the model. */
+export interface TrialClearance {
+  /** The call's id, undefined with no call. Throws when the call's session can't be read. */
+  callId(): string | undefined;
+  /** Whether the request is clear of crisis handling now (the trial lane checks the mark). */
+  clear(env: Record<string, string | undefined>): boolean;
+  /** The trial model is writing the reply this request's verdict holds (if any). */
+  noteTrialWrote(): void;
 }
 
 const marked = new WeakSet<object>();
-const senders = new WeakMap<object, SentBy>();
+const clearances = new WeakMap<object, TrialClearance>();
 
-/** The request, marked for the main model when the gate asked for it, with the gate's session. */
+/** The request, marked for the main model when the gate asked for it, with the gate's clearance. */
 export function withLane<T extends object>(request: T, lane: ReplyLane | undefined): T {
   if (lane?.mainLane) marked.add(request);
-  if (lane?.session) senders.set(request, { session: lane.session, held: lane.held });
+  if (lane?.trial) clearances.set(request, lane.trial);
   return request;
 }
 
-/** The gate that sent this request, if any. */
-export function sentBy(request: object): SentBy | undefined {
-  return senders.get(request);
+/** The gate's trial clearance for this request, if the gate sent it. */
+export function trialClearanceOf(request: object): TrialClearance | undefined {
+  return clearances.get(request);
 }
 
 /** Whether this request was marked for the main model. */

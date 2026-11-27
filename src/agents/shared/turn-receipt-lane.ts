@@ -26,7 +26,6 @@ import {
   type LaneRoute,
   type RoutedRequest,
 } from '../model-provider/fast-lane.js';
-import { trialSlot, type TrialSlot } from '../model-provider/trial-lane.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -89,15 +88,14 @@ function shadowMode(env: Env): 'off' | 'decision' | 'sample' {
   return mode === 'decision' || mode === 'sample' ? mode : 'off';
 }
 
-/** The receipt's lane fields for this request of this call, with the dev trial's slot. */
+/** The receipt's lane and laneShadow for this request of this call. */
 export function laneFields(
   request: RoutedRequest,
   call: LaneCall,
   env: Env = process.env
-): { lane: LaneRoute | null; laneShadow: LaneShadow | null; trial: TrialSlot | null } {
-  const trial = trialSlot(request, env); // CASCADE_TRIAL_MODEL (trial-lane.ts); null when off
-  if (fastLaneEnabled(env)) return { lane: routeOf(request), laneShadow: null, trial };
-  if (shadowMode(env) === 'off') return { lane: null, laneShadow: null, trial };
+): { lane: LaneRoute | null; laneShadow: LaneShadow | null } {
+  if (fastLaneEnabled(env)) return { lane: routeOf(request), laneShadow: null };
+  if (shadowMode(env) === 'off') return { lane: null, laneShadow: null };
   const route = routeOf(request);
-  return { lane: null, laneShadow: shadowQuiet(call, route, env) ? null : route, trial };
+  return { lane: null, laneShadow: shadowQuiet(call, route, env) ? null : route };
 }

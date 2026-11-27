@@ -4,9 +4,9 @@
  * other than today's; every other request keeps today's routing.
  *
  * Fails closed: unknown is never clear. A request is clear only when the gate sent it on a call
- * with a session id, did not ask for the main model, passed this turn live, the call has had no
- * guided or replaced turn, no crisis risk is noted on the call and no other crisis read is in
- * flight. A pending classifier verdict is clear only when it is this turn's own, holding this
+ * with a session id, passed this turn live, the call has had no guided or replaced turn, no
+ * crisis risk is noted on the call and no other crisis read is in flight. (The trial lane itself
+ * refuses a request marked for the main model.) A pending classifier verdict is clear only when it is this turn's own, holding this
  * very reply, and CRISIS_GATE_FAIL_CLOSED is on; any other pending verdict is not. A reader that
  * throws is not clear.
  *
@@ -15,14 +15,19 @@
  *
  * @module agents/safety/crisis-trial-clearance
  */
-import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
-import { crisisGuidedTurn } from '../../services/safety/crisis-turn-mark.js';
-import type { HeldVerdict, SentBy } from '../model-provider/lane-request.js';
+import { crisisGuidedTurn, crisisRiskThisCall } from '../../services/safety/index.js';
+import type { TrialClearance } from '../model-provider/lane-request.js';
 import { sessionScope } from '../personas/crisis-gate-words.js';
 import { escalationFailsClosed } from '../personas/crisis-gate-failure.js';
 import { crisisDecidedOn, crisisVerdictPending } from './crisis-gate-signal.js';
 
 type Env = Record<string, string | undefined>;
+
+/** A reply held until this turn's own classifier verdict settles (crisis-gate-hold.ts). */
+interface HeldVerdict {
+  verdict: Promise<unknown>;
+  latest: string;
+}
 
 /** Verdicts whose held reply the trial model wrote. */
 const trialHolds = new WeakSet<object>();
@@ -36,25 +41,33 @@ function untouchedCall(session: object): string | undefined {
   return call;
 }
 
-/** Whether this request may leave today's model: see the module comment. */
-export function clearOfCrisis(gate: SentBy | undefined, mainLane: boolean, env: Env): boolean {
-  if (!gate || mainLane) return false;
+/** Whether a request on `session`, held on `held`, may leave today's model: see the top. */
+function clearOfCrisis(session: object, held: HeldVerdict | undefined, env: Env): boolean {
   try {
-    const call = untouchedCall(gate.session);
+    const call = untouchedCall(session);
     if (call === undefined) return false;
-    const pending = crisisVerdictPending(gate.session);
-    const own = !!gate.held && pending === gate.held.verdict;
+    const pending = crisisVerdictPending(session);
+    const own = !!held && pending === held.verdict;
     if (pending !== null && !(own && escalationFailsClosed(env))) return false;
     // This turn's own read is in flight while it holds the reply: only other reads count.
-    return !crisisRiskThisCall(call, own ? gate.held?.latest : undefined);
+    return !crisisRiskThisCall(call, own ? held?.latest : undefined);
   } catch {
     return false;
   }
 }
 
-/** The trial model is writing the reply `held` holds. */
-export function noteTrialHeld(held: HeldVerdict): void {
-  trialHolds.add(held.verdict);
+/**
+ * The clearance the gate puts on a reply request it sends on `session` (lane-request.ts), held on
+ * `held` when this turn's reply waits for its own verdict. The trial asks it at the model.
+ */
+export function trialClearance(session: object, held?: HeldVerdict): TrialClearance {
+  return {
+    callId: () => sessionScope((session as { userData?: unknown }).userData),
+    clear: (env) => clearOfCrisis(session, held, env),
+    noteTrialWrote: () => {
+      if (held) trialHolds.add(held.verdict);
+    },
+  };
 }
 
 /**

@@ -1,19 +1,17 @@
 /**
  * CASCADE_TRIAL_MODEL (#4467): a dev-only, per-call trial of a newer Gemini model against today's.
  *
- * Off by default. Set to one of TRIAL_MODELS (below), each call draws an arm from its
- * session id, the same for the whole call: about half are `trial`, the rest `control`. On a
- * trial call a request goes to the trial model only when it is clear of crisis handling
- * (agents/safety/crisis-trial-clearance.ts). Every other request, every request of a control
- * call, and every request with the trial off goes to today's model, hedged as before. Any other
- * value is off.
+ * Off by default. Set to one of TRIAL_MODELS (below), each call draws an arm from its session
+ * id, the same for the whole call: about half are `trial`, the rest `control`. On a trial call a
+ * request goes to the trial model only when it is clear of crisis handling. The crisis gate puts
+ * a clearance on each request it sends (lane-request.ts, built in
+ * agents/safety/crisis-trial-clearance.ts), and the lane asks it when the request reaches the
+ * model. A request without one, or marked for today's model, never goes to the trial. Every
+ * other request, every request of a control call, and every request with the trial off goes to
+ * today's model, hedged as before. Any other value is off.
  *
  * Dev only: nothing is drawn unless this process is on dev's Firestore database by its exact
  * name (isKnownDevDatabase). Set on prod, or with a misspelt database name, the flag does nothing.
- *
- * With the trial on, each TURN_RECEIPT says the call's arm, whether a trial call's request was
- * held to today's model, the model that answered and whether it was a hedge backup (trialField).
- * The bake-off report leaves backup answers out of the trial arm.
  *
  * @module agents/model-provider/trial-lane
  */
@@ -21,19 +19,16 @@ import { createHash } from 'node:crypto';
 import { llm } from '@livekit/agents';
 import { isKnownDevDatabase } from '../../config/firestore-database.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { sessionScope } from '../personas/crisis-gate-words.js';
-import { clearOfCrisis, noteTrialHeld } from '../safety/crisis-trial-clearance.js';
 import { LaneStream } from './fast-lane.js';
 import { forwardPrewarm } from './forward-prewarm.js';
-import { HedgedLLM, hedgedAnswerOf } from './hedged-llm.js';
-import { mainLaneRequired, sentBy } from './lane-request.js';
+import { mainLaneRequired, trialClearanceOf } from './lane-request.js';
 
 const log = createLogger({ module: 'TrialLane' });
 
 type ChatOptions = Parameters<llm.LLM['chat']>[0];
 type Env = Record<string, string | undefined>;
 
-export type TrialArm = 'trial' | 'control';
+type TrialArm = 'trial' | 'control';
 
 /**
  * The trial models, by exact ID. Each was listed by our Vertex endpoint and answered a probe on
@@ -42,7 +37,7 @@ export type TrialArm = 'trial' | 'control';
  * first text vs ~0.9s for gemini-3.5-flash at MINIMAL (2026-09-27, 64 tools, full prompt).
  * Anything else in CASCADE_TRIAL_MODEL leaves the trial off.
  */
-export const TRIAL_MODELS: readonly string[] = Object.freeze([
+const TRIAL_MODELS: readonly string[] = Object.freeze([
   'gemini-3.8-flash',
   'gemini-4-argon',
   'gemini-4-carbon',
@@ -51,48 +46,41 @@ export const TRIAL_MODELS: readonly string[] = Object.freeze([
 ]);
 
 /** The trial model this process may use: a listed ID on dev's database, else null (off). */
-export function trialModel(env: Env = process.env): string | null {
+function trialModel(env: Env = process.env): string | null {
   const id = env.CASCADE_TRIAL_MODEL?.trim();
   if (!id || !TRIAL_MODELS.includes(id)) return null;
   return isKnownDevDatabase(env) ? id : null;
 }
 
 /** The call's arm, the same for every request of the call. */
-export function trialArm(callId: string): TrialArm {
+function trialArm(callId: string): TrialArm {
   const h = createHash('sha256').update(`trial-arm:${callId}`).digest();
   return h.readUInt32BE(0) < 2 ** 31 ? 'trial' : 'control';
 }
 
-/** Where one request went, kept for its receipt. */
-interface Route {
-  arm: TrialArm | null;
-  target: llm.LLM;
-  trial: boolean;
-}
-
-const routes = new WeakMap<object, Route>();
-
 /**
- * The call's arm (null: no call, or its session can't be read), and whether this request may go
- * to the trial model. A session that throws on read sends the request to today's model.
+ * Whether this request may go to the trial model, asked when it reaches the model. Only a request
+ * the gate sent with a clearance, on a trial-arm call, not marked for today's model, and clear of
+ * crisis handling now. A clearance that throws sends the request to today's model.
  */
-function decide(request: object, env: Env): { arm: TrialArm | null; trial: boolean } {
-  const gate = sentBy(request);
+function toTrial(request: object, env: Env): boolean {
+  const gate = trialClearanceOf(request);
+  if (!gate || mainLaneRequired(request)) return false;
   let callId: string | undefined;
   try {
-    callId = sessionScope((gate?.session as { userData?: unknown } | undefined)?.userData);
+    callId = gate.callId();
   } catch {
-    return { arm: null, trial: false };
+    return false;
   }
-  const arm = callId === undefined ? null : trialArm(callId);
-  const trial = arm === 'trial' && clearOfCrisis(gate, mainLaneRequired(request), env);
+  if (callId === undefined || trialArm(callId) !== 'trial') return false;
+  if (!gate.clear(env)) return false;
   // A held reply: it goes out only once its read is clean (crisis-gate.ts, heldTrialReplyCleared).
-  if (trial && gate?.held) noteTrialHeld(gate.held);
-  return { arm, trial };
+  gate.noteTrialWrote();
+  return true;
 }
 
 /** Today's model; a trial call's requests clear of crisis handling go to `trial`. */
-export class TrialLaneLLM extends llm.LLM {
+class TrialLaneLLM extends llm.LLM {
   private readonly prewarmWarned = new WeakSet<object>();
 
   constructor(
@@ -122,9 +110,7 @@ export class TrialLaneLLM extends llm.LLM {
   }
 
   chat(opts: ChatOptions): llm.LLMStream {
-    const { arm, trial } = decide(opts.chatCtx, this.env);
-    const target = trial ? this.trial : this.main;
-    routes.set(opts.chatCtx, { arm, target, trial });
+    const target = toTrial(opts.chatCtx, this.env) ? this.trial : this.main;
     return new LaneStream(this, opts, target);
   }
 }
@@ -139,39 +125,4 @@ export function withTrialLane(
   if (!model) return main;
   log.info({ model }, 'Cascade trial model on (dev only)');
   return new TrialLaneLLM(make(model), main, env);
-}
-
-/** A request whose receipt carries the trial field: only while the trial is on. */
-export interface TrialSlot {
-  request: object;
-}
-
-/** The slot for this request's receipt, or null with the trial off (the receipt is unchanged). */
-export function trialSlot(request: object, env: Env = process.env): TrialSlot | null {
-  return trialModel(env) ? { request } : null;
-}
-
-/** What a TURN_RECEIPT says of one request with the trial on: never words. */
-export interface TrialField {
-  /** The call's arm; null when the request had no call. */
-  arm: TrialArm | null;
-  /** A trial call's request sent to today's model (not clear of crisis handling, or no call). */
-  held: boolean;
-  /** The model that answered; null before any model said something, or never routed. */
-  model: string | null;
-  /** The answer came from a hedge backup: the report leaves it out of the trial arm. */
-  backup: boolean;
-}
-
-/** The receipt's trial field for this slot's request. */
-export function trialField(slot: TrialSlot): TrialField {
-  const route = routes.get(slot.request);
-  if (!route) return { arm: null, held: false, model: null, backup: false };
-  const { arm, target, trial } = route;
-  const held = arm === 'trial' && !trial;
-  if (!(target instanceof HedgedLLM)) return { arm, held, model: target.model, backup: false };
-  const answer = hedgedAnswerOf(slot.request);
-  if (answer === undefined) return { arm, held, model: null, backup: false };
-  const backup = answer === 'backup';
-  return { arm, held, model: (backup ? target.backup : target.primary).model, backup };
 }

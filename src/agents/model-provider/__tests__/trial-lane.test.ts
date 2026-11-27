@@ -1,30 +1,31 @@
 /**
  * CASCADE_TRIAL_MODEL (trial-lane.ts): off unless a listed ID on dev's database, a sticky
- * per-call arm, and a receipt field that says which model answered and whether it was a hedge
- * backup. The crisis rows on the real reply path live in personas/__tests__/crisis-trial-lane.
+ * per-call arm, and the gate's clearance asked when a request reaches the model. The crisis rows
+ * on the real reply path live in personas/__tests__/crisis-trial-lane.
  */
 import { DEFAULT_API_CONNECT_OPTIONS, llm } from '@livekit/agents';
 import { ThinkingLevel } from '@google/genai';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { rejectsMinimalThinking } from '../../../config/thinking-defaults.js';
 import { markCrisisTurn } from '../../../services/safety/crisis-turn-mark.js';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../../safety/crisis-gate-signal.js';
+import { trialClearance } from '../../safety/crisis-trial-clearance.js';
 import { cascadeThinking } from '../cartesia-cascade.js';
-import { HedgedLLM } from '../hedged-llm.js';
 import { withLane } from '../lane-request.js';
-import {
-  TRIAL_MODELS,
-  trialArm,
-  trialField,
-  TrialLaneLLM,
-  trialModel,
-  trialSlot,
-  withTrialLane,
-} from '../trial-lane.js';
+import { withTrialLane } from '../trial-lane.js';
+import { armOf, fillArmPools, idIn, openClearance } from './trial-arm-ids.js';
 
 const CONN = { ...DEFAULT_API_CONNECT_OPTIONS, maxRetry: 0 };
 const DEV = { FIRESTORE_DATABASE: 'ferni-dev', CASCADE_TRIAL_MODEL: 'gemini-4-hydrogen' };
+/** The IDs CASCADE_TRIAL_MODEL accepts (the list in trial-lane.ts). */
+const LISTED = [
+  'gemini-3.8-flash',
+  'gemini-4-argon',
+  'gemini-4-carbon',
+  'gemini-4-hydrogen',
+  'gemini-4-neon',
+];
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((r) => {
@@ -63,13 +64,28 @@ class StubStream extends llm.LLMStream {
   }
 }
 
-let calls = 0;
-function idIn(arm: 'trial' | 'control'): string {
-  for (let tries = 0; tries < 200; tries++) {
-    const id = `trial-lane-unit-${++calls}`;
-    if (trialArm(id) === arm) return id;
-  }
-  throw new Error(`no ${arm} call in 200 session ids: the arm split is broken`);
+beforeAll(() => fillArmPools('trial-lane-unit', 40));
+
+/** The model withTrialLane builds under `env`, or null when it returns today's model itself. */
+function modelFor(env: Record<string, string>): string | null {
+  const main = new StubLLM('main');
+  let built: string | null = null;
+  const lane = withTrialLane(
+    main,
+    (model) => {
+      built = model;
+      return new StubLLM(model);
+    },
+    env
+  );
+  return lane === main ? null : built;
+}
+
+/** The trial lane over `trial` and `main`, on dev with the trial on (plus `env`). */
+function laneOver(trial: llm.LLM, main: llm.LLM, env: Record<string, string> = DEV): llm.LLM {
+  const lane = withTrialLane(main, () => trial, { ...DEV, ...env });
+  if (lane === main) throw new Error('the trial is off: laneOver needs it on');
+  return lane;
 }
 
 /**
@@ -85,7 +101,7 @@ function requestOn(
   chatCtx.addMessage({ role: 'user', content: 'haha she definitely did it on purpose' });
   const userData = { services: sessionId === undefined ? {} : { sessionId } };
   if (gate) markCrisisTurn(userData, gate);
-  return withLane(chatCtx, { mainLane, session: { userData } });
+  return withLane(chatCtx, { mainLane, trial: trialClearance({ userData }) });
 }
 
 async function drain(stream: llm.LLMStream): Promise<string> {
@@ -98,34 +114,27 @@ afterEach(() => resetCrisisCallRisk());
 
 describe('which model the trial may use', () => {
   it('is off unless CASCADE_TRIAL_MODEL is a listed ID and the database is ferni-dev exactly', () => {
-    expect(trialModel({})).toBeNull();
-    expect(trialModel({ FIRESTORE_DATABASE: 'ferni-dev' })).toBeNull();
-    expect(trialModel(DEV)).toBe('gemini-4-hydrogen');
-    expect(trialModel({ ...DEV, CASCADE_TRIAL_MODEL: ' gemini-4-hydrogen ' })).toBe(
+    expect(modelFor({})).toBeNull();
+    expect(modelFor({ FIRESTORE_DATABASE: 'ferni-dev' })).toBeNull();
+    expect(modelFor(DEV)).toBe('gemini-4-hydrogen');
+    expect(modelFor({ ...DEV, CASCADE_TRIAL_MODEL: ' gemini-4-hydrogen ' })).toBe(
       'gemini-4-hydrogen'
     );
-    for (const id of TRIAL_MODELS) expect(trialModel({ ...DEV, CASCADE_TRIAL_MODEL: id })).toBe(id);
+    for (const id of LISTED) expect(modelFor({ ...DEV, CASCADE_TRIAL_MODEL: id })).toBe(id);
     // Not listed: off, whatever the database.
     for (const id of ['on', 'gemini-3.5-flash', 'gemini-4', 'GEMINI-4-HYDROGEN', 'gemini-3.8-live'])
-      expect(trialModel({ ...DEV, CASCADE_TRIAL_MODEL: id }), id).toBeNull();
+      expect(modelFor({ ...DEV, CASCADE_TRIAL_MODEL: id }), id).toBeNull();
   });
 
   it('is off on any database but dev: prod, unset, or a misspelt dev name', () => {
     for (const db of ['(default)', '', 'ferni-dev ', 'Ferni-Dev', 'ferni-dev2', 'ferni-prod'])
-      expect(trialModel({ ...DEV, FIRESTORE_DATABASE: db }), db).toBeNull();
-    expect(trialModel({ CASCADE_TRIAL_MODEL: 'gemini-4-hydrogen' })).toBeNull();
+      expect(modelFor({ ...DEV, FIRESTORE_DATABASE: db }), db).toBeNull();
+    expect(modelFor({ CASCADE_TRIAL_MODEL: 'gemini-4-hydrogen' })).toBeNull();
   });
 
   it('gives each trial model LOW thinking and today’s models MINIMAL', () => {
-    expect(TRIAL_MODELS).toEqual([
-      'gemini-3.8-flash',
-      'gemini-4-argon',
-      'gemini-4-carbon',
-      'gemini-4-hydrogen',
-      'gemini-4-neon',
-    ]);
     // The cascade decides: each trial model rejects MINIMAL, so it gets LOW; today's keep MINIMAL.
-    for (const id of TRIAL_MODELS) {
+    for (const id of LISTED) {
       expect(rejectsMinimalThinking(id), id).toBe(true);
       expect(cascadeThinking(id, {}), id).toEqual({ thinkingLevel: ThinkingLevel.LOW });
     }
@@ -136,13 +145,14 @@ describe('which model the trial may use', () => {
 });
 
 describe('the arm', () => {
-  it('is the same for every request of a call and splits calls about in half', () => {
+  it('is the same for every request of a call and splits calls about in half', async () => {
     const id = idIn('trial');
-    for (let i = 0; i < 5; i++) expect(trialArm(id)).toBe('trial');
+    for (let i = 0; i < 5; i++) expect(await armOf(id)).toBe('trial');
     let trial = 0;
-    for (let i = 0; i < 2000; i++) if (trialArm(`split-${i}`) === 'trial') trial++;
-    expect(trial).toBeGreaterThan(900);
-    expect(trial).toBeLessThan(1100);
+    for (let i = 0; i < 400; i++) if ((await armOf(`split-${i}`)) === 'trial') trial++;
+    // 400 fair draws: 200 +/- 10 (one standard deviation); 160..240 is four either way.
+    expect(trial).toBeGreaterThan(160);
+    expect(trial).toBeLessThan(240);
   });
 });
 
@@ -157,14 +167,16 @@ describe('withTrialLane', () => {
     expect(withTrialLane(main, make, {})).toBe(main);
     expect(withTrialLane(main, make, { ...DEV, FIRESTORE_DATABASE: '(default)' })).toBe(main);
     expect(built).toBe(0);
-    expect(withTrialLane(main, make, DEV)).toBeInstanceOf(TrialLaneLLM);
+    const lane = withTrialLane(main, make, DEV);
+    expect(lane).not.toBe(main);
+    expect(lane.label()).toBe('trial-lane(trial | main)');
     expect(built).toBe(1);
   });
 
   it('a clear request on a trial call goes to the trial model; on a control call, to today’s', async () => {
     const trial = new StubLLM('trial');
     const main = new StubLLM('main');
-    const lane = new TrialLaneLLM(trial, main);
+    const lane = laneOver(trial, main);
     expect(await drain(lane.chat({ chatCtx: requestOn(idIn('trial')), connOptions: CONN }))).toBe(
       'trial'
     );
@@ -187,7 +199,7 @@ describe('withTrialLane', () => {
             throw new Error('unreadable');
           },
         };
-        return withLane(chatCtx, { mainLane: false, session });
+        return withLane(chatCtx, { mainLane: false, trial: trialClearance(session) });
       },
     ],
     [
@@ -203,7 +215,7 @@ describe('withTrialLane', () => {
             return true;
           },
         };
-        return withLane(chatCtx, { mainLane: false, session: { userData } });
+        return withLane(chatCtx, { mainLane: false, trial: trialClearance({ userData }) });
       },
     ],
     ['on a turn no live gate decided', () => requestOn(idIn('trial'), false, null)],
@@ -218,7 +230,7 @@ describe('withTrialLane', () => {
         // Fresh userData: only the session remembers the decision (crisisDecidedOn).
         session.userData = { services: { sessionId } };
         markCrisisTurn(session.userData, 'pass');
-        return withLane(chatCtx, { mainLane: false, session });
+        return withLane(chatCtx, { mainLane: false, trial: trialClearance(session) });
       },
     ],
     [
@@ -232,7 +244,7 @@ describe('withTrialLane', () => {
   ])('a trial call’s request %s goes to today’s model', async (_how, request) => {
     const trial = new StubLLM('trial');
     const main = new StubLLM('main');
-    const lane = new TrialLaneLLM(trial, main);
+    const lane = laneOver(trial, main);
     expect(await drain(lane.chat({ chatCtx: request(), connOptions: CONN }))).toBe('main');
     expect(trial.requests).toHaveLength(0);
   });
@@ -248,13 +260,16 @@ describe('a request held on a pending crisis verdict', () => {
     const session = { userData };
     noteCrisisVerdictPending(session, pending);
     const held = own && { verdict: own, latest: 'haha she definitely did it on purpose' };
-    return withLane(chatCtx, { mainLane: false, session, held });
+    return withLane(chatCtx, { mainLane: false, trial: trialClearance(session, held) });
   }
-  const never = (): Promise<unknown> => new Promise(() => undefined);
+  const never = (): Promise<unknown> =>
+    new Promise(() => {
+      // never settles
+    });
   const closed = { ...DEV, CRISIS_GATE_FAIL_CLOSED: 'on' };
 
   async function answer(request: llm.ChatContext, env: Record<string, string>): Promise<string> {
-    const lane = new TrialLaneLLM(new StubLLM('trial'), new StubLLM('main'), env);
+    const lane = laneOver(new StubLLM('trial'), new StubLLM('main'), env);
     return drain(lane.chat({ chatCtx: request, connOptions: CONN }));
   }
 
@@ -277,57 +292,42 @@ function noted(id: string): string {
   return id;
 }
 
-describe('the receipt field', () => {
-  it('is null with the trial off, so the receipt is unchanged', () => {
-    expect(trialSlot(requestOn(idIn('trial')), {})).toBeNull();
-    expect(trialSlot(requestOn(idIn('trial')), DEV)).not.toBeNull();
+describe('the clearance', () => {
+  const ask = async (chatCtx: llm.ChatContext): Promise<string> => {
+    const lane = laneOver(new StubLLM('trial'), new StubLLM('main'));
+    return drain(lane.chat({ chatCtx, connOptions: CONN }));
+  };
+  const empty = (): llm.ChatContext => llm.ChatContext.empty();
+
+  it('a request without one goes to today’s model, even on a trial call', async () => {
+    expect(await ask(withLane(empty(), { mainLane: false }))).toBe('main');
+    expect(await ask(withLane(empty(), undefined))).toBe('main');
+    // The same request with a clearance on a trial call: the trial model.
+    expect(
+      await ask(withLane(empty(), { mainLane: false, trial: openClearance(idIn('trial')) }))
+    ).toBe('trial');
   });
 
-  it('says the arm, the model that answered and whether a trial request was held', async () => {
-    const lane = new TrialLaneLLM(new StubLLM('trial'), new StubLLM('main'));
-    const clear = requestOn(idIn('trial'));
-    await drain(lane.chat({ chatCtx: clear, connOptions: CONN }));
-    expect(trialField({ request: clear })).toEqual({
-      arm: 'trial',
-      held: false,
-      model: 'trial',
-      backup: false,
-    });
-    const marked = requestOn(idIn('trial'), true);
-    await drain(lane.chat({ chatCtx: marked, connOptions: CONN }));
-    expect(trialField({ request: marked })).toEqual({
-      arm: 'trial',
-      held: true,
-      model: 'main',
-      backup: false,
-    });
-    const control = requestOn(idIn('control'));
-    await drain(lane.chat({ chatCtx: control, connOptions: CONN }));
-    expect(trialField({ request: control })).toMatchObject({ arm: 'control', held: false });
-    // Never routed (sent before the lane, or on another model): no arm.
-    expect(trialField({ request: requestOn(idIn('trial')) })).toEqual({
-      arm: null,
-      held: false,
-      model: null,
-      backup: false,
-    });
+  it('is asked when the request reaches the model, not when the gate marks it', async () => {
+    const gate = openClearance(idIn('trial'));
+    let open = false;
+    const clear = gate.clear.bind(gate);
+    gate.clear = (env) => clear(env) && open;
+    const request = withLane(empty(), { mainLane: false, trial: gate });
+    expect(gate.asked).toBe(0);
+    open = true; // clear by the time the model is asked
+    expect(await ask(request)).toBe('trial');
+    expect(gate.asked).toBe(1);
+    // Risk noted after the gate marked a clear request: today's model answers.
+    const id = idIn('trial');
+    const late = requestOn(id);
+    noteCrisisRisk(id);
+    expect(await ask(late)).toBe('main');
   });
 
-  it('marks an answer from the hedge backup, so the report leaves it out of the trial arm', async () => {
-    const slowTrial = new HedgedLLM(new StubLLM('trial', 300), new StubLLM('fallback'), 20);
-    const lane = new TrialLaneLLM(slowTrial, new StubLLM('main'));
-    const request = requestOn(idIn('trial'));
-    expect(await drain(lane.chat({ chatCtx: request, connOptions: CONN }))).toBe('fallback');
-    expect(trialField({ request })).toEqual({
-      arm: 'trial',
-      held: false,
-      model: 'fallback',
-      backup: true,
-    });
-    const fastTrial = new HedgedLLM(new StubLLM('trial'), new StubLLM('fallback', 300), 200);
-    const lane2 = new TrialLaneLLM(fastTrial, new StubLLM('main'));
-    const request2 = requestOn(idIn('trial'));
-    expect(await drain(lane2.chat({ chatCtx: request2, connOptions: CONN }))).toBe('trial');
-    expect(trialField({ request: request2 })).toMatchObject({ model: 'trial', backup: false });
+  it('a request marked for today’s model never reaches the trial, whatever the clearance says', async () => {
+    const gate = openClearance(idIn('trial'));
+    expect(await ask(withLane(empty(), { mainLane: true, trial: gate }))).toBe('main');
+    expect(gate.asked).toBe(0);
   });
 });

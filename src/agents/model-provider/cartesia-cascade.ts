@@ -34,7 +34,7 @@ import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js'
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
-import { HedgedLLM } from './hedged-llm.js';
+import { HedgedLLM, hedgedBy } from './hedged-llm.js';
 import { withTrialLane } from './trial-lane.js';
 import { afterToolHedgeMs } from './after-tool-hedge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
@@ -417,12 +417,7 @@ export class CartesiaCascadeProvider implements ModelProvider {
     // Today's model, or a dev trial's (CASCADE_TRIAL_MODEL, trial-lane.ts): hedged alike.
     const hedged = (o: CascadeLLMOptions): HedgedLLM | google.LLM =>
       hedge
-        ? new HedgedLLM(
-            gemini(o),
-            gemini({ ...hedge.backup, temperature: config.temperature }),
-            hedge.hedgeAfterMs,
-            hedge.afterToolHedgeMs
-          )
+        ? hedgedBy(gemini(o), gemini({ ...hedge.backup, temperature: config.temperature }), hedge)
         : gemini(o);
     const main = hedged(opts);
     const fast = buildFastLane(process.env, opts);

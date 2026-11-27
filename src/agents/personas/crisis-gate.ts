@@ -90,7 +90,7 @@ import {
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import type { ReplyLane } from '../model-provider/lane-request.js';
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
-import { heldTrialReplyCleared } from '../safety/crisis-trial-clearance.js';
+import { heldTrialReplyCleared, trialClearance } from '../safety/crisis-trial-clearance.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -413,6 +413,7 @@ export async function gatedReply(
   const held = gate?.escalation
     ? { verdict: gate.escalation, latest: callerWords(chatCtx).latest }
     : undefined;
+  const trial = trialClearance(session, held);
   const ask = async (
     request: llm.ChatContext,
     mayBurst = burst,
@@ -423,7 +424,7 @@ export async function gatedReply(
     // Read now, not at the turn's start: a reply asked again after a read escalated sees its risk.
     const mainLane = guided || today || (!!risk && crisisRiskNoted(risk));
     // LISTEN_OFFER_STRIP: no "I'm here if you want to vent" (listen-offer.ts); never with crisis guidance.
-    const asked = await model(request, { mainLane, session, held }); // the dev trial's clearance
+    const asked = await model(request, { mainLane, trial }); // the dev trial's clearance
     const stream = withoutListenOffer(tapToolCalls(asked, session), { guided, env });
     if (!stream) return stream;
     // FERNI_PLAYFUL: a bright turn's reminder invited a reaction word (ferni-playful.ts).
