@@ -145,6 +145,40 @@ describe('Human Listening draws server text as text', () => {
     expect(signalRows(el)).toContain(tag);
     expect(live(el)).toContain(tag);
   });
+
+  it('markup in a session id or a severity is shown, never run', async () => {
+    const signal = {
+      sessionId: 's1',
+      timestamp: new Date().toISOString(),
+      signalType: 'hedging',
+      severity: '<i>hi</i>',
+      details: 'd',
+    };
+    const session = {
+      sessionId: '<b>xy</b>',
+      cognitiveLoad: 'low',
+      engagement: 'high',
+      duration: 1000,
+    };
+    serve({ metrics: { body: MEASURED }, signals: { body: [signal] }, live: { body: [session] } });
+    const el = await section();
+    expect(el.querySelector('i, b')).toBeNull();
+    expect(signalRows(el)).toContain('<i>hi</i>');
+    expect(live(el)).toContain('<b>xy</b');
+  });
+
+  it.each([
+    ['metrics', { metrics: { body: { unavailable: 5 } } }],
+    ['signals', { metrics: { body: MEASURED }, signals: { body: { unavailable: 5 } } }],
+    ['live', { metrics: { body: MEASURED }, live: { body: { unavailable: null } } }],
+  ])(
+    'a %s body with a non-string unavailable field renders, drawing no number',
+    async (_route, answers) => {
+      serve(answers);
+      const el = await section();
+      expect(el.querySelector('.listening-features')).not.toBeNull();
+    }
+  );
 });
 
 describe('Human Listening with a body of the wrong shape', () => {
@@ -157,6 +191,8 @@ describe('Human Listening with a body of the wrong shape', () => {
     ['a negative count', { ...MEASURED, totalSessions: -1 }],
     ['an average above 1', { ...MEASURED, avgEngagement: 1.5 }],
     ['not measured with no reason', { measured: false }],
+    ['not measured with a blank reason', { measured: false, reason: ' ' }],
+    ['a server body with a numeric unavailable field', { unavailable: 5 }],
   ])('%s: not measured, the server sent no metrics', (_label, body) => {
     expect(metricsFrom(body)).toEqual({ measured: false, reason: 'the server sent no metrics' });
   });

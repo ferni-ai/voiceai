@@ -173,7 +173,7 @@ export async function handleHumanListeningRoutes(
 }
 
 /** Why the metrics are not a measurement: this process keeps the events, and nothing sends them yet. */
-export const NOTHING_RECORDED =
+const NOTHING_RECORDED =
   'no listening signal has reached this server since it started; the voice agent does not send them yet';
 
 const WINDOW_HOURS = 24;

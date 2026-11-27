@@ -36,7 +36,11 @@ async function getMetrics(): Promise<Record<string, unknown>> {
 
 describe('GET /api/v1/admin/human-listening/metrics', () => {
   it('with no event on this server: measured false with the reason, and no numbers', async () => {
-    expect(await getMetrics()).toEqual({ measured: false, reason: route.NOTHING_RECORDED });
+    expect(await getMetrics()).toEqual({
+      measured: false,
+      reason:
+        'no listening signal has reached this server since it started; the voice agent does not send them yet',
+    });
   });
 
   it('with events: measured over 24 h, counted by type', async () => {

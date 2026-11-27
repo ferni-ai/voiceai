@@ -80,7 +80,11 @@ const isText = (v: unknown): v is string => typeof v === 'string';
 /** The route's answer, or NO_METRICS when the body is not its shape; never throws on a body. */
 export function metricsFrom(body: unknown): ListeningMetrics {
   if (!isFields(body)) return NO_METRICS;
-  if (body.measured === false) return isText(body.reason) ? (body as ListeningMetrics) : NO_METRICS;
+  if (body.measured === false) {
+    return isText(body.reason) && body.reason.trim() !== ''
+      ? (body as ListeningMetrics)
+      : NO_METRICS;
+  }
   const whole =
     body.measured === true &&
     isCount(body.windowHours) &&
