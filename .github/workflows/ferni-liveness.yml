@@ -36,11 +36,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           sparse-checkout: scripts/ops
-      - uses: google-github-actions/auth@v3
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           credentials_json: ${{ secrets.FERNI_LIVENESS_SA_KEY }}
-      - uses: google-github-actions/setup-gcloud@v3
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
       - name: Check both agents
         id: check
         run: |

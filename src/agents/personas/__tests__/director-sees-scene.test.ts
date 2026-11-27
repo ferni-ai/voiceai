@@ -7,6 +7,10 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+// The golden is what prod sends. DELIBERATION_SYSTEM and ANTICIPATE_SYSTEM read NO_INVENTED_USAGE
+// once, when deliberation loads, so it is held unset before any import, whatever the shell exports.
+vi.hoisted(() => vi.stubEnv('NO_INVENTED_USAGE', undefined));
+
 import { characterBrief, castFor, directorSeesScene } from '../director-cast.js';
 import { Deliberator, type ThinkFn } from '../deliberation.js';
 import { Director, parseNotes, type Line } from '../director-notes.js';

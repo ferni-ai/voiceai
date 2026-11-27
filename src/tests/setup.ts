@@ -6,9 +6,20 @@ import {
   isolateGcpCredentials,
   setGcpGuardTestPath,
 } from './gcp-test-guard.js';
+import {
+  assertNoOutboundAttempts,
+  clearModelSettings,
+  countClient,
+  guardClient,
+  resetOutboundGuard,
+} from './outbound-guard.js';
 
 // Load test environment variables
 dotenv.config({ path: '.env.test', quiet: true });
+
+// Tests take no model settings from the shell (outbound-guard.ts). First, so
+// the Google Cloud guard below sees the environment the tests will.
+clearModelSettings();
 
 // No test reaches real Google Cloud: no credentials resolve (which also stops
 // the metadata-server probe that stalled CI's integration job until its
@@ -17,6 +28,44 @@ dotenv.config({ path: '.env.test', quiet: true });
 isolateGcpCredentials();
 guardRealFirestore();
 setGcpGuardTestPath(expect.getState().testPath);
+
+// No test builds a real model client through the five packages as production
+// imports them: each is itself, except that `new` on a model client class
+// records the attempt and throws, and `new GoogleAuth()` is counted (building
+// one sends nothing). Production swallows the throw and falls back, so the
+// afterAll below is what fails the file. A client a LiveKit plugin builds from
+// inside node_modules is not reached here. See outbound-guard.ts.
+resetOutboundGuard(expect.getState().testPath);
+vi.mock('@google-cloud/vertexai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@google-cloud/vertexai')>();
+  return { ...actual, VertexAI: guardClient('vertex', 'VertexAI', actual.VertexAI) };
+});
+vi.mock('openai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('openai')>();
+  const OpenAI = guardClient('openai', 'OpenAI', actual.OpenAI);
+  return { ...actual, default: OpenAI, OpenAI };
+});
+vi.mock('@google/genai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@google/genai')>();
+  return { ...actual, GoogleGenAI: guardClient('gemini', 'GoogleGenAI', actual.GoogleGenAI) };
+});
+vi.mock('@google/generative-ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@google/generative-ai')>();
+  const GoogleGenerativeAI = guardClient('gemini', 'GoogleGenerativeAI', actual.GoogleGenerativeAI);
+  return { ...actual, GoogleGenerativeAI };
+});
+vi.mock('google-auth-library', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('google-auth-library')>();
+  return { ...actual, GoogleAuth: countClient('auth', 'GoogleAuth', actual.GoogleAuth) };
+});
+
+// Background reply generation (services/llm/llm-dynamic-content.ts) starts on
+// a random roll and outlives the turn that started it, so it would build a
+// client in whichever test runs next. Off for every test, through the switch
+// production already has. Written to process.env, not with vi.stubEnv: a
+// file's vi.unstubAllEnvs() must not turn it back on. A test of the generation
+// itself stubs the switch to 'true' and stubs the model call.
+process.env.LLM_DYNAMIC_CONTENT_ENABLED = 'false';
 
 // ============================================================================
 // GLOBAL FIRESTORE MOCKS
@@ -104,6 +153,10 @@ const isFirestoreFieldValueImpl = (value: unknown): boolean => {
 const cleanForFirestoreImpl = <T>(obj: T): T => {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString() as T;
+  // Like the real one, keep Timestamps (anything with toDate()) as they are.
+  if (typeof obj === 'object' && typeof (obj as { toDate?: unknown }).toDate === 'function') {
+    return obj;
+  }
   if (isFirestoreFieldValueImpl(obj)) return obj;
   if (Array.isArray(obj)) return obj.map((item) => cleanForFirestoreImpl(item)) as T;
   if (typeof obj === 'object') {
@@ -356,9 +409,9 @@ beforeAll(() => {
   initializeLogger({ pretty: false });
 });
 
-// Cleanup after all tests
+// A test file that tried to build a real model client fails here.
 afterAll(() => {
-  // Cleanup any global resources
+  assertNoOutboundAttempts();
 });
 
 // Reset state before each test

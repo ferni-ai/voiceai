@@ -7,6 +7,7 @@
  * @module team-engagement/banter
  */
 
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'banter' });
@@ -284,11 +285,37 @@ export const ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
+ * NAYAN_PLAIN_VOICE (#1433): Nayan never tells people he's there for them and never
+ * performs being wise (bundles/nayan-patel/identity/character.md), but two of his openers
+ * did ("I'm here.", "Good to sit with you."). On, he arrives with these instead.
+ */
+export const PLAIN_ARRIVING_OPENERS: Readonly<Record<string, readonly string[]>> = {
+  'nayan-patel': [
+    "Hello. <break time='200ms'/> Nayan here.",
+    "Namaste. <break time='200ms'/> Nayan here.",
+    "Hello. <break time='150ms'/> Glad you called.",
+  ],
+};
+
+/** The openers a persona arrives with: its plain ones when NAYAN_PLAIN_VOICE is on. */
+function arrivingOpenersFor(
+  personaId: string,
+  env: Env = process.env
+): readonly string[] | undefined {
+  const plain = PLAIN_ARRIVING_OPENERS[personaId];
+  if (plain && flagOn('NAYAN_PLAIN_VOICE', env)) {
+    log.info({ personaId }, 'Nayan plain entrance: plain arrival openers');
+    return plain;
+  }
+  return ARRIVING_OPENERS[personaId];
+}
+
+/**
  * The arriving persona's opener after a handoff (spoken AFTER the voice
  * switch), or null for a persona without one.
  */
 export function getArrivingBanter(toPersonaId: string, fromPersonaId: string): string | null {
-  const options = ARRIVING_OPENERS[toPersonaId];
+  const options = arrivingOpenersFor(toPersonaId);
   if (!options || options.length === 0) {
     log.debug({ toPersonaId, fromPersonaId }, 'No arriving opener for this persona');
     return null;

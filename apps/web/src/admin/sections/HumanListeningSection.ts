@@ -13,7 +13,6 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { soulStatsService, initSoulStats } from '../../services/soul-stats.service.js';
 import { getAdminHeadersAsync } from '../admin-api.js';
 import {
   ICON_ACTIVITY,
@@ -86,12 +85,10 @@ interface LiveSession {
 export async function render(): Promise<string> {
   log.debug('Rendering human listening section');
 
-  // Initialize and fetch all data
-  initSoulStats();
+  // Fetch all data
   const metrics = await fetchMetrics();
   const signals = await fetchRecentSignals();
   const liveSessions = await fetchLiveSessions();
-  const soulStats = await soulStatsService.fetchFromServer();
 
   return `
     <div class="human-listening-section">
@@ -185,25 +182,7 @@ export async function render(): Promise<string> {
           ${renderSoulResponse('Voice Tremor', 'Anticipatory Shimmer', 'Subtle shimmer shows recognition', 'playAnticipation("concerned")')}
         </div>
 
-        <div class="soul-response-stats">
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.microExpressions24h === 0 ? ' soul-stat-value--pending' : ''}" id="soulMicroExpressions">${soulStats.microExpressions24h || '--'}</div>
-            <div class="soul-stat-label">Micro-Expressions (24h)</div>
-          </div>
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.protectiveModes === 0 ? ' soul-stat-value--pending' : ''}" id="soulProtectiveModes">${soulStats.protectiveModes || '--'}</div>
-            <div class="soul-stat-label">Protective Modes</div>
-          </div>
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.comfortPulses === 0 ? ' soul-stat-value--pending' : ''}" id="soulComfortPulses">${soulStats.comfortPulses || '--'}</div>
-            <div class="soul-stat-label">Comfort Pulses</div>
-          </div>
-          <div class="soul-stat">
-            <div class="soul-stat-value${soulStats.memorySparks === 0 ? ' soul-stat-value--pending' : ''}" id="soulMemorySparks">${soulStats.memorySparks || '--'}</div>
-            <div class="soul-stat-label">Memory Sparks</div>
-          </div>
-          <p class="soul-stats-note">${soulStats.lastUpdated ? `Last updated: ${formatTime(soulStats.lastUpdated)}` : 'Stats update every conversation - see Avatar Soul Lab for live testing'}</p>
-        </div>
+        <p class="section-desc">How often each avatar moment played on people's calls is now on Avatar Soul.</p>
 
         <a href="#avatar-soul" class="soul-link" data-navigate="avatar-soul">
           Open Avatar Soul Lab →
@@ -587,46 +566,6 @@ export async function render(): Promise<string> {
         font-size: 0.625rem;
         color: var(--persona-primary, #4a6741);
         opacity: 0.7;
-      }
-
-      .soul-response-stats {
-        display: flex;
-        gap: var(--space-4, 1rem);
-        padding: var(--space-4, 1rem);
-        background: rgba(0, 0, 0, 0.15);
-        border-radius: var(--radius-md, 0.5rem);
-        margin-bottom: var(--space-3, 0.75rem);
-      }
-
-      .soul-stat {
-        flex: 1;
-        text-align: center;
-      }
-
-      .soul-stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        font-family: var(--font-mono, 'JetBrains Mono', monospace);
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .soul-stat-value--pending {
-        color: var(--color-text-muted, #756A5E);
-        opacity: 0.5;
-      }
-
-      .soul-stat-label {
-        font-size: 0.7rem;
-        color: var(--color-text-muted, #888);
-      }
-
-      .soul-stats-note {
-        grid-column: 1 / -1;
-        text-align: center;
-        font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
-        margin-top: var(--space-2, 0.5rem);
-        font-style: italic;
       }
 
       .soul-link {

@@ -345,8 +345,8 @@ export function playMicroExpression(type: MicroExpressionType): void {
   // Play the micro-expression with enforced timing
   ferniExpressions.setExpression(micro.expression, enforcedDuration / 3);
 
-  // Track micro-expression for admin stats
-  soulStatsService.recordMicroExpression(type);
+  // Count it for the admin Human Listening panel (a count only, never the type)
+  soulStatsService.recordMicroExpression();
 
   // Avatar Soul integration - enhance with visual effects
   void (async () => {

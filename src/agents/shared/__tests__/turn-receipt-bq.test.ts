@@ -17,6 +17,7 @@ import {
   setBqTransportForTests,
   type BqTable,
 } from '../../../services/analytics/bq-events.js';
+import { noteTurnTiming } from '../../../speech/output-control/turn-timing.js';
 import { attachTurnReceipts, noteRequest } from '../turn-receipt-session.js';
 import { emitTurnMetrics, turnMetricsRow } from '../turn-receipt-bq.js';
 import type { TurnReceipt } from '../turn-receipt.js';
@@ -36,8 +37,12 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-/** One caller turn on a session double, the way the LiveKit events arrive. */
-function oneTurn(env: Record<string, string>, called: string[]) {
+/**
+ * One caller turn on a session double, the way the LiveKit events arrive. `clip`: a clip
+ * (a tool ack or an opening "Mm") reaches the wire 800 ms after the caller stopped, 200 ms
+ * before the reply's own audio.
+ */
+function oneTurn(env: Record<string, string>, called: string[], clip = false) {
   const session = new EventEmitter();
   const receipts: TurnReceipt[] = [];
   let t = 1_000_000;
@@ -82,6 +87,7 @@ function oneTurn(env: Record<string, string>, called: string[]) {
     metadata: { modelName: 'gemini-2.5-flash' },
   });
   metric({ type: 'tts_metrics', ttfbMs: 150 });
+  if (clip) noteTurnTiming('RM_bq', 'openerAudio', 0); // live-call-behaviors.ts heard()
   t += 200;
   session.emit('agent_state_changed', { newState: 'speaking' });
   t += 1500;
@@ -128,6 +134,7 @@ describe('turn_metrics from TURN_RECEIPT', () => {
       llm_first_token_ms: 450,
       tts_first_audio_ms: 150,
       reply_delay_ms: timing.firstAudioMs,
+      first_any_audio_ms: 1000, // no clip: the reply's own audio is the first heard
       commit_to_audio_ms: timing.commitToAudioMs,
       prompt_tokens: 4000,
       prompt_cached_tokens: 3000,
@@ -145,6 +152,14 @@ describe('turn_metrics from TURN_RECEIPT', () => {
     for (const leak of ['Jane', '5309', 'uid-secret-123', 'RM_bq', 'GrandmaRuth']) {
       expect(json).not.toContain(leak);
     }
+  });
+
+  it('a clip heard before the reply: first_any_audio_ms is the clip, reply_delay_ms the reply', async () => {
+    const [receipt] = oneTurn(ON, ['getWeather'], true);
+    await flushBqEvents();
+    const [row] = rowsOf('turn_metrics');
+    expect(receipt.audio.firstAnyAudioMs).toBe(800);
+    expect(row).toMatchObject({ first_any_audio_ms: 800, reply_delay_ms: 1000 });
   });
 
   it('a writer error never throws into the turn', async () => {

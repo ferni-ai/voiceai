@@ -210,7 +210,7 @@ export async function sendEmail(
   getLogger().info(
     {
       to: sanitizeEmailForLog(to),
-      subject: sanitizedSubject.slice(0, 50),
+      subjectLen: sanitizedSubject.length,
       provider: result.provider,
     },
     'Email sent successfully'

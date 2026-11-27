@@ -127,7 +127,7 @@ export async function handleDeleteAllData(
 
     const { getDataExportService } = await import('../../services/data-export.js');
     const exportService = getDataExportService();
-    assertErased(await exportService.deleteAllData(userId));
+    assertErased(await exportService.deleteAllData(userId, true)); // the data only: account kept
 
     log.info({ userId }, 'All user data deleted (GDPR request)');
     sendJSON(res, { success: true, message: 'All data deleted' });

@@ -23,6 +23,7 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { foldedWords } from '../domain/forget-tokens.js';
 import { isForgottenPassage } from '../domain/forgotten.js';
@@ -30,8 +31,15 @@ import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
 
+const log = createLogger({ module: 'ForgetEveryReader' });
+
 export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
   return flagOn('FORGET_EVERY_READER', env);
+}
+
+/** FORGET_FRESH_READ: the rare readers' `uncached` for forgottenWithin (#2755). */
+export function forgetFreshReadEnabled(env: Env = process.env): boolean {
+  return flagOn('FORGET_FRESH_READ', env);
 }
 
 /** True when a text is about something the caller asked to forget. */
@@ -88,22 +96,25 @@ function checkFor(
   match: (text: string, topics: readonly string[]) => boolean = aboutForgotten
 ): ForgottenCheck {
   if (stored === null) return () => true; // no source at all: fail closed
-  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-  return (text) => match(text, topics);
+  // This process's forgets are read at each check, so a check held for a call (the open-loops
+  // note, revived intelligence) counts a topic forgotten after it was made.
+  return (text) => match(text, [...new Set([...stored, ...forgottenInProcess(userId)])]);
 }
 
 /**
  * The caller's forgotten topics as a check, or null when the flag is off or
  * there is no member (nothing is stored for anonymous or on-behalf callers).
- * `reader` names the caller in logs.
+ * `reader` names the caller in logs. `uncached` reads the store past the 15 s
+ * cache (topicsWithin), for a reader run once a call.
  */
 export async function forgottenCheck(
   userId: string | null | undefined,
   reader = 'reader',
-  env: Env = process.env
+  env: Env = process.env,
+  uncached = false
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  return checkFor(userId, await topicsWithin(userId, reader));
+  return checkFor(userId, await topicsWithin(userId, reader, uncached));
 }
 
 /**
@@ -122,31 +133,68 @@ export async function forgottenPassageCheck(
 }
 
 /**
+ * A forget check that never rejects, so a failed read costs only what it guards: pass
+ * forgottenCheck(...) or forgottenPassageCheck(...). A rejection is logged and gives the
+ * fail-closed check (every item it would have checked is left out), and the reader still sends
+ * the rest: the brief's calendar, the other proactive triggers, the outreach itself.
+ */
+export async function forgetCheckOrClosed(
+  check: Promise<ForgottenCheck | null>,
+  reader: string
+): Promise<ForgottenCheck | null> {
+  try {
+    return await check;
+  } catch (error) {
+    log.warn({ reader, error: String(error) }, 'Forget check failed; leaving out what it guards');
+    return () => true;
+  }
+}
+
+/**
  * forgottenPassageCheck without the last-known fallback, for a reader that
  * fails closed when the read is late or failed (revived intelligence, whose
  * earlier calls' summaries must not come back on an old list: #2623). Null
- * then, and when the flag is off or there is no member.
+ * then, and when the flag is off or there is no member. `uncached` reads the store itself, as
+ * forgottenWithin's does (#2755), so a forget in another process counts at once.
  */
 export async function forgottenPassageWithin(
   userId: string | null | undefined,
   reader = 'passage-fresh',
-  env: Env = process.env
+  env: Env = process.env,
+  uncached = false
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  const stored = await topicsFreshWithin(userId, reader);
+  const stored = await topicsFreshWithin(userId, reader, uncached);
   return stored === null ? null : checkFor(userId, stored, isForgottenPassage);
+}
+
+/**
+ * The passage check for a call-start reader of the caller's own words (the greeting's intentions
+ * and open threads). FORGET_FRESH_READ on: the store itself, and everything left out when that
+ * read is late or failed (#2755). Off: forgottenPassageCheck, exactly as before.
+ */
+export async function callStartPassageCheck(
+  userId: string | null | undefined,
+  reader: string,
+  env: Env = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetFreshReadEnabled(env)) return forgottenPassageCheck(userId, reader, env);
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null; // no check: as off
+  return (await forgottenPassageWithin(userId, reader, env, true)) ?? (() => true);
 }
 
 /**
  * The check for a reader that fails closed without the flag (recentContext,
  * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
- * is late or failed. No last-known fallback until #2623 bounds its age.
+ * is late or failed. No last-known fallback until #2623 bounds its age. `uncached` skips the
+ * shared cache (topicsFreshWithin), so a forget in another process counts at once (#2755).
  */
 export async function forgottenWithin(
   userId: string,
-  reader = 'fresh'
+  reader = 'fresh',
+  uncached = false
 ): Promise<ForgottenCheck | null> {
-  const stored = await topicsFreshWithin(userId, reader);
+  const stored = await topicsFreshWithin(userId, reader, uncached);
   return stored === null ? null : checkFor(userId, stored);
 }
 
@@ -231,22 +279,46 @@ export { PROFILE_PASS_THROUGH } from './forget-profile.js';
 /**
  * The caller's profile as a prompt reads it, every field but an allowlist
  * filtered (forget-profile.ts). The stored profile is not changed; unchanged
- * when the flag is off.
+ * when the flag is off. `uncached` as forgottenCheck's.
  */
 export async function profileForCaller<P extends object>(
   userId: string | null | undefined,
   profile: P,
-  reader = 'profile'
+  reader = 'profile',
+  uncached = false
 ): Promise<P> {
-  const forgotten = await forgottenCheck(userId, reader);
+  const forgotten = await forgottenCheck(userId, reader, process.env, uncached);
   return forgotten ? scrubProfile(profile, forgotten) : profile;
 }
 
-/** profileForCaller for a session's services (agent-setup.ts, voice-agent-entry). */
-export async function profileForPrompt<P extends object>(services: {
-  userId?: string | null;
-  userProfile?: P | null;
-}): Promise<P | null> {
-  const profile = services.userProfile ?? null;
-  return profile && profileForCaller(services.userId, profile);
+/**
+ * profileForCaller for a session's services at call start (setup-profile.ts, voice-agent-entry):
+ * with FORGET_FRESH_READ, one store read past the 15 s cache, so a forget stored by another pod
+ * or the web app just before the call counts (#2755). Late or failed: the last known topics.
+ */
+export async function profileForPrompt<P extends object>(
+  services: { userId?: string | null; userProfile?: P | null },
+  env: Env = process.env
+): Promise<P | null> {
+  return startProfileForPrompt(services, env)();
+}
+
+/**
+ * profileForPrompt with its store read started now and the scrub applied when called, to the
+ * profile attached by then (setup-profile.ts): the read runs beside the prompt loads instead of
+ * after them. Without FORGET_FRESH_READ nothing starts early: the shared read waits as before.
+ */
+export function startProfileForPrompt<P extends object>(
+  services: { userId?: string | null; userProfile?: P | null },
+  env: Env = process.env
+): () => Promise<P | null> {
+  const early = forgetFreshReadEnabled(env)
+    ? forgottenCheck(services.userId, 'profile', env, true) // never rejects (forgottenTopicsOrNull)
+    : undefined;
+  return async () => {
+    const profile = services.userProfile ?? null;
+    if (!profile) return null;
+    const forgotten = await (early ?? forgottenCheck(services.userId, 'profile', env));
+    return forgotten ? scrubProfile(profile, forgotten) : profile;
+  };
 }

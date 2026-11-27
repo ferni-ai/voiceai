@@ -1,0 +1,7 @@
+# First-call goodbye, one thing coming up (#4287): a callback about the interview may come, in their own words, nothing else named. New account, FIRST_CALL_GOODBYE_GROUNDED=on.
+Hey. Kind of a stressful week.
+I have a job interview Friday, I'm nervous.
+It's for a design job at a small studio.
+I've been prepping my portfolio all night.
+Yeah, I think I'm ready, just jittery.
+Alright, thanks. I gotta go, bye.

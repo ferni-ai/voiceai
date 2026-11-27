@@ -1,4 +1,9 @@
-import { TALK_TO_988_ES, SELF_HARM_911_LINE, LATE_911_LINE } from '../../services/safety/index.js';
+import {
+  TALK_TO_988_ES,
+  SELF_HARM_911_LINE,
+  LATE_911_LINE,
+  SPANISH_911_FIRST,
+} from '../../services/safety/index.js';
 
 /**
  * Every line of wording in the crisis and safety scripts (7 files), which
@@ -134,6 +139,7 @@ const SCRIPT_WORDING = [
   './crisis-guard-replies.js',
   './crisis-means-in-hand.js',
   './crisis-modifiers.js',
+  './crisis-own-raises.js',
   './crisis-severity.js',
   './crisis-third-person.js',
   './crisis-who-guidance.js',
@@ -170,11 +176,13 @@ const SCRIPT_WORDING = [
   'Crisis detected (severity:',
   '../../config/env-flag.js',
   './crisis-script-lines.js',
+  './crisis-spanish-imminent.js',
   './crisis-guard.js',
   'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.',
   'You can also',
   'Si estás en peligro ahora mismo, llama al 911.',
   "You can call or text 988, the Suicide & Crisis Lifeline, on their behalf to talk through how to help. If they're in immediate danger, call 911.",
+  '¿Estás a salvo ahora mismo?',
   'That sounds like an emergency. Please call 911 right now, and put them on speaker so you can stay with them.',
   "If they're not breathing or not responding, tell the dispatcher; they'll walk you through what to do until help gets there.",
   "I'm right here with you. Is anyone else there who can help?",
@@ -277,4 +285,5 @@ export const SAFETY_WORDING: readonly string[] = [
   TALK_TO_988_ES,
   SELF_HARM_911_LINE,
   LATE_911_LINE,
+  SPANISH_911_FIRST,
 ];

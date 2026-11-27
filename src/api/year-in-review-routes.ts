@@ -246,7 +246,11 @@ async function fetchConversationHistory(
 
     // Convert maps to arrays
     const daily = Array.from(dailyMap.values());
-    const topTopics = Array.from(topicCounts.entries())
+    // A topic about something the caller asked Ferni to forget is not ranked (FORGET_EVERY_READER
+    // on; off, every topic). It is cut from a call's summary, so it reads as a passage.
+    const { forgottenPassageCheck, remembered } = await import('../memory/index.js');
+    const forgotten = await forgottenPassageCheck(userId, 'year-in-review');
+    const topTopics = remembered(Array.from(topicCounts.entries()), forgotten, ([topic]) => topic)
       .map(([topic, data]) => ({
         topic,
         count: data.count,

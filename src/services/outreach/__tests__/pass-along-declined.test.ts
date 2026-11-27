@@ -25,7 +25,6 @@ type Template = import('../../../tools/domains/telephony/types.js').CallScriptTe
 
 const scriptOf = (template: Template) =>
   buildCallScript(template, {
-    agentName: 'Ferni',
     userName: 'Riley Test',
     contactName: 'Priya',
     purpose: 'tell her the picnic is on Saturday',
