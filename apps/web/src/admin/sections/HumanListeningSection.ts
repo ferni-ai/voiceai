@@ -21,6 +21,9 @@ import {
   metricsNote,
   metricValue,
   tableNote,
+  type CountKey,
+  type ListeningData,
+  type ListState,
   type LiveSession,
   type RecentSignal,
 } from './human-listening-data.js';
@@ -55,10 +58,7 @@ export async function render(): Promise<string> {
   log.debug('Rendering human listening section');
 
   const { metrics, signals, live } = await loadListening();
-  const signalState = listState(signals, metrics);
-  const liveState = listState(live, metrics);
-  const count = (pick: Parameters<typeof metricValue>[1]): string =>
-    metricValue(metrics, pick, String);
+  const count = (pick: PickValue): string => metricValue(metrics, pick, String);
 
   return `
     <div class="human-listening-section">
@@ -82,11 +82,7 @@ export async function render(): Promise<string> {
         </div>
         <div class="admin-card listening-stat">
           <div class="listening-stat-icon listening-stat-icon--success">${iconSm(ICON_ACTIVITY)}</div>
-          <div class="listening-stat-value">${metricValue(
-            metrics,
-            (m) => m.avgEngagement,
-            (v) => `${Math.round(v * 100)}%`
-          )}</div>
+          <div class="listening-stat-value">${metricValue(metrics, (m) => m.avgEngagement, percent)}</div>
           <div class="listening-stat-label">Avg Engagement</div>
         </div>
       </div>
@@ -98,30 +94,7 @@ export async function render(): Promise<string> {
           Detection Breakdown (24h)
         </h2>
         <div class="detection-grid">
-          ${renderDetectionCard(
-            'Self-Soothing',
-            count((m) => m.selfSoothingDetections),
-            'Phrases like "I\'m fine", "It doesn\'t matter"',
-            'soothing'
-          )}
-          ${renderDetectionCard(
-            'Hedging',
-            count((m) => m.hedgingDetections),
-            'Uncertainty, minimizing, protecting language',
-            'hedging'
-          )}
-          ${renderDetectionCard(
-            'Voice Tremor',
-            count((m) => m.tremorDetections),
-            'Wavering, cracking, emotional strain',
-            'tremor'
-          )}
-          ${renderDetectionCard(
-            'Energy Fade',
-            count((m) => m.energyFadeDetections),
-            'Voice trailing off, losing confidence',
-            'fade'
-          )}
+          ${renderDetections(metrics)}
         </div>
       </div>
 
@@ -133,7 +106,7 @@ export async function render(): Promise<string> {
           <span class="live-indicator"></span>
         </h2>
         <div class="live-sessions-grid">
-          ${'gap' in liveState ? renderUnavailable(liveState.gap) : liveState.items.length > 0 ? liveState.items.map((s) => renderLiveSession(s)).join('') : renderNoSessions()}
+          ${renderLiveSessions(listState(live, metrics))}
         </div>
       </div>
 
@@ -154,7 +127,7 @@ export async function render(): Promise<string> {
             </tr>
           </thead>
           <tbody>
-            ${'gap' in signalState ? tableNote(renderUnavailable(signalState.gap)) : signalState.items.length > 0 ? signalState.items.map((s) => renderSignalRow(s)).join('') : tableNote(renderUnavailable('none recorded'))}
+            ${renderSignalRows(listState(signals, metrics))}
           </tbody>
         </table>
       </div>
@@ -581,6 +554,47 @@ export async function render(): Promise<string> {
 // ============================================================================
 // RENDER HELPERS
 // ============================================================================
+
+type PickValue = Parameters<typeof metricValue>[1];
+
+const percent = (v: number): string => `${Math.round(v * 100)}%`;
+
+/** Each detection card: title, the count it shows, what it catches, its style. */
+const DETECTIONS: [string, CountKey, string, string][] = [
+  [
+    'Self-Soothing',
+    'selfSoothingDetections',
+    'Phrases like "I\'m fine", "It doesn\'t matter"',
+    'soothing',
+  ],
+  ['Hedging', 'hedgingDetections', 'Uncertainty, minimizing, protecting language', 'hedging'],
+  ['Voice Tremor', 'tremorDetections', 'Wavering, cracking, emotional strain', 'tremor'],
+  ['Energy Fade', 'energyFadeDetections', 'Voice trailing off, losing confidence', 'fade'],
+];
+
+function renderDetections(metrics: ListeningData['metrics']): string {
+  return DETECTIONS.map(([title, key, desc, type]) =>
+    renderDetectionCard(
+      title,
+      metricValue(metrics, (m) => m[key], String),
+      desc,
+      type
+    )
+  ).join('');
+}
+
+/** The live sessions, "No active sessions" when the server knows of none, or why it can't say. */
+function renderLiveSessions(state: ListState<LiveSession>): string {
+  if ('gap' in state) return renderUnavailable(state.gap);
+  return state.items.length > 0 ? state.items.map(renderLiveSession).join('') : renderNoSessions();
+}
+
+/** The signal rows, "none recorded" for an empty list, or why there are none to show. */
+function renderSignalRows(state: ListState<RecentSignal>): string {
+  if ('gap' in state) return tableNote(renderUnavailable(state.gap));
+  if (state.items.length === 0) return tableNote(renderUnavailable('none recorded'));
+  return state.items.map(renderSignalRow).join('');
+}
 
 function renderDetectionCard(title: string, count: string, desc: string, type: string): string {
   return `

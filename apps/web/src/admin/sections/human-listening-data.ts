@@ -28,6 +28,9 @@ const COUNT_KEYS = [
   'energyFadeDetections',
 ] as const;
 
+/** A count the metrics route sends. */
+export type CountKey = (typeof COUNT_KEYS)[number];
+
 /** What src/api/v1/admin/human-listening.ts answers when it holds events. */
 export type MeasuredListening = { measured: true; windowHours: number } & Record<
   (typeof COUNT_KEYS)[number],
