@@ -71,6 +71,20 @@ describe('shared unavailable state', () => {
       unavailable: 'unavailable (network error)',
     });
   });
+
+  it('counts only a string reason as unavailable, so an odd server body stays data', async () => {
+    const { isUnavailable } = await import('../../src/utils/unavailable.js');
+    expect(isUnavailable({ unavailable: 'unavailable (HTTP 500)' })).toBe(true);
+    for (const body of [
+      { unavailable: 5 },
+      { unavailable: null },
+      { unavailable: {} },
+      null,
+      'x',
+    ]) {
+      expect(isUnavailable(body)).toBe(false);
+    }
+  });
 });
 
 describe('Dashboard (DB2, DB4)', () => {
