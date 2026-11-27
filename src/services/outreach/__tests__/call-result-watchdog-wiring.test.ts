@@ -59,7 +59,10 @@ const db = () => {
                   throw new Error('UNAVAILABLE');
                 };
               if (c === 'call_result_watchdogs' && hangArm)
-                doc.set = async () => new Promise<never>(() => undefined);
+                doc.set = async () =>
+                  new Promise<never>(() => {
+                    // never settles: Firestore does not answer
+                  });
               return doc;
             },
             where: (f: string, op: string, v: unknown) => ({
@@ -178,6 +181,18 @@ describe('CALL_RESULT_WATCHDOG wiring', () => {
     expect(await executeDueDeferredCalls()).toMatchObject({ placed: 1 });
     expect(initiateCall).toHaveBeenCalledTimes(1);
     expect(watches().map((w) => [w.id, w.data.status])).toEqual([['onbehalf_held_1', 'pending']]);
+  });
+
+  it('the held-call job waits for its watch write (off the reply path): a hung write keeps it running after one ring', async () => {
+    const at = new Date(NOW.getTime() + 60 * 60_000);
+    await deferCall(OWNER, { kind: 'on_behalf', request: request() } as never, { allowed: false, at, timezone: 'UTC', source: 'phone' } as never); // prettier-ignore
+    vi.setSystemTime(new Date(at.getTime() + 60_000));
+    hangArm = true;
+    const late = new Promise<'late'>((resolve) => {
+      setTimeout(() => resolve('late'), 1000);
+    });
+    expect(await Promise.race([executeDueDeferredCalls(), late])).toBe('late');
+    expect(initiateCall).toHaveBeenCalledTimes(1);
   });
 
   it('two sweeps at once settle a due watch once: one capture, the watch gone', async () => {
