@@ -11,7 +11,6 @@ import { buildCallScript } from '../../../tools/domains/telephony/scripts/index.
 import { personalScript } from '../../../tools/domains/telephony/scripts/personal.js';
 
 const script = buildCallScript(personalScript, {
-  agentName: 'Ferni',
   userName: 'Riley Test',
   contactName: 'Priya',
   purpose: 'check in',

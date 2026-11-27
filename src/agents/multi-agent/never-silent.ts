@@ -164,6 +164,8 @@ export function createNeverSilentGuard(deps: {
   replyPaused?: () => boolean;
   /** Renders a line in the session's voice; without it every line goes through live TTS. */
   renderLine?: (text: string) => Promise<LineRender>;
+  /** NEVER_SILENT_TOOL_WAIT: a tool's own wait speaks (never-silent-tool-wait.ts), not the hold. */
+  toolWait?: boolean;
   log: (fields: Record<string, unknown>) => void;
   now?: () => number;
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
@@ -321,7 +323,9 @@ export function createNeverSilentGuard(deps: {
     onToolsRequested() {
       if (!turn) return;
       turn.toolPending = true;
-      schedule(toolHold);
+      // NEVER_SILENT_TOOL_WAIT: the tool's own wait speaks; this clock restarts when it returns.
+      if (deps.toolWait) clear();
+      else schedule(toolHold);
     },
     onToolsExecuted() {
       if (!turn) return;

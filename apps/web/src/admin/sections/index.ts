@@ -9,6 +9,7 @@
 export { render as renderAgents } from './AgentsSection.js';
 export { render as renderApiDocs } from './ApiDocsSection.js';
 export {
+  cleanup as cleanupAvatarSoul,
   render as renderAvatarSoul,
   setupEvents as setupAvatarSoulEvents,
 } from './AvatarSoulSection.js';

@@ -13,17 +13,22 @@ import {
   voice,
 } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
+import type { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { RenderedLine } from '../fallback-line-render.js';
 import { FALLBACK_LINES } from '../never-silent.js';
+import { tapToolCalls } from '../../personas/turn-request-tools.js';
 import { installNeverSilent } from '../never-silent-install.js';
+import { HedgedLLM } from '../../model-provider/hedged-llm.js';
 
 const SAMPLE_RATE = 24_000;
+/** NEVER_SILENT_TOOL_WAIT's line (never-silent-tool-wait.ts), pinned here. */
+const STILL_WORKING_LINE = 'Still on it, one sec.';
 const VOICE_ID = 'voice-riley-test';
 const BUDGET_MS = 2500;
 
-type Step = 'ok' | 'fail' | 'hang' | 'tool';
+type Step = 'ok' | 'fail' | 'hang' | 'tool' | 'slowTool' | 'leadInSlowTool';
 
 /** One scripted behaviour per LLM call; the last one repeats. */
 class ScriptedLLM extends llm.LLM {
@@ -65,13 +70,16 @@ class ScriptedStream extends llm.LLMStream {
       return new Promise<void>((resolve) => {
         this.abortController.signal.addEventListener('abort', () => resolve());
       });
+    const tool = this.step === 'tool' ? 'lookup' : 'slowLookup';
     const delta: llm.ChoiceDelta =
-      this.step === 'tool'
-        ? {
+      this.step === 'ok'
+        ? { role: 'assistant', content: 'Sure, happy to help.' }
+        : {
             role: 'assistant',
-            toolCalls: [llm.FunctionCall.create({ callId: 'c1', name: 'lookup', args: '{}' })],
-          }
-        : { role: 'assistant', content: 'Sure, happy to help.' };
+            // A spoken lead-in before the tool call, as the model often does.
+            ...(this.step === 'leadInSlowTool' && { content: 'Sure.' }),
+            toolCalls: [llm.FunctionCall.create({ callId: 'c1', name: tool, args: '{}' })],
+          };
     this.queue.put({ id: 'r', delta });
   }
 }
@@ -183,13 +191,27 @@ class ToolAgent extends voice.Agent {
             throw new Error('tool exploded');
           },
         }),
+        // A tool that hangs well past every wait in these rows.
+        slowLookup: llm.tool({
+          description: 'Look something up slowly',
+          parameters: z.object({}),
+          execute: async () =>
+            new Promise<string>((resolve) => {
+              setTimeout(() => resolve('found'), 8000).unref();
+            }),
+        }),
       },
     });
   }
   async llmNode(...args: Parameters<voice.Agent['llmNode']>): ReturnType<voice.Agent['llmNode']> {
     // The 2026-10-11 incident: a package pruned from the image, thrown inside the turn.
     if (this.crash) throw new Error("Cannot find package 'suffix-thumb' (ERR_MODULE_NOT_FOUND)");
-    return super.llmNode(...args);
+    // As in production (crisis-gate.ts): the reply reports its tool calls to the guards.
+    const reply = await super.llmNode(...args);
+    return tapToolCalls(
+      reply as ReadableStream<llm.ChatChunk | string> | null,
+      this.session
+    ) as never;
   }
 }
 
@@ -198,6 +220,8 @@ interface Harness {
   ttsModel: FakeTTS;
   out: FakeAudioOutput;
   log: Array<Record<string, unknown>>;
+  /** Every assistant line committed to the chat, in order. */
+  heard: string[];
   /** Ask as the caller; resolves with ms from the commit to the fallback line, or null. */
   ask: (text: string, waitMs?: number) => Promise<number | null>;
 }
@@ -206,10 +230,20 @@ const open: voice.AgentSession[] = [];
 
 async function harness(
   script: Step[],
-  opts: { mode?: string; crash?: boolean; hangMs?: string } = {}
+  opts: {
+    mode?: string;
+    crash?: boolean;
+    hangMs?: string;
+    toolWait?: string;
+    wrap?: (m: llm.LLM) => llm.LLM;
+  } = {}
 ): Promise<Harness> {
   const ttsModel = new FakeTTS();
-  const session = new voice.AgentSession({ llm: new ScriptedLLM(script), tts: ttsModel });
+  const model = new ScriptedLLM(script);
+  const session = new voice.AgentSession({
+    llm: opts.wrap ? opts.wrap(model) : model,
+    tts: ttsModel,
+  });
   const out = new FakeAudioOutput();
   session.output.audio = out;
   open.push(session);
@@ -227,10 +261,20 @@ async function harness(
   };
   installNeverSilent(
     input,
-    { NEVER_SILENT: opts.mode ?? 'on', NEVER_SILENT_HANG_MS: opts.hangMs ?? '1000' },
+    {
+      NEVER_SILENT: opts.mode ?? 'on',
+      NEVER_SILENT_HANG_MS: opts.hangMs ?? '1000',
+      ...(opts.toolWait && { NEVER_SILENT_TOOL_WAIT: opts.toolWait }),
+    },
     ttsModel.render
   );
 
+  const heard: string[] = [];
+  session.on(voice.AgentSessionEventTypes.ConversationItemAdded, ((ev: {
+    item: { role?: string; textContent?: string };
+  }) => {
+    if (ev.item.role === 'assistant' && ev.item.textContent) heard.push(ev.item.textContent);
+  }) as never);
   const ask = async (text: string, waitMs = 3000): Promise<number | null> => {
     let committedAt = 0;
     let fallbackAt: number | null = null;
@@ -251,7 +295,7 @@ async function harness(
     session.off(voice.AgentSessionEventTypes.ConversationItemAdded, onItem as never);
     return fallbackAt === null ? null : fallbackAt - committedAt;
   };
-  return { session, ttsModel, out, log, ask };
+  return { session, ttsModel, out, log, heard, ask };
 }
 
 describe('never silent: fault injection on a real AgentSession', () => {
@@ -338,8 +382,46 @@ describe('never silent: fault injection on a real AgentSession', () => {
     expect(shadow.ttsModel.requests).toBe(off.ttsModel.requests);
   });
 
+  // #4230: a model that rejects MINIMAL thinking fails every request with a 400, which the
+  // SDK reports as an 'error' event before ending the stream empty. Through the hedge,
+  // with the backup failing too, the turn still reaches the fallback.
+  it('LLM error on both hedged models: speaks a fallback within the budget', async () => {
+    const hedged = (m: llm.LLM) => new HedgedLLM(m, new ScriptedLLM(['fail']), 50);
+    const h = await harness(['ok', 'fail'], { wrap: hedged, hangMs: '2000' });
+    await h.ask('warm up', 800);
+    const ms = await h.ask('what about tomorrow');
+    expect(ms).not.toBeNull();
+    expect(ms!).toBeLessThan(1500); // from the failed reply, not the 2 s hang clock
+  });
+
+  it('every hedged request failing from the first turn: still a fallback', async () => {
+    const hedged = (m: llm.LLM) => new HedgedLLM(m, new ScriptedLLM(['fail']), 50);
+    const h = await harness(['fail'], { wrap: hedged, hangMs: '2000' });
+    const ms = await h.ask('are you there');
+    expect(ms).not.toBeNull();
+    expect(ms!).toBeLessThan(1500);
+  });
+
   it('NEVER_SILENT off: the same failure is silent (the bug this fixes)', async () => {
     const h = await harness(['fail'], { mode: 'off' });
     expect(await h.ask('anyone home', 2000)).toBeNull();
+  });
+
+  it('a tool that hangs after a spoken lead-in: flag off, nothing more is said', async () => {
+    const h = await harness(['leadInSlowTool'], { hangMs: '1000' });
+    await h.ask('check my calendar', 3500);
+    expect(h.heard).toEqual(['Sure.']);
+  });
+
+  it('a tool that hangs after a spoken lead-in: NEVER_SILENT_TOOL_WAIT says it is still on it', async () => {
+    const h = await harness(['leadInSlowTool'], { hangMs: '1000', toolWait: 'on' });
+    await h.ask('check my calendar', 3500);
+    expect(h.heard).toEqual(['Sure.', STILL_WORKING_LINE]);
+  });
+
+  it('a tool that hangs with no lead-in: NEVER_SILENT_TOOL_WAIT says it is still on it, no re-ask', async () => {
+    const h = await harness(['slowTool'], { hangMs: '1000', toolWait: 'on' });
+    await h.ask('check my calendar', 3500);
+    expect(h.heard).toEqual([STILL_WORKING_LINE]);
   });
 });

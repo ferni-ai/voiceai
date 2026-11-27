@@ -204,7 +204,7 @@ export async function upsertEvent(event: CalendarEvent): Promise<CalendarEvent> 
   persistUserData(event.userId);
 
   getLogger().info(
-    { userId: event.userId, eventId: event.id, title: event.title, startTime: event.startTime },
+    { userId: event.userId, eventId: event.id, startTime: event.startTime }, // no title (#4322)
     '📅 Calendar event saved'
   );
 

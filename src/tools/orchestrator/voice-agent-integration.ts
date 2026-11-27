@@ -7,13 +7,7 @@
  *
  * USAGE:
  *
- * // Replace in voice-agent.ts:
- * // OLD:
- * // const personaTools = await buildAgentTools(persona.id);
- * // const essentialTools = await buildEssentialTools();
- * // let toolsForAgent = { ...essentialTools, ...personaTools };
- *
- * // NEW:
+ * // Replaces buildAgentTools + buildEssentialTools in voice-agent.ts:
  * import { getToolsForAgent } from './orchestrator/voice-agent-integration.js';
  * const { tools: toolsForAgent, meta } = await getToolsForAgent({
  *   persona,
@@ -25,6 +19,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolOrchestrator, type ToolSelectionContext } from './tool-orchestrator.js';
 import { withoutForbiddenTools, withPersonaToolPolicy } from './persona-tool-policy.js';
+import { shadowSelection } from './coverage-shadow.js';
 import { buildAgentTools, buildEssentialTools } from '../builder.js';
 import { buildHandoffTools } from '../handoff/handoff-factory.js';
 import { autoRegisterAllDomains } from '../registry/loader.js';
@@ -246,7 +241,8 @@ export function isOrchestratorInitialized(): boolean {
 
 /** Get tools for a voice agent session, with the persona's tool policy (persona-tool-policy.ts) */
 export async function getToolsForAgent(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
-  return selectToolsForAgent({ ...options, persona: await withPersonaToolPolicy(options.persona) });
+  const persona = await withPersonaToolPolicy(options.persona);
+  return shadowSelection(selectToolsForAgent({ ...options, persona }), options.sessionId);
 }
 
 /** This is the main integration point - replaces buildAgentTools + buildEssentialTools */

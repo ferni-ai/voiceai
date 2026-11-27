@@ -33,6 +33,7 @@ export {
   getCrisisResponse,
   LATE_911_LINE,
   namesCrisisLine,
+  SPANISH_911_FIRST,
   TALK_TO_988_ES,
 } from './crisis-guard-replies.js';
 export { SELF_HARM_911_LINE } from './crisis-script-lines.js';
@@ -41,8 +42,14 @@ export { coachingFloorRead, type CoachingFloorRead } from './crisis-coaching-flo
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 // Whether a crisis read is still out on a call: handoff arrival lines stay as today (arrival-once.ts).
+// Whether a call has crisis risk noted, settled reads only: crisis replies get no recalled memory.
 // Note risk on a call: the reply gate's fail-closed settle (crisis-gate-failure.ts).
-export { crisisReadInFlight, crisisRiskThisCall, noteCrisisRisk } from './crisis-call-risk.js';
+export {
+  crisisReadInFlight,
+  crisisRiskNoted,
+  crisisRiskThisCall,
+  noteCrisisRisk,
+} from './crisis-call-risk.js';
 // A crisis pattern holds the call's memory before capture (transcript-handler.ts).
 export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
 // The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
@@ -54,6 +61,8 @@ export { blockedReadGuidance } from './crisis-classifier-blocked.js';
 // A failed crisis read on safety words: the check-in (CRISIS_TIMEOUT_CHECKIN, crisis-gate.ts), and
 // its word read and question for a text (SMS_CRISIS_TIMEOUT_CHECKIN, sms-crisis-screen.ts).
 export { checkin, holdsCheckinWords, SAFETY_QUESTION } from './crisis-timeout-checkin.js';
+// CRISIS_GATE_TURN_READS: a pipeline read that starts after the gate's (crisis-gate-turn-reads.ts).
+export { nextTurnRead } from './crisis-turn-read-arrival.js';
 // CRISIS_GUIDED_LINE_FLOOR: a crisis guide's reply always names its line
 export { guideLineOf, withGuidedLine, type GuideLine } from './crisis-guided-line-floor.js';
 // A voice turn the patterns answer with the 988 script still asks it (crisis-script-imminent.ts).

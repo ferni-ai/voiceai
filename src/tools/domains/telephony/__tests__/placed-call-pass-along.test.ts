@@ -27,7 +27,6 @@ const CONTACTS = [
 function scriptFor(contact: (typeof CONTACTS)[number][1]) {
   const { script, type } = selectScript(contact, 'check in about the weekend');
   const text = buildCallScript(script, {
-    agentName: 'Ferni',
     userName: 'Riley Test',
     contactName: contact.name,
     purpose: 'check in about the weekend',

@@ -236,6 +236,78 @@ describe('into silence', () => {
   });
 });
 
+describe('music on the background track', () => {
+  /** A quiet stretch after the caller (agent silent): unsignalled side-track audio at 15, 25, 35 and 45 s. */
+  function withMusic(states) {
+    const run = call([], { agent: [] });
+    run.tracks[1].voice = [15000, 25000, 35000, 45000].map((t) => [t, t + 4000]);
+    run.data = states.map(([t, state]) => ({ t, payload: { type: 'music_state', state } }));
+    return run;
+  }
+
+  it('drops unsignalled audio while music plays: the song is not a sound into silence', () => {
+    const placed = placeSounds(
+      withMusic([
+        [14000, 'playing'],
+        [30000, 'stopped'],
+      ])
+    );
+    expect(placed.map((s) => s.t)).toEqual([35000, 45000]);
+    expect(soundMetrics(placed).intoSilence).toBe(2);
+  });
+
+  const kept = (states) => placeSounds(withMusic(states)).map((s) => s.t);
+
+  it.each(['playing', 'ducking', 'fading', 'changing'])(
+    'a song is audible while music_state is %s',
+    (state) => {
+      expect(
+        kept([
+          [14000, state],
+          [16000, 'stopped'],
+        ])
+      ).toEqual([25000, 35000, 45000]);
+    }
+  );
+
+  it('paused ends the song: a segment starting while paused is a sound', () => {
+    expect(
+      kept([
+        [14000, 'playing'],
+        [14500, 'paused'],
+        [16000, 'playing'],
+        [30000, 'idle'],
+      ])
+    ).toEqual([15000, 35000, 45000]);
+  });
+
+  it('includes the playing moment and excludes the stopping moment', () => {
+    expect(
+      kept([
+        [15000, 'playing'],
+        [25000, 'stopped'],
+      ])
+    ).toEqual([25000, 35000, 45000]);
+  });
+
+  it('keeps playing to the end of the run when no stop comes, and reads states in time order', () => {
+    expect(kept([[14000, 'playing']])).toEqual([]);
+    expect(
+      kept([
+        [30000, 'stopped'],
+        [14000, 'playing'],
+      ])
+    ).toEqual([35000, 45000]);
+  });
+
+  it('still counts a signalled sound during music, and every segment with no music_state', () => {
+    const run = withMusic([[14000, 'playing']]);
+    run.data.push({ t: 25000, payload: { type: 'sound_played', kind: 'mm-hmm', wireDelayMs: 0 } });
+    expect(placeSounds(run).map((s) => [s.t, s.kind])).toEqual([[25000, 'mm-hmm']]);
+    expect(placeSounds(withMusic([]))).toHaveLength(4);
+  });
+});
+
 describe('repeats', () => {
   const repeats = (sounds) => soundMetrics(placeSounds(call(sounds, { agent: [] }))).repeats;
 

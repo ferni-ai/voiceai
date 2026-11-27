@@ -17,6 +17,9 @@
  * - None within CRISIS_QUIET_DAYS of a crisis-level signal (the shared rule in
  *   human-transfer/crisis-signals.ts, as the pondered notes use), flag or not:
  *   not even for a promise made on the call where the crisis came up.
+ * - With FORGET_EVERY_READER on, none about a topic they asked Ferni to forget:
+ *   a promise or a missed reminder about it is skipped, not texted with a hole
+ *   (forgottenCheck, read once per run; no topic source at all skips them all).
  *
  * Read from bogle_users/{uid}/ferni_commitments (promise-keeper.ts). Missed
  * reminders, the user's own commitments and their world come from
@@ -27,6 +30,7 @@
 
 import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { forgetCheckOrClosed, forgottenCheck, type ForgottenCheck } from '../../../memory/index.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { CRISIS_QUIET_DAYS, hadCrisisWithin } from '../../human-transfer/crisis-signals.js';
 import {
@@ -162,7 +166,11 @@ const KIND_ORDER: Array<ProactiveTrigger['kind']> = [
 const rank = (t: ProactiveTrigger): number =>
   (t.weight === 'meaningful' ? 0 : 10) + KIND_ORDER.indexOf(t.kind);
 
-async function promiseTriggers(userId: string, ctx: TriggerContext): Promise<ProactiveTrigger[]> {
+async function promiseTriggers(
+  userId: string,
+  ctx: TriggerContext,
+  forgotten: ForgottenCheck | null
+): Promise<ProactiveTrigger[]> {
   const db = getFirestoreDb();
   if (!db) return [];
   if (await hadCrisisWithin(db, userId, CRISIS_QUIET_DAYS, ctx.now)) return [];
@@ -173,7 +181,9 @@ async function promiseTriggers(userId: string, ctx: TriggerContext): Promise<Pro
     .where('outcome', '==', 'open')
     .get();
   return snap.docs
-    .map((d) => triggerFromPromise({ ...(d.data() as StoredPromise), id: d.id }, ctx))
+    .map((d) => ({ ...(d.data() as StoredPromise), id: d.id }))
+    .filter((p) => !forgotten?.(`${p.relatedTopic ?? ''} ${p.commitment ?? ''}`))
+    .map((p) => triggerFromPromise(p, ctx))
     .filter((t): t is ProactiveTrigger => t !== null);
 }
 
@@ -191,10 +201,15 @@ export async function collectTriggers(
       log.warn({ error: String(error), userId, source }, 'Proactive trigger source failed');
       return [] as ProactiveTrigger[];
     });
+  // FORGET_EVERY_READER; a failed check leaves out what it guards, never the other sources
+  const forgotten = await forgetCheckOrClosed(
+    forgottenCheck(userId, 'proactive-triggers'),
+    'proactive-triggers'
+  );
   const sources = await Promise.all([
-    safe(promiseTriggers(userId, ctx), 'promises'),
+    safe(promiseTriggers(userId, ctx, forgotten), 'promises'),
     safe(commitmentTriggers(userId, ctx.now), 'commitments'),
-    safe(reminderTriggers(userId, ctx.now), 'reminders'),
+    safe(reminderTriggers(userId, ctx.now, forgotten), 'reminders'),
   ]);
   return [...sources.flat(), ...worldTriggers(ctx.worldDue ?? [], ctx.now)].sort(
     (a, b) => rank(a) - rank(b)

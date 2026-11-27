@@ -384,7 +384,7 @@ export async function createEvent(
     try {
       const googleEvent = calendarEventToGoogleEvent(event);
       const created = await createGoogleEvent(accessToken, calendarId, googleEvent);
-      log.info({ userId, eventTitle: event.title }, 'Google Calendar event created');
+      log.info({ userId, titleLength: event.title.length }, 'Google Calendar event created');
       return googleEventToCalendarEvent(created, calendarId);
     } catch (error) {
       log.error(
@@ -399,7 +399,7 @@ export async function createEvent(
 
   // Use unified Ferni calendar
   const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
-  log.info({ userId, eventTitle: event.title }, 'Unified calendar event created');
+  log.info({ userId, titleLength: event.title.length }, 'Unified calendar event created');
   // Use 'local' for unified calendar events (not connected to external provider)
   return unifiedToCalendarEvent(created, 'local');
 }

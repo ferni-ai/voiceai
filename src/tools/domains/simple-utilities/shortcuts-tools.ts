@@ -120,7 +120,7 @@ const quickAlarmDef: ToolDefinition = {
           .describe('Repeat pattern'),
       }),
       execute: async ({ time, label, repeat }) => {
-        log.info({ userId: ctx.userId, time, label, repeat }, 'Quick alarm shortcut');
+        log.info({ userId: ctx.userId, hasLabel: !!label, repeat }, 'Quick alarm shortcut');
 
         // Track usage
         trackCapabilityUsage(ctx.userId || 'anon', 'quickAlarm');
@@ -181,7 +181,7 @@ const quickTimerDef: ToolDefinition = {
         label: z.string().optional().describe('What the timer is for'),
       }),
       execute: async ({ duration, label }, opts) => {
-        log.info({ userId: ctx.userId, duration, label }, 'Quick timer shortcut');
+        log.info({ userId: ctx.userId, duration, hasLabel: !!label }, 'Quick timer shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickTimer');
 
@@ -487,7 +487,7 @@ const quickCallDef: ToolDefinition = {
         message: z.string().optional().describe("Message to leave if they don't answer"),
       }),
       execute: async ({ contact, message }, opts) => {
-        log.info({ userId: ctx.userId, contact, message }, 'Quick call shortcut');
+        log.info({ userId: ctx.userId, messageLength: message?.length }, 'Quick call shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickCall');
 
@@ -576,7 +576,7 @@ const quickEmailDef: ToolDefinition = {
         body: z.string().describe('Email body/message'),
       }),
       execute: async ({ recipient, subject, body }, opts) => {
-        log.info({ userId: ctx.userId, recipient, subject }, 'Quick email shortcut');
+        log.info({ userId: ctx.userId, subjectLength: subject?.length }, 'Quick email shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickEmail');
 

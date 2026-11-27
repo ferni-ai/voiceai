@@ -4,8 +4,9 @@
  * Before it, the only record was a debug line, so a dev sweep's logs could not
  * show whether the gate sent anything (release-1cf4bd64b memory-flags A/B).
  *
- * Counts, booleans and numbers only. Memory text, entity names and ids never go
- * in: Cloud Logging is not where a caller's memories belong.
+ * Counts, booleans and numbers, plus the call's session id and the turn number so a
+ * line joins exactly to that turn's crisis read. Memory text, caller words, entity
+ * names and memory ids never go in: Cloud Logging is not where a caller's memories belong.
  *
  * @module memory/retrieval/turn-memory-log
  */
@@ -19,6 +20,7 @@ export const TURN_MEMORY_LOG_MESSAGE = 'TURN_MEMORY';
 
 /** What retrieveForTurn knows once a turn's memories are chosen. */
 export interface TurnMemoryLogInput {
+  sessionId: string;
   turnNumber: number;
   /** What the hybrid search returned, before any gate. */
   candidates: HybridSearchResult[];
@@ -31,8 +33,10 @@ export interface TurnMemoryLogInput {
   latencyMs: number;
 }
 
-/** The logged object. Every field is a number or a boolean. */
+/** The logged object. Every field is a number or a boolean, but the session id. */
 export interface TurnMemoryLogFields {
+  /** The call's session id, for an exact join to the turn's crisis read. An id, never words. */
+  sessionId: string;
   turn: number;
   candidates: number;
   injected: number;
@@ -56,6 +60,7 @@ export function turnMemoryLogFields(input: TurnMemoryLogInput): TurnMemoryLogFie
     input.rrfScale ? (r.legScores?.vector ?? 0) : r.score
   );
   return {
+    sessionId: input.sessionId,
     turn: input.turnNumber,
     candidates: input.candidates.length,
     injected: input.injected,

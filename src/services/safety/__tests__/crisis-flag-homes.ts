@@ -275,6 +275,18 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'a phone call held while the turns were read: none go back',
     ],
   },
+  // Takes the caller's recalled memories out of what a crisis reply's request reads: a crisis
+  // turn's background note is built without them, and every crisis-guided request, or request on
+  // a call with risk noted, gets the note without them. It only removes words: the guidance, the
+  // override and every other note are the flag off's, and nothing is kept. The grid's calls carry
+  // no recalled memory, so no reply there moves.
+  CRISIS_NO_MEMORY_RECALL: {
+    file: 'src/agents/voice-agent/__tests__/crisis-no-memory-recall.test.ts',
+    rows: [
+      'crisis-guided turn, flag on: no recalled memory reaches the model, every other word as with the flag off',
+      'crisis read pending (reply held), flag on: the guided re-ask carries no recalled memory, every other word as with the flag off',
+    ],
+  },
   // Logs where the fast lane would send a turn (TURN_RECEIPT prompt.laneShadow); only the receipt
   // builder reads it. Crisis half: the first three rows. Held half: the fourth. Reply unchanged:
   // the last (the request the model gets is left as it came, flag on or off).
@@ -446,6 +458,51 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
         '(b) a rejection before any verdict: the check-in with 988, no held chunk goes out',
         'the forced check-in stays on its turn: a later failed read, on the same call or another, gets none, and no env is written',
         'turns that settle read the same with the flag on as off',
+      ],
+    },
+  ],
+};
+
+/**
+ * Crisis-lane flags that remove a sound or line said beside a turn, not the reply: a filler or
+ * clip that is not crisis or safety speech. The six readers and SHOWN_ON (the gate's reply) never
+ * see that step. This home is open only to a flag that removes nothing but such a sound, and whose
+ * named rows run the real wiring (the live-call attachment or the turn handler), flag off then
+ * on, and assert both that the sound is removed and that an ordinary turn still gets it. Where the
+ * flag acts inside the turn handler, a row also asserts the crisis reply is given unchanged on the
+ * same turn; where its only reader is the sound's own emitter, it reads no reply path, and the
+ * only reply timing it touches is the hold that sound itself set, which it releases. A flag that
+ * delays or shortens a crisis or safety line does not belong here.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const NON_SAFETY_LINE_REMOVED: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // The turn-opening "Mm" (TURN_OPENING_SOUND, plain and early): none while a crisis verdict is
+  // pending or once the gate acted on the call, and one just played is cut, and the reply it held
+  // released, when the gate's decision lands (#4451). Only that sound is dropped.
+  // The sound's own switch: off, the "Mm" is not made; on or early, an ordinary turn gets it.
+  TURN_OPENING_SOUND: [
+    {
+      file: 'src/agents/integrations/__tests__/turn-opening-sound-crisis.test.ts',
+      rows: [
+        'TURN_OPENING_SOUND unset: no sound at all; on: an ordinary turn gets it',
+        'control, ordinary turn: the clip plays and holds the reply',
+      ],
+    },
+  ],
+  CRISIS_NO_OPENING_SOUND: [
+    {
+      file: 'src/agents/integrations/__tests__/turn-opening-sound-crisis.test.ts',
+      rows: [
+        'control, ordinary turn: the sound plays, flag on or off',
+        'on: a crisis verdict pending when the wait ends, no sound, even once it clears',
+        'off: the same pending verdict plays the sound, as on main',
+        'on: after the gate replaced a reply on this call, no sound on a later turn',
+        'on: a gate pass is no crisis, the sound still plays',
+        'control, ordinary turn: the clip plays and holds the reply',
+        'on: a crisis verdict pending at the commit, no clip',
+        'on: the gate decides right after the clip started: the clip is cut and the reply released',
       ],
     },
   ],

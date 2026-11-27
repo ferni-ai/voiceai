@@ -13,13 +13,18 @@ import {
   replyAudioHoldMs,
 } from '../output-control/reply-activity.js';
 import { waitForPauseHold } from '../output-control/pause-hold.js';
+import { noteTurnTiming } from '../output-control/turn-timing.js';
 
 // Same module name as the gateway node, so TTFB log lines are unchanged.
 const log = createLogger({ module: 'GatewayTTSNode' });
 
 export type FirstAudioObserver = (() => void) & {
-  /** Record when the first LLM text arrived and when the first text went to the provider. */
-  stage(stage: 'text' | 'push'): void;
+  /**
+   * Record when the first LLM text arrived, when the first text went to the provider, and
+   * when the reply's first full sentence was in. The sentence goes to the turn's receipt as
+   * a 'replySentence' timing (turn-timing.ts): a long one ends after the first audio.
+   */
+  stage(stage: 'text' | 'push' | 'sentence'): void;
   /**
    * Resolves once an opening sound no longer holds this session's reply audio,
    * and the caller has had time to go on after a pause (pause-hold.ts).
@@ -64,7 +69,7 @@ export function createFirstAudioObserver({
   startTime,
 }: FirstAudioObserverOptions): FirstAudioObserver {
   let hasMarkedFirstAudio = false;
-  const stages: { textMs?: number; pushMs?: number; leadTrimMs?: number } = {};
+  const stages: { textMs?: number; pushMs?: number; sentenceMs?: number; leadTrimMs?: number } = {};
   const holds: GatewayHolds = { openerClipMs: 0, pauseHoldMs: 0 };
 
   const observe = (): void => {
@@ -94,10 +99,14 @@ export function createFirstAudioObserver({
     trimmed(ms: number): void {
       stages.leadTrimMs ??= ms;
     },
-    stage(stage: 'text' | 'push'): void {
-      const key = stage === 'text' ? 'textMs' : 'pushMs';
-      if (stage === 'text' && stages.textMs === undefined && sessionId) noteReplyText(sessionId);
-      stages[key] ??= Date.now() - startTime;
+    stage(stage: 'text' | 'push' | 'sentence'): void {
+      const key = `${stage}Ms` as const;
+      if (stages[key] !== undefined) return;
+      const ms = Date.now() - startTime;
+      stages[key] = ms;
+      if (!sessionId) return;
+      if (stage === 'text') noteReplyText(sessionId);
+      if (stage === 'sentence') noteTurnTiming(sessionId, 'replySentence', ms);
     },
     async hold(): Promise<void> {
       const ms = sessionId ? replyAudioHoldMs(sessionId) : 0;

@@ -1125,7 +1125,7 @@ export async function captureCommitmentEntity(
       progressNotes: [],
     },
     {
-      emotionalWeight: data.emotionalWeight || 0.5,
+      emotionalWeight: data.emotionalWeight ?? 0.5,
       sourceConversation: context.conversationId || context.sessionId,
       sourcePersona: context.personaId,
     }

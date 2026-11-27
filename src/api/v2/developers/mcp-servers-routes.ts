@@ -127,37 +127,37 @@ export async function handleMCPServersRoutes(
 
     // POST /mcp-servers - Create server
     if (method === 'POST' && !params.id) {
-      return handleCreateServer(authReq, res, auth);
+      return await handleCreateServer(authReq, res, auth);
     }
 
     // GET /mcp-servers - List servers
     if (method === 'GET' && !params.id) {
-      return handleListServers(authReq, res, auth);
+      return await handleListServers(authReq, res, auth);
     }
 
     // GET /mcp-servers/:id - Get server
     if (method === 'GET' && params.id && !params.action) {
-      return handleGetServer(res, auth, params.id);
+      return await handleGetServer(res, auth, params.id);
     }
 
     // PUT /mcp-servers/:id - Update server
     if (method === 'PUT' && params.id && !params.action) {
-      return handleUpdateServer(authReq, res, auth, params.id);
+      return await handleUpdateServer(authReq, res, auth, params.id);
     }
 
     // DELETE /mcp-servers/:id - Delete server
     if (method === 'DELETE' && params.id && !params.action) {
-      return handleDeleteServer(res, auth, params.id);
+      return await handleDeleteServer(res, auth, params.id);
     }
 
     // POST /mcp-servers/:id/test - Test connection
     if (method === 'POST' && params.id && params.action === 'test') {
-      return handleTestServer(res, auth, params.id);
+      return await handleTestServer(res, auth, params.id);
     }
 
     // GET /mcp-servers/:id/tools - List server tools
     if (method === 'GET' && params.id && params.action === 'tools') {
-      return handleListServerTools(res, auth, params.id);
+      return await handleListServerTools(res, auth, params.id);
     }
 
     // No route matched
