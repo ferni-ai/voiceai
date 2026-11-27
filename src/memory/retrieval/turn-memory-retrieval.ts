@@ -296,6 +296,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   const { userId, sessionId, transcript, turnNumber, surfacedMemoryIds } = input;
   const logTurn = (candidates: HybridSearchResult[], injected: number, judged: boolean): void =>
     logTurnMemory({
+      sessionId,
       turnNumber,
       candidates,
       injected,
@@ -305,7 +306,6 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
       latencyMs: Date.now() - startTime,
     });
 
-  // Skip retrieval for very short transcripts (likely just acknowledgments)
   if (transcript.length < 10) {
     return {
       memories: [],

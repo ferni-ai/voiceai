@@ -6,7 +6,10 @@ import { describe, expect, it, vi } from 'vitest';
 const getEventsForDay = vi.fn();
 vi.mock('../../../calendar/calendar-service.js', () => ({ getEventsForDay }));
 vi.mock('../../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
-vi.mock('../../../../memory/recall/forget.js', () => ({ forgottenTopicsOrNull: async () => null }));
+vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  forgottenTopicsOrNull: async () => null,
+}));
 
 const event = (id: string, iso: string, extra: Record<string, unknown> = {}) => ({
   id,

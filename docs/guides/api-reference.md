@@ -363,11 +363,6 @@ Content-Type: application/json
 }
 ```
 
-### Validate All Agents
-```http
-POST /api/agents/validate
-```
-
 ---
 
 ## Diagnostics API

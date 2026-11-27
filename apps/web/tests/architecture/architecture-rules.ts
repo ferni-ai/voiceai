@@ -17,6 +17,8 @@ export const LAYER_LEVELS: Readonly<Record<string, number>> = {
   // Application shell: src/*.ts (app.ts, index.ts, brand.ts) and app/ orchestration.
   '(root)': 100,
   app: 100,
+  // The admin avatar lab page: a second shell that boots only the avatar.
+  'avatar-lab': 100,
   // Admin portal: only the app shell may load it.
   admin: 90,
   // Feature UI. Peers: eq drives avatar views in ui/, ui reads eq state.

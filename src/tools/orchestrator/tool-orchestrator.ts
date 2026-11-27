@@ -51,6 +51,7 @@ import { initializeHierarchicalClassifier } from '../semantic-router/advanced/in
 // Internal modules (extracted for modularity)
 import { getDefaultConfig } from './orchestrator-config.js';
 import { isProtectedTool } from './persona-tool-policy.js';
+import { warnSchemaBudget } from './schema-budget-warning.js';
 import {
   fetchAlwaysAvailableTools,
   fetchContextualTools,
@@ -354,15 +355,13 @@ export class UnifiedToolOrchestrator {
     const toolUsagePercent = Math.round((toolSchemaTokens / MAX_TOOL_TOKENS) * 100);
 
     if (toolUsagePercent > 80) {
-      log.warn(
-        {
-          toolCount: result.meta.selected,
-          estimatedTokens: toolSchemaTokens,
-          usagePercent: toolUsagePercent,
-          maxTools: this.config.maxTools,
-        },
-        `⚠️ Tool schema size at ${toolUsagePercent}% of safe limit - consider reducing maxTools`
-      );
+      warnSchemaBudget(log, {
+        personaId: request.agentId,
+        toolCount: result.meta.selected,
+        tokens: toolSchemaTokens,
+        percent: toolUsagePercent,
+        maxTools: this.config.maxTools,
+      });
     }
 
     // Observability logging

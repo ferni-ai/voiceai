@@ -66,7 +66,7 @@ export async function createSharedGoal(
   await store.saveTeamContext(userId, context);
 
   getLogger().info(
-    { goalId: goal.id, title: sanitizedTitle },
+    { goalId: goal.id, titleLength: sanitizedTitle.length },
     '🤝 Shared goal created (persisted)'
   );
 

@@ -17,3 +17,4 @@ export {
   relationOf,
 } from './person-key.js';
 export { relationWordNearest, relationWords } from './person-key.js';
+export type { RelationGroup } from './person-key.js';

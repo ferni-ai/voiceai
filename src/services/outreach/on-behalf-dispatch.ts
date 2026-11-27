@@ -25,12 +25,15 @@ import type {
 } from '../../tools/domains/telephony/types.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { liveRoomFor, type LiveRoom } from '../../tools/registry/live-session.js';
+import { callingPersonaOf } from '../../tools/domains/telephony/scripts/index.js';
 
 export interface OnBehalfDispatch {
   type: 'on_behalf_call';
   callId: string;
   /** Gives the agent session its own identity for the call (see module doc). */
   session_id: string;
+  /** The persona that places the call (CALL_AS_PERSONA): the session loads its voice (metadata-parser.ts). */
+  persona_id?: string;
   requester: {
     userId: string;
     name: string;
@@ -199,6 +202,7 @@ export function onBehalfDispatchFor(
     script,
     userPreferences: request.userPreferences,
     retryOf: request.retryOf,
+    persona_id: request.callingPersonaId ? callingPersonaOf(request.callingPersonaId) : undefined,
   });
 }
 
@@ -217,6 +221,7 @@ export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCal
     userName: call.requester.name,
     recordingConsent: false,
     retryOf: call.retryOf,
+    ...(call.persona_id && { callingPersonaId: call.persona_id }),
   };
 }
 
@@ -297,5 +302,36 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
     retryOf: str(metadata.retryOf) || undefined,
+    ...(metadata.persona_id !== undefined && { persona_id: callingPersonaOf(metadata.persona_id) }),
   });
+}
+
+/** What a signed dispatch says about the person called and the call, as dispatched. */
+interface CallBackground {
+  /** As the contact store saved it: a relation ("mom") or only a group ("family", "other"). */
+  relationship?: string;
+  /** What the requester said about the call beyond its message (call-on-behalf-schema.ts). */
+  additionalContext?: string;
+}
+
+/**
+ * The call's background from the job metadata exactly as dispatched
+ * (ON_BEHALF_FULL_CONTEXT). The caller checks the signature first: room
+ * metadata merged into the parsed object is not signed. It is read here, not
+ * kept by parseOnBehalfDispatch, so the call state built from the parsed
+ * dispatch does not start holding the user's words. Non-strings are ignored.
+ */
+export function callBackgroundOf(rawJobMetadata: string): CallBackground {
+  let signed: Record<string, unknown>;
+  try {
+    signed = asObject(JSON.parse(rawJobMetadata));
+  } catch {
+    return {};
+  }
+  const relationship = str(asObject(signed.contact).relationship);
+  const additionalContext = str(asObject(signed.userPreferences).additionalContext);
+  return {
+    ...(relationship ? { relationship } : {}),
+    ...(additionalContext ? { additionalContext } : {}),
+  };
 }

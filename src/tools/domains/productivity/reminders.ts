@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { lengthsOf } from '../../../utils/reply-for-log.js';
 import {
   createReminder,
   getPendingReminders,
@@ -114,11 +115,17 @@ const setReminderDef: ToolDefinition = {
       }),
       execute: async (params, opts?: { ctx?: unknown }) => {
         const { message, when: asked, deliveryMethod = 'voice_message', deliveryAddress } = params;
-        log.info({ userId: ctx.userId, message, when: asked, deliveryMethod }, 'Setting reminder');
+        log.info(
+          { userId: ctx.userId, ...lengthsOf({ message, when: asked }), deliveryMethod },
+          'Setting reminder'
+        );
 
         const unsaid = holdUnsaidReminderTime(asked, opts?.ctx);
         if (unsaid) {
-          log.info({ userId: ctx.userId, when: asked }, 'Reminder time not said by caller');
+          log.info(
+            { userId: ctx.userId, ...lengthsOf({ when: asked }) },
+            'Reminder time not said by caller'
+          );
           return unsaid;
         }
         const when = asked ?? '';

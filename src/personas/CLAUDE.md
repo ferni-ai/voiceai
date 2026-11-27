@@ -131,6 +131,7 @@ personas/
 │
 ├── # Core Files
 ├── index.ts                      # Main exports
+├── identity/index.ts             # Light entry: ids + display names only, loads no audio
 ├── types.ts                      # Persona type definitions
 ├── persona-ids.ts                # Persona ID constants
 ├── agent-directory.ts            # Agent directory for handoffs

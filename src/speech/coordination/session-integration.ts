@@ -186,6 +186,7 @@ export async function routeSpeech(
 
   return coordinator.requestSpeak({
     text,
+    sessionId, // the call that asked, which may not be the one attached now
     priority,
     source: options.source ?? 'direct',
     allowInterruptions: options.allowInterruptions ?? true,

@@ -103,10 +103,71 @@ const REPORTED = /\bReported from Ferni's call\b/;
  * called (or tried), so telling how it went stands. Owner call 2026-10-26 18:46: asked about an
  * answered call, Ferni said it didn't "know how that call went yet".
  */
-const toldByStatus = (item: Item & { output?: unknown }): boolean =>
-  item.type === 'function_call_output' &&
-  (item.name === 'callStatus' || item.name === 'callOnBehalf') &&
-  /(?:^|\. )Ferni (?:called|tried to call) /.test(String(item.output ?? ''));
+const STATUS_TOLD = /(?:^|\. )Ferni (?:called|tried to call) /;
+/**
+ * A call line of the RECALL_ACTIVITY list (services/outreach/activity-recall.ts callLine), in its exact
+ * shape: "- Saturday, November 21, in the afternoon (3:00 PM): Ferni called Dr. Patel (their dentist),
+ * and ...". Reminder, email and promise lines never match, whatever caller text they carry. Dev
+ * recall eval 2026-11-26: without reading these, a right answer about an answered call became "I
+ * haven't heard back", graded as a made-up call.
+ */
+const LISTED_CALL =
+  /^- \w+day, \w+ \d+, (?:in the \w+|at night) \(\d{1,2}:\d\d\s[AP]M\): Ferni (?:called|tried to call) (.+?), (?:and|but) /gm;
+/** Who the caller's latest turn asks about: "did you call my dad?", "how did it go with my best friend". */
+const ASKED_WHO =
+  /\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?hold|ahold) of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\s+(?:my |the |your )?([a-z][\w.'-]*(?: [a-z][\w.'-]*)?)/i;
+/** "mother" is "mom", as call records name people (call-status.ts personWord). */
+const norm = (w: string): string =>
+  w
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => personWord(t) ?? t)
+    .join(' ');
+/** "Dr. Patel (their dentist)" -> { names: ["dr. patel"], role: "dentist" }. */
+const whoOf = (who: string): { names: string[]; role?: string } => {
+  const m = /^(.*?)(?: \(their (.+)\))?$/.exec(who.trim());
+  return {
+    names: m?.[1] && m[1].length > 1 ? [norm(m[1])] : [],
+    role: m?.[2] ? norm(m[2]) : undefined,
+  };
+};
+const escaped = (w: string): string => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const HONORIFIC = /^(?:dr|mr|mrs|ms|miss|aunt|auntie|uncle|grandma|grandpa|cousin)\.?$/i;
+/** The asked-about person: "my dad yesterday" is "dad", "Dr. Smith" and "Aunt June" stay whole. */
+const askedPerson = (latestCaller: string): string | null => {
+  const raw = ASKED_WHO.exec(latestCaller.replace(/[\u2018\u2019]/g, "'"))?.[1];
+  if (!raw) return null;
+  const [first, second] = raw.split(' ');
+  const keep = second && (HONORIFIC.test(first) || /^[A-Z]/.test(second));
+  return norm(keep ? `${first} ${second}` : first);
+};
+/**
+ * A listed call counts only for the person the caller's latest turn asks about: by the whole
+ * relationship ("my aunt" is "(their aunt)", "Aunt June" is not) or by name ("Dr. Kim", "Kim").
+ * The list holds every call of the last 30 days, so a call to their mom never backs a story about
+ * their dad, however near "mom" was said (#4516 verify).
+ */
+const listedFor = (output: string, latestCaller: string): boolean => {
+  const person = askedPerson(latestCaller);
+  if (!person) return false;
+  return [...output.matchAll(LISTED_CALL)].some((m) => {
+    const { names, role } = whoOf(m[1]);
+    return (
+      role === person ||
+      names.some(
+        (n) =>
+          new RegExp(`(?:^|\\s)${escaped(n)}(?:$|\\s)`).test(person) ||
+          new RegExp(`(?:^|\\s)${escaped(person)}(?:$|\\s)`).test(n)
+      )
+    );
+  });
+};
+const toldByStatus = (item: Item & { output?: unknown }, latestCaller: string): boolean => {
+  if (item.type !== 'function_call_output') return false;
+  if (item.name !== 'callStatus' && item.name !== 'callOnBehalf') return false;
+  const output = String(item.output ?? '');
+  return STATUS_TOLD.test(output) || listedFor(output, latestCaller);
+};
 /** The caller asks Ferni about a call he was asked to make; the group names the person, if any. */
 const ASKED_ABOUT = [
   /\bhow(?:'d| did| was) (?:it|things|that|the call|your call) go(?:ing)? with (?:my |the |your )?([a-z]+)/i,
@@ -239,8 +300,11 @@ export interface Unheard {
 }
 
 /** A call result in the conversation: a report from Ferni's call, or callStatus saying he called. */
-const callResultIn = (items: readonly Item[]): boolean =>
-  items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item));
+const callResultIn = (items: readonly Item[]): boolean => {
+  const asks = items.filter((item) => item.type === 'message' && item.role === 'user');
+  const latest = asks.length ? spoken(asks[asks.length - 1]) : '';
+  return items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item, latest));
+};
 /** The caller asks what Ferni did before: "did you text my sister yesterday?", "have you called her?". */
 const ASKS_BEFORE =
   /\b(?:did|have) you (?:ever |already |actually )?(?:call|called|ring|rung|phone|phoned|reach|reached|text|texted|message|messaged|email|emailed|send|sent|talk(?:ed)? to)\b/i;

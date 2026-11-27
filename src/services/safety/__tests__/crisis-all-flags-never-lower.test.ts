@@ -20,9 +20,11 @@
  * agents/personas/__tests__/crisis-reply-never-lower.test.ts), name a test that shows it never
  * changes a reply nor keeps the caller's words (MEMORY_ONLY), or sit on a list that may only shrink
  * (NOT_YET_COVERED). A flag acting on a text channel, on the turn's tool routing, or only on a
- * rejected gate escalation, or on a line the speech coordinator says, which neither reader sees,
- * names rows that show it there (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON,
- * HAND_BACK_LINE_SHOWN_ON). All of these lists are in
+ * rejected gate escalation, or on a line the speech coordinator says, or on a non-safety sound or
+ * line said beside the reply, which neither reader sees, names rows that show it there
+ * (TEXT_SHOWN_ON, TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON, HAND_BACK_LINE_SHOWN_ON,
+ * NON_SAFETY_LINE_REMOVED). A flag that changes only the classifier's prompt names rows in
+ * PROMPT_RULES_SHOWN_ON (crisis-prompt-rule-homes.ts); the rest are in
  * crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
@@ -59,12 +61,14 @@ import {
   HAND_BACK_LINE_SHOWN_ON,
   MEMORY_ONLY,
   type MemoryOnlyRow,
+  NON_SAFETY_LINE_REMOVED,
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
   READ_CACHE_SHOWN_ON,
   TEXT_SHOWN_ON,
   TURN_ROUTING_SHOWN_ON,
 } from './crisis-flag-homes.js';
+import { PROMPT_RULES_SHOWN_ON } from './crisis-prompt-rule-homes.js';
 import {
   CRISIS_FLAGS,
   flagReadsIn,
@@ -406,6 +410,8 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
         name in TURN_ROUTING_SHOWN_ON && 'TURN_ROUTING_SHOWN_ON',
         name in GATE_FAILURE_SHOWN_ON && 'GATE_FAILURE_SHOWN_ON',
         name in HAND_BACK_LINE_SHOWN_ON && 'HAND_BACK_LINE_SHOWN_ON',
+        name in PROMPT_RULES_SHOWN_ON && 'PROMPT_RULES_SHOWN_ON',
+        name in NON_SAFETY_LINE_REMOVED && 'NON_SAFETY_LINE_REMOVED',
         name in RUNNER_MARKERS && 'RUNNER_MARKERS',
       ].filter(Boolean);
       if (homes.length !== 1) unaccounted.push(`${name}: ${homes.join(', ') || 'nowhere'}`);
@@ -434,6 +440,8 @@ describe('every flag a crisis module reads is checked or covered elsewhere', () 
     ['TURN_ROUTING_SHOWN_ON', TURN_ROUTING_SHOWN_ON],
     ['GATE_FAILURE_SHOWN_ON', GATE_FAILURE_SHOWN_ON],
     ['HAND_BACK_LINE_SHOWN_ON', HAND_BACK_LINE_SHOWN_ON],
+    ['PROMPT_RULES_SHOWN_ON', PROMPT_RULES_SHOWN_ON],
+    ['NON_SAFETY_LINE_REMOVED', NON_SAFETY_LINE_REMOVED],
   ] as const)('finds each %s row in the test file it names', (_home, home) => {
     const missing = Object.entries(home).flatMap(([name, rows]) =>
       rows.length

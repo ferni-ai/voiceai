@@ -17,11 +17,12 @@ import {
 } from '../model-provider/index.js';
 import { watchSessionSttAudio } from '../model-provider/stt-audio-diagnostics.js';
 import { gateScriptedSay } from '../personas/scripted-name-gate.js';
+import { baseTurnHandling } from '../shared/base-turn-handling.js';
 import { watchAgentState } from '../shared/loop-watch.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import { isolateSessionListeners } from '../shared/session-listener-guard.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
-import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience.js';
+import { sessionTurnDetection } from '../shared/turn-patience.js';
 import type { UserData } from '../shared/types.js';
 import { interruptionOverrides, phoneInterruptTuningOn } from './interruption-config.js';
 import { logBargeInDecisions } from './live-call-behaviors.js';
@@ -121,6 +122,7 @@ export async function createCallSession(
         { phone: phone === true }
       ) as InstanceType<typeof SonataSTT> | undefined);
 
+  const base = baseTurnHandling();
   const session = new voice.AgentSession<UserData>({
     turnDetection: sessionTurnDetection(
       modelProvider.getSessionTurnDetection(),
@@ -132,21 +134,16 @@ export async function createCallSession(
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
-    // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
+    // Base turn handling: base-turn-handling.ts. Barge-in vs "mm-hmm": see interruption-config.ts.
     // PREEMPTIVE_TTS=on also synthesizes the preemptive reply (preemptive-tts.ts).
     // PHONE_INTERRUPT_TUNING=on: phone callers need more audio to pause Ferni.
     turnHandling: {
-      interruption: interruptionOverrides(process.env, { phone }),
-      ...preemptiveGenerationOverrides(),
-    },
-    // Not dead: the SDK still takes the endpointing delays and the interruption
-    // duration (and minWords under INTERRUPTION_MODE=vad) from here.
-    voiceOptions: {
-      allowInterruptions: true,
-      ...endpointingDelays(), // waits through thinking pauses: see turn-patience.ts
-      minInterruptionWords: 1,
-      minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
-      preemptiveGeneration: true,
+      ...base,
+      interruption: { ...base.interruption, ...interruptionOverrides(process.env, { phone }) },
+      preemptiveGeneration: {
+        ...base.preemptiveGeneration,
+        ...preemptiveGenerationOverrides().preemptiveGeneration,
+      },
     },
   });
   limitSessionListeners(session); // ~16 features watch agent_state_changed
