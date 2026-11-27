@@ -235,6 +235,9 @@ describe('the guard', () => {
     'Did you ring my mom, then my dad?',
     'Did you get a hold of my mom and my dad?',
     'Did you call my mom, my sister and Will?',
+    'Did you call my mom and Will?',
+    'Did you call my mom and my landlord?',
+    'Did you call my mom. My dad too?',
   ])('a person after the first in any list shape is asked about too: %s', async (question) => {
     expect(await told([user(question)], MOM_LINE)).toBe(DROPPED);
   });
@@ -243,6 +246,14 @@ describe('the guard', () => {
     'Did you call my mom? Thanks.',
     'Did you call my mom, Ferni?',
     'Did you call my mom, and Will says hi?',
+    'Did you call my mom on Friday or Saturday?',
+    'Did you call my mom about Sunday and Monday?',
+    'Did you call my mom about Thanksgiving and Christmas?',
+    'Did you call my mom in March and April?',
+    'Did you call my mom and Christmas?',
+    'Did you call my mom and tell her hi from Will and Sam?',
+    'Did you call my mom about Will and Sam?',
+    'Did you reach my mom. Thanks!',
   ])('a word after the question is no one new: %s', async (question) => {
     expect(await told([user(question)], MOM_LINE, 'mom')).toBe(STORY_DAD);
   });

@@ -45,7 +45,7 @@ import {
 } from '../../services/outreach/call-status.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import { RELATIONSHIP_ALIASES } from '../../services/contacts/index.js';
+import { relationOf } from '../../memory/domain/index.js';
 import type { ActionKind } from './action-claims.js';
 
 /** What Ferni says in place of a story about a call no result has come back from. */
@@ -143,32 +143,38 @@ const wholeWordIn = (word: string, text: string): boolean =>
 const HONORIFIC = /^(?:dr|mr|mrs|ms|miss|aunt|auntie|uncle|grandma|grandpa|cousin)\.?$/i;
 /** The person a call verb names, or null for a pronoun ("how did it go with her"). */
 const personOf = (raw: string): string | null => {
-  const [first, second] = raw.replace(/\.$/, '').split(' ');
+  const [first, second] = raw.split(' ');
   if (personWord(first) === null) return null;
   const keep = second && (HONORIFIC.test(first) || /^[A-Z]/.test(second));
   return norm(keep ? `${first} ${second}` : first);
 };
-const KIN = new Set(Object.values(RELATIONSHIP_ALIASES).flat());
 /** What separates people in a list: "mom, dad and Will", "mom & dad", "mom/dad", "mom n dad". */
 const LIST_SEPARATOR =
   /(?:\s*(?:,|&|\/|\bplus\b|\bas well as\b|\band\b|\bor\b|\bthen\b|\bn\b)\s*)+/i;
 const OWNED = /^(?:my|the|your)\s+/i;
-const AFTER_PERSON = /\s+(?:too|as well|also|again|yet)$/i;
+/** Capitalised words that are never a person: days, months and holidays. */
+const CALENDAR =
+  /^(?:mon|tues|wednes|thurs|fri|satur|sun)day$|^(?:january|february|march|april|may|june|july|august|september|october|november|december|christmas|thanksgiving|easter|halloween|hanukkah|passover|diwali|ramadan)$/i;
 /**
  * A list item that names one more person: "my dad", "dad", "Will", "Dr. Kim". Anything else
  * ("tell her about Sunday", "not", "see how she is") is a verb or a word, and ends the list.
  */
 const listedPerson = (item: string): string | null => {
   const owned = OWNED.test(item);
-  const words = item.replace(OWNED, '').replace(AFTER_PERSON, '').split(/\s+/).filter(Boolean);
+  const words = item.replace(OWNED, '').split(/\s+/).filter(Boolean);
   if (words.length === 0 || words.length > 2 || /^ferni$/i.test(words[0])) return null;
+  if (CALENDAR.test(words[0])) return null;
   const named = /^[A-Z]/.test(words[0]) || HONORIFIC.test(words[0]);
-  if (!owned && !named && !KIN.has(words[0].toLowerCase())) return null;
+  if (!owned && !named && relationOf(words[0]) === undefined) return null;
   return personOf(words.join(' '));
 };
-/** People after the first one in the asked-about clause, up to the first item that names no one. */
+/**
+ * People after the first one in the asked-about clause, up to the first item that names no one.
+ * The list must go on straight from the first person: "my mom on Friday or Saturday" lists days.
+ */
 const morePeople = (clause: string): string[] => {
-  const [, ...items] = clause.split(LIST_SEPARATOR);
+  const [between, ...items] = clause.split(LIST_SEPARATOR);
+  if (between.trim()) return [];
   const people: string[] = [];
   for (const item of items) {
     const person = listedPerson(item.trim());
@@ -186,12 +192,15 @@ const FOLLOW_ON =
  * of them, and a pronoun is no one new.
  */
 const askedPeople = (latestCaller: string): string[] => {
-  const text = latestCaller.replace(/[\u2018\u2019]/g, "'");
+  // A full stop ends a sentence ("my mom. My dad too?"), except after a title ("Dr. Kim").
+  const text = latestCaller
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/(?<!\b(?:dr|mr|mrs|ms|st))\.(?=\s|$)/gi, '?');
   const people: string[] = [];
   for (const m of text.matchAll(ASKED_WHO)) {
     const first = personOf(m[1]);
     if (first) people.push(first);
-    const [clause, ...after] = text.slice((m.index ?? 0) + m[0].length).split(/\s*[?.!;]+\s*/);
+    const [clause, ...after] = text.slice((m.index ?? 0) + m[0].length).split(/\s*[?!;]+\s*/);
     people.push(...morePeople(clause));
     for (const sentence of after) {
       const follow = FOLLOW_ON.exec(sentence.trim());

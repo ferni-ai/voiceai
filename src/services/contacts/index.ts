@@ -103,9 +103,6 @@ export {
   outreachNudges,
 } from './outreach-nudges.js';
 
-// Words people use for someone, by relationship group
-export { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
-
 // Voice Message Service
 export {
   generateVoiceAudio,
