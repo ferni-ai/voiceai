@@ -59,10 +59,13 @@ async function exitWithRiskInTheWait(sessionId: string): Promise<void> {
   await exit;
 }
 
-/** The line being spoken ends; the coordinator plays what is queued once its cooldown passes. */
+/**
+ * The line being spoken ends; the coordinator plays what is queued once its cooldown passes.
+ * Short steps: a RESPONSE line expires after 10 s in the queue, which must not hide a goodbye.
+ */
 async function endLine(): Promise<void> {
   getSpeechCoordinator().onSpeechEnded(false, 1000);
-  await vi.advanceTimersByTimeAsync(5_000);
+  await vi.advanceTimersByTimeAsync(2_000);
 }
 
 beforeEach(() => {
