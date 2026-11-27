@@ -1,7 +1,8 @@
 #!/bin/bash
 # Nightly capability sweep on ferni-dev: claim dev, deploy origin/main to dev, run
 # lanes a and b (the 2026-10-21 scenario set), judge, pull the agent logs, analyze,
-# score each capability (scorecard.mjs) and report. Dev only: no prod path exists here.
+# score each capability (scorecard.mjs) and report. Dev only: nothing here changes prod; the
+# flag parity step only reads prod's flag words (lk agent secrets / logs, read-only).
 #
 # usage: scripts/voice-eval/nightly/run-nightly.sh     (from ~/Projects/voiceai at origin/main)
 #   NIGHTLY_DRY_RUN=1   print the plan and run nothing (no claim, deploy, call or write)
@@ -219,6 +220,12 @@ do_judge() {
   tonight | JUDGE_K=2 JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 1 -P 4 node "$EVAL/judge.mjs" >> "$OUT/judge.log" 2>&1 \
     || log "some judge calls failed (see judge.log)"
 }
+# The blind listener (audio-judge.mjs, #4513): voice scores merged into each judge verdict, so it
+# runs after do_judge (which rewrites the verdicts) and before do_collect copies them.
+do_listen() {
+  tonight | JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 4 -P 2 node "$EVAL/audio-judge.mjs" >> "$OUT/listen.log" 2>&1 \
+    || log "some audio judge calls failed (see listen.log)"
+}
 do_collect() {
   mkdir -p "$OUT/runs" && cp -p "$EVAL"/out/*-"$TAG"*.json "$OUT/runs/" \
     && git rev-parse --short=9 HEAD > "$OUT/build.txt"
@@ -266,12 +273,33 @@ do_report() {
     > /dev/null || log "issue comment failed"
 }
 
+# Dev vs prod flag words from each agent's EFFECTIVE_SETTINGS boot line (ops:secrets-parity,
+# read-only: lk agent secrets names and lk agent logs; it prints names and flag words, never a
+# value). The sweep tests what dev runs, so a flag on in prod but off in dev goes untested, and
+# a flag on in dev but off in prod is a promotion candidate (2026-11-26: 3 and 21). Appended to
+# REPORT.md and COMMENT.md on every claimed night; its exit (0 clean, 1 drift, 2 cannot verify)
+# never changes the sweep's.
+PROD_P=ferni-prod PROD_CONF=$ROOT/livekit.prod-cloud.toml
+do_parity() {
+  local f="$OUT/flag-parity.md" rc m
+  pnpm -s ops:secrets-parity --dev-project $P --dev-config "$CONF" \
+    --prod-project $PROD_P --prod-config "$PROD_CONF" > "$f" 2>> "$OUT/parity.log"
+  rc=$?
+  [ -s "$f" ] || { log "flag parity printed nothing (exit $rc, see parity.log)"; return 0; }
+  for m in REPORT.md COMMENT.md; do
+    [ -f "$OUT/$m" ] || continue
+    printf '\n<details><summary>Flags, dev vs prod (parity exit %s)</summary>\n\n%s\n\n</details>\n' \
+      "$rc" "$(cat "$f")" >> "$OUT/$m"
+  done
+}
+
 finish() {
   trap '' INT TERM
   # shellcheck disable=SC2086 # pid list
   [ "$DRY" = 1 ] || stop_jobs $LANE_PIDS
   [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only if dev resolves to (default))" do_cleanup
   [ "$STATUS" = ok ] || [ "$DRY" = 1 ] || write_status "$STATUS" "$REASON"
+  [ "$CLAIMED" = 1 ] && step parity "pnpm ops:secrets-parity $P vs $PROD_P (read-only) -> REPORT.md, COMMENT.md" do_parity
   step report "board.md line + gh issue comment ${ISSUE:-<unset: skipped>} --body-file $OUT/COMMENT.md" do_report
   [ "$DRY" = 1 ] || stop_jobs $RENEW_PID
   [ "$CLAIMED" = 1 ] && step release "claim.py release $P" python3 "$CLAIM" release $P --note "nightly sweep $DATE: exit $RC"
@@ -302,6 +330,7 @@ step lanes "lanes a + b in parallel, label $TAG<label>, memlive uid $MEMLIVE" do
 [ -f "$RECALL_SET" ] && { step recall "recall-eval.mjs: ${NIGHTLY_RECALL_WORLDS:-3} held-out worlds -> $OUT/recall.json" do_recall \
   || log "recall eval failed (see recall.log)"; }
 step judge "judge.mjs (JUDGE_K=2, JUDGE_MODEL=pro, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
+step listen "audio-judge.mjs on tonight's runs: voice scores into each judge verdict" do_listen
 step collect "copy scripts/voice-eval/out/*-$TAG*.json to $OUT/runs" do_collect
 step logs "gcloud logging read cloud-agents for agent $DEV_AGENT over the lanes' window + boot lines" do_logs \
   || log "log capture failed; summary will be missing"

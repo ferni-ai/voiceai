@@ -1,233 +1,200 @@
 /**
  * Soul Stats Service
  *
- * Tracks and provides metrics for "Avatar Soul" responses - the superhuman
- * emotional intelligence capabilities that make Ferni "better than human".
+ * Counts how often each avatar moment plays in this browser, and sends the
+ * counts to POST /api/soul-stats so the admin panel can show what people's
+ * avatars did in the last 24 h (#4069). Each is counted where it plays, after
+ * whatever could refuse it (reduced motion, the crisis hold, a covered avatar):
+ * - Micro-expressions: subliminal 40-150 ms emotional flashes
+ * - Protective modes: avatar scales up, draws closer during distress
+ * - Comfort pulses: warm pulsing glow during self-soothing
+ * - Memory sparks: golden flash acknowledging emotional peaks
+ * - Warmth blooms, growth celebrations and cameo arrivals
+ * - Crisis holds: counted when a hold starts, not while it is held
+ * - Name lifts, by kind: brighten, attentive, comfort
  *
- * Metrics tracked:
- * - Micro-expressions: Subliminal 40-150ms emotional flashes
- * - Protective modes: Avatar scales up, draws closer during distress
- * - Comfort pulses: Warm pulsing glow during self-soothing
- * - Memory sparks: Golden flash acknowledging emotional peaks
+ * Counts only, kept in memory: never the trigger, a session id, the uid or any
+ * text, and nothing in localStorage. Sent for a signed-in person at most once a
+ * minute, and when the page is hidden. A 404 (SOUL_STATS off on the server), 400
+ * or 413 stops this page sending for the rest of its life.
  *
  * @module SoulStatsService
  */
 
+import { isAvatarLab } from '../utils/avatar-lab-path.js';
 import { createLogger } from '../utils/logger.js';
+import { getAuthToken } from './firebase-auth.service.js';
 
 const log = createLogger('SoulStatsService');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+/** The same keys, in the same order, as the server's SOUL_COUNT_KEYS (src/api/soul-stats/). */
+export const SOUL_COUNT_KEYS = [
+  'micro_expression',
+  'protective_mode',
+  'comfort_pulse',
+  'memory_spark',
+  'warmth_bloom',
+  'celebrate_growth',
+  'cameo_arrival',
+  'crisis_hold',
+  'name_lift_brighten',
+  'name_lift_attentive',
+  'name_lift_comfort',
+] as const;
+export type SoulCountKey = (typeof SOUL_COUNT_KEYS)[number];
+export type SoulCounts = Record<SoulCountKey, number>;
 
-export interface SoulStats {
-  /** Number of micro-expressions triggered in the last 24 hours */
-  microExpressions24h: number;
-  /** Number of times protective mode was activated */
-  protectiveModes: number;
-  /** Number of comfort pulse sequences */
-  comfortPulses: number;
-  /** Number of memory spark triggers */
-  memorySparks: number;
-  /** Timestamp of last stats update */
-  lastUpdated?: string;
+const SOUL_STATS_URL = '/api/soul-stats';
+const SEND_EVERY_MS = 60_000;
+/** The server refuses a count above this, so one send never carries more. */
+const MAX_COUNT = 500;
+/** Off on the server (404), or a body it will never take (400, 413): stop for this page. */
+const STOP_STATUSES = new Set([400, 404, 413]);
+
+const noCounts = (): SoulCounts =>
+  Object.fromEntries(SOUL_COUNT_KEYS.map((k) => [k, 0])) as SoulCounts;
+
+export interface SoulStatsDeps {
+  /** The signed-in person's ID token, or null when nobody is signed in. */
+  getToken: () => Promise<string | null>;
+  fetch: (url: string, init: RequestInit) => Promise<Response>;
+  setTimer: (send: () => void, ms: number) => void;
+  /** Calls `send` whenever the page is hidden or unloaded. */
+  onPageHide: (send: () => void) => void;
 }
 
-export interface SoulStatsEvent {
-  type: 'micro_expression' | 'protective_mode' | 'comfort_pulse' | 'memory_spark';
-  timestamp: string;
-  sessionId?: string;
-  trigger?: string;
-  duration?: number;
+function onPageHide(send: () => void): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  window.addEventListener('pagehide', send);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') send();
+  });
 }
 
-// ============================================================================
-// LOCAL TRACKING (Client-side accumulation)
-// ============================================================================
-
-const localStats: SoulStats = {
-  microExpressions24h: 0,
-  protectiveModes: 0,
-  comfortPulses: 0,
-  memorySparks: 0,
+const browserDeps: SoulStatsDeps = {
+  getToken: () => getAuthToken(),
+  fetch: (url, init) => fetch(url, init),
+  setTimer: (send, ms) => void setTimeout(send, ms),
+  onPageHide,
 };
 
-const STORAGE_KEY = 'ferni_soul_stats';
-const STATS_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+export class SoulStatsService {
+  private pending = noCounts();
+  private timerSet = false;
+  private listening = false;
+  private stopped = false;
 
-interface StoredStats {
-  stats: SoulStats;
-  savedAt: string;
-}
+  constructor(private readonly deps: SoulStatsDeps = browserDeps) {}
 
-/**
- * Load stats from localStorage (for client-side persistence)
- */
-function loadLocalStats(): void {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const data: StoredStats = JSON.parse(stored);
-      const savedAt = new Date(data.savedAt).getTime();
-      const now = Date.now();
-
-      // Reset if older than 24 hours
-      if (now - savedAt > STATS_TTL_MS) {
-        log.debug('Local stats expired, resetting');
-        saveLocalStats();
-        return;
-      }
-
-      Object.assign(localStats, data.stats);
-      log.debug('Loaded local soul stats', localStats);
-    }
-  } catch (err) {
-    log.warn('Failed to load local soul stats', err);
-  }
-}
-
-/**
- * Save stats to localStorage
- */
-function saveLocalStats(): void {
-  try {
-    const data: StoredStats = {
-      stats: { ...localStats },
-      savedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (err) {
-    log.warn('Failed to save local soul stats', err);
-  }
-}
-
-// ============================================================================
-// SERVICE CLASS
-// ============================================================================
-
-class SoulStatsService {
-  private initialized = false;
-  private serverStats: SoulStats | null = null;
-
-  /**
-   * Initialize the service and load persisted stats
-   */
-  init(): void {
-    if (this.initialized) return;
-    loadLocalStats();
-    this.initialized = true;
-    log.info('Soul stats service initialized');
+  recordMicroExpression(): void {
+    this.add('micro_expression');
   }
 
-  /**
-   * Record a micro-expression trigger
-   */
-  recordMicroExpression(trigger?: string): void {
-    localStats.microExpressions24h++;
-    saveLocalStats();
-    log.debug('Recorded micro-expression', { trigger, total: localStats.microExpressions24h });
+  recordProtectiveMode(): void {
+    this.add('protective_mode');
   }
 
-  /**
-   * Record protective mode activation
-   */
-  recordProtectiveMode(sessionId?: string): void {
-    localStats.protectiveModes++;
-    saveLocalStats();
-    log.debug('Recorded protective mode', { sessionId, total: localStats.protectiveModes });
-  }
-
-  /**
-   * Record comfort pulse trigger
-   */
   recordComfortPulse(): void {
-    localStats.comfortPulses++;
-    saveLocalStats();
-    log.debug('Recorded comfort pulse', { total: localStats.comfortPulses });
+    this.add('comfort_pulse');
   }
 
-  /**
-   * Record memory spark trigger
-   */
   recordMemorySpark(): void {
-    localStats.memorySparks++;
-    saveLocalStats();
-    log.debug('Recorded memory spark', { total: localStats.memorySparks });
+    this.add('memory_spark');
   }
 
-  /**
-   * Get combined stats (local + server if available)
-   */
-  getStats(): SoulStats {
-    if (this.serverStats) {
-      // Merge local and server stats
-      return {
-        microExpressions24h: localStats.microExpressions24h + (this.serverStats.microExpressions24h || 0),
-        protectiveModes: localStats.protectiveModes + (this.serverStats.protectiveModes || 0),
-        comfortPulses: localStats.comfortPulses + (this.serverStats.comfortPulses || 0),
-        memorySparks: localStats.memorySparks + (this.serverStats.memorySparks || 0),
-        lastUpdated: this.serverStats.lastUpdated,
-      };
-    }
-    return { ...localStats, lastUpdated: new Date().toISOString() };
+  recordWarmthBloom(): void {
+    this.add('warmth_bloom');
   }
 
-  /**
-   * Fetch stats from server API (admin only)
-   */
-  async fetchFromServer(): Promise<SoulStats> {
+  recordCelebrateGrowth(): void {
+    this.add('celebrate_growth');
+  }
+
+  recordCameoArrival(): void {
+    this.add('cameo_arrival');
+  }
+
+  /** Once per hold, when it starts. */
+  recordCrisisHold(): void {
+    this.add('crisis_hold');
+  }
+
+  recordNameLift(effect: 'brighten' | 'attentive' | 'comfort'): void {
+    this.add(`name_lift_${effect}`);
+  }
+
+  /** Sends what is pending: nothing when every count is 0, nobody is signed in, or once stopped. */
+  async send(): Promise<void> {
+    if (this.stopped || SOUL_COUNT_KEYS.every((k) => this.pending[k] === 0)) return;
+    // Taken before any await, so a timer send and a page-hide send never carry the same counts
+    const counts = this.pending;
+    this.pending = noCounts();
+    const token = await this.deps.getToken().catch(() => null);
+    if (!token) return this.keep(counts, false); // signed out: hold them, no retry timer
     try {
-      // Admin-only, so loaded on demand: a static import put admin-api in every visitor's download
-      const { getAdminHeadersAsync } = await import('../admin/admin-api.js');
-      const headers = await getAdminHeadersAsync();
-      const response = await fetch('/api/v1/admin/soul/stats', { headers });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.serverStats = data as SoulStats;
-        log.debug('Fetched server soul stats', this.serverStats);
-        return this.getStats();
+      const response = await this.deps.fetch(SOUL_STATS_URL, {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ counts }),
+      });
+      if (STOP_STATUSES.has(response.status)) {
+        this.stopped = true;
+        const why = { status: response.status };
+        // 404 is SOUL_STATS off, as expected; a 400 or 413 means this page and the server disagree
+        if (response.status === 404) {
+          log.debug('Soul stats off; not sending again on this page', why);
+        } else {
+          log.warn('Soul stats refused; not sending again on this page', why);
+        }
+      } else if (!response.ok) {
+        log.warn('Soul stats not stored; keeping them for the next send', {
+          status: response.status,
+        });
+        this.keep(counts);
       }
-
-      // API not yet implemented - return local stats
-      if (response.status === 404) {
-        log.debug('Soul stats API not yet implemented, using local stats');
-        return this.getStats();
-      }
-
-      log.warn('Failed to fetch soul stats from server', { status: response.status });
     } catch (err) {
-      log.warn('Error fetching soul stats', err);
+      log.warn('Could not send soul stats; keeping them for the next send', err);
+      this.keep(counts);
     }
-
-    return this.getStats();
   }
 
-  /**
-   * Reset local stats (for testing)
-   */
-  resetLocalStats(): void {
-    localStats.microExpressions24h = 0;
-    localStats.protectiveModes = 0;
-    localStats.comfortPulses = 0;
-    localStats.memorySparks = 0;
-    this.serverStats = null;
-    this.initialized = false;
-    saveLocalStats();
-    log.info('Soul stats reset');
+  /** Every record call ends here, and never throws: a count must not stop a moment or a crisis hold. */
+  private add(key: SoulCountKey): void {
+    try {
+      this.count(key);
+    } catch (error) {
+      log.warn('Soul stat not counted', { key, error: String(error) });
+    }
+  }
+
+  private count(key: SoulCountKey): void {
+    // The admin avatar lab plays the avatar for an admin, not for a person: it counts nothing
+    if (this.stopped || isAvatarLab()) return;
+    this.pending[key] = Math.min(MAX_COUNT, this.pending[key] + 1);
+    if (!this.listening) {
+      this.listening = true;
+      this.deps.onPageHide(() => void this.send());
+    }
+    this.schedule();
+  }
+
+  /** Puts counts that were not stored back, so the next send carries them. */
+  private keep(counts: SoulCounts, retry = true): void {
+    for (const k of SOUL_COUNT_KEYS) {
+      this.pending[k] = Math.min(MAX_COUNT, this.pending[k] + counts[k]);
+    }
+    if (retry) this.schedule();
+  }
+
+  private schedule(): void {
+    if (this.timerSet) return;
+    this.timerSet = true;
+    this.deps.setTimer(() => {
+      this.timerSet = false;
+      void this.send();
+    }, SEND_EVERY_MS);
   }
 }
-
-// ============================================================================
-// SINGLETON EXPORT
-// ============================================================================
 
 export const soulStatsService = new SoulStatsService();
-
-/**
- * Initialize soul stats tracking (call on app startup)
- */
-export function initSoulStats(): void {
-  soulStatsService.init();
-}

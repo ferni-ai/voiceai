@@ -74,6 +74,28 @@ export function voiceStateTags(from: VoiceState, to: VoiceState): string {
 const MIN_CHUNK = 15;
 
 /**
+ * The reply's first full sentence (the 'sentence' stage): `onSentence` runs once, when the text
+ * added so far first holds an end with a space after it, or at end() of a reply that ran out
+ * without one. A reply cut before either never calls it.
+ */
+function firstSentenceWatch(onSentence: () => void): { add(value: string): void; end(): void } {
+  let text: string | null = '';
+  const mark = (): void => {
+    text = null;
+    onSentence();
+  };
+  return {
+    add: (value) => {
+      if (text === null) return;
+      text += value;
+      if (SENTENCE_THEN_SPACE.test(text)) mark();
+    },
+    end: () => {
+      if (text !== null) mark();
+    },
+  };
+}
+/**
  * A beat of silence between sentences, written by code between pieces that end
  * a sentence. Off by default: Cartesia splits the generation at every <break>
  * (sonic-3 SSML docs), and with one after each sentence a dev call heard the
@@ -90,6 +112,8 @@ export function sentenceBreakMs(env: Record<string, string | undefined> = proces
 }
 // A full stop, ! or ?; not an ellipsis ("my window... reminds me" runs on).
 const ENDS_SENTENCE = /(?:[!?]|(?<!\.)\.)["'”’)\]]*$/;
+// The same end with a space after it: the sentence is over ("3.5" and "..." are not).
+const SENTENCE_THEN_SPACE = /(?:[!?]|(?<!\.)\.(?!\.))["'”’)\]]*\s/;
 
 export interface ContinuationOptions {
   textStream: NodeReadableStream<string>;
@@ -131,8 +155,8 @@ export interface ContinuationOptions {
   sentenceBreakMs?: number;
   /** Override FIRST_CHUNK_WAIT_MS (tests). */
   firstChunkWaitMs?: number;
-  /** Timing marks for the first-audio log: first LLM text in, first text sent. */
-  onStage?(stage: 'text' | 'push'): void;
+  /** Timing marks for the first-audio log: first LLM text in, first text sent, first full sentence in. */
+  onStage?(stage: 'text' | 'push' | 'sentence'): void;
   onError(error: unknown, phase: 'text' | 'audio'): void;
   /** Put the reply stream's word timings on the frames (default: TTS_ALIGNED_TRANSCRIPT). */
   wordTimings?: boolean;
@@ -222,6 +246,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         opts.onStage?.('push');
       }
     };
+    const sentence = firstSentenceWatch(() => opts.onStage?.('sentence'));
     const waitMs = opts.firstChunkWaitMs ?? FIRST_CHUNK_WAIT_MS;
     let pending: Promise<{ done: boolean; value?: string }> | undefined;
     let firstTextAt: number | undefined;
@@ -267,6 +292,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
             opts.onStage?.('text');
           }
           buffer += value;
+          sentence.add(value);
         }
         let end: number | null;
         while (
@@ -280,6 +306,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         if (done) break;
       }
       if (buffer && !stopped) push(buffer);
+      // A reply that ran to its end: its last words were its first sentence. A cut one has none.
+      if (heardText && !stopped) sentence.end();
       current.end();
     } catch (error) {
       onError(error, 'text');

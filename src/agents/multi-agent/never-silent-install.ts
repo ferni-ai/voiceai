@@ -17,6 +17,7 @@ import {
   neverSilentMode,
   type NeverSilentSession,
 } from './never-silent.js';
+import { createToolWait, toolWaitOn, withToolWait } from './never-silent-tool-wait.js';
 
 const log = getLogger();
 
@@ -45,12 +46,23 @@ export function installNeverSilent(
   const events = input.sessionWithEvents as {
     on: (event: string, handler: (ev: unknown) => void) => void;
   };
-  const guard = createNeverSilentGuard({
+  const shared = {
     session: session as unknown as NeverSilentSession,
     mode,
-    hangMs: hangMs(env),
     stayQuiet: () => isSessionClosing(sessionId) || musicPlaying(),
     replyPaused: () => replyPaused(session),
+  };
+  const wait = toolWaitOn(env)
+    ? createToolWait({
+        ...shared,
+        waitMs: hangMs(env),
+        log: (fields) => log.warn({ sessionId, ...fields }, 'NEVER_SILENT_FALLBACK'),
+      })
+    : null;
+  const inner = createNeverSilentGuard({
+    ...shared,
+    hangMs: hangMs(env),
+    toolWait: wait !== null,
     renderLine: async (text) => {
       const voiceId = sessionVoiceId(session);
       return voiceId ? render(text, voiceId, { env }) : { failure: 'no_voice' };
@@ -64,6 +76,7 @@ export function installNeverSilent(
           : 'NEVER_SILENT_FALLBACK'
       ),
   });
+  const guard = withToolWait(inner, wait);
   const handlers: Array<{ event: string; handler: (ev: unknown) => void }> = [
     { event: 'conversation_item_added', handler: guard.onItemAdded },
     { event: 'agent_state_changed', handler: guard.onAgentState },

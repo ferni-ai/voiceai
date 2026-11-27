@@ -37,13 +37,43 @@ export async function handleGetConversations(
     const { getConversationHistoryService } =
       await import('../../services/stores/conversation-history.js');
     const historyService = getConversationHistoryService();
-    const data = await historyService.getHistory(userId, limit);
+    const data = await rememberedHistory(userId, await historyService.getHistory(userId, limit));
 
     sendJSONCached(res, data, 60);
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get conversations');
     sendError(res, API_ERRORS.CONVERSATIONS_FETCH_FAILED, 500);
   }
+}
+
+/** The words a listed call carries (ConversationSession). */
+interface SessionText {
+  insights: string[];
+  highlights: string[];
+  topicsDiscussed: string[];
+}
+
+/**
+ * The history less each highlight, insight and topic about something the caller asked Ferni to
+ * forget (FORGET_EVERY_READER on; off, it is returned as read). The row stays: the call happened.
+ * A highlight is the call's summary, so all three read as passages (forgottenPassageCheck), as
+ * recall reads call summaries.
+ */
+async function rememberedHistory<H extends { sessions: SessionText[]; insightCount: number }>(
+  userId: string,
+  data: H
+): Promise<H> {
+  const { forgottenPassageCheck, remembered } = await import('../../memory/index.js');
+  const forgotten = await forgottenPassageCheck(userId, 'conversations');
+  if (!forgotten) return data;
+  const keep = (texts: string[]): string[] => remembered(texts, forgotten, (t) => t);
+  const sessions = data.sessions.map((s) => ({
+    ...s,
+    insights: keep(s.insights),
+    highlights: keep(s.highlights),
+    topicsDiscussed: keep(s.topicsDiscussed),
+  }));
+  return { ...data, sessions, insightCount: sessions.reduce((n, s) => n + s.insights.length, 0) };
 }
 
 /** The session summary the web app's conversation tracker sends on hang-up. */

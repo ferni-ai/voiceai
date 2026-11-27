@@ -23,8 +23,9 @@ import {
 import {
   getWorkflowData,
   createWorkflow,
-  updateWorkflow,
+  setWorkflowStatus,
   deleteWorkflow,
+  orUnsaved, // STORE_WRITES_TRUTHFUL: a change that was not saved says so
   type WorkflowTrigger,
 } from '../../../services/stores/workflow-store.js';
 
@@ -317,9 +318,9 @@ const workflowToolDefs: ToolDefinition[] = [
               return `I couldn't find an automation matching "${params.name}".`;
             }
 
-            await updateWorkflow(userId, workflow.id, { status: 'paused' });
+            const unsaved = await orUnsaved(setWorkflowStatus(userId, workflow.id, 'paused'));
 
-            return (
+            return unsaved ?? (
               `⏸️ Paused **${workflow.name}**\n` + `Say "resume ${workflow.name}" to reactivate it.`
             );
           },
@@ -359,9 +360,9 @@ const workflowToolDefs: ToolDefinition[] = [
               return `I couldn't find an automation matching "${params.name}".`;
             }
 
-            await updateWorkflow(userId, workflow.id, { status: 'active' });
+            const unsaved = await orUnsaved(setWorkflowStatus(userId, workflow.id, 'active'));
 
-            return (
+            return unsaved ?? (
               `▶️ Resumed **${workflow.name}**\n` +
               `It will now trigger on: ${describeTrigger(workflow.trigger)}`
             );
@@ -402,9 +403,9 @@ const workflowToolDefs: ToolDefinition[] = [
               return `I couldn't find an automation matching "${params.name}".`;
             }
 
-            await deleteWorkflow(userId, workflow.id);
+            const unsaved = await orUnsaved(deleteWorkflow(userId, workflow.id));
 
-            return `🗑️ Deleted **${workflow.name}**`;
+            return unsaved ?? `🗑️ Deleted **${workflow.name}**`;
           },
         });
       },

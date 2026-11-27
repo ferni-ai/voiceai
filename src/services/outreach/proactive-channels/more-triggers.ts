@@ -3,7 +3,8 @@
  *
  * - A reminder that didn't go out (found too late, or the channel failed):
  *   the same day, Ferni owns it. "I was meant to remind you to call the
- *   pharmacy earlier. Did it happen?"
+ *   pharmacy earlier. Did it happen?" Not one about a forgotten topic
+ *   (FORGET_EVERY_READER: the caller's check, read once in triggers.ts).
  * - Something they said they'd do, when its follow-up comes due
  *   (COACH_FOLLOW_THROUGH, commitment-follow-up.ts: on for everyone, or for
  *   this person through their cohort flags). For allowlisted users this
@@ -25,6 +26,7 @@ import {
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { shownRows, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { flagForUser } from '../../platform/cohort-flags.js';
+import type { ForgottenCheck } from '../../../memory/index.js';
 import type { ProactiveTrigger } from './types.js';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -47,7 +49,11 @@ function quote(s: unknown, max = 90): string | undefined {
  * Reminders to the user (not to a contact) that didn't reach them in the last
  * 12 hours: missed, failed, or saved in the app with nobody told (in_app_unnotified).
  */
-export async function reminderTriggers(userId: string, now: Date): Promise<ProactiveTrigger[]> {
+export async function reminderTriggers(
+  userId: string,
+  now: Date,
+  forgotten: ForgottenCheck | null = null
+): Promise<ProactiveTrigger[]> {
   const db = getFirestoreDb();
   if (!db) return [];
   const col = db.collection('bogle_users').doc(userId).collection('reminders');
@@ -62,6 +68,7 @@ export async function reminderTriggers(userId: string, now: Date): Promise<Proac
     const at = Date.parse(String(r.scheduledFor ?? ''));
     const what = quote(r.message);
     if (r.isDirectToContact === true || !what || Number.isNaN(at)) continue;
+    if (forgotten?.(String(r.message))) continue;
     if (at > now.getTime() || now.getTime() - at > REMINDER_OWN_UP_MS) continue;
     out.push({
       sourceId: `reminder:${doc.id}`,

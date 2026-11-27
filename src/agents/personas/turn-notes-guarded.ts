@@ -41,12 +41,12 @@ import {
 import { withLiveData as raw_withLiveData } from './turn-shape.js';
 import { personaVoiceNote as raw_personaVoiceNote } from './persona-voice.js';
 import { attunementNote as raw_attunementNote } from './turn-attunement.js';
-import { goodNewsNote as raw_goodNewsNote } from './good-news-bigger.js';
+import { newsNote as raw_newsNote } from './turn-toward-bids.js';
 import { callerSetsDepthNote as raw_callerSetsDepthNote } from './caller-sets-depth.js';
 import { repairNoteFor as raw_repairNoteFor } from './repair-check.js';
 import { formatNotes as raw_formatNotes } from './director-notes.js';
 import { listeningNotes as raw_listeningNotes } from './listen-first-turn.js';
-import { ferniStateTurn as raw_ferniStateTurn } from './ferni-state.js';
+import { ferniStateStays as raw_ferniStateTurn } from './self-share-stays.js'; // SELF_SHARE_STAYS
 import { styleFor as raw_styleFor } from './turn-request-style.js';
 import { noteTurn as raw_noteTurn } from './move-log.js';
 import { clearBurstOffer as raw_clearBurstOffer } from './vocal-bursts.js';
@@ -101,7 +101,7 @@ export const internalsNote = guarded('internals', raw_internalsNote, '');
 export const withLiveData = guarded('liveData', raw_withLiveData, ['', '']);
 export const personaVoiceNote = guarded('personaVoice', raw_personaVoiceNote, '', SAFE);
 export const attunementNote = guarded('attunement', raw_attunementNote, '');
-export const goodNewsNote = guarded('goodNews', raw_goodNewsNote, '');
+export const newsNote = guarded('news', raw_newsNote, '');
 export const callerSetsDepthNote = guarded('callerSetsDepth', raw_callerSetsDepthNote, '');
 export const repairNoteFor = guarded('repair', raw_repairNoteFor, '');
 export const formatNotes = guarded('directorNotes', raw_formatNotes, '');

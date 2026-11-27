@@ -19,6 +19,8 @@ export const MEMORY_COHORT_FLAGS = [
   // (remembered-facts.ts, honest-memory.ts, stored-fact-vectors.ts).
   'REMEMBER_TO_RECALL',
   'MEMORY_TOOLS_HONEST',
+  // The UI server's text chat asks per person, never process.env (chat-remember-to-recall.ts).
+  'CHAT_REMEMBER_TO_RECALL',
   // After the call, per person: dualWriteFacts reads both through personFlagOn or envForCaller
   // (facts-dual-write.ts).
   'FACTS_DUAL_WRITE',
