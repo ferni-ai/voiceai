@@ -19,6 +19,8 @@ beforeEach(() => {
     requested.push(url);
     const body = url.endsWith('/metrics')
       ? {
+          measured: true,
+          windowHours: 24,
           totalSessions: 2,
           distressDetections: 0,
           avgCognitiveLoad: 0.2,

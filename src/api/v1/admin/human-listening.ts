@@ -172,12 +172,21 @@ export async function handleHumanListeningRoutes(
   }
 }
 
+/** Why the metrics are not a measurement: this process keeps the events, and nothing sends them yet. */
+export const NOTHING_RECORDED =
+  'no listening signal has reached this server since it started; the voice agent does not send them yet';
+
+const WINDOW_HOURS = 24;
+
 /**
- * Calculate aggregate metrics
+ * Aggregate metrics over the last 24 hours, or `measured: false` when this server
+ * holds no event at all, so an empty store never reads as "no signals on any call".
+ * An average with no reading in the window is null, never a stand-in number.
  */
 function calculateMetrics() {
+  if (recentEvents.length === 0) return { measured: false, reason: NOTHING_RECORDED };
   const now = Date.now();
-  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  const oneDayAgo = now - WINDOW_HOURS * 60 * 60 * 1000;
 
   // Filter events from last 24 hours
   const dayEvents = recentEvents.filter((e) => e.timestamp > oneDayAgo);
@@ -200,18 +209,22 @@ function calculateMetrics() {
           const severityScore = e.severity === 'low' ? 0.3 : e.severity === 'medium' ? 0.6 : 0.9;
           return sum + severityScore;
         }, 0) / cognitiveLoadEvents.length
-      : 0.35; // Default
+      : null;
 
   // Calculate engagement from disengagement events (inverse)
   const disengagementEvents = dayEvents.filter((e) => e.signalType === 'disengagement');
   const avgEngagement =
-    sessionIds.size > 0 ? 1 - disengagementEvents.length / sessionIds.size : 0.78;
+    sessionIds.size > 0
+      ? Math.max(0, Math.min(1, 1 - disengagementEvents.length / sessionIds.size))
+      : null;
 
   return {
+    measured: true,
+    windowHours: WINDOW_HOURS,
     totalSessions: sessionIds.size,
     distressDetections,
-    avgCognitiveLoad: sessionIds.size > 0 ? avgCognitiveLoad : 0,
-    avgEngagement: sessionIds.size > 0 ? Math.max(0, Math.min(1, avgEngagement)) : 0,
+    avgCognitiveLoad,
+    avgEngagement,
     selfSoothingDetections,
     hedgingDetections,
     tremorDetections,
