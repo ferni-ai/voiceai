@@ -42,8 +42,25 @@ interface Phrase {
 }
 const phrase = (text: string, yes: boolean): Phrase => ({ parts: text.split(' '), yes });
 
+/** One more try at a missed call (retryMissedCall, owner 2026-11-26): "try her again" restates
+ * that action only. Its time, "tomorrow", is filler there; for any other action it defers. */
+const retryPhrases = (objects: string[]): Phrase[] => [
+  phrase('try again', true),
+  phrase('one more try', true),
+  ...objects.flatMap((o) => [
+    phrase(`try ${o} again`, true),
+    phrase(`give ${o} another try`, true),
+  ]),
+  phrase('tomorrow', false),
+];
+
 /** The phrases allowed for this action: who it reaches decides which "call X" restates it. */
-function allowed(target: readonly string[], owner: readonly string[], call: boolean): Phrase[] {
+function allowed(
+  target: readonly string[],
+  owner: readonly string[],
+  call: boolean,
+  retry = false
+): Phrase[] {
   const people = target.filter((w) => !STOP.has(w));
   const pronoun = pronounOf(target);
   const objects = [
@@ -62,6 +79,7 @@ function allowed(target: readonly string[], owner: readonly string[], call: bool
     phrase('make the call', true),
     ...objects.flatMap((o) => [phrase(`call ${o}`, true), phrase(`give ${o} a call`, true)]),
     phrase('check in', false),
+    ...(retry ? retryPhrases(objects) : []),
   ];
 }
 
@@ -77,20 +95,22 @@ const tokens = (text: string): string[] =>
 
 /**
  * Whether the reply is a plain yes: wholly allow-listed phrases, at least one of them agreement,
- * no "?". Digits are kept, so "go ahead and call 555-0199" is not plain.
+ * no "?". Digits are kept, so "go ahead and call 555-0199" is not plain. `retry`: the action is
+ * one more try at a missed call (call must be true too), so "try her again" is a yes.
  */
 export function isClearYes(
   text: string,
   target: readonly string[] = [],
   owner: readonly string[] = [],
-  call = false
+  call = false,
+  retry = false
 ): boolean {
   if (text.includes('?')) return false;
   const said = tokens(text);
   // No name but the person read back after a "call", fillers or not: "go ahead and call, um, Fred".
   const named = new Set([...FERNI, ...owner]);
   if (said.some((w, i) => named.has(w) && said.slice(0, i).includes('call'))) return false;
-  return onlyYes(said, allowed(target, owner, call));
+  return onlyYes(said, allowed(target, owner, call, call && retry));
 }
 
 /**

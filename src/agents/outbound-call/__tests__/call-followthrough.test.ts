@@ -73,6 +73,7 @@ function ports(
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   delete process.env.CALL_FOLLOWTHROUGH;
   delete process.env.LIVEKIT_API_SECRET;
 });
@@ -311,6 +312,7 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
 
   it('on the live path, stores the result and the one retry for the requester', async () => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'off'); // main's redial; asks-first is the row below
     process.env.LIVEKIT_API_SECRET = 'server-secret';
     rows = [];
     const call = makeCall();
@@ -329,8 +331,28 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     });
   });
 
+  it('CALL_RETRY_ASKS_FIRST: the live path stores an offer, never a retry, and the report asks', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'on');
+    process.env.LIVEKIT_API_SECRET = 'server-secret';
+    rows = [];
+    const call = makeCall();
+    await beginOnBehalfCall('s15', call);
+
+    const outcome = await completeOnBehalfCall('s15', call, 40, true);
+
+    expect(outcome).toMatchObject({ status: 'no_answer', callbackRequired: true });
+    expect(outcome?.outcome).toMatch(/Want me to try again later\?$/);
+    expect(rows.find((r) => r.collection === 'scheduled_outreach')).toBeUndefined();
+    expect(rows.find((r) => r.collection === 'call_retry_offers')).toMatchObject({
+      id: `retry_${call.callId}`,
+      userId: 'user-1',
+    });
+  });
+
   it('a verified call can be retried by callId from another path in the job', async () => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'off'); // main's redial; asks-first is the row below
     process.env.LIVEKIT_API_SECRET = 'server-secret';
     rows = [];
     const call = makeCall();
@@ -341,6 +363,20 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     expect(rows.find((r) => r.collection === 'scheduled_outreach')?.id).toBe(
       `retry_${call.callId}`
     );
+  });
+
+  it('CALL_RETRY_ASKS_FIRST: retried by callId, it is offered, never scheduled', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'on');
+    process.env.LIVEKIT_API_SECRET = 'server-secret';
+    rows = [];
+    const call = makeCall();
+    await beginOnBehalfCall('s16', call);
+    const { scheduleCallRetryById } = await import('../../../services/outreach/call-retry.js');
+
+    expect(await scheduleCallRetryById(call.callId)).toBeNull();
+    expect(rows.find((r) => r.collection === 'scheduled_outreach')).toBeUndefined();
+    expect(rows.find((r) => r.collection === 'call_retry_offers')?.id).toBe(`retry_${call.callId}`);
   });
 
   it('an opt-out goes on the do-not-call list and blocks any later retry to that number', async () => {

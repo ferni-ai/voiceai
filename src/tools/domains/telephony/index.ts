@@ -33,6 +33,8 @@ export type { GatedCall, Placement } from './gated-call-port.js';
 import { withLiveSessionId } from '../../registry/live-session.js';
 // "Did you call my dad?": read-only status from the owner's own call records
 import { callStatusReply } from './call-status-tool.js';
+// CALL_RETRY_ASKS_FIRST: a missed call is tried again only on the owner's yes
+import { RETRY_MISSED_CALL_TOLD, retryMissedCall } from './call-retry-tool.js';
 import { flagOn } from '../../../config/env-flag.js';
 
 // The call path that really rings the user's phone
@@ -135,6 +137,28 @@ function callStatusDefinition(): ToolDefinition {
   };
 }
 
+/** retryMissedCall: one more try at a missed call, read back for the owner's yes (call-retry-tool.ts). */
+function retryMissedCallDefinition(): ToolDefinition {
+  return {
+    id: 'retryMissedCall',
+    name: 'Retry Missed Call',
+    description: 'Schedule one more try at a missed call, after the owner says yes',
+    domain: 'telephony',
+    tags: ['telephony', 'outbound', 'retry', 'on-behalf'],
+    requiredServices: ['twilio'],
+    create: (ctx: ToolContext): Tool =>
+      llm.tool({
+        description: RETRY_MISSED_CALL_TOLD,
+        parameters: z.object({
+          contactName: z
+            .string()
+            .describe('Who did not pick up, as the caller said it: e.g. "Rosa" or "mom"'),
+        }),
+        execute: async (args: { contactName: string }) => retryMissedCall(ctx.userId, args),
+      }),
+  };
+}
+
 // ============================================================================
 // LEGACY TOOL WRAPPER
 // ============================================================================
@@ -200,6 +224,7 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       create: (ctx: ToolContext) => withLiveSessionId(ctx, createCallOnBehalfTool),
     },
     callStatusDefinition(),
+    ...(flagOn('CALL_RETRY_ASKS_FIRST') ? [retryMissedCallDefinition()] : []),
   ];
 }
 
@@ -220,6 +245,8 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 
 export { getTelephonyToolDefinitions, callStatusReply };
 export { setCallRecallPort } from './call-status-tool.js';
+export { setMissedCallOffersPort } from './call-retry-tool.js';
+export type { FoundRetryOffer, MissedCallOffers } from './call-retry-tool.js';
 export { AGENT_NOT_JOINED, isAgentNotJoined } from './call-not-placed.js';
 export type { CallOutcome, OnBehalfCallRequest } from './types.js';
 export type { CallQuery, CallRecallPort, RecalledCall, SeenCall } from './call-status-tool.js';

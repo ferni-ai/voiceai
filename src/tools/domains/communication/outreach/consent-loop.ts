@@ -13,7 +13,7 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { READBACK_GRACE_MS } from './consent-readback.js';
-import { askOnceLine, channelOf, personOf, VERB } from './consent-action.js';
+import { askOnceLine, channelOf, wontLine } from './consent-action.js';
 import {
   asksAgain,
   classifyFerniTurn,
@@ -50,9 +50,7 @@ const evicted = (entry: SessionLog, pending: PendingAction): boolean => {
 function askedAgain(events: ConfirmEvent[], since: number, action: Action): boolean {
   return events.some((e) => e.seq > since && e.kind === 'caller' && asksAgain(e.text, action));
 }
-function honestLine(action: Action): string {
-  return `Okay, I won't ${VERB[channelOf(action)]} ${personOf(action)}.`;
-}
+const honestLine = (action: Action): string => wontLine(action);
 
 function closedReply(action: Action): string {
   return (

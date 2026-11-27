@@ -13,6 +13,7 @@ import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-ho
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installCallRecallPort } from '../../services/outreach/call-recall.js';
 import { installGatedCallPort } from '../../services/outreach/gated-call-paths.js';
+import { installMissedCallOffersPort } from '../../services/outreach/call-retry-offer.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { installToolErrorPort } from './tool-error-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -157,6 +158,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installCallRecallPort();
   // CALL_PATHS_PLACE_OR_HOLD: backgroundCall and referral calls go through placeOrHold.
   installGatedCallPort();
+  // CALL_RETRY_ASKS_FIRST: retryMissedCall schedules a missed call's retry on the owner's yes.
+  installMissedCallOffersPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
   // TOOL_RESULT_ERRORS: a tool's { success: false } reaches the model as an error (result-errors.ts).

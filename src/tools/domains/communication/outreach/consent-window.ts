@@ -12,7 +12,16 @@
 
 import { flagOn, type Env } from '../../../../config/env-flag.js';
 import { detectCrisis } from '../../../../services/safety/index.js';
-import { askOnceLine, channelOf, numberOf, personOf, STOP, targetWords } from './consent-action.js';
+import {
+  askOnceLine,
+  channelOf,
+  isRetry,
+  numberOf,
+  ownTime,
+  personOf,
+  STOP,
+  targetWords,
+} from './consent-action.js';
 import { judge, judgedNow } from './consent-judge.js';
 import {
   CHANNEL_WORDS,
@@ -47,6 +56,7 @@ const factsOf = (pending: PendingAction): ActionFacts => ({
   digits: numberOf(pending),
   owner: pending.owner ?? [],
   askOnce: askOnceLine(pending),
+  ...(isRetry(pending) ? { own: pending.readBack } : {}),
 });
 /** What Ferni's turn is for the stored action, now (consent-readback.ts). */
 export const ferniTurn = (pending: PendingAction, text: string): FerniTurn =>
@@ -176,13 +186,14 @@ export function asksAgain(
     /\b(call|text|ring|dial|message)\b/.test(line)
   );
 }
-/** A deferral or a redirect: "later", "not now", "call me", "have Priya call him". */
-const deferredOrRedirected = (text: string): boolean => {
+/** A deferral or a redirect: "later", "not now", "call me", "have Priya call him". `own`: the
+ * action's own time (a retry's "tomorrow", consent-action.ts ownTime), which defers nothing. */
+const deferredOrRedirected = (text: string, own: ReadonlySet<string> = new Set()): boolean => {
   const line = words(text).join(' ');
   return (
     REDIRECT.test(line) ||
     /\bnot (now|yet|today)\b/.test(line) ||
-    words(text).some((x) => DEFERRED.has(x))
+    words(text).some((x) => DEFERRED.has(x) && !own.has(x))
   );
 };
 /** Neither a yes nor a no: the whole turn is exactly "Did you (already) call him (yet)?" (an
@@ -268,7 +279,8 @@ const callerTurns = (
   events.flatMap((e) => (e.seq > from && e.seq < to && e.kind === 'caller' ? [e.text] : []));
 /** Ends it for good: a deferral, a redirect, someone else (a status question stays a question). */
 const endsForGood = (text: string, pending: PendingAction): boolean =>
-  deferredOrRedirected(text) || (!asksStatus(text, pending) && callsSomeoneElse(text, pending));
+  deferredOrRedirected(text, ownTime(pending)) ||
+  (!asksStatus(text, pending) && callsSomeoneElse(text, pending));
 
 /** Any final since the read-back was stored, over Ferni or before he read it, that ends it.
  * Finals are also read together: STT may split "call" | "my sister". A clarifying "Wait, which
@@ -292,7 +304,7 @@ export function reopenable(pending: PendingAction, events: ConfirmEvent[], to: n
   const said = callerTurns(pending, events, pending.startSeq, to);
   return (
     !said.some((t) => foreclosesReopen(t, pending)) &&
-    !deferredOrRedirected(said.join(' ')) &&
+    !deferredOrRedirected(said.join(' '), ownTime(pending)) &&
     !callsSomeoneElse(said.join(' '), pending)
   );
 }
@@ -301,7 +313,7 @@ export function reopenable(pending: PendingAction, events: ConfirmEvent[], to: n
 export function foreclosesReopen(text: string, pending: PendingAction): boolean {
   const call = channelOf(pending) === 'call';
   return (
-    deferredOrRedirected(text) ||
+    deferredOrRedirected(text, ownTime(pending)) ||
     callsSomeoneElse(text, pending) ||
     ANOTHER_LINE.test(words(text).join(' ')) ||
     (isPlainNo(text) &&
@@ -326,7 +338,7 @@ export function windowState(
   const plain =
     !answer.overTalk &&
     !turns.some(isQuestion) &&
-    isClearYes(turns.join(' '), targetWords(pending), pending.owner, call);
+    isClearYes(turns.join(' '), targetWords(pending), pending.owner, call, isRetry(pending));
   // The judge can only take a yes away: a no declines, a doubt asks once. Its error, or its
   // "question" (a bare request, e.g. "Call him.", which the allow-list already pinned), changes nothing.
   // On words that are all agreement, its "no" is a misread at worst ("Yes," | "Ferni."): ask once.

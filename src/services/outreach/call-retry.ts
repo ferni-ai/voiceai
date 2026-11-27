@@ -17,22 +17,33 @@
  *
  * Part of call follow-through (CALL_FOLLOWTHROUGH=on).
  *
+ * CALL_RETRY_ASKS_FIRST (owner, 2026-11-26): Ferni never redials on its own. The signed
+ * retry is stored as an offer and only the owner's yes schedules it (call-retry-offer.ts),
+ * for 10:00-18:00 where the callee is (calleeZoneOf), keeping the first call's own context.
+ *
  * @module services/outreach/call-retry
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { consentBlocks, writeOptOut, type ConsentDeps } from '../messaging/consent.js';
 import { mayReachForOwner } from '../messaging/consent-reach.js';
 import { isOwnVerifiedPhone } from './guarded-text.js';
 import { phoneHash } from './checkin-replies.js';
+import { timezoneFromPhone } from './area-code-timezones.js';
+import { isValidTimezone } from './call-hours-guard.js';
 import {
+  callPreferencesOf,
   onBehalfDispatchFor,
   onBehalfRequestFromDispatch,
   parseOnBehalfDispatch,
   dispatchSigningSecret,
   dispatchVerifySecrets,
   signOnBehalfDispatch,
+  takePreferencesForRetry,
   verifyOnBehalfDispatch,
+  VERIFIED_CALL_TTL_MS,
+  type CallPreferences,
   type OnBehalfDispatch,
 } from './on-behalf-dispatch.js';
 
@@ -56,6 +67,11 @@ export interface CallRetryDeps {
 /** Call follow-through (outcome detail and the one retry) is off unless CALL_FOLLOWTHROUGH=on. */
 export function isCallFollowthroughEnabled(): boolean {
   return process.env.CALL_FOLLOWTHROUGH === 'on';
+}
+
+/** The retry waits for the owner's yes, at the callee's hour, with the first call's context. */
+export function isCallRetryAsksFirst(): boolean {
+  return flagOn('CALL_RETRY_ASKS_FIRST');
 }
 
 // ============================================================================
@@ -141,15 +157,56 @@ export function toE164(phone: string | undefined | null): string | null {
 export const safeWindowGuard: CallTimeGuard = (recipient, at) => {
   const e164 = toE164(recipient.phone);
   if (!e164 || OUTSIDE_SAFE_ZONES.has(e164.slice(2, 5))) return false;
-  return SAFE_ZONES.every((zone) => {
-    const [, , , hour, minute] = zoneParts(at, zone);
-    const minutes = hour * 60 + minute;
-    return minutes >= OPEN_MINUTE && minutes < CLOSE_MINUTE;
-  });
+  return SAFE_ZONES.every((zone) => inCallingHours(at, zone));
 };
 
+function inCallingHours(at: Date, zone: string): boolean {
+  const [, , , hour, minute] = zoneParts(at, zone);
+  const minutes = hour * 60 + minute;
+  return minutes >= OPEN_MINUTE && minutes < CLOSE_MINUTE;
+}
+
+/** Where the callee's zone came from: their number's area code, or the owner's own (said so). */
+export interface CalleeZone {
+  zone: string;
+  source: 'area_code' | 'owner';
+}
+
+/**
+ * The callee's zone, never the server's (owner, 2026-11-26: a sensible hour where THEY are).
+ * No contact record stores a zone, so the number's area code, else the owner's zone, which
+ * the offer then says; null when neither is known. Never a guess.
+ */
+export function calleeZoneOf(call: OnBehalfDispatch): CalleeZone | null {
+  const byNumber = timezoneFromPhone(call.contact.phone);
+  if (byNumber) return { zone: byNumber, source: 'area_code' };
+  const owner = call.requester.timezone;
+  // 'UTC' is what parseOnBehalfDispatch puts in for a dispatch with no zone: not known.
+  return owner !== 'UTC' && isValidTimezone(owner) ? { zone: owner, source: 'owner' } : null;
+}
+
+/** CALL_RETRY_ASKS_FIRST's guard: 10:00-18:00 in the recipient's own zone; no zone, no call. */
+export const calleeHoursGuard: CallTimeGuard = (recipient, at) =>
+  !!recipient.timezone && !!toE164(recipient.phone) && inCallingHours(at, recipient.timezone);
+
+/** Tomorrow where the callee is: the first half hour from 10:00 the guard allows, before 18:00. */
+export async function calleeRetrySlot(
+  call: OnBehalfDispatch,
+  zone: string,
+  now: Date,
+  guard: CallTimeGuard
+): Promise<Date | null> {
+  const recipient = { ...recipientOf(call), timezone: zone };
+  for (let half = OPEN_MINUTE / 30; half < CLOSE_MINUTE / 30; half++) {
+    const slot = localTimeAfter(now, zone, 1, Math.floor(half / 2), (half % 2) * 30);
+    if (await guard(recipient, slot)) return slot;
+  }
+  return null;
+}
+
 function recipientOf(call: OnBehalfDispatch): CallRecipient {
-  return { name: call.contact.name, phone: call.contact.phone };
+  const recipient = { name: call.contact.name, phone: call.contact.phone };
+  return isCallRetryAsksFirst() ? { ...recipient, timezone: calleeZoneOf(call)?.zone } : recipient;
 }
 
 /** Next-day candidates, every half hour from 9:00 to 20:30 Eastern; the guard picks. */
@@ -227,30 +284,93 @@ export async function scheduleCallRetry(
   call: OnBehalfDispatch,
   deps: CallRetryDeps = {}
 ): Promise<Date | null> {
+  // The first call's own words come from its signed dispatch, never the parsed call (#4497).
+  // Taken first, so they are gone after this decision whether or not a retry is offered.
+  const said = takePreferencesForRetry(call.callId);
   const secret = dispatchSigningSecret();
   const recipient = toE164(call.contact.phone);
   if (call.retryOf || !recipient || !secret) return null;
   if (await isCallOptedOut(recipient)) return null;
 
   const now = deps.now?.() ?? new Date();
+  const request = { ...requestKeepingContext(call, said), retryOf: call.callId };
+  const signed = signOnBehalfDispatch(onBehalfDispatchFor(`retry_${call.callId}`, request), secret);
+  // Owner, 2026-11-26: no redial on Ferni's own. Null keeps the report's "try again?" offer.
+  if (isCallRetryAsksFirst()) return offerRetry(signed, now);
   const at = await nextAllowedSlot(call, now, deps.isAllowedCallTime ?? safeWindowGuard);
   if (!at) return null;
+  return storeScheduledRetry(signed, at, now);
+}
 
+/**
+ * The request a dispatch describes. CALL_RETRY_ASKS_FIRST also keeps the first call's own words
+ * (additionalContext, preferredTimes, constraints), read from a signed payload by
+ * on-behalf-dispatch.ts, so the retry's script says what the first did. Flag off: main's request.
+ */
+function requestKeepingContext(call: OnBehalfDispatch, said: CallPreferences): OnBehalfRequest {
+  const request = onBehalfRequestFromDispatch(call);
+  if (!isCallRetryAsksFirst() || Object.keys(said).length === 0) return request;
+  return { ...request, userPreferences: said };
+}
+type OnBehalfRequest = ReturnType<typeof onBehalfRequestFromDispatch>;
+
+/** Where a signed retry waits for the owner's yes, by the retry's callId (call-retry-offer.ts). */
+const RETRY_OFFERS = 'call_retry_offers';
+
+/** Older offers are dropped: a days-old missed call is asked about afresh, never redialled. */
+export const OFFER_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+
+/**
+ * The owner's retry offers; null without Firestore. call-retry-offer.ts reads and updates them
+ * through here, so this file stays the one place outreach reaches the Firestore accessor.
+ */
+export async function retryOffersOf(userId: string) {
+  const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+  return getFirestoreDb()?.collection('bogle_users').doc(userId).collection(RETRY_OFFERS) ?? null;
+}
+
+async function offerRetry(signed: OnBehalfDispatch, now: Date): Promise<null> {
+  try {
+    const offers = await retryOffersOf(signed.requester.userId);
+    if (!offers) throw new Error('no Firestore');
+    await offers.doc(signed.callId).create({
+      status: 'offered',
+      contactName: signed.contact.name,
+      offeredAt: now.getTime(),
+      onBehalfDispatch: JSON.parse(JSON.stringify(signed)),
+      // expireAt (a Date is stored as a Timestamp): the TTL field that deletes the offer, with
+      // the callee's number and the call's purpose, once it can no longer be said yes to.
+      expireAt: new Date(now.getTime() + OFFER_TTL_MS),
+    });
+    log.info({ callId: signed.retryOf }, 'Offered one retry for a missed call');
+  } catch (error) {
+    log.info({ error: String(error), callId: signed.retryOf }, 'Retry not offered');
+  }
+  return null;
+}
+
+/**
+ * Store a signed retry for the scheduled-outreach job. The document id is the retry's
+ * callId and `create` fails if it exists, so a missed call is never retried twice.
+ */
+export async function storeScheduledRetry(
+  signed: OnBehalfDispatch,
+  at: Date,
+  now: Date
+): Promise<Date | null> {
   const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
   const db = getFirestoreDb();
   if (!db) return null;
-  const request = { ...onBehalfRequestFromDispatch(call), retryOf: call.callId };
-  const signed = signOnBehalfDispatch(onBehalfDispatchFor(`retry_${call.callId}`, request), secret);
-  const id = `retry_${call.callId}`;
+  const id = signed.callId;
   try {
     await db
       .collection('bogle_users')
-      .doc(call.requester.userId)
+      .doc(signed.requester.userId)
       .collection('scheduled_outreach')
       .doc(id)
       .create({
         id,
-        userId: call.requester.userId,
+        userId: signed.requester.userId,
         personaId: 'ferni',
         status: 'pending',
         // A Date, not an ISO string: the scheduled-outreach job queries scheduledFor as a timestamp.
@@ -260,23 +380,23 @@ export async function scheduleCallRetry(
         retryCount: 0,
         maxRetries: 0,
         target: {
-          contact: call.contact.name,
-          purpose: call.purpose,
+          contact: signed.contact.name,
+          purpose: signed.purpose,
           channel: 'on_behalf_call',
           resolvedContactId: '',
-          resolvedContactName: call.contact.name,
-          resolvedPhone: recipient,
+          resolvedContactName: signed.contact.name,
+          resolvedPhone: toE164(signed.contact.phone),
           onBehalfDispatch: JSON.parse(JSON.stringify(signed)),
         },
       });
     log.info(
-      { callId: call.callId, retryAt: at.toISOString() },
+      { callId: signed.retryOf, retryAt: at.toISOString() },
       'Scheduled one retry for a missed call'
     );
     return at;
   } catch (error) {
     log.info(
-      { error: String(error), callId: call.callId },
+      { error: String(error), callId: signed.retryOf },
       'Retry not scheduled (already exists or write failed)'
     );
     return null;
@@ -285,7 +405,6 @@ export async function scheduleCallRetry(
 
 // Verified dispatches of calls running in this process, by callId (kept a day).
 const verifiedCalls = new Map<string, { call: OnBehalfDispatch; at: number }>();
-const VERIFIED_CALL_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Remember a call's verified dispatch. Call only after the dispatch's signature checked out. */
 export function rememberVerifiedCall(call: OnBehalfDispatch): void {
@@ -339,13 +458,17 @@ export async function placeCallRetry(
   if (refused || (await isCallOptedOut(call.contact.phone))) {
     return { success: false, error: 'Recipient asked not to be called' };
   }
-  const guard = deps.isAllowedCallTime ?? safeWindowGuard;
+  const fallback = isCallRetryAsksFirst() ? calleeHoursGuard : safeWindowGuard;
+  const guard = deps.isAllowedCallTime ?? fallback;
   if (!(await guard(recipientOf(call), deps.now?.() ?? new Date()))) {
     return { success: false, error: 'Outside calling hours' };
   }
   try {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
-    await getOnBehalfCallOrchestrator().initiateCall(onBehalfRequestFromDispatch(call));
+    // The words travel in the payload the job just verified: read there, not from the parse.
+    await getOnBehalfCallOrchestrator().initiateCall(
+      requestKeepingContext(call, callPreferencesOf(raw))
+    );
     return { success: true };
   } catch (error) {
     return { success: false, error: String(error) };

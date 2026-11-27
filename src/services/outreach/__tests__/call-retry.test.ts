@@ -107,6 +107,21 @@ const retries = () => rows.filter((r) => r.collection === 'scheduled_outreach');
 const storedDispatch = () =>
   (retries()[0].data.target as { onBehalfDispatch: Record<string, unknown> }).onBehalfDispatch;
 const schedule = (c = call(), deps = {}) => scheduleCallRetry(c, { now: () => NOW, ...deps });
+const offers = () => rows.filter((r) => r.collection === 'call_retry_offers');
+const ASKS_FIRST = ['off', 'on'] as const;
+/**
+ * The stored, signed retry the placement rows place, under either CALL_RETRY_ASKS_FIRST. It is
+ * written by main's scheduling here; with the flag on, the owner's yes writes this same row
+ * (call-retry-offer.ts, through the missed-call offers port; call-retry-asks-first.test.ts),
+ * and placement must hold.
+ */
+async function scheduled(c = call()): Promise<Record<string, unknown>> {
+  const asksFirst = process.env.CALL_RETRY_ASKS_FIRST;
+  vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'off');
+  await schedule(c);
+  vi.stubEnv('CALL_RETRY_ASKS_FIRST', asksFirst);
+  return storedDispatch();
+}
 const at = (iso: string) => ({ now: () => new Date(iso) });
 
 beforeEach(async () => {
@@ -203,18 +218,27 @@ describe('the do-not-call list matches every format of the same number', () => {
     );
   });
 
-  it('a retry placed later is refused for a number opted out in another format', async () => {
-    await schedule(call({ contact: { name: 'Doug', phone: '801.555.0177' } }));
-    const signed = storedDispatch();
-    await recordCallOptOut('(801) 555-0177', { callId: 'c1', requesterUserId: 'seth' });
-    expect(
-      await placeCallRetry(signed, 'seth', { now: () => new Date('2026-10-11T17:01:00.000Z') })
-    ).toMatchObject({ success: false, error: 'Recipient asked not to be called' });
-    expect(initiateCall).not.toHaveBeenCalled();
-  });
+  it.each(ASKS_FIRST)(
+    'a retry placed later is refused for a number opted out in another format (asks first %s)',
+    async (asksFirst) => {
+      vi.stubEnv('CALL_RETRY_ASKS_FIRST', asksFirst);
+      const signed = await scheduled(call({ contact: { name: 'Doug', phone: '801.555.0177' } }));
+      await recordCallOptOut('(801) 555-0177', { callId: 'c1', requesterUserId: 'seth' });
+      expect(
+        await placeCallRetry(signed, 'seth', { now: () => new Date('2026-10-11T17:01:00.000Z') })
+      ).toMatchObject({ success: false, error: 'Recipient asked not to be called' });
+      expect(initiateCall).not.toHaveBeenCalled();
+    }
+  );
 });
 
+// Main's redial at once. CALL_RETRY_ASKS_FIRST replaces it with an offer and the owner's yes
+// (owner 2026-11-26; call-retry-asks-first.test.ts), so these rows pin the flag off.
 describe('scheduleCallRetry', () => {
+  beforeEach(() => {
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'off');
+  });
+
   it('schedules one signed retry, next day inside calling hours', async () => {
     expect(retries()).toHaveLength(0);
     const when = await schedule();
@@ -239,9 +263,28 @@ describe('scheduleCallRetry', () => {
     expect(retries()).toHaveLength(1);
   });
 
+  it('uses an injected calling-hours guard, and skips the retry if it allows nothing', async () => {
+    const afternoonOnly = vi.fn((_r: unknown, t: Date) => t.getUTCHours() >= 19);
+    expect((await schedule(call(), { isAllowedCallTime: afternoonOnly }))?.toISOString()).toBe(
+      '2026-10-11T19:00:00.000Z'
+    );
+    rows = [];
+    expect(await schedule(call(), { isAllowedCallTime: () => false })).toBeNull();
+    expect(retries()).toHaveLength(0);
+  });
+});
+
+// Refusals before anything is stored hold with CALL_RETRY_ASKS_FIRST either way: no retry and
+// no offer either.
+describe.each(ASKS_FIRST)('scheduleCallRetry refuses (asks first %s)', (asksFirst) => {
+  beforeEach(() => {
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', asksFirst);
+  });
+
   it('does not retry a call that is itself the retry', async () => {
     expect(await schedule(call({ retryOf: 'doug-checkin-20261009' }))).toBeNull();
     expect(retries()).toHaveLength(0);
+    expect(offers()).toHaveLength(0);
   });
 
   it('does not retry a number on the do-not-call list, or when the list is unreadable', async () => {
@@ -252,26 +295,22 @@ describe('scheduleCallRetry', () => {
     optOutListDown = true;
     expect(await schedule()).toBeNull();
     expect(retries()).toHaveLength(0);
-  });
-
-  it('uses an injected calling-hours guard, and skips the retry if it allows nothing', async () => {
-    const afternoonOnly = vi.fn((_r: unknown, t: Date) => t.getUTCHours() >= 19);
-    expect((await schedule(call(), { isAllowedCallTime: afternoonOnly }))?.toISOString()).toBe(
-      '2026-10-11T19:00:00.000Z'
-    );
-    rows = [];
-    expect(await schedule(call(), { isAllowedCallTime: () => false })).toBeNull();
-    expect(retries()).toHaveLength(0);
+    expect(offers()).toHaveLength(0);
   });
 
   it('does not schedule an unsigned retry', async () => {
     delete process.env.LIVEKIT_API_SECRET;
     expect(await schedule()).toBeNull();
     expect(retries()).toHaveLength(0);
+    expect(offers()).toHaveLength(0);
   });
 });
 
 describe('scheduleCallRetryById (voicemail detection holds only the callId)', () => {
+  beforeEach(() => {
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'off'); // main's redial; asks first: call-followthrough.test.ts
+  });
+
   it('schedules only for a call this process verified, and only with the flag on', async () => {
     expect(await scheduleCallRetryById('unknown-call', { now: () => NOW })).toBeNull();
 
@@ -288,10 +327,16 @@ describe('scheduleCallRetryById (voicemail detection holds only the callId)', ()
   });
 });
 
-describe('placing the retry', () => {
+// The placement path is shared: with CALL_RETRY_ASKS_FIRST on, only its calling-hours guard is
+// the callee's own (calleeHoursGuard). Every refusal here must hold with the flag either way.
+describe.each(ASKS_FIRST)('placing the retry (asks first %s)', (asksFirst) => {
+  beforeEach(() => {
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', asksFirst);
+  });
+
   it('the scheduled-outreach job places it when due', async () => {
     vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'on'); // a call to someone else: founder opt-in
-    await schedule();
+    await scheduled();
 
     // The job places at the wall-clock time, which must be inside calling hours.
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -313,8 +358,7 @@ describe('placing the retry', () => {
   });
 
   it('MESSAGING_PIPELINE: a call opt-out only in consent/{phoneHash} refuses the retry', async () => {
-    await schedule();
-    const signed = storedDispatch();
+    const signed = await scheduled();
     const inHours = at('2026-10-11T17:01:00.000Z');
     const { writeOptOut } = await import('../../messaging/consent.js');
     const { phoneHash } = await import('../checkin-replies.js');
@@ -337,8 +381,7 @@ describe('placing the retry', () => {
   });
 
   it('MESSAGING_PIPELINE: a retry to someone who never agreed to calls is not placed; one who did is', async () => {
-    await schedule();
-    const signed = storedDispatch();
+    const signed = await scheduled();
     const inHours = at('2026-10-11T17:01:00.000Z');
     vi.stubEnv('MESSAGING_PIPELINE', 'on');
     vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
@@ -352,8 +395,7 @@ describe('placing the retry', () => {
   });
 
   it('refuses anything not signed, not this user, opted out, out of hours or flag off', async () => {
-    await schedule();
-    const signed = storedDispatch();
+    const signed = await scheduled();
     const inHours = at('2026-10-11T17:01:00.000Z');
 
     expect(
