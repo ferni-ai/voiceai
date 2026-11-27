@@ -309,10 +309,10 @@ index 047893c809b6f2b1c6760b49f5a1548b45dab34a..89534ef2b68f8a68b1b43b67dcb22350
    Event,
    ExpFilter,
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e07845cd0e 100644
+index f8d71967401e60955d2144a8c57ff2eaa1340e3c..5c0e1b9b46476892b67745bfc2bc1a848284a6f8 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
-@@ -240,6 +240,12 @@ class AutoToolReplyTurnHold {
+@@ -240,6 +240,35 @@ class AutoToolReplyTurnHold {
      (0, import_speech_handle.endCarriedAgentTurn)(held.carry);
    }
  }
@@ -322,10 +322,33 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
 +  const __hook = globalThis.__FERNI_IS_BACKCHANNEL; if (typeof __hook === "function") return __hook(String(text ?? "")); const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
 +  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
 +}
++// PATCHED(ferni): BACKCHANNEL_RESUME_ON_FINAL, read as flagOn reads a flag (src/config/env-flag.ts).
++function __ferniResumeOnFinalOn() {
++  const v = String(process.env.BACKCHANNEL_RESUME_ON_FINAL ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
++// PATCHED(ferni): BACKCHANNEL_RESUME_ON_FINAL. Resume a reply a backchannel paused once the
++// caller is quiet, from its final transcript rather than its end of turn (dev 2026-11-27, #4548:
++// the end-of-turn path waited 300 ms for the endpoint, then 350 ms more, so a "mm-hm" left Ferni
++// silent 1.1 to 2 s). Waits while the caller is still talking, as the end-of-turn path does.
++const __FERNI_FINAL_RESUME_MS = 100;
++function __ferniResumeOnFinal(activity) {
++  const resume = (tries) => {
++    if (!activity.pausedSpeech || activity.pausedSpeech.handle.interrupted) return;
++    if (activity.agentSession.userState === "speaking" && tries < 20) {
++      activity.__ferniResumeTimer = setTimeout(() => resume(tries + 1), 150);
++      return;
++    }
++    activity.__ferniResumedOnFinalAt = Date.now();
++    activity.startFalseInterruptionTimer(0);
++  };
++  clearTimeout(activity.__ferniResumeTimer);
++  activity.__ferniResumeTimer = setTimeout(() => resume(0), __FERNI_FINAL_RESUME_MS);
++}
  class AgentActivity {
    agent;
    agentSession;
-@@ -1550,6 +1556,13 @@ class AgentActivity {
+@@ -1550,6 +1579,13 @@ class AgentActivity {
          }
          this.updatePausedSpeech(this._currentSpeech, timeout);
          audioOutput.pause();
@@ -339,7 +362,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
          const stateLease = this.activeAgentStateLease;
          if (wasAgentSpeaking && stateLease && this.updateAgentState(stateLease, "listening")) {
            this.onEndOfAgentSpeech(Date.now());
-@@ -1629,6 +1642,12 @@ class AgentActivity {
+@@ -1629,6 +1665,13 @@ class AgentActivity {
          );
        }
      }
@@ -347,12 +370,13 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
 +    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
 +      this.logger.info({ user_input_len: String(ev.alternatives[0].text ?? "").length }, "BACKCHANNEL_KEEPS_PAUSE");
++      if (__ferniResumeOnFinalOn()) __ferniResumeOnFinal(this);
 +      return;
 +    }
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
    }
    onTranscriptionTimeout(speechDuration, turnStart) {
-@@ -1653,14 +1672,23 @@ class AgentActivity {
+@@ -1653,14 +1696,23 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
        return;
      }
@@ -377,7 +401,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1858,6 +1886,40 @@ class AgentActivity {
+@@ -1858,6 +1910,48 @@ class AgentActivity {
        }
        return true;
      }
@@ -386,6 +410,14 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
 +    // it was committed as a turn that cut the reply off mid-sentence (dev,
 +    // 2026-09-30). Drop it and resume 350 ms on, once the caller is quiet: the
 +    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
++    // PATCHED(ferni): BACKCHANNEL_RESUME_ON_FINAL. Its final transcript already resumed the reply,
++    // so no pause is left: the end of turn is the same backchannel. Drop it, never answer it.
++    if (!this.pausedSpeech && this.__ferniResumedOnFinalAt !== void 0 && Date.now() - this.__ferniResumedOnFinalAt < 3e3 && __ferniIsBackchannel(info.newTranscript)) {
++      this.__ferniResumedOnFinalAt = void 0;
++      this.cancelPreemptiveGeneration();
++      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length }, "BACKCHANNEL_NOT_A_TURN");
++      return true;
++    }
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
 +      this.cancelPreemptiveGeneration();
 +      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length }, "BACKCHANNEL_NOT_A_TURN");
@@ -418,7 +450,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
        if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
-@@ -2368,7 +2430,15 @@ class AgentActivity {
+@@ -2368,7 +2462,15 @@ class AgentActivity {
      let discardedPreemptive;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -435,7 +467,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -4183,10 +4253,47 @@ class AgentActivity {
+@@ -4183,10 +4285,47 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -483,7 +515,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -4279,8 +4386,16 @@ class AgentActivity {
+@@ -4279,8 +4418,16 @@ class AgentActivity {
      if (!this.pausedSpeech) {
        return;
      }
@@ -500,7 +532,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -4289,7 +4404,7 @@ class AgentActivity {
+@@ -4289,7 +4436,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -510,10 +542,10 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..934969085fed3db0c65acd11a2b7c9e0
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee7c02ebfa 100644
+index a345f90082ca2e5de031c4bfe940b021d218bc30..a7c75fb2c7ee8a582f9b309234f75f5610c5206f 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
-@@ -293,6 +293,12 @@ class AutoToolReplyTurnHold {
+@@ -293,6 +293,35 @@ class AutoToolReplyTurnHold {
      endCarriedAgentTurn(held.carry);
    }
  }
@@ -523,10 +555,33 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
 +  const __hook = globalThis.__FERNI_IS_BACKCHANNEL; if (typeof __hook === "function") return __hook(String(text ?? "")); const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
 +  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
 +}
++// PATCHED(ferni): BACKCHANNEL_RESUME_ON_FINAL, read as flagOn reads a flag (src/config/env-flag.ts).
++function __ferniResumeOnFinalOn() {
++  const v = String(process.env.BACKCHANNEL_RESUME_ON_FINAL ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
++// PATCHED(ferni): BACKCHANNEL_RESUME_ON_FINAL. Resume a reply a backchannel paused once the
++// caller is quiet, from its final transcript rather than its end of turn (dev 2026-11-27, #4548:
++// the end-of-turn path waited 300 ms for the endpoint, then 350 ms more, so a "mm-hm" left Ferni
++// silent 1.1 to 2 s). Waits while the caller is still talking, as the end-of-turn path does.
++const __FERNI_FINAL_RESUME_MS = 100;
++function __ferniResumeOnFinal(activity) {
++  const resume = (tries) => {
++    if (!activity.pausedSpeech || activity.pausedSpeech.handle.interrupted) return;
++    if (activity.agentSession.userState === "speaking" && tries < 20) {
++      activity.__ferniResumeTimer = setTimeout(() => resume(tries + 1), 150);
++      return;
++    }
++    activity.__ferniResumedOnFinalAt = Date.now();
++    activity.startFalseInterruptionTimer(0);
++  };
++  clearTimeout(activity.__ferniResumeTimer);
++  activity.__ferniResumeTimer = setTimeout(() => resume(0), __FERNI_FINAL_RESUME_MS);
++}
  class AgentActivity {
    agent;
    agentSession;
-@@ -1603,6 +1609,13 @@ class AgentActivity {
+@@ -1603,6 +1632,13 @@ class AgentActivity {
          }
          this.updatePausedSpeech(this._currentSpeech, timeout);
          audioOutput.pause();
@@ -540,7 +595,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
          const stateLease = this.activeAgentStateLease;
          if (wasAgentSpeaking && stateLease && this.updateAgentState(stateLease, "listening")) {
            this.onEndOfAgentSpeech(Date.now());
-@@ -1682,6 +1695,12 @@ class AgentActivity {
+@@ -1682,6 +1718,13 @@ class AgentActivity {
          );
        }
      }
@@ -548,12 +603,13 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
 +    // reply before onEndOfTurn could see it was only "mm-hmm". Keep it resumable.
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(ev.alternatives[0].text)) {
 +      this.logger.info({ user_input_len: String(ev.alternatives[0].text ?? "").length }, "BACKCHANNEL_KEEPS_PAUSE");
++      if (__ferniResumeOnFinalOn()) __ferniResumeOnFinal(this);
 +      return;
 +    }
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
    }
    onTranscriptionTimeout(speechDuration, turnStart) {
-@@ -1706,14 +1725,23 @@ class AgentActivity {
+@@ -1706,14 +1749,23 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
        return;
      }
@@ -578,7 +634,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1911,6 +1939,40 @@ class AgentActivity {
+@@ -1911,6 +1963,48 @@ class AgentActivity {
        }
        return true;
      }
@@ -587,6 +643,14 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
 +    // it was committed as a turn that cut the reply off mid-sentence (dev,
 +    // 2026-09-30). Drop it and resume 350 ms on, once the caller is quiet: the
 +    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
++    // PATCHED(ferni): BACKCHANNEL_RESUME_ON_FINAL. Its final transcript already resumed the reply,
++    // so no pause is left: the end of turn is the same backchannel. Drop it, never answer it.
++    if (!this.pausedSpeech && this.__ferniResumedOnFinalAt !== void 0 && Date.now() - this.__ferniResumedOnFinalAt < 3e3 && __ferniIsBackchannel(info.newTranscript)) {
++      this.__ferniResumedOnFinalAt = void 0;
++      this.cancelPreemptiveGeneration();
++      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length }, "BACKCHANNEL_NOT_A_TURN");
++      return true;
++    }
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
 +      this.cancelPreemptiveGeneration();
 +      this.logger.info({ user_input_len: String(info.newTranscript ?? "").length }, "BACKCHANNEL_NOT_A_TURN");
@@ -619,7 +683,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = splitWords(info.newTranscript, true).length;
        if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
-@@ -2421,7 +2483,15 @@ class AgentActivity {
+@@ -2421,7 +2515,15 @@ class AgentActivity {
      let discardedPreemptive;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -636,7 +700,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -4236,10 +4306,47 @@ class AgentActivity {
+@@ -4236,10 +4338,47 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -684,7 +748,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -4332,8 +4439,16 @@ class AgentActivity {
+@@ -4332,8 +4471,16 @@ class AgentActivity {
      if (!this.pausedSpeech) {
        return;
      }
@@ -701,7 +765,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..45c4e70a6abdf74800325cbc90a809ee
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -4342,7 +4457,7 @@ class AgentActivity {
+@@ -4342,7 +4489,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
