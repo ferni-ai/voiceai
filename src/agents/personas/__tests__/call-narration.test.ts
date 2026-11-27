@@ -195,6 +195,17 @@ describe('the guard', () => {
       [user('Did you call William?')],
       `${LINE}Ferni called Will (their brother), and they answered.`,
     ],
+    ['a second person asked after the first', [user('Did you call my mom? And my dad?')], MOM_LINE],
+    [
+      'a third person in a list',
+      [user('Did you call my mom and my dad and my brother?')],
+      `${MOM_LINE}\n${LINE}Ferni called Hal (their dad), and they answered.`,
+    ],
+    [
+      'a second person joined by "as well as"',
+      [user('Did you call my mom as well as my dad?')],
+      MOM_LINE,
+    ],
   ])('only the person asked about counts: %s', async (_case, asked, line) => {
     expect(await told(asked, line)).toBe(DROPPED);
   });
@@ -213,6 +224,16 @@ describe('the guard', () => {
     );
   });
 
+  it.each([
+    'Did you call my mom and tell her happy birthday?',
+    'Did you call my mom or not?',
+    'Did you reach my mom? How did it go with her?',
+    'Did you call my mom? Ask her to call me back.',
+    "Did you call my mom and see how she's doing?",
+  ])('words after the person asked about are no one new: %s', async (question) => {
+    expect(await told([user(question)], MOM_LINE, 'mom')).toBe(STORY_DAD);
+  });
+
   it('a title alone never matches another doctor', async () => {
     const line = `${LINE}Ferni called Dr. Lee, and they answered.`;
     expect(await told([user('Did you call Dr. Smith?')], line, 'Dr. Smith')).toBe(DROPPED);
@@ -220,7 +241,7 @@ describe('the guard', () => {
 
   it('the asked-about relationship and name both count, words after them do not', async () => {
     expect(await told([user('Did you call my mom yesterday?')], MOM_LINE, 'mom')).toBe(STORY_DAD);
-    expect(await told([user('Tell me if you reached my mom.')], MOM_LINE, 'mom')).toBe(STORY_DAD);
+    expect(await told([user('Did you reach my mom.')], MOM_LINE, 'mom')).toBe(STORY_DAD);
     expect(await told([user('Did you call Marisol?')], MOM_LINE, 'Marisol')).toBe(STORY_DAD);
     const recall = user('Did you call Marisol? I recall Hal said she was sick.');
     expect(await told([recall], MOM_LINE, 'Marisol')).toBe(STORY_DAD);

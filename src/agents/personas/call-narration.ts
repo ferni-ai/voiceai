@@ -114,7 +114,7 @@ const STATUS_TOLD = /(?:^|\. )Ferni (?:called|tried to call) /;
 const LISTED_CALL =
   /^- \w+day, \w+ \d+, (?:in the \w+|at night) \(\d{1,2}:\d\d\s[AP]M\): Ferni (?:called|tried to call) (.+?), (?:and|but) /gm;
 /** Who a call verb names: one word, or two ("Dr. Kim", "mom yesterday"), never "mom and". */
-const OBJECT = "(?:my |the |your )?([a-z][\\w.'-]*(?: (?!(?:and|or)\\b)[a-z][\\w.'-]*)?)";
+const OBJECT = "(?:my |the |your )?([a-z][\\w.'-]*(?: (?!(?:and|or|as)\\b)[a-z][\\w.'-]*)?)";
 /** Who the caller's latest turn asks about: "did you call my dad?", "how did it go with my best friend". */
 const ASKED_WHO = new RegExp(
   `\\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?hold|ahold) of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\\s+${OBJECT}`,
@@ -139,29 +139,38 @@ const escaped = (w: string): string => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const wholeWordIn = (word: string, text: string): boolean =>
   new RegExp(`(?:^|\\s)${escaped(word)}(?:$|\\s)`).test(text);
 const HONORIFIC = /^(?:dr|mr|mrs|ms|miss|aunt|auntie|uncle|grandma|grandpa|cousin)\.?$/i;
-/** A second person joined to the first: "my mom and my dad", "my mom or dad". */
+/**
+ * One more person joined to the last: "my mom and dad?", "my mom, or my dad", "my mom? And my
+ * dad?". The joined words must end the clause, so "my mom and tell her happy birthday" joins no
+ * one, and a new question ("and did you...") or "or not" never reads as a person.
+ */
 const JOINED = new RegExp(
-  `^,? (?:and|or) (?!(?:did|do|have|has|had|could|can|will|would|how|what|when|is|was)\\b)${OBJECT}`,
+  `^(?:[,?.!])? (?:and|or|as well as|&) (?!(?:did|do|have|has|had|could|can|will|would|how|what|when|is|was|not)\\b)${OBJECT}(?=\\s*(?:[?.!,]|$| and | or ))`,
   'i'
 );
-const personOf = (raw: string): string => {
+/** The person a call verb names, or null for a pronoun ("how did it go with her"). */
+const personOf = (raw: string): string | null => {
   const [first, second] = raw.replace(/\.$/, '').split(' ');
+  if (personWord(first) === null) return null;
   const keep = second && (HONORIFIC.test(first) || /^[A-Z]/.test(second));
   return norm(keep ? `${first} ${second}` : first);
 };
 /**
  * Everyone the latest turn asks about: "my dad yesterday" is "dad", "Dr. Smith" and "Aunt June"
- * stay whole, and "did you call my mom and dad?" is both.
+ * stay whole, "did you call my mom, dad and brother?" is all three, and a pronoun is no one new.
  */
 const askedPeople = (latestCaller: string): string[] => {
   const text = latestCaller.replace(/[\u2018\u2019]/g, "'");
   const people: string[] = [];
   for (const m of text.matchAll(ASKED_WHO)) {
-    people.push(personOf(m[1]));
-    const joined = JOINED.exec(text.slice((m.index ?? 0) + m[0].length));
-    if (joined) people.push(personOf(joined[1]));
+    people.push(personOf(m[1]) ?? '');
+    let rest = text.slice((m.index ?? 0) + m[0].length);
+    for (let joined = JOINED.exec(rest); joined; joined = JOINED.exec(rest)) {
+      people.push(personOf(joined[1]) ?? '');
+      rest = rest.slice(joined[0].length);
+    }
   }
-  return people;
+  return people.filter((p) => p !== '');
 };
 /**
  * A listed call counts only for the person the caller's latest turn asks about: by the whole
