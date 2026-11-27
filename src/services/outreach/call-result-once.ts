@@ -38,6 +38,7 @@ import { callResultDetails, type CallResultTold } from './call-result-text.js';
 import type { StepOutcome } from './call-result-words.js';
 import type { CallOutcome } from '../../tools/domains/telephony/types.js';
 import { claimTold, releaseTold, type Claimed, type ToldChannel } from './call-result-claims.js';
+import { callbackFollowUp } from '../background-agents/call-follow-up/index.js';
 
 /** 0 status only, 1 their words, 2 a crisis line. */
 type ToldLevel = 0 | 1 | 2;
@@ -89,7 +90,7 @@ function toldLevel(outcome: CallOutcome): ToldLevel {
 function needsOwner(outcome: CallOutcome): boolean {
   return (
     toldLevel(outcome) === 2 ||
-    outcome.callbackRequired === true ||
+    callbackFollowUp(outcome) ||
     !!outcome.message?.trim() ||
     outcome.status === 'failed' ||
     outcome.status === 'unconfirmed'

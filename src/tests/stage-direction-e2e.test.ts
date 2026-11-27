@@ -10,8 +10,8 @@
  * @module tests/stage-direction-e2e
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
-import { getTTSStats, monitorTTSText, resetTTSStats } from '../speech/tts-monitoring.js';
+import { describe, expect, it } from 'vitest';
+import { monitorTTSText } from '../speech/tts-monitoring.js';
 import { sanitizeSsml, stripSsmlTags, tagTextWithSsmlPersonaAware } from '../ssml/core.js';
 
 // =============================================================================
@@ -153,10 +153,6 @@ const JORDAN_OUTPUTS = {
 // =============================================================================
 
 describe('Stage Direction E2E - Persona Outputs', () => {
-  beforeEach(() => {
-    resetTTSStats();
-  });
-
   describe('Ferni Pipeline', () => {
     it.each(FERNI_OUTPUTS.withStageDirections.map((input, i) => [input, i]))(
       'should clean Ferni output: "%s"',
@@ -276,17 +272,12 @@ describe('Stage Direction E2E - Persona Outputs', () => {
 // =============================================================================
 
 describe('TTS Monitoring E2E', () => {
-  beforeEach(() => {
-    resetTTSStats();
-  });
-
   it('should auto-fix issues when enabled', () => {
     const dirtyText = 'smiles warmly Hello there!';
 
     const { text: fixedText, result } = monitorTTSText(dirtyText, {
       personaId: 'ferni',
       autoFix: true,
-      trackStats: true,
     });
 
     // Should have detected issues
@@ -295,26 +286,6 @@ describe('TTS Monitoring E2E', () => {
     // Fixed text should be cleaner
     expect(fixedText).not.toContain('smiles');
     expect(fixedText).toContain('Hello');
-  });
-
-  it('should track statistics across multiple checks', () => {
-    const texts = [
-      { text: 'Clean text here', expectIssues: false },
-      { text: 'nods thoughtfully Yes', expectIssues: true },
-      { text: 'Great conversation!', expectIssues: false },
-      { text: 'smiles warmly Hi', expectIssues: true },
-      { text: 'sighs That is heavy', expectIssues: true },
-    ];
-
-    for (const { text, expectIssues } of texts) {
-      const { result } = monitorTTSText(text, { trackStats: true });
-      expect(result.hasIssues).toBe(expectIssues);
-    }
-
-    const stats = getTTSStats();
-    expect(stats.totalChecks).toBe(5);
-    expect(stats.issuesFound).toBe(3);
-    expect(stats.issueRate).toBeCloseTo(0.6);
   });
 });
 

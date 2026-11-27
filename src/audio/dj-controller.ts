@@ -128,13 +128,14 @@ export interface DJControllerConfig {
  * Key: current state, Value: set of valid next states
  */
 const VALID_TRANSITIONS: Record<DJState, Set<DJState>> = {
-  idle: new Set(['playing', 'changing']),
+  // Playback can start or resume while someone is speaking, so those states may enter ducking (#4400)
+  idle: new Set(['playing', 'ducking', 'changing']),
   playing: new Set(['ducking', 'fading', 'paused', 'stopped', 'changing', 'idle']),
-  ducking: new Set(['playing', 'fading', 'paused', 'stopped', 'idle']),
-  fading: new Set(['stopped', 'ducking', 'idle']),
-  paused: new Set(['playing', 'stopped', 'idle']),
-  stopped: new Set(['idle', 'playing']),
-  changing: new Set(['playing', 'stopped', 'idle']),
+  ducking: new Set(['playing', 'fading', 'paused', 'stopped', 'changing', 'idle']),
+  fading: new Set(['playing', 'stopped', 'ducking', 'idle']),
+  paused: new Set(['playing', 'ducking', 'stopped', 'idle']),
+  stopped: new Set(['idle', 'playing', 'ducking']),
+  changing: new Set(['playing', 'ducking', 'stopped', 'idle']),
 };
 
 // ============================================================================
@@ -330,7 +331,7 @@ export class DJController extends EventEmitter {
 
     // If already playing, treat as track change
     if (prevState === 'playing' || prevState === 'ducking') {
-      this.transitionTo('changing');
+      this.transitionTo('changing', 'handlePlayTrack');
     }
 
     // Update state
@@ -343,10 +344,10 @@ export class DJController extends EventEmitter {
 
     // Transition to playing (or ducking if someone is speaking)
     if (this._state.isAgentSpeaking || this._state.isUserSpeaking) {
-      this.transitionTo('ducking');
+      this.transitionTo('ducking', 'handlePlayTrack');
       this._state.duckReason = this._state.isAgentSpeaking ? 'agent_speaking' : 'user_speaking';
     } else {
-      this.transitionTo('playing');
+      this.transitionTo('playing', 'handlePlayTrack');
     }
 
     // Emit events
@@ -382,7 +383,7 @@ export class DJController extends EventEmitter {
       this._state.explicitStopTime = Date.now();
     }
 
-    this.transitionTo('stopped');
+    this.transitionTo('stopped', 'handleStop');
 
     if (track) {
       const wasSkipped = prevState !== 'fading'; // If we weren't fading, it was skipped
@@ -409,7 +410,7 @@ export class DJController extends EventEmitter {
     this._pendingTransitionTimer = setTimeout(() => {
       this._pendingTransitionTimer = null;
       if (this._state.state === 'stopped') {
-        this.transitionTo('idle');
+        this.transitionTo('idle', 'handleStop');
       }
     }, 100);
   }
@@ -419,7 +420,7 @@ export class DJController extends EventEmitter {
       return;
     }
 
-    this.transitionTo('paused');
+    this.transitionTo('paused', 'handlePause');
     log.info({ track: this._state.currentTrack?.name }, 'Music paused');
   }
 
@@ -430,9 +431,9 @@ export class DJController extends EventEmitter {
 
     // Resume to appropriate state based on speaking status
     if (this._state.isAgentSpeaking || this._state.isUserSpeaking) {
-      this.transitionTo('ducking');
+      this.transitionTo('ducking', 'handleResume');
     } else {
-      this.transitionTo('playing');
+      this.transitionTo('playing', 'handleResume');
     }
 
     log.info({ track: this._state.currentTrack?.name }, 'Music resumed');
@@ -450,7 +451,7 @@ export class DJController extends EventEmitter {
     });
 
     // Clear current track, wait for next PLAY_TRACK command
-    this.transitionTo('stopped');
+    this.transitionTo('stopped', 'handleSkip');
     this._state.currentTrack = null;
 
     log.info({ track: track.name }, 'Track skipped');
@@ -474,7 +475,7 @@ export class DJController extends EventEmitter {
     }
 
     this._state.duckReason = reason;
-    this.transitionTo('ducking');
+    this.transitionTo('ducking', 'handleDuck');
 
     this.emitEvent({ type: 'ducking_started', reason });
 
@@ -492,7 +493,7 @@ export class DJController extends EventEmitter {
     }
 
     this._state.duckReason = null;
-    this.transitionTo('playing');
+    this.transitionTo('playing', 'handleUnduck');
 
     this.emitEvent({ type: 'ducking_ended' });
 
@@ -509,7 +510,7 @@ export class DJController extends EventEmitter {
       return; // Don't announce ambient music endings
     }
 
-    this.transitionTo('fading');
+    this.transitionTo('fading', 'handleTrackNearEnd');
 
     this.emitEvent({ type: 'fading_started', track });
     this.emitEvent({ type: 'should_speak_outro', track });
@@ -534,17 +535,16 @@ export class DJController extends EventEmitter {
   // STATE TRANSITIONS
   // ==========================================================================
 
-  private transitionTo(newState: DJState): void {
+  private transitionTo(newState: DJState, by: string): void {
     const prevState = this._state.state;
 
-    // Validate transition
-    if (!VALID_TRANSITIONS[prevState].has(newState)) {
-      log.warn({ from: prevState, to: newState }, 'Invalid state transition attempted');
+    if (prevState === newState) {
       return;
     }
 
-    // Skip if same state (except for logging)
-    if (prevState === newState) {
+    // Validate transition
+    if (!VALID_TRANSITIONS[prevState].has(newState)) {
+      log.warn({ from: prevState, to: newState, by }, 'Invalid state transition attempted');
       return;
     }
 

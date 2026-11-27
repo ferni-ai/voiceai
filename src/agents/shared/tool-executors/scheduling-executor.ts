@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { outboundFields } from '../../../utils/reply-for-log.js';
 import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 import { saveContact } from './save-contact.js';
@@ -136,7 +137,7 @@ async function execute(
     const message = args.message as string;
     const when = args.when as string;
 
-    log.info({ recipient, when, userId }, '📱 Scheduling text message');
+    log.info({ ...outboundFields({ recipient, when }), userId }, '📱 Scheduling text message');
 
     if (!message) {
       return recipient
@@ -189,7 +190,7 @@ async function execute(
     const reason = (args.reason as string) || (args.message as string);
     const when = args.when as string;
 
-    log.info({ recipient, when, userId }, '📞 Scheduling phone call');
+    log.info({ ...outboundFields({ recipient, when }), userId }, '📞 Scheduling phone call');
 
     if (!recipient) {
       return 'Who would you like me to remind you to call?';
@@ -246,7 +247,7 @@ async function execute(
     const body = (args.body as string) || (args.message as string);
     const when = args.when as string;
 
-    log.info({ recipient, subject, when, userId }, '📧 Scheduling email');
+    log.info({ ...outboundFields({ recipient, subject, when }), userId }, '📧 Scheduling email');
 
     if (!body) {
       return 'What would you like the email to say?';
@@ -297,7 +298,7 @@ async function execute(
     const recipient = args.recipient as string;
     const message = args.message as string;
 
-    log.info({ recipient, userId }, '📱 Sending text now');
+    log.info({ ...outboundFields({ recipient }), userId }, '📱 Sending text now');
 
     if (!message) {
       return recipient
@@ -387,8 +388,7 @@ async function execute(
         log.info({ callSid: data.sid }, '📞 Call initiated successfully');
         return `Done! I'm calling now. They'll hear: "${message}"`;
       } else {
-        const errorBody = await response.text();
-        log.error({ status: response.status, body: errorBody }, 'Twilio call error');
+        log.error({ status: response.status }, 'Twilio call error'); // its body names the number
         return `I had trouble making that call. Want me to send a text instead?`;
       }
     } catch (err) {
@@ -441,7 +441,7 @@ async function execute(
     const recipient = args.recipient as string;
     const which = (args.which as string) || recipient || itemId;
 
-    log.info({ which, userId }, '❌ Canceling scheduled item');
+    log.info({ whichLength: which?.length ?? 0, userId }, '❌ Canceling scheduled item');
 
     try {
       const { getPendingReminders, cancelReminder } = await loadScheduler();
@@ -524,7 +524,7 @@ async function execute(
     const tone = (args.tone as string) || 'casual';
 
     log.info(
-      { contactName, hasPurpose: !!purpose, userId, personaId },
+      { hasContactName: !!contactName, hasPurpose: !!purpose, userId, personaId },
       '🗣️ Initiating conversational call'
     );
 
@@ -659,7 +659,7 @@ async function addToCalendar(
       reminders: [{ method: 'popup', minutesBefore: 5 }],
     });
 
-    log.info({ userId, type, recipient, scheduledFor }, '📅 Added to calendar');
+    log.info({ userId, type, hasRecipient: !!recipient, scheduledFor }, '📅 Added to calendar');
   } catch (err) {
     log.debug({ error: String(err) }, 'Calendar integration not available');
     // Calendar is optional - don't fail the operation

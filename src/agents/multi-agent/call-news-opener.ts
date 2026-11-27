@@ -38,6 +38,10 @@ import {
 } from '../../services/background-agents/index.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import {
+  callbackOf,
+  callbackOfResult,
+} from '../../services/background-agents/call-follow-up/index.js';
+import {
   callerText,
   crisisRead,
   isRiskyCallerText,
@@ -160,7 +164,8 @@ async function callRecord(
       ? status
       : undefined,
     relation: text(request.contactQuery),
-    callbackRequired: outcome.callbackRequired === true,
+    // Only the person's own ask: a missed call's retry offer is not "they asked for a call back".
+    callbackRequired: callbackOf(outcome).asked,
     callbackTime: text(outcome.callbackTime),
     hasMessage: text(outcome.message).trim() !== '',
     calleeText: [
@@ -221,7 +226,7 @@ function structuredFacts(rec: CallRecord | undefined, r: BackgroundResult): Reco
         ? 'it went to voicemail, and you left a message'
         : HOW_IT_WENT[rec.status];
   } else if (r.status === 'success') facts['how the call went'] = HOW_IT_WENT.completed;
-  if (rec?.callbackRequired || r.requiresCallback) {
+  if (rec ? rec.callbackRequired : callbackOfResult(r).asked) {
     const when = callbackWhen(rec?.callbackTime ?? r.callbackTime);
     const timed = when ? ` (${when})` : '';
     facts['they asked for a call back'] = `yes${timed}`;

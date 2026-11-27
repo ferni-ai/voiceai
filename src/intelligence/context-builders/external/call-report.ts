@@ -25,6 +25,10 @@ import {
   reportedFromCall,
 } from '../../../services/outreach/caller-text.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
+import {
+  callbackMeansAskedOn,
+  resultFollowUp,
+} from '../../../services/background-agents/call-follow-up/index.js';
 import type { ContextInjection } from '../../../types/context-injection-types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { PendingCallResult } from './pending-call-results.js';
@@ -267,9 +271,9 @@ async function buildCallReport(userId: string): Promise<CallReport | null> {
 }
 
 function resultText(result: BackgroundResult): string {
-  const callback = result.requiresCallback
-    ? `They want a callback${result.callbackTime ? ` around ${result.callbackTime}` : ''}.`
-    : '';
+  // The copy's own call fields, read like the record's (#4468); the ask gets main's full stop.
+  const followUp = resultFollowUp(result);
+  const callback = followUp && !followUp.endsWith('?') ? `${followUp}.` : followUp;
   const said = [result.summary, result.details, callback].filter(Boolean).join(' ');
   if (result.type === 'on_behalf_call') return reported(result.contactName, said);
   return cutAtWord(`${result.type.replace(/_/g, ' ')}: ${said}`, RESULT_CHARS);
@@ -286,8 +290,10 @@ function callText(call: PendingCallResult): string {
           ? 'Line busy'
           : call.status === 'unconfirmed'
             ? "Couldn't confirm how it went"
-            : "Couldn't connect";
-  const callback = call.callbackRequired ? 'They want a callback from the user.' : '';
+            : call.status === 'completed' && callbackMeansAskedOn() // they answered (#4468)
+              ? 'Picked up'
+              : "Couldn't connect";
+  const callback = call.callbackRequired ? 'They want a callback from the user.' : call.retryOffer;
   return reported(
     call.contactName,
     [`${label}: ${call.outcome}`, callback].filter(Boolean).join(' ')

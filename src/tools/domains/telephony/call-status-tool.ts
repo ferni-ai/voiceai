@@ -60,6 +60,11 @@ export interface CallRecallPort {
   line: (call: Recalled, who: string, now: number) => string;
   blocksNewCall: (call: RecalledCall, now: number) => boolean;
   windowMs: number;
+  /**
+   * RECALL_ACTIVITY on: everything Ferni did for the owner in the window (every call, reminders,
+   * emails, promises, what's still open), for the model to answer from. Undefined when off.
+   */
+  activity?: (userId: string, now: number) => Promise<string | undefined>;
 }
 let port: CallRecallPort | undefined;
 export function setCallRecallPort(next: CallRecallPort | undefined): void {
@@ -152,12 +157,14 @@ export async function callStatusReply(
   const p = portFor(userId, live);
   if (!p || !userId) return NOT_THE_OWNER;
   const person = who.trim();
-  if (!person) return 'Ask the caller who they mean.';
+  const activity = p.activity !== undefined ? p.activity(userId, now) : Promise.resolve(undefined);
+  if (!person) return (await activity) ?? 'Ask the caller who they mean.';
   const { q: found, contact } = await queryFor(p, userId, person);
   // A contact they named is a person, not a purpose: no call to them is "not yet".
   const q = contact ? found : { ...found, topic: person };
   const call = await p.recall(userId, q, await awaitingFor(p, userId, live, now), now);
-  return p.line(call, person, now);
+  const all = await activity;
+  return all ? `${p.line(call, person, now)}\n\n${all}` : p.line(call, person, now);
 }
 
 const TOLD_MS = 10 * 60 * 1000;

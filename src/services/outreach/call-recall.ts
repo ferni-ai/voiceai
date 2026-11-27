@@ -187,19 +187,60 @@ function latestCall(
     return { state: 'set', name: nameOf(waiting), at, detail };
   }
   const events: RecalledCall[] = input.results.filter(match).map(fromResult);
-  for (const d of deferred) {
-    const at = time(d.placedAt ?? d.claimedAt ?? d.scheduledFor);
-    if (d.status === 'placing' || d.status === 'placed')
-      events.push({ state: 'in_progress', name: nameOf(d), at });
-    const reason = DEFERRED_FAILED[String(d.status)];
-    if (reason) events.push({ state: 'failed', name: nameOf(d), at, detail: reason });
-  }
+  events.push(...deferred.flatMap(deferredEvents));
   events.push(...(input.awaiting ?? []).flatMap(seen));
-  // Newest first; at the same instant a result beats the "placed" it closes.
+  return newestFirst(events, now)[0];
+}
+
+/** A held call's event once it left 'pending': under way, or why it never rang. */
+function deferredEvents(d: Doc): RecalledCall[] {
+  const at = time(d.placedAt ?? d.claimedAt ?? d.scheduledFor);
+  if (d.status === 'placing' || d.status === 'placed')
+    return [{ state: 'in_progress', name: nameOf(d), at }];
+  const reason = DEFERRED_FAILED[String(d.status)];
+  return reason ? [{ state: 'failed', name: nameOf(d), at, detail: reason }] : [];
+}
+
+/** Within the window, newest first; at the same instant a result beats the "placed" it closes. */
+function newestFirst<T extends RecalledCall>(events: T[], now: number): T[] {
   const rank = (e: RecalledCall): number => (e.state === 'done' || e.state === 'failed' ? 1 : 0);
   return events
     .filter((e) => e.at > 0 && now - e.at <= RECALL_WINDOW_MS)
-    .sort((a, b) => b.at - a.at || rank(b) - rank(a))[0];
+    .sort((a, b) => b.at - a.at || rank(b) - rank(a));
+}
+
+/** One call in the owner's history, with who it was to (relationship words when known). */
+export interface CallHistoryEntry extends RecalledCall {
+  readonly relationship?: string;
+}
+
+const relationshipOf = (d: Doc): string | undefined => {
+  const r = (d.request ?? {}) as Doc;
+  const c = (r.resolvedContact ?? {}) as Doc;
+  const said =
+    String(c.relationship ?? '').trim() || /^my\s+(.+)$/i.exec(String(r.contactQuery ?? ''))?.[1];
+  return said ? callerText(said, 30) : undefined;
+};
+
+/**
+ * Every call Ferni was asked to make in the window, newest first (RECALL_ACTIVITY): held ones
+ * still to ring ('set'), under way, done and failed. Callee words are screened reported speech.
+ */
+export function callHistory(records: Records, now: number): CallHistoryEntry[] {
+  const results = records.results.filter((d) => !isCallResultExpired(d, now));
+  const deferred = records.deferred.filter((d) => d.kind === 'on_behalf');
+  const tagged = (d: Doc, e: RecalledCall): CallHistoryEntry => {
+    const relationship = relationshipOf(d);
+    return relationship ? { ...e, relationship } : e;
+  };
+  const events: CallHistoryEntry[] = [
+    ...results.map((d) => tagged(d, fromResult(d))),
+    ...deferred.flatMap((d) => deferredEvents(d).map((e) => tagged(d, e))),
+  ];
+  const ahead = deferred
+    .filter((d) => d.status === 'pending' && now - time(d.scheduledFor) <= LATE_AFTER_MS)
+    .map((d) => tagged(d, { state: 'set', name: nameOf(d), at: time(d.scheduledFor) }));
+  return [...ahead.sort((a, b) => a.at - b.at), ...newestFirst(events, now)];
 }
 
 /** One read of the owner's records, 30 days back. 'unread' when the read failed. Never throws. */
@@ -283,6 +324,12 @@ const callRecallAdapter: CallRecallPort = {
   line: recallLine,
   blocksNewCall,
   windowMs: RECALL_WINDOW_MS,
+  activity: async (userId, now) => {
+    const { recallActivityOn, activityText } = await import('./activity-recall.js');
+    if (!recallActivityOn()) return undefined;
+    const { loadActivity } = await import('./activity-records.js'); // imports this module
+    return activityText(await loadActivity(userId, now), now);
+  },
 };
 
 /** Install the adapter; safe to call on every call. */

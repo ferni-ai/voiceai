@@ -266,7 +266,16 @@ const completeCommitmentDef: ToolDefinition = {
           return `I couldn't find a commitment matching "${commitmentQuery}". Say "what are my commitments" to see the list.`;
         }
 
-        await updateCommitmentStatus(ctx.userId, targetCommitment.id, 'completed', reaction);
+        const saved = await updateCommitmentStatus(
+          ctx.userId,
+          targetCommitment.id,
+          'completed',
+          reaction
+        );
+        if (!saved) {
+          // COMMITMENT_WRITES_TRUTHFUL: the status write failed, so nothing changed
+          return `I couldn't mark "${targetCommitment.summary}" as done just now, so it's still on your list. Want me to try again?`;
+        }
 
         log.info({ commitmentId: targetCommitment.id }, 'Commitment completed');
 
@@ -335,7 +344,10 @@ const deferCommitmentDef: ToolDefinition = {
           return `I couldn't find a commitment matching "${commitmentQuery}".`;
         }
 
-        await updateCommitmentStatus(ctx.userId, targetCommitment.id, 'deferred');
+        if (!(await updateCommitmentStatus(ctx.userId, targetCommitment.id, 'deferred'))) {
+          // COMMITMENT_WRITES_TRUTHFUL: the status write failed, so nothing changed
+          return `I couldn't put "${targetCommitment.summary}" on hold just now. It's still active.`;
+        }
 
         log.info({ commitmentId: targetCommitment.id, reason }, 'Commitment deferred');
 

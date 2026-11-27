@@ -17,7 +17,11 @@
  *
  * @module services/outreach/recent-texts
  */
-import { forgottenWithin, type ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
+import {
+  forgetFreshReadEnabled,
+  forgottenWithin,
+  type ForgottenCheck,
+} from '../../memory/recall/forget-every-reader.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { withoutDashes } from '../../utils/text-utils.js';
 import { CHECKINS, checkinDb, type StoredCheckin, type TextKind } from './checkin-replies.js';
@@ -82,7 +86,9 @@ export const firestoreRecentTextsStore: RecentTextsStore = {
     const replies = checkinDb().collection(CHECKINS).doc(checkinId).collection('replies');
     return !(await replies.limit(1).get()).empty;
   },
-  forgottenFor: async (userId) => forgetReadOf(await forgottenWithin(userId, 'recent-texts')),
+  // FORGET_FRESH_READ: from the store itself, not the 15 s cache (#2755). Fails closed either way.
+  forgottenFor: async (userId) =>
+    forgetReadOf(await forgottenWithin(userId, 'recent-texts', forgetFreshReadEnabled())),
 };
 
 /** The store's read, with a throw as unreadable; never throws. */

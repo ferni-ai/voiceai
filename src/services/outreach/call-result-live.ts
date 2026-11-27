@@ -38,6 +38,7 @@ import {
   screenedCallerText,
 } from './caller-text.js';
 import { callResultDetails } from './call-result-text.js';
+import { callbackAsked, retryOfferLine } from '../background-agents/call-follow-up/index.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
 import { crisisRiskThisCall } from '../safety/index.js';
 import { claimVoiceReport, markLiveReportSpoken } from './live-report-record.js';
@@ -77,11 +78,13 @@ export function liveReportMessage(contactName: string, outcome: CallOutcome): st
   const lines = [`${STATUS_LINE[outcome.status]}: ${said(outcome.outcome)}`];
   const details = said(callResultDetails(name, outcome));
   if (details) lines.push(details);
-  if (outcome.callbackRequired) lines.push('They want a call back.');
+  if (callbackAsked(outcome)) lines.push('They want a call back.');
+  // Once: '' if already offered; the name only when it is a real one, never "them".
+  else lines.push(retryOfferLine({ name: callerText(contactName, 60) }, outcome, lines.join(' ')));
   return [
     `the call you placed for them to ${name} just ended.`,
     CALLER_TEXT_GUARD,
-    ...reportedFromCall(name, lines),
+    ...reportedFromCall(name, lines.filter(Boolean)),
   ].join('\n');
 }
 

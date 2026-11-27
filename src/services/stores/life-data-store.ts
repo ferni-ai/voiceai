@@ -492,7 +492,7 @@ class LifeDataStore {
     await this.saveUserLifeData(userId, data);
 
     getLogger().info(
-      { userId, milestoneId: milestone.id, name: milestone.name },
+      { userId, milestoneId: milestone.id, nameLength: milestone.name.length },
       '💾 Milestone saved'
     );
   }
@@ -536,7 +536,7 @@ class LifeDataStore {
     goal.updatedAt = new Date();
     await this.saveUserLifeData(userId, data);
 
-    getLogger().info({ userId, goalId: goal.id, title: goal.title }, '💾 Goal saved');
+    getLogger().info({ userId, goalId: goal.id }, '💾 Goal saved');
   }
 
   async deleteGoal(userId: string, goalId: string): Promise<boolean> {

@@ -8,7 +8,7 @@
 
 import { log } from '@livekit/agents';
 import type { EmotionalCheckIn } from '../../intelligence/tracking/emotional-memory.js';
-import { forgottenPassageCheck, remembered } from '../../memory/index.js';
+import { callStartPassageCheck, remembered } from '../../memory/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import { exceedsDistressThreshold } from '../../tasks/constants.js';
@@ -74,8 +74,11 @@ export async function getProactiveContext(
   let threadStarter: string | undefined;
   const openThreads = services.getOpenThreads();
   // FORGET_EVERY_READER: a thread holds the caller's own words, read with the passage check
-  const said =
-    openThreads.length > 0 ? await forgottenPassageCheck(services.userId, 'greeting') : null;
+  // (FORGET_FRESH_READ: from the store itself, all left out when unread). Started with the insights.
+  const saidRead =
+    openThreads.length > 0 ? callStartPassageCheck(services.userId, 'greeting') : null;
+  const insightRead = isReturningUser ? proactiveInsightOf(services) : undefined;
+  const said = await saidRead;
   if (openThreads.length > 0 && isReturningUser) {
     threadStarter = services.getThreadConversationStarter() || undefined;
     if (threadStarter && said?.(threadStarter)) threadStarter = undefined;
@@ -92,22 +95,10 @@ export async function getProactiveContext(
   const openQuestions = remembered(questions, said).slice(0, 3);
 
   // Get high-priority proactive insights for check-ins
-  let proactiveInsight: string | undefined;
-  let proactiveInsightId: string | undefined;
-  if (isReturningUser) {
-    try {
-      const insightResult = await services.getProactiveInsights();
-      if (insightResult.highPriorityCount > 0 && insightResult.suggestedConversationStarter) {
-        // Only use proactive insight if no thread starter (avoid double-starter)
-        if (!threadStarter) {
-          proactiveInsight = insightResult.suggestedConversationStarter;
-          proactiveInsightId = insightResult.suggestedInsightId;
-        }
-      }
-    } catch (e) {
-      log().debug({ error: String(e) }, 'Proactive insights fetch failed (non-blocking)');
-    }
-  }
+  // Only use proactive insight if no thread starter (avoid double-starter)
+  const insight = await insightRead;
+  const proactiveInsight = threadStarter ? undefined : insight?.starter;
+  const proactiveInsightId = threadStarter ? undefined : insight?.id;
 
   return {
     threadStarter,
@@ -121,6 +112,21 @@ export async function getProactiveContext(
       Boolean(threadStarter || proactiveInsight)
     ),
   };
+}
+
+/** The high-priority insight's starter, if any; a failed fetch is none (non-blocking). */
+async function proactiveInsightOf(
+  services: SessionServices
+): Promise<{ starter: string; id?: string } | undefined> {
+  try {
+    const result = await services.getProactiveInsights();
+    if (result.highPriorityCount > 0 && result.suggestedConversationStarter) {
+      return { starter: result.suggestedConversationStarter, id: result.suggestedInsightId };
+    }
+  } catch (e) {
+    log().debug({ error: String(e) }, 'Proactive insights fetch failed (non-blocking)');
+  }
+  return undefined;
 }
 
 /**

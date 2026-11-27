@@ -90,11 +90,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       lastContact: profile?.lastContact,
       lastConversationSummary: profile?.lastConversationSummary,
       store: deps.revivedStore ?? firestoreRevivedStore,
-      // Earlier calls' words never bring back what they asked Ferni to forget,
-      // before this call or during it. The shared passage check, fresh reads
-      // only: null (no FORGET_EVERY_READER, no member, or a late or failed
-      // read, never an old list) means nothing from earlier calls.
-      forgotten: async () => forgottenPassageWithin(userId, 'revived-intelligence'),
+      // Earlier calls' words never bring back what they asked Ferni to forget, before this call
+      // or during it. Read from the store itself, never an old list or the 15 s cache (#2755).
+      // Null (flag off, no member, a late or failed read) means nothing from earlier calls.
+      forgotten: async () =>
+        forgottenPassageWithin(userId, 'revived-intelligence', process.env, true),
       // Per turn, sync: only what was forgotten in this process since the load.
       forgottenNow: () => {
         const topics = userId ? forgottenInProcess(userId) : [];
