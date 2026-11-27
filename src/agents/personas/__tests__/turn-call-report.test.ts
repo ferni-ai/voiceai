@@ -114,6 +114,129 @@ describe('turnRequestFor: a safety tool in the request is a signal too (#3080 r8
   });
 });
 
+describe('turnRequestFor: any tool output naming help holds the report (#3157)', () => {
+  function withOutput(output: string): llm.ChatContext {
+    const c = request();
+    c.insert(llm.FunctionCall.create({ callId: 'c2', name: 'jobLossSupport', args: '{}' }));
+    c.insert(
+      llm.FunctionCallOutput.create({
+        callId: 'c2',
+        name: 'jobLossSupport',
+        output,
+        isError: false,
+      })
+    );
+    return c;
+  }
+
+  // Fictional surroundings; the numbers are the real lines a tool could name.
+  it.each([
+    ['988 in words', 'You can call nine eight eight tonight.'],
+    ['9 8 8 with spaces', 'Dial 9 8 8 if it gets heavy.'],
+    ['9-8-8 with dashes', 'Dial 9-8-8 if it gets heavy.'],
+    [
+      '988 after a newline in JSON',
+      JSON.stringify({ tips: 'Rest first.\n988 is open all night.' }),
+    ],
+    ['the Crisis Text Line number alone', 'Text 741741 any time.'],
+    ['the DV hotline number alone', 'Reach them at 1-800-799-7233.'],
+    ['the Trevor number alone', 'Reach them at 1-866-488-7386.'],
+    ['the old Lifeline number alone', 'Reach them at 1-800-273-8255.'],
+    ['call 911', 'If you are hurt, call 911.'],
+    ['a line name split across array parts', JSON.stringify(['Crisis Life', 'line, open now'])],
+    ['a line written as an object key', JSON.stringify({ 'Call 988 any time': true })],
+    ['a crisis text with no "line"', 'You can send a crisis text any time.'],
+    ['988 after a hash', 'Call #988 now.'],
+    ['988 written as numbers', JSON.stringify({ digits: [9, 8, 8] })],
+  ])('%s: stripped, and it waits', (_l, output) => {
+    const [ctx, waits] = turnRequestFor(withOutput(output), 's-help', false);
+    expect(waits).toBe(true);
+    expect(text(ctx)).not.toContain('ZEBRA-SECRET');
+  });
+
+  it('no report on the request (flag off): a tool naming help leaves the request as sent', () => {
+    const c = llm.ChatContext.empty();
+    c.addMessage({ role: 'user', content: 'what can I do tonight?' });
+    c.insert(llm.FunctionCall.create({ callId: 'c3', name: 'jobLossSupport', args: '{}' }));
+    c.insert(
+      llm.FunctionCallOutput.create({
+        callId: 'c3',
+        name: 'jobLossSupport',
+        output: 'Call 9-8-8 any time.',
+        isError: false,
+      })
+    );
+    const [ctx, waits] = turnRequestFor(c, 's-off', false);
+    expect(waits).toBe(true);
+    expect(ctx).toBe(c);
+  });
+
+  it('an amount is not a line: the report rides', () => {
+    const [ctx, waits] = turnRequestFor(withOutput('The flight is $988 return.'), 's-fare', false);
+    expect(waits).toBe(false);
+    expect(text(ctx)).toContain('ZEBRA-SECRET');
+  });
+
+  const filler = (n: number): string => 'The trail loops past the lake and back. '.repeat(n);
+
+  it('a line across a window edge, deep in a long output, still holds', () => {
+    // 2040 characters of filler put "988" at 2047-2049, across the first window's end (2048).
+    const output = `${filler(51)}x call 988 tonight. ${filler(100)}`;
+    expect(output.indexOf('988')).toBe(2047);
+    expect(turnRequestFor(withOutput(output), 's-edge', false)[1]).toBe(true);
+  });
+
+  it('a number split by the first window edge is read whole by the overlap', () => {
+    // The Trevor number at 2036-2049: the first window ends at 2048 and the second starts at 1920.
+    const output = `${filler(50)}${'x'.repeat(21)} Reach them at 1-866-488-7386 tonight. ${filler(100)}`;
+    expect(output.indexOf('1-866')).toBe(2036);
+    expect(turnRequestFor(withOutput(output), 's-overlap', false)[1]).toBe(true);
+  });
+
+  it('a line only in the last window, at the very end of a long output, still holds', () => {
+    // Windows start every 1920 (2048 - 128 overlap). The line is past the end of the window
+    // before the last, so only the last window reads it.
+    const output = `${filler(150)} call 988 tonight.`;
+    const starts = Array.from(
+      { length: Math.ceil((output.length - 128) / 1920) },
+      (_, i) => i * 1920
+    );
+    const beforeLastEnds = starts[starts.length - 2] + 2048;
+    expect(starts.length).toBeGreaterThan(2);
+    expect(output.indexOf('988')).toBeGreaterThanOrEqual(beforeLastEnds);
+    expect(turnRequestFor(withOutput(output), 's-last-window', false)[1]).toBe(true);
+  });
+
+  it('the same tool output still holds on the next request (read once, remembered)', () => {
+    const ctx = withOutput('Dial 9-8-8 if it gets heavy.');
+    expect(turnRequestFor(ctx, 's-again', false)[1]).toBe(true);
+    const [again, waits] = turnRequestFor(ctx, 's-again', false);
+    expect(waits).toBe(true);
+    expect(text(again)).not.toContain('ZEBRA-SECRET');
+  });
+
+  it('an ordinary long output rides', () => {
+    expect(turnRequestFor(withOutput(filler(800)), 's-long', false)[1]).toBe(false);
+  });
+
+  it('an output too long to read holds the report (fails safe)', () => {
+    expect(turnRequestFor(withOutput(filler(5000)), 's-huge', false)[1]).toBe(true);
+  });
+
+  it('an output nested deeper than it reads holds the report', () => {
+    let deep: unknown = 'quiet';
+    for (let i = 0; i < 12; i++) deep = { inner: deep };
+    expect(turnRequestFor(withOutput(JSON.stringify(deep)), 's-deep', false)[1]).toBe(true);
+  });
+
+  it('a long timetable full of short numbers is read in bounded time', () => {
+    const table = 'bus 214 leaves gate 307 for dock 412, '.repeat(3000); // ~114 KB
+    const started = performance.now();
+    turnRequestFor(withOutput(table), 's-table', false);
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+});
+
 describe('noteCallReportReached', () => {
   it('a held report is never marked; any other turn marks it, with its words and hold', () => {
     const ctx = llm.ChatContext.empty();

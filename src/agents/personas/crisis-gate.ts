@@ -115,7 +115,7 @@ import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { withLookupBridge } from './lookup-bridge.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
-import { burstAllowed } from './vocal-bursts.js';
+import { burstAllowed, type BurstPermit } from './vocal-bursts.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -246,7 +246,7 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
-    const base = applyClassifierVerdict(detection, verdict);
+    const base = applyClassifierVerdict(detection, verdict, env);
     const merged = who?.live ? await who.resolve(base, verdict) : base;
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
     const stronger = raisedTo(raise, merged, rerouted);
@@ -359,19 +359,21 @@ export async function gatedReply(
     wrap(
       stream: ReadableStream<Chunk>,
       openedBySound?: () => boolean,
-      burst?: boolean,
+      burst?: BurstPermit,
       bright?: boolean
     ): ReadableStream<Chunk>;
   },
   options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
-  // The notes about Ferni himself (recall-note.ts: PERSONA_GROWTH's, FERNI_SELF_RECALL's)
-  // never reach a reply on a call with crisis risk noted.
+  // The notes about Ferni himself (recall-note.ts: PERSONA_GROWTH's, FERNI_SELF_RECALL's), and
+  // the caller's recalled memories (CRISIS_NO_MEMORY_RECALL), never reach a reply on a call with
+  // crisis risk noted.
   const risk = sessionScope(session.userData);
   const chatCtx = withoutCrisisHeldNotes(
     withoutPastLeadIns(request, env),
-    !!risk && crisisRiskNoted(risk)
+    !!risk && crisisRiskNoted(risk),
+    env
   );
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
@@ -393,7 +395,7 @@ export async function gatedReply(
   // A soft check-in asks for no crisis talk, so it gets no youth crisis note (MINOR_CRISIS_CARE);
   // a friend at risk gets the friend note.
   const plain = ({ guidance, about }: GuideDecision): llm.ChatContext =>
-    withTurnReminder(withoutCrisisHeldNotes(chatCtx), session, {
+    withTurnReminder(withoutCrisisHeldNotes(chatCtx, true, env), session, {
       shape: false,
       closeLoop: false,
       youth: guidance !== SOFT_CRISIS_CHECK && guidance !== GROUNDED_LIGHT_TOUCH && (about ?? true),

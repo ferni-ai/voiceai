@@ -29,6 +29,7 @@ import {
   updateLastContact,
   addGiftRecord,
   findRelationshipByName,
+  notSaved,
 } from './storage.js';
 import {
   getAllRelationshipInsights,
@@ -91,7 +92,7 @@ export function createRelationshipTools() {
       }) => {
         log.info({ userId, name, relationshipType }, '➕ Adding relationship');
 
-        const relationship = await saveRelationship(userId, {
+        const relationship = {
           name,
           relationshipType: relationshipType as RelationshipType,
           nickname,
@@ -100,8 +101,9 @@ export function createRelationshipTools() {
           interests: interests || [],
           favoriteTeams: favoriteTeams || [],
           notes,
-        });
-
+        };
+        const unsaved = await notSaved(saveRelationship(userId, relationship), name);
+        if (unsaved) return unsaved; // RELATIONSHIP_WRITES_TRUTHFUL: nothing was saved
         let response = `I've added ${name} as your ${relationshipType.replace(/_/g, ' ')}.`;
 
         if (relationship.birthday) {
@@ -175,8 +177,8 @@ export function createRelationshipTools() {
           return `I don't have ${name} in your contacts. Would you like me to add them?`;
         }
 
-        await updateLastContact(userId, relationship.id);
-        return `Great! I've noted that you connected with ${relationship.name}. 💬`;
+        const unsaved = await notSaved(updateLastContact(userId, relationship.id), name);
+        return unsaved ?? `Great! I've noted that you connected with ${relationship.name}. 💬`;
       },
     }),
 
@@ -389,10 +391,9 @@ export function createRelationshipTools() {
         if (relationship.interests.includes(interest.toLowerCase())) {
           return `${name} already has "${interest}" listed as an interest.`;
         }
-
         relationship.interests.push(interest.toLowerCase());
-        await saveRelationship(userId, relationship);
-
+        const unsaved = await notSaved(saveRelationship(userId, relationship), name);
+        if (unsaved) return unsaved; // RELATIONSHIP_WRITES_TRUTHFUL: nothing was saved
         return `Got it! I've added "${interest}" to ${name}'s interests. This will help me with gift suggestions! 🎁`;
       },
     }),
@@ -414,10 +415,9 @@ export function createRelationshipTools() {
         if (relationship.favoriteTeams.some((t) => t.toLowerCase() === team.toLowerCase())) {
           return `${name} already has the ${team} listed as a favorite team.`;
         }
-
         relationship.favoriteTeams.push(team);
-        await saveRelationship(userId, relationship);
-
+        const unsaved = await notSaved(saveRelationship(userId, relationship), name);
+        if (unsaved) return unsaved; // RELATIONSHIP_WRITES_TRUTHFUL: nothing was saved
         return `Got it! I've added the ${team} to ${name}'s favorite teams. I'll let you know when they play! 🏆`;
       },
     }),

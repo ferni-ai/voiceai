@@ -213,7 +213,7 @@ export async function createCalendarSyncedItem(
     {
       userId,
       type,
-      title,
+      titleLength: title.length,
       scheduledFor: scheduledFor.toISOString(),
       externalId,
     },
@@ -285,7 +285,7 @@ export async function createCalendarSyncedItem(
     const calendarEvent = await createEvent(userId, eventInput);
 
     if (!calendarEvent) {
-      log.error({ userId, type, title }, '❌ Calendar bridge: failed to create calendar event');
+      log.error({ userId, type, titleLength: title.length }, '❌ Calendar bridge: create failed');
       return {
         success: false,
         externalId,
@@ -316,7 +316,7 @@ export async function createCalendarSyncedItem(
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    log.error({ error: errorMsg, userId, type, title }, '❌ Calendar bridge: error');
+    log.error({ error: errorMsg, userId, type, titleLength: title.length }, 'Calendar sync failed');
     return {
       success: false,
       externalId,

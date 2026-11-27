@@ -21,6 +21,7 @@
  * @module memory/retrieval/hybrid-search-timeout-stats
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   hybridSearch,
@@ -71,7 +72,10 @@ export async function runHybridSearchWithTimeout(
     // Fuse the legs that made it, just inside the race, so one late leg (the
     // vector leg, waiting out a 429 backoff) costs its own results, not all.
     legDeadlineMs: Math.max(0, budgetMs - LEG_DEADLINE_MARGIN_MS),
-    ...(rrfScale && turnMemoryRerankOn() && { withTimestamps: true }), // the judge weighs which fact is newer
+    // The judge weighs which fact is newer; MEMORY_TIME_LABELS says when each was said.
+    ...(((rrfScale && turnMemoryRerankOn()) || flagOn('MEMORY_TIME_LABELS')) && {
+      withTimestamps: true,
+    }),
   });
   // A search that loses the race still finishes. Log how late, per leg, so the
   // budget is set from what the search actually takes (dev 2026-10-05: 20 of

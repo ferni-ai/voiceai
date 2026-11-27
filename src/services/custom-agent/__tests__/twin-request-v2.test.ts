@@ -109,6 +109,14 @@ describe("talk-to-twin's journal entries", () => {
     expect(body.keyThemes).toEqual(['garden']);
   });
 
+  it('match words, not punctuation, when on: "wash?" in the message finds "the wash." (#3867)', async () => {
+    const asked = { ...clientBody, userMessage: 'Did you make it down to the wash?' };
+    const body = await withOwnTwin('uid-rosa', asked, ON);
+    expect(body.relevantJournals?.map((j) => j.content)).toEqual([
+      'Composted the garden beds and walked to the wash.',
+    ]);
+  });
+
   it("are the client's own when off, and the journal is not read", async () => {
     m.getAllEntries.mockClear();
     const body = await withOwnTwin('uid-rosa', clientBody, OFF);

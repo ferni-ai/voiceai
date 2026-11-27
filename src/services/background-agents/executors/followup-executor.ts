@@ -10,7 +10,7 @@
  * - Supports multiple channels (email, text)
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../../utils/safe-logger.js';
 import { captureBackgroundResult } from '../unified-result-capture.js';
 import type { OutcomeStatus, ResultPriority } from '../result-types.js';
 
@@ -54,7 +54,11 @@ export interface FollowupResult {
  */
 export async function executeFollowup(request: FollowupRequest): Promise<FollowupResult> {
   log.info(
-    { userId: request.userId, recipient: request.recipientName, channel: request.channel },
+    {
+      userId: request.userId,
+      recipient: replyForLog(request.recipientName),
+      channel: request.channel,
+    },
     'Executing follow-up'
   );
 
@@ -89,7 +93,7 @@ export async function executeFollowup(request: FollowupRequest): Promise<Followu
     });
 
     log.info(
-      { userId: request.userId, recipient: request.recipientName, sent: result.sent },
+      { userId: request.userId, recipient: replyForLog(request.recipientName), sent: result.sent },
       'Follow-up completed'
     );
 
@@ -118,7 +122,10 @@ export async function executeFollowup(request: FollowupRequest): Promise<Followu
  * Queue a follow-up for background execution.
  */
 export async function queueFollowup(request: FollowupRequest): Promise<string> {
-  log.info({ userId: request.userId, recipient: request.recipientName }, 'Queueing follow-up');
+  log.info(
+    { userId: request.userId, recipient: replyForLog(request.recipientName) },
+    'Queueing follow-up'
+  );
 
   const taskId = `followup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 

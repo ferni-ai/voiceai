@@ -6,7 +6,9 @@
  * pickers, handoff briefs) reads these fields, and none may see the owner's raw
  * text. So each field is one of:
  * - system-made (id, voice provider, defaults, numbers clamped to their range);
- * - owner-written and short (name, traits, values), through sanitizeOwnerText;
+ * - owner-written and short (name, traits, values), as plain text through
+ *   cleanOwnerText: no unsafe character and no `<` `>`, but `&` left as `&`, since
+ *   greetings and handoffs speak these fields ("Tom & Jerry", never "Tom &amp; Jerry");
  * - left out. The owner's description, stories, wisdom, catchphrases, greetings
  *   and story themes reach the model only inside the prompt's profile block
  *   (custom-agent-live-prompt.ts). The persona's `description` is a fixed line.
@@ -21,7 +23,7 @@
 
 import type { HumorStyle, PersonaConfig, SpeechCharacteristics } from '../../personas/types.js';
 import { buildLiveCustomAgentPrompt } from './custom-agent-live-prompt.js';
-import { sanitizeOwnerList, sanitizeOwnerText } from './custom-agent-owner-text.js';
+import { cleanOwnerList, cleanOwnerText, sanitizeOwnerText } from './custom-agent-owner-text.js';
 import { DEFAULT_COMMUNICATION, DEFAULT_KNOWLEDGE } from './custom-agent-runtime-service.js';
 import {
   isStockCustomAgentVoiceId,
@@ -79,7 +81,7 @@ function speech(s: SpeechCharacteristics | undefined): SpeechCharacteristics {
 /** `loaded` (customAgentToPersonaConfig's output) as an allowlisted, sanitized live-call persona. */
 export function liveCallPersona(loaded: PersonaConfig): PersonaConfig {
   const id = sanitizeOwnerText(loaded.id, 80);
-  const name = sanitizeOwnerText(loaded.displayName || loaded.name, NAME_MAX) || 'your character';
+  const name = cleanOwnerText(loaded.displayName || loaded.name, NAME_MAX) || 'your character';
   const stored = loaded.voice?.voiceId;
   const voiceId = isStockCustomAgentVoiceId(stored) ? stored : SAFE_DEFAULT_CUSTOM_AGENT_VOICE_ID;
   const p = loaded.personality;
@@ -99,10 +101,10 @@ export function liveCallPersona(loaded: PersonaConfig): PersonaConfig {
     identity: {
       id,
       selfReference: name,
-      coreValues: sanitizeOwnerList(loaded.identity?.coreValues, SHORT_MAX, LIST_MAX),
-      role: sanitizeOwnerText(loaded.identity?.role, SHORT_MAX * 2) || 'supportive companion',
-      priorities: sanitizeOwnerList(loaded.identity?.priorities, SHORT_MAX, LIST_MAX),
-      desiredUserExperience: sanitizeOwnerText(loaded.identity?.desiredUserExperience, LINE_MAX),
+      coreValues: cleanOwnerList(loaded.identity?.coreValues, SHORT_MAX, LIST_MAX),
+      role: cleanOwnerText(loaded.identity?.role, SHORT_MAX * 2) || 'supportive companion',
+      priorities: cleanOwnerList(loaded.identity?.priorities, SHORT_MAX, LIST_MAX),
+      desiredUserExperience: cleanOwnerText(loaded.identity?.desiredUserExperience, LINE_MAX),
     },
     communication: {
       ...structuredClone(DEFAULT_COMMUNICATION),
@@ -115,7 +117,7 @@ export function liveCallPersona(loaded: PersonaConfig): PersonaConfig {
       directness: unit(p?.directness, 0.5),
       energy: unit(p?.energy, 0.5),
       tangentFrequency: unit(p?.tangentFrequency, 0.2),
-      traits: sanitizeOwnerList(p?.traits, SHORT_MAX, LIST_MAX),
+      traits: cleanOwnerList(p?.traits, SHORT_MAX, LIST_MAX),
       boundaries: [],
       moodsByTime: [],
     },

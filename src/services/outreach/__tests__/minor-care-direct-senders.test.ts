@@ -51,7 +51,9 @@ vi.mock('@google-cloud/storage', () => ({
     }
   },
 }));
-vi.mock('@livekit/agents', () => ({
+// The real package under the stubs: telephony scripts reach the personas index, which loads audio.
+vi.mock('@livekit/agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@livekit/agents')>()),
   llm: { tool: (config: unknown) => config },
   log: () => ({ info: () => undefined, warn: () => undefined, error: () => undefined }),
 }));

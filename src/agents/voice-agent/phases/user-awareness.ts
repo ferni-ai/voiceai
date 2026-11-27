@@ -14,11 +14,12 @@
  */
 
 import { lastMoodNote } from '../../../services/session/last-mood-note.js';
-import { placeholderSummaryNote } from '../../../services/session/placeholder-summary.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { callerClockZone } from '../../../utils/caller-clock.js';
 import { calendarDaysSince } from '../../../utils/calendar-days.js';
+import { lastTalkedAbout } from '../../multi-agent/teammate-relationship.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
+import { noRecordWording } from '../../personas/earlier-call-honest.js';
 
 // ============================================================================
 // TYPES
@@ -110,7 +111,8 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
   // Better Than Human #1: Last Conversation Context
   if (isReturningUser && profile.lastConversationSummary) {
     const summary = profile.lastConversationSummary;
-    facts.push(placeholderSummaryNote(summary) ?? `Last time you talked about: ${summary}`);
+    const lastCall = { at: profile.lastContact, now: sessionStartTime, zone: config.timeZone };
+    facts.push(lastTalkedAbout(false, summary, lastCall)); // teammate-relationship.ts
   }
 
   // Better Than Human #2: Emotional Memory
@@ -171,7 +173,8 @@ function addRelationshipContext(
       addLastContactContext(facts, profile.lastContact, sessionStartTime, timeZone);
     }
   } else if (!isReturningUser) {
-    facts.push('This is your first conversation with them - be welcoming but not overwhelming.');
+    const first = 'This is your first conversation with them - be welcoming but not overwhelming.';
+    facts.push(noRecordWording(first)); // EARLIER_CALL_NO_DENIAL (earlier-call-honest.ts)
   }
 
   // Relationship stage
@@ -263,6 +266,7 @@ const FACT_KINDS: Array<[RegExp, string]> = [
   [/^Last time you talked about/, 'last conversation'],
   [/^(Life context|Current goal|On their mind):/, '$1'],
   [/^This is your first conversation/, 'first conversation'],
+  [/^You have no earlier calls/, 'first conversation'],
   [/\b(earlier today|yesterday|days ago|weeks since|months? since)\b/, 'last contact'],
   [/\b(talked once|talked \d+ times|conversations?\b)/, 'conversation count'],
 ];

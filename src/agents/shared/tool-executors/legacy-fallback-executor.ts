@@ -1017,7 +1017,7 @@ export async function executeLegacyFallback(
 
   if (fnLower === 'logmood') {
     const mood = args.mood as string;
-    log.info({ mood, intensity: args.intensity }, '😊 Mood noted');
+    log.info({ moodLength: mood?.length, intensity: args.intensity }, '😊 Mood noted');
     return mood
       ? `I hear you're feeling ${mood}. Thank you for sharing that with me.`
       : 'How are you feeling right now?';
@@ -1107,7 +1107,7 @@ export async function executeLegacyFallback(
       return `What would you like me to say to ${contactName}?`;
     }
 
-    log.info({ contactName, persona, userId: ctx.userId }, '🎤 Voice message requested');
+    log.info({ persona, userId: ctx.userId }, '🎤 Voice message requested');
 
     if (!ctx.userId) {
       return 'I need to know who you are to send voice messages.';
@@ -1180,13 +1180,12 @@ export async function executeLegacyFallback(
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        log.error({ status: response.status, error: errorText }, '📱 MMS send failed');
+        log.error({ status: response.status }, '📱 MMS send failed');
         return `I generated the voice message but had trouble sending it. ${voiceMessage.audioUrl}`;
       }
 
       const mmsData = (await response.json()) as { sid: string };
-      log.info({ sid: mmsData.sid, to: contact.phone }, '📱 Voice message sent via MMS');
+      log.info({ sid: mmsData.sid, hasRecipient: true }, '📱 Voice message sent via MMS');
 
       return `I sent a voice message to ${contact.name}. They'll receive it as an audio message.`;
     } catch (err) {
@@ -1210,7 +1209,7 @@ export async function executeLegacyFallback(
       return `What would you like me to say to ${contactName}?`;
     }
 
-    log.info({ contactName, userId: ctx.userId }, '📱 Text message requested');
+    log.info({ userId: ctx.userId }, '📱 Text message requested');
 
     if (!ctx.userId) {
       return 'I need to know who you are to send messages.';
@@ -1260,13 +1259,12 @@ export async function executeLegacyFallback(
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        log.error({ status: response.status, error: errorText }, '📱 SMS send failed');
+        log.error({ status: response.status }, '📱 SMS send failed');
         return `Couldn't send the text to ${contact.name}. Want me to try again?`;
       }
 
       const smsData = (await response.json()) as { sid: string };
-      log.info({ sid: smsData.sid, to: contact.phone }, '📱 SMS sent');
+      log.info({ sid: smsData.sid, hasRecipient: true }, '📱 SMS sent');
 
       return `I sent your message to ${contact.name}.`;
     } catch (err) {
@@ -1291,7 +1289,7 @@ export async function executeLegacyFallback(
       return `What would you like me to say to ${contactName}?`;
     }
 
-    log.info({ contactName, userId: ctx.userId }, '📧 Email requested');
+    log.info({ userId: ctx.userId }, '📧 Email requested');
 
     if (!ctx.userId) {
       return 'I need to know who you are to send emails.';
@@ -1323,7 +1321,7 @@ export async function executeLegacyFallback(
         false // plain text
       );
 
-      log.info({ to: contact.email, result }, '📧 Email sent');
+      log.info({ hasRecipient: true, resultLength: result.length }, '📧 Email sent');
 
       return `I sent your email to ${contact.name}.`;
     } catch (err) {
@@ -1369,7 +1367,7 @@ export async function executeLegacyFallback(
       return 'I need to know who you are to schedule events. Try saying your name first.';
     }
 
-    log.info({ title, when, duration, userId: ctx.userId }, '📅 Scheduling event via voice');
+    log.info({ titleLength: title?.length, duration, userId: ctx.userId }, '📅 Scheduling event');
 
     if (!title) {
       return 'What would you like to schedule?';
@@ -1941,7 +1939,7 @@ export async function executeLegacyFallback(
       date?: string;
       duration?: number;
     };
-    log.info({ title, startTime, date }, '📅 Creating event via alias');
+    log.info({ hasTitle: !!title, hasDate: !!(startTime || date) }, '📅 Creating event via alias');
     return executeLegacyFallback(
       'scheduleevent',
       { title, when: startTime || date, duration: duration || 30 },

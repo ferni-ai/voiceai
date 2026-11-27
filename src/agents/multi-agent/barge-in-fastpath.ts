@@ -154,6 +154,18 @@ export interface BargeInFastPath {
   onOverlapDecision(event: unknown): void;
 }
 
+/**
+ * SOFT_PAUSE_CUT_DROPS_HELD: the cut reply's held audio goes now, not after LiveKit's 2 s wait.
+ * A throw is logged by name only (never its message) and the cut goes on as without the flag.
+ */
+function dropCutSafely(soft: SoftPause): void {
+  try {
+    soft.dropCut?.();
+  } catch (error) {
+    soft.log?.({ event: 'drop-failed', error: error instanceof Error ? error.name : typeof error });
+  }
+}
+
 export function createBargeInFastPath(deps: {
   /** Cut the reply; false (or a throw) when it could not be cut. */
   interrupt: () => boolean | void;
@@ -194,11 +206,14 @@ export function createBargeInFastPath(deps: {
     deps.log?.(fields);
     deps.interrupt();
   };
+  const stopWatchdog = (): void => {
+    if (watchdog) clearTimer(watchdog);
+    watchdog = undefined;
+  };
   /** Give Ferni's audio back. A throw is logged, never let into a timer or LiveKit's emit. */
   const release = (): void => {
     outputHeld = false;
-    if (watchdog) clearTimer(watchdog);
-    watchdog = undefined;
+    stopWatchdog();
     try {
       soft?.resume();
     } catch (error) {
@@ -222,6 +237,9 @@ export function createBargeInFastPath(deps: {
       // The output stays paused until the cut reply ends (releaseOutput).
       if (tryInterrupt()) {
         soft.log?.({ outcome, ...fields, pausedMs });
+        // SOFT_PAUSE_ONE_OUTCOME: the watchdog would play the cut reply's held frame (#3857).
+        if (soft.oneOutcome) stopWatchdog();
+        dropCutSafely(soft);
         return;
       }
       // An uninterruptible reply would otherwise stay paused, and "speaking", for good.
@@ -268,7 +286,7 @@ export function createBargeInFastPath(deps: {
     const at = Date.now();
     pending = { at, heard: 'no-words' };
     scheduleResume();
-    if (watchdog) clearTimer(watchdog);
+    stopWatchdog();
     watchdog = setTimer(
       () => {
         watchdog = undefined;
