@@ -34,6 +34,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
+import { lowestThinking, withTrialLane } from './trial-lane.js';
 import { afterToolHedgeMs } from './after-tool-hedge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
 import { watchSttStream } from './stt-audio-diagnostics.js';
@@ -234,16 +235,11 @@ export function cascadeThinking(
     : { thinkingLevel: cascadeThinkingLevel(model, env) };
 }
 
-/**
- * The lowest thinking level the model accepts, unless CASCADE_LLM_THINKING
- * names one. gemini-3.8-flash rejects MINIMAL with a 400 (measured
- * 2026-09-27); at LOW its first text took ~2.2s median vs ~0.9s for
- * gemini-3.5-flash at MINIMAL, with 64 tools and the full Ferni prompt.
- */
+/** The lowest thinking level the model accepts (lowestThinking), or CASCADE_LLM_THINKING. */
 function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
   const named = env.CASCADE_LLM_THINKING?.toUpperCase();
   if (named && named in ThinkingLevel) return ThinkingLevel[named as keyof typeof ThinkingLevel];
-  return /^gemini-3\.8/.test(model) ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL;
+  return lowestThinking(model);
 }
 
 /**
@@ -411,17 +407,21 @@ export class CartesiaCascadeProvider implements ModelProvider {
         labels
       );
     };
-    const primary = gemini(opts);
-    const main = hedge
-      ? new HedgedLLM(
-          primary,
-          gemini({ ...hedge.backup, temperature: config.temperature }),
-          hedge.hedgeAfterMs,
-          hedge.afterToolHedgeMs
-        )
-      : primary;
+    // Today's model, or a dev trial's (CASCADE_TRIAL_MODEL, trial-lane.ts): hedged alike.
+    const hedged = (o: CascadeLLMOptions): HedgedLLM | google.LLM =>
+      hedge
+        ? new HedgedLLM(
+            gemini(o),
+            gemini({ ...hedge.backup, temperature: config.temperature }),
+            hedge.hedgeAfterMs,
+            hedge.afterToolHedgeMs
+          )
+        : gemini(o);
+    const main = hedged(opts);
     const fast = buildFastLane(process.env, opts);
-    if (!fast) return main;
+    const trial = (model: string) =>
+      hedged({ ...opts, model, thinkingConfig: cascadeThinking(model) });
+    if (!fast) return withTrialLane(main, trial);
     log.info(fast, 'Cascade fast lane on');
     // A slow or failed fast model hands the turn to the main one.
     return new FastLaneLLM(new HedgedLLM(gemini(fast.options), main, fast.hedgeAfterMs), main);

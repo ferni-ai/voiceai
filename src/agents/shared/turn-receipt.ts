@@ -43,7 +43,7 @@ import { keepLlm, replyRequest, tokensField, type RequestView } from './turn-rec
 import { receiptBuild } from './turn-receipt-flags.js';
 import { laneFields, type LaneShadow } from './turn-receipt-lane.js';
 import { PendingPreemptive, type PreemptiveCause } from './preemptive-cause.js';
-import { latencyArmFor } from '../../services/platform/latency-arm.js';
+import { armFields } from './turn-receipt-arms.js';
 import { sentenceCount, userKindOf, type UserKind } from './turn-receipt-caller.js';
 import * as timed from './turn-receipt-timing.js';
 import * as steps from './turn-receipt-tool-timing.js';
@@ -258,11 +258,10 @@ export class TurnReceiptRecorder {
           droppedIdx: note.droppedIdx,
         }
       : { offered: 0, kept: 0, droppedIdx: [] };
-    // Where FastLaneLLM sends it, or with the lane off would (a crisis mark, then the words).
+    // Where FastLaneLLM sends it, or with the lane off would (a crisis mark, then the words),
+    // and with CASCADE_TRIAL_MODEL on, the slot its trial field is read from (trial-lane.ts).
     const call = { sessionId: this.opts.sessionId, userId: this.opts.userId };
-    const { lane, laneShadow } = laneFields(request, call, this.opts.env);
-    turn.lane = lane;
-    turn.laneShadow = laneShadow;
+    Object.assign(turn, laneFields(request, call, this.opts.env));
   }
 
   /**
@@ -475,7 +474,7 @@ export class TurnReceiptRecorder {
       },
       preemptive: turn.preemptive,
       preemptiveCause: turn.preemptiveCause ?? null, // why (preemptive-cause.ts)
-      latencyArm: latencyArmFor(this.opts.sessionId), // LATENCY_ARM_PERCENT (latency-arm.ts)
+      ...armFields(this.opts.sessionId, req.trial), // LATENCY_ARM_PERCENT, CASCADE_TRIAL_MODEL
       pauseHoldMs: turn.pauseHoldMs,
       callerPath:
         this.opts.phoneCaller === undefined ? 'unknown' : this.opts.phoneCaller ? 'phone' : 'web',

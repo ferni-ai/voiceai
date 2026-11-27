@@ -27,6 +27,14 @@ const log = createLogger({ module: 'HedgedLLM' });
 
 type ChatOptions = Parameters<llm.LLM['chat']>[0];
 
+/** Which model answered each request, by its chat context (the trial receipt, trial-lane.ts). */
+const answered = new WeakMap<object, 'primary' | 'backup'>();
+
+/** Which model answered this chat context's request; unset until one of them says something. */
+export function hedgedAnswerOf(chatCtx: object): 'primary' | 'backup' | undefined {
+  return answered.get(chatCtx);
+}
+
 /** A chunk that commits the reply: text or a tool call, not an empty delta. */
 export function isCommittingChunk(chunk: llm.ChatChunk): boolean {
   return Boolean(chunk.delta?.content?.trim() || chunk.delta?.toolCalls?.length);
@@ -213,6 +221,7 @@ class HedgedLLMStream extends llm.LLMStream {
     }
 
     for (const c of racing) if (c !== winner) c.stream.close();
+    answered.set(this.opts.chatCtx, winner.name);
     if (backupStarted) {
       log.info({ winner: winner.name, firstOutputMs: Date.now() - startedAt }, 'hedged reply');
     }

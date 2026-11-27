@@ -90,6 +90,7 @@ import {
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import type { ReplyLane } from '../model-provider/lane-request.js';
 import { noteCrisisVerdictPending, signalGateDecisions } from '../safety/crisis-gate-signal.js';
+import { heldTrialReplyCleared } from '../safety/crisis-trial-clearance.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -408,16 +409,21 @@ export async function gatedReply(
       : withTurnReminder(chatCtx, session, { held: gate?.escalation });
   // A vocal burst only where this request invited one, never with crisis guidance.
   const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
+  // The verdict this turn's reply is held on, for the dev model trial (crisis-trial-clearance.ts).
+  const held = gate?.escalation
+    ? { verdict: gate.escalation, latest: callerWords(chatCtx).latest }
+    : undefined;
   const ask = async (
     request: llm.ChatContext,
     mayBurst = burst,
-    guided = gate?.decision.action === 'guide'
+    guided = gate?.decision.action === 'guide',
+    today = false
   ): Promise<ReadableStream<Chunk> | null> => {
     // Crisis guidance or risk on the call: the main model, never the fast lane (lane-request.ts).
     // Read now, not at the turn's start: a reply asked again after a read escalated sees its risk.
-    const mainLane = guided || (!!risk && crisisRiskNoted(risk));
+    const mainLane = guided || today || (!!risk && crisisRiskNoted(risk));
     // LISTEN_OFFER_STRIP: no "I'm here if you want to vent" (listen-offer.ts); never with crisis guidance.
-    const asked = await model(request, { mainLane });
+    const asked = await model(request, { mainLane, session, held }); // the dev trial's clearance
     const stream = withoutListenOffer(tapToolCalls(asked, session), { guided, env });
     if (!stream) return stream;
     // FERNI_PLAYFUL: a bright turn's reminder invited a reaction word (ferni-playful.ts).
@@ -444,9 +450,14 @@ export async function gatedReply(
   const reply = asking(
     gate?.decision.action === 'guide' ? withGuidedLine(first, gate.decision, env) : first
   );
-  if (!gate?.escalation) return reply;
+  if (!gate?.escalation || !held) return reply;
+  // A held reply the trial model wrote, on a read that wasn't clean: today's model answers instead.
+  const unreleased = () =>
+    heldTrialReplyCleared(session, held)
+      ? null
+      : ask(ctx, burst, false, true).then((s) => asking(s));
   // No first reply: an empty one, so a release still speaks its question.
-  return holdFor(env)(reply ?? textReply(''), gate.escalation, async (decision) => {
+  return holdFor(env, { unreleased })(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;

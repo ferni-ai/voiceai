@@ -181,6 +181,7 @@
 /src/agents/personas/phrase-loops-safety.generated.ts @sethdford
 /src/agents/personas/repair-check.ts @sethdford
 /src/agents/personas/turn-request.ts @sethdford
+/src/agents/model-provider/trial-lane.ts @sethdford
 /src/agents/processors/live-superhuman-injections.ts @sethdford
 /src/agents/processors/live-superhuman-writes.ts @sethdford
 /src/agents/processors/turn-processor/process-turn.ts @sethdford

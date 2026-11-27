@@ -64,6 +64,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   ATTUNE_LEDGER: ON_OFF, // turn-attunement.ts, === 'on'
   BARGE_IN_SOFT_PAUSE: ON_OFF, // barge-in-soft-pause.ts, !== 'on'
   CALL_TELEMETRY: Object.freeze<FlagValue[]>(['off', 'on', 'reports']), // call-telemetry-store.ts
+  CASCADE_TRIAL_MODEL: NONE, // trial-lane.ts: a model ID, set in the dev deploy env, not here
   // crisis-classifier-only(-live).ts; live is held (logs, changes nothing) outside tests
   CRISIS_CLASSIFIER_ONLY_CHECKIN: OFF_SHADOW,
   CRISIS_CLASSIFIER_SECOND_READ: WITH_SHADOW, // crisis-classifier-v3.ts
