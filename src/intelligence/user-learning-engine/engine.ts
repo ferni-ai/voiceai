@@ -985,7 +985,7 @@ export class UserLearningEngine {
   captureExternalKeyMoment(moment: KeyMoment): void {
     if (teammate.keepsMoment(moment)) this.sessionKeyMoments.push(moment);
     getLogger().info(
-      { type: moment.type, summary: moment.summary },
+      { type: moment.type, len: moment.summary.length },
       'Captured external key moment'
     );
   }

@@ -1,13 +1,16 @@
 /**
- * Three log lines the #2689 ratchet cannot see, because their names (leakedJson, rawLLMBuffer,
+ * Four log lines the #2689 ratchet cannot see, because their names (leakedJson, rawLLMBuffer,
  * a `summary` key) are not in its TEXT_NAME / WHOLE_KEY lists. Each one carried Ferni's reply or
  * the caller's key moment into prod logs:
  * - tts-wrapper's leakSample: the first 100 chars of leaked JSON with long words masked. Digits
- *   and short words survived. Now replyForLog: a length on prod, the sample on dev.
+ *   and short words survived. Now it goes through replyForLog, which logs a length on prod and
+ *   the sample on dev.
  * - tts-wrapper's charCodes: the reply's first 20 characters as codes, which decode straight
  *   back to the words. Now dev only.
  * - the learning engine's 'Captured key moment': the moment's summary when LOG_USER_WORDS was
  *   on. Now its length.
+ * - the learning engine's 'Captured external key moment': the moment's summary, always, at info.
+ *   Now its length.
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -47,5 +50,12 @@ describe('log lines outside the ratchet keep words off prod logs', () => {
     expect(call).toMatch(/len:\s*summary\.length/);
     expect(call).not.toMatch(/[{,]\s*summary\s*[,}]/);
     expect(call).not.toMatch(/summary:\s*summary\b/);
+  });
+
+  it("'Captured external key moment' logs the summary's length, never the summary", () => {
+    const fields = fieldAt(engine, 'captureExternalKeyMoment(moment', 6);
+    expect(fields).toContain("'Captured external key moment'");
+    expect(fields).toMatch(/len:\s*moment\.summary\.length/);
+    expect(fields).not.toMatch(/summary:\s*moment\.summary\b/);
   });
 });
