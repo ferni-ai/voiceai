@@ -16,6 +16,7 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { getResultIcon, SECTION_ICONS } from './icons/hub-icons.js';
+import { callNeedsOwner, resultNeedsOwner } from './while-you-were-away-owner.js';
 
 const log = createLogger('WhileYouWereAwayUI');
 
@@ -259,7 +260,7 @@ function handleBackgroundComplete(event: Event): void {
     priority: detail.priority,
     contactName: detail.contactName,
     timestamp: new Date(),
-    requiresAction: detail.requiresCallback,
+    requiresAction: resultNeedsOwner(detail),
   };
 
   addUpdate(update);
@@ -273,10 +274,10 @@ function handleCallComplete(event: Event): void {
     type: 'call',
     title: t('whileYouWereAway.callTo', { name: detail.contactName }),
     summary: detail.outcome,
-    priority: detail.callbackRequired ? 'high' : 'normal',
+    priority: callNeedsOwner(detail) ? 'high' : 'normal',
     contactName: detail.contactName,
     timestamp: new Date(),
-    requiresAction: detail.callbackRequired,
+    requiresAction: callNeedsOwner(detail),
   };
 
   addUpdate(update);
