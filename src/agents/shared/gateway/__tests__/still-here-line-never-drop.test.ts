@@ -85,6 +85,7 @@ describe('STILL_HERE_LINE with CRISIS_LINE_NEVER_DROP', () => {
   });
 
   it('off: expires in the queue after 10 s, as on main', async () => {
+    vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'off');
     const call = await callWithALineStillPlaying();
     await triggerGracefulExit(call.sessionId);
 
@@ -134,6 +135,7 @@ describe('STILL_HERE_LINE with CRISIS_LINE_NEVER_DROP', () => {
   });
 
   it('off: waits its turn behind a line queued earlier, as on main', async () => {
+    vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'off');
     const call = await callWithALineStillPlaying();
     await routeSpeech(call.sessionId, 'Line B');
     await triggerGracefulExit(call.sessionId);

@@ -120,6 +120,7 @@ describe('the step-away goodbye when the exit is held in its wait', () => {
   });
 
   it('off: a goodbye still queued is said, then the still-here line, as on main', async () => {
+    vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'off');
     const c = await call('Line A');
     await exitWithRiskInTheWait(c.sessionId);
 
