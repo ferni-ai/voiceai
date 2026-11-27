@@ -54,10 +54,8 @@ export async function addSoulCounts(
 export interface SoulStatsTotals {
   measured: true;
   windowHours: number;
-  microExpressions: number;
-  protectiveModes: number;
-  comfortPulses: number;
-  memorySparks: number;
+  /** Every key, summed over the window; a doc written before a key existed adds 0 to it. */
+  counts: SoulCounts;
   /** The newest write in the window; null when nothing was reported in it. */
   lastUpdated: string | null;
 }
@@ -87,10 +85,7 @@ export async function readSoulTotals(db: Firestore, now: number): Promise<SoulSt
   return {
     measured: true,
     windowHours: WINDOW_HOURS,
-    microExpressions: sum.micro_expression,
-    protectiveModes: sum.protective_mode,
-    comfortPulses: sum.comfort_pulse,
-    memorySparks: sum.memory_spark,
+    counts: sum,
     lastUpdated: newest === null ? null : new Date(newest).toISOString(),
   };
 }

@@ -22,7 +22,7 @@ export const TURN_CONTEXT_FOR = 'turnContextFor';
 export const MAX_PUSHED_CONTEXT_CHARS = 2000;
 
 /**
- * The id prefix of a memory-recall note (memory-recall-hook.ts addRecallNote),
+ * The id prefix of a memory-recall note (recall-note.ts addRecallNote),
  * so a turn receipt can count what recall added without reading it.
  */
 export const RECALL_NOTE_ID_PREFIX = 'recall_';

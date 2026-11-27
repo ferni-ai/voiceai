@@ -23,6 +23,7 @@ import {
 } from '../../../config/gemini-config.js';
 import { getDefaultModel, getShortLLMTimeout } from '../../model-config.js';
 import type { ExtractedPerson, PersonRelationship } from './person-extractor.js';
+import { generateWithTimeout, LlmTimeoutError, timeoutLogLevel } from './llm-timeout.js';
 
 const log = createLogger({ module: 'llm-detector' });
 
@@ -100,34 +101,21 @@ async function callLLM<T>(
       return { success: false, data: null, cached: false, latencyMs: 0 };
     }
 
-    // Call Gemini Flash with timeout
-    const result = await llmCircuitBreaker.execute(async () => {
-      const response = await Promise.race([
-        (
-          client as {
-            models: {
-              generateContent: (params: {
-                model: string;
-                contents: string;
-                config: { maxOutputTokens: number; temperature: number };
-              }) => Promise<{ text: string }>;
-            };
-          }
-        ).models.generateContent({
+    // Call Gemini Flash with timeout (aborted, timer cleared: llm-timeout.ts)
+    const result = await llmCircuitBreaker.execute(() =>
+      generateWithTimeout(
+        client,
+        {
           model: getDefaultModel(),
           contents: prompt,
           config: {
             maxOutputTokens: MAX_TOKENS,
             temperature: TEMP_CLASSIFICATION, // Low for consistent classification
           },
-        }),
-        new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('LLM timeout')), timeout);
-        }),
-      ]);
-
-      return response?.text?.trim() || '';
-    });
+        },
+        timeout
+      )
+    );
 
     const latencyMs = Date.now() - startTime;
     log.debug({ latencyMs, cacheKey }, 'LLM call completed');
@@ -149,6 +137,9 @@ async function callLLM<T>(
   } catch (error) {
     if (error instanceof CircuitOpenError) {
       log.debug('LLM circuit breaker opened');
+    } else if (error instanceof LlmTimeoutError) {
+      const elapsedMs = Date.now() - startTime;
+      log[timeoutLogLevel()]({ elapsedMs, timeoutMs: error.timeoutMs }, 'LLM call timed out');
     } else {
       log.warn({ error: String(error) }, 'LLM call failed');
     }

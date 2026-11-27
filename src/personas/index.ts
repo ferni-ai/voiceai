@@ -417,26 +417,9 @@ export {
 // PERSONA IDS (constants, types, validation, the retired-id fallback)
 // ============================================================================
 
-export {
-  ALIAS_TO_CANONICAL,
-  ALL_CANONICAL_IDS,
-  assertCanonical,
-  CANONICAL_IDS,
-  CANONICAL_TO_FRONTEND,
-  DISPLAY_NAMES,
-  fromFrontend,
-  FRONTEND_TO_CANONICAL,
-  isCanonicalId,
-  isKnownId,
-  isSamePersona,
-  isValidPersonaId,
-  livePersonaId,
-  toCanonical,
-  toFrontend,
-  validateAndLog,
-  type CanonicalPersonaId,
-  type FrontendPersonaId,
-} from './persona-ids.js';
+// The light entry (no audio, no session registry) publishes them; importers that only need
+// ids and names use personas/identity/index.ts directly.
+export * from './identity/index.js';
 // How each persona is referred to in the third person (the canon)
 export { getPersonaPronouns, type PersonaPronouns } from './persona-pronouns.js';
 

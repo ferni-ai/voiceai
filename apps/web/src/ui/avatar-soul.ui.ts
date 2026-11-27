@@ -489,6 +489,7 @@ export function triggerWarmthBloom(intensity: number = 1, color?: string): void 
 
   // Trigger animation
   warmthBloomElement.classList.add('active');
+  soulStatsService.recordWarmthBloom();
 
   // Remove class after animation
   trackedTimeout(() => {
@@ -1040,7 +1041,6 @@ export function triggerMemorySpark(): void {
   setPupilDilation('DILATED', 'fast');
   trackedTimeout(() => setPupilDilation('INTERESTED', 'slow'), 400);
 
-  // Track stats
   soulStatsService.recordMemorySpark();
 
   log.debug('Memory spark triggered');
@@ -1088,7 +1088,6 @@ export function startComfortPulse(): void {
   // Also set protective glow
   setGlowBleed(0.4, GLOW_COLORS.PROTECTIVE);
 
-  // Track stats
   soulStatsService.recordComfortPulse();
 
   log.debug('Comfort pulse started');
@@ -1312,6 +1311,7 @@ export function celebrateGrowth(): void {
   // Bump up glow
   setGlowBleed(0.7, GLOW_COLORS.WARM);
   trackedTimeout(() => setGlowBleed(0.2), 1500);
+  soulStatsService.recordCelebrateGrowth();
 
   log.debug('Growth celebration triggered');
 }
@@ -1341,7 +1341,6 @@ export function enterProtectiveMode(): void {
   // Start comfort pulse
   startComfortPulse();
 
-  // Track stats
   soulStatsService.recordProtectiveMode();
 
   log.debug('Protective mode entered');
@@ -1377,6 +1376,7 @@ export function exitProtectiveMode(): void {
  */
 export function triggerCameoArrival(personaColor: string, isFirstCameo: boolean = false): void {
   if (state.reducedMotion) return;
+  soulStatsService.recordCameoArrival();
 
   log.debug('Cameo arrival triggered', { personaColor, isFirstCameo });
 

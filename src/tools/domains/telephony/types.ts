@@ -93,6 +93,8 @@ export interface OnBehalfCallRequest {
   userId: string;
   userTimezone: string;
   userName: string;
+  /** The persona that was asked and places the call (CALL_AS_PERSONA, scripts/calling-persona.ts). */
+  callingPersonaId?: string;
   userPreferences?: {
     preferredTimes?: string[];
     constraints?: string[];
@@ -120,8 +122,10 @@ export interface CallOutcome {
   objectiveAchieved: boolean;
   outcome: string;
 
-  // Follow-ups
+  // Follow-ups. With CALLBACK_MEANS_ASKED on, callbackRequired is only the person's own ask
+  // and retryOffered is a call to offer to try again; read both through callback-meaning.ts.
   callbackRequired?: boolean;
+  retryOffered?: boolean;
   callbackTime?: string;
   actionItems?: string[];
 

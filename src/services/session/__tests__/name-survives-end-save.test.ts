@@ -87,6 +87,22 @@ vi.mock('../../data-layer/profile-cache.js', () => ({
   cacheProfile: async () => undefined,
   invalidateProfile: async () => undefined,
 }));
+// The summary model, as in last-summary-endsession.test.ts: the end save's summary pass and the
+// call-end pass (summarizeConversationAsync) both reach it, and tests build no real model client.
+vi.mock('../../../memory/index.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  summarizeWithLLM: async (id: string) => ({
+    id: `sum-${id}`,
+    sessionId: id,
+    timestamp: new Date(),
+    duration: 10,
+    turnCount: 4,
+    mainTopics: [],
+    keyPoints: [],
+    emotionalArc: '',
+    callerProvenance: 1,
+  }),
+}));
 
 const { createUserProfile } = await import('../../../types/user-profile.js');
 const { createSessionServices } = await import('../session-manager.js');

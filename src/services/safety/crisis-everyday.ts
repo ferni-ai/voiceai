@@ -19,7 +19,6 @@
  * @module CrisisEveryday
  */
 
-import { hasRiskContent } from './crisis-agreement.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 
 export const CRISIS_EVERYDAY_RULES = `
@@ -34,14 +33,6 @@ export function resolveCrisisEverydayRules(
   env: Record<string, string | undefined> = process.env
 ): boolean {
   return env.CRISIS_CLASSIFIER_EVERYDAY_RULES?.trim().toLowerCase() === 'on';
-}
-
-/** With the rules on, whether this turn is also read without them. */
-export function needsPlainRead(
-  latest: string,
-  env: Record<string, string | undefined> = process.env
-): boolean {
-  return resolveCrisisEverydayRules(env) && hasRiskContent(latest);
 }
 
 const SEVERITY = { none: 0, crisis: 1, imminent: 2 } as const;

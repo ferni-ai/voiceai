@@ -3,9 +3,16 @@
  *
  * @module agents/multi-agent/recall-note
  */
+import type { Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
 import { crisisRiskThisCall, scoreCrisisLanguage } from '../../services/safety/index.js';
+import {
+  crisisNoMemoryRecallOn,
+  memoryFreeText,
+  WITHOUT_RECALLED_MEMORY,
+  withoutRecalledMemory,
+} from '../processors/turn-processor/crisis-memory-recall.js';
 import { afterPreemptive, preemptStableMode, restartPreemptive } from './preempt-stable-context.js';
 import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
 
@@ -24,7 +31,12 @@ interface NoteItem {
 export interface RecallAgent {
   readonly chatCtx: {
     copy(): {
-      addMessage(msg: { role: 'system'; content: string; id?: string }): unknown;
+      addMessage(msg: {
+        role: 'system';
+        content: string;
+        id?: string;
+        extra?: Record<string, unknown>;
+      }): unknown;
       items?: unknown[];
     };
   };
@@ -41,6 +53,23 @@ function update(agent: RecallAgent, ctx: unknown): void {
 export interface RecallNote {
   note: string;
   id: string;
+  /** Set on a note that carries the caller's recalled memory (callerMemoryNote). */
+  extra?: Record<string, unknown>;
+}
+
+/**
+ * A note that carries the caller's recalled memory (recall's general note, the mind note), as a
+ * RecallNote. With CRISIS_NO_MEMORY_RECALL on it is marked as made of nothing without that
+ * memory: a request the crisis gate takes crisis-held notes out of leaves it out
+ * (withoutCrisisHeldNotes). Off: unmarked, as before.
+ */
+export function callerMemoryNote(
+  note: string,
+  id = recallNoteId(),
+  env: Env = process.env
+): RecallNote {
+  const extra = crisisNoMemoryRecallOn(env) ? { [WITHOUT_RECALLED_MEMORY]: '' } : undefined;
+  return { note, id, ...(extra && { extra }) };
 }
 
 /** A fresh id for a recall note, under `prefix`. */
@@ -72,7 +101,9 @@ export function addRecallNotes(agent: RecallAgent, notes: RecallNote[], said?: s
   if (notes.length === 0) return;
   const write = () => {
     const ctx = agent.chatCtx.copy();
-    for (const { note, id } of notes) ctx.addMessage({ role: 'system', content: note, id });
+    for (const { note, id, extra } of notes) {
+      ctx.addMessage({ role: 'system', content: note, id, ...(extra && { extra }) });
+    }
     agent.updateChatCtx(ctx).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Recall note not added');
     });
@@ -210,16 +241,24 @@ export function dropSelfNotes(agent: RecallAgent, said?: string): number {
   return dropNotes(agent, (i) => isSelfNote(i?.id), said);
 }
 
+type HeldItem = { id?: string; extra?: Record<string, unknown> };
+
 /**
  * A request without the growth note or any self note: a crisis-guided reply, or
- * any reply on a call with risk noted, never sees them (crisis-gate.ts).
+ * any reply on a call with risk noted, never sees them (crisis-gate.ts). With
+ * CRISIS_NO_MEMORY_RECALL on, nor the caller's recalled memories: a note that
+ * carries them goes in as its text without them (crisis-memory-recall.ts).
  */
-export function withoutCrisisHeldNotes<C extends { items: Array<{ id?: string }>; copy(): C }>(
+export function withoutCrisisHeldNotes<C extends { items: HeldItem[]; copy(): C }>(
   chatCtx: C,
-  when = true
+  when = true,
+  env: Env = process.env
 ): C {
-  if (!when || !chatCtx.items.some((i) => heldOnCrisis(i?.id))) return chatCtx;
+  const memory = when && crisisNoMemoryRecallOn(env);
+  const held = (i: HeldItem) => heldOnCrisis(i?.id) || (memory && memoryFreeText(i) !== undefined);
+  if (!when || !chatCtx.items.some(held)) return chatCtx;
   const ctx = chatCtx.copy();
-  ctx.items = ctx.items.filter((i) => !heldOnCrisis(i?.id));
+  const kept = ctx.items.filter((i) => !heldOnCrisis(i?.id));
+  ctx.items = memory ? withoutRecalledMemory(kept) : kept;
   return ctx;
 }

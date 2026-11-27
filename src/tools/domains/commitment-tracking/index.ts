@@ -106,6 +106,8 @@ const commitmentFollowUpDef: ToolDefinition = {
 // Tool 3: updateCommitment
 // ============================================================================
 
+const UPDATE_FAILED = "I had trouble updating that commitment. Let's try again.";
+
 const updateCommitmentDef: ToolDefinition = {
   id: 'updateCommitment',
   name: 'Update Commitment',
@@ -133,11 +135,12 @@ const updateCommitmentDef: ToolDefinition = {
         reaction?: string;
       }) => {
         try {
-          await commitmentKeeper.updateStatus(
+          const saved = await commitmentKeeper.updateStatus(
             ctx.userId,
             params.commitmentId,
             params.newStatus,
           );
+          if (saved === false) return UPDATE_FAILED; // COMMITMENT_WRITES_TRUTHFUL: the write failed
 
           log.info(
             { userId: ctx.userId, commitmentId: params.commitmentId, status: params.newStatus },
@@ -157,7 +160,7 @@ const updateCommitmentDef: ToolDefinition = {
             { error: String(error), userId: ctx.userId, commitmentId: params.commitmentId },
             'Failed to update commitment',
           );
-          return "I had trouble updating that commitment. Let's try again.";
+          return UPDATE_FAILED;
         }
       },
     });

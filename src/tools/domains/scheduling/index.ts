@@ -142,7 +142,7 @@ If no recipient specified, sends to the user themselves.`,
         const personaId = ctx.agentId || 'ferni';
 
         log.info(
-          { userId, when: params.when, hasRecipient: !!params.recipient },
+          { userId, whenLength: params.when?.length, hasRecipient: !!params.recipient },
           '📱 Scheduling text message'
         );
 
@@ -200,7 +200,7 @@ const scheduleCallTool: ToolDefinition = {
         const elsewhere = recipient.forSomeoneElse(params, userId);
         if (elsewhere !== undefined) return elsewhere;
 
-        log.info({ userId, when: params.when }, '📞 Scheduling phone call');
+        log.info({ userId, whenLength: params.when?.length }, '📞 Scheduling phone call');
 
         const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
         const scheduledFor = parseScheduleTime(params.when, zone);
@@ -256,7 +256,7 @@ Use when the user says things like:
         const userId = ctx.userId || 'unknown';
         const personaId = ctx.agentId || 'ferni';
 
-        log.info({ userId, when: params.when, subject: params.subject }, '📧 Scheduling email');
+        log.info({ userId, subjectLength: params.subject.length }, '📧 Scheduling email');
 
         const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
         const scheduledFor = parseScheduleTime(params.when, zone);

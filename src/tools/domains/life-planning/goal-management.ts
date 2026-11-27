@@ -417,7 +417,7 @@ export async function createGoal(
     getLogger().warn({ error, goalId: id }, 'Failed to persist goal to store');
   }
 
-  getLogger().info({ goalId: id, title, category, timeframe }, 'Goal created');
+  getLogger().info({ goalId: id, titleLength: title.length, category, timeframe }, 'Goal created');
 
   // Sync goal deadline to calendar if target date is set
   if (targetDate) {

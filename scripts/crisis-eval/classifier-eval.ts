@@ -14,6 +14,14 @@
  * scores a JSON array of cases (e.g. a red-team set) as the `file` set. The
  * relay set (#1415) holds requests to call someone, cut-off requests, goodbyes
  * after Ferni offered 988, idioms and short replies after real risk.
+ *
+ * Without a prompt file, the prompt is the one the agent builds from this
+ * process's flags (crisisClassifierPrompt), so an arm is a flag:
+ *   CRISIS_CLASSIFIER_EVERYDAY_RULES=on                                      (dev and prod today)
+ *   CRISIS_CLASSIFIER_EVERYDAY_RULES=on CRISIS_CLASSIFIER_HEAVY_FEELINGS=on  (#2469)
+ * The agent's backstop (a turn with risk words is also read without the
+ * easing rules, the more severe read wins) is not modelled here, so a miss
+ * here is an upper bound on the agent's.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -23,7 +31,7 @@ import { CRISIS_RELAY } from '../../src/agents/__tests__/fixtures/crisis-relay.j
 import { CRISIS_HELDOUT_RETIRED } from '../../src/agents/__tests__/fixtures/crisis-heldout-retired.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import {
-  CRISIS_CLASSIFIER_PROMPT,
+  crisisClassifierPrompt,
   DEFAULT_CRISIS_CLASSIFIER_MODEL,
   parseClassifierReply,
 } from '../../src/services/safety/crisis-classifier.js';
@@ -38,7 +46,7 @@ interface LabelledCase {
 
 const prompt = process.env.CRISIS_EVAL_PROMPT_FILE
   ? readFileSync(process.env.CRISIS_EVAL_PROMPT_FILE, 'utf8')
-  : CRISIS_CLASSIFIER_PROMPT;
+  : crisisClassifierPrompt(process.env);
 const withCompanion = process.env.CRISIS_EVAL_NO_COMPANION !== '1';
 
 const project = process.env.GOOGLE_CLOUD_PROJECT;
@@ -75,7 +83,9 @@ async function classify(c: LabelledCase): Promise<{ risk: string; ms: number }> 
     }).catch(() => null);
     if (!res) continue;
     if (res.status === 429) {
-      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000 * (attempt + 1));
+      });
       continue;
     }
     const json = (await res.json()) as {

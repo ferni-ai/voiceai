@@ -26,6 +26,12 @@ import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { CALLER_TEXT_GUARD, reportedFromCall } from '../../../services/outreach/caller-text.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
+import {
+  callbackMeansAskedOn,
+  callbackOf,
+  retryOfferLine,
+  spokenOutcome,
+} from '../../../services/background-agents/call-follow-up/index.js';
 
 const log = createLogger({ module: 'PendingBackgroundResults' });
 
@@ -39,7 +45,10 @@ interface PendingCallResult {
   status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
   outcome: string;
   objectiveAchieved: boolean;
+  /** The person on the call asked for a call back (callback-meaning.ts callbackAsked). */
   callbackRequired: boolean;
+  /** Ferni's offer to try again, when the outcome doesn't already make it (retryOfferLine). */
+  retryOffer: string;
   actionItems?: string[];
   capturedAt: string;
   delivered?: boolean;
@@ -91,13 +100,20 @@ export async function getPendingCallResults(userId: string): Promise<PendingCall
       // Skip already delivered results
       if (data.delivered === true) return;
 
+      const named: string | undefined = data.request?.contactName || data.request?.contactQuery;
+      const contactName = named || 'someone';
+      // A missed call in Ferni's words, whichever process stored it and how (#4468).
+      const said = data.outcome ? spokenOutcome(data.outcome, named).outcome : undefined;
+      const outcome = said || 'Call completed';
       results.push({
         callId: doc.id,
-        contactName: data.request?.contactName || data.request?.contactQuery || 'someone',
+        contactName,
         status: data.outcome?.status || 'completed',
-        outcome: data.outcome?.outcome || 'Call completed',
+        outcome,
         objectiveAchieved: data.outcome?.objectiveAchieved ?? true,
-        callbackRequired: data.outcome?.callbackRequired ?? false,
+        // Derived from the stored fields; a missing status reads as no ask (callbackOf).
+        callbackRequired: callbackOf(data.outcome).asked,
+        retryOffer: retryOfferLine({ name: named }, data.outcome ?? {}, outcome),
         actionItems: data.outcome?.actionItems,
         voicemailLeft: data.outcome?.voicemailLeft === true,
         capturedAt: data.capturedAt,
@@ -195,12 +211,16 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
       body.push(`📞 **No answer**: ${result.outcome}`);
     } else if (result.status === 'busy') {
       body.push(`📞 **Line busy**: ${result.outcome}`);
+    } else if (result.status === 'completed' && callbackMeansAskedOn()) {
+      body.push(`📞 **Picked up**: ${result.outcome}`); // they answered: never "couldn't connect"
     } else {
       body.push(`❌ **Couldn't connect**: ${result.outcome}`);
     }
 
     if (result.callbackRequired) {
       body.push(`⚠️ They want a callback from the user.`);
+    } else if (result.retryOffer) {
+      body.push(`📞 ${result.retryOffer}`);
     }
 
     if (result.actionItems && result.actionItems.length > 0) {
@@ -215,7 +235,9 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   lines.push("- If successful: 'Oh! While you were away, I called [name] - [outcome]!'");
   lines.push('- If voicemail: say only what the line above says (a message left, or none).');
   lines.push(
-    "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
+    callbackMeansAskedOn() // each call's lines above carry its one offer, or none (#4468)
+      ? '- Otherwise: tell them as the lines above say it, and offer only what those lines offer.'
+      : "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
   );
   lines.push('');
 

@@ -16,6 +16,7 @@
 import type { voice } from '@livekit/agents';
 import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { arrivalCooldownMs } from './arrival-cooldown.js';
+import { linesQueuedFor } from './queued-line-owner.js';
 import {
   isTTSGatewayEnabled,
   speakToSession as gatewaySpeak,
@@ -98,6 +99,7 @@ export interface SpeechRequest {
   maxAge?: number;
   /** Timestamp when queued */
   queuedAt: number;
+  sessionId?: string; // the call this line was queued for
 }
 
 /** Coordinator state */
@@ -425,9 +427,7 @@ export class SpeechCoordinator {
       this.personaId = context.personaId;
     }
 
-    // HANDOFF FIX: If we're replacing a session that was speaking,
-    // the onSpeechEnded callback from the old session won't fire.
-    // Reset state to IDLE so queued requests can be processed.
+    // HANDOFF FIX: the old session's onSpeechEnded won't fire, so free the coordinator.
     if (wasInSpeakingState) {
       log.warn(
         { previousState: this.state, queueLength: this.queue.length },
@@ -442,8 +442,7 @@ export class SpeechCoordinator {
       'Session attached to speech coordinator'
     );
 
-    // Process any pending queue items after a brief delay
-    // (allows the new session to fully initialize)
+    // Process the queue after a brief delay (lets the new session initialize)
     if (hadPendingRequests || wasInSpeakingState) {
       setTimeout(() => {
         if (this.state === CoordinatorState.IDLE && this.queue.length > 0) {
@@ -502,6 +501,7 @@ export class SpeechCoordinator {
     const fullRequest: SpeechRequest = {
       ...request,
       id,
+      sessionId: request.sessionId ?? this.sessionId, // the caller's call, else the attached one
       queuedAt: Date.now(),
       maxAge: request.maxAge ?? this.getDefaultMaxAge(request.priority),
     };
@@ -707,10 +707,9 @@ export class SpeechCoordinator {
       return;
     }
 
-    // Remove expired requests
+    // Drop expired lines, and lines queued for another call (setContext can change the id too)
     this.expireOldRequests();
-
-    // Get next request
+    this.queue = linesQueuedFor(this.queue, this.sessionId);
     const next = this.queue.shift();
     if (!next) {
       return;

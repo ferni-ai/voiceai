@@ -217,7 +217,7 @@ const locationReminderDef: ToolDefinition = {
       }),
       execute: async ({ message, locationName, address, triggerOn }, opts) => {
         const userId = trustedUserId(ctx, opts); // never a shared placeholder bucket (#2651)
-        log.info({ userId, locationName, triggerOn }, 'Creating location reminder');
+        log.info({ userId, triggerOn }, 'Creating location reminder'); // no place name (#4322)
         trackCapabilityUsage(userId, 'locationReminder');
 
         const reminder: LocationReminder = {
@@ -316,7 +316,7 @@ const recurringReminderDef: ToolDefinition = ownerMessageTool({
       }),
       execute: async ({ message, pattern, dayOfWeek, dayOfMonth, time }, opts) => {
         const userId = trustedUserId(ctx, opts);
-        log.info({ userId, pattern, time }, 'Creating recurring reminder');
+        log.info({ userId, pattern, timeLength: time.length }, 'Creating recurring reminder');
         trackCapabilityUsage(userId, 'recurringReminder');
 
         const parsedTime = parseTime(time);
@@ -453,7 +453,7 @@ const cancelReminderDef: ToolDefinition = {
       }),
       execute: async ({ type, searchTerm }, opts) => {
         const userId = trustedUserId(ctx, opts);
-        log.info({ userId, type, searchTerm }, 'Cancelling reminder');
+        log.info({ userId, type, searchTermLength: searchTerm.length }, 'Cancelling reminder');
         trackCapabilityUsage(userId, 'cancelRecurringReminder');
 
         const searchLower = searchTerm.toLowerCase();

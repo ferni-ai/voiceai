@@ -126,6 +126,22 @@ describe('buildRow (the allowlist)', () => {
     expect(modelFamily('fine-tuned-on-pat@example.com')).toBe('other');
   });
 
+  it('a refused list names its shape (a length and type names), never a value', () => {
+    const refusedWhy = (flags: unknown) => {
+      const built = buildRow('call_events', { event_type: 'e', flags });
+      return 'refused' in built ? built.refused : 'built';
+    };
+    expect(refusedWhy(Array.from({ length: 201 }, () => 'WRAP_UP'))).toBe(
+      'value of flags (array of 201)'
+    );
+    expect(refusedWhy(['WRAP_UP', { secret: 'pat@example.com' }])).toBe(
+      'value of flags (array of 2, has a object)'
+    );
+    expect(refusedWhy(['WRAP_UP', null])).toBe('value of flags (array of 2, has a null)');
+    expect(refusedWhy('pat@example.com')).toBe('value of flags (string, not an array)');
+    expect(refusedWhy(['WRAP_UP'])).toBe('built');
+  });
+
   it('refuses ids or hashes passed as fields, a wrong type, and a missing required field', () => {
     expect(buildRow('call_events', { event_type: 'e', user_hash: 'uid-1' })).toEqual({
       refused: 'field user_hash',

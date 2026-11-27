@@ -18,7 +18,7 @@ import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagem
 import { characterOf } from '../../speech/direction/cue-say.js';
 import { directLine, type Actor } from '../../speech/direction/director.js';
 import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, repliesForLog } from '../../utils/safe-logger.js';
 import { ArrivalReason, upToLastTopic } from './arrival-reason.js';
 import {
   ARRIVAL_DIRECTION_GROUNDED,
@@ -441,7 +441,7 @@ export async function prepareBriefing(
       written: Boolean(brief),
       line: spoken.source,
       invented,
-      added,
+      added: repliesForLog(added), // words of Ferni's line: lengths on prod (#4392)
       stockCut: cut !== said,
       fromBrief: fromBrief.on ? firstLine !== cut : undefined,
       ms: Date.now() - started,

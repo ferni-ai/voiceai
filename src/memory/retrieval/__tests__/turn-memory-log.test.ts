@@ -84,6 +84,7 @@ describe('TURN_MEMORY per-turn info line', () => {
     expect(context.memories.map((m) => m.id)).toEqual(['dana']); // DOG is under the 0.55 floor
     expect(lines()).toHaveLength(1);
     expect(lines()[0]).toEqual({
+      sessionId: `s${session}`,
       turn: 4,
       candidates: 2,
       injected: 1,
@@ -120,15 +121,44 @@ describe('TURN_MEMORY per-turn info line', () => {
     expect(lines()).toEqual([expect.objectContaining({ candidates: 1, injected: 0, topScore: 0.5 })]); // prettier-ignore
   });
 
-  it('carries no memory text: every field is a number or a boolean, and "Dana" appears nowhere', async () => {
+  it('carries no memory text: every field but the session id is a number or a boolean, and "Dana" appears nowhere', async () => {
     vi.stubEnv('TURN_MEMORY_RRF_SCALE', 'on');
     await turn('my sister is coming over this weekend');
     const [fields] = lines();
     expect(fields).toBeDefined();
-    for (const value of Object.values(fields)) {
+    const { sessionId, ...rest } = fields!;
+    expect(sessionId).toBe(`s${session}`); // the id it was given, nothing else
+    for (const value of Object.values(rest)) {
       expect(['number', 'boolean']).toContain(typeof value);
     }
     expect(JSON.stringify(fields)).not.toContain('Dana');
     expect(JSON.stringify(fake.info)).not.toContain('Dana');
+  });
+
+  it('has exactly the id, count, flag and number fields, with the flags off as with them on', async () => {
+    const FIELDS = ['candidates', 'gate', 'injected', 'latencyMs', 'rerank', 'rrfScale', 'sessionId', 'topScore', 'turn']; // prettier-ignore
+    for (const flags of ['on', 'off']) {
+      fake.info = [];
+      vi.stubEnv('TURN_MEMORY_RRF_SCALE', flags);
+      vi.stubEnv('TURN_MEMORY_RERANK', 'off');
+      vi.stubEnv('CRISIS_NO_MEMORY_RECALL', flags);
+      await turn('my sister is coming over this weekend');
+      expect(lines()).toHaveLength(1);
+      expect(Object.keys(lines()[0]!).sort()).toEqual(FIELDS);
+    }
+  });
+
+  it('never carries caller or memory words: planted phrases in both reach no log line', async () => {
+    vi.stubEnv('TURN_MEMORY_RRF_SCALE', 'on');
+    const MEMORY_PLANT = 'zebra-umbrella-memory-plant';
+    const CALLER_PLANT = 'quartz-lantern-caller-plant';
+    fake.memories = [{ documentId: 'plant-doc', score: 0.9, text: `${MEMORY_PLANT} at the lake` }];
+    const context = await turn(`we talked about ${CALLER_PLANT} again today`);
+    expect(JSON.stringify(context.memories)).toContain(MEMORY_PLANT); // precondition: it was found
+    expect(lines()).toHaveLength(1);
+    const logged = JSON.stringify(fake.info);
+    expect(logged).not.toContain(MEMORY_PLANT);
+    expect(logged).not.toContain(CALLER_PLANT);
+    expect(logged).not.toContain('plant-doc'); // nor the memory's id
   });
 });
