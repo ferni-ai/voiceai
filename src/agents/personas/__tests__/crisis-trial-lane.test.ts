@@ -10,7 +10,7 @@
  */
 import { EventEmitter } from 'node:events';
 import { DEFAULT_API_CONNECT_OPTIONS, llm } from '@livekit/agents';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CrisisGenerateFn } from '../../../services/safety/crisis-classifier.js';
 
 const stub = vi.hoisted(() => ({
@@ -48,7 +48,7 @@ vi.mock('../crisis-gate.js', async (load) => {
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { resetCrisisClassifierCache } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
-import { fillArmPools, idIn } from '../../model-provider/__tests__/trial-arm-ids.js';
+import { idIn } from '../../model-provider/__tests__/trial-arm-ids.js';
 import { withTrialLane } from '../../model-provider/trial-lane.js';
 import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import { PersonaVoiceAgent } from '../ferni-agent.js';
@@ -103,11 +103,10 @@ class StubStream extends llm.LLMStream {
 
 let fetches = 0;
 
-// Session ids by the arm their call draws (trial-arm-ids.ts): 17 trial and 2 control calls below.
-beforeAll(() => fillArmPools('crisis-trial-lane', 30));
-
 /** One call through the real llmNode, its model built by withTrialLane under `env`. */
-function startCall(o: { arm?: 'trial' | 'control'; env?: Record<string, string> } = {}) {
+function startCall(
+  o: { arm?: 'trial' | 'control'; sessionId?: string; env?: Record<string, string> } = {}
+) {
   const env = o.env ?? DEV;
   // The gate reads process.env: the same fail-closed setting as the trial's.
   const closed: unknown = Object.getOwnPropertyDescriptor(env, 'CRISIS_GATE_FAIL_CLOSED')?.value;
@@ -116,7 +115,7 @@ function startCall(o: { arm?: 'trial' | 'control'; env?: Record<string, string> 
   const trial = new StubLLM('trial', order);
   const main = new StubLLM('main', order);
   const model = withTrialLane(main, () => trial, env);
-  const sessionId = o.arm === undefined ? undefined : idIn(o.arm);
+  const sessionId = o.sessionId ?? (o.arm === undefined ? undefined : idIn(o.arm));
   const services = sessionId === undefined ? {} : { sessionId };
   const session = Object.assign(new EventEmitter(), {
     userData: { personaId: 'ferni', services },
@@ -276,6 +275,21 @@ describe('a held reply on a trial call (dev, trial on)', () => {
     const { said } = await c.turn(CHAT);
     expect(c.order).toEqual(['trial']);
     expect(said).toBe('trial');
+  });
+
+  it('T15 across 24 calls, the gate’s clearance lets an ordinary turn reach the trial model on some calls and today’s on the rest', async () => {
+    // Ids taken in order, not picked by arm: the gate's clearance must reach the lane for any
+    // call to get the trial model, and the split must leave some calls on today's.
+    const models: string[] = [];
+    for (let i = 0; i < 24; i++) {
+      const c = startCall({ sessionId: `crisis-trial-lane-split-${i}`, env: DEV_CLOSED });
+      await c.turn(CHAT);
+      expect(c.order, `call ${i}`).toHaveLength(1);
+      models.push(c.order[0]);
+    }
+    // A fair split puts all 24 on one side by chance at 2^-23.
+    expect(models).toContain('trial');
+    expect(models).toContain('main');
   });
 
   it('T9 fail-closed off: a turn held on its own pending verdict goes to today’s model', async () => {

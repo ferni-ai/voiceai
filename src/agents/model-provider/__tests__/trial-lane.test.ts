@@ -5,7 +5,7 @@
  */
 import { DEFAULT_API_CONNECT_OPTIONS, llm } from '@livekit/agents';
 import { ThinkingLevel } from '@google/genai';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import { rejectsMinimalThinking } from '../../../config/thinking-defaults.js';
 import { markCrisisTurn } from '../../../services/safety/crisis-turn-mark.js';
@@ -14,7 +14,7 @@ import { trialClearance } from '../../safety/crisis-trial-clearance.js';
 import { cascadeThinking } from '../cartesia-cascade.js';
 import { withLane } from '../lane-request.js';
 import { withTrialLane } from '../trial-lane.js';
-import { armOf, fillArmPools, idIn, openClearance } from './trial-arm-ids.js';
+import { armOf, idIn, openClearance } from './trial-arm-ids.js';
 
 const CONN = { ...DEFAULT_API_CONNECT_OPTIONS, maxRetry: 0 };
 const DEV = { FIRESTORE_DATABASE: 'ferni-dev', CASCADE_TRIAL_MODEL: 'gemini-4-hydrogen' };
@@ -63,8 +63,6 @@ class StubStream extends llm.LLMStream {
     this.queue.put({ id: this.stub.name, delta: { role: 'assistant', content: this.stub.name } });
   }
 }
-
-beforeAll(() => fillArmPools('trial-lane-unit', 40));
 
 /** The model withTrialLane builds under `env`, or null when it returns today's model itself. */
 function modelFor(env: Record<string, string>): string | null {
@@ -145,11 +143,11 @@ describe('which model the trial may use', () => {
 });
 
 describe('the arm', () => {
-  it('is the same for every request of a call and splits calls about in half', async () => {
+  it('is the same for every request of a call and splits calls about in half', () => {
     const id = idIn('trial');
-    for (let i = 0; i < 5; i++) expect(await armOf(id)).toBe('trial');
+    for (let i = 0; i < 5; i++) expect(armOf(id)).toBe('trial');
     let trial = 0;
-    for (let i = 0; i < 400; i++) if ((await armOf(`split-${i}`)) === 'trial') trial++;
+    for (let i = 0; i < 400; i++) if (armOf(`split-${i}`) === 'trial') trial++;
     // 400 fair draws: 200 +/- 10 (one standard deviation); 160..240 is four either way.
     expect(trial).toBeGreaterThan(160);
     expect(trial).toBeLessThan(240);

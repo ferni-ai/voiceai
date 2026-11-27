@@ -24,8 +24,8 @@
  * beside the reply, which neither reader sees, names rows that show it there (TEXT_SHOWN_ON,
  * TURN_ROUTING_SHOWN_ON, GATE_FAILURE_SHOWN_ON, MODEL_ROUTING_SHOWN_ON, NON_SAFETY_LINE_REMOVED).
  * A flag that changes only the classifier's prompt names rows in PROMPT_RULES_SHOWN_ON
- * (crisis-prompt-rule-homes.ts); the rest are in
- * crisis-flag-homes.ts.
+ * (crisis-prompt-rule-homes.ts), and one that changes which model answers names them in
+ * MODEL_ROUTING_SHOWN_ON (crisis-model-routing-homes.ts); the rest are in crisis-flag-homes.ts.
  *
  * Why this exists: #3317 (CRISIS_WORD_BOUNDARIES, closed) made four #2645 warning lines lose
  * their only crisis read, and, with CRISIS_SIGHT_NEEDS_CUE on, seven stroke / sight-loss lines
@@ -60,7 +60,6 @@ import {
   GATE_FAILURE_SHOWN_ON,
   MEMORY_ONLY,
   type MemoryOnlyRow,
-  MODEL_ROUTING_SHOWN_ON,
   NON_SAFETY_LINE_REMOVED,
   NOT_YET_COVERED,
   NOT_YET_COVERED_CEILING,
@@ -68,6 +67,7 @@ import {
   TEXT_SHOWN_ON,
   TURN_ROUTING_SHOWN_ON,
 } from './crisis-flag-homes.js';
+import { MODEL_ROUTING_SHOWN_ON } from './crisis-model-routing-homes.js';
 import { PROMPT_RULES_SHOWN_ON } from './crisis-prompt-rule-homes.js';
 import {
   CRISIS_FLAGS,
