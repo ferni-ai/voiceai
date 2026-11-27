@@ -10,6 +10,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureBackgroundResult } from '../unified-result-capture.js';
+import { callbackAsked, callbackFields, callbackFollowUp } from '../call-follow-up/index.js';
 import type { OutcomeStatus, ResultPriority } from '../result-types.js';
 
 const log = createLogger({ module: 'CallExecutor' });
@@ -76,15 +77,17 @@ export async function executeCall(request: CallRequest): Promise<CallResult> {
       type: 'on_behalf_call',
       status,
       summary,
-      priority: request.priority || (result.callbackRequired ? 'high' : 'normal'),
+      priority: request.priority || (callbackFollowUp(result) ? 'high' : 'normal'),
       initiatedBy: request.initiatedBy || 'ferni',
       sessionId: request.sessionId,
       contactName: request.contactName,
       contactId: request.contactId,
       details: result.outcome,
       actionItems: result.actionItems || [],
-      requiresCallback: result.callbackRequired,
+      // Like call-result-capture's copy: the ask by this process's flag, the fields for readers.
+      requiresCallback: callbackAsked(result),
       callbackTime: result.callbackTime,
+      callFollowUp: callbackFields(result),
       relatedTaskId: callId,
       specificData: {
         callId,

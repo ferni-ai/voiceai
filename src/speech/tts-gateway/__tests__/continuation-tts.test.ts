@@ -1,4 +1,4 @@
-import { ReadableStream } from 'node:stream/web';
+import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { createContinuationTTS, sentenceBreakMs } from '../continuation-tts.js';
@@ -116,7 +116,70 @@ describe('createContinuationTTS', () => {
       onError: () => undefined,
     });
     await drain(stream as unknown as ReadableStream<AudioFrame>);
-    expect(stages).toEqual(['text', 'push']);
+    // The second piece holds the whole first sentence: it is in before that piece is pushed.
+    expect(stages).toEqual(['text', 'sentence', 'push']);
+  });
+
+  describe("the first full sentence (the receipt's ttsSentenceMs)", () => {
+    /** Text handed over one piece at a time, the gateway's stages as they happen. */
+    function feedBy(reply = new FakeReply([4])) {
+      let ctl!: ReadableStreamDefaultController<string>;
+      const stages: string[] = [];
+      const stream = createContinuationTTS({
+        textStream: new ReadableStream<string>({ start: (c) => void (ctl = c) }),
+        reply,
+        sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+        openingTags: () => '',
+        toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+        onFirstAudio: () => undefined,
+        onStage: (stage) => stages.push(stage),
+        onError: () => undefined,
+      }) as unknown as ReadableStream<AudioFrame>;
+      const tick = () =>
+        new Promise<void>((r) => {
+          setTimeout(r, 5);
+        });
+      const say = async (piece: string) => (ctl.enqueue(piece), tick());
+      const end = async () => (ctl.close(), tick());
+      const sentences = () => stages.filter((s) => s === 'sentence').length;
+      return { stream, say, end, sentences, tick };
+    }
+
+    it('is marked once, when an end and a space are in: not on "3.5" or "..."', async () => {
+      const f = feedBy();
+      const done = drain(f.stream);
+      await f.say('It was 3.5');
+      await f.say(' miles... ');
+      expect(f.sentences()).toBe(0);
+      await f.say('all uphill. ');
+      expect(f.sentences()).toBe(1);
+      await f.say('Then rain. ');
+      await f.end();
+      await done;
+      expect(f.sentences()).toBe(1);
+    });
+
+    it('is the end of a reply that ran out without one', async () => {
+      const f = feedBy();
+      const done = drain(f.stream);
+      await f.say('Sure');
+      await f.say(' thing');
+      expect(f.sentences()).toBe(0);
+      await f.end();
+      await done;
+      expect(f.sentences()).toBe(1);
+    });
+
+    it('is not marked for a reply cut before its first sentence', async () => {
+      const f = feedBy(new FakeReply([8], true));
+      const r = f.stream.getReader();
+      await f.say('A long reply the caller talks over');
+      await r.read();
+      await r.cancel();
+      await f.end().catch(() => undefined);
+      await f.tick();
+      expect(f.sentences()).toBe(0);
+    });
   });
 
   it('sends the first words at a word boundary when no clause break comes soon', async () => {

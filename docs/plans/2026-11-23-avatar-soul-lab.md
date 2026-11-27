@@ -81,7 +81,7 @@ Rulings made while planning, each with what it costs if wrong:
 
 The message protocol is shared:
 
-- `apps/web/src/avatar-lab/lab-protocol.ts` (new): `LabRequest`, `LabReply`, `LAB_MESSAGE_TYPE = 'ferni:avatar-lab'`.
+- `apps/web/src/ui/avatar-lab-protocol.ts` (new): `LabRequest`, `LabReply`, `LAB_MESSAGE_TYPE = 'ferni:avatar-lab'`.
 
 ---
 
@@ -201,7 +201,7 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
 
 **Files:**
 
-- Create: `apps/web/src/avatar-lab/lab-protocol.ts`, `lab-commands.ts`, `lab-bridge.ts`
+- Create: `apps/web/src/ui/avatar-lab-protocol.ts`, `apps/web/src/avatar-lab/lab-commands.ts`, `apps/web/src/avatar-lab/lab-bridge.ts`
 - Modify:
   - `apps/web/src/ui/ferni-expressions.ui.ts`: export `EMOTIONAL_EXPRESSIONS` as a `const` tuple and derive `EmotionalExpression` from it (one source; the file may not grow, so move one helper out if needed);
   - `apps/web/src/avatar-lab/index.ts`: start the bridge.
@@ -209,7 +209,7 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
 
 **Interfaces:**
 
-- Produces (`lab-protocol.ts`):
+- Produces (`avatar-lab-protocol.ts`):
   ```ts
   export const LAB_MESSAGE_TYPE = 'ferni:avatar-lab';
   export type LabCommand =
@@ -227,7 +227,6 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
     | 'protectiveOn'
     | 'protectiveOff'
     | 'celebrateGrowth'
-    | 'shimmer'
     | 'cameoArrival'
     | 'cameoReturn';
   export interface LabRequest {
@@ -263,11 +262,12 @@ Order: PR 2 starts after the browser sender PR (`fix/web-soul-stats-sender`) mer
   - `face` → `ferniExpressions.setExpression(expression)`. It is refused when `!crisisFaceAllows(expression)`, with why `'The crisis hold allows only calm faces'`.
   - `moment` → the `avatar-soul.ui.ts` export:
     - `warmthBloom`: `triggerWarmthBloom(1)`;
-    - `shimmer`: `flashShimmer(1)`;
-    - `cameoArrival`: `triggerCameoArrival` with the persona colour token `var(--color-persona-ferni)` resolved from computed style.
+    - `cameoArrival`: `triggerCameoArrival` with the persona colour token `var(--color-ferni)` resolved from computed style.
+
+    There is no `shimmer` moment: `flashShimmer` draws on `irisShimmerElement`, which is always null, so a shimmer control could never play.
 
     Gate each moment on the real predicate for the affect it plays:
-    - `memorySpark`, `shimmer`, `celebrateGrowth`, `cameoArrival`: `crisisAffectAllows('sparkle' | 'celebration')`, whichever the export plays. The implementer reads each export and names the affect in the table.
+    - `memorySpark`, `celebrateGrowth`, `cameoArrival`: `crisisAffectAllows('sparkle' | 'celebration')`, whichever the export plays. The implementer reads each export and names the affect in the table.
     - `comfortPulseStart`: `avatarMotionAllowed('comfortPulse')`.
     - `protectiveOn`: refused when reduced motion is on, because `enterProtectiveMode` returns early then, with why `'Reduced motion is on, so protective mode does not play'`.
 

@@ -15,6 +15,7 @@ import { installCallRecallPort } from '../../services/outreach/call-recall.js';
 import { installStillConnectingPort } from './still-connecting.js';
 import { installGatedCallPort } from '../../services/outreach/gated-call-paths.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
+import { installToolErrorPort } from './tool-error-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -41,7 +42,7 @@ import {
   followThroughOpenerEnabled,
   followThroughReplyListeners,
 } from './follow-through-opener.js';
-import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
+import { guestOnCall } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installSelfVoiceGate, logSelfVoiceShadow } from './self-voice-gate/session-gate.js';
 import {
@@ -61,6 +62,7 @@ import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
+import { installLateWriteResultPort } from './late-write-result.js';
 
 const log = getLogger();
 
@@ -160,6 +162,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   installGatedCallPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
   installForgetFollowUpsPort();
+  // TOOL_RESULT_ERRORS: a tool's { success: false } reaches the model as an error (result-errors.ts).
+  installToolErrorPort();
+  // LATE_WRITE_RESULT_KEPT: a write that lands after a barge-in still reaches the model.
+  installLateWriteResultPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
@@ -316,8 +322,8 @@ function confirmNote(session: { currentAgent: unknown }, sessionId: string) {
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
 export function speakerIsAccountOwner(sessionId: string): boolean {
-  // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
-  if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
+  // ROOM_GUESTS or NAME_GUEST_NAMES_OWNER: a guest is on the line, so the yes may be theirs.
+  if (guestOnCall(sessionId)) return false;
   return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 

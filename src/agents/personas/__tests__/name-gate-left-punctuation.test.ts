@@ -155,4 +155,7 @@ describe('name gate: spaces after a dropped name whose hello went out (#1521)', 
   it.todo(
     '"Did I miss something, " + "Sam? Tell me" -> "something? Tell me" (main and here: ", ?")'
   );
+  // #4151, mid-call, sent a word at a time. The first is fixed with NAME_FALLING_SPLIT on.
+  it.todo('"Hey José, hey José, again." -> "Hey José, again." (streamed: "Hey hey José, again.")');
+  it.todo('"…the thing, José: you…" -> "…the thing: you…" (streamed: "…the thing, : you…")');
 });

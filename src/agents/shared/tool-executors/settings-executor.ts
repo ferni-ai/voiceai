@@ -154,7 +154,7 @@ async function execute(
   // ========================================
   if (fnLower === 'calculatetip') {
     const amount = args.amount as number;
-    const percentage = (args.percentage as number) || 20;
+    const percentage = (args.percentage as number | undefined) ?? 20;
     const split = (args.split as number) || 1;
 
     if (!amount || amount <= 0) {

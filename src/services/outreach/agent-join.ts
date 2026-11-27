@@ -25,6 +25,7 @@
 import { ParticipantInfo_Kind } from '@livekit/protocol';
 import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { retryOffer } from '../background-agents/call-follow-up/index.js';
 import {
   AGENT_NOT_JOINED,
   isAgentNotJoined,
@@ -131,7 +132,7 @@ export function agentNeverJoinedOutcome(callId: string, contactName: string): Ca
     status: 'failed',
     objectiveAchieved: false,
     outcome: `Ferni couldn't connect the call to ${contactName}`,
-    callbackRequired: true,
+    ...retryOffer(),
   };
 }
 

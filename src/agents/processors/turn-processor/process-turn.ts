@@ -116,7 +116,10 @@ import { heldCallerCorrection } from './caller-correction-crisis-hold.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
-import { extractNames, recordNamesSaid } from '../../../services/superhuman/relationship-network.js';
+import {
+  extractNames,
+  recordNamesSaid,
+} from '../../../services/superhuman/relationship-network.js';
 
 import { processDataCapture } from '../../../intelligence/data-capture/index.js';
 import { recordTemporalObservation } from '../../../intelligence/patterns/temporal-patterns.js';
@@ -503,7 +506,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       async () => {
         if (!(await (kept ??= crisisTurnSettled(services.sessionId, userText)))) return;
         const names = await recordNamesSaid(services.userId!, extractNames(userText));
-        for (const name of names) diag.state('📇 Recorded person mention', { name });
+        // The person's name stays out of the log (#3215): one line per mention, no name.
+        for (const _name of names) diag.state('📇 Recorded person mention');
       },
       { context: 'relationship-network-extraction' }
     );
@@ -571,8 +575,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     );
 
     const extractedDetails = (userData as Record<string, unknown>).extractedDetails as
-      | Array<{ type: string; value: string }>
-      | undefined;
+      Array<{ type: string; value: string }> | undefined;
     if (extractedDetails) {
       triggerAutoSave(services.userId, turnCount, extractedDetails);
     } else {
@@ -627,11 +630,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
               surfacingCountThisSession: ctx.surfacingCount || 0,
               sessionTopics: ctx.sessionTopics || [],
               conversationMood: analysisResult?.analysis?.state?.currentMood as
-                | 'exploratory'
-                | 'venting'
-                | 'seeking_help'
-                | 'casual'
-                | undefined,
+                'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
               lastTurnWasQuestion: userText.trim().endsWith('?'),
               detectedEmotion: analysisResult?.analysis?.emotion?.primary,
             });
@@ -663,8 +662,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (isFTISMode) {
     const ftisUserId = services.userId || 'unknown';
     const userLocationData = ctx.userData?.location as
-      | { city?: string; regionCode?: string; countryCode?: string }
-      | undefined;
+      { city?: string; regionCode?: string; countryCode?: string } | undefined;
 
     const lastAgentMessage = undefined;
 
@@ -724,7 +722,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
       diag.debug('🎯 FTIS: Will use generateReply for natural response', {
         tool: ftisResult.toolResult.toolId,
-        resultChars: (ftisResult.toolResult.output ?? ftisResult.toolResult.speakableResponse ?? '').length,
+        resultChars: (ftisResult.toolResult.output ?? ftisResult.toolResult.speakableResponse ?? '')
+          .length,
       });
 
       return withCorrection({
@@ -896,12 +895,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // Record mismatch as cross-persona insight
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
     const personaId = ctx.persona.id as
-      | 'ferni'
-      | 'maya-santos'
-      | 'peter-john'
-      | 'alex-chen'
-      | 'jordan-taylor'
-      | 'nayan-patel';
+      'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan-patel';
     void recordMismatchInsight(
       services.userId || 'anonymous',
       personaId,
@@ -1277,8 +1271,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   const lastValueEvent = (userData as Record<string, unknown>).lastValueEvent as
-    | { type: string; eventId: string }
-    | undefined;
+    { type: string; eventId: string } | undefined;
   const shouldPromptValue = (userData as Record<string, unknown>).shouldPromptValueCapture;
 
   const valueCaptureResult = lastValueEvent

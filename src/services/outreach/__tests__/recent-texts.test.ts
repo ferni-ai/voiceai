@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const forgottenWithin = vi.fn(async (_userId: string, _reader?: string) => null);
+const forgottenWithin = vi.fn(
+  async (_userId: string, _reader?: string, _uncached?: boolean) => null
+);
 vi.mock('../../../memory/recall/forget-every-reader.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../memory/recall/forget-every-reader.js')>()),
   forgottenWithin,
@@ -132,6 +134,6 @@ describe('recentTextsFor leaves out what the caller asked Ferni to forget', () =
       kind: 'unreadable',
       why: 'unread',
     });
-    expect(forgottenWithin).toHaveBeenCalledWith('u1', 'recent-texts');
+    expect(forgottenWithin).toHaveBeenCalledWith('u1', 'recent-texts', false);
   });
 });

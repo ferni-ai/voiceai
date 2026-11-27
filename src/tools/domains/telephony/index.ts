@@ -95,6 +95,11 @@ const CALL_STATUS_TOLD =
   'voicemail, no answer, and what they said), or failed. Use it whenever the caller ' +
   'asks "did you call my dad?", "how did the call go?" or "what did she say?". Read-only: ' +
   'it never calls anyone. Never use callOnBehalf to answer such a question.';
+const ACTIVITY_HINT =
+  ' It also lists everything else Ferni did for the caller in the last 30 days: every earlier ' +
+  'call ("and the time before that?"), reminders ("did my reminder go out?"), emails ("why did ' +
+  'you email me?") and promises, and what is still open ("is anything still open?"). For those, ' +
+  'call it with contactQuery empty.';
 const BY_PURPOSE_HINT =
   ' It also finds a call by what it was about ("how\'s the dentist thing?", "did the ' +
   'restaurant get back?"): pass those words as contactQuery.';
@@ -102,6 +107,7 @@ const BY_PURPOSE_HINT =
 /** callStatus: read-only, never calls anyone (call-status-tool.ts). */
 function callStatusDefinition(): ToolDefinition {
   const byPurpose = flagOn('CALL_STATUS_BY_PURPOSE');
+  const activity = flagOn('RECALL_ACTIVITY');
   return {
     id: 'callStatus',
     name: 'Call Status',
@@ -110,14 +116,15 @@ function callStatusDefinition(): ToolDefinition {
     tags: ['telephony', 'phone', 'status', 'history'],
     create: (ctx: ToolContext): Tool =>
       llm.tool({
-        description: `${CALL_STATUS_TOLD}${byPurpose ? BY_PURPOSE_HINT : ''}`,
+        description: `${CALL_STATUS_TOLD}${byPurpose ? BY_PURPOSE_HINT : ''}${activity ? ACTIVITY_HINT : ''}`,
         parameters: z.object({
           contactQuery: z
             .string()
             .describe(
-              byPurpose
+              (byPurpose
                 ? 'Who, or what the call was about: e.g. "dad", "Sam" or "the dentist"'
-                : 'Who: a name or relationship, e.g. "dad" or "Sam"'
+                : 'Who: a name or relationship, e.g. "dad" or "Sam"') +
+                (activity ? '; empty for everything Ferni did and what is still open' : '')
             ),
         }),
         execute: async ({ contactQuery }, opts) => {

@@ -357,7 +357,6 @@ Once IA changes are made, measure:
 
 ### Admin/Dev
 
-- `admin.ui.ts` - Admin dashboard
 - `dev-panel.ui.ts` - Developer tools
 - `evalops-dashboard.ui.ts` - Quality evaluation
 - `trust-analytics.ui.ts` - Trust monitoring

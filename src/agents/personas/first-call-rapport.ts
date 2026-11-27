@@ -27,6 +27,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { leavingNow } from '../shared/call-farewell.js';
 import { NAME_PLACEMENT_RULE } from './name-gate.js';
+import { noRecordWording } from './earlier-call-honest.js';
 import {
   firstCallGoodbyeGroundedEnabled,
   firstCallRapportEnabled,
@@ -132,7 +133,7 @@ export function firstCallNote(
   if (!nameAsked && early && !nameKnown(chatCtx, userData, callerWords)) {
     const speaker = typeof userData?.personaId === 'string' ? userData.personaId : 'ferni';
     const name = getPersonaDisplayName(speaker).split(/\s+/)[0];
-    swap = scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE;
+    swap = noRecordWording(scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE, env);
   }
-  return [FIRST_CALL_NOTE, rule, who, swap].filter(Boolean).join(' ');
+  return [noRecordWording(FIRST_CALL_NOTE, env), rule, who, swap].filter(Boolean).join(' ');
 }

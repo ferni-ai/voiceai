@@ -50,7 +50,9 @@ vi.mock('../../identity/firebase-auth.js', async (orig) => {
       ownerText.db ? { phoneNumber: '+12025550166' } : real.getFirebaseUser(uid),
   };
 });
-vi.mock('@livekit/agents', () => ({
+// The real package under the stubs: telephony scripts reach the personas index, which loads audio.
+vi.mock('@livekit/agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@livekit/agents')>()),
   llm: { tool: (config: unknown) => config },
   log: () => ({ info: () => undefined, warn: () => undefined, error: () => undefined }),
 }));
