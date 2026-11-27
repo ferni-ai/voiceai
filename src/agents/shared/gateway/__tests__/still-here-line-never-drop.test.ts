@@ -162,10 +162,8 @@ async function attachAfter(sessionId: string, afterMs: number) {
 }
 
 describe('STILL_HERE_LINE belongs to the call it was queued for (the session stamp)', () => {
-  it.each([
-    ['30 s', 30_000],
-    ['3 s', 3_000],
-  ])('on: a call that attaches %s later does not hear it', async (_label, afterMs) => {
+  /** Call A's line is queued; call B attaches `afterMs` later and must not hear it. */
+  async function otherCallAttachesAfter(afterMs: number) {
     vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'on');
     const call = await callWithALineStillPlaying();
     await triggerGracefulExit(call.sessionId);
@@ -177,7 +175,10 @@ describe('STILL_HERE_LINE belongs to the call it was queued for (the session sta
     expect(getSpeechCoordinator().getState()).toBe(CoordinatorState.IDLE);
     unregisterSessionForReconnection(call.sessionId);
     cleanupSpeechCoordination(`${call.sessionId}-b`);
-  });
+  }
+
+  it('on: a call that attaches 30 s later does not hear it', () => otherCallAttachesAfter(30_000));
+  it('on: a call that attaches 3 s later does not hear it', () => otherCallAttachesAfter(3_000));
 
   it('on: the same call attaching again (a hand-off) still hears it, once', async () => {
     vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'on');

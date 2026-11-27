@@ -9,12 +9,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const spoken = vi.hoisted(() => ({ lines: [] as string[], onSay: (_line: string) => {} }));
 
-vi.mock('../../../../speech/coordination/index.js', () => ({
-  coordinatedSay: vi.fn(async (_sessionId: string, line: string) => {
+vi.mock('../../../../speech/coordination/index.js', async (importOriginal) => {
+  const say = async (_sessionId: string, line: string) => {
     spoken.lines.push(line);
     spoken.onSay(line);
-  }),
-}));
+    return `line-${spoken.lines.length}`;
+  };
+  return {
+    SpeechPriority: (
+      await importOriginal<typeof import('../../../../speech/coordination/index.js')>()
+    ).SpeechPriority,
+    coordinatedSay: vi.fn(say),
+    coordinatedSayId: vi.fn(say),
+    dropQueuedSpeech: vi.fn(),
+  };
+});
 vi.mock('../../../../speech/direction/index.js', () => ({ sayInOwnWords: vi.fn() }));
 vi.mock('../../../../config/timeouts.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../config/timeouts.js')>()),
