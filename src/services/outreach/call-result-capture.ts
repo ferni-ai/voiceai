@@ -23,6 +23,18 @@ import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telep
 import { voicemailWords } from './voicemail-outcome.js';
 import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
 import { callResultExpireAt } from './call-result-expiry.js';
+import { callbackEventFor } from './callback-calendar-event.js';
+import { userTimezone } from './call-hours-guard.js';
+import {
+  askedLine,
+  callbackAsked,
+  callbackFields,
+  callbackFollowUp,
+  callbackMeansAskedOn,
+  retryOfferLine,
+  retryWanted,
+  spokenOutcome,
+} from '../background-agents/call-follow-up/index.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -197,7 +209,8 @@ async function injectToActiveSession(
       status: outcome.status,
       objectiveAchieved: outcome.objectiveAchieved,
       outcome: outcome.outcome,
-      callbackRequired: outcome.callbackRequired || false,
+      callbackRequired: callbackAsked(outcome),
+      ...(retryWanted(outcome) ? { retryOffered: true } : {}), // the web keeps it high priority
       actionItems: outcome.actionItems || [],
       timestamp: Date.now(),
     };
@@ -234,8 +247,8 @@ function createFollowUpActions(
 ): void {
   const actions: FollowUpAction[] = [];
 
-  // If callback is required, schedule it
-  if (outcome.callbackRequired) {
+  // A call back they asked for, or a retry to offer: either way the user has one to decide
+  if (callbackFollowUp(outcome)) {
     actions.push({
       id: `${callId}-callback`,
       callId,
@@ -304,9 +317,11 @@ function createFollowUpActions(
  */
 export async function captureCallResult(
   callId: string,
-  outcome: CallOutcome,
+  produced: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<void> {
+  // Every channel and both stores get one wording: a missed call in Ferni's words (#4468).
+  const outcome = spokenOutcome(produced, request.resolvedContact?.name || request.contactQuery);
   const { status, objectiveAchieved } = outcome;
   log.info(
     { callId, status, objectiveAchieved, hasContactName: Boolean(request.resolvedContact?.name) },
@@ -402,7 +417,7 @@ async function sendCallResultPushNotification(
       body = voicemailWords(outcome.voicemailLeft, contactName).pushBody;
     } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
       title = `📞 Couldn't reach ${contactName}`;
-      body = outcome.callbackRequired ? 'Want me to try again later?' : outcome.outcome;
+      body = callbackFollowUp(outcome) ? 'Want me to try again later?' : outcome.outcome;
     } else {
       title = `📞 Call update: ${contactName}`;
       body = outcome.outcome;
@@ -419,7 +434,7 @@ async function sendCallResultPushNotification(
         callId,
         status: outcome.status,
         objectiveAchieved: String(outcome.objectiveAchieved),
-        callbackRequired: String(outcome.callbackRequired || false),
+        callbackRequired: String(callbackAsked(outcome)),
       },
       priority: 'high',
       clickAction: '/calls', // Navigate to call history
@@ -464,7 +479,10 @@ async function sendCallResultEmail(
 
     // Warm, human, and what they said: Ferni's crisis line first when the call carried one
     const words = ownerEmailWords(contactName, outcome);
-    const { subject, body } = buildCallResultEmailContent(contactName, outcome, request.purpose, completedAt, words); // prettier-ignore
+    const who = { name: contactName, relationship: request.resolvedContact?.relationship };
+    const offer = retryOfferLine(who, outcome, outcome.outcome); // asked once
+    const asked = askedLine(who, 'They mentioned wanting a callback.');
+    const { subject, body } = buildCallResultEmailContent(contactName, outcome, request.purpose, completedAt, { ...words, offer, asked }); // prettier-ignore
 
     const sent = await sendEmail({
       to: email,
@@ -492,7 +510,7 @@ function buildCallResultEmailContent(
   outcome: CallOutcome,
   purpose: string,
   completedAt: string,
-  words: { lead?: string; details?: string } = {}
+  words: { lead?: string; details?: string; offer?: string; asked: string }
 ): { subject: string; body: string } {
   // Build subject based on outcome
   let subject: string;
@@ -512,16 +530,16 @@ function buildCallResultEmailContent(
   lines.push(`Hey! Just wanted to let you know about the call to ${contactName}.`);
   lines.push('');
 
-  // What happened
+  // What happened (on, #4468: a missed call is said once, by name, under "What happened")
   if (outcome.objectiveAchieved) {
     lines.push(
       `Great news - I was able to ${purpose.toLowerCase().replace(/^(say|tell|wish|let them know)/i, 'pass along your message to')}`
     );
   } else if (outcome.status === 'voicemail') {
     lines.push(voicemailWords(outcome.voicemailLeft, contactName).emailLine);
-  } else if (outcome.status === 'no_answer') {
+  } else if (outcome.status === 'no_answer' && !callbackMeansAskedOn()) {
     lines.push(`I tried calling ${contactName} but couldn't get through. No answer.`);
-  } else if (outcome.status === 'busy') {
+  } else if (outcome.status === 'busy' && !callbackMeansAskedOn()) {
     lines.push(`I tried calling ${contactName} but the line was busy.`);
   }
 
@@ -539,155 +557,19 @@ function buildCallResultEmailContent(
   }
 
   // Callback needed
-  if (outcome.callbackRequired) {
-    lines.push('**Heads up:** They mentioned wanting a callback.');
+  if (callbackAsked(outcome)) {
+    lines.push(`**Heads up:** ${words.asked}`);
     if (outcome.callbackTime) {
       lines.push(`Best time to call back: ${outcome.callbackTime}`);
     }
     lines.push('');
+  } else if (words.offer) {
+    lines.push(words.offer, '');
   }
 
   if (completedAt) lines.push(`*Completed: ${completedAt}*`);
 
   return { subject, body: lines.join('\n') };
-}
-
-/** Create calendar event for callback if needed */
-async function createCallbackCalendarEvent(
-  request: OnBehalfCallRequest,
-  outcome: CallOutcome,
-  callId: string
-): Promise<void> {
-  // Only create calendar event if callback is required
-  if (!outcome.callbackRequired) {
-    return;
-  }
-
-  try {
-    const { createEvent, hasAnyProviderConnected } = await import('../calendar/index.js');
-
-    // Check if user has any calendar connected
-    const hasCalendar = await hasAnyProviderConnected(request.userId);
-    if (!hasCalendar) {
-      log.debug({ callId }, 'No calendar connected, skipping callback event');
-      return;
-    }
-
-    const contactName = request.resolvedContact?.name || request.contactQuery;
-    const contactPhone = request.resolvedContact?.phone;
-
-    // Determine when to schedule the callback
-    let callbackDate = new Date();
-    if (outcome.callbackTime) {
-      // Try to parse the callback time hint
-      const parsed = parseCallbackTimeHint(outcome.callbackTime);
-      if (parsed) {
-        callbackDate = parsed;
-      } else {
-        // Default: tomorrow at 10am
-        callbackDate.setDate(callbackDate.getDate() + 1);
-        callbackDate.setHours(10, 0, 0, 0);
-      }
-    } else {
-      // Default: tomorrow at 10am
-      callbackDate.setDate(callbackDate.getDate() + 1);
-      callbackDate.setHours(10, 0, 0, 0);
-    }
-
-    const description = [
-      `Follow up on your earlier call with ${contactName}.`,
-      '',
-      `📞 Original purpose: ${request.purpose}`,
-      `📝 What happened: ${outcome.outcome}`,
-      '',
-      contactPhone ? `Phone: ${contactPhone}` : '',
-      '',
-      `Created by Ferni`,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    await createEvent(request.userId, {
-      title: `📞 Call ${contactName} back`,
-      description,
-      startTime: callbackDate,
-      endTime: new Date(callbackDate.getTime() + 15 * 60 * 1000), // 15 min
-      reminders: [{ method: 'popup', minutesBefore: 10 }],
-      color: '#FF9800', // Tangerine - stands out
-    });
-
-    log.info(
-      { callId, userId: request.userId, scheduledFor: callbackDate.toISOString() },
-      'Created calendar event for callback'
-    );
-  } catch (error) {
-    // Don't fail the whole capture if calendar fails
-    log.warn({ error: String(error), callId }, 'Failed to create callback calendar event');
-  }
-}
-
-/**
- * Parse callback time hint into a Date
- * Handles things like "tomorrow morning", "this afternoon", "next week"
- */
-function parseCallbackTimeHint(hint: string): Date | null {
-  const now = new Date();
-  const lowerHint = hint.toLowerCase();
-
-  // Handle common patterns
-  if (lowerHint.includes('tomorrow')) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + 1);
-
-    if (lowerHint.includes('morning')) {
-      date.setHours(9, 0, 0, 0);
-    } else if (lowerHint.includes('afternoon')) {
-      date.setHours(14, 0, 0, 0);
-    } else if (lowerHint.includes('evening')) {
-      date.setHours(18, 0, 0, 0);
-    } else {
-      date.setHours(10, 0, 0, 0);
-    }
-    return date;
-  }
-
-  if (lowerHint.includes('this afternoon') || lowerHint.includes('later today')) {
-    const date = new Date(now);
-    date.setHours(14, 0, 0, 0);
-    if (date <= now) {
-      date.setHours(now.getHours() + 2);
-    }
-    return date;
-  }
-
-  if (lowerHint.includes('next week')) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + 7);
-    date.setHours(10, 0, 0, 0);
-    return date;
-  }
-
-  // Try to extract a time like "3pm" or "3:30pm"
-  const timeMatch = lowerHint.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-  if (timeMatch) {
-    let hours = parseInt(timeMatch[1], 10);
-    const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-    const isPM = timeMatch[3].toLowerCase() === 'pm';
-
-    if (isPM && hours < 12) hours += 12;
-    if (!isPM && hours === 12) hours = 0;
-
-    const date = new Date(now);
-    date.setHours(hours, minutes, 0, 0);
-
-    // If the time is in the past, assume tomorrow
-    if (date <= now) {
-      date.setDate(date.getDate() + 1);
-    }
-    return date;
-  }
-
-  return null;
 }
 
 /** Get user's email address from Firestore */
@@ -708,6 +590,42 @@ async function getUserEmail(userId: string): Promise<string | null> {
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to get user email');
     return null;
+  }
+}
+
+/**
+ * Add the "Call them back" event (callback-calendar-event.ts) to the user's calendar, only
+ * when the person on the call asked and a calendar is connected. With CALLBACK_MEANS_ASKED
+ * on it needs the user's saved zone; none, no event. Never throws.
+ */
+async function createCallbackCalendarEvent(
+  request: OnBehalfCallRequest,
+  outcome: CallOutcome,
+  callId: string
+): Promise<void> {
+  const now = new Date();
+  if (!callbackAsked(outcome)) return;
+  try {
+    const on = callbackMeansAskedOn();
+    const zone = on ? await userTimezone(request.userId) : undefined;
+    if (on && !zone) {
+      log.info({ callId, hasZone: false }, 'No user time zone, skipping callback event');
+      return;
+    }
+    const { createEvent, hasAnyProviderConnected } = await import('../calendar/index.js');
+    if (!(await hasAnyProviderConnected(request.userId))) {
+      log.debug({ callId }, 'No calendar connected, skipping callback event');
+      return;
+    }
+    const event = callbackEventFor(request, outcome, zone, now);
+    await createEvent(request.userId, event);
+    log.info(
+      { callId, userId: request.userId, scheduledFor: event.startTime.toISOString() },
+      'Created calendar event for callback'
+    );
+  } catch (error) {
+    // Don't fail the whole capture if calendar fails
+    log.warn({ error: String(error), callId }, 'Failed to create callback calendar event');
   }
 }
 
@@ -733,7 +651,9 @@ async function storeInUnifiedResults(
 
     // Build human-readable summary
     let summary: string;
-    if (outcome.objectiveAchieved) {
+    if (callbackMeansAskedOn() && !outcome.objectiveAchieved) {
+      summary = outcome.outcome; // #4468: Ferni's own sentence, by name, never "- no answer"
+    } else if (outcome.objectiveAchieved) {
       summary = `Called ${contactName} - ${outcome.outcome}`;
     } else if (outcome.status === 'voicemail') {
       summary = voicemailWords(outcome.voicemailLeft, contactName).summary;
@@ -759,15 +679,16 @@ async function storeInUnifiedResults(
       type: 'on_behalf_call',
       status,
       summary,
-      priority: outcome.callbackRequired ? 'high' : 'normal',
+      priority: callbackFollowUp(outcome) ? 'high' : 'normal',
       initiatedBy: 'ferni', // Calls are typically initiated by Ferni
       sessionId: request.originalSessionId,
       contactName,
       contactId: request.resolvedContact?.id,
       details: callResultDetails(contactName, outcome),
       actionItems: outcome.actionItems,
-      requiresCallback: outcome.callbackRequired || false,
+      requiresCallback: callbackAsked(outcome),
       callbackTime: outcome.callbackTime,
+      callFollowUp: callbackFields(outcome), // its readers derive the ask (#4468)
       relatedTaskId: callId,
       specificData: {
         callId,

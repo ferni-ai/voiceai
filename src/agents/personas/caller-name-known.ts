@@ -36,7 +36,7 @@ const PLACEHOLDERS = new Set([
 ]);
 
 /** A name, not a blank, a placeholder or an "(unknown)" marker. */
-function realName(value: unknown): value is string {
+export function realName(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const name = value.trim();
   return (

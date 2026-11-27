@@ -4,8 +4,10 @@
  * @module agents/shared/tool-executors/productivity-time-bridge
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { ALARM_CANT_RING } from '../../../tools/domains/simple-utilities/alarm-ring.js';
 import type { ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'ProductivityTimeBridge' });
@@ -90,6 +92,47 @@ export async function getReminders(ctx: ToolExecutionContext): Promise<string> {
   if (reminders.length === 0) return "You don't have any pending reminders right now.";
   const lines = reminders.map((r, i) => `${i + 1}. "${r.message}"`);
   return `You have ${reminders.length} pending reminder${reminders.length > 1 ? 's' : ''}:\n${lines.join('\n')}`;
+}
+
+/**
+ * Chat's setAlarm, once the executor has read the time. ALARM_ONE_SHAPE (#4316) on: saved by the
+ * voice tool's path, in its shape, so the alarm store lists it; a save Firestore did not take
+ * still says it couldn't, as chat does on main. Off: chat's own write, as on main.
+ */
+export async function setAlarm(
+  { time, label, recurring }: { time: string; label?: string; recurring?: string },
+  ctx: ToolExecutionContext
+): Promise<string> {
+  if (!ctx.userId) return "I couldn't save that alarm, I don't know whose it is.";
+  if (flagOn('ALARM_ONE_SHAPE')) {
+    const { createAlarm } = await import('../../../tools/domains/simple-utilities/alarm-tools.js');
+    return createAlarm(ctx.userId, { time, repeat: recurring, label }, 'report');
+  }
+  try {
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const alarmId = `alarm_${Date.now()}`;
+    await getAdminFirestore()
+      .collection('bogle_users')
+      .doc(ctx.userId)
+      .collection('alarms')
+      .doc(alarmId)
+      .set(
+        cleanForFirestore({
+          id: alarmId,
+          time,
+          label,
+          recurring,
+          createdAt: new Date(),
+          active: true,
+        })
+      );
+    log.info({ alarmId, userId: ctx.userId }, '✅ Alarm saved');
+  } catch (err) {
+    log.warn({ error: String(err) }, 'Alarm storage failed');
+    return "I couldn't save that alarm. Set it on your phone for now?";
+  }
+
+  return `Saved an alarm for ${time}${label ? ` (${label})` : ''}${recurring ? `, repeating ${recurring}` : ''}. ${ALARM_CANT_RING}`;
 }
 
 export async function getAlarms(ctx: ToolExecutionContext): Promise<string> {

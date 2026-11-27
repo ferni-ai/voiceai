@@ -18,7 +18,6 @@
  * @module agents/model-provider/trial-lane
  */
 import { createHash } from 'node:crypto';
-import { ThinkingLevel } from '@google/genai';
 import { llm } from '@livekit/agents';
 import { isKnownDevDatabase } from '../../config/firestore-database.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -37,26 +36,19 @@ type Env = Record<string, string | undefined>;
 export type TrialArm = 'trial' | 'control';
 
 /**
- * The trial models, by exact ID, each with the lowest thinking level it accepts. Each was listed
- * by our Vertex endpoint and answered a probe on 2026-11-26 (#4467), and each rejected MINIMAL
- * with a 400, so each takes LOW. gemini-3.8-flash at LOW took ~2.2s to first text vs ~0.9s for
- * gemini-3.5-flash at MINIMAL (2026-09-27, 64 tools, full prompt).
+ * The trial models, by exact ID. Each was listed by our Vertex endpoint and answered a probe on
+ * 2026-11-26 (#4467), and each rejects MINIMAL with a 400, so the cascade gives each LOW
+ * (rejectsMinimalThinking, config/thinking-defaults.ts). gemini-3.8-flash at LOW took ~2.2s to
+ * first text vs ~0.9s for gemini-3.5-flash at MINIMAL (2026-09-27, 64 tools, full prompt).
+ * Anything else in CASCADE_TRIAL_MODEL leaves the trial off.
  */
-const LOWEST_THINKING: Readonly<Record<string, ThinkingLevel>> = Object.freeze({
-  'gemini-3.8-flash': ThinkingLevel.LOW,
-  'gemini-4-argon': ThinkingLevel.LOW,
-  'gemini-4-carbon': ThinkingLevel.LOW,
-  'gemini-4-hydrogen': ThinkingLevel.LOW,
-  'gemini-4-neon': ThinkingLevel.LOW,
-});
-
-/** The IDs CASCADE_TRIAL_MODEL accepts; anything else leaves the trial off. */
-export const TRIAL_MODELS: readonly string[] = Object.freeze(Object.keys(LOWEST_THINKING));
-
-/** The lowest thinking level `model` accepts: its listed level, else MINIMAL (gemini-3.5-*). */
-export function lowestThinking(model: string): ThinkingLevel {
-  return Object.hasOwn(LOWEST_THINKING, model) ? LOWEST_THINKING[model] : ThinkingLevel.MINIMAL;
-}
+export const TRIAL_MODELS: readonly string[] = Object.freeze([
+  'gemini-3.8-flash',
+  'gemini-4-argon',
+  'gemini-4-carbon',
+  'gemini-4-hydrogen',
+  'gemini-4-neon',
+]);
 
 /** The trial model this process may use: a listed ID on dev's database, else null (off). */
 export function trialModel(env: Env = process.env): string | null {

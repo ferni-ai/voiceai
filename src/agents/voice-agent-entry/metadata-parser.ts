@@ -21,8 +21,9 @@ import { errorClass } from '../../utils/error-class.js';
 import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
-import { livePersonaId } from '../../personas/index.js';
+import { livePersonaId } from '../../personas/identity/index.js';
 import { callingPersonaName } from '../../tools/domains/telephony/scripts/index.js';
+import { fullContextOf } from './on-behalf-full-context.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -288,7 +289,7 @@ export async function setupCallTypeContexts(
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
       const roomNameForContext = roomName || `call-${metadata.callId}`;
-      const outboundContext = {
+      const placed = {
         callId: metadata.callId as string,
         recipientName: ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
         recipientPhone: ((metadata.contact as Record<string, unknown>)?.phone as string) || '',
@@ -313,6 +314,10 @@ export async function setupCallTypeContexts(
         // CALL_AS_PERSONA: who the call says is calling; only a signed dispatch names a persona.
         ...(trusted && call?.persona_id && { agentName: callingPersonaName(call.persona_id) }),
       };
+      // ON_BEHALF_FULL_CONTEXT, read once per call: the prompt reads only what it sets.
+      const outboundContext = flagOn('ON_BEHALF_FULL_CONTEXT')
+        ? { ...placed, ...fullContextOf(trusted ? rawJobMetadata : undefined, placed) }
+        : placed;
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);
 

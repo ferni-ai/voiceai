@@ -28,13 +28,14 @@ import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { geminiBillingLabels, labelLlmChat } from '../../config/gemini-billing-labels.js';
 import { geminiLocation, vertexBaseUrl } from '../../config/vertex-endpoint.js';
+import { rejectsMinimalThinking } from '../../config/thinking-defaults.js';
 import { listedNow } from '../../config/seth-teammate.js';
 import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
-import { lowestThinking, withTrialLane } from './trial-lane.js';
+import { withTrialLane } from './trial-lane.js';
 import { afterToolHedgeMs } from './after-tool-hedge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
 import { watchSttStream } from './stt-audio-diagnostics.js';
@@ -235,11 +236,17 @@ export function cascadeThinking(
     : { thinkingLevel: cascadeThinkingLevel(model, env) };
 }
 
-/** The lowest thinking level the model accepts (lowestThinking), or CASCADE_LLM_THINKING. */
+/**
+ * The lowest thinking level the model accepts, unless CASCADE_LLM_THINKING
+ * names one. gemini-3.8 and gemini-4 reject MINIMAL with a 400
+ * (rejectsMinimalThinking), which left every reply empty. At LOW gemini-3.8-flash's
+ * first text took ~2.2s median vs ~0.9s for gemini-3.5-flash at MINIMAL, with
+ * 64 tools and the full Ferni prompt (2026-09-27).
+ */
 function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
   const named = env.CASCADE_LLM_THINKING?.toUpperCase();
   if (named && named in ThinkingLevel) return ThinkingLevel[named as keyof typeof ThinkingLevel];
-  return lowestThinking(model);
+  return rejectsMinimalThinking(model) ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL;
 }
 
 /**

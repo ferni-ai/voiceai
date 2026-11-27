@@ -7,6 +7,7 @@
 
 import type { Env } from '../../config/env-flag.js';
 import { SELF_HARM_911_LINE, selfHarm911LineOn } from './crisis-script-lines.js';
+import { spanishImminentOn } from './crisis-spanish-imminent.js';
 import type { CrisisSubject } from './crisis-guard.js';
 import { SEVERITY } from './crisis-severity.js';
 
@@ -29,6 +30,10 @@ export const TALK_TO_988_ES =
 
 /** The Spanish crisis reply's 911 sentence (the 988 floor reuses it). */
 export const CALL_911_ES = 'Si estás en peligro ahora mismo, llama al 911.';
+
+/** Leads the Spanish reply on the caller's own imminent read (CRISIS_ES_IMMINENT_911_FIRST, #4310). */
+export const SPANISH_911_FIRST =
+  'Me alegra mucho que me lo digas. Tu seguridad es lo más importante ahora mismo. Si tomaste algo o estás en peligro, llama al 911 ahora mismo o ve a la sala de emergencias más cercana.';
 
 /** The 988 line for someone the caller is worried about, in the third-party reply's words. */
 export const FOR_THEM_988 =
@@ -79,7 +84,10 @@ ${FOR_THEM_988}
 What's going on with them right now?`;
   }
   if (language === 'es') {
-    return `Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
+    // The Spanish reply whole, after the 911 line: it gains a line and loses none. A turn whose own
+    // English already read imminent keeps the English reply above (crisis-imminent-raise.ts).
+    const first = imminent && spanishImminentOn(env) ? `${SPANISH_911_FIRST}\n\n` : '';
+    return `${first}Escucho cuánto dolor sientes ahora, y me alegra mucho que me lo cuentes. Lo que sientes importa, y no tienes que cargar con esto solo.
 
 ${TALK_TO_988_ES} Hay consejeros disponibles las 24 horas. ${CALL_911_ES}
 

@@ -66,6 +66,7 @@ const VALUE_OVERRIDES: Readonly<Record<string, readonly FlagValue[]>> = Object.f
   CALL_TELEMETRY: Object.freeze<FlagValue[]>(['off', 'on', 'reports']), // call-telemetry-store.ts
   CASCADE_TRIAL_MODEL: NONE, // trial-lane.ts: a model ID, set in the dev deploy env, not here
   // crisis-classifier-only(-live).ts; live is held (logs, changes nothing) outside tests
+  CRISIS_CLASSIFIER_HEAVY_FEELINGS: ON_OFF, // crisis-heavy-feelings.ts, === 'on'
   CRISIS_CLASSIFIER_ONLY_CHECKIN: OFF_SHADOW,
   CRISIS_CLASSIFIER_SECOND_READ: WITH_SHADOW, // crisis-classifier-v3.ts
   CRISIS_CONFIRMED_CALL_RISK: WITH_SHADOW, // crisis-confirmed-risk.ts

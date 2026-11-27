@@ -7,13 +7,13 @@ import { DEFAULT_API_CONNECT_OPTIONS, llm } from '@livekit/agents';
 import { ThinkingLevel } from '@google/genai';
 import { afterEach, describe, expect, it } from 'vitest';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import { rejectsMinimalThinking } from '../../../config/thinking-defaults.js';
 import { markCrisisTurn } from '../../../services/safety/crisis-turn-mark.js';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../../safety/crisis-gate-signal.js';
 import { cascadeThinking } from '../cartesia-cascade.js';
 import { HedgedLLM } from '../hedged-llm.js';
 import { withLane } from '../lane-request.js';
 import {
-  lowestThinking,
   TRIAL_MODELS,
   trialArm,
   trialField,
@@ -124,14 +124,14 @@ describe('which model the trial may use', () => {
       'gemini-4-hydrogen',
       'gemini-4-neon',
     ]);
-    for (const id of TRIAL_MODELS) expect(lowestThinking(id), id).toBe(ThinkingLevel.LOW);
-    expect(lowestThinking('gemini-3.5-flash')).toBe(ThinkingLevel.MINIMAL);
-    expect(lowestThinking('gemini-3.5-flash-lite')).toBe(ThinkingLevel.MINIMAL);
-    // The cascade reads the same map: no regex left to drift from it.
-    expect(cascadeThinking('gemini-3.8-flash', {})).toEqual({ thinkingLevel: ThinkingLevel.LOW });
-    expect(cascadeThinking('gemini-3.5-flash', {})).toEqual({
-      thinkingLevel: ThinkingLevel.MINIMAL,
-    });
+    // The cascade decides: each trial model rejects MINIMAL, so it gets LOW; today's keep MINIMAL.
+    for (const id of TRIAL_MODELS) {
+      expect(rejectsMinimalThinking(id), id).toBe(true);
+      expect(cascadeThinking(id, {}), id).toEqual({ thinkingLevel: ThinkingLevel.LOW });
+    }
+    for (const id of ['gemini-3.5-flash', 'gemini-3.5-flash-lite']) {
+      expect(cascadeThinking(id, {}), id).toEqual({ thinkingLevel: ThinkingLevel.MINIMAL });
+    }
   });
 });
 

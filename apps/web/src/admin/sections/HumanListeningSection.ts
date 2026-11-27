@@ -13,8 +13,20 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { getAdminHeadersAsync } from '../admin-api.js';
-import { loadSoulStats, renderSoulStats } from './soul-stats-panel.js';
+import { escapeHtml } from '../../utils/escape-html.js';
+import { renderUnavailable } from '../../utils/unavailable.js';
+import {
+  listState,
+  loadListening,
+  metricsNote,
+  metricValue,
+  tableNote,
+  type CountKey,
+  type ListeningData,
+  type ListState,
+  type LiveSession,
+  type RecentSignal,
+} from './human-listening-data.js';
 import {
   ICON_ACTIVITY,
   ICON_INFO,
@@ -36,47 +48,6 @@ const ICON_BRAIN = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="2
 const ICON_HEART = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
 
 // ============================================================================
-// TYPES
-// ============================================================================
-
-interface ListeningMetrics {
-  totalSessions: number;
-  distressDetections: number;
-  avgCognitiveLoad: number;
-  avgEngagement: number;
-  selfSoothingDetections: number;
-  hedgingDetections: number;
-  tremorDetections: number;
-  energyFadeDetections: number;
-}
-
-interface RecentSignal {
-  sessionId: string;
-  timestamp: string;
-  signalType:
-    | 'distress'
-    | 'cognitive_load'
-    | 'self_soothing'
-    | 'hedging'
-    | 'disengagement'
-    | 'tremor'
-    | 'energy_fade';
-  severity: 'low' | 'medium' | 'high';
-  details: string;
-  actionTaken?: string;
-}
-
-interface LiveSession {
-  sessionId: string;
-  userId?: string;
-  cognitiveLoad: 'low' | 'medium' | 'high' | 'overloaded';
-  engagement: 'high' | 'medium' | 'low' | 'distracted';
-  emotionalUndercurrent?: string;
-  lastSignal?: string;
-  duration: number;
-}
-
-// ============================================================================
 // RENDER
 // ============================================================================
 
@@ -86,34 +57,32 @@ interface LiveSession {
 export async function render(): Promise<string> {
   log.debug('Rendering human listening section');
 
-  // Fetch all data
-  const metrics = await fetchMetrics();
-  const signals = await fetchRecentSignals();
-  const liveSessions = await fetchLiveSessions();
-  const soulStats = await loadSoulStats();
+  const { metrics, signals, live } = await loadListening();
+  const count = (pick: PickValue): string => metricValue(metrics, pick, String);
 
   return `
     <div class="human-listening-section">
+      ${metricsNote(metrics)}
       <!-- Overview Stats -->
       <div class="admin-grid listening-stats">
         <div class="admin-card listening-stat">
           <div class="listening-stat-icon">${iconSm(ICON_HEADPHONES)}</div>
-          <div class="listening-stat-value">${metrics.totalSessions}</div>
+          <div class="listening-stat-value">${count((m) => m.totalSessions)}</div>
           <div class="listening-stat-label">Sessions Analyzed</div>
         </div>
         <div class="admin-card listening-stat">
           <div class="listening-stat-icon listening-stat-icon--warning">${iconSm(ICON_WARNING)}</div>
-          <div class="listening-stat-value listening-stat-value--warning">${metrics.distressDetections}</div>
+          <div class="listening-stat-value listening-stat-value--warning">${count((m) => m.distressDetections)}</div>
           <div class="listening-stat-label">Distress Signals</div>
         </div>
         <div class="admin-card listening-stat">
           <div class="listening-stat-icon">${iconSm(ICON_BRAIN)}</div>
-          <div class="listening-stat-value">${formatCognitiveLoad(metrics.avgCognitiveLoad)}</div>
+          <div class="listening-stat-value">${metricValue(metrics, (m) => m.avgCognitiveLoad, formatCognitiveLoad)}</div>
           <div class="listening-stat-label">Avg Cognitive Load</div>
         </div>
         <div class="admin-card listening-stat">
           <div class="listening-stat-icon listening-stat-icon--success">${iconSm(ICON_ACTIVITY)}</div>
-          <div class="listening-stat-value">${Math.round(metrics.avgEngagement * 100)}%</div>
+          <div class="listening-stat-value">${metricValue(metrics, (m) => m.avgEngagement, percent)}</div>
           <div class="listening-stat-label">Avg Engagement</div>
         </div>
       </div>
@@ -125,10 +94,7 @@ export async function render(): Promise<string> {
           Detection Breakdown (24h)
         </h2>
         <div class="detection-grid">
-          ${renderDetectionCard('Self-Soothing', metrics.selfSoothingDetections, 'Phrases like "I\'m fine", "It doesn\'t matter"', 'soothing')}
-          ${renderDetectionCard('Hedging', metrics.hedgingDetections, 'Uncertainty, minimizing, protecting language', 'hedging')}
-          ${renderDetectionCard('Voice Tremor', metrics.tremorDetections, 'Wavering, cracking, emotional strain', 'tremor')}
-          ${renderDetectionCard('Energy Fade', metrics.energyFadeDetections, 'Voice trailing off, losing confidence', 'fade')}
+          ${renderDetections(metrics)}
         </div>
       </div>
 
@@ -140,7 +106,7 @@ export async function render(): Promise<string> {
           <span class="live-indicator"></span>
         </h2>
         <div class="live-sessions-grid">
-          ${liveSessions.length > 0 ? liveSessions.map((s) => renderLiveSession(s)).join('') : renderNoSessions()}
+          ${renderLiveSessions(listState(live, metrics))}
         </div>
       </div>
 
@@ -161,7 +127,7 @@ export async function render(): Promise<string> {
             </tr>
           </thead>
           <tbody>
-            ${signals.map((s) => renderSignalRow(s)).join('')}
+            ${renderSignalRows(listState(signals, metrics))}
           </tbody>
         </table>
       </div>
@@ -184,8 +150,7 @@ export async function render(): Promise<string> {
           ${renderSoulResponse('Voice Tremor', 'Anticipatory Shimmer', 'Subtle shimmer shows recognition', 'playAnticipation("concerned")')}
         </div>
 
-        <div class="soul-response-stats">${renderSoulStats(soulStats, formatTime)}
-        </div>
+        <p class="section-desc">How often each avatar moment played on people's calls is now on Avatar Soul.</p>
 
         <a href="#avatar-soul" class="soul-link" data-navigate="avatar-soul">
           Open Avatar Soul Lab →
@@ -571,41 +536,6 @@ export async function render(): Promise<string> {
         opacity: 0.7;
       }
 
-      .soul-response-stats {
-        display: flex;
-        gap: var(--space-4, 1rem);
-        padding: var(--space-4, 1rem);
-        background: rgba(0, 0, 0, 0.15);
-        border-radius: var(--radius-md, 0.5rem);
-        margin-bottom: var(--space-3, 0.75rem);
-      }
-
-      .soul-stat {
-        flex: 1;
-        text-align: center;
-      }
-
-      .soul-stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        font-family: var(--font-mono, 'JetBrains Mono', monospace);
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .soul-stat-label {
-        font-size: 0.7rem;
-        color: var(--color-text-muted, #888);
-      }
-
-      .soul-stats-note {
-        grid-column: 1 / -1;
-        text-align: center;
-        font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
-        margin-top: var(--space-2, 0.5rem);
-        font-style: italic;
-      }
-
       .soul-link {
         display: inline-block;
         color: var(--persona-primary, #4a6741);
@@ -625,7 +555,48 @@ export async function render(): Promise<string> {
 // RENDER HELPERS
 // ============================================================================
 
-function renderDetectionCard(title: string, count: number, desc: string, type: string): string {
+type PickValue = Parameters<typeof metricValue>[1];
+
+const percent = (v: number): string => `${Math.round(v * 100)}%`;
+
+/** Each detection card: title, the count it shows, what it catches, its style. */
+const DETECTIONS: [string, CountKey, string, string][] = [
+  [
+    'Self-Soothing',
+    'selfSoothingDetections',
+    'Phrases like "I\'m fine", "It doesn\'t matter"',
+    'soothing',
+  ],
+  ['Hedging', 'hedgingDetections', 'Uncertainty, minimizing, protecting language', 'hedging'],
+  ['Voice Tremor', 'tremorDetections', 'Wavering, cracking, emotional strain', 'tremor'],
+  ['Energy Fade', 'energyFadeDetections', 'Voice trailing off, losing confidence', 'fade'],
+];
+
+function renderDetections(metrics: ListeningData['metrics']): string {
+  return DETECTIONS.map(([title, key, desc, type]) =>
+    renderDetectionCard(
+      title,
+      metricValue(metrics, (m) => m[key], String),
+      desc,
+      type
+    )
+  ).join('');
+}
+
+/** The live sessions, "No active sessions" when the server knows of none, or why it can't say. */
+function renderLiveSessions(state: ListState<LiveSession>): string {
+  if ('gap' in state) return renderUnavailable(state.gap);
+  return state.items.length > 0 ? state.items.map(renderLiveSession).join('') : renderNoSessions();
+}
+
+/** The signal rows, "none recorded" for an empty list, or why there are none to show. */
+function renderSignalRows(state: ListState<RecentSignal>): string {
+  if ('gap' in state) return tableNote(renderUnavailable(state.gap));
+  if (state.items.length === 0) return tableNote(renderUnavailable('none recorded'));
+  return state.items.map(renderSignalRow).join('');
+}
+
+function renderDetectionCard(title: string, count: string, desc: string, type: string): string {
   return `
     <div class="detection-card detection-card--${type}">
       <div class="detection-card-title">${title}</div>
@@ -639,17 +610,17 @@ function renderLiveSession(session: LiveSession): string {
   return `
     <div class="live-session-card">
       <div class="live-session-header">
-        <span class="live-session-id">${session.sessionId.slice(0, 8)}...</span>
+        <span class="live-session-id">${escapeHtml(session.sessionId.slice(0, 8))}...</span>
         <span class="live-session-duration">${formatDuration(session.duration)}</span>
       </div>
       <div class="live-session-metrics">
         <div class="live-metric">
           <div class="live-metric-label">Cognitive</div>
-          <div class="live-metric-value live-metric-value--${session.cognitiveLoad}">${session.cognitiveLoad}</div>
+          <div class="live-metric-value live-metric-value--${escapeHtml(session.cognitiveLoad)}">${escapeHtml(session.cognitiveLoad)}</div>
         </div>
         <div class="live-metric">
           <div class="live-metric-label">Engagement</div>
-          <div class="live-metric-value live-metric-value--${session.engagement === 'high' ? 'low' : session.engagement === 'low' ? 'high' : 'medium'}">${session.engagement}</div>
+          <div class="live-metric-value live-metric-value--${session.engagement === 'high' ? 'low' : session.engagement === 'low' ? 'high' : 'medium'}">${escapeHtml(session.engagement)}</div>
         </div>
       </div>
       ${
@@ -657,7 +628,7 @@ function renderLiveSession(session: LiveSession): string {
           ? `
         <div class="live-session-undercurrent">
           <span class="live-metric-label">Emotional undercurrent:</span>
-          ${session.emotionalUndercurrent}
+          ${escapeHtml(session.emotionalUndercurrent)}
         </div>
       `
           : ''
@@ -680,10 +651,10 @@ function renderSignalRow(signal: RecentSignal): string {
   return `
     <tr>
       <td>${formatTime(signal.timestamp)}</td>
-      <td><span style="text-transform: capitalize">${signal.signalType.replace('_', ' ')}</span></td>
-      <td><span class="severity-badge severity-badge--${signal.severity}">${signal.severity}</span></td>
-      <td>${signal.details}</td>
-      <td>${signal.actionTaken ?? '—'}</td>
+      <td><span style="text-transform: capitalize">${escapeHtml(signal.signalType.replace('_', ' '))}</span></td>
+      <td><span class="severity-badge severity-badge--${escapeHtml(signal.severity)}">${escapeHtml(signal.severity)}</span></td>
+      <td>${escapeHtml(signal.details)}</td>
+      <td>${signal.actionTaken ? escapeHtml(signal.actionTaken) : '—'}</td>
     </tr>
   `;
 }
@@ -714,70 +685,6 @@ function renderSoulResponse(trigger: string, response: string, desc: string, cod
       <code class="soul-response-code">${code}</code>
     </div>
   `;
-}
-
-// ============================================================================
-// DATA FETCHING
-// ============================================================================
-
-async function fetchMetrics(): Promise<ListeningMetrics> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/human-listening/metrics', {
-      headers,
-    });
-    if (response.ok) {
-      return response.json();
-    }
-  } catch (err) {
-    log.warn('Failed to fetch listening metrics', err);
-  }
-
-  // Return zeros - no real data yet (not fake numbers)
-  return {
-    totalSessions: 0,
-    distressDetections: 0,
-    avgCognitiveLoad: 0,
-    avgEngagement: 0,
-    selfSoothingDetections: 0,
-    hedgingDetections: 0,
-    tremorDetections: 0,
-    energyFadeDetections: 0,
-  };
-}
-
-async function fetchRecentSignals(): Promise<RecentSignal[]> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/human-listening/signals', {
-      headers,
-    });
-    if (response.ok) {
-      return response.json();
-    }
-  } catch (err) {
-    log.warn('Failed to fetch listening signals', err);
-  }
-
-  // Return empty array - signals will appear when real listening events happen
-  return [];
-}
-
-async function fetchLiveSessions(): Promise<LiveSession[]> {
-  try {
-    const headers = await getAdminHeadersAsync();
-    const response = await fetch('/api/v1/admin/human-listening/live', {
-      headers,
-    });
-    if (response.ok) {
-      return response.json();
-    }
-  } catch (err) {
-    log.warn('Failed to fetch live sessions', err);
-  }
-
-  // Return empty for now - will populate when sessions are active
-  return [];
 }
 
 // ============================================================================

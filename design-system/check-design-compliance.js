@@ -65,7 +65,7 @@ const CONFIG = {
     '.generated.',
     'dev-panel.ui.ts',
     'evalops-dashboard.ui.ts',
-    'admin.ui.ts',
+    'marketplace-admin.ui.ts',
   ],
   
   // Forbidden brand words (per FERNI-BRAND-GUIDELINES.md)

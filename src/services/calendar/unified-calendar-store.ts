@@ -299,7 +299,7 @@ export async function createEvent(
       : undefined,
   });
 
-  log.info({ userId, eventId: event.id, title: event.title, source }, 'Created calendar event');
+  log.info({ userId, eventId: event.id, source }, 'Created calendar event');
   return event;
 }
 

@@ -206,7 +206,7 @@ jobs:
         id: deploy-tests
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(\.github/(workflows|actions)/|scripts/ci/|deploy/ui-server/|(docker/)?Dockerfile\.[^/]+$|apps/figma-plugin/(package\.json|src/ui\.html)$|vitest\.config\.integration\.ts$)'
+          include: '^(\.github/(workflows|actions)/|scripts/ci/|scripts/blog/(record-verdict\.sh|exit-codes\.ts)$|deploy/ui-server/|(docker/)?Dockerfile\.[^/]+$|apps/figma-plugin/(package\.json|src/ui\.html)$|vitest\.config\.integration\.ts$)'
 
       - name: Generate cache key
         id: cache-key
@@ -398,8 +398,9 @@ jobs:
   test-unit-shard:
     name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # A shard runs ~8 min of tests; a cold cargo cache adds the native build.
-    timeout-minutes: 25
+    # A green shard takes a median of ~17 min, at most ~25 (80 runs, 2026-11-26); 40 leaves
+    # room for a busy runner or a cold cargo cache (#3301, unit-shard-timeout.test.ts).
+    timeout-minutes: 40
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     strategy:
@@ -1275,6 +1276,14 @@ jobs:
       # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
       - name: Architecture gate
         run: pnpm quality:arch
+
+      # Blocking: the format, mock-paths and web design-value baselines may only shrink
+      # against the merge base, so a PR can't pass its own gate by listing new debt
+      # (apps/cli/src/commands/quality/baseline-shrink.ts; replaces code-owner review of
+      # those three files). Here, not in Lint: it needs this job's depth-50 checkout and
+      # origin/main fetch for the merge-queue base.
+      - name: Baselines only shrink
+        run: pnpm quality:baseline-shrink
 
       # Blocking: a file this PR touches gains a crisis word list, voice resolver, quiet-hours
       # rule, tool cap, forget checker or Twilio sender outside its owner (decisions.ts). ~3 s.

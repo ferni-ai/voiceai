@@ -477,3 +477,48 @@ export const MODEL_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnly
     },
   ],
 };
+
+/**
+ * Crisis-lane flags that remove a sound or line said beside a turn, not the reply: a filler or
+ * clip that is not crisis or safety speech. The six readers and SHOWN_ON (the gate's reply) never
+ * see that step. This home is open only to a flag that removes nothing but such a sound, and whose
+ * named rows run the real wiring (the live-call attachment or the turn handler), flag off then
+ * on, and assert both that the sound is removed and that an ordinary turn still gets it. Where the
+ * flag acts inside the turn handler, a row also asserts the crisis reply is given unchanged on the
+ * same turn; where its only reader is the sound's own emitter, it reads no reply path, and the
+ * only reply timing it touches is the hold that sound itself set, which it releases. A flag that
+ * delays or shortens a crisis or safety line does not belong here.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const NON_SAFETY_LINE_REMOVED: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // The turn-opening "Mm" (TURN_OPENING_SOUND, plain and early): none while a crisis verdict is
+  // pending or once the gate acted on the call, and one just played is cut, and the reply it held
+  // released, when the gate's decision lands (#4451). Only that sound is dropped.
+  // The sound's own switch: off, the "Mm" is not made; on or early, an ordinary turn gets it.
+  TURN_OPENING_SOUND: [
+    {
+      file: 'src/agents/integrations/__tests__/turn-opening-sound-crisis.test.ts',
+      rows: [
+        'TURN_OPENING_SOUND unset: no sound at all; on: an ordinary turn gets it',
+        'control, ordinary turn: the clip plays and holds the reply',
+      ],
+    },
+  ],
+  CRISIS_NO_OPENING_SOUND: [
+    {
+      file: 'src/agents/integrations/__tests__/turn-opening-sound-crisis.test.ts',
+      rows: [
+        'control, ordinary turn: the sound plays, flag on or off',
+        'on: a crisis verdict pending when the wait ends, no sound, even once it clears',
+        'off: the same pending verdict plays the sound, as on main',
+        'on: after the gate replaced a reply on this call, no sound on a later turn',
+        'on: a gate pass is no crisis, the sound still plays',
+        'control, ordinary turn: the clip plays and holds the reply',
+        'on: a crisis verdict pending at the commit, no clip',
+        'on: the gate decides right after the clip started: the clip is cut and the reply released',
+      ],
+    },
+  ],
+};

@@ -15,6 +15,11 @@ import {
 import { roundtableAgentsForCall, type SpeakingSession } from '../session-roundtable-agents.js';
 import { createGroupVoiceIntegration } from '../voice-integration.js';
 
+// No model here: ending a roundtable asks one for a summary and takes its fallback.
+vi.mock('../../../services/llm-utils.js', async () =>
+  (await import('../../../tests/helpers/no-model.js')).llmUtilsWithNoModel()
+);
+
 describe('roundtable turns', () => {
   it("routes this call's turns while attached, and only this call's", async () => {
     const handleUserInput = vi.fn(async () => undefined);

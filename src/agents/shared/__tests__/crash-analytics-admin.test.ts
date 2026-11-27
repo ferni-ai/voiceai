@@ -129,9 +129,12 @@ describe('crash analytics on the health server is admin only', () => {
       recentCrashes.find((c) => c.error.message === message)?.context;
     const onProd = crashOn(CRASH_ON_PROD);
     const onDev = crashOn(CRASH_ON_DEV);
-    // Current behaviour: the crash record keeps the first 200 characters of the caller's line.
-    expect(onProd?.lastUserMessage).toBe(CALLER.slice(0, 200));
-    expect(onDev?.lastUserMessage).toBe(CALLER.slice(0, 200));
+    // The caller's line: only its length, on prod and dev alike (#3215).
+    expect(onProd?.lastUserMessageLen).toBe(CALLER.length);
+    expect(onDev?.lastUserMessageLen).toBe(CALLER.length);
+    expect(onProd).not.toHaveProperty('lastUserMessage');
+    expect(onDev).not.toHaveProperty('lastUserMessage');
+    expect(JSON.stringify(recentCrashes)).not.toContain('SAMPLE-CALLER');
     // Ferni's line: only its length on a prod database, the cut text on dev.
     expect(onProd?.lastAgentMessage).toBe(`[${FERNI.length} chars]`);
     expect(JSON.stringify(onProd)).not.toContain('SAMPLE-FERNI');

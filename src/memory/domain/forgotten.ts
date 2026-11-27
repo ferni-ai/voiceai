@@ -8,7 +8,7 @@
  *
  * @module memory/domain/forgotten
  */
-import { contactNumberRuns } from './contact-data.js';
+import { contactNumberRuns, foldContactText } from './contact-data.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
 /** Words too common to say what a memory is about (recall's content words share them). */
@@ -64,13 +64,11 @@ const LEGACY_SKIP: ReadonlySet<string> = new Set([...STOPWORDS, ...FORGET_FILLER
  */
 export function isForgotten(text: string, topics: readonly string[]): boolean {
   if (topics.length === 0) return false;
+  if (holdsTopicNumber(text, topics)) return true;
   const words = new Set(forgetTokens(text));
   // "ex wife" in a memory is the "ex-wife" / "exwife" of a request, and back.
   const raw = foldedWords(text).map((w) => w.word);
   for (let i = 0; i + 1 < raw.length; i++) words.add(stem(`${raw[i]}${raw[i + 1]}`));
-  // A phone number as speech-to-text writes it ("435, 555, 0142", "four three
-  // five...") is the forgotten "4355550142" too: each dialable run, joined.
-  for (const run of contactNumberRuns(text)) words.add(run.replace(/\D/g, ''));
   // A capitalized word in a memory is often just a sentence's first word
   // ("Divorce papers came"): it matches stemmed too. A topic's name never
   // stems, so forgetting "James" can't hide "jam".
@@ -105,6 +103,8 @@ export function isForgotten(text: string, topics: readonly string[]): boolean {
  */
 export function isForgottenPassage(text: string, topics: readonly string[]): boolean {
   if (isForgotten(text, topics)) return true;
+  // "Forget my brother's number" and then "his cell is 435 555 0199": no topic word is in it.
+  if (topics.some((t) => NUMBER_TOPIC.test(t)) && phoneNumbers(text).length > 0) return true;
   const words = new Set(forgetTokens(text));
   // "Distinctive" is judged on the word as written, not its stem: a stemmer
   // can shorten "wedding" below five letters, and the topic must still count.
@@ -120,6 +120,71 @@ export function isForgottenPassage(text: string, topics: readonly string[]): boo
       )
   );
 }
+
+/**
+ * The phone numbers in a text as their digits, so "(435) 555-0199", "435/555/0199" and "four
+ * three five ..." read alike. The runs come from contact-data, the one reader of numbers in
+ * any format, which fails closed: any 7+ digit run may be one. Here that holds too, except a
+ * run that is plainly something else: a price in thousands ("1,250,000"), a time or a span of
+ * times ("10:30-11:45", "15:00:00.000"), a date with its time ("2026-11-18 15:00"), a list of
+ * years ("2019, 2020"), a date alone in its field, and a stored id's epoch in ms (thirteen digits from 2017 to 2033 joined
+ * to a word by "-" or "_": "summary_session-AJ_x-1763478000123_1763478000456", as the voice
+ * agent and outreach mint them). Those hid whole call summaries (#4042 reviews);
+ * every other shape still counts, two numbers in one run and over-long ones included.
+ * Known gaps: a trunk prefix ("020 ..." for "+44 20 ..."), and any other 7+ digit run (an order
+ * number, counting aloud to eight, "2020-2019") still holds a passage under a number topic, and
+ * a +1 number with a two-digit extension glued to a word ("mom-1555...12") reads as an epoch,
+ * A number broken across lines is still one run. Held on purpose (fails closed): a date
+ * with other digits beside it on its line ("abc123 2025-11-18", "2025-11-18 1234").
+ */
+const THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
+// Real dates and times only: "4355-55-01 99:00" is ten digits of someone's number.
+const DATE = '(?:19|20)\\d\\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])';
+const TIME = '(?:[01]?\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d{1,3})?)?';
+const TIMES = new RegExp(`^(?:${DATE} )?${TIME}(?:\\s*[-\\u2010-\\u2015\\u2212]\\s*${TIME})?$`);
+// A list of years has a comma or semicolon: "2012 1999" may be an eight-digit phone number.
+const YEARS = /^(?:19|20)\d\d(?:\s*[,;]\s*(?:19|20)\d\d)+$/;
+const notAPhoneNumber = (run: string): boolean =>
+  THOUSANDS.test(run) || TIMES.test(run) || YEARS.test(run);
+// Only an epoch in ms glued to a word: a markdown "_435 555 0199_" keeps every digit.
+const STORED_EPOCH = /(?<=[\p{L}\p{N}][-_])1[5-9]\d{11}(?!\p{N})/gu;
+// A real date with no digit beside it on its own line (only non-letters between): readers
+// put each field of a record on its own line (call-summaries, revived), and an id ending in
+// digits ("…abc123") then a date field is no number anyone said. A date touching another
+// number on its line ("2025-11-18-0199", "435 555 2025-11-18") stays in the run, as in
+// contact-data, where only a whole run can be a date. The look is bounded (16) so a long
+// stretch of punctuation stays linear.
+const ISO_DATE = new RegExp(`(?<!\\d[^\\p{L}\\n]{0,16})${DATE}(?![^\\p{L}\\n]{0,16}\\d)`, 'gu');
+// Both become words, so a run can't go on through them; one scan, so "435 555\n0199" is a
+// number. The epoch is read raw (only ASCII digits are a stored id: a wide-digit "mom_１６１…"
+// is someone's number); the date after folding, so no soft hyphen, zero-width mark, wide or
+// spoken digit beside it escapes its guards.
+const phoneNumbers = (text: string): string[] =>
+  contactNumberRuns(
+    foldContactText(text.replace(STORED_EPOCH, ' epoch ')).replace(ISO_DATE, ' date ')
+  )
+    .filter((run) => !notAPhoneNumber(run))
+    .map((run) => run.replace(/\D/g, ''));
+
+/**
+ * A number a topic names is in the text, in any format (#3995 follow-up). Either may hold the
+ * other: a country code ("+1 435 ..."), a number without its area code, or one run together
+ * with another number all still count.
+ */
+function holdsTopicNumber(text: string, topics: readonly string[]): boolean {
+  const wanted = topics.flatMap(phoneNumbers);
+  if (wanted.length === 0) return false;
+  const found = phoneNumbers(text);
+  return wanted.some((w) => found.some((f) => f.includes(w) || w.endsWith(f)));
+}
+
+/**
+ * A topic about a contact number ("brother phone number", "mom's cell", "his landline"), by
+ * whole word. "Number of kids" counts too: "the number of my therapist" is a phone number, and
+ * a privacy request errs toward hiding.
+ */
+const NUMBER_TOPIC =
+  /\b(?:(?:tele|cell|smart)?phones?|numbers?|cell|mobile|digits|landline|tel)\b/i;
 
 /** The text a stored fact document is about, in any fact collection's shape, for matching. */
 export function factText(d: Record<string, unknown>): string {

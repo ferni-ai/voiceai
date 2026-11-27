@@ -26,8 +26,13 @@ export function unavailableReason(status?: number): string {
   return status ? `unavailable (HTTP ${status})` : 'unavailable (network error)';
 }
 
+/** Only a string reason counts, so a server body with some other `unavailable` field is data. */
 export function isUnavailable<T>(value: T | Unavailable): value is Unavailable {
-  return typeof value === 'object' && value !== null && 'unavailable' in value;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { unavailable?: unknown }).unavailable === 'string'
+  );
 }
 
 /** Read a JSON response; a failed status or request becomes Unavailable, never a default. */
