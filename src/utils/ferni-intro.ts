@@ -131,11 +131,20 @@ const RELATIONS = new Set(
  * A saved contact name as the person's name and what they are to the user:
  * "Linda" is a name, "Mom" (or "my mom") only a relation, "Mom (Linda)" both.
  * Prod 2026-10-18: a contact saved as "mom" was greeted "Hi mom".
+ *
+ * Given the requester's name (ON_BEHALF_FULL_CONTEXT), "Sam's mom" on Sam's
+ * phone is Sam's own mom, a relation; "Jake's mom" stays a name, since she is
+ * someone else's.
  */
-export function nameAndRelation(saved: string | undefined): { name?: string; relation?: string } {
+export function nameAndRelation(
+  saved: string | undefined,
+  requester?: string
+): { name?: string; relation?: string } {
   let name: string | undefined;
   let relation: string | undefined;
-  for (const part of (saved ?? '').split(/[(),/]|\s[-–]\s/)) {
+  const own = requester ? ownPossessive(requester) : undefined;
+  const text = own ? (saved ?? '').replace(own, '') : saved;
+  for (const part of (text ?? '').split(/[(),/]|\s[-–]\s/)) {
     const word = part
       .trim()
       .toLowerCase()
@@ -144,6 +153,16 @@ export function nameAndRelation(saved: string | undefined): { name?: string; rel
     else name ??= realName(part);
   }
   return { name, relation };
+}
+
+/** "Sam's " or "Sam Lee's " leading a saved name: the requester's own, by full or first name. */
+function ownPossessive(requester: string): RegExp | undefined {
+  const full = realName(requester);
+  if (!full) return undefined;
+  const names = [...new Set([full, full.split(/\s+/)[0]])]
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+  return new RegExp(`^\\s*(?:${names})['’]s\\s+`, 'i');
 }
 
 /**

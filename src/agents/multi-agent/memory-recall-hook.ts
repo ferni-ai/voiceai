@@ -51,6 +51,7 @@ import {
   type RetrievalEmbedder,
   type SemanticIndex,
 } from '../../memory/recall/semantic-recall.js';
+import { skipsRecall } from '../processors/turn-processor/crisis-memory-recall.js';
 import { firestoreRecallStore } from './recall-firestore-store.js';
 import {
   formatLedger,
@@ -336,6 +337,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       week.heard(text);
       selfSlot.heard(text);
       if (!snapshot || !text) return null;
+      if (skipsRecall(deps.sessionId, text)) return null; // CRISIS_NO_MEMORY_RECALL
       index?.observe(text);
       episodes?.observe(text);
       summaryRecall?.observe(text);
@@ -492,5 +494,5 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   });
 }
 
-export { addRecallNote, type RecallAgent } from './recall-note.js';
+export { type RecallAgent } from './recall-note.js';
 export { firestoreRecallStore };

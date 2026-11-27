@@ -16,6 +16,12 @@
  * - a spoken "yes" doesn't confirm a text or call (live-call-behaviors.ts);
  * - "I'm David" doesn't rename the owner (name-correction.ts).
  *
+ * NAME_GUEST_NAMES_OWNER=on: a caller line that speaks of the account holder in
+ * the third person ("a friend of Sam", utils/guest-names-owner.ts) also puts a
+ * guest in the room, whether or not ROOM_GUESTS is on. This room is the call's
+ * one guest state: with a guest in it the account's name stays as it is
+ * (name-correction.ts ownerMayKeep, rememberName) and a yes confirms no send.
+ *
  * Detection is narrow, like name-correction's: a capitalised name after a
  * whole-word cue, never the owner's name or a teammate's.
  *
@@ -23,11 +29,18 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { extractCallerName } from '../../utils/caller-name.js';
+import {
+  guestNamesOwner,
+  guestNamesOwnerEnabled,
+  setGuestOnLineCheck,
+} from '../../utils/guest-names-owner.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { realName } from './caller-name-known.js';
 
 const log = createLogger({ module: 'RoomGuests' });
 
-export function roomGuestsEnabled(env: Env = process.env): boolean {
+function roomGuestsEnabled(env: Env = process.env): boolean {
   return flagOn('ROOM_GUESTS', env);
 }
 
@@ -88,8 +101,49 @@ export function guestChanges(
 const rooms = new Map<string, Set<string>>();
 const MAX_ROOMS = 500;
 
+interface CallStart {
+  /** The name the call started with: a guest's name for the call later replaces userName. */
+  userName: unknown;
+  /** A guest has named the account holder on this call (logged once). */
+  named: boolean;
+}
+const callStarts = new Map<string, CallStart>();
+
+/** The account holder's names: the call's starting name and the profile's names. */
+function ownerNamesOf(sessionId: string, user: SessionUser): { names: string[]; start: CallStart } {
+  let start = callStarts.get(sessionId);
+  if (!start) {
+    start = { userName: user.userName, named: false };
+    if (callStarts.size >= MAX_ROOMS) callStarts.delete(callStarts.keys().next().value as string);
+    callStarts.set(sessionId, start);
+  }
+  const profile = user.services?.userProfile;
+  return { names: [start.userName, profile?.preferredName, profile?.name].filter(realName), start };
+}
+
+/** Keeps a room with someone in it (the oldest goes past MAX_ROOMS); forgets an empty one. */
+function keepRoom(sessionId: string, room: Set<string>): void {
+  if (room.size === 0) {
+    rooms.delete(sessionId);
+    return;
+  }
+  if (!rooms.has(sessionId) && rooms.size >= MAX_ROOMS) {
+    const oldest = rooms.keys().next().value;
+    if (oldest !== undefined) rooms.delete(oldest);
+  }
+  rooms.set(sessionId, room);
+}
+
 export function hasGuests(sessionId: string | undefined): boolean {
   return !!sessionId && (rooms.get(sessionId)?.size ?? 0) > 0;
+}
+
+// rememberName (tools layer) reads it through utils/guest-names-owner.ts.
+setGuestOnLineCheck((userData) => hasGuests((userData as SessionUser).services?.sessionId));
+
+/** Someone besides the owner is on this call, by ROOM_GUESTS or NAME_GUEST_NAMES_OWNER. */
+export function guestOnCall(sessionId: string | undefined, env: Env = process.env): boolean {
+  return (roomGuestsEnabled(env) || guestNamesOwnerEnabled(env)) && hasGuests(sessionId);
 }
 
 /** Updates the room from the caller's words. Returns the guests now present. */
@@ -101,13 +155,7 @@ export function updateRoom(sessionId: string, words: string, owner?: string): st
   if (arrived.length > 0) room.delete('');
   else if (unnamed) room.add('');
   for (const name of left) room.delete(name);
-  if (room.size > 0) {
-    if (!rooms.has(sessionId) && rooms.size >= MAX_ROOMS) {
-      const oldest = rooms.keys().next().value;
-      if (oldest !== undefined) rooms.delete(oldest);
-    }
-    rooms.set(sessionId, room);
-  } else rooms.delete(sessionId);
+  keepRoom(sessionId, room);
   if (room.size !== before) log.info({ sessionId, guests: room.size }, 'ROOM_GUESTS');
   return [...room];
 }
@@ -119,6 +167,31 @@ export function guestsPresent(session: object, env: Env = process.env): boolean 
 
 export function forgetRoom(sessionId: string): void {
   rooms.delete(sessionId);
+  callStarts.delete(sessionId);
+}
+
+/**
+ * NAME_GUEST_NAMES_OWNER=on: every caller turn, whatever name extraction makes
+ * of it. Words that speak of the account holder put the speaker in the room (by
+ * the name they gave, else unnamed).
+ */
+function noteGuestNamingOwner(session: object, words: string, env: Env): void {
+  if (!guestNamesOwnerEnabled(env)) return;
+  const user = (session as { userData?: SessionUser }).userData;
+  const sessionId = user?.services?.sessionId;
+  if (!user || !sessionId) return;
+  // Read on the call's first turn, whatever it says: the name it started with.
+  const { names, start } = ownerNamesOf(sessionId, user);
+  if (!words) return;
+  const claimed = extractCallerName(words);
+  if (!guestNamesOwner(words, names, claimed ?? '')) return;
+  const room = rooms.get(sessionId) ?? new Set<string>();
+  room.add(claimed ?? '');
+  if (claimed) room.delete('');
+  keepRoom(sessionId, room);
+  if (start.named) return;
+  start.named = true;
+  log.info({ sessionId }, 'NAME_GUEST_NAMES_OWNER guest named the owner');
 }
 
 /**
@@ -140,7 +213,10 @@ export function roomNote(guests: readonly string[], owner = 'they', scriptFree =
 
 interface SessionUser {
   userName?: string;
-  services?: { sessionId?: string };
+  services?: {
+    sessionId?: string;
+    userProfile?: { preferredName?: string; name?: string } | null;
+  };
 }
 
 /** The sessionId of this AgentSession, if known. */
@@ -158,6 +234,7 @@ export function roomGuestsNote(
   env: Env = process.env,
   scriptFree = false
 ): string {
+  noteGuestNamingOwner(session, callerWords, env);
   if (!roomGuestsEnabled(env)) return '';
   const user = (session as { userData?: SessionUser }).userData;
   const sessionId = user?.services?.sessionId;

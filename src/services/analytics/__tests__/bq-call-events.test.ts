@@ -85,6 +85,33 @@ describe('call_events from the call-quality monitor', () => {
     expect(onExperimentFlags({})).not.toContain('CALLER_TURN_NOTE');
   });
 
+  describe('more experiment flags on than the flags column holds (#4402)', () => {
+    const names = Array.from({ length: 210 }, (_, i) => `F${String(i).padStart(3, '0')}`);
+    const endWith = async (id: string, flags: string[], cap: 'on' | 'off') => {
+      vi.stubEnv('BQ_EVENTS', 'on');
+      vi.stubEnv('BQ_FLAGS_COLUMN_CAP', cap);
+      startCall(id, 'uid-cap', 'ferni');
+      endCall(id, 'natural', { flags });
+      await flushBqEvents();
+    };
+
+    it('the whole row is refused without BQ_FLAGS_COLUMN_CAP', async () => {
+      await endWith('RM_CAP0', [...names].reverse(), 'off');
+      expect(rows).toHaveLength(0);
+    });
+
+    it('keeps the row, with 200 flag names, when BQ_FLAGS_COLUMN_CAP is on', async () => {
+      await endWith('RM_CAP1', [...names].reverse(), 'on');
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.flags).toHaveLength(200);
+    });
+
+    it('a short list is kept, sorted', async () => {
+      await endWith('RM_CAP2', ['WRAP_UP', 'BQ_EVENTS'], 'on');
+      expect(rows[0]?.flags).toEqual(['BQ_EVENTS', 'WRAP_UP']);
+    });
+  });
+
   it('a persona id that is not a known persona is written as other (it comes from /token)', async () => {
     vi.stubEnv('BQ_EVENTS', 'on');
     startCall('RM_3', 'uid-42', 'pat@example.com');

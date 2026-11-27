@@ -213,7 +213,7 @@ export const ENV_COPIED = {
       'const readEnv = { ...env, CRISIS_CLASSIFIER_TIMEOUT_MS: String(waitMs) };',
     ],
     'src/services/safety/crisis-classifier.ts': [
-      "? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })",
+      '? crisisClassifierPrompt({ ...env, ...EASING_RULES_OFF })',
     ],
   } as Readonly<Record<string, readonly string[]>>,
   /** A copy kept under a name: every line of the file that says one of the names. */
@@ -228,18 +228,24 @@ export const ENV_COPIED = {
     },
   } as Readonly<Record<string, { names: readonly string[]; lines: readonly string[] }>>,
   /** Every name crisisClassifierPrompt reads off the copy. */
-  readOffTheCopy: ['CRISIS_AGREEMENT_GATE', 'CRISIS_CLASSIFIER_EVERYDAY_RULES'],
+  readOffTheCopy: [
+    'CRISIS_AGREEMENT_GATE',
+    'CRISIS_CLASSIFIER_EVERYDAY_RULES',
+    'CRISIS_CLASSIFIER_HEAVY_FEELINGS',
+  ],
   /** Every flag startCrisisClassifier reads off the scripted read's copy. */
   readOffTheScriptedCopy: [
     'CRISIS_AGREEMENT_GATE',
     'CRISIS_CLASSIFIER_BLOCKED_SIGNAL',
     'CRISIS_CLASSIFIER_EVERYDAY_RULES',
+    'CRISIS_CLASSIFIER_HEAVY_FEELINGS',
     'CRISIS_CLASSIFIER_RUN_PER_CALL',
     'CRISIS_CLASSIFIER_SECOND_READ',
     'CRISIS_IMMINENT_NEEDS_AGREEMENT',
   ] as readonly string[],
   byFlagAlone: [
     'CRISIS_CLASSIFIER_EVERYDAY_RULES',
+    'CRISIS_CLASSIFIER_HEAVY_FEELINGS',
     'CRISIS_SCRIPT_IMMINENT_READ',
   ] as readonly string[],
   atDefaults: 0,

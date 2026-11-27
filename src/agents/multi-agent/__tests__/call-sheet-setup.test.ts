@@ -70,6 +70,8 @@ const { addSafetyNote } = await import('../../processors/turn-processor/safety-n
 const WHO = "## Who You're Talking To";
 const SHEET = '## Your Notes On This Caller';
 const OVERRIDE = '[CRITICAL SAFETY OVERRIDE]\nDo NOT deviate from this response.';
+/** The instructions carry the caller's time to the minute; rows comparing two builds pin it. */
+const PINNED_NOW = new Date('2026-10-14T18:30:00Z');
 let seq = 0;
 
 async function setup(state: ReturnType<typeof fakeState>): Promise<{ out: string; ms: number }> {
@@ -98,10 +100,15 @@ beforeEach(() => {
   warned.calls.length = 0;
   registerRecentTextsOwnerCheck(() => true); // a signed-in owner
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 describe('agent setup: the call sheet (PERSON_MODEL_READ)', () => {
   it('off: the instructions main builds, and nothing is read', async () => {
+    // Only Date: the timing rows below need a moving clock, so only this row pins it (#4207).
+    vi.useFakeTimers({ toFake: ['Date'], now: PINNED_NOW });
     vi.stubEnv('PERSON_MODEL_READ', 'off');
     const state = fakeState(storedSheet(new Date()));
     const { out } = await setup(state);

@@ -39,6 +39,7 @@ import {
   forgottenCheckNow,
   forgottenPassageWithin,
   forgottenWithin,
+  profileForPrompt,
   snapshotTopics,
 } from '../forget-every-reader.js';
 import { forgetTopic, type ForgetStore } from '../forget.js';
@@ -242,5 +243,46 @@ describe('forgottenPassageWithin: the passage match, fresh reads only', () => {
     vi.stubEnv('FORGET_EVERY_READER', 'on');
     expect(await forgottenPassageWithin(undefined)).toBeNull();
     expect(read.fn).not.toHaveBeenCalled();
+  });
+});
+
+describe('FORGET_FRESH_READ: the call-start profile reads the store (#2755)', () => {
+  type Events = { lifeEvents: Array<{ id: string; title: string }> };
+  const profile = (): Events => ({
+    lifeEvents: [
+      { id: 'l1', title: 'Biscuit is sick' },
+      { id: 'l2', title: 'moving to Denver' },
+    ],
+  });
+  const titles = (p: Events | null) => (p?.lifeEvents ?? []).map((e) => e.title);
+  const atCallStart = async () =>
+    titles(await profileForPrompt({ userId: U, userProfile: profile() }));
+
+  it('on: a forget another process stored is scrubbed, inside the 15 s cache', async () => {
+    vi.stubEnv('FORGET_FRESH_READ', 'on');
+    read.fn.mockResolvedValue([]);
+    expect(await readTopics(U)).toEqual([]); // another reader warmed the shared cache
+    read.fn.mockResolvedValue(['Biscuit']); // written by another pod or the web app
+    expect(await atCallStart()).toEqual(['moving to Denver']);
+  });
+
+  it('off: the shared cached list, as before', async () => {
+    read.fn.mockResolvedValue([]);
+    await readTopics(U);
+    read.fn.mockResolvedValue(['Biscuit']);
+    expect(await atCallStart()).toEqual(['Biscuit is sick', 'moving to Denver']);
+    expect(read.fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('on: a late store read falls back to the last topics read, never to none', async () => {
+    vi.stubEnv('FORGET_FRESH_READ', 'on');
+    vi.useFakeTimers({ now: 6_000_000 });
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    await readTopics(U);
+    read.fn.mockImplementationOnce(() => new Promise<never>(() => {})); // never answers
+    const seen = atCallStart();
+    await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
+    expect(await seen).toEqual(['moving to Denver']);
+    expect(forgetReadStats()).toMatchObject({ timeouts: 1, fallbacks: 1, failClosed: 0 });
   });
 });

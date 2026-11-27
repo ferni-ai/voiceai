@@ -60,6 +60,8 @@ describe('src/tests/deploy and src/tests/ci run on pull requests that change wha
       '.github/workflows/design-system.yml',
       '.github/actions/pr-changes/action.yml',
       'scripts/ci/deploy-freeze.sh',
+      'scripts/blog/record-verdict.sh',
+      'scripts/blog/exit-codes.ts',
       'deploy/ui-server/env.yaml',
       'docker/Dockerfile.ui',
       'Dockerfile.worker',
@@ -81,6 +83,7 @@ describe('src/tests/deploy and src/tests/ci run on pull requests that change wha
       'apps/figma-plugin/src/code.ts',
       'docker/README.md',
       'configs/app.json',
+      'scripts/blog/judge-post.ts',
       'monitoring/ops-alert-policy.json',
     ];
     expect(selected(other)).toEqual([]);

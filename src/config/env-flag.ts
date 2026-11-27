@@ -39,6 +39,15 @@ export function flagOn(name: FlagName, env: Env = process.env): boolean {
 }
 
 /**
+ * True when the flag is set to something that is neither on nor off, so flagOn read it as the
+ * manifest default. A caller warns on it: a value like `disabled` otherwise reads as the default
+ * without a word. It never returns the value, so a warning can't log it.
+ */
+export function flagValueUnrecognised(name: FlagName, env: Env = process.env): boolean {
+  return Boolean(env[name]?.trim()) && parse(env[name]) === undefined;
+}
+
+/**
  * A flag with a shadow mode: `shadow` runs the check and logs it without acting;
  * anything else reads as flagOn does, so `on` and `off` work as usual.
  */

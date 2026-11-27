@@ -31,13 +31,13 @@ import {
   callerCheckApplies,
   forThemFirst,
   withCallerCheck,
-  withCloseDown,
 } from './crisis-caller-check.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { EMERGENCY_FOR_THEM, getCrisisResponse, IN_DANGER_NOW } from './crisis-guard-replies.js';
 import { meansFormsFor, meansInHandRead, type MeansForms } from './crisis-means-in-hand.js';
 import { addNotSafeAnswer, meansNominatedLines, meansReadTags } from './crisis-means-nominate.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import { OWN_RAISES, withCloseDownAndRaises } from './crisis-own-raises.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
   MODERATE_DISTRESS_VOICE_EMOTIONS,
@@ -316,7 +316,7 @@ export function detectCrisis(
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
   const forms = meansFormsFor(options?.meansInHand, options?.env);
-  const score = withCloseDown(text, scoreText(text, forms));
+  const score = withCloseDownAndRaises(text, scoreText(text, forms), OWN_RAISES, options?.env);
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
