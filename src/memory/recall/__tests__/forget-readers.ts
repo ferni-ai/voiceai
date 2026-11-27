@@ -297,14 +297,14 @@ export const FORGET_READERS: readonly ForgetReader[] = [
   {
     id: 'greeting.singleAgent',
     file: 'src/agents/voice-agent/greeting-handler.ts',
-    site: 'greetingProfile(services)',
+    site: 'greetingRemembered(services)',
     reaches: 'greeting',
     check: 'flag',
     probe: PROBE_PROMPT,
   },
   {
     id: 'greeting.intentions',
-    file: 'src/agents/voice-agent/greeting-handler.ts',
+    file: 'src/agents/voice-agent/greeting-remembered.ts',
     site: 'greetingIntentions(services.userId)',
     reaches: 'greeting',
     check: 'flag',

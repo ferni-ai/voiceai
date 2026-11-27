@@ -169,6 +169,21 @@ export async function forgottenPassageWithin(
 }
 
 /**
+ * The passage check for a call-start reader of the caller's own words (the greeting's intentions
+ * and open threads). FORGET_FRESH_READ on: the store itself, and everything left out when that
+ * read is late or failed (#2755). Off: forgottenPassageCheck, exactly as before.
+ */
+export async function callStartPassageCheck(
+  userId: string | null | undefined,
+  reader: string,
+  env: Env = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetFreshReadEnabled(env)) return forgottenPassageCheck(userId, reader, env);
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null; // no check: as off
+  return (await forgottenPassageWithin(userId, reader, env, true)) ?? (() => true);
+}
+
+/**
  * The check for a reader that fails closed without the flag (recentContext,
  * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
  * is late or failed. No last-known fallback until #2623 bounds its age. `uncached` skips the

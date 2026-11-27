@@ -17,7 +17,7 @@ import {
   forgetSmallWinsUser,
   importSmallWinsProfile,
 } from '../../../services/trust-systems/small-wins.js';
-import { greetingIntentions, greetingProfile } from '../greeting-remembered.js';
+import { greetingRemembered } from '../greeting-remembered.js';
 
 const U = 'member-greeting-remembered';
 const DENVER = 'apply for the Denver job';
@@ -43,7 +43,10 @@ function intending(...said: string[]): void {
   });
 }
 
-const intentions = async () => (await greetingIntentions(U)).map((i) => i.intention);
+const intentions = async () =>
+  (
+    await greetingRemembered({ userId: U, userProfile: null } as unknown as SessionServices)
+  ).pendingIntentions.map((i) => i.intention);
 
 describe('greeting reads, FORGET_FRESH_READ (#2755)', () => {
   beforeEach(() => {
@@ -100,7 +103,26 @@ describe('greeting reads, FORGET_FRESH_READ (#2755)', () => {
       ],
     };
     const services = { userId: U, userProfile } as unknown as SessionServices;
-    const seen = (await greetingProfile(services)) as unknown as typeof userProfile | null;
+    const seen = (await greetingRemembered(services)).profile as unknown as
+      typeof userProfile | null;
     expect(seen?.lifeEvents.map((e) => e.title)).toEqual(['moving to Denver']);
+  });
+
+  it('on: the profile and intentions reads go out together, neither waits on the other', async () => {
+    vi.stubEnv('FORGET_FRESH_READ', 'on');
+    const release: Array<(topics: string[]) => void> = [];
+    vi.spyOn(firestoreForgetStore, 'topics').mockImplementation(
+      async () =>
+        new Promise<string[]>((resolve) => {
+          release.push(resolve);
+        })
+    );
+    const userProfile = { lifeEvents: [{ id: 'l1', title: 'Biscuit is sick' }] };
+    const services = { userId: U, userProfile } as unknown as SessionServices;
+    const pending = greetingRemembered(services);
+    // Well inside the 300 ms bound: one after the other, the second read would not have started.
+    await vi.waitFor(() => expect(release).toHaveLength(2), { timeout: 150 });
+    for (const r of release) r(['Denver']);
+    expect((await pending).pendingIntentions.map((i) => i.intention)).toEqual([GARDEN]);
   });
 });

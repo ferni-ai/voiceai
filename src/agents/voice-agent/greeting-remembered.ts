@@ -14,16 +14,12 @@
  */
 
 import {
-  forgetEveryReaderEnabled,
+  callStartPassageCheck,
   forgetFreshReadEnabled,
-  forgottenPassageCheck,
-  forgottenPassageWithin,
   profileForCaller,
   remembered,
-  type ForgottenCheck,
 } from '../../memory/index.js';
 import type { SessionServices } from '../../services/index.js';
-import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'greeting-remembered' });
@@ -35,25 +31,15 @@ export interface GreetingIntention {
 }
 
 /** The caller's profile as the greeting reads it; null without one. */
-export async function greetingProfile(
-  services: SessionServices
-): Promise<SessionServices['userProfile']> {
+async function greetingProfile(services: SessionServices): Promise<SessionServices['userProfile']> {
   const profile = services.userProfile;
   return (
     profile && profileForCaller(services.userId, profile, 'greeting', forgetFreshReadEnabled())
   );
 }
 
-/** FORGET_FRESH_READ's check for the intentions: the store itself, and all left out when unread. */
-async function freshIntentionsCheck(userId: string): Promise<ForgottenCheck | null> {
-  if (!forgetEveryReaderEnabled() || !isMemberIdentity(userId)) return null; // no check: as off
-  return (await forgottenPassageWithin(userId, 'greeting', process.env, true)) ?? (() => true);
-}
-
 /** The intentions the caller stated and hasn't followed up on, less any about a forgotten topic. */
-export async function greetingIntentions(
-  userId: string | null | undefined
-): Promise<GreetingIntention[]> {
+async function greetingIntentions(userId: string | null | undefined): Promise<GreetingIntention[]> {
   if (!userId) return [];
   try {
     const { getPendingIntentions } = await import('../../services/trust-systems/small-wins.js');
@@ -63,12 +49,22 @@ export async function greetingIntentions(
       targetTime: i.targetTime,
     }));
     if (pending.length === 0) return pending;
-    const said = forgetFreshReadEnabled()
-      ? await freshIntentionsCheck(userId)
-      : await forgottenPassageCheck(userId, 'greeting');
+    const said = await callStartPassageCheck(userId, 'greeting');
     return remembered(pending, said, (i) => i.intention);
   } catch (error) {
     log.debug({ error: String(error) }, 'Pending intentions not read: greeting goes on without');
     return [];
   }
+}
+
+/** Both, read together: with FORGET_FRESH_READ each is a store read, so neither waits on the other. */
+export async function greetingRemembered(services: SessionServices): Promise<{
+  profile: SessionServices['userProfile'];
+  pendingIntentions: GreetingIntention[];
+}> {
+  const [profile, pendingIntentions] = await Promise.all([
+    greetingProfile(services),
+    greetingIntentions(services.userId),
+  ]);
+  return { profile, pendingIntentions };
 }

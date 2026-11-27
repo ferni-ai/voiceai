@@ -37,7 +37,7 @@ import { getDJController } from '../../audio/dj-controller.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
 import { getProactiveContext, type ProactiveContext } from './greeting-proactive-context.js';
-import { greetingIntentions, greetingProfile } from './greeting-remembered.js';
+import { greetingRemembered } from './greeting-remembered.js';
 // NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
 import { logPrimingApplied } from '../shared/function-call-telemetry.js';
 // Speech coordination for centralized speech management
@@ -692,8 +692,7 @@ async function greetingFromProfile(
   bundleRuntime?: BundleRuntimeEngine
 ): Promise<string> {
   // FORGET_EVERY_READER: the profile and intentions, less what the caller asked to forget
-  const profile = await greetingProfile(services);
-  const pendingIntentions = await greetingIntentions(services.userId);
+  const { profile, pendingIntentions } = await greetingRemembered(services);
   return generateGreeting(sessionPersona, {
     isReturningUser,
     userName: userData.name,
