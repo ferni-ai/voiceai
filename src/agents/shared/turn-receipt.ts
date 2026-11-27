@@ -83,7 +83,10 @@ interface OpenTurn {
   sections: PromptSection[] | null;
   lane: { lane: 'fast' | 'main'; reason: string } | null;
   laneShadow: LaneShadow | null; // FAST_LANE_SHADOW, lane off
-  director: Omit<ReminderNote, 'reminder' | 'directorNotes'> & { kept: number };
+  director: Omit<ReminderNote, 'reminder' | 'directorNotes' | 'fired'> & {
+    kept: number;
+    fired: string[];
+  };
   toolsOffered: number | null;
   toolSchemaChars?: number;
   called: string[];
@@ -169,7 +172,7 @@ export class TurnReceiptRecorder {
       sections: null,
       lane: null,
       laneShadow: null,
-      director: { offered: 0, kept: 0, droppedIdx: [] },
+      director: { offered: 0, kept: 0, droppedIdx: [], fired: [] },
       toolsOffered: null,
       called: [],
       toolErrors: 0,
@@ -256,8 +259,9 @@ export class TurnReceiptRecorder {
           offered: note.offered,
           kept: note.offered - note.droppedIdx.length,
           droppedIdx: note.droppedIdx,
+          fired: note.fired ?? [],
         }
-      : { offered: 0, kept: 0, droppedIdx: [] };
+      : { offered: 0, kept: 0, droppedIdx: [], fired: [] };
     // Where FastLaneLLM sends it, or with the lane off would (a crisis mark, then the words).
     const call = { sessionId: this.opts.sessionId, userId: this.opts.userId };
     const { lane, laneShadow } = laneFields(request, call, this.opts.env);

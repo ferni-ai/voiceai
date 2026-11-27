@@ -39,7 +39,10 @@ describe('withTurnReminder → TURN_RECEIPT', () => {
 
     expect(receipts).toHaveLength(1);
     const [r] = receipts;
-    expect(r.director).toEqual({ offered: 1, kept: 1, droppedIdx: [] });
+    expect(r.director).toMatchObject({ offered: 1, kept: 1, droppedIdx: [] });
+    // The builders that gave this turn a note, by name: the director's note is one of them.
+    expect(r.director.fired).toContain('directorNotes');
+    for (const name of r.director.fired) expect(name).toMatch(/^[A-Za-z]+$/);
     const by = Object.fromEntries(r.prompt.sections.map((s) => [s.name, s]));
     expect(by.director_notes.chars).toBe('[Director: bring up the dog Biscuit]'.length);
     expect(by.turn_reminder.chars).toBeGreaterThan(0);

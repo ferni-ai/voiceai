@@ -40,6 +40,8 @@ export interface ReminderNote {
   directorNotes: string;
   offered: number;
   droppedIdx: number[];
+  /** The note builders that returned text this turn, by name only (turn-note-guard.ts firedNotes). */
+  fired?: string[];
 }
 
 /** A chat item as far as this reads it (llm.ChatItem). */
