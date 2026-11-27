@@ -100,6 +100,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
       (ev) => watchToolRuns((ev as { speechHandle?: never })?.speechHandle, rec.onToolRun),
     ],
     ['eot_prediction', (ev) => rec.onEot(eotCallFrom(ev, session))],
+    ['user_state_changed', (ev) => rec.onUserState((ev as { newState?: string })?.newState)],
     [
       'agent_state_changed',
       (ev) => {
