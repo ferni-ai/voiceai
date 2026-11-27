@@ -47,6 +47,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { relationOf } from '../../memory/domain/index.js';
 import type { ActionKind } from './action-claims.js';
+import { outputText } from './tool-output-text.js';
 
 /** What Ferni says in place of a story about a call no result has come back from. */
 export const UNHEARD_LINE = "I don't actually know how that call went yet, I haven't heard back.";
@@ -119,7 +120,7 @@ const OBJECT =
   "(?:my |the |your )?([a-z][\\w.'-]*(?: (?!(?:and|or|as|n|plus|then|too|also)\\b)[a-z][\\w.'-]*)?)";
 /** Who the caller's latest turn asks about: "did you call my dad?", "how did it go with my best friend". */
 const ASKED_WHO = new RegExp(
-  `\\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?hold|ahold) of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\\s+${OBJECT}`,
+  `\\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?)?hold of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\\s+${OBJECT}`,
   'gi'
 );
 /** "mother" is "mom", as call records name people (call-status.ts personWord). */
@@ -230,14 +231,14 @@ const listedFor = (output: string, latestCaller: string): boolean => {
 const toldByStatus = (item: Item & { output?: unknown }, latestCaller: string): boolean => {
   if (item.type !== 'function_call_output') return false;
   if (item.name !== 'callStatus' && item.name !== 'callOnBehalf') return false;
-  const output = String(item.output ?? '');
+  const output = outputText(item.output);
   return STATUS_TOLD.test(output) || listedFor(output, latestCaller);
 };
 /** The caller asks Ferni about a call he was asked to make; the group names the person, if any. */
 const ASKED_ABOUT = [
   /\bhow(?:'d| did| was) (?:it|things|that|the call|your call) go(?:ing)? with (?:my |the |your )?([a-z]+)/i,
   /\bhow(?:'d| did) (?:the |that |your )?call (?:with|to) (?:my |the |your )?([a-z]+)/i,
-  /\bdid you (?:ever |get to |manage to )?(?:call|ring|phone|reach|get (?:a ?hold|ahold) of|get through to|talk to|speak (?:to|with)) (?:my |the )?([a-z]+)/i,
+  /\bdid you (?:ever |get to |manage to )?(?:call|ring|phone|reach|get (?:a ?)?hold of|get through to|talk to|speak (?:to|with)) (?:my |the )?([a-z]+)/i,
   /\bwhat did (?:my |the )?([a-z]+) (?:say|tell you)\b/i,
   /\bdid (?:my |the )?([a-z]+) (?:pick up|answer)\b/i,
 ];
