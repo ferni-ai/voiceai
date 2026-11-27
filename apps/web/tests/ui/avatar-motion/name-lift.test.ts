@@ -12,6 +12,13 @@ const fakeSoul = vi.hoisted(() => ({
   getState: vi.fn(() => ({ comfortPulseActive: false, protectiveMode: false })),
 }));
 vi.mock('../../../src/ui/avatar-soul.ui.js', () => ({ avatarSoul: fakeSoul }));
+const recordNameLift = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/services/soul-stats.service.js', () => ({
+  soulStatsService: new Proxy(
+    {},
+    { get: (_t, key) => (key === 'recordNameLift' ? recordNameLift : vi.fn()) }
+  ),
+}));
 
 import {
   NAME_LIFT_ATTR,
@@ -63,6 +70,7 @@ beforeEach(() => {
   reduced = false;
   fakeSoul.triggerWarmthBloom.mockClear();
   fakeSoul.triggerMemorySpark.mockClear();
+  recordNameLift.mockClear();
   fakeSoul.getState.mockImplementation(() => ({
     comfortPulseActive: false,
     protectiveMode: false,
@@ -145,6 +153,35 @@ describe('name lift never covers anything', () => {
     expect(fakeSoul.triggerMemorySpark).not.toHaveBeenCalled();
     expect(fakeSoul.triggerWarmthBloom).not.toHaveBeenCalled();
     expect(express).not.toHaveBeenCalled();
+    expect(recordNameLift).not.toHaveBeenCalled(); // a refused lift is not counted
+  });
+});
+
+describe('name lift counts (#4069)', () => {
+  it.each<NameLiftEffect>(['brighten', 'attentive', 'comfort'])(
+    '%s: counted once per lift shown, under its own name',
+    async (effect) => {
+      expect(await runNameLift(effect, deps())).toBe(true);
+      expect(recordNameLift.mock.calls).toEqual([[effect]]);
+    }
+  );
+
+  it('a second lift while the first still shows is refused and not counted', async () => {
+    await runNameLift('brighten', deps());
+    expect(await runNameLift('comfort', deps())).toBe(false);
+    expect(recordNameLift.mock.calls).toEqual([['brighten']]);
+  });
+
+  it('reduced motion still shows the warmth, so the lift is counted', async () => {
+    reduced = true;
+    expect(await runNameLift('comfort', deps())).toBe(true);
+    expect(recordNameLift.mock.calls).toEqual([['comfort']]);
+  });
+
+  it('an unknown effect is not counted', async () => {
+    playNameLift({ effect: 'sparkle' }, deps());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(recordNameLift).not.toHaveBeenCalled();
   });
 });
 

@@ -42,12 +42,14 @@ import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js
 import { keepLlm, replyRequest, tokensField, type RequestView } from './turn-receipt-llm.js';
 import { receiptBuild } from './turn-receipt-flags.js';
 import { laneFields, type LaneShadow } from './turn-receipt-lane.js';
+import type { TurnHandling, TurnReceiptOptions } from './turn-receipt-options.js';
 import * as crisis from './turn-receipt-crisis.js';
 import { PendingPreemptive, type PreemptiveCause } from './preemptive-cause.js';
 import { latencyArmFor } from '../../services/platform/latency-arm.js';
 import { sentenceCount, userKindOf, type UserKind } from './turn-receipt-caller.js';
 import * as timed from './turn-receipt-timing.js';
 import * as steps from './turn-receipt-tool-timing.js';
+import { CallVoice, type SpokenItem } from './turn-receipt-overlap.js';
 import type { GatewayHolds } from '../../speech/tts-gateway/first-audio-observer.js';
 import type { TurnTimingKind } from '../../speech/output-control/turn-timing.js';
 import {
@@ -110,26 +112,7 @@ interface OpenTurn {
   crisis: crisis.TurnCrisisNotes; // crisis decisions and lines named (turn-receipt-crisis.ts)
 }
 
-/** How turns end and how barge-in works on the session, read at the commit. */
-export interface TurnHandling {
-  turnDetection: string;
-  interruptionMode: string;
-}
-
-export interface TurnReceiptOptions {
-  sessionId: string;
-  userId: string | undefined;
-  /** The persona on the call now (follows handoffs). */
-  persona: () => string | null | undefined;
-  /** A phone (SIP) caller; undefined when the call path is not known. */
-  phoneCaller?: boolean;
-  /** The session's turn handling now (attachTurnReceipts reads LiveKit's activity). */
-  handling?: () => TurnHandling;
-  emit?: (receipt: TurnReceipt) => void;
-  now?: () => number;
-  env?: Record<string, string | undefined>;
-}
-
+export type { TurnHandling, TurnReceiptOptions } from './turn-receipt-options.js';
 export type TurnReceipt = ReturnType<TurnReceiptRecorder['build']>;
 export type EndedBy = 'listening' | 'superseded' | 'session_end';
 
@@ -155,10 +138,12 @@ export class TurnReceiptRecorder {
   private heldCut: { turn: OpenTurn; n: number } | null = null;
   /** Digest of the last reply text added, to spot a cut reply committed with it again. */
   private lastReplyDigest: string | null = null;
+  private readonly voice: CallVoice; // who was talking when
 
   constructor(private readonly opts: TurnReceiptOptions) {
     this.userKind = userKindOf(opts.userId, opts.env);
     this.now = opts.now ?? Date.now;
+    this.voice = new CallVoice(this.now);
   }
 
   private open(): OpenTurn {
@@ -197,6 +182,7 @@ export class TurnReceiptRecorder {
     if (!turn.user) turn.personaAtStart = this.opts.persona() ?? null;
     turn.user = true;
     turn.handling ??= this.opts.handling?.() ?? null;
+    this.voice.commit(turn);
     this.pendingEot.claim(turn);
     this.pendingHold.claim(turn);
     this.pendingPreemptive.claim(turn);
@@ -204,6 +190,7 @@ export class TurnReceiptRecorder {
 
   /** LiveKit's end-of-turn model judged the caller's pause (turn-receipt-eot.ts). */
   readonly onEot = (call: EotCall | null): void => this.pendingEot.note(call);
+  readonly onUserState = (state?: string): void => this.voice.caller(state, this.turn);
 
   /** LiveKit decided whether to keep its preemptive reply (PREEMPTIVE_DECISION); the commit follows. */
   readonly onPreemptive = (used: boolean, cause?: PreemptiveCause): void =>
@@ -284,7 +271,7 @@ export class TurnReceiptRecorder {
     if (pushMs !== undefined) this.turn.ttsPushMs ??= pushMs;
   }
 
-  onItem(item: { role?: string; interrupted?: boolean; textContent?: string } | undefined): void {
+  onItem(item: SpokenItem | undefined): void {
     if (item?.role === 'user') return this.onCommit();
     if (item?.role !== 'assistant') return;
     const text = item.textContent ?? '';
@@ -299,6 +286,7 @@ export class TurnReceiptRecorder {
     reply.interrupted ||= interrupted;
     reply.repeatsPrevious ||= repeats;
     crisis.addReplyText(owner.crisis, text);
+    this.voice.heard(owner, item);
     owner.replied = true;
     if (owner === this.heldCut?.turn) this.releaseCut();
   }
@@ -340,6 +328,7 @@ export class TurnReceiptRecorder {
       steps.noteSpeaking(turn.steps, this.now);
       turn.replied = true;
     }
+    this.voice.agent(state, this.turn);
     if (state !== 'listening' || !this.turn?.replied) return;
     // Prod 2026-10-14..17: 9 of 12 REPLY_NOT_RECORDED fired at this pause, and in each
     // the reply's item was added once it resumed or was cut.
@@ -357,6 +346,7 @@ export class TurnReceiptRecorder {
     this.releaseCut();
     if (this.turn?.user) this.finish('session_end');
     this.turn = null;
+    this.voice.end(this.opts.sessionId);
   }
 
   /**
@@ -478,6 +468,7 @@ export class TurnReceiptRecorder {
       },
       reply: {
         ...turn.reply,
+        heardMs: this.voice.heardMs(turn), // audio that played out
         ttsCancelled: turn.ttsCancelled,
         /** Ferni spoke and the caller's turn ended, but no reply reached the chat history. */
         unrecorded: this.unrecorded(turn, endedBy),
@@ -493,6 +484,7 @@ export class TurnReceiptRecorder {
       bargeInSource: turn.bargeInSource ?? (turn.reply.interrupted ? 'other' : null),
       crisis: crisis.crisisField(turn.crisis, turn.reply),
       ...eotReceiptField(turn.eot),
+      ...this.voice.fields(turn, turn.reply.interrupted || turn.bargeInSource !== null),
       ...timed.attributionFields(turn),
       ...receiptBuild(this.opts.env),
     });

@@ -70,6 +70,10 @@ vi.mock('firebase-admin/firestore', async (importOriginal) => {
 // The real helpers (setup.ts mocks them): they build the clients being counted.
 vi.mock('../../../utils/firestore-utils.js', (importOriginal) => importOriginal());
 vi.mock('../../../services/superhuman/firestore-utils.js', (importOriginal) => importOriginal());
+// No model here: the code under test asks one on the side and takes its fallback.
+vi.mock('../../../services/llm-utils.js', async () =>
+  (await import('../../../tests/helpers/no-model.js')).llmUtilsWithNoModel()
+);
 
 const savedEnv = { MEMORY_STORE_TYPE: process.env.MEMORY_STORE_TYPE };
 process.env.MEMORY_STORE_TYPE = 'firestore';

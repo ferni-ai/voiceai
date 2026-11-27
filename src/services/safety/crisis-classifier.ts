@@ -24,11 +24,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
-import {
-  CRISIS_EVERYDAY_RULES,
-  needsPlainRead,
-  resolveCrisisEverydayRules,
-} from './crisis-everyday.js';
+import { EASING_RULES_OFF, easingRules, needsPlainRead } from './crisis-easing-rules.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import {
@@ -45,6 +41,7 @@ import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { verdictOutcome, type PatternOutcome } from './crisis-verdict-outcome.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
+import { noteTurnRead } from './crisis-turn-read-arrival.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { callTurnOf } from '../../utils/call-turn.js';
 
@@ -140,10 +137,10 @@ export { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-ever
 export function crisisClassifierPrompt(
   env: Record<string, string | undefined> = process.env
 ): string {
-  const everyday = resolveCrisisEverydayRules(env);
+  const extra = easingRules(env);
   const rules = [
-    everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
-    everyday ? CRISIS_EVERYDAY_RULES : '',
+    extra || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
+    extra,
   ].join('');
   return rules
     ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
@@ -342,6 +339,7 @@ function rememberRead(
   on = false
 ): void {
   rememberLoose(scope, normalizeInput(input).latest, now, verdict, on);
+  noteTurnRead(scope); // a gate waiting on this call's next read looks again (#4004)
   for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
   const key = turnKey(scope, input);
   const reads = turnReads.get(key);
@@ -453,7 +451,7 @@ export function startCrisisClassifier(
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env)
-    ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
+    ? crisisClassifierPrompt({ ...env, ...EASING_RULES_OFF })
     : null;
   const base = readTurn(read, [prompt, plain], { ...options, ...normalized, env });
   const reads = second.apply(base, read, prompt);

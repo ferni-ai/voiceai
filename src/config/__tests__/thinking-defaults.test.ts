@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { applyThinkingDefaults, minimalThinkingFor, withDefaultThinking } from '../thinking-defaults.js';
+import {
+  applyThinkingDefaults,
+  minimalThinkingFor,
+  withDefaultThinking,
+} from '../thinking-defaults.js';
 
 describe('minimalThinkingFor', () => {
   it('turns thinking off for 2.5 Flash and Flash-Lite', () => {
@@ -13,6 +17,16 @@ describe('minimalThinkingFor', () => {
   it('uses MINIMAL for Gemini 3 and LOW for 3.8, which rejects MINIMAL', () => {
     expect(minimalThinkingFor('gemini-3.5-flash')).toEqual({ thinkingLevel: 'MINIMAL' });
     expect(minimalThinkingFor('gemini-3.8-flash')).toEqual({ thinkingLevel: 'LOW' });
+  });
+
+  // #4230: Neon and Hydrogen answer MINIMAL with a 400; with no thinking config they
+  // think by default and spend the caller's small output cap on thoughts.
+  it('uses LOW for gemini-4, which rejects MINIMAL', () => {
+    expect(minimalThinkingFor('gemini-4-neon')).toEqual({ thinkingLevel: 'LOW' });
+    expect(minimalThinkingFor('publishers/google/models/gemini-4-hydrogen')).toEqual({
+      thinkingLevel: 'LOW',
+    });
+    expect(minimalThinkingFor('gemini-3.5-flash-lite')).toEqual({ thinkingLevel: 'MINIMAL' });
   });
 
   it('leaves models that cannot turn thinking off, or never think, alone', () => {
@@ -50,7 +64,10 @@ describe('applyThinkingDefaults', () => {
     await client.models.generateContentStream({ model: 'gemini-3.5-flash' });
 
     expect(seen).toEqual([
-      { model: 'gemini-2.5-flash', config: { temperature: 1, thinkingConfig: { thinkingBudget: 0 } } },
+      {
+        model: 'gemini-2.5-flash',
+        config: { temperature: 1, thinkingConfig: { thinkingBudget: 0 } },
+      },
       { model: 'gemini-3.5-flash', config: { thinkingConfig: { thinkingLevel: 'MINIMAL' } } },
     ]);
   });

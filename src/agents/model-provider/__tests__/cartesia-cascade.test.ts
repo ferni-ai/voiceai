@@ -17,6 +17,8 @@ import {
   buildCascadeLLMOptions,
   buildCascadeSTTOptions,
   buildCascadeKeyterms,
+  buildFastLane,
+  cascadeThinking,
   createProviderSTT,
   logStreamOpens,
 } from '../cartesia-cascade.js';
@@ -64,6 +66,35 @@ describe('cascade thinking level', () => {
   it('honours CASCADE_LLM_THINKING', () => {
     const opts = buildCascadeLLMOptions({ CASCADE_LLM_THINKING: 'medium' });
     expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
+  });
+
+  // #4230: Neon and Hydrogen answer MINIMAL with a 400 and the stream ends empty.
+  it('uses LOW for gemini-4 models, which reject MINIMAL', () => {
+    for (const model of ['gemini-4-neon', 'gemini-4-hydrogen', 'gemini-4.1-argon-preview']) {
+      expect(buildCascadeLLMOptions({ CASCADE_LLM_MODEL: model }).thinkingConfig).toEqual({
+        thinkingLevel: 'LOW',
+      });
+      expect(cascadeThinking(model, {})).toEqual({ thinkingLevel: 'LOW' });
+    }
+  });
+
+  it('keeps MINIMAL for every model prod sends today', () => {
+    const primary = buildCascadeLLMOptions({});
+    const hedge = buildCascadeHedge({});
+    const fast = buildFastLane({ CASCADE_FAST_LANE: 'on' }, primary);
+    expect(primary.model).toBe('gemini-3.5-flash');
+    expect(hedge?.backup.model).toBe('gemini-3.5-flash-lite');
+    expect(fast?.options.model).toBe('gemini-3.5-flash-lite');
+    for (const thinking of [primary, hedge?.backup, fast?.options].map((o) => o?.thinkingConfig))
+      expect(thinking).toEqual({ thinkingLevel: 'MINIMAL' });
+    for (const model of ['gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-40-flash'])
+      expect(cascadeThinking(model, {})).toEqual({ thinkingLevel: 'MINIMAL' });
+  });
+
+  it('CASCADE_LLM_THINKING still wins over the gemini-4 floor', () => {
+    expect(cascadeThinking('gemini-4-neon', { CASCADE_LLM_THINKING: 'high' })).toEqual({
+      thinkingLevel: 'HIGH',
+    });
   });
 
   it('turns thinking off with a zero budget on 2.x models, which ignore a level', () => {

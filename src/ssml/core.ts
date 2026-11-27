@@ -17,7 +17,7 @@ import {
 import { addBreathGroupPauses, injectNaturalFillers } from '../speech/advanced-humanization.js';
 import type { SsmlTagOptions } from './types.js';
 import { applyConsonantSmoothing } from '../speech/consonant-smoothing.js';
-import { checkTTSText, trackTTSCheck } from '../speech/tts-monitoring.js';
+import { checkTTSText } from '../speech/tts-monitoring.js';
 import { FINANCIAL_END, FINANCIAL_START, STAGE_DIRECTION_KEYWORDS } from './constants.js';
 import { detectEmotion, detectPacing, detectVocalCues, detectVolume } from './detection.js';
 import { applyPronunciationsOptimized } from './pronunciation-processor.js';
@@ -501,10 +501,7 @@ export function sanitizeSsml(text: string): string {
   // ================================================
   // TTS MONITORING: Check for suspicious patterns that slipped through
   // ================================================
-  const monitorResult = checkTTSText(result);
-  if (monitorResult.hasIssues) {
-    trackTTSCheck(monitorResult);
-  }
+  checkTTSText(result);
 
   return result;
 }

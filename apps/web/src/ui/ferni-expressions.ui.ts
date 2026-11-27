@@ -63,59 +63,58 @@ const toSeconds = (ms: number) => ms / 1000;
 // TYPES
 // ============================================================================
 
-/**
- * Emotional expressions for Ferni's avatar.
- * Each creates distinct eye lid configurations.
- */
-export type EmotionalExpression = 
+/** Every emotional expression for Ferni's avatar, each a distinct eye lid configuration. */
+export const EMOTIONAL_EXPRESSIONS = [
   // Core expressions
-  | 'neutral'      // Default - no lid
-  | 'happy'        // Squinted, warm
-  | 'delighted'    // Happy + warmth sparkle
-  | 'surprised'    // Wide eyes
-  | 'curious'      // Tilted, one brow up
-  | 'skeptical'    // One brow raised
-  | 'worried'      // Angled brows
-  | 'sad'          // Droopy lids
-  | 'sleepy'       // Heavy lids
-  | 'thinking'     // Look away
-  | 'empathetic'   // Soft, understanding
-  | 'excited'      // Wide + sparkle (grounded, not over-the-top)
-  | 'contemplative' // Deep thought (brand-aligned)
-  | 'noticing'     // Picking up on something subtle
-  | 'holdingSpace' // Emotional containment
+  'neutral',      // Default - no lid
+  'happy',        // Squinted, warm
+  'delighted',    // Happy + warmth sparkle
+  'surprised',    // Wide eyes
+  'curious',      // Tilted, one brow up
+  'skeptical',    // One brow raised
+  'worried',      // Angled brows
+  'sad',          // Droopy lids
+  'sleepy',       // Heavy lids
+  'thinking',     // Look away
+  'empathetic',   // Soft, understanding
+  'excited',      // Wide + sparkle (grounded, not over-the-top)
+  'contemplative', // Deep thought (brand-aligned)
+  'noticing',     // Picking up on something subtle
+  'holdingSpace', // Emotional containment
   // Phase 1: Listening States
-  | 'attentive'    // Active, engaged listening
-  | 'absorbing'    // Taking in heavy content
-  | 'receiving'    // Open, accepting vulnerability
-  | 'curiousLean'  // Leaning in with interest
+  'attentive',    // Active, engaged listening
+  'absorbing',    // Taking in heavy content
+  'receiving',    // Open, accepting vulnerability
+  'curiousLean',  // Leaning in with interest
   // Phase 2: Warmth Gradient
-  | 'warm'         // Baseline positive regard
-  | 'pleased'      // Mild satisfaction
-  | 'proud'        // Pride in user
-  | 'celebrating'  // Full celebration
+  'warm',         // Baseline positive regard
+  'pleased',      // Mild satisfaction
+  'proud',        // Pride in user
+  'celebrating',  // Full celebration
   // Phase 3: Presence States
-  | 'present'      // Fully here, grounded
-  | 'holding'      // Containing emotion
-  | 'accompanying' // Walking alongside
-  | 'waiting'      // Patient anticipation
+  'present',      // Fully here, grounded
+  'holding',      // Containing emotion
+  'accompanying', // Walking alongside
+  'waiting',      // Patient anticipation
   // Phase 4: Coaching Emotions
-  | 'encouraging'  // Gentle support
-  | 'challenging'  // Loving push
-  | 'reflecting'   // Mirroring back
-  | 'recognizing'  // "I see you" moment
+  'encouraging',  // Gentle support
+  'challenging',  // Loving push
+  'reflecting',   // Mirroring back
+  'recognizing',  // "I see you" moment
   // Phase 5: Relational Moments
-  | 'remembering'  // Callback moment
-  | 'reconnecting' // "Welcome back" energy
-  | 'insider'      // Shared history moment
-  | 'growing'      // Noticing evolution
+  'remembering',  // Callback moment
+  'reconnecting', // "Welcome back" energy
+  'insider',      // Shared history moment
+  'growing',      // Noticing evolution
   // Phase 6: Transition States
-  | 'processing'   // Taking it in
-  | 'realizing'    // Connecting dots
-  | 'shifting'     // Changing gears
-  | 'settling'     // Coming to rest
+  'processing',   // Taking it in
+  'realizing',    // Connecting dots
+  'shifting',     // Changing gears
+  'settling',     // Coming to rest
   // Phase 7: Farewell States
-  | 'farewell';    // Warm goodbye - gentle smile with slight melancholy
+  'farewell',    // Warm goodbye - gentle smile with slight melancholy
+] as const;
+export type EmotionalExpression = (typeof EMOTIONAL_EXPRESSIONS)[number];
 
 /**
  * Character-level reactions - how Ferni responds to moments.

@@ -10,7 +10,7 @@
  * @module superhuman/commitment-calendar-integration
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog, repliesForLog } from '../../utils/safe-logger.js';
 import {
   getWeekOverview,
   findFreeTimeSlots,
@@ -264,7 +264,7 @@ export async function createCalendarBlocksForCommitment(
         eventIds.push(event.id);
         totalMinutes += duration;
         log.debug(
-          { userId, eventId: event.id, commitment: commitment.text },
+          { userId, eventId: event.id, commitment: replyForLog(commitment.text) }, // #4392
           'Created calendar block for commitment'
         );
       }
@@ -403,7 +403,7 @@ function emitCommitmentConflictEvent(userId: string, conflicts: CommitmentConfli
         {
           userId,
           count: highPriorityConflicts.length,
-          commitments: highPriorityConflicts.map((c) => c.commitmentText),
+          commitments: repliesForLog(highPriorityConflicts.map((c) => c.commitmentText)), // #4392
         },
         '⚠️ High-priority commitment conflicts detected'
       );

@@ -1396,12 +1396,10 @@ log.info('Life Context WebSocket server initialized on /ws/life-context');
 initUserEventsWebSocket(server);
 log.info('User Events WebSocket server initialized on /ws/user-events');
 
-// Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
 });
 
-// Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Background senders start only with API_BACKGROUND_SENDERS on (default); see api-listen.ts.

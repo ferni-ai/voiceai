@@ -102,7 +102,7 @@ export async function recordPersonMention(
 
   if (node) {
     await saveNode(userId, node);
-    log.debug({ userId, name, relationship: node.relationship }, '👤 Person mention recorded');
+    log.debug({ userId, relationship: node.relationship }, '👤 Person mention recorded');
   }
 
   return node ?? null;

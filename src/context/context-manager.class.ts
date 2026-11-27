@@ -12,7 +12,7 @@
  */
 
 import { generateRollingSummary, type ConversationTurn } from '../memory/summarizer.js';
-import { isValidPersonaId } from '../personas/index.js';
+import { isValidPersonaId } from '../personas/identity/index.js';
 import type { PersonaId, SessionId } from '../types/branded.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';

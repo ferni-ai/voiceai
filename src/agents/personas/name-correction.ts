@@ -22,6 +22,11 @@
  * tool argument), passed in by turn-request.ts. Anyone else is renamed for
  * this call only. Still possible: someone else talking on a verified owner's
  * session (on speaker) who says "I'm X" without naming whose phone it is.
+ * NAME_GUEST_NAMES_OWNER=on: one who does name the account holder ("this is Raj,
+ * a friend of Sam") puts a guest on the line (room-guests.ts). From then on the
+ * call never changes the account's name (ownerMayKeep here; rememberName through
+ * room-guests.ts), and a name given is for this call only, never asked "from now
+ * on?".
  *
  * @module agents/personas/name-correction
  */
@@ -31,6 +36,7 @@ import type { llm } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { guestNamesOwnerEnabled } from '../../utils/guest-names-owner.js';
 import {
   acceptsSpokenName,
   extractCallerName,
@@ -39,7 +45,7 @@ import {
   nameCaptureStrict,
 } from '../../utils/caller-name.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
-import { guestsPresent } from './room-guests.js';
+import { guestsPresent, hasGuests } from './room-guests.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import {
   callMeVocativeEnabled,
@@ -181,16 +187,21 @@ export function lastAgentLine(chatCtx: llm.ChatContext): string {
 const outboundOf = (deps: NameCorrectionDeps): ((sessionId: string) => boolean) =>
   deps.outbound ?? ((id: string) => outboundPartiesFor(id) !== undefined);
 
+/** NAME_GUEST_NAMES_OWNER=on and a guest is on this call (room-guests.ts). */
+const guestOnLine = (user: SessionUser): boolean =>
+  guestNamesOwnerEnabled() && hasGuests(user.services?.sessionId);
+
 /**
  * Whether the account may keep the name: only on an affirmative owner signal
  * for this session (a signed-in app session or a signed caller attestation,
- * from turn-request.ts), never on a call Ferni placed for someone, and never
- * without an account. Undefined or anything but true is no.
+ * from turn-request.ts), never on a call Ferni placed for someone, never
+ * without an account, and (NAME_GUEST_NAMES_OWNER=on) never with a guest on
+ * the line. Undefined or anything but true is no.
  */
 function ownerMayKeep(user: SessionUser, deps: NameCorrectionDeps): boolean {
   const { userId, services } = user;
   const sessionId = services?.sessionId;
-  if (!isMemberIdentity(userId) || !sessionId) return false;
+  if (!isMemberIdentity(userId) || !sessionId || guestOnLine(user)) return false;
   return deps.verifiedOwner?.(sessionId) === true && !outboundOf(deps)(sessionId);
 }
 
@@ -308,6 +319,7 @@ function confirmingNote(
     ? heardName(words, currentName(session, user), session, lastAgentLine(chatCtx))
     : null;
   const count = callerTurns(chatCtx.items);
+  if (guestOnLine(user)) return guestCallName(session, user, { words, count }, heard);
   const yes = agreedNames(session, user, { words, heard, count });
   const current = currentName(session, user);
   if (heard && !sameName(heard, current) && pendingOf(session, 'rename')?.name !== heard)
@@ -319,6 +331,29 @@ function confirmingNote(
   ]
     .filter((line) => line !== '')
     .join(' ');
+}
+
+/**
+ * NAME_GUEST_NAMES_OWNER=on, a guest on the line: the name they give, or agree
+ * to when asked, is theirs for this call (Ferni calls them by it). Never asked
+ * "from now on?", never saved.
+ */
+function guestCallName(
+  session: object,
+  user: SessionUser,
+  turn: { words: string; count: number },
+  heard: string | null
+): string {
+  const done = settle(session, 'rename', turn, heard);
+  const agreed = done?.outcome === 'yes' || done?.outcome === 'name' ? done.pending.name : null;
+  const name = heard ?? agreed;
+  const known = corrected.get(session);
+  if (name && !sameName(name, known?.name ?? user.userName)) {
+    corrected.set(session, { name, was: known?.was ?? user.userName });
+    user.userName = name;
+  }
+  const now = corrected.get(session);
+  return now ? nameNote(now.name, now.was) : '';
 }
 
 /**
