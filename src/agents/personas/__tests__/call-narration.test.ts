@@ -9,7 +9,7 @@ import { initializeLogger, llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 import { withActionClaimCheck } from '../action-claim-guard.js';
-import { narratesCallOutcome, UNHEARD_LINE } from '../call-narration.js';
+import { callAskedAbout, narratesCallOutcome, UNHEARD_LINE } from '../call-narration.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
@@ -181,6 +181,29 @@ describe('the guard', () => {
     const line = `${LINE}Ferni called Dr. Patel, and they answered.`;
     expect(await told([user('Did you call Dr. Kim?')], line, 'Dr. Kim')).toBe(DROPPED);
     expect(await told([user('Did you call Dr. Patel?')], line, 'Dr. Patel')).toBe(STORY_DAD);
+  });
+
+  it('reads a tool result the way the agent stores it, JSON-encoded', async () => {
+    const encoded = (output: string) =>
+      llm.FunctionCallOutput.create({
+        callId: 'c4',
+        name: 'callStatus',
+        output: JSON.stringify(output),
+        isError: false,
+      });
+    const words = 'I did, yeah. She told me the lake trip is still on.';
+    const listed = encoded(`${LIST_HEAD}${MOM_LINE}`);
+    expect(await reply([user('Did you call my mom?'), listed], words)).toBe(words);
+    const told = encoded('Ferni called Marisol 3 hours ago, and they answered.');
+    expect(await reply([user('Did you call my mom?'), told], words)).toBe(words);
+    expect(await reply([user('Did you call my dad?'), listed], STORY_DAD)).toBe(DROPPED);
+  });
+
+  it('"got hold of" asks about a call, with or without the "a"', async () => {
+    const words = 'I did, yeah. She told me the lake trip is still on.';
+    const listed = status(`${LIST_HEAD}${MOM_LINE}`);
+    expect(await reply([user('Did you get hold of my mom?'), listed], words)).toBe(words);
+    expect(callAskedAbout('Did you get hold of my mom?')).toEqual({ person: 'mom' });
   });
 
   it('a title alone never matches another doctor', async () => {

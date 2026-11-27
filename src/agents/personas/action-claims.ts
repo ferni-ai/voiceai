@@ -429,7 +429,7 @@ const HELD_WHEN = /\b((?:later today|tomorrow|\w+day) at \d{1,2}:\d{2}\s?[AP]M)\
 export const TOOL_REFUSAL =
   /^\W*(?:no calendar is connected|nothing (?:was|has been)|i couldn't|i could not|i can't|i cannot|i wasn't able|couldn't|could not|unable to|failed|error\b|sorry,? (?:i|but|that|it|something|there))|\bbut i don't have\b|\bi don't have (?:a|the|their|any) (?:phone )?number\b|\bi couldn't find\b|\bdon't see \w+(?: \w+)? in your contacts\b|\bdoesn't look (?:valid|right)\b|\b(?:calls?|calling|texts?|texting|outbound \w+) (?:are|is) (?:disabled|turned off|off|not available|unavailable)\b|\bcould you (?:tell me|provide|give me) (?:their|the|a) (?:phone )?number\b|"success"\s*:\s*false|"error"\s*:/i;
 
-function outputText(output: unknown): string {
+export function outputText(output: unknown): string {
   if (typeof output !== 'string') return JSON.stringify(output ?? '');
   try {
     const value: unknown = JSON.parse(output);
