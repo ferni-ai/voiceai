@@ -338,9 +338,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       'IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. ' +
       'Example: "call my mom at 801-555-0142" → contactQuery: "my mom", phoneNumber: "8015550142". ' +
       'You will handle the entire conversation autonomously and report back the outcome.',
-
     parameters: callOnBehalfSchema,
-
     execute: async (params, opts) => {
       const {
         contactQuery,
