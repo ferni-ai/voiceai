@@ -19,8 +19,10 @@ import {
   crashReportBodySchema,
   disconnectDiagnosticBodySchema,
   readValidatedBody,
+  withoutCallerWords,
   type DisconnectDiagnostic,
   type FrontendCrashReport,
+  type StoredCrash,
 } from './crash-report-input.js';
 
 const log = createLogger({ module: 'CrashReportAPI' });
@@ -32,8 +34,8 @@ export const CRASH_REPORT_POSTS_PER_MINUTE = 20;
 // STORAGE (In-memory for now, could be persisted)
 // ============================================================================
 
-const recentClientCrashes: Array<FrontendCrashReport & { crashId: string; receivedAt: string }> =
-  [];
+const recentClientCrashes: StoredCrash[] = [];
+
 const MAX_STORED_CRASHES = 100;
 
 // Disconnect diagnostics storage
@@ -65,7 +67,7 @@ async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Pro
     const receivedAt = new Date().toISOString();
 
     // Store crash report
-    const storedReport = { ...report, crashId, receivedAt };
+    const storedReport: StoredCrash = { ...withoutCallerWords(report), crashId, receivedAt };
     recentClientCrashes.unshift(storedReport);
     if (recentClientCrashes.length > MAX_STORED_CRASHES) {
       recentClientCrashes.pop();

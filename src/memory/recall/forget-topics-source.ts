@@ -104,15 +104,28 @@ export function lastKnownTopics(userId: string): string[] | undefined {
 /**
  * The topics for a reader that can wait READ_TIMEOUT_MS: the shared read,
  * else (late or failed) the last known topics, else null (fail closed).
+ * `uncached` reads the store itself instead of the shared read (#2755), for a
+ * reader run once a call (the call-start profile): a forget in another process
+ * then counts at once. Its fallback is the same, so it is never worse than the
+ * shared read.
  */
-export async function topicsWithin(userId: string, reader: string): Promise<string[] | null> {
+export async function topicsWithin(
+  userId: string,
+  reader: string,
+  uncached = false
+): Promise<string[] | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<'late'>((resolve) => {
     timer = setTimeout(() => resolve('late'), READ_TIMEOUT_MS);
   });
-  const got = await Promise.race([readTopics(userId), late]);
+  if (uncached) stats.reads++;
+  const got = await Promise.race([
+    uncached ? forgottenTopicsOrNull(userId) : readTopics(userId),
+    late,
+  ]);
   clearTimeout(timer);
   if (Array.isArray(got)) return got;
+  if (got === null && uncached) stats.failures++; // the shared read counts its own in readTopics
   if (got === 'late') stats.timeouts++;
   return fallback(userId, reader, got === 'late' ? 'timeout' : 'failed');
 }

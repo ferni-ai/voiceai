@@ -18,6 +18,7 @@ import {
   addRecallNotes,
   dropForgottenNotes,
   dropSelfNotes,
+  callerMemoryNote,
   recallNoteId,
   SELF_NOTE_ID_PREFIX,
   type RecallNote,
@@ -109,7 +110,7 @@ export function rememberForPacket(
 /**
  * A recall note, sent: CONTEXT_PACKET=on keeps what recall picked for the
  * turn's packet, labelled, and adds only the rest (RecallPick.rest) as recall's
- * chat note. Off: the note as before (memory-recall-hook.ts addRecallNote).
+ * chat note. Off: the note as before (recall-note.ts addRecallNote).
  * `said` is the transcript the note was built for (PREEMPT_STABLE_CONTEXT).
  * FORGET_EVERY_READER=on: every turn, recall notes already in the chat are
  * checked again (a topic forgotten mid-call takes them out), and a new note
@@ -138,7 +139,7 @@ export function sendRecall(
     const pick = contextPacketEnabled() ? recall.lastPick() : null;
     if (pick) rememberForPacket(session, pick);
     const general = pick ? pick.rest : note;
-    if (general) notes.push({ note: general, id: recallNoteId() });
+    if (general) notes.push(callerMemoryNote(general));
   }
   if (self.note && !forgotten?.(self.note)) {
     notes.push({ note: self.note, id: recallNoteId(SELF_NOTE_ID_PREFIX) });

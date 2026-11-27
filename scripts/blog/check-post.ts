@@ -13,11 +13,13 @@
  *
  * A failing post prints its rule codes and counts only, since the workflow's
  * log is public (log-safe.ts); --details adds the text each finding quotes.
+ * Exits 0 when the post passes and REJECTED (exit-codes.ts) when it fails.
  */
 
 import * as fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { checkPost, type GateIssue } from './brand-gate.js';
+import { REJECTED } from './exit-codes.js';
 import { forbiddenTerms } from './brand-terms.js';
 import { HOUSE_FACTS, renderPack, runGh, type Source } from './grounding.js';
 import { citedPrNumbers, notLiveReason, offFlags, type LiveContext } from './live-check.js';
@@ -98,5 +100,5 @@ if (issues.length === 0) {
   if (values.details) for (const line of issueDetails(issues)) console.error(line);
   else
     console.error('  Findings quote the post, so they print only with --details (run it locally).');
-  process.exit(1);
+  process.exit(REJECTED);
 }

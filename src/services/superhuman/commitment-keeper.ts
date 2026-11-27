@@ -11,7 +11,7 @@ import { writeHeld } from '../../utils/minor-care.js';
 import { abuseHoldsOutreach } from '../safety/index.js';
 import { judgeCommitment } from '../../utils/commitment-quality.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
-import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
+import { commitmentCache, unsavedWrite, loadActiveCommitmentsOrThrow } from './commitment-store.js';
 import { followUpsDue } from './commitment-checkin-cooldown.js';
 import {
   validateCommitmentFeasibility,
@@ -499,13 +499,14 @@ export async function loadUserCommitments(userId: string): Promise<Commitment[]>
   }
 }
 
+/** False only when the status write failed with COMMITMENT_WRITES_TRUTHFUL on. */
 export async function updateCommitmentStatus(
   userId: string,
   commitmentId: string,
   status: CommitmentStatus,
   reaction?: 'appreciated' | 'annoyed' | 'neutral'
-): Promise<void> {
-  if (await held(userId)) return; // no status, win or celebration from a held call
+): Promise<boolean> {
+  if (await held(userId)) return true; // no status, win or celebration from a held call
   try {
     const db = getFirestoreDb();
     if (db) {
@@ -525,10 +526,8 @@ export async function updateCommitmentStatus(
     // Every "done" passes here: a win the next call can name once (wins.ts).
     if (status === 'completed') void recordWinFromCommitment(userId, commitmentId);
 
-    const userCommitments = commitmentCache.get(userId) || [];
-    const idx = userCommitments.findIndex((c) => c.id === commitmentId);
-    if (idx >= 0) {
-      const commitment = userCommitments[idx];
+    const commitment = commitmentCache.get(userId)?.find((c) => c.id === commitmentId);
+    if (commitment) {
       commitment.status = status;
       if (reaction) commitment.userReactionToFollowUp = reaction;
       // Group outreach celebrates an emotionally significant one with the team.
@@ -538,8 +537,9 @@ export async function updateCommitmentStatus(
     }
 
     log.info({ userId, commitmentId, status }, '✅ Commitment status updated');
+    return true;
   } catch (error) {
-    log.error({ error: String(error), userId, commitmentId }, 'Failed to update commitment');
+    return unsavedWrite(log, error, { userId, commitmentId }); // COMMITMENT_WRITES_TRUTHFUL
   }
 }
 
