@@ -9,7 +9,8 @@
  *   the proactive scheduler and its pending-outreach load, Apple calendar polling and its user load,
  *   the Google and Outlook calendar renewals, the workflow handler and Spotify token refresh. The
  *   server still listens and serves, attaches the Twilio /stream bridge, installs the outreach
- *   ports and loads the voice registry.
+ *   ports and loads the voice registry. A value that is neither on nor off reads as the default,
+ *   with one warning.
  * - API_LISTEN_HOST: the interface the server listens on. Unset, a development server
  *   (NODE_ENV=development) listens on 127.0.0.1 and every other server on 0.0.0.0 (#3862):
  *   development trusts the dev-mode admin key and client-claimed user ids, so on 0.0.0.0 anyone on
@@ -21,7 +22,7 @@
  */
 import type { Server } from 'node:http';
 
-import { flagOn, type Env } from '../../config/env-flag.js';
+import { flagOn, flagValueUnrecognised, type Env } from '../../config/env-flag.js';
 import { initializeVoiceRegistry } from '../../personas/voice-registry.js';
 import {
   attachTwilioStreamBridgeToServer,
@@ -84,6 +85,14 @@ async function startBackgroundServices(
 ): Promise<void> {
   log.info({ port, livekitUrl, ddosProtection: true }, 'UI Server started');
   const senders = flagOn('API_BACKGROUND_SENDERS', env);
+  if (flagValueUnrecognised('API_BACKGROUND_SENDERS', env)) {
+    // "disabled" or a typo would otherwise leave every sender on without a word; the value isn't logged
+    const reads = senders ? 'on' : 'off';
+    log.warn(
+      { flag: 'API_BACKGROUND_SENDERS' },
+      `Unrecognised API_BACKGROUND_SENDERS value: reading as ${reads} (the default)`
+    );
+  }
   if (!senders) log.info({}, 'Background senders off (API_BACKGROUND_SENDERS)');
 
   // Outreach reaches only verified phones; a forgotten topic closes its follow-ups.
