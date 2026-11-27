@@ -18,7 +18,7 @@ export const personalScript: CallScriptTemplate = {
   greeting: "Hi {contactName}! This is {agentName}. I'm calling on behalf of {userName}.",
 
   identityDisclosure:
-    "I'm Ferni, {userName}'s AI assistant. They asked me to give you a call. " +
+    "I'm {agentName}, {userName}'s AI assistant. They asked me to give you a call. " +
     "I hope that's okay!",
 
   passAlongScript:

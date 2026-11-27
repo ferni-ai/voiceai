@@ -537,41 +537,6 @@
         </div>
       </div>
 
-      <h2>Validation</h2>
-      <p>Endpoints for validating agent bundles.</p>
-
-      <!-- POST /api/agents/validate -->
-      <div class="endpoint">
-        <div class="endpoint-header">
-          <span class="endpoint-method method-post">POST</span>
-          <span class="endpoint-path">/api/agents/validate</span>
-        </div>
-        <div class="endpoint-body">
-          <p class="endpoint-desc">Run validation on all agent bundles. Returns errors and warnings.</p>
-          
-          <div class="response-label">Response</div>
-          <div class="code-block">
-            <pre>{
-  <span class="property">"valid"</span>: <span class="keyword">true</span>,
-  <span class="property">"results"</span>: [
-    {
-      <span class="property">"id"</span>: <span class="string">"ferni"</span>,
-      <span class="property">"valid"</span>: <span class="keyword">true</span>,
-      <span class="property">"errors"</span>: [],
-      <span class="property">"warnings"</span>: []
-    },
-    {
-      <span class="property">"id"</span>: <span class="string">"my-advisor"</span>,
-      <span class="property">"valid"</span>: <span class="keyword">false</span>,
-      <span class="property">"errors"</span>: [<span class="string">"Missing required field: voice.voiceId"</span>],
-      <span class="property">"warnings"</span>: [<span class="string">"No stories defined"</span>]
-    }
-  ]
-}</pre>
-          </div>
-        </div>
-      </div>
-
       <h2>Voice</h2>
       <p>Endpoints for voice synthesis integration.</p>
 

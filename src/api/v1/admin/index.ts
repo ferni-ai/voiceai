@@ -9,7 +9,6 @@
  * - /api/v1/admin/agent-flags/*   - Dev voice agent flag switchboard (dev UI server only)
  * - /api/v1/admin/agents/*        - Agent management
  * - /api/v1/admin/diagnostics/*   - System diagnostics & handoff monitoring
- * - /api/v1/admin/tts-monitoring/*- TTS sanitization monitoring
  *
  * @module AdminAPIRouter
  */
@@ -28,7 +27,7 @@ import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
 import { handleAdminModelConfigRoutes } from './model-config.js';
 import { handleAdminOperationsRoutes } from './operations.js';
-import { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';
+import { handleAdminSoulStatsRoutes } from './soul-stats.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
@@ -100,11 +99,6 @@ export async function handleAdminRoutes(
     return handleAdminOperationsRoutes(req, res, pathname, parsedUrl);
   }
 
-  // TTS Monitoring (sanitization effectiveness)
-  if (pathname.startsWith(`${BASE_PATH}/tts-monitoring`)) {
-    return handleAdminTTSMonitoringRoutes(req, res, pathname, parsedUrl);
-  }
-
   // Model Configuration (system prompts, Gemini parameters)
   if (pathname.startsWith(`${BASE_PATH}/model-config`)) {
     return handleAdminModelConfigRoutes(req, res, pathname, parsedUrl);
@@ -113,6 +107,11 @@ export async function handleAdminRoutes(
   // Better Than Human Analytics (superhuman capability effectiveness)
   if (pathname.startsWith(`${BASE_PATH}/bth`)) {
     return handleBTHAnalyticsRoutes(req, res, pathname, parsedUrl);
+  }
+
+  // Avatar soul counts people's browsers reported (SOUL_STATS)
+  if (pathname.startsWith(`${BASE_PATH}/soul`)) {
+    return handleAdminSoulStatsRoutes(req, res, pathname);
   }
 
   // Route not matched
@@ -135,4 +134,3 @@ export {
   updateLiveSession,
 } from './human-listening.js';
 export { handleAdminOperationsRoutes } from './operations.js';
-export { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';

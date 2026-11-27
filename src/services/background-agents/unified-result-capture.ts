@@ -23,6 +23,7 @@ import type {
 } from './result-types.js';
 import { createBackgroundResult, sortResultsForDisplay } from './result-types.js';
 import { CALLER_TEXT_GUARD, reportedFromCall } from '../outreach/caller-text.js';
+import { resultFollowUp } from './call-follow-up/index.js';
 
 const log = createLogger({ module: 'UnifiedResultCapture' });
 
@@ -454,6 +455,7 @@ export async function captureBackgroundResult(params: {
   actionItems?: string[];
   requiresCallback?: boolean;
   callbackTime?: string;
+  callFollowUp?: BackgroundResult['callFollowUp']; // a call's own fields (#4468)
   relatedTaskId?: string;
   specificData?: Record<string, unknown>;
   skipPush?: boolean; // the caller tells the user its own way (one text)
@@ -473,6 +475,7 @@ export async function captureBackgroundResult(params: {
     actionItems: params.actionItems || [],
     requiresCallback: params.requiresCallback || false,
     callbackTime: params.callbackTime,
+    callFollowUp: params.callFollowUp,
     relatedTaskId: params.relatedTaskId,
   });
 
@@ -555,11 +558,8 @@ export async function buildPendingResultsContext(userId: string): Promise<string
     lines.push(`### ${icon} ${result.type.replace(/_/g, ' ')}${priority}`);
     const body = [`**${result.summary}**`];
     if (result.details) body.push(result.details);
-    if (result.requiresCallback) {
-      body.push(
-        `⚠️ They want a callback${result.callbackTime ? ` around ${result.callbackTime}` : ''}`
-      );
-    }
+    const followUp = resultFollowUp(result); // a call's ask, or its retry offer (#4468)
+    if (followUp) body.push(`⚠️ ${followUp}`);
     if (result.actionItems && result.actionItems.length > 0) {
       body.push(`📝 Action items: ${result.actionItems.join(', ')}`);
     }

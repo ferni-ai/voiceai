@@ -7,7 +7,8 @@
  * Fails closed: when the policy can't be read or lists no paths, the include is "." (every
  * path), so the full suite runs. A `!` glob is left out, which can only widen the match.
  *
- *   pnpm exec tsx scripts/ci/crisis-lane-include.ts
+ *   pnpm exec tsx scripts/ci/crisis-lane-include.ts           ci.yml's crisis-lane step
+ *   node --experimental-strip-types scripts/ci/crisis-lane-include.ts --sweep   crisis-sweep.yml
  */
 import { pathToFileURL } from 'url';
 
@@ -28,16 +29,34 @@ export const DECIDES_THE_SUITE = [
   '.github/actions/pr-changes/**',
 ];
 
-export function crisisLaneInclude(policyPath: string = POLICY_PATH): string {
+/**
+ * What decides crisis-sweep.yml's Detect step, the same way (`--sweep`). Its include is this
+ * lane too: the sweep's hand-kept list missed heavy-moment.ts, which the crisis gate reads,
+ * so a PR changing it skipped the sweep and reported green (#4332).
+ */
+export const DECIDES_THE_SWEEP = [
+  'scripts/ci/autonomy-policy.json',
+  'scripts/ci/autonomy-lanes.ts',
+  'scripts/ci/crisis-lane-include.ts',
+  'scripts/ci/queue-lowering-approved.sh',
+  '.github/workflows/crisis-sweep.yml',
+  '.github/actions/pr-changes/**',
+];
+
+export function crisisLaneInclude(
+  policyPath: string = POLICY_PATH,
+  decides: readonly string[] = DECIDES_THE_SUITE
+): string {
   try {
     const lane = loadPolicy(policyPath).lanes.crisis.paths.filter((p) => !p.startsWith('!'));
     if (!lane.length) return EVERY_PATH;
-    return `^(${[...DECIDES_THE_SUITE, ...lane].map(globPattern).join('|')})$`;
+    return `^(${[...decides, ...lane].map(globPattern).join('|')})$`;
   } catch {
     return EVERY_PATH;
   }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.stdout.write(`${crisisLaneInclude()}\n`);
+  const decides = process.argv.includes('--sweep') ? DECIDES_THE_SWEEP : DECIDES_THE_SUITE;
+  process.stdout.write(`${crisisLaneInclude(POLICY_PATH, decides)}\n`);
 }

@@ -41,8 +41,8 @@ const fake = vi.hoisted(() => {
 });
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => fake.db }));
 
+import { addRecallNote } from '../recall-note.js';
 import {
-  addRecallNote,
   createMemoryRecall,
   firestoreRecallStore,
   memoryRecallMode,

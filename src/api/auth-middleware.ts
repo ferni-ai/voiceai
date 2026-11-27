@@ -38,6 +38,7 @@ import { getClientIp } from '../utils/ddos-protection.js';
 import { rateLimitUid } from './rate-limit-identity.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
+import { logUnauthorized } from './known-probe-log.js';
 import { authCheckUnavailable, verifyTokenOnce } from './verify-token-once.js';
 import { isAuthCheckUnavailable } from '../services/identity/token-revocation.js';
 
@@ -50,17 +51,16 @@ const log = createLogger({ module: 'AuthMiddleware' });
 export interface AuthContext {
   /** Primary user identifier (Firebase UID) */
   userId: string;
-  /** Firebase UID if authenticated via Firebase */
-  firebaseUid?: string;
+  firebaseUid?: string; // Firebase UID if authenticated via Firebase
   isAdmin: boolean; // whether user is an admin
   isDevMode: boolean; // whether running in dev mode
   /** Which auth method was used */
   authMethod: 'api_key' | 'firebase' | 'dev_mode';
-  /** User's email (if available from Firebase) */
-  email?: string;
+  email?: string; // the user's email, if Firebase has one
   emailVerified?: boolean; // Firebase verified that email (anyone can type an unverified one)
-  /** Whether Firebase user is anonymous */
-  isAnonymous?: boolean;
+  /** Firebase sign_in_provider from the verified token: 'anonymous', 'phone', 'password', ... */
+  signInProvider?: string;
+  isAnonymous?: boolean; // anonymous provider OR no email, so phone sign-ins count as anonymous
 }
 
 export interface AuthConfig {
@@ -232,6 +232,7 @@ async function tryFirebaseAuth(req: IncomingMessage, token: string, strict = fal
       authMethod: 'firebase',
       email: verified.email,
       emailVerified: verified.emailVerified,
+      signInProvider: verified.signInProvider,
       isAnonymous: verified.isAnonymous,
     };
   } catch (error) {
@@ -289,9 +290,8 @@ export async function requireAuth(
 
   // No auth found (a token that couldn't be checked is a 503, never a 401)
   if (!auth) {
-    if (authCheckUnavailable(req, res)) return null;
-    if (optional) return null;
-    log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
+    if (authCheckUnavailable(req, res) || optional) return null;
+    logUnauthorized(req);
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }

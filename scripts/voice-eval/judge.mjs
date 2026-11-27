@@ -322,7 +322,7 @@ export async function askGemini(prompt, { model, project }) {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(withBillingLabels({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: [{ role: 'user', parts: Array.isArray(prompt) ? prompt : [{ text: prompt }] }], // parts: audio-judge.mjs
       generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 8192 },
     })),
   });

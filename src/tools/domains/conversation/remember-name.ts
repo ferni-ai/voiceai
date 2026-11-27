@@ -15,6 +15,7 @@
 import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
 import { callMeVocativeEnabled } from '../../../utils/call-me-vocative.js';
 import { isCallbackTime } from '../../../utils/callback-time.js';
+import { accountNameHeld, callOnlyNote } from '../../../utils/guest-names-owner.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { ownerOnTheLine, stepFor } from './name-confirm-calls.js';
 import { nameLikeness, secondQuestion } from './name-likeness.js';
@@ -91,6 +92,13 @@ export async function rememberNameConfirmed(
   }
   if (isCallbackTime(name)) {
     return `[INTERNAL: "${name}" is when they want a call, not their name. Don't save it as a name.]`;
+  }
+  // NAME_GUEST_NAMES_OWNER=on, a guest on the line: nothing can reach the account, so no
+  // "from now on?": the name is simply this call's.
+  if (accountNameHeld(user)) {
+    user.name = name;
+    user.userName = name;
+    return callOnlyNote(name);
   }
   // Loaded here so the flag-off tool's import graph is unchanged.
   const { isClearYes } = await import('../communication/outreach/outreach-confirm.js');

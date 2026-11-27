@@ -31,6 +31,7 @@ import {
   normalizeMusicMessage,
 } from '../types/events.js';
 import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
+import { callFollowUpOf, type CallFollowUp } from './call-follow-up.js';
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
@@ -2530,14 +2531,13 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
  * On-behalf call complete event from backend
  * Sent when an on-behalf call (calling someone on behalf of the user) completes.
  */
-interface OnBehalfCallCompleteEvent extends DataMessage {
+interface OnBehalfCallCompleteEvent extends DataMessage, CallFollowUp {
   type: 'on_behalf_call_complete';
   callId: string;
   contactName: string;
   status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
   objectiveAchieved: boolean;
   outcome: string;
-  callbackRequired: boolean;
   actionItems?: string[];
   timestamp: number;
 }
@@ -2612,7 +2612,7 @@ function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
         status: event.status,
         outcome: event.outcome,
         objectiveAchieved: event.objectiveAchieved,
-        callbackRequired: event.callbackRequired,
+        ...callFollowUpOf(event),
         actionItems: event.actionItems,
       },
     })

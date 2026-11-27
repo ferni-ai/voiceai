@@ -22,6 +22,7 @@ import { inPaths, loadPolicy } from '../../../scripts/ci/autonomy-lanes.js';
 import {
   crisisLaneInclude,
   DECIDES_THE_SUITE,
+  DECIDES_THE_SWEEP,
   EVERY_PATH,
 } from '../../../scripts/ci/crisis-lane-include.js';
 
@@ -277,6 +278,13 @@ describe('every crisis-lane path gets the whole unit suite', () => {
     const outside = ['docs/readme.md', 'src/ui/text-token.ts', 'apps/web/src/memory/view.tsx'];
     expect(outside.filter((f) => inPaths(f, lane))).toEqual([]);
     expect(pr(include, ...outside)).toBe('false');
+  });
+
+  // #4332: crisis-sweep.yml's Detect step greps the same lane (crisis-lane-include.ts --sweep).
+  it('a heavy-moment.ts change makes the Crisis Sweep detect a crisis change', () => {
+    const sweep = crisisLaneInclude(undefined, DECIDES_THE_SWEEP);
+    expect(pr(sweep, 'docs/readme.md', 'src/speech/adaptive-ssml/heavy-moment.ts')).toBe('true');
+    expect(pr(sweep, 'docs/readme.md', '.github/workflows/ci.yml')).toBe('false');
   });
 
   // A PR can't narrow its own lane and dodge the full run in the same change.

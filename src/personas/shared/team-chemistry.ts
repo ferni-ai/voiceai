@@ -50,8 +50,8 @@ interface TeamAwarenessContent {
 }
 
 // Cache for loaded content
-let teamStoriesCache: Record<string, TeamStoriesContent | null> = {};
-let teamAwarenessCache: Record<string, TeamAwarenessContent | null> = {};
+const teamStoriesCache: Record<string, TeamStoriesContent | null> = {};
+const teamAwarenessCache: Record<string, TeamAwarenessContent | null> = {};
 
 /**
  * Load team stories content from bundle
@@ -366,7 +366,7 @@ const PLAYFUL_TEASING: Record<string, string[]> = {
   'alex-chen:jordan-taylor': [
     'Jordan would make this an event. Complete with a theme.',
     "Jordan's probably already picking decorations.",
-    "That's Jordan - never met a celebration they didn't want to plan.",
+    "That's Jordan. She's never met a celebration she didn't want to plan.",
   ],
   'maya-santos:peter-john': [
     'Peter would track this in seventeen different ways.',
@@ -387,7 +387,7 @@ const TEAM_INSIDE_JOKES: TeamInsideJoke[] = [
   },
   {
     trigger: 'confetti',
-    reference: "Jordan's on their way. With supplies.",
+    reference: "Jordan's on her way. With supplies.",
     personasWhoUseIt: ['ferni', 'alex-chen', 'peter-john', 'maya-santos'],
   },
   {

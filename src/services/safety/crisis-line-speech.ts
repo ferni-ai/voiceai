@@ -13,7 +13,10 @@
  *   line cue (call, text, dial, line, lifeline, hotline, crisis, suicide)
  *   within a few words, so "$988", "988 miles" or "room 988" stay as written.
  *
- * Kill switch: SPEAK_988_DIGITS (default on).
+ * The same pass speaks the Spanish crisis lines in Spanish (crisis-line-speech-es.ts, #4062):
+ * their numbers become digit words, and it marks the reply so the voice reads it as Spanish.
+ *
+ * Kill switch: SPEAK_988_DIGITS (default on), for both.
  *
  * The same forms are the one reader of whether a reply names 988 or 911 (names988, names911,
  * offersCrisisLine): what this pass turns into speech, a presence check must count as said.
@@ -23,6 +26,14 @@
 import { TransformStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import {
+  hasSpanishCrisisLine,
+  mayStartSpanishCrisisLine,
+  SPANISH_KEY_WINDOW,
+  speakSpanishLine,
+  type ReplyLanguage,
+} from './crisis-line-speech-es.js';
+export { replyLanguage } from './crisis-line-speech-es.js';
 
 export const CRISIS_LINE_SPOKEN = 'nine eight eight';
 
@@ -159,9 +170,11 @@ function holdFrom(pending: string): number {
     if (complete - i - 1 < SETTLE && RISKY.test(tokens[i][0])) return tokens[i].index ?? 0;
   }
   if (complete === tokens.length) return pending.length;
-  // A word still arriving is held if it is, or could grow into, a risky word.
+  // A word still arriving is held if it is, or could grow into, a risky word, or is a number
+  // still arriving ("2" of "24": the Spanish rewrite needs it whole, #4062).
   const last = tokens[complete];
-  if (RISKY.test(last[0]) || RISKY_PREFIX.test(last[0])) return last.index ?? 0;
+  if (RISKY.test(last[0]) || RISKY_PREFIX.test(last[0]) || /^\d+$/.test(last[0]))
+    return last.index ?? 0;
   return pending.length;
 }
 
@@ -170,21 +183,36 @@ function holdFrom(pending: string): number {
  * word that could begin the line is held until enough words follow it to
  * decide (or the reply ends); everything else passes through at once.
  */
-export function crisisLineSpeechTransform(env: Env = process.env): TransformStream<string, string> {
+export function crisisLineSpeechTransform(
+  env: Env = process.env,
+  language?: ReplyLanguage
+): TransformStream<string, string> {
   if (!flagOn('SPEAK_988_DIGITS', env)) return new TransformStream<string, string>();
   let pending = '';
   let context = '';
+  let heard = '';
+  // At the start of a reply, nothing is released while it could still be a Spanish line (#4062).
+  let opening = language !== undefined;
   const release = (upTo: number): string => {
     // The held tail stays in view as after-context for the cue search.
-    const all = speakCrisisLine(context + pending, context.length, context.length + upTo);
-    const out = all.slice(context.length, all.length - (pending.length - upTo));
+    const english = speakCrisisLine(context + pending, context.length, context.length + upTo);
+    const tail = pending.length - upTo;
+    const all = speakSpanishLine(english, context.length, english.length - tail);
+    const out = all.slice(context.length, all.length - tail);
     pending = pending.slice(upTo);
     context = (context + out).slice(-CONTEXT_CHARS);
     return out;
   };
   return new TransformStream<string, string>({
     transform(chunk, controller) {
+      // Marked before any of this chunk reaches the voice (#4062).
+      // Searched before trimming, so a key inside one long chunk is found too.
+      const seen = heard + chunk;
+      if (language && hasSpanishCrisisLine(seen)) language.markSpanish();
+      heard = seen.slice(-SPANISH_KEY_WINDOW);
       pending += chunk;
+      if (opening && mayStartSpanishCrisisLine(pending)) return;
+      opening = false;
       const out = release(holdFrom(pending));
       if (out) controller.enqueue(out);
     },

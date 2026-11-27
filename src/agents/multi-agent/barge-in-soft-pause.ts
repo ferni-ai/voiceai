@@ -29,11 +29,12 @@
  * @module agents/multi-agent/barge-in-soft-pause
  */
 import { voice } from '@livekit/agents';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { setPlayoutHeld } from '../shared/playout-hold.js';
 import { speechPausedForCaller } from './interruption-config.js';
 import type { LiveCallBehaviorsInput } from './live-call-behaviors.js';
-import { ensureResumeBuffer } from './resume-buffer.js';
+import { ensureResumeBuffer, ResumeBufferOutput } from './resume-buffer.js';
 
 const log = getLogger();
 
@@ -47,8 +48,12 @@ export interface SoftPause {
   pause: () => boolean;
   /** Play on from where the pause stopped. */
   resume: () => void;
+  /** Drop a cut reply's held audio, so the cut ends at once (set only when cutDropsHeld). */
+  dropCut?: () => void;
   confirmMs: number;
   graceMs: number;
+  /** SOFT_PAUSE_ONE_OUTCOME=on: a pause decided 'interrupted' clears its watchdog (#3857). */
+  oneOutcome?: boolean;
   /** One line per decision: BARGE_IN_SOFT_PAUSE {outcome, why, pausedMs}. */
   log?: (fields: Record<string, unknown>) => void;
 }
@@ -68,10 +73,34 @@ export function softPauseGraceMs(env: Env = process.env): number {
 /** The soft pause when BARGE_IN_SOFT_PAUSE=on, else undefined (the fast path interrupts). */
 export function softPauseFromEnv(
   env: Env,
-  io: Omit<SoftPause, 'confirmMs' | 'graceMs'>
+  io: Omit<SoftPause, 'confirmMs' | 'graceMs' | 'oneOutcome'>
 ): SoftPause | undefined {
   if (env.BARGE_IN_SOFT_PAUSE !== 'on') return undefined;
-  return { ...io, confirmMs: softPauseConfirmMs(env), graceMs: softPauseGraceMs(env) };
+  const oneOutcome = flagOn('SOFT_PAUSE_ONE_OUTCOME', env);
+  return {
+    ...io,
+    confirmMs: softPauseConfirmMs(env),
+    graceMs: softPauseGraceMs(env),
+    oneOutcome,
+    dropCut: cutDropsHeld(env, oneOutcome, io.log) ? io.dropCut : undefined,
+  };
+}
+
+/** Env objects already told that SOFT_PAUSE_CUT_DROPS_HELD was refused (once per process in prod). */
+const refusedCutDrop = new WeakSet<Env>();
+
+/**
+ * SOFT_PAUSE_CUT_DROPS_HELD counts only with SOFT_PAUSE_ONE_OUTCOME on: without it the cut
+ * reply's watchdog still runs after the drop (#3857), so the pair goes on together or not at all.
+ */
+function cutDropsHeld(env: Env, oneOutcome: boolean, log: SoftPause['log']): boolean {
+  if (!flagOn('SOFT_PAUSE_CUT_DROPS_HELD', env)) return false;
+  if (oneOutcome) return true;
+  if (!refusedCutDrop.has(env)) {
+    refusedCutDrop.add(env);
+    log?.({ event: 'cut-drop-refused', reason: 'one-outcome-off' });
+  }
+  return false;
 }
 
 type Handler = (...args: unknown[]) => void;
@@ -116,13 +145,21 @@ export function liveCallSoftPause(
       if (speechPausedForCaller(session)) return;
       output.output.audio?.resume();
     },
+    dropCut: () => {
+      const { audio } = output.output;
+      if (audio instanceof ResumeBufferOutput) audio.dropCutReply();
+    },
     log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_SOFT_PAUSE'),
   });
   if (!soft) return undefined;
   const events = input.sessionWithEvents as { on: (event: string, handler: Handler) => void };
   const wrap = () =>
     ensureResumeBuffer(output, (fields) => log.info({ sessionId, ...fields }, 'REPLY_RESUME'), env);
-  wrap();
+  // A session with no audio output can't pause: the fast path interrupts, as with the flag off.
+  if (!wrap()) {
+    soft.log?.({ event: 'no-output' });
+    return undefined;
+  }
   for (const event of ['speech_created', 'agent_state_changed', 'user_state_changed']) {
     events.on(event, wrap);
     sessionEventHandlers.push({ event, handler: wrap });

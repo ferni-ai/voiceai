@@ -8,7 +8,8 @@
  * BLOG_JUDGE_MODEL and BLOG_JUDGE_EFFORT override the model and effort.
  * --meta (from draft-post.ts --meta-out) gives the judge the draft's sources.
  * --out writes the scorecard for the PR body. Exits 0 when the post passes,
- * 1 when it fails or the judge gave no verdict.
+ * REJECTED (exit-codes.ts) when it fails the bar, and 1 when the judge gave no
+ * verdict.
  *
  * The workflow's log is public, so this prints scores and the dimensions under
  * the bar only; the reasons, which quote the post, go to --out.
@@ -16,6 +17,7 @@
 
 import * as fs from 'node:fs';
 import { parseArgs } from 'node:util';
+import { REJECTED } from './exit-codes.js';
 import { DIMENSIONS, claudeJudge, judgePost, scorecard, truthPack } from './judge.js';
 
 const { values, positionals } = parseArgs({
@@ -45,5 +47,5 @@ const scores = result.verdict
 console.log(`Judge (${result.model}, ${audience}): ${result.status} (${scores})`);
 if (result.status !== 'pass') {
   console.error(`  below the bar: ${result.failures.join('; ')}`);
-  process.exit(1);
+  process.exit(result.status === 'fail' ? REJECTED : 1);
 }
