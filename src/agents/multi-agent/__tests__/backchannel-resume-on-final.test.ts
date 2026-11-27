@@ -119,6 +119,16 @@ describe('BACKCHANNEL_RESUME_ON_FINAL (patched)', () => {
     expect(a.startFalseInterruptionTimer).not.toHaveBeenCalled();
   });
 
+  it('on: an activity closed before the timer fires is not resumed', async () => {
+    vi.stubEnv('BACKCHANNEL_RESUME_ON_FINAL', 'on');
+    const { onFinalTranscript } = await proto();
+    const a = pausedActivity('listening');
+    onFinalTranscript.call(a, final('Mm-hmm.'), false);
+    a.closeAbort.signal.aborted = true; // the call ended, or a handoff closed this activity
+    vi.advanceTimersByTime(1000);
+    expect(a.startFalseInterruptionTimer).not.toHaveBeenCalled();
+  });
+
   it('on: real words are not a backchannel, so nothing resumes early', async () => {
     vi.stubEnv('BACKCHANNEL_RESUME_ON_FINAL', 'on');
     const { onFinalTranscript } = await proto();

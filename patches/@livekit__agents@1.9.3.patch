@@ -334,7 +334,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..5c0e1b9b46476892b67745bfc2bc1a84
 +const __FERNI_FINAL_RESUME_MS = 100;
 +function __ferniResumeOnFinal(activity) {
 +  const resume = (tries) => {
-+    if (!activity.pausedSpeech || activity.pausedSpeech.handle.interrupted) return;
++    if (activity.closeAbort?.signal.aborted || !activity.pausedSpeech || activity.pausedSpeech.handle.interrupted) return;
 +    if (activity.agentSession.userState === "speaking" && tries < 20) {
 +      activity.__ferniResumeTimer = setTimeout(() => resume(tries + 1), 150);
 +      return;
@@ -567,7 +567,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..a7c75fb2c7ee8a582f9b309234f75f56
 +const __FERNI_FINAL_RESUME_MS = 100;
 +function __ferniResumeOnFinal(activity) {
 +  const resume = (tries) => {
-+    if (!activity.pausedSpeech || activity.pausedSpeech.handle.interrupted) return;
++    if (activity.closeAbort?.signal.aborted || !activity.pausedSpeech || activity.pausedSpeech.handle.interrupted) return;
 +    if (activity.agentSession.userState === "speaking" && tries < 20) {
 +      activity.__ferniResumeTimer = setTimeout(() => resume(tries + 1), 150);
 +      return;
