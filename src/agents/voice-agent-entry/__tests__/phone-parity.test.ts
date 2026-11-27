@@ -6,7 +6,10 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { setOutboundCallContext } from '../../../intelligence/context-builders/external/outbound-call-context.js';
+import {
+  clearOutboundCallContext,
+  setOutboundCallContext,
+} from '../../../intelligence/context-builders/external/outbound-call-context.js';
 import { trackDeferredProfileLoad } from '../../../services/session/deferred-profile.js';
 import {
   callerTimeZoneFor,
@@ -146,6 +149,29 @@ describe('settleCallerZone', () => {
       {}
     );
     expect(userTimeZone({ sessionId: unverified, userId: 'u-shared' })).toBeUndefined();
+  });
+
+  it("keeps the sponsor's zone off a placed call whose profile loads after the call's end", async () => {
+    const id = session('known');
+    setOutboundCallContext(id, OUTBOUND); // a family check-in: an outbound context, not on-behalf
+    const services = withProfile(NY);
+    const profile = services.userProfile;
+    services.userProfile = null;
+    let land = (): void => undefined;
+    trackDeferredProfileLoad(
+      services,
+      new Promise<void>((resolve) => {
+        land = () => {
+          services.userProfile = profile;
+          resolve();
+        };
+      })
+    );
+    const settled = settleCallerZone({ sessionId: id, onBehalf: false }, undefined, services, {});
+    clearOutboundCallContext(id); // the call ends and releases its context before the profile lands
+    land();
+    expect(await settled).toBeUndefined();
+    expect(callerTimeZoneFor(id)).toBeUndefined();
   });
 
   it("keeps the sponsor's zone off a call placed on their behalf", async () => {

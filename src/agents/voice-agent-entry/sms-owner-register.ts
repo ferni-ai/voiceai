@@ -9,14 +9,12 @@
  * @module agents/voice-agent-entry/sms-owner-register
  */
 import { registerSmsOwnerSessionCheck } from '../../tools/domains/simple-utilities/sms-reading-tools.js';
-import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { thirdPartyCall } from '../shared/outbound-opener.js';
 import { phoneOnlyIdentity, sessionIsVerifiedOwner } from './caller-recognition.js';
 
 export function signedInOwnerSession(sessionId: string): boolean {
   return (
-    sessionIsVerifiedOwner(sessionId) &&
-    !phoneOnlyIdentity(sessionId) &&
-    !outboundPartiesFor(sessionId)
+    sessionIsVerifiedOwner(sessionId) && !phoneOnlyIdentity(sessionId) && !thirdPartyCall(sessionId)
   );
 }
 
