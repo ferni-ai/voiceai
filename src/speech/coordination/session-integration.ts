@@ -13,6 +13,7 @@
  */
 
 import type { voice } from '@livekit/agents';
+import { errorClass } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getSpeechCoordinator, SpeechPriority, type SpeechRequest } from './speech-coordinator.js';
 import { generateAcknowledgment, getToolCategory } from './persona-acknowledgments.js';
@@ -371,6 +372,6 @@ export function coordinatedSay(
     allowInterruptions: options?.allowInterruptions,
     source: 'direct',
   }).catch((err) => {
-    log.warn({ sessionId, error: String(err) }, 'Coordinated say failed');
+    log.warn({ sessionId, error: errorClass(err) }, 'Coordinated say failed');
   });
 }

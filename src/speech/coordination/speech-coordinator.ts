@@ -14,7 +14,8 @@
  */
 
 import type { voice } from '@livekit/agents';
-import { createLogger, replyForLog } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { arrivalCooldownMs } from './arrival-cooldown.js';
 import { linesQueuedFor } from './queued-line-owner.js';
 import {
@@ -750,15 +751,12 @@ export class SpeechCoordinator {
       if (isTTSGatewayEnabled()) {
         // Extract SSML for logging (gateway handles actual stripping)
         const ssmlResult = extractSSMLToConfig(request.text);
-
-        const speakStartTime = Date.now();
         const debugTTS =
           process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
-
         log.debug(
           {
-            original: replyForLog(request.text),
-            cleanText: replyForLog(ssmlResult.text),
+            textChars: request.text.length,
+            cleanChars: ssmlResult.text.length,
             hadSSML: ssmlResult.hadSSML,
             config: ssmlResult.config,
           },
@@ -772,33 +770,25 @@ export class SpeechCoordinator {
           process.stderr.write(`  🆔 Request ID: ${request.id}\n`);
           process.stderr.write(`  📊 Priority: ${request.priority}\n`);
           process.stderr.write(`  ⏱️ Queue wait: ${queueWaitTime}ms\n`);
-          process.stderr.write(`  📝 Text: ${replyForLog(request.text)}\n`);
+          process.stderr.write(`  📝 Text: ${request.text.length} chars\n`);
           process.stderr.write(`  🎙️ Persona: ${this.personaId || 'ferni'}\n`);
         }
-
         // Use gateway - fire and forget (onSpeechEnded handles completion)
         try {
-          gatewaySpeak(this.session, request.text, {
+          const handedOver = gatewaySpeak(this.session, request.text, {
             voiceId: this.personaId || 'ferni',
             sessionId: this.sessionId,
             personaId: this.personaId,
             allowInterruptions: request.allowInterruptions ?? true,
           });
 
-          if (debugTTS) {
-            process.stderr.write(
-              `  ✅ gatewaySpeak() completed: ${Date.now() - speakStartTime}ms\n`
-            );
-          }
+          if (!handedOver) this.abandonLine(); // empty after the SSML strip: nothing will end
         } catch (error: unknown) {
-          log.error({ error: String(error), id: request.id }, 'TTS Gateway speech failed');
-          if (debugTTS) {
-            process.stderr.write(`  ❌ gatewaySpeak() FAILED: ${String(error)}\n`);
-          }
+          log.error({ error: errorClass(error), id: request.id }, 'TTS Gateway speech failed');
+          this.abandonLine();
         }
       } else {
         // LEGACY PATH: Direct SSML stripping (will be removed once gateway validated)
-        // 🔧 FIX: Strip SSML tags before sending to TTS
         // Cartesia's tokenizer fragments SSML tags, causing them to be spoken literally
         const textToSpeak = stripSSMLForTTS(request.text);
 
@@ -806,27 +796,36 @@ export class SpeechCoordinator {
           {
             originalLen: request.text.length,
             strippedLen: textToSpeak.length,
-            hadSSML: request.text !== textToSpeak,
+            hadSSML: Boolean(request.text !== textToSpeak),
           },
           'Speaking text (SSML stripped) - legacy path'
         );
-
+        if (!textToSpeak.trim()) return this.abandonLine(); // nothing left: no speech-ended follows
         this.session.say(textToSpeak, {
           allowInterruptions: request.allowInterruptions ?? true,
         });
       }
-      // Note: onSpeechEnded() will be called by session state handler
     } catch (error) {
-      const errorStr = String(error);
-      // Expected error when session disconnects - use debug level
-      if (errorStr.includes('AgentSession is not running')) {
-        log.debug({ error: errorStr, id: request.id }, 'Speech skipped - session closed');
-      } else {
-        log.error({ error: errorStr, id: request.id }, 'Speech failed');
-      }
-      this.currentRequest = null;
-      this.transitionTo(CoordinatorState.IDLE);
+      const closed = String(error).includes('AgentSession is not running'); // expected: debug
+      // A TTS error can echo the line it was speaking: log its class, never its message.
+      if (closed)
+        log.debug({ error: errorClass(error), id: request.id }, 'Speech skipped - session closed');
+      else log.error({ error: errorClass(error), id: request.id }, 'Speech failed');
+      this.abandonLine();
+    }
+  }
+
+  /** A line that never reached the speaker gets no speech-ended event: free the slot, play the queue. */
+  private abandonLine(): void {
+    this.currentRequest = null;
+    this.transitionTo(CoordinatorState.IDLE);
+    try {
       this.processQueue();
+    } catch (error) {
+      // The line that threw (processQueue set it), not the one that failed before it.
+      const id = (this.currentRequest as SpeechRequest | null)?.id;
+      log.error({ error: errorClass(error), id }, 'Queued line dropped: it threw before speaking');
+      this.abandonLine();
     }
   }
 
