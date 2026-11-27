@@ -553,7 +553,6 @@ export default [
     ignores: [
       // Legacy files with many hardcoded strings - fix these separately
       'apps/web/src/ui/dev-panel.ui.ts',
-      'apps/web/src/ui/admin.ui.ts',
       'apps/web/src/ui/smart-home-settings.ui.ts',
       'apps/web/src/ui/marketplace.ui.ts',
       'apps/web/src/ui/custom-agent-editor.ui.ts',

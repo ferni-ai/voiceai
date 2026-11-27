@@ -20,6 +20,11 @@ import {
   vertexHost,
 } from '../vertex-endpoint.js';
 import { buildCascadeLLMOptions } from '../../agents/model-provider/cartesia-cascade.js';
+import { allowOutbound } from '../../tests/outbound-guard.js';
+
+allowOutbound(
+  'builds real @google/genai clients to read the host they would send to; sends nothing'
+);
 
 describe('vertexHost', () => {
   it('maps global, the multi-regions and a region to their hosts', () => {

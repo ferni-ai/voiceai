@@ -16,12 +16,15 @@ export type TurnHoldKind = 'actionClaim' | 'openerGate' | 'crisis';
  * A hold kind, or: 'unfinishedTurn', the ms an unfinished turn is about to be held
  * before its commit (0: answered at once), measured at the commit; 'openerAudio', an
  * opening clip ("Mm") began playing, `ms` until it reaches the wire; 'ackClip', the
- * same for a tool acknowledgement clip; 'handoff*', a step of an LLM handoff (ms 0).
+ * same for a tool acknowledgement clip; 'handoff*', a step of an LLM handoff (ms 0);
+ * 'replySentence', the reply's first full sentence in at the TTS gateway, `ms` from the
+ * start of its TTS node (first-audio-observer.ts), the clock of the receipt's ttsPushMs.
  */
 export type TurnTimingKind =
   | TurnHoldKind
   | 'unfinishedTurn'
   | 'openerAudio'
+  | 'replySentence'
   | 'ackClip'
   | 'handoffEvent'
   | 'handoffLock'

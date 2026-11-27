@@ -227,3 +227,47 @@ describe('createSummaryRecall', () => {
     expect(summaryRecallEnabled({ RECALL_SUMMARIES: 'on' })).toBe(true);
   });
 });
+
+// A stored summary's id carries the epoch in ms and its timestamp milliseconds (#4042 bot
+// verifier): under a number topic, neither may hide a summary that holds no number.
+describe('summarySnippets: a forgotten number and the stored shape', () => {
+  // As the voice agent mints them (voice-agent-entry: session-<jobId>-<ms>; summarizer)
+  const stored = (point: string, sessionId = 'session-AJ_FhDLDpE3gTFu-1763478000123') => ({
+    id: `summary_${sessionId}_1763478000456`,
+    sessionId,
+    timestamp: '2026-11-18T15:00:00.000Z',
+    keyPoints: [point],
+  });
+
+  it('keeps a summary that holds no number', () => {
+    const kept = summarySnippets([stored('User planned the garden beds')], ['his number']);
+    expect(kept.map((s) => s.text)).toEqual(['User planned the garden beds']);
+  });
+
+  // A job id ending in a digit left that digit beside the next field's date (about 1 in 6
+  // voice calls, the #4042 re-verifier measured); so did ids that end in digits.
+  it.each([
+    ['session-AJ_FhDLDpE3gTF7-1763478000123'],
+    ['loop_1763478000123_abc123'],
+    ['warm-1763478000123-k3j9x2'],
+    ['outreach-uid42-1763478000123'],
+  ])('keeps a summary with no number whose session id is %s', (sessionId) => {
+    const kept = summarySnippets(
+      [stored('User planned the garden beds', sessionId)],
+      ['his number']
+    );
+    expect(kept).toHaveLength(1);
+  });
+
+  it('keeps an outreach call summary that holds no number', () => {
+    const kept = summarySnippets(
+      [stored('User planned the garden beds', 'outreach-1763478000123')],
+      ["mom's cell"]
+    );
+    expect(kept).toHaveLength(1);
+  });
+
+  it('still drops one that holds the number', () => {
+    expect(summarySnippets([stored('His cell is 435 555 0199')], ['his number'])).toEqual([]);
+  });
+});

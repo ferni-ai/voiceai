@@ -243,9 +243,9 @@ const celebrateCompletionDef: ToolDefinition = {
               c.summary.toLowerCase().includes(commitmentSummary.toLowerCase().slice(0, 20))
           );
 
-          if (matching) {
-            await updateCommitmentStatus(ctx.userId, matching.id, 'completed');
-          }
+          const saved =
+            !matching || (await updateCommitmentStatus(ctx.userId, matching.id, 'completed'));
+          if (!saved) return "I couldn't mark that as done just now. Want me to try again?";
 
           let response = `**🎉 You did it!**\n\n`;
           response += `"${commitmentSummary}" — **DONE.**\n\n`;

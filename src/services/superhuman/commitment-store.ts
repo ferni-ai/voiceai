@@ -7,10 +7,35 @@
  * read until its instance restarted. Entries now expire.
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import type { Commitment } from './commitment-keeper.js';
 import { commitmentsShown } from './commitment-forget.js';
 import { getFirestoreDb, recordDegradation } from './firestore-utils.js';
 import { shownRows, singleWriterFor } from './commitment-single-writer.js';
+
+interface Logger {
+  error: (fields: object, message: string) => void;
+  warn: (fields: object, message: string) => void;
+}
+
+/**
+ * A commitment status update that did not reach Firestore (#4263). Returns what
+ * updateCommitmentStatus reports. Off: logged as before and reported saved (true), so the tools
+ * celebrate a change the next read lacks. With COMMITMENT_WRITES_TRUTHFUL on: logged with ids only
+ * and reported not saved (false), so they can say they couldn't.
+ */
+export function unsavedWrite(
+  log: Logger,
+  error: unknown,
+  ids: { userId: string; commitmentId: string }
+): boolean {
+  if (!flagOn('COMMITMENT_WRITES_TRUTHFUL')) {
+    log.error({ error: String(error), ...ids }, 'Failed to update commitment');
+    return true;
+  }
+  log.warn({ ...ids, reason: 'commitment_write_failed' }, 'COMMITMENT_WRITES_TRUTHFUL');
+  return false;
+}
 
 /** How long a process may serve a user's commitments without reading the store. */
 export const COMMITMENT_CACHE_TTL_MS = 15_000;

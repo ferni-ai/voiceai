@@ -11,10 +11,12 @@
  *   server still listens and serves, attaches the Twilio /stream bridge, installs the outreach
  *   ports and loads the voice registry. A value that is neither on nor off reads as the default,
  *   with one warning.
- * - API_LISTEN_HOST (default 0.0.0.0): the interface the server listens on. Set 127.0.0.1 to keep a
- *   local run off the network.
+ * - API_LISTEN_HOST: the interface the server listens on. Unset, a development server
+ *   (NODE_ENV=development) listens on 127.0.0.1 and every other server on 0.0.0.0 (#3862):
+ *   development trusts the dev-mode admin key and client-claimed user ids, so on 0.0.0.0 anyone on
+ *   the same network could impersonate any user. The UI image sets 0.0.0.0 itself.
  *
- * With both unset, the server listens and starts exactly as it did inside index.ts.
+ * With both unset, a non-development server listens and starts exactly as it did inside index.ts.
  *
  * @module servers/api/api-listen
  */
@@ -46,8 +48,9 @@ import { startAutoRefresh as startSpotifyAutoRefresh } from './services/spotify.
 // The module name index.ts logs these lines under, so prod log queries keep matching.
 const log = createLogger({ module: 'APIServer' });
 
-/** The interface the server listens on: API_LISTEN_HOST, else every interface, as before. */
-const listenHost = (env: Env): string => env.API_LISTEN_HOST?.trim() || '0.0.0.0';
+/** API_LISTEN_HOST, else loopback for a development server and every interface otherwise. */
+const listenHost = (env: Env): string =>
+  env.API_LISTEN_HOST?.trim() || (env.NODE_ENV === 'development' ? '127.0.0.1' : '0.0.0.0');
 
 /** The calendar, outreach and workflow senders, in the order index.ts started them. */
 const SENDER_STEPS: readonly StartupStep[] = [

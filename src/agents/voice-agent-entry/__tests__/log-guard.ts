@@ -46,8 +46,8 @@ export const CONTENT = new RegExp(
     String.raw`(?:profile|contact|caller|recipient|participant|member|person(?!a)|user)\w*\??\.(?:name|\w*Name)\b`,
     String.raw`\bgeo\??\.(?:name|admin1|country|latitude|longitude)\b`,
     String.raw`\bmetadata\b(?!\??\.)`,
-    String.raw`\b(?:purpose|triggerReason|handoffReason|script|notes?|objective|quote|payload|identity|arguments|\w*args|city|cityOnly|location|effectiveLocation|locationName|latitude|longitude|locales?|facts?|phone\w*|text|query|utterance|content|textContent|interests?|prediction|memoryToSurface|connectionReason|originalFact|updatedFact)\b`,
-    String.raw`\w*(?:transcript|summary|accent|userText|userInput|userMessage|originalMessage|assessment|topics|email|address)\w*`,
+    String.raw`\b(?:purpose|triggerReason|handoffReason|script|notes?|objective|quote|payload|identity|arguments|\w*args|city|cityOnly|location|effectiveLocation|locationName|latitude|longitude|locales?|facts?|phone\w*|text|query|utterance|content|textContent|interests?|prediction|memoryToSurface|connectionReason|originalFact|updatedFact|intention(?!Ids?\b)\w*)\b`,
+    String.raw`\w*(?:transcript|summary|accent|userText|userInput|userMessage|originalMessage|goalText|commitmentText|assessment|topics|email|address)\w*`,
     String.raw`\b\w*[cC]ontext\b(?!\??\.)|\bctx\b(?!\??\.)|\bmacOS\w*`,
     String.raw`\bpref(?:erence)?s?\??\.value\b`,
     String.raw`\benriched(?:Message|Text|Purpose|Content)?\b(?!\??\.(?:metadata|primary|mismatch|confidence))`,
@@ -66,7 +66,7 @@ const ERROR_TEXT =
 
 /** A value that says only whether, how many, how long or which kind; or a helper that reduces it so. */
 export const SHAPE =
-  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
+  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:this\.)?(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog|repliesForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
 
 export interface Exemptions {
   /** Whole calls left as they are, by exact source text: [file suffix, exact argument text]. */
@@ -141,6 +141,13 @@ function splitTop(text: string, sep = ','): string[] {
   }
   out.push(text.slice(start).trim());
   return out.filter(Boolean);
+}
+
+/** The two values of a plain `cond ? a : b` (`a?.b` or a nested ternary: none), #4392. */
+function branches(expr: string): string[] {
+  const ask = splitTop(expr, '?');
+  const sides = ask.length === 2 ? splitTop(ask[1], ':') : [];
+  return sides.length === 2 ? sides : [];
 }
 
 /** The `${...}` expressions of every template literal in an expression. */
@@ -246,7 +253,7 @@ function taintedNames(src: string): RegExp | null {
       return VALUE.test(p) && (CONTENT.test(p) || !!re?.test(p));
     };
     for (const [name, expr] of decls) {
-      if (tainted.has(name) || !splitTop(expr, '|').some(carries)) continue;
+      if (tainted.has(name) || ![...splitTop(expr, '|'), ...branches(expr)].some(carries)) continue;
       tainted.add(name);
       changed = true;
     }

@@ -3,8 +3,8 @@
  * provider credentials between it and a text, call or push from the database it points at.
  * These pin the two settings in api-listen.ts: unset, the server listens on 0.0.0.0 and starts
  * every sender exactly as index.ts did; API_BACKGROUND_SENDERS=off starts none of them, and
- * API_LISTEN_HOST moves the listen. A value that is neither on nor off warns once, without the
- * value, and reads as the default (#4371).
+ * API_LISTEN_HOST moves the listen; a development server with no host stays on loopback. A value
+ * that is neither on nor off warns once, without the value, and reads as the default (#4371).
  */
 import type { Server } from 'node:http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -162,5 +162,28 @@ describe('API server listen and background senders (#3853)', () => {
     const { listen } = await start({ API_LISTEN_HOST: host });
     expect(listen.mock.calls[0].slice(0, 2)).toEqual([3002, want]);
     expect(m.startProactiveScheduler).toHaveBeenCalledTimes(1);
+  });
+
+  // #3862: development trusts the dev-mode admin key and claimed user ids, so it stays on loopback.
+  it('NODE_ENV=development with no host listens on loopback', async () => {
+    const { listen } = await start({ NODE_ENV: 'development' });
+    expect(listen.mock.calls[0].slice(0, 2)).toEqual([3002, '127.0.0.1']);
+  });
+
+  it.each(['production', 'staging', 'test'])(
+    'NODE_ENV=%s with no host keeps every interface',
+    async (nodeEnv) => {
+      const { listen } = await start({ NODE_ENV: nodeEnv });
+      expect(listen.mock.calls[0].slice(0, 2)).toEqual([3002, '0.0.0.0']);
+    }
+  );
+
+  it.each([
+    ['0.0.0.0', '0.0.0.0'],
+    ['::1', '::1'],
+    ['  ', '127.0.0.1'],
+  ])('NODE_ENV=development with API_LISTEN_HOST=%j listens on %s', async (host, want) => {
+    const { listen } = await start({ NODE_ENV: 'development', API_LISTEN_HOST: host });
+    expect(listen.mock.calls[0].slice(0, 2)).toEqual([3002, want]);
   });
 });

@@ -113,7 +113,7 @@ const plainDenial = (words: string, mention: RegExpExecArray): boolean =>
  * The caller's line holds check-in words. A line that only plainly denies them does not, unless
  * the call carried risk before it.
  */
-function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
+export function holdsCheckinWords(line: string, riskBefore: boolean): boolean {
   const words = wordsOf(line);
   const found = mentions(words);
   if (!found.length) return false;
