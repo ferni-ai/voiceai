@@ -109,7 +109,6 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
     // Counted before any await; the pusher names each caller turn, so a turn's segments count once.
     const callerTurnKey = newMessage.extra?.[CALLER_TURN_KEY] as string | undefined;
     const callerTurn = callerTurnFor(sessionId, callerTurnKey);
-
     const start = Date.now();
     try {
       // The turn handler records each turn's voice pattern; the engine must
