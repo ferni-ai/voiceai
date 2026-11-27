@@ -8,18 +8,20 @@
  *
  * The dev-or-not decision is the real one (config/firestore-database.ts, read at call
  * time), driven by FIRESTORE_DATABASE set per case. The logger is this file's own mock, so
- * the assertions read exactly what the module handed it.
+ * the assertions read exactly what the module handed it, at every level: a piece of the
+ * reply logged at info, debug or error is as much a leak as one logged at warn.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const warn = vi.hoisted(() => vi.fn());
+const logger = vi.hoisted(() => ({ warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn() }));
+const { warn } = logger;
 vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({ warn, info: vi.fn(), error: vi.fn(), debug: vi.fn() }),
-  createLogger: () => ({ warn, info: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+  getLogger: () => logger,
+  createLogger: () => logger,
 }));
 
 import { isKnownDevDatabase } from '../../../config/firestore-database.js';
-import { checkTTSText } from '../tts-monitoring.js';
+import { checkTTSText, monitorTTSText } from '../tts-monitoring.js';
 
 // Invented reply that trips every pattern. Planted tokens sit where open text is matched.
 const STAR = 'zqxstarword';
@@ -45,6 +47,11 @@ const LABELS_FOR_REPLY = [
   'unknown bracket notation',
 ];
 
+/** Every call the monitor made at every log level, as one string. */
+function everythingLogged(): string {
+  return JSON.stringify(Object.values(logger).map((level) => level.mock.calls));
+}
+
 /** The issues field of every warn call the monitor made. */
 function loggedIssues(): unknown[] {
   return warn.mock.calls.map(([fields]) => (fields as { issues: unknown }).issues);
@@ -55,7 +62,7 @@ function withDatabase(value: string | undefined): void {
   beforeEach(() => {
     if (value === undefined) delete process.env.FIRESTORE_DATABASE;
     else process.env.FIRESTORE_DATABASE = value;
-    warn.mockClear();
+    for (const level of Object.values(logger)) level.mockClear();
   });
   afterEach(() => {
     if (saved === undefined) delete process.env.FIRESTORE_DATABASE;
@@ -95,6 +102,16 @@ describe.each([
     );
     const logged = JSON.stringify(warn.mock.calls);
     for (const token of TOKENS) expect(logged).not.toContain(token);
+  });
+
+  it('logs no piece of the reply at any level, checking or fixing', () => {
+    checkTTSText(REPLY, { sessionId: 'sess-1', turnNumber: 3, personaId: 'ferni' });
+    monitorTTSText(REPLY, { autoFix: true });
+    const logged = everythingLogged();
+    for (const token of TOKENS) expect(logged).not.toContain(token);
+    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.debug).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it('labels even the closed-vocabulary words', () => {
