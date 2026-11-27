@@ -53,16 +53,21 @@ export function partiesOf(
     openingLine?: string;
     kind?: string;
     agentName?: string;
+    /** ON_BEHALF_FULL_CONTEXT: "Sam's mom" on Sam's call is a relation (ferni-intro.ts). */
+    fullContext?: boolean;
   },
   env: Env = process.env
 ): OutboundParties {
-  const { name, relation } = nameAndRelation(call.recipientName);
+  const requester = call.fullContext ? call.userName : undefined;
+  const { name, relation } = nameAndRelation(call.recipientName, requester);
   const personal = call.callType === 'personal';
   const checkin = call.kind === 'family_checkin';
+  // Without a requester, opensByFirstName already found no relation: unchanged.
+  const byFirstName = opensByFirstName(call) && !relation;
   return {
     recipientName: name,
     ...(relation && { relation }),
-    sponsorName: openerSponsorName(call.userName, opensByFirstName(call), env),
+    sponsorName: openerSponsorName(call.userName, byFirstName, env),
     personal,
     openingLine: call.openingLine,
     ...(checkin && { checkin: true }),
