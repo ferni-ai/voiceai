@@ -119,10 +119,7 @@ describe('docs:map --check (the CI gate)', () => {
 });
 
 describe('docs:map --check runs in CI for the files that change the table', () => {
-  const ci = readFileSync(
-    join(dirname(SCRIPT), '../../../../../.github/workflows/ci.yml'),
-    'utf8'
-  );
+  const ci = readFileSync(join(dirname(SCRIPT), '../../../../../.github/workflows/ci.yml'), 'utf8');
   const lines = ci.split('\n');
 
   /** The `include:` regex of the setup step with this id (pr-changes reads it as an ERE). */
@@ -154,7 +151,12 @@ describe('docs:map --check runs in CI for the files that change the table', () =
   });
 
   it('gates the job that runs the check on that filter, not only on `code`', () => {
+    // The job runs every gate in scripts/ci/gates.json with one step; the check is one of them.
+    const gates = JSON.parse(
+      readFileSync(join(dirname(SCRIPT), '../../../../../scripts/ci/gates.json'), 'utf8')
+    ) as { run: string[] }[];
+    expect(gates.map((g) => g.run.join(' '))).toContain('pnpm docs:map --check');
     expect(ci).toContain('      arch-map: ${{ steps.arch-map.outputs.matched }}');
-    expect(jobIf('pnpm docs:map --check')).toContain("|| needs.setup.outputs.arch-map == 'true'");
+    expect(jobIf('pnpm gates')).toContain("|| needs.setup.outputs.arch-map == 'true'");
   });
 });

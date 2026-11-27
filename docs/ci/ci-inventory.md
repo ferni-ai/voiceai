@@ -4,13 +4,13 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 ## Summary
 
-| Category | Count | Total Est. Monthly Minutes |
-|----------|-------|---------------------------|
-| Core CI | 1 | ~2,200 (optimized) |
-| Deploy | 5 | ~500 |
-| Quality | 6 | ~300 |
-| Scheduled | 4 | ~100 |
-| **Total** | **16** | **~3,100** |
+| Category  | Count  | Total Est. Monthly Minutes |
+| --------- | ------ | -------------------------- |
+| Core CI   | 1      | ~2,200 (optimized)         |
+| Deploy    | 5      | ~500                       |
+| Quality   | 6      | ~300                       |
+| Scheduled | 4      | ~100                       |
+| **Total** | **16** | **~3,100**                 |
 
 ## Core CI Workflows
 
@@ -18,15 +18,16 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 **Purpose:** Main CI pipeline - lint, test, build, security scan
 
-| Property | Value |
-|----------|-------|
-| Trigger | Push/PR to main, develop (with path filters) |
-| Runner | Self-hosted (GCE) |
-| Jobs | 11 parallel jobs |
-| Duration | ~10 min (optimized from ~22 min) |
-| Monthly Runs | ~200 |
+| Property     | Value                                        |
+| ------------ | -------------------------------------------- |
+| Trigger      | Push/PR to main, develop (with path filters) |
+| Runner       | Self-hosted (GCE)                            |
+| Jobs         | 11 parallel jobs                             |
+| Duration     | ~10 min (optimized from ~22 min)             |
+| Monthly Runs | ~200                                         |
 
 **Jobs:**
+
 - `lint` - TypeScript type check + ESLint
 - `test-unit-shard` - Unit tests with coverage, four vitest shards ("Unit Tests (n/4)")
 - `test-unit` - The required "Unit Tests" check: passes only when every shard passed
@@ -34,17 +35,17 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 - `test-agi-features` - AGI feature tests
 - `build` - Backend + design system + frontend
 - `security` - Dependency audit + secret scan
-- `quality-gates` - Blocking quality thresholds
+- `quality-gates` - Blocking quality gates: every entry of `scripts/ci/gates.json`, run by `pnpm gates` (locally too; `pnpm gates --pre-push` is the cheap part `.husky/pre-push` runs)
 - `validation` - Voice and integration validation
 - `frontend-quality` - Frontend-specific checks
 
 **How many unit shards a pull request gets** (`ci.yml`, `test-unit-shard`):
 
-| Pull request | Shards | What each runs |
-|--------------|--------|----------------|
-| Small affected set (at most 700 test files) | 1 | `vitest run --changed HEAD^1` |
-| Big affected set (over 700 files, e.g. any file under `src/config/flags/`) | 4 | `vitest run --changed HEAD^1 --shard=N/4`: a quarter of the affected files |
-| Diff hits a `forceRerunTriggers` file, touches crisis-safety or memory code, or carries `ci:full-tests` | 4 | a quarter of the whole suite, with coverage |
+| Pull request                                                                                            | Shards | What each runs                                                             |
+| ------------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------- |
+| Small affected set (at most 700 test files)                                                             | 1      | `vitest run --changed HEAD^1`                                              |
+| Big affected set (over 700 files, e.g. any file under `src/config/flags/`)                              | 4      | `vitest run --changed HEAD^1 --shard=N/4`: a quarter of the affected files |
+| Diff hits a `forceRerunTriggers` file, touches crisis-safety or memory code, or carries `ci:full-tests` | 4      | a quarter of the whole suite, with coverage                                |
 
 - A file under `src/config/flags/` reaches ~1,500 test files through the generated barrel
   `index.generated.ts`. One shard timed out on those at its 25 min (7 of 22 attempts in
@@ -61,6 +62,7 @@ This document provides a complete inventory of all GitHub Actions workflows in t
   and `AFFECTED_SHARDED` are pinned together by `src/tests/deploy/merge-queue-jobs.test.ts`.
 
 **Optimizations Applied:**
+
 - Path filters (70% reduction in unnecessary runs)
 - Concurrency control (cancel-in-progress)
 - Composite action (DRY setup)
@@ -72,49 +74,49 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 **Purpose:** Blue-green deployment to production
 
-| Property | Value |
-|----------|-------|
-| Trigger | push to main whose tree the merge queue tested; CI success on a push to main (workflow_run); manual |
-| Runner | ubuntu-24.04, one job |
-| Duration | ~15 min |
+| Property | Value                                                                                               |
+| -------- | --------------------------------------------------------------------------------------------------- |
+| Trigger  | push to main whose tree the merge queue tested; CI success on a push to main (workflow_run); manual |
+| Runner   | ubuntu-24.04, one job                                                                               |
+| Duration | ~15 min                                                                                             |
 
 ### deploy-firebase.yml
 
 **Purpose:** Deploy frontend to Firebase Hosting
 
-| Property | Value |
-|----------|-------|
-| Trigger | Manual |
-| Runner | ubuntu-latest |
-| Duration | ~5 min |
+| Property | Value         |
+| -------- | ------------- |
+| Trigger  | Manual        |
+| Runner   | ubuntu-latest |
+| Duration | ~5 min        |
 
 ### build.yml
 
 **Purpose:** The required `Build & Test` check. Builds the backend, design system, web app and UI server image, then starts the image and waits for `/health`.
 
-| Property | Value |
-|----------|-------|
-| Trigger | Merge queue (on PRs it's skipped and reports success, #1250) |
-| Runner | `CI_PR_RUNNER` / `CI_RUNNER` |
+| Property | Value                                                        |
+| -------- | ------------------------------------------------------------ |
+| Trigger  | Merge queue (on PRs it's skipped and reports success, #1250) |
+| Runner   | `CI_PR_RUNNER` / `CI_RUNNER`                                 |
 
 ### staging.yml
 
 **Purpose:** Cloud Run preview of a PR (`staging-pr-<n>`). Nothing required runs here.
 
-| Property | Value |
-|----------|-------|
-| Trigger | PR with the `preview` label (adding it deploys, pushes redeploy), or manual |
-| Runner | ubuntu-latest |
+| Property | Value                                                                       |
+| -------- | --------------------------------------------------------------------------- |
+| Trigger  | PR with the `preview` label (adding it deploys, pushes redeploy), or manual |
+| Runner   | ubuntu-latest                                                               |
 
 ### deploy-worker.yml
 
 **Purpose:** Deploy background workers
 
-| Property | Value |
-|----------|-------|
-| Trigger | Manual |
-| Runner | ubuntu-latest |
-| Duration | ~8 min |
+| Property | Value         |
+| -------- | ------------- |
+| Trigger  | Manual        |
+| Runner   | ubuntu-latest |
+| Duration | ~8 min        |
 
 ## Quality Workflows
 
@@ -257,51 +259,51 @@ depth and this check is the guarantee.
 
 **Purpose:** Check brand tokens, build the design-system packages and Storybook
 
-| Property | Value |
-|----------|-------|
-| Trigger | Nightly on main; push/PR touching design-system/* only when `OPTIONAL_CI` is on |
-| Runner | ubuntu-latest |
-| Duration | ~5 min |
+| Property | Value                                                                           |
+| -------- | ------------------------------------------------------------------------------- |
+| Trigger  | Nightly on main; push/PR touching design-system/* only when `OPTIONAL_CI` is on |
+| Runner   | ubuntu-latest                                                                   |
+| Duration | ~5 min                                                                          |
 
 ### chromatic.yml
 
 **Purpose:** Visual regression testing with Chromatic
 
-| Property | Value |
-|----------|-------|
-| Trigger | Push/PR touching design-system/* |
-| Runner | ubuntu-latest |
-| Duration | ~3 min |
+| Property | Value                            |
+| -------- | -------------------------------- |
+| Trigger  | Push/PR touching design-system/* |
+| Runner   | ubuntu-latest                    |
+| Duration | ~3 min                           |
 
 ### bth-benchmarks.yml
 
 **Purpose:** Better-Than-Human capability benchmarks
 
-| Property | Value |
-|----------|-------|
-| Trigger | Weekly, PR touching BTH code |
-| Runner | ubuntu-latest |
-| Duration | ~5 min |
+| Property | Value                        |
+| -------- | ---------------------------- |
+| Trigger  | Weekly, PR touching BTH code |
+| Runner   | ubuntu-latest                |
+| Duration | ~5 min                       |
 
 ### lighthouse-ci.yml
 
 **Purpose:** Accessibility and performance audits
 
-| Property | Value |
-|----------|-------|
-| Trigger | Weekly, PR touching promo/* |
-| Runner | ubuntu-latest |
-| Duration | ~4 min |
+| Property | Value                       |
+| -------- | --------------------------- |
+| Trigger  | Weekly, PR touching promo/* |
+| Runner   | ubuntu-latest               |
+| Duration | ~4 min                      |
 
 ### security-scan.yml
 
 **Purpose:** Dependency and code security scanning
 
-| Property | Value |
-|----------|-------|
-| Trigger | Daily, PR touching code |
-| Runner | ubuntu-latest |
-| Duration | ~3 min |
+| Property | Value                   |
+| -------- | ----------------------- |
+| Trigger  | Daily, PR touching code |
+| Runner   | ubuntu-latest           |
+| Duration | ~3 min                  |
 
 Token drift has no workflow of its own: `pnpm tokens:drift` runs in ci.yml's
 Frontend Quality job (required, PRs, merge queue and nightly).
@@ -312,41 +314,41 @@ Frontend Quality job (required, PRs, merge queue and nightly).
 
 **Purpose:** Weekly CI metrics collection and reporting
 
-| Property | Value |
-|----------|-------|
-| Trigger | Weekly (Monday 9 AM UTC), manual |
-| Runner | ubuntu-latest |
-| Duration | ~2 min |
+| Property | Value                            |
+| -------- | -------------------------------- |
+| Trigger  | Weekly (Monday 9 AM UTC), manual |
+| Runner   | ubuntu-latest                    |
+| Duration | ~2 min                           |
 
 ### error-alerting.yml
 
 **Purpose:** Monitor and alert on error patterns
 
-| Property | Value |
-|----------|-------|
-| Trigger | Scheduled |
-| Runner | ubuntu-latest |
-| Duration | ~1 min |
+| Property | Value         |
+| -------- | ------------- |
+| Trigger  | Scheduled     |
+| Runner   | ubuntu-latest |
+| Duration | ~1 min        |
 
 ### uptime-monitor.yml
 
 **Purpose:** Health check monitoring
 
-| Property | Value |
-|----------|-------|
-| Trigger | Every 5 min |
-| Runner | ubuntu-latest |
-| Duration | ~30 sec |
+| Property | Value         |
+| -------- | ------------- |
+| Trigger  | Every 5 min   |
+| Runner   | ubuntu-latest |
+| Duration | ~30 sec       |
 
 ### cost-alerts.yml
 
 **Purpose:** GCP cost monitoring and alerts
 
-| Property | Value |
-|----------|-------|
-| Trigger | Daily |
-| Runner | ubuntu-latest |
-| Duration | ~1 min |
+| Property | Value         |
+| -------- | ------------- |
+| Trigger  | Daily         |
+| Runner   | ubuntu-latest |
+| Duration | ~1 min        |
 
 ### site-health.yml
 
@@ -357,14 +359,14 @@ and after Deploy Developers Portal / Deploy Firebase Hosting.
 
 ## Optimization Status
 
-| Workflow | Path Filters | Concurrency | Composite Action | pnpm v10 |
-|----------|-------------|-------------|------------------|----------|
-| ci.yml | ✅ | ✅ | ✅ | ✅ |
-| design-system.yml | ✅ | ❌ | ❌ | ✅ |
-| chromatic.yml | ✅ | ❌ | ❌ | ✅ |
-| bth-benchmarks.yml | ✅ | ❌ | ❌ | ✅ |
-| lighthouse-ci.yml | ✅ | ❌ | ✅ | ✅ |
-| security-scan.yml | ✅ | ❌ | ✅ | ✅ |
+| Workflow           | Path Filters | Concurrency | Composite Action | pnpm v10 |
+| ------------------ | ------------ | ----------- | ---------------- | -------- |
+| ci.yml             | ✅           | ✅          | ✅               | ✅       |
+| design-system.yml  | ✅           | ❌          | ❌               | ✅       |
+| chromatic.yml      | ✅           | ❌          | ❌               | ✅       |
+| bth-benchmarks.yml | ✅           | ❌          | ❌               | ✅       |
+| lighthouse-ci.yml  | ✅           | ❌          | ✅               | ✅       |
+| security-scan.yml  | ✅           | ❌          | ✅               | ✅       |
 
 ## Next Steps
 

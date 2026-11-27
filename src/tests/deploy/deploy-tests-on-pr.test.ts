@@ -59,6 +59,7 @@ describe('src/tests/deploy and src/tests/ci run on pull requests that change wha
     const paths = [
       '.github/workflows/design-system.yml',
       '.github/actions/pr-changes/action.yml',
+      '.husky/pre-push', // quality-gates-list.test.ts reads it
       'scripts/ci/deploy-freeze.sh',
       'scripts/blog/record-verdict.sh',
       'scripts/blog/exit-codes.ts',

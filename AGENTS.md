@@ -12,14 +12,14 @@ operating model's Review section; the reviewer is never the author.
 
 ## The stack today (verified 2026-10-08)
 
-| Part | What runs | Where it's defined |
-|---|---|---|
-| Voice agent | LiveKit Cloud agents. Dev `CA_siTDMHEba4Fg` (project `ferni-dev`, dispatch name `voice-agent-lkcloud`), prod `CA_GeFvEpsNXLSF` (project `ferni-prod`). The GCE VM is gone. | `livekit.toml`, `livekit.prod-cloud.toml`, `docker/Dockerfile.agent` |
-| Voice pipeline | Cartesia cascade: Ink-2 STT → Gemini 3.5 Flash (Vertex) → Cartesia Sonic TTS, native function calling | `src/agents/model-provider/factory.ts` |
-| Agent config | Env secrets on the LiveKit agent. Behaviour changes ship **behind a flag, off by default**. | `lk agent update-secrets` |
-| UI server | Cloud Run `john-bogle-ui`, deployed by GitHub Actions on a merge-queue merge to `main` (or once push CI passes) | `.github/workflows/deploy-production.yml` |
-| Quality bar | `docs/DEFINITION-OF-CLEAN.md`, enforced by the ratchet | `apps/cli/src/commands/quality/ratchet.ts` |
-| Firestore | Project `johnb-2025`, two databases: `(default)` is **prod**, `ferni-dev` is **dev** (`FIRESTORE_DATABASE=ferni-dev`). Both read the same rules and index files; diff the live rules before a prod deploy (below). | `firebase.json`, `firestore.rules`, `firestore.indexes.json` |
+| Part           | What runs                                                                                                                                                                                                          | Where it's defined                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Voice agent    | LiveKit Cloud agents. Dev `CA_siTDMHEba4Fg` (project `ferni-dev`, dispatch name `voice-agent-lkcloud`), prod `CA_GeFvEpsNXLSF` (project `ferni-prod`). The GCE VM is gone.                                         | `livekit.toml`, `livekit.prod-cloud.toml`, `docker/Dockerfile.agent` |
+| Voice pipeline | Cartesia cascade: Ink-2 STT → Gemini 3.5 Flash (Vertex) → Cartesia Sonic TTS, native function calling                                                                                                              | `src/agents/model-provider/factory.ts`                               |
+| Agent config   | Env secrets on the LiveKit agent. Behaviour changes ship **behind a flag, off by default**.                                                                                                                        | `lk agent update-secrets`                                            |
+| UI server      | Cloud Run `john-bogle-ui`, deployed by GitHub Actions on a merge-queue merge to `main` (or once push CI passes)                                                                                                    | `.github/workflows/deploy-production.yml`                            |
+| Quality bar    | `docs/DEFINITION-OF-CLEAN.md`, enforced by the ratchet                                                                                                                                                             | `apps/cli/src/commands/quality/ratchet.ts`                           |
+| Firestore      | Project `johnb-2025`, two databases: `(default)` is **prod**, `ferni-dev` is **dev** (`FIRESTORE_DATABASE=ferni-dev`). Both read the same rules and index files; diff the live rules before a prod deploy (below). | `firebase.json`, `firestore.rules`, `firestore.indexes.json`         |
 
 Docs elsewhere that mention GCE, Gemini Live, OpenAI Realtime, a JSON
 function-call workaround or Sonata are describing retired setups.
@@ -101,7 +101,7 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
   repo; on 2026-10-14 one session's pop dropped another's work. Set work aside
   by committing on a throwaway branch.
 - **Commit subjects**: conventional type (`feat fix refactor docs test chore
-  style perf ci revert`) and entirely lower-case. A camelCase word in the
+style perf ci revert`) and entirely lower-case. A camelCase word in the
   subject fails commitlint.
 - **`lk agent update-secrets`**: one `--secrets "KEY=value"` per key. Commas
   don't split (`"A=1,B=2"` sets one key named A). Without `--overwrite` it
@@ -192,6 +192,8 @@ pnpm vitest run <path>       # targeted tests; pnpm test runs everything
 pnpm lint:fix                # eslint autofix
 pnpm quality                 # typecheck + lint + format + builders (before a PR)
 pnpm tsx apps/cli/src/commands/quality/ratchet.ts   # the CI quality ratchet
+pnpm gates                   # every CI quality gate (scripts/ci/gates.json): would CI pass?
+pnpm gates --pre-push        # the cheap ones, which .husky/pre-push runs
 pnpm build:fast              # esbuild
 pnpm gen:lists               # flag barrel + env-name list (gitignored)
 ```

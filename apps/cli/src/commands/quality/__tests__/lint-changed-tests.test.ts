@@ -452,14 +452,24 @@ describe('the workflow lets the gate fail its job', () => {
   };
 
   it('runs it as a bare command in one job, with no way to pass on failure', () => {
+    // The job runs it as one entry of scripts/ci/gates.json, through one `pnpm gates` step
+    // (scripts/ci/gates.ts runs each entry without a shell and fails on any non-zero exit).
+    const gates = JSON.parse(readFileSync(join(ROOT, 'scripts/ci/gates.json'), 'utf8')) as {
+      run: string[];
+    }[];
+    expect(gates.filter((g) => g.run.includes('quality:lint-tests')).map((g) => g.run)).toEqual([
+      ['pnpm', 'quality:lint-tests'],
+    ]);
+    expect(
+      Object.values(workflow.jobs).flatMap(({ steps = [] }) =>
+        steps.filter((step) => step.run?.includes('quality:lint-tests'))
+      )
+    ).toEqual([]);
     const found = Object.entries(workflow.jobs).flatMap(([job, { steps = [] }]) =>
-      steps
-        .filter((step) => step.run?.includes('quality:lint-tests'))
-        .map((step) => ({ job, step }))
+      steps.filter((step) => step.run?.trim() === 'pnpm gates').map((step) => ({ job, step }))
     );
     expect(found).toHaveLength(1);
     const { job, step } = found[0]!;
-    expect(step.run?.trim()).toBe('pnpm quality:lint-tests');
     expect(step.if).toBeUndefined();
     expect(step.shell).toBeUndefined();
     expect(step['continue-on-error']).toBeUndefined();

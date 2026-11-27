@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Quality ratchet",
+    "run": ["pnpm", "tsx", "apps/cli/src/commands/quality/ratchet.ts"],
+    "prePush": true
+  },
+  {
+    "name": "Flag expiry",
+    "run": ["pnpm", "flags:expiry"],
+    "prePush": false,
+    "env": ["GH_TOKEN"],
+    "why": "CI only: from 2027-01-15 it reads issues with gh (network and a token)."
+  },
+  { "name": "Architecture gate", "run": ["pnpm", "quality:arch"], "prePush": true },
+  {
+    "name": "Baselines only shrink",
+    "run": ["pnpm", "quality:baseline-shrink"],
+    "prePush": true,
+    "why": "Pre-push though untimed: it reads three baselines at the merge base."
+  },
+  {
+    "name": "Decision gate",
+    "run": ["pnpm", "quality:decisions"],
+    "prePush": true,
+    "why": "A second decider outside its owner (decisions.ts): call the owner instead."
+  },
+  { "name": "Unsafe Firestore writes", "run": ["pnpm", "quality:firestore"], "prePush": true },
+  {
+    "name": "Mock paths resolve",
+    "run": ["pnpm", "quality:mock-paths"],
+    "prePush": true,
+    "why": "Point the vi.mock string at the module the test means."
+  },
+  {
+    "name": "Changed test files lint",
+    "run": ["pnpm", "quality:lint-tests"],
+    "prePush": false,
+    "why": "CI only: ESLint with an 8 GB heap."
+  },
+  {
+    "name": "Architecture map is current",
+    "run": ["pnpm", "docs:map", "--check"],
+    "prePush": true,
+    "why": "Fix: pnpm docs:map."
+  },
+  {
+    "name": "Capabilities sections are current",
+    "run": ["pnpm", "docs:capabilities", "--check"],
+    "prePush": true,
+    "why": "Fix: pnpm docs:capabilities."
+  },
+  {
+    "name": "Firestore database ratchet",
+    "run": ["pnpm", "tsx", "scripts/ci/firestore-database-ratchet.ts"],
+    "prePush": false,
+    "why": "CI only: ~10 s."
+  },
+  {
+    "name": "Crisis readers ratchet",
+    "run": ["pnpm", "tsx", "scripts/ci/crisis-readers-ratchet.ts"],
+    "prePush": false,
+    "why": "CI only: ~10 s."
+  },
+  {
+    "name": "Firestore index drift",
+    "run": ["pnpm", "tsx", "scripts/ci/firestore-indexes-drift.ts"],
+    "prePush": true
+  },
+  {
+    "name": "Dead code (knip ratchet)",
+    "run": ["pnpm", "quality:knip"],
+    "prePush": false,
+    "why": "CI only until timed locally: knip runs on the tree and on the merge base."
+  },
+  {
+    "name": "Module-level per-caller state",
+    "run": ["pnpm", "quality:module-state"],
+    "prePush": false,
+    "why": "CI only until timed locally."
+  },
+  {
+    "name": "CI quality gates",
+    "run": ["pnpm", "ci:quality-gates"],
+    "prePush": false,
+    "why": "CI only until timed locally."
+  }
+]

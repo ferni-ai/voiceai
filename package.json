@@ -155,6 +155,7 @@
     "audit:todos:critical": "npx tsx scripts/audit-todos.ts --critical",
     "ci:quality-gates": "npx tsx scripts/ci-quality-gates.ts",
     "ci:quality-gates:strict": "npx tsx scripts/ci-quality-gates.ts --strict",
+    "gates": "tsx scripts/ci/gates.ts",
     "agents": "npx tsx src/cli/agent-manager.ts",
     "agents:list": "npx tsx src/cli/agent-manager.ts list",
     "agents:create": "npx tsx src/cli/agent-manager.ts create",

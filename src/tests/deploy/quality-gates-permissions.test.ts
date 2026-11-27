@@ -3,13 +3,15 @@
  * - contents: checkout.
  * - issues: Flag expiry asks whether an issue is open and whether an owner's nightly issue
  *   is open (scripts/flags/expiry.ts). Without it the token gets an empty list, not an
- *   error, so a dropped scope would quietly fail every TBD flag from 2027-01-15.
+ *   error, so a dropped scope would quietly fail every TBD flag from 2027-01-15. It runs in
+ *   the step that runs scripts/ci/gates.json, which hands the token to that gate only.
  * - pull-requests + actions: the gate files guard reads the PR's label events and this
  *   run's start time (scripts/ci/gate-files-guard.sh, the two `gh api` calls).
  * Nothing else in the job gets the token; cache restore uses the runner's own.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { readGates } from '../../../scripts/ci/gates.js';
 
 const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const start = workflow.indexOf('\n  quality-gates:\n');
@@ -35,10 +37,20 @@ describe('ci.yml quality-gates token', () => {
     });
   });
 
-  it('hands that token to the gate files guard and Flag expiry, and to no other step', () => {
+  it('hands that token to the gate files guard and the gates step, and to no other step', () => {
     const steps = job.split('\n      - name: ').slice(1);
     const withToken = steps.filter((s) => /github\.token|GITHUB_TOKEN|GH_TOKEN/.test(s));
-    expect(withToken.map((s) => s.split('\n')[0])).toEqual(['Gate files guard', 'Flag expiry']);
+    expect(withToken.map((s) => s.split('\n')[0])).toEqual([
+      'Gate files guard',
+      'Quality gates (scripts/ci/gates.json)',
+    ]);
     for (const step of withToken) expect(step).toContain('GH_TOKEN: ${{ github.token }}');
+  });
+
+  it('and the gates step passes it on to Flag expiry alone', () => {
+    const gates = readGates(readFileSync('scripts/ci/gates.json', 'utf8'));
+    expect(gates.filter((g) => g.env !== undefined)).toEqual([
+      expect.objectContaining({ name: 'Flag expiry', env: ['GH_TOKEN'] }),
+    ]);
   });
 });
