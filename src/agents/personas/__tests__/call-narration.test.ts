@@ -225,11 +225,36 @@ describe('the guard', () => {
   });
 
   it.each([
+    'Did you call my mom, my dad?',
+    'Did you call mom & dad?',
+    'Did you call mom/dad?',
+    'Did you call my mom? What about my dad?',
+    'Did you call my mom? My dad too?',
+    'Did you call my mom plus my dad?',
+    'Did you call mom n dad?',
+    'Did you ring my mom, then my dad?',
+    'Did you get a hold of my mom and my dad?',
+    'Did you call my mom, my sister and Will?',
+  ])('a person after the first in any list shape is asked about too: %s', async (question) => {
+    expect(await told([user(question)], MOM_LINE)).toBe(DROPPED);
+  });
+
+  it.each([
+    'Did you call my mom? Thanks.',
+    'Did you call my mom, Ferni?',
+    'Did you call my mom, and Will says hi?',
+  ])('a word after the question is no one new: %s', async (question) => {
+    expect(await told([user(question)], MOM_LINE, 'mom')).toBe(STORY_DAD);
+  });
+
+  it.each([
     'Did you call my mom and tell her happy birthday?',
     'Did you call my mom or not?',
     'Did you reach my mom? How did it go with her?',
     'Did you call my mom? Ask her to call me back.',
     "Did you call my mom and see how she's doing?",
+    'Did you reach my mom and ask about the lake trip?',
+    'Did you call mom and see how she is?',
   ])('words after the person asked about are no one new: %s', async (question) => {
     expect(await told([user(question)], MOM_LINE, 'mom')).toBe(STORY_DAD);
   });
