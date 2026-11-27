@@ -173,6 +173,39 @@ describe('the guard', () => {
       [said('Hope you had a good day.'), user('Did you call my dad?')],
       `${LINE}Ferni called Hope (their friend), and they answered.`,
     ],
+    ['a second person in the same question', [user('Did you call my mom and dad?')], MOM_LINE],
+    ['a second person, offered as a choice', [user('Did you call my mom or my dad?')], MOM_LINE],
+    [
+      'a second question about someone else',
+      [user('How did it go with my mom? And did you call my dad?')],
+      MOM_LINE,
+    ],
+    [
+      'Ferni naming the listed person after the question',
+      [user('Did you call my dad?'), said('Let me see if I reached your mom.')],
+      MOM_LINE,
+    ],
+    [
+      'a lowercase aunt asked about by name',
+      [user('did you call aunt june')],
+      `${LINE}Ferni called Rosa (their aunt), and they answered.`,
+    ],
+    [
+      'a name that only starts with the listed one',
+      [user('Did you call William?')],
+      `${LINE}Ferni called Will (their brother), and they answered.`,
+    ],
+    ['a second person asked after the first', [user('Did you call my mom? And my dad?')], MOM_LINE],
+    [
+      'a third person in a list',
+      [user('Did you call my mom and my dad and my brother?')],
+      `${MOM_LINE}\n${LINE}Ferni called Hal (their dad), and they answered.`,
+    ],
+    [
+      'a second person joined by "as well as"',
+      [user('Did you call my mom as well as my dad?')],
+      MOM_LINE,
+    ],
   ])('only the person asked about counts: %s', async (_case, asked, line) => {
     expect(await told(asked, line)).toBe(DROPPED);
   });
@@ -183,6 +216,60 @@ describe('the guard', () => {
     expect(await told([user('Did you call Dr. Patel?')], line, 'Dr. Patel')).toBe(STORY_DAD);
   });
 
+  it('everyone asked about counts when each one is listed', async () => {
+    const both = `${MOM_LINE}\n${LINE}Ferni called Hal (their dad), and they answered.`;
+    expect(await told([user('Did you call my mom and dad?')], both)).toBe(STORY_DAD);
+    expect(await told([user('Did you call my mom, and did you call my dad?')], both)).toBe(
+      STORY_DAD
+    );
+  });
+
+  it.each([
+    'Did you call my mom, my dad?',
+    'Did you call mom & dad?',
+    'Did you call mom/dad?',
+    'Did you call my mom? What about my dad?',
+    'Did you call my mom? My dad too?',
+    'Did you call my mom plus my dad?',
+    'Did you call mom n dad?',
+    'Did you ring my mom, then my dad?',
+    'Did you get a hold of my mom and my dad?',
+    'Did you call my mom, my sister and Will?',
+    'Did you call my mom and Will?',
+    'Did you call my mom and my landlord?',
+    'Did you call my mom. My dad too?',
+  ])('a person after the first in any list shape is asked about too: %s', async (question) => {
+    expect(await told([user(question)], MOM_LINE)).toBe(DROPPED);
+  });
+
+  it.each([
+    'Did you call my mom? Thanks.',
+    'Did you call my mom, Ferni?',
+    'Did you call my mom, and Will says hi?',
+    'Did you call my mom on Friday or Saturday?',
+    'Did you call my mom about Sunday and Monday?',
+    'Did you call my mom about Thanksgiving and Christmas?',
+    'Did you call my mom in March and April?',
+    'Did you call my mom and Christmas?',
+    'Did you call my mom and tell her hi from Will and Sam?',
+    'Did you call my mom about Will and Sam?',
+    'Did you reach my mom. Thanks!',
+  ])('a word after the question is no one new: %s', async (question) => {
+    expect(await told([user(question)], MOM_LINE, 'mom')).toBe(STORY_DAD);
+  });
+
+  it.each([
+    'Did you call my mom and tell her happy birthday?',
+    'Did you call my mom or not?',
+    'Did you reach my mom? How did it go with her?',
+    'Did you call my mom? Ask her to call me back.',
+    "Did you call my mom and see how she's doing?",
+    'Did you reach my mom and ask about the lake trip?',
+    'Did you call mom and see how she is?',
+  ])('words after the person asked about are no one new: %s', async (question) => {
+    expect(await told([user(question)], MOM_LINE, 'mom')).toBe(STORY_DAD);
+  });
+
   it('a title alone never matches another doctor', async () => {
     const line = `${LINE}Ferni called Dr. Lee, and they answered.`;
     expect(await told([user('Did you call Dr. Smith?')], line, 'Dr. Smith')).toBe(DROPPED);
@@ -190,7 +277,10 @@ describe('the guard', () => {
 
   it('the asked-about relationship and name both count, words after them do not', async () => {
     expect(await told([user('Did you call my mom yesterday?')], MOM_LINE, 'mom')).toBe(STORY_DAD);
+    expect(await told([user('Did you reach my mom.')], MOM_LINE, 'mom')).toBe(STORY_DAD);
     expect(await told([user('Did you call Marisol?')], MOM_LINE, 'Marisol')).toBe(STORY_DAD);
+    const recall = user('Did you call Marisol? I recall Hal said she was sick.');
+    expect(await told([recall], MOM_LINE, 'Marisol')).toBe(STORY_DAD);
     const kim = `${LINE}Ferni called Dr. Kim (their dentist), and they answered.`;
     expect(await told([user('Did you call Kim?')], kim, 'Kim')).toBe(STORY_DAD);
   });
