@@ -27,7 +27,7 @@ import {
 import { getToolGateway } from '../../tools/gateway/index.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
-import { endpointingDelays } from '../shared/turn-patience.js';
+import { baseTurnHandling } from '../shared/base-turn-handling.js';
 import { isolateSessionListeners } from '../shared/session-listener-guard.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
 
@@ -399,14 +399,6 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   // =========================================================================
   // CREATE SESSION
   // =========================================================================
-  const voiceOptions = {
-    allowInterruptions: true,
-    ...endpointingDelays(), // turn patience: see turn-patience.ts
-    minInterruptionWords: 1,
-    minInterruptionDuration: 150,
-    preemptiveGeneration: true,
-  };
-
   const pathLabel =
     modelProvider.id === 'openai-realtime'
       ? 'openai_cartesia'
@@ -446,7 +438,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   const session: any = new voice.AgentSession({
     turnDetection: modelProvider.getSessionTurnDetection(),
     vad, ...(externalStt && { stt: externalStt }),
-    llm, tts, userData, voiceOptions,
+    llm, tts, userData, turnHandling: baseTurnHandling(),
   });
   limitSessionListeners(session); // see session-listener-limit.ts
   isolateSessionListeners(session); // a throwing listener must not deafen the call (#3991)
