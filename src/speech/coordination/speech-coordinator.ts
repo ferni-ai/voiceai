@@ -16,7 +16,7 @@
 import type { voice } from '@livekit/agents';
 import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { arrivalCooldownMs } from './arrival-cooldown.js';
-import { linesQueuedFor } from './queued-line-owner.js';
+import { linesQueuedFor, withoutLine } from './queued-line-owner.js';
 import {
   isTTSGatewayEnabled,
   speakToSession as gatewaySpeak,
@@ -469,6 +469,11 @@ export class SpeechCoordinator {
     log.info('Session detached from speech coordinator');
   }
 
+  /** Drop a line that is still queued (not the one being spoken) */
+  dropQueued(id: string): void {
+    this.queue = withoutLine(this.queue, id);
+  }
+
   /**
    * Update session context (for handoffs, persona changes)
    */
@@ -578,23 +583,17 @@ export class SpeechCoordinator {
     });
   }
 
-  /**
-   * Check if we're currently speaking or in cooldown
-   */
+  /** Check if we're currently speaking or in cooldown */
   isBusy(): boolean {
     return this.state !== CoordinatorState.IDLE;
   }
 
-  /**
-   * Get current state
-   */
+  /** Get current state */
   getState(): CoordinatorState {
     return this.state;
   }
 
-  /**
-   * Get adaptive timing parameters
-   */
+  /** Get adaptive timing parameters */
   getAdaptiveTiming(): AdaptiveTiming {
     return this.timing.getTiming();
   }

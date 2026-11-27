@@ -7,7 +7,12 @@
 
 import { voice } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { coordinatedSay, SpeechPriority } from '../../../speech/coordination/index.js';
+import {
+  coordinatedSay,
+  coordinatedSayId,
+  dropQueuedSpeech,
+  SpeechPriority,
+} from '../../../speech/coordination/index.js';
 import { flagOn } from '../../../config/env-flag.js';
 import {
   RECONNECT_DELAY_MS,
@@ -221,11 +226,15 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
   log.warn({ sessionId, goodbyeLen: goodbye.length }, '👋 [GATEWAY] Speaking graceful exit');
 
   try {
-    await coordinatedSay(sessionId, goodbye, { allowInterruptions: false });
+    const goodbyeId = await coordinatedSayId(sessionId, goodbye, { allowInterruptions: false });
 
     await new Promise((resolve) => setTimeout(resolve, GRACEFUL_EXIT_TTS_WAIT_MS));
 
-    if (await holdStepAwayForCrisis(sessionId, 'before_signal')) return stayOnTheLine(sessionId);
+    if (await holdStepAwayForCrisis(sessionId, 'before_signal')) {
+      // Still queued, the goodbye is false by now (a line playing is left to finish)
+      if (goodbyeId && flagOn('CRISIS_LINE_NEVER_DROP')) dropQueuedSpeech(goodbyeId);
+      return stayOnTheLine(sessionId);
+    }
     const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
     await sendFrontendSignal(
       'conversation_end',

@@ -145,3 +145,49 @@ describe('STILL_HERE_LINE with CRISIS_LINE_NEVER_DROP', () => {
     cleanupSpeechCoordination(call.sessionId);
   });
 });
+
+/** Another call attaches to the coordinator `afterMs` later; the queue is played once it settles. */
+async function attachAfter(sessionId: string, afterMs: number) {
+  const say = vi.fn();
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.now() + afterMs);
+  initializeSpeechCoordination({
+    session: { say } as unknown as voice.AgentSession,
+    sessionId,
+    personaId: 'p-1',
+  });
+  await vi.advanceTimersByTimeAsync(5_000);
+  vi.useRealTimers();
+  return say;
+}
+
+describe('STILL_HERE_LINE belongs to the call it was queued for (the session stamp)', () => {
+  it.each([
+    ['30 s', 30_000],
+    ['3 s', 3_000],
+  ])('on: a call that attaches %s later does not hear it', async (_label, afterMs) => {
+    vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'on');
+    const call = await callWithALineStillPlaying();
+    await triggerGracefulExit(call.sessionId);
+    expect(call.lines()).toEqual(['Line A']); // queued for call A, behind Line A
+
+    const next = await attachAfter(`${call.sessionId}-b`, afterMs);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(getSpeechCoordinator().getState()).toBe(CoordinatorState.IDLE);
+    unregisterSessionForReconnection(call.sessionId);
+    cleanupSpeechCoordination(`${call.sessionId}-b`);
+  });
+
+  it('on: the same call attaching again (a hand-off) still hears it, once', async () => {
+    vi.stubEnv('CRISIS_LINE_NEVER_DROP', 'on');
+    const call = await callWithALineStillPlaying();
+    await triggerGracefulExit(call.sessionId);
+
+    const next = await attachAfter(call.sessionId, 30_000);
+
+    expect(next.mock.calls.map((c) => c[0])).toEqual([STILL_HERE_LINE]);
+    unregisterSessionForReconnection(call.sessionId);
+    cleanupSpeechCoordination(call.sessionId);
+  });
+});

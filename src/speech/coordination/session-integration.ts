@@ -358,24 +358,33 @@ export function getSessionForCoordination(sessionId: string): voice.AgentSession
   return state?.session ?? null;
 }
 
+type SayOptions = { allowInterruptions?: boolean; priority?: SpeechPriority; maxAge?: number };
+
 /**
  * Wrapper for session.say() that routes through coordinator.
  * Drop-in replacement for direct session.say() calls.
  *
  * @deprecated Prefer routeSpeech() for new code
  */
-export function coordinatedSay(
+export function coordinatedSay(sessionId: string, text: string, options?: SayOptions): void {
+  void coordinatedSayId(sessionId, text, options); // fire and forget, as session.say()
+}
+
+/** As coordinatedSay, resolving to the line's request id so it can be dropped while queued. */
+export async function coordinatedSayId(
   sessionId: string,
   text: string,
-  options?: { allowInterruptions?: boolean; priority?: SpeechPriority; maxAge?: number }
-): void {
-  // Fire and forget - matches session.say() signature
-  void routeSpeech(sessionId, text, {
-    allowInterruptions: options?.allowInterruptions,
-    priority: options?.priority,
-    maxAge: options?.maxAge,
-    source: 'direct',
-  }).catch((err) => {
+  options?: SayOptions
+): Promise<string | undefined> {
+  try {
+    return (await routeSpeech(sessionId, text, { ...options, source: 'direct' })).id;
+  } catch (err) {
     log.warn({ sessionId, error: String(err) }, 'Coordinated say failed');
-  });
+    return undefined;
+  }
+}
+
+/** Drop a line of this call that is still queued; one already being spoken plays on. */
+export function dropQueuedSpeech(id: string): void {
+  getSpeechCoordinator().dropQueued(id);
 }

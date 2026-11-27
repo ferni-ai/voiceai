@@ -23,3 +23,8 @@ export function linesQueuedFor(
   }
   return kept;
 }
+
+/** The queue without the line `id`: a line still waiting that the caller no longer wants said. */
+export function withoutLine(queue: SpeechRequest[], id: string): SpeechRequest[] {
+  return queue.filter((line) => line.id !== id);
+}
