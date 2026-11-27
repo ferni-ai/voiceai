@@ -45,7 +45,8 @@ import {
 } from '../../services/outreach/call-status.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import { outputText, type ActionKind } from './action-claims.js';
+import type { ActionKind } from './action-claims.js';
+import { outputText } from './tool-output-text.js';
 
 /** What Ferni says in place of a story about a call no result has come back from. */
 export const UNHEARD_LINE = "I don't actually know how that call went yet, I haven't heard back.";
@@ -115,7 +116,7 @@ const LISTED_CALL =
   /^- \w+day, \w+ \d+, (?:in the \w+|at night) \(\d{1,2}:\d\d\s[AP]M\): Ferni (?:called|tried to call) (.+?), (?:and|but) /gm;
 /** Who the caller's latest turn asks about: "did you call my dad?", "how did it go with my best friend". */
 const ASKED_WHO =
-  /\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?)?hold of|g[eo]t ahold of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\s+(?:my |the |your )?([a-z][\w.'-]*(?: [a-z][\w.'-]*)?)/i;
+  /\b(?:call(?:ed|ing)?|r[ai]ng|phon(?:e|ed)|reach(?:ed)?|g[eo]t (?:a ?)?hold of|g[eo]t through to|(?:talk(?:ed)?|speak|spoke) (?:to|with)|(?:go|went) with)\s+(?:my |the |your )?([a-z][\w.'-]*(?: [a-z][\w.'-]*)?)/i;
 /** "mother" is "mom", as call records name people (call-status.ts personWord). */
 const norm = (w: string): string =>
   w
@@ -172,7 +173,7 @@ const toldByStatus = (item: Item & { output?: unknown }, latestCaller: string): 
 const ASKED_ABOUT = [
   /\bhow(?:'d| did| was) (?:it|things|that|the call|your call) go(?:ing)? with (?:my |the |your )?([a-z]+)/i,
   /\bhow(?:'d| did) (?:the |that |your )?call (?:with|to) (?:my |the |your )?([a-z]+)/i,
-  /\bdid you (?:ever |get to |manage to )?(?:call|ring|phone|reach|get (?:a ?)?hold of|get ahold of|get through to|talk to|speak (?:to|with)) (?:my |the )?([a-z]+)/i,
+  /\bdid you (?:ever |get to |manage to )?(?:call|ring|phone|reach|get (?:a ?)?hold of|get through to|talk to|speak (?:to|with)) (?:my |the )?([a-z]+)/i,
   /\bwhat did (?:my |the )?([a-z]+) (?:say|tell you)\b/i,
   /\bdid (?:my |the )?([a-z]+) (?:pick up|answer)\b/i,
 ];
