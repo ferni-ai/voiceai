@@ -75,6 +75,8 @@ const SURFACE = [
   'src/services/contacts/contact-relationship-service.ts',
   'src/services/identity/contacts/contact-onboarding.ts',
   'src/services/trust-and-identity/identity-orchestrator.ts',
+  // The caller's contact and purpose pass here: yes/no and lengths only (#4442).
+  'src/agents/shared/tool-executors/telephony-executor.ts',
   // #4392: what the person said they'd do, their commitments, and Ferni's handoff line.
   'src/services/trust-systems/small-wins.ts',
   'src/services/superhuman/commitment-calendar-integration.ts',
@@ -109,6 +111,7 @@ const REQUIRED = [
   'src/tools/domains/information/utils/geocoding.ts',
   'src/tools/domains/information/weather-tools.ts',
   'src/agents/shared/tool-executors/information-executor.ts',
+  'src/agents/shared/tool-executors/telephony-executor.ts',
   'src/agents/integrations/better-than-human-integration.ts',
   'src/services/trust-systems/small-wins.ts',
   'src/services/superhuman/commitment-calendar-integration.ts',
@@ -227,6 +230,15 @@ describe('the call and turn logs', () => {
     const planted = src.replace(from, to);
     expect(planted).not.toBe(src);
     expect(offences(path, planted, EXEMPT)).not.toEqual([]);
+  });
+
+  it('a contact or purpose put back in the telephony logs is caught (#4442)', () => {
+    const phone = 'src/agents/shared/tool-executors/telephony-executor.ts';
+    const phoneSrc = readFileSync(phone, 'utf8');
+    expect(offences(phone, phoneSrc, EXEMPT)).toEqual([]);
+    const named = phoneSrc.replace('hasName: !!contactQuery,', 'contactQuery,');
+    expect(named).not.toBe(phoneSrc);
+    expect(offences(phone, named, EXEMPT).some((o) => o.includes('contactQuery'))).toBe(true);
   });
 
   it('keeps covering every file a leak was fixed in', () => {

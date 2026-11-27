@@ -20,6 +20,7 @@ import { llm } from '@livekit/agents';
 import { flagOn } from '../../../config/env-flag.js';
 import { dispatchedUserName, opensByFirstName } from '../../../utils/ferni-intro.js';
 import { callOnBehalfSchema } from './call-on-behalf-schema.js';
+import { errorFields } from '../../../utils/error-class.js';
 import { askingPersonaRecord, callingLead } from './scripts/index.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
@@ -96,10 +97,8 @@ async function findContact(
         }
       }
     } catch (entityError) {
-      log.debug(
-        { error: String(entityError), contactQuery },
-        'Entity store lookup failed, falling back to legacy'
-      );
+      // class and status only: a store error can quote the number
+      log.debug(errorFields(entityError), 'Entity store lookup failed, falling back to legacy');
     }
 
     // =========================================================================
@@ -124,7 +123,7 @@ async function findContact(
       ? { ...pick, choices: pick.choices.map(resolved) }
       : resolved(pick.contact);
   } catch (error) {
-    log.error({ error: String(error), contactQuery }, 'Contact resolution failed');
+    log.error(errorFields(error), 'Contact resolution failed');
     return null;
   }
 }
@@ -318,7 +317,7 @@ async function saveContactForFuture(
     await upsertContact(userId, { ...fields, contactId: `phone_${phone}`, phone });
     log.info({ userId }, '📇 Contact saved for future calls'); // never the contact's name
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to save contact');
+    log.warn(errorFields(error), 'Failed to save contact');
     // Non-critical - don't throw
   }
 }
@@ -383,7 +382,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
             // Save this contact for future use (async, don't wait)
             saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
-              log.warn({ error: String(err) }, 'Failed to save contact for future');
+              log.warn(errorFields(err), 'Failed to save contact for future');
             });
           }
         }
@@ -455,7 +454,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         const compliance = checkCallCompliance(request);
 
         if (!compliance.passed) {
-          log.warn({ issues: compliance.issues }, 'Compliance check failed');
+          log.warn({ issueCount: compliance.issues.length }, 'Compliance check failed'); // issues quote the number
           // A result marked failed, so a confirmed call that didn't ring is never "placed".
           const why = `I can't make this call because: ${compliance.issues.join(', ')}.`;
           return { success: false, error: `${why} Could you help me resolve these issues?` };
@@ -471,7 +470,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           `I'll let you know how it goes once the call is complete.${others}`
         );
       } catch (error) {
-        log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why
+        log.error(errorFields(error), 'Failed to initiate call'); // never who or why: a refusal names the number
         // No agent joined, so nothing rang: no "calling now", no "I'll let you know".
         if (isAgentNotJoined(error)) return { success: false, error: NO_AGENT_REPLY };
         const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
