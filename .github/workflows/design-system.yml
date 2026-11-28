@@ -1,7 +1,8 @@
 # Ferni Design System CI/CD
 # Checks brand tokens, builds the design-system packages and Storybook, and
-# publishes to npm. Nothing else in CI builds these packages, so the nightly run
-# is what tells us they still build.
+# publishes @ferni/design-system and @ferni/react to npm when a push to main
+# carries a version that isn't on npm yet. Nothing else in CI builds these
+# packages, so the nightly run is what tells us they still build.
 
 name: Design System
 
@@ -13,12 +14,16 @@ on:
       - 'packages/ferni-react/**'
       - 'apps/vscode-extension/**'
       - 'apps/figma-plugin/**'
+      - 'scripts/ci/check-package-exports.ts'
+      - '.github/workflows/design-system.yml'
   pull_request:
     paths:
       - 'design-system/**'
       - 'packages/ferni-react/**'
       - 'apps/vscode-extension/**'
       - 'apps/figma-plugin/**'
+      - 'scripts/ci/check-package-exports.ts'
+      - '.github/workflows/design-system.yml'
   # Nightly on main, whatever OPTIONAL_CI says; PR and push runs still follow it.
   # nightly-health.yml opens an issue when a nightly run fails.
   schedule:
@@ -73,7 +78,8 @@ jobs:
   # Build Packages
   # ============================================================================
   # brand, build and storybook don't need each other: on the nightly run one
-  # failure must not skip the others and hide what else broke. publish needs all three.
+  # failure must not skip the others and hide what else broke. publish needs
+  # only package-check.
   build:
     if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Build All Packages
@@ -157,19 +163,17 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # Publish to npm (manual trigger or main branch)
+  # Package check: what each package would publish
   # ============================================================================
-  publish:
-    name: Publish to npm
-    # GitHub-hosted on purpose: this job holds NPM_TOKEN, and the self-hosted CI
-    # runner runs PR code with docker (root) access. See ci.yml.
+  # A version on npm can't be republished, so publish needs this job: a package
+  # with a missing entry point fails here and never reaches npm. Pushes, the
+  # nightly and manual runs always pack; pull requests follow OPTIONAL_CI like
+  # the rest of this workflow. It holds no secrets: everything that installs or
+  # builds runs here, and publish only uploads the tarballs this job packed.
+  package-check:
+    name: Package check
+    if: ${{ vars.OPTIONAL_CI != 'off' || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [brand, build, storybook]
-    if: >-
-      ${{ vars.OPTIONAL_CI != 'off' && (
-      (github.event_name == 'workflow_dispatch' && inputs.publish) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish]'))
-      ) }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -180,17 +184,106 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
-      - name: Download React package artifacts
+      - name: Build packages
+        run: |
+          (cd design-system && npm run build:all)
+          (cd packages/ferni-react && npm ci --ignore-scripts --no-audit --no-fund && npx tsup)
+
+      # Packs each package and fails if a main/module/types/exports target is
+      # missing from the tarball, or repository.url isn't this repo (provenance
+      # rejects that).
+      - name: Check every entry point is shipped
+        run: pnpm tsx scripts/ci/check-package-exports.ts design-system packages/ferni-react
+
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/packs"
+          for dir in design-system packages/ferni-react; do
+            (cd "$dir" && npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/packs")
+          done
+
+      - name: Upload the tarballs
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-packages
+          path: ${{ runner.temp }}/packs/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  # ============================================================================
+  # Publish to npm: every push to main that touches a package
+  # ============================================================================
+  # Publishes each tarball whose version isn't on npm yet, so a release is a
+  # version bump merged to main. Versions already on npm are skipped.
+  publish:
+    name: Publish to npm
+    # GitHub-hosted on purpose: this job holds NPM_TOKEN, and the self-hosted CI
+    # runner runs PR code with docker (root) access. See ci.yml.
+    runs-on: ubuntu-latest
+    needs: [package-check]
+    if: >-
+      ${{ github.ref == 'refs/heads/main' && (
+      (github.event_name == 'workflow_dispatch' && inputs.publish) ||
+      github.event_name == 'push') }}
+    # One publish at a time, never cancelled: two pushes racing on one version
+    # would make the second fail on "cannot publish over".
+    concurrency:
+      group: npm-publish
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    # No checkout and no install: no third-party code runs while the token is
+    # in the environment, and only the publish step gets the token.
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download the tarballs
         uses: actions/download-artifact@v8
         with:
-          name: ferni-react-dist
-          path: packages/ferni-react/dist/
+          name: npm-packages
+          path: packs
 
-      - name: Publish @ferni/react
-        run: pnpm publish --access public --no-git-checks
-        working-directory: packages/ferni-react
+      - name: Publish new versions
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN is not set as a repository secret, so nothing can publish."
+            exit 1
+          fi
+          # npm expands the literal ${NODE_AUTH_TOKEN}, so the token never touches disk.
+          export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/publish.npmrc"
+          # shellcheck disable=SC2016 # the ${...} is for npm to expand, not the shell
+          printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$NPM_CONFIG_USERCONFIG"
+          echo "Publishing as $(npm whoami)"
+
+          shopt -s nullglob
+          tarballs=(packs/*.tgz)
+          if [ "${#tarballs[@]}" -ne 2 ]; then
+            echo "::error::Expected 2 tarballs from Package check, found ${#tarballs[@]}."
+            exit 1
+          fi
+          for tgz in "${tarballs[@]}"; do
+            name=$(tar -xzOf "$tgz" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).name')
+            version=$(tar -xzOf "$tgz" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0)).version')
+            # Only a 404 means "not published yet"; any other error stops the job
+            # rather than guessing.
+            if seen=$(npm view "$name@$version" version 2>"$RUNNER_TEMP/view.err"); then
+              if [ "$seen" = "$version" ]; then
+                echo "$name@$version is already on npm, skipping" | tee -a "$GITHUB_STEP_SUMMARY"
+                continue
+              fi
+            elif ! grep -q E404 "$RUNNER_TEMP/view.err"; then
+              cat "$RUNNER_TEMP/view.err"
+              echo "::error::Could not check whether $name@$version is on npm."
+              exit 1
+            fi
+            npm publish "$tgz" --access public --provenance
+            echo "Published $name@$version" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
 
   # ============================================================================
   # VS Code Extension Publish
