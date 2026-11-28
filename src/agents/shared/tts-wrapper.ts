@@ -26,6 +26,7 @@ import { GEMINI_MODEL } from '../../config/gemini-config.js';
 import { asSessionVoice, spokenVoiceId, type SessionVoice } from './spoken-voice.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
+import { isKnownDevDatabase } from '../../config/firestore-database.js';
 import {
   crisisLineSpeechTransform,
   replyLanguage,
@@ -249,8 +250,8 @@ async function recordJsonLeakTelemetry(
       isPartialJson: analysis.isPartialJson,
       hasClosingBrace: analysis.hasClosingBrace,
       leakLength: leakedJson.length,
-      // Include sanitized sample for debugging (no PII - just JSON structure)
-      leakSample: leakedJson.slice(0, 100).replace(/[a-zA-Z]{4,}/g, 'xxx'),
+      // Letters masked, but digits and short words survive: a length on prod, the sample on dev
+      leakSample: replyForLog(leakedJson.replace(/[a-zA-Z]{4,}/g, 'xxx'), 100),
     },
     '📊 [TELEMETRY] OpenAI Realtime JSON leak detected'
   );
@@ -683,11 +684,10 @@ export async function wrappedTtsNode(
                 containsMusic,
                 hasGeminiProblem,
                 personaId,
-                // Character codes to see invisible chars
-                charCodes: rawLLMBuffer
-                  .slice(0, 20)
-                  .split('')
-                  .map((c) => c.charCodeAt(0)),
+                // Character codes to see invisible chars; dev only, as they decode to the reply
+                charCodes: isKnownDevDatabase()
+                  ? [...rawLLMBuffer.slice(0, 20)].map((c) => c.charCodeAt(0))
+                  : undefined,
               },
               '🚨 GARBAGE RESPONSE DETECTED - Gemini output is meaningless!'
             );

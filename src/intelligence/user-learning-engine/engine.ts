@@ -108,7 +108,7 @@ export class UserLearningEngine {
     if (keyMoment) {
       this.sessionKeyMoments.push(keyMoment);
       const { type, summary } = keyMoment;
-      getLogger().info(logsWords ? { type, summary } : { type }, 'Captured key moment');
+      getLogger().info(logsWords ? { type, len: summary.length } : { type }, 'Captured key moment');
     }
 
     // 5. Learn preferences every 5 turns
@@ -985,7 +985,7 @@ export class UserLearningEngine {
   captureExternalKeyMoment(moment: KeyMoment): void {
     if (teammate.keepsMoment(moment)) this.sessionKeyMoments.push(moment);
     getLogger().info(
-      { type: moment.type, summary: moment.summary },
+      { type: moment.type, len: moment.summary.length },
       'Captured external key moment'
     );
   }
