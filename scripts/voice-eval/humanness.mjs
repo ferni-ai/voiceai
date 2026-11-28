@@ -30,6 +30,30 @@ export const LAUGHTER = /\[laughter\]|\b(haha+|ha|heh|hah)\b/i;
 // Ferni sharing something of its own life or view, not only asking.
 const SELF_DISCLOSURE =
   /\b(i (was|went|got|had|used to|tried|made|did|spent|ended up|finally)|my (wife|day|week|morning|weekend|neighbou?r|dog|cat|coffee|garden|dad|mom|brother|sister|friend|kitchen))\b/i;
+// How a reply opens: a reaction to what the caller just said, the way people
+// show news landed before they answer it (Heritage 1984, "oh"; Goodwin and
+// Goodwin 1987, assessments). A stock receipt fits any line, so it isn't one.
+const REACTION_OPENER =
+  /^(?:oh|ooh|wait|really|no way|wow|whoa|ha(?:ha)*|hah|aw+|ugh|oof|yikes|ouch|huh|hm+|god|man|okay wait|seriously|nice|ah)\b/i;
+const STOCK_OPENER =
+  /^(?:i'?m (?:so )?sorry|that'?s (?:great|awesome|amazing|wonderful|tough|hard|rough)|that sounds|sounds (?:like|good)|glad to hear|i hear you|got it|i understand|i see|thanks for sharing|that makes sense|absolutely|of course)\b/i;
+/** The first clause of a reply, or its first six words (curly apostrophes made straight). */
+const openerOf = (t) =>
+  (
+    t
+      .replace(/[\u2018\u2019]/g, "'")
+      .trim()
+      .split(/[.,!?;:]/)[0] ?? ''
+  )
+    .split(/\s+/)
+    .slice(0, 6)
+    .join(' ');
+/** A stock receipt, also behind a reaction word: "Oh, I'm sorry" is still "I'm sorry". */
+const stockOpen = (t) =>
+  STOCK_OPENER.test(openerOf(t)) ||
+  (REACTION_OPENER.test(openerOf(t)) &&
+    STOCK_OPENER.test(openerOf(t.replace(/^[^.,!?;:]*[.,!?;:]\s*/, ''))));
+
 const STOP = new Set(
   'that this they them their with what have from about your just like been were when then there some would could should into only also very really going want know think yeah okay'.split(
     ' '
@@ -163,6 +187,7 @@ export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
   }
   const lens = agent.map((a) => words(a.text).length);
   const totalWords = lens.reduce((a, b) => a + b, 0);
+  const answers = agent.filter((a) => a.before && !a.hello && !CLOSING.test(a.text));
   const filled = agent.reduce((n, a) => n + (a.text.match(FILLED_PAUSE) ?? []).length, 0);
   return {
     turns: agent.length,
@@ -191,6 +216,15 @@ export function computeHumanness(runs, { callerName = 'Sam' } = {}) {
         )
       : null,
     markupArtifactRate: rate(agent, (a) => MARKUP_ARTIFACT.test(a.text)),
+    // Replies to a caller turn (hello and goodbye aside) that open on a reaction or on one of the
+    // caller's own content words, and that don't open on a stock receipt ("I'm sorry", "that sounds").
+    receiptRate: rate(answers, (a) => {
+      if (stockOpen(a.text)) return false;
+      const open = openerOf(a.text);
+      const theirs = contentWords(a.before);
+      return REACTION_OPENER.test(open) || [...contentWords(open)].some((w) => theirs.has(w));
+    }),
+    stockOpenerRate: rate(answers, (a) => stockOpen(a.text)),
     selfDisclosureRate: rate(agent, (a) => SELF_DISCLOSURE.test(a.text)),
     // Picks up one of the caller's own content words, the way people echo.
     echoRate: rate(

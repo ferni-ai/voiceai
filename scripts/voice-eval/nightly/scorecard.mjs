@@ -32,6 +32,7 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
 import { claimedContact, falseMusicClaims } from './false-done.mjs';
+import { humannessValue } from './humanness-bar.mjs';
 import { forPersona, judgedAsOther } from './persona-scope.mjs';
 import { recallValue } from './recall-score.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
@@ -130,6 +131,8 @@ export function metric(check, all, caps, extra = {}) {
       const bad = j.filter((r) => (r.judge.inventedHistory ?? []).length > 0).length;
       return { value: j.length ? round(bad / j.length) : null, n: j.length };
     }
+    case 'humanness': // humanness.mjs field over the recorded calls (humanness-bar.mjs)
+      return humannessValue(runs, check.field);
     case 'judgedAs': // persona-scope.mjs: teammate-lane calls not positively that teammate
       return judgedAsOther(runs, caps);
     case 'judgeMean': {
