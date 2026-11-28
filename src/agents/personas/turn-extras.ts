@@ -9,8 +9,8 @@
  *                   fillers were 0.4 per 100 words; people use 1-4.
  *   human texture   fillers, a laugh at something funny, a small opinion.
  *
- * Two are still off unless their env var is "on", so prod is unchanged until
- * one has been heard on dev:
+ * Three are still off unless their env var is "on", so prod is unchanged until
+ * one has been heard on dev (THANKS_TAKEN: thanks-taken.ts):
  *
  *   LAUGH_ALONG     when they laugh, laugh with them. Ferni laughed in 0 of 37
  *                   live replies; most laughter in conversation is shared, not
@@ -28,6 +28,7 @@ import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
+import { callerThanked, THANKS_TAKEN_LINE } from './thanks-taken.js';
 import type { RecentTurns } from './turn-length.js';
 import type { Substance } from './turn-substance.js';
 import type { CallerMove, Shape } from './turn-shape.js';
@@ -193,6 +194,12 @@ export function extrasFor(
   const out: Extras = { lines: [], fired: [] };
   // "lol my grandma passed" laughed, and is no moment to laugh along.
   const heavy = signals.heavy === true || isHeavyMoment([userText]);
+  // THANKS_TAKEN=on (#3877): take a mid-call thank-you instead of stepping past it. No draw.
+  // Not on a heavy turn: "my dad died last month. thanks, i'll be fine" is no thanks to take.
+  if (on(env, 'THANKS_TAKEN') && !signals.crisisRisk && !heavy && callerThanked(userText)) {
+    out.lines.push(THANKS_TAKEN_LINE);
+    out.fired.push('thanks_taken');
+  }
   // TROUBLES_TALK=on: not while they tell a trouble; a listener doesn't laugh at it (Jefferson).
   if (on(env, 'LAUGH_ALONG') && signals.laughed && !heavy && !signals.trouble) {
     out.lines.push(LAUGH_ALONG);
