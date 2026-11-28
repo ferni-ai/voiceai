@@ -238,7 +238,7 @@ export async function handleOutreachWebhookRoutes(
       // A "call me" text keeps its call; the one crisis text says so (Seth, 2026-11-06).
       // The handler's own TwiML only: `twiml` already holds the crisis reply when it threw.
       if (crisis) {
-        const reply = withCrisisReply(result?.twiml, smsCrisisReplyFor(result?.called), text);
+        const reply = withCrisisReply(result?.twiml, smsCrisisReplyFor(result, crisis), text);
         // SB 243: a held minor's crisis reply, whole and in order, then the AI reminder.
         const reminded = async () => withHeldMinorAiReminder(reply, await heldMinor);
         twiml = (await afterScreen('aiReminder', true, reminded)) ?? reply;

@@ -10,7 +10,8 @@
  * ringsWithLiveAgent does.
  *
  * A "call me" in a crisis text (asCrisisCallMe, the SMS route's screen) also rings outside calling
- * hours (Seth, 2026-11-06). The same rule: marked in code, never by `reason` or stored data.
+ * hours (Seth, 2026-11-06), and so does one in a text that got the screen's failed-read check-in
+ * (SMS_CRISIS_TIMEOUT_CHECKIN). The same rule: marked in code, never by `reason` or stored data.
  *
  * @module services/outreach/held-call
  */
@@ -31,7 +32,7 @@ export const isOwnCallMe = (call: object): boolean => ownCallMe.has(call);
 
 const crisisCallMe = new WeakSet<object>();
 
-/** call-user-adapter.ts only: a crisis text asked for this call, so it rings now, whatever the hours. */
+/** call-user-adapter.ts only: a text the SMS screen answered asked for this call; it rings now, whatever the hours. */
 export function asCrisisCallMe<T extends object>(request: T): T {
   crisisCallMe.add(request);
   return request;
@@ -39,7 +40,8 @@ export function asCrisisCallMe<T extends object>(request: T): T {
 
 /**
  * Tag lookup only, not a crisis read: call-user-adapter.ts marked this call (asCrisisCallMe)
- * because sms-crisis-screen.ts read the text as a crisis, so calling hours do not apply.
+ * because sms-crisis-screen.ts read the text as a crisis, or gave it the failed-read check-in
+ * (SMS_CRISIS_TIMEOUT_CHECKIN: fails closed toward reaching them), so calling hours do not apply.
  */
 export const markedCrisisCallMe = (call: object): boolean => crisisCallMe.has(call);
 

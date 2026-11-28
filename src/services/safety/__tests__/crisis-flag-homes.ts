@@ -323,6 +323,24 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
  * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
  */
 export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  SMS_CRISIS_TIMEOUT_CHECKIN: [
+    {
+      // The real route and screen: a failed read of a safety-words text gets the check-in with 988.
+      file: 'src/api/__tests__/outreach-sms-crisis-survives.test.ts',
+      rows: [
+        'off then on, the read failed: the safety-words text gets the check-in, 988 and 911 in it, no model reply',
+        'off then on: a crisis text gets the same answer, byte for byte, read failed or not',
+        'off then on: a classifier "none" is a read, so the safety-words text is answered as main',
+      ],
+    },
+    {
+      file: 'src/services/outreach/__tests__/sms-crisis-screen.test.ts',
+      rows: [
+        'on: a crisis read keeps the crisis reply, byte for byte, pattern or classifier',
+        "the crisis replies are main's, byte for byte; the check-in only adds the question after the opening",
+      ],
+    },
+  ],
   SMS_REPLY: [
     {
       file: 'src/api/__tests__/outreach-sms-crisis-survives.test.ts',

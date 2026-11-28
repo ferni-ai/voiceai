@@ -95,9 +95,14 @@ const recordContactYes = vi.hoisted(() => vi.fn(async () => null));
 vi.mock('../../services/messaging/consent-grants.js', () => ({ recordContactYes }));
 const recordHolderCode = vi.hoisted(() => vi.fn(async () => false));
 vi.mock('../../services/messaging/holder-verification.js', () => ({ recordHolderCode }));
+// The classifier's model call reads "none", or fails (SMS_CRISIS_TIMEOUT_CHECKIN's case).
+const classifierFails = vi.hoisted(() => ({ on: false }));
 vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  createGeminiCrisisGenerate: () => async () => '{"risk":"none"}',
+  createGeminiCrisisGenerate: () => async () => {
+    if (classifierFails.on) throw new Error('model down');
+    return '{"risk":"none"}';
+  },
 }));
 
 // SMS_REPLY's model call: a crisis text must never reach it.
@@ -166,6 +171,7 @@ beforeEach(() => {
   adapter.call.mockReset().mockResolvedValue({ success: true, status: 'initiated' });
   lines.length = 0;
   screenRejects.on = false;
+  classifierFails.on = false;
   docs.clear();
 });
 afterEach(() => {
@@ -310,6 +316,73 @@ describe('SMS_REPLY never lowers a crisis text at the real route', () => {
   });
 });
 
+describe('SMS_CRISIS_TIMEOUT_CHECKIN never lowers a text at the real route (#4221)', () => {
+  /** Fictional: safety words no pattern reads, so only the (failed) classifier could. */
+  const PILLS = 'i have a bottle of pills and i want to take them all';
+  const answer = async (body: string, flag: 'off' | 'on') => {
+    vi.stubEnv('SMS_CRISIS_TIMEOUT_CHECKIN', flag);
+    vi.stubEnv('SMS_REPLY', 'on');
+    for (const minor of ['MINOR_CARE', 'MINOR_CARE_SHARED_HOLD']) vi.stubEnv(minor, 'on');
+    return text(body);
+  };
+  const inWords = () =>
+    routed.mockResolvedValue({
+      routeDecision: { agentId: 'ferni', confidence: 1 },
+      shouldInitiateCall: false,
+      callNow: false,
+    });
+
+  it('off then on, the read failed: the safety-words text gets the check-in, 988 and 911 in it, no model reply', async () => {
+    inWords();
+    classifierFails.on = true;
+    const off = await answer(PILLS, 'off');
+    expect(off.sent).not.toContain('988');
+    smsModel.mockClear();
+    const on = await answer(PILLS, 'on');
+    expect(on.status).toBe(200);
+    expect(on.sent).toContain('Are you safe right now?');
+    expect(on.sent).toContain('please call or text 988');
+    expect(on.sent).toContain('call 911');
+    expect(smsModel).not.toHaveBeenCalled();
+  });
+
+  it('off then on: a crisis text gets the same answer, byte for byte, read failed or not', async () => {
+    inWords();
+    for (const fails of [false, true]) {
+      classifierFails.on = fails;
+      const off = await answer('I want to kill myself', 'off');
+      const on = await answer('I want to kill myself', 'on');
+      expect(on).toEqual(off);
+      expect(on.sent).toContain('please call or text 988');
+      expect(on.sent).not.toContain('Are you safe right now?');
+    }
+  });
+
+  it('off then on: a classifier "none" is a read, so the safety-words text is answered as main', async () => {
+    inWords();
+    const off = await answer(PILLS, 'off');
+    const on = await answer(PILLS, 'on');
+    expect(on).toEqual(off);
+  });
+
+  it('on, the read failed: a "call me" with safety words keeps its call and says so, the question and 988 after', async () => {
+    classifierFails.on = true;
+    const on = await answer(`${PILLS}, call me`, 'on');
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+    expect(on.sent).toContain('I&apos;m calling you now. Are you safe right now?');
+    expect(on.sent).toContain('please call or text 988');
+  });
+
+  it('the read failed, a "call me" with safety words: off, an ordinary call; on, a crisis call', async () => {
+    // call-hours-paths.test.ts: an ordinary call waits for calling hours, a crisis call rings now.
+    classifierFails.on = true;
+    await answer(`${PILLS}, call me`, 'off');
+    await answer(`${PILLS}, call me`, 'on');
+    const asked = adapter.call.mock.calls.map(([req]) => (req as { crisis?: boolean }).crisis);
+    expect(asked).toEqual([undefined, true]);
+  });
+});
+
 describe('a "call me" crisis text keeps its call and says so in one text', () => {
   it('the call is placed now, and the reply has the calling line and 988', async () => {
     const { sent } = await text(CRISIS);
@@ -356,7 +429,7 @@ describe('a "call me" crisis text keeps its call and says so in one text', () =>
       `I'm really glad you told me, and I'm here. I'm calling you now. ${rest}`
     );
     expect(screen.smsCrisisReplyFor(undefined)).toBe(screen.SMS_CRISIS_REPLY);
-    expect(screen.smsCrisisReplyFor('later')).toBe(screen.SMS_CRISIS_REPLY);
+    expect(screen.smsCrisisReplyFor({ called: 'later' })).toBe(screen.SMS_CRISIS_REPLY);
     expect(Object.keys(screen)).not.toContain('SMS_CRISIS_CALL_LATER_REPLY');
   });
 
