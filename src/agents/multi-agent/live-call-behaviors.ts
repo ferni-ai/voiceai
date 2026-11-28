@@ -29,7 +29,11 @@ import {
   installBackchannelHook,
   setBargeInFastPath,
 } from './barge-in-fastpath.js';
-import { liveCallSoftPause, onBargeInVerdict } from './barge-in-soft-pause.js';
+import {
+  cancelHoldOnBackchannel,
+  liveCallSoftPause,
+  onBargeInVerdict,
+} from './barge-in-soft-pause.js';
 import {
   isOutreachConfirmOn,
   outreachConfirmListeners,
@@ -133,6 +137,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       unlabel,
     });
     if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
+    cancelHoldOnBackchannel(input); // BARGE_IN_PAUSE_HOLD
     setBargeInFastPath(session, bargeIn);
     sessionWithEvents.on('user_input_transcribed', bargeIn.onTranscript);
     sessionWithEvents.on('agent_state_changed', bargeIn.onAgentState);
