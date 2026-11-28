@@ -24,6 +24,10 @@
  *     until it is calibrated on human audio: it can confirm low words, and when
  *     it disagrees with the words the read is "mixed" (ask, don't assume). It
  *     never makes "low" on its own.
+ * SARCASM_READ=on (off by default) also hears stock sarcasm with no positive
+ * word in it ("living the dream", "story of my life", "best Monday ever. Truly.")
+ * as sarcasm, and says so on the read (`sarcastic`), so the excited word read
+ * can stand down (turn-attunement.ts, #4054).
  * Crisis is not read here: attunementNote stands down under crisis guidance.
  *
  * @module agents/personas/attune-ledger
@@ -92,6 +96,25 @@ const INTERJECTION =
   /\b(?:great|fantastic|perfect|wonderful|awesome|lovely|yay|super|terrific|brilliant)\b/i;
 const COMPLAINT =
   /\b(?:again|another (?:monday|meeting|bill|one)|more (?:meetings|work|emails|bills|traffic|of this)|broke(?:n)? down|crashed|cancel+ed)\b/i;
+/**
+ * SARCASM_READ: stock sarcastic idioms that carry no positive word ("story of
+ * my life"). Only the caller's own: "my sister is living the dream" and "not
+ * exactly living the dream" are not sarcasm.
+ */
+const STOCK_SARCASM =
+  /\b(?:just my luck|story of my life|oh joy|could (?:this|today|my) (?:day |week )?(?:get|be) any better)\b/gi;
+/**
+ * SARCASM_READ: idioms people also say sincerely, so they are sarcasm only when
+ * said flat or next to a complaint. "I'm living the dream over here." is flat;
+ * "we moved to the beach, living the dream!" is not. "Best Monday ever. Truly."
+ * is flat; "truly the best day ever" and "best birthday ever." are not.
+ */
+const LIVING_THE_DREAM = /\bliving the dream\b/gi;
+const BEST_EVER = /\bbest (?:\w+ ){1,2}ever\b/gi;
+/** A deadpan "Truly." as a sentence of its own. */
+const FLAT_TRULY = /(?:^|[.!?…]\s*)truly\s*(?:[.…]|$)/i;
+/** Stock sarcasm sits early in a line: the scan stops here so a long turn costs nothing extra. */
+const SARCASM_SCAN_CHARS = 600;
 const OPENER = /^(?:ok(?:ay)?|so|well|alright|anyway|right)\b[\s,.…-]*(?:so\b)?[\s,.…-]*$/i;
 const GREETING = /^(?:hi|hey|hello|yo|morning|evening|hiya)\b|\bit'?s me\b/i;
 /** "I'm Jess, by the way": an introduction, not a short answer. */
@@ -178,10 +201,40 @@ function dropsShort(text: string, baseline: number | undefined): boolean {
   return !bid && !(GREETING.test(text.trim()) && n <= 3) && !SELF_ID.test(text);
 }
 
+/** SARCASM_READ: the caller's own stock sarcasm, with no positive word in it. */
+function stockSarcasm(text: string): boolean {
+  const head = text.slice(0, SARCASM_SCAN_CHARS);
+  if (firstOwn(head, STOCK_SARCASM)) return true;
+  const complaint = COMPLAINT.test(head);
+  const dream = firstOwn(head, LIVING_THE_DREAM);
+  if (dream && (complaint || !exclaimed(head, dream))) return true;
+  return firstOwn(head, BEST_EVER) !== undefined && (complaint || FLAT_TRULY.test(head));
+}
+
+/** The match is said with an exclamation mark ("living the dream!"): sincere, not deadpan. */
+function exclaimed(text: string, match: RegExpMatchArray): boolean {
+  return /^\s*!/.test(text.slice((match.index ?? 0) + match[0].length));
+}
+
+/** Options for one ledger read. */
+export interface LedgerOptions {
+  /** SARCASM_READ: also hear stock sarcasm (stockSarcasm). */
+  stockSarcasm?: boolean;
+}
+
 /** What one caller turn says about their energy. */
-export function readTurn(text: string, turn: number, baseline: number | undefined): TurnRead {
+export function readTurn(
+  text: string,
+  turn: number,
+  baseline: number | undefined,
+  options: LedgerOptions = {}
+): TurnRead {
   const own = lowWords(text);
-  const sarcastic = SARCASM.test(text) || (INTERJECTION.test(text) && COMPLAINT.test(text));
+  const sarcastic =
+    SARCASM.test(text) ||
+    (INTERJECTION.test(text) && COMPLAINT.test(text)) ||
+    // Their own hard words win: "I'm exhausted. Living the dream." is low, not mixed.
+    (options.stockSarcasm === true && own.source !== 'text' && stockSarcasm(text));
   const up = sarcastic ? undefined : upbeatNow(text, own.hit);
   const none = { low: [], sarcastic, short: false, engaged: false };
   if (up) return { ...none, up };
@@ -219,6 +272,15 @@ export interface LedgerRead {
   state: LedgerState;
   /** The live cues behind the read, for the log ("low because of X at turn 3"). */
   cues: Cue[];
+  /** SARCASM_READ only: the latest turn is sarcastic and the caller isn't low. */
+  sarcastic?: true;
+}
+
+/** A sarcastic latest turn from a caller who isn't low: mixed, and SARCASM_READ says why. */
+function sarcasmRead(cues: Cue[], options: LedgerOptions): LedgerRead {
+  return options.stockSarcasm
+    ? { state: 'mixed', cues, sarcastic: true }
+    : { state: 'mixed', cues };
 }
 
 /** One turn into the ledger: the cues live after it. */
@@ -243,20 +305,21 @@ function step(cues: Cue[], read: TurnRead, t: number, baseline: number | undefin
 export function ledgerRead(
   turns: string[],
   voice?: LedgerVoice,
-  storedBaseline?: number
+  storedBaseline?: number,
+  options: LedgerOptions = {}
 ): LedgerRead {
   let cues: Cue[] = [];
   let low = false;
   let read: TurnRead = { low: [], sarcastic: false, short: false, engaged: false };
   turns.forEach((text, t) => {
     const baseline = baselineWords(turns.slice(0, t), storedBaseline);
-    read = readTurn(text, t, baseline);
+    read = readTurn(text, t, baseline, options);
     cues = step(cues, read, t, baseline);
     low = low ? cues.length > 0 : independent(cues) >= 2;
   });
   const now = turns.length - 1;
   const arousal = confidentArousal(voice);
-  if (read.sarcastic && !low) return { state: 'mixed', cues };
+  if (read.sarcastic && !low) return sarcasmRead(cues, options);
   if (arousal !== undefined && arousal >= 0.45 && cues.length > 0) return { state: 'mixed', cues };
   if (read.up)
     return { state: arousal !== undefined && arousal <= -0.35 ? 'mixed' : 'excited', cues };
