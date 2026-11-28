@@ -17,6 +17,14 @@
  * LiveKit's false-interruption timeout drops from 2 s to 1 s
  * (interruption-config.ts), so the reply resumes ~1 s after the noise ends.
  *
+ * BARGE_IN_PAUSE_HOLD=on: LiveKit's pause for the caller's overlap waits PAUSE_HOLD_MS and is
+ * applied only if the caller is still speaking then. Dev 2026-11-28: the barge-in model called
+ * 2 of 3 "mm-hm"s an interruption after 0.02 s of overlap; the pause (and, with
+ * BARGE_IN_FAST_STOP, the clear of the queued audio) stopped Ferni mid-sentence, and the verdict
+ * that it was a backchannel came ~1.7 s later. A backchannel is over before the hold ends, so
+ * the reply plays straight through; a real interruption still stops it, and a verdict to cut
+ * (clearBuffer) or the soft pause's own pause (pauseNow) acts at once.
+ *
  * A pause that LiveKit never resumes at all, because the caller's end of speech
  * came before it (a VAD frame left over from their last words), is resumed by
  * the SDK patch's watchdog (PAUSE_RESUME_WATCHDOG; paused-lead-in.sdk.test.ts).
@@ -25,9 +33,25 @@
  */
 import { voice } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
+import { flagOn } from '../../config/env-flag.js';
 
 /** More than the room output can queue (rtc AudioSource, 1 s by default). */
 const KEEP_MS = 1500;
+
+/**
+ * BARGE_IN_PAUSE_HOLD: how long LiveKit's pause waits for the caller to go quiet. The pause lands
+ * ~0.2 s into the caller's speech and user-state "speaking" runs 350 ms past the last word, so a
+ * 0.5 s backchannel reports as speaking until ~0.85 s from its start (~0.65 s after the pause);
+ * 750 ms clears that, and the sustained-speech fast path (950 ms) acts at about the same point.
+ */
+const PAUSE_HOLD_MS = 750;
+
+/** The caller's voice as LiveKit's AgentSession shows it (the owner; absent on a bare owner). */
+interface CallerVoice {
+  userState?: string;
+  on?: (event: string, handler: (ev: unknown) => void) => unknown;
+  off?: (event: string, handler: (ev: unknown) => void) => unknown;
+}
 
 export interface Queued {
   readonly audioSource?: { readonly queuedDuration?: number };
@@ -77,6 +101,10 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   private cuts = 0;
   /** The paused reply was cut (dropCutReply): its frames are dropped until the next resume. */
   private dropping = false;
+  /** BARGE_IN_PAUSE_HOLD: how long LiveKit's pause waits (the rows measure against it). */
+  static readonly holdMs = PAUSE_HOLD_MS;
+  /** BARGE_IN_PAUSE_HOLD: LiveKit's pause, waiting to see whether the caller keeps speaking. */
+  private deferred?: { timer: ReturnType<typeof setTimeout>; since: number; off: () => void };
 
   constructor(
     readonly inner: voice.AudioOutput,
@@ -140,7 +168,54 @@ export class ResumeBufferOutput extends voice.AudioOutput {
     }
   }
 
+  /** LiveKit's pause for the caller's overlap; with BARGE_IN_PAUSE_HOLD it waits (deferPause). */
   pause(): void {
+    if (!this.deferPause()) this.pauseNow();
+  }
+
+  /** Hold LiveKit's pause while the caller is speaking; true when it is being held. */
+  private deferPause(): boolean {
+    if (this.deferred) return true;
+    if (this.paused || !flagOn('BARGE_IN_PAUSE_HOLD')) return false;
+    const caller = this.owner as CallerVoice;
+    if (caller.userState !== 'speaking') return false; // no overlap now (or unknown): as on main
+    const onState = (ev: unknown): void => {
+      if ((ev as { newState?: string })?.newState !== 'speaking') this.endDeferral('quiet');
+    };
+    caller.on?.('user_state_changed', onState);
+    const timer = setTimeout(
+      () => this.endDeferral(caller.userState === 'speaking' ? 'applied' : 'quiet'),
+      PAUSE_HOLD_MS
+    );
+    this.deferred = {
+      timer,
+      since: Date.now(),
+      off: () => caller.off?.('user_state_changed', onState),
+    };
+    return true;
+  }
+
+  /** Stop holding the pause; 'applied' (the caller kept speaking) applies it now. */
+  private endDeferral(
+    why: 'applied' | 'quiet' | 'resumed' | 'interrupted' | 'superseded' | 'backchannel'
+  ): void {
+    const held = this.deferred;
+    if (!held) return;
+    this.deferred = undefined;
+    clearTimeout(held.timer);
+    held.off();
+    this.log({ event: 'pause_hold_ended', why, heldMs: Date.now() - held.since });
+    if (why === 'applied') this.pauseNow();
+  }
+
+  /** The barge-in model's verdict says backchannel: drop the held pause for good, the reply plays on. */
+  cancelHold(): void {
+    this.endDeferral('backchannel');
+  }
+
+  /** Pause now, never held: the soft pause decides on sustained speech, and the hold's end. */
+  pauseNow(): void {
+    this.endDeferral('superseded');
     if (!this.paused) {
       this.paused = true;
       pausedSessions.add(this.owner);
@@ -167,6 +242,7 @@ export class ResumeBufferOutput extends voice.AudioOutput {
   }
 
   resume(): void {
+    this.endDeferral('resumed'); // never paused: the reply played on
     super.resume();
     this.dropping = false;
     if (!this.paused) return;
@@ -223,6 +299,7 @@ export class ResumeBufferOutput extends voice.AudioOutput {
 
   clearBuffer(): void {
     // A real interruption: the paused reply is cut, nothing to bring back.
+    this.endDeferral('interrupted');
     const wasHeld = this.held;
     const heldEv = this.heldEv;
     this.heldEv = undefined;

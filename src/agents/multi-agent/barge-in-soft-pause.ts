@@ -134,7 +134,9 @@ export function liveCallSoftPause(
     pause: () => {
       const audio = output.output.audio;
       if (!audio?.canPause || !currentReplyInterruptible(session)) return false;
-      audio.pause();
+      if (audio instanceof ResumeBufferOutput)
+        audio.pauseNow(); // sustained speech: never held
+      else audio.pause();
       setPlayoutHeld(session, true);
       return true;
     },
@@ -176,4 +178,18 @@ export function onBargeInVerdict(
   const event = voice.AgentSessionEventTypes.OverlappingSpeech;
   events.on(event, handler as Handler);
   input.sessionEventHandlers.push({ event, handler: handler as Handler });
+}
+
+/**
+ * BARGE_IN_PAUSE_HOLD: a verdict that the overlap is a backchannel (isInterruption false) ends the
+ * held pause for good, so the reply plays straight on with no pause and no replay.
+ */
+export function cancelHoldOnBackchannel(input: LiveCallBehaviorsInput): void {
+  if (!flagOn('BARGE_IN_PAUSE_HOLD')) return;
+  const { session } = input;
+  onBargeInVerdict(input, (ev) => {
+    if ((ev as { isInterruption?: boolean })?.isInterruption !== false) return;
+    const { audio } = session.output;
+    if (audio instanceof ResumeBufferOutput) audio.cancelHold();
+  });
 }
