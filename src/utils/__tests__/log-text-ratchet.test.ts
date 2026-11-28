@@ -89,7 +89,6 @@ const PENDING_3215B: Record<string, string[]> = {
   'src/intelligence/triggers/voice-agent-integration.ts': [
     'nearSignificantDate: temporalBoost.nearSignificantDate?.description',
   ],
-  'src/intelligence/user-learning-engine/engine.ts': ['summary: moment.summary'],
   'src/memory/dynamic/fast-capture.ts': [
     'entities: mentionedEntities.map((e) => e.name).slice(0, 5)',
   ],
