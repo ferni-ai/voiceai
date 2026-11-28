@@ -98,7 +98,7 @@ describe('TURN_RECEIPT llm metric', () => {
     expect(r.tokens?.prompt).toBe(13_000);
     expect(r.timing.llmTtftMs).toBe(700);
     expect(r.tools.offered).toBe(90);
-    expect(r.director).toEqual({ offered: 2, kept: 1, droppedIdx: [1] });
+    expect(r.director).toEqual({ offered: 2, kept: 1, droppedIdx: [1], fired: [] });
     expect(r.prompt.requests).toBe(2);
     expect(r.prompt.sections).toEqual(expected.prompt.sections);
     expect(r.prompt.totalTokensEst).toBe(expected.prompt.totalTokensEst);

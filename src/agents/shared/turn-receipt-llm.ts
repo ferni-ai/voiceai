@@ -70,7 +70,7 @@ export interface RequestView {
   lane: { lane: 'fast' | 'main'; reason: string } | null;
   /** Where the router would send it with the lane off (FAST_LANE_SHADOW, turn-receipt-lane.ts). */
   laneShadow: LaneShadow | null;
-  director: { offered: number; kept: number; droppedIdx: number[] };
+  director: { offered: number; kept: number; droppedIdx: number[]; fired: string[] };
   toolsOffered: number | null;
   toolSchemaChars?: number;
 }

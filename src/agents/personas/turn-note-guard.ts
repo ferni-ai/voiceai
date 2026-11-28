@@ -55,6 +55,8 @@ interface TurnState {
   identityDropped: boolean;
   /** What the SAFE notes built this turn: all an unverified turn keeps of its notes. */
   safeNotes: Set<string>;
+  /** Names of the builders that returned note text this turn, in order: never the text. */
+  fired: string[];
 }
 let active: TurnState | undefined;
 
@@ -83,7 +85,9 @@ export function attempt<T>(name: string, build: () => T, fallback: T, marks: Not
   if (marks.safe) safeBuilders.add(name);
   try {
     const built = build();
-    if (marks.safe) for (const note of textsOf(built)) turn.safeNotes.add(note);
+    const texts = textsOf(built);
+    if (marks.safe) for (const note of texts) turn.safeNotes.add(note);
+    if (texts.length > 0 && !turn.fired.includes(name)) turn.fired.push(name);
     return built;
   } catch (error) {
     turn.dropped += 1;
@@ -97,6 +101,9 @@ export function attempt<T>(name: string, build: () => T, fallback: T, marks: Not
     return fallback;
   }
 }
+
+/** The builders that have returned note text so far this turn, by name (empty outside guardedTurn). */
+export const firedNotes = (): string[] => [...(active?.fired ?? [])];
 
 /** `fn` with its own catch, same signature, marked as `marks` says (NoteMarks). */
 export function guarded<F extends (...args: never[]) => unknown>(
@@ -162,7 +169,7 @@ export function guardedTurn(
   build: () => llm.ChatContext
 ): llm.ChatContext {
   const outer = active;
-  active = { log, sessionId, dropped: 0, identityDropped: false, safeNotes: new Set() };
+  active = { log, sessionId, dropped: 0, identityDropped: false, safeNotes: new Set(), fired: [] };
   try {
     return build();
   } catch (error) {

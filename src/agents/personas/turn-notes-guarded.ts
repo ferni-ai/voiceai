@@ -51,7 +51,8 @@ import { styleFor as raw_styleFor } from './turn-request-style.js';
 import { noteTurn as raw_noteTurn } from './move-log.js';
 import { clearBurstOffer as raw_clearBurstOffer } from './vocal-bursts.js';
 import { noteReminder as raw_noteReminder } from '../shared/turn-receipt-session.js';
-import { guarded, IDENTITY, IDENTITY_SAFE, SAFE } from './turn-note-guard.js';
+import type { ReminderNote } from '../shared/prompt-sections.js';
+import { firedNotes, guarded, IDENTITY, IDENTITY_SAFE, SAFE } from './turn-note-guard.js';
 
 export const worldNowNote = guarded('worldNow', raw_worldNowNote, '', IDENTITY);
 export const confirmedActionNote = guarded(
@@ -115,4 +116,10 @@ export const ferniStateTurn = guarded(
 export const styleFor = guarded('style', raw_styleFor, { text: '' }, SAFE);
 export const noteTurn = guarded('moveLog', raw_noteTurn, undefined);
 export const clearBurstOffer = guarded('burstOffer', raw_clearBurstOffer, undefined);
-export const noteReminder = guarded('receipt', raw_noteReminder, undefined);
+// The receipt also names the builders that gave this turn a note (names only, never the text).
+export const noteReminder = guarded(
+  'receipt',
+  (session: object, note: ReminderNote) =>
+    raw_noteReminder(session, { ...note, fired: firedNotes() }),
+  undefined
+);
