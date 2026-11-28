@@ -27,6 +27,7 @@ import {
 } from '../../speech/live-backchanneling/index.js';
 import { getLogger, replyForLog } from '../../utils/safe-logger.js';
 import { trackBackchannelEvent } from './speech-metrics-integration.js';
+import { noteBackchannelCancelled, noteBackchannelPlayed } from './backchannel-played.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import {
@@ -213,7 +214,10 @@ export function initializeLiveBackchanneling<T>(
     if (clipThisPause && pause.speaking()) {
       clipThisPause = false;
       // The caller carried on before the clip was heard: take it back.
-      if (cfg.cancelClip?.()) log.info({ by: 'pause_ended' }, 'CLIP_CANCELLED');
+      if (cfg.cancelClip?.()) {
+        log.info({ by: 'pause_ended' }, 'CLIP_CANCELLED');
+        noteBackchannelCancelled(session, 'pause_ended');
+      }
     }
     const agentSpeaking = isAgentSpeakingFn();
     if (agentWasSpeaking && !agentSpeaking) agentStoppedAt = Date.now();
@@ -266,6 +270,7 @@ export function initializeLiveBackchanneling<T>(
         recordLaugh(sessionId, true);
         state.lastBackchannelAt = now;
         log.info({}, 'LAUGH_ALONG clip played');
+        noteBackchannelPlayed(session, sessionId, 'laugh', at, state.userSpeechStartTime);
       }
       return;
     }
@@ -314,6 +319,7 @@ export function initializeLiveBackchanneling<T>(
     // LAUGH_CAP: a "Ha" heard is one of the call's laughs, whichever path played it.
     if (laugh && text === fitting) recordLaugh(sessionId, true);
     clipThisPause = true;
+    noteBackchannelPlayed(session, sessionId, 'backchannel', at, state.userSpeechStartTime);
     lastClip = text;
     state.lastBackchannelAt = now;
     trackBackchannelEvent(sessionId, {

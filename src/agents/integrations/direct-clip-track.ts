@@ -32,7 +32,7 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import { logVoicedTake } from './voiced-presence.js';
 import { tapClipSource } from '../multi-agent/self-voice-gate/session-gate.js';
-import { noteClipCut } from '../shared/call-timeline.js';
+import { cutFreshClipOnVoice } from './clip-voice-cut.js';
 
 const log = createLogger({ module: 'DirectClipTrack' });
 
@@ -293,12 +293,7 @@ export async function startDirectClips(
     return null;
   }
   tapClipSource(session, track.source); // SELF_VOICE_GATE: clips are Ferni's voice too
-  const onUser = (ev: { newState?: string }): void => {
-    if (ev.newState === 'speaking' && track.cancelIfFresh()) {
-      log.info({ by: 'vad' }, 'CLIP_CANCELLED');
-      noteClipCut(session, 'vad');
-    }
-  };
+  const onUser = (ev: { newState?: string }): void => cutFreshClipOnVoice(session, track, ev);
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   track.onClose(() => session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser));
   return track;
