@@ -258,6 +258,27 @@ export function earlierCallsIn(f, run) {
   return earlierCallsOf(run, runs);
 }
 
+const MINUTE = 60_000;
+const DAY = 86_400_000;
+
+/**
+ * When an earlier call happened, as the judge is told it. The nightly plays a seed call
+ * minutes before the call it seeds, so "days before" made the judge score Ferni's correct
+ * "we talked about that today" and "your class is tomorrow, Saturday the 28th" as invented
+ * (11-24 and 11-27 nightlies: 6 of 11 invented-memory items). Calls without both start
+ * times keep the old wording.
+ */
+export function whenBefore(earlier, run) {
+  const gap = run?.wallT0 - earlier?.wallT0;
+  if (!Number.isFinite(gap) || gap < 0) return 'days before';
+  if (gap >= DAY) return `${Math.round(gap / DAY)} day${gap >= 1.5 * DAY ? 's' : ''} before`;
+  const minutes = Math.max(1, Math.round(gap / MINUTE));
+  const span = minutes < 90 ? `${minutes} minute${minutes === 1 ? '' : 's'}` : `about ${Math.round(minutes / 60)} hours`;
+  // Past half a day it may be yesterday in the caller's zone, which the run doesn't record.
+  if (gap >= DAY / 2) return `it began ${span} before this call`;
+  return `it began ${span} before this call, the same day: "today", "earlier" or "just now" about it is accurate, and dates count from today`;
+}
+
 /** The judge prompt; `order` is the order the dimensions are listed and asked for in.
  * `seed` is the earlier call, or a list of them oldest first. */
 export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = personaProfile(personaOf(run)), { sounds = judgeSoundsOn(), checks = judgeChecksFor(run) } = {}) {
@@ -275,9 +296,9 @@ export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = 
   const before = [seed ?? []].flat();
   const earlier =
     before.length > 1
-      ? `EARLIER CALLS between the same two, oldest first (days before; ${who} may remember them):\n${before.map((r, i) => `Call ${i + 1}:\n${transcriptOf(r, who, { sounds })}`).join('\n\n')}\n\n`
+      ? `EARLIER CALLS between the same two, oldest first (${whenBefore(before[0], run)}; ${who} may remember them):\n${before.map((r, i) => `Call ${i + 1} (${whenBefore(r, run)}):\n${transcriptOf(r, who, { sounds })}`).join('\n\n')}\n\n`
       : before.length
-        ? `EARLIER CALL between the same two (days before; ${who} may remember it):\n${transcriptOf(before[0], who, { sounds })}\n\n`
+        ? `EARLIER CALL between the same two (${whenBefore(before[0], run)}; ${who} may remember it):\n${transcriptOf(before[0], who, { sounds })}\n\n`
         : `There was no earlier call; anything ${who} claims to remember from before is invented.\n\n`;
   const context = `${who} knows the caller's name is ${name} from their account, so using it is fine. ${who} is a character with a life of its own; its own stories (trips, neighbours, places it lived) are self-disclosure, not invented history; judge them under quirks for consistency with its background below and with what it said earlier in the call. "Invented history" means claims about earlier conversations with the caller, or about the caller's life, that were never said and can't be fairly inferred from what they did say (a caller who says "his heart again" has implied an earlier episode; "classic Biscuit" about a dog first mentioned seconds ago is invented familiarity).\n\n${bio ? `${WHO}'S BACKGROUND (canonical; stories that fit it are consistent):\n${bio}\n\n` : ''}`;
   return `You are judging how human and how good a friend "${who}" is on a voice call. Transcripts come from speech recognition and captions, so ignore spelling, casing and small transcription slips.

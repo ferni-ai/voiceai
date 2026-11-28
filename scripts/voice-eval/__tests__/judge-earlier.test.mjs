@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { DIMENSIONS, earlierCallsIn, earlierCallsOf, promptFor } from '../judge.mjs';
+import { DIMENSIONS, earlierCallsIn, earlierCallsOf, promptFor, whenBefore } from '../judge.mjs';
 
 const persona = { id: 'ferni', name: 'Ferni', bio: '' };
 const order = Object.keys(DIMENSIONS);
@@ -53,8 +53,8 @@ describe('promptFor with earlier calls', () => {
     const text = p([first, second]);
     expect(text).toContain('EARLIER CALLS between the same two, oldest first');
     expect(text).not.toContain('There was no earlier call');
-    const a = text.indexOf('Call 1:');
-    const b = text.indexOf('Call 2:');
+    const a = text.indexOf('Call 1 (');
+    const b = text.indexOf('Call 2 (');
     expect(a).toBeGreaterThan(-1);
     expect(b).toBeGreaterThan(a);
     expect(text.indexOf('Larkfield')).toBeGreaterThan(a);
@@ -86,5 +86,48 @@ describe('earlierCallsIn (the run directory)', () => {
     const f = put('memlive-mover-quiz-n1sweep.json', quiz);
     const said = earlierCallsIn(f, quiz).map((r) => r.events[1].text);
     expect(said).toEqual(['We are moving to a town called Larkfield.', 'Seeded line.', 'The movers come on the ninth.']);
+  });
+});
+
+describe('whenBefore (how long ago the judge is told an earlier call was)', () => {
+  const MIN = 60_000;
+  const DAY = 86_400_000;
+  const at = (wallT0) => ({ wallT0 });
+  const now = 1_795_765_440_136; // the 11-27 memlive quiz
+
+  it('a seed call minutes earlier is the same day, so "today" about it is not invented', () => {
+    const text = whenBefore(at(now - 2.4 * MIN), at(now));
+    expect(text).toContain('2 minutes before this call, the same day');
+    expect(text).toContain('"today"');
+    expect(text).not.toContain('days before');
+  });
+
+  it('hours earlier is still the same day', () => {
+    expect(whenBefore(at(now - 3 * 60 * MIN), at(now))).toContain('about 3 hours before this call, the same day');
+  });
+
+  it('past half a day it makes no same-day claim (it may be yesterday for the caller)', () => {
+    expect(whenBefore(at(now - 20 * 60 * MIN), at(now))).toBe('it began about 20 hours before this call');
+  });
+
+  it('a call from days ago says how many days', () => {
+    expect(whenBefore(at(now - 3 * DAY), at(now))).toBe('3 days before');
+    expect(whenBefore(at(now - DAY), at(now))).toBe('1 day before');
+  });
+
+  it('without both start times keeps the old wording', () => {
+    expect(whenBefore({}, at(now))).toBe('days before');
+    expect(whenBefore(at(now), {})).toBe('days before');
+    expect(whenBefore(at(now + MIN), at(now))).toBe('days before');
+  });
+
+  it('the prompt carries the real gap for one call and for each of several', () => {
+    const seedMinutesAgo = { ...first, wallT0: now - 5 * MIN };
+    const one = promptFor({ ...quiz, wallT0: now }, seedMinutesAgo, order, persona, opts);
+    expect(one).toContain('EARLIER CALL between the same two (it began 5 minutes before this call, the same day');
+    expect(one).not.toContain('days before');
+    const two = promptFor({ ...quiz, wallT0: now }, [{ ...first, wallT0: now - 2 * DAY }, { ...second, wallT0: now - 4 * MIN }], order, persona, opts);
+    expect(two).toContain('Call 1 (2 days before):');
+    expect(two).toContain('Call 2 (it began 4 minutes before this call, the same day');
   });
 });
