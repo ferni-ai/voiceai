@@ -49,6 +49,7 @@ export const CONTENT = new RegExp(
     String.raw`\b(?:purpose|triggerReason|handoffReason|script|notes?|objective|quote|payload|identity|arguments|\w*args|city|cityOnly|location|effectiveLocation|locationName|latitude|longitude|locales?|facts?|phone\w*|text|query|utterance|content|textContent|interests?|prediction|memoryToSurface|connectionReason|originalFact|updatedFact|intention(?!Ids?\b)\w*)\b`,
     String.raw`\w*(?:transcript|summary|accent|userText|userInput|userMessage|originalMessage|goalText|commitmentText|assessment|topics|email|address)\w*`,
     String.raw`\b\w*[cC]ontext\b(?!\??\.)|\bctx\b(?!\??\.)|\bmacOS\w*`,
+    String.raw`\b(?:event|ev)\b(?!\??\.)`, // a whole SDK event: tool arguments and outputs, a transcript
     String.raw`\bpref(?:erence)?s?\??\.value\b`,
     String.raw`\benriched(?:Message|Text|Purpose|Content)?\b(?!\??\.(?:metadata|primary|mismatch|confidence))`,
     String.raw`\b(?:region|country)(?:Code)?\b`,
@@ -66,7 +67,7 @@ const ERROR_TEXT =
 
 /** A value that says only whether, how many, how long or which kind; or a helper that reduces it so. */
 export const SHAPE =
-  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:this\.)?(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog|repliesForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
+  /^!|^[^'`]*\?\s*'[^']*'\s*:\s*(?:[^'`]*\?\s*'[^']*'\s*:\s*)*'[^']*'$|^Boolean\(|\.length\b|Object\.keys\(|\.size\b|\? '(?:yes|YES)'|^(?:this\.)?(?:participantKind|errorClass|errorText|jobMetadataLine|toolCallText|toolsExecutedFields|identityDiagnosticsText|awarenessKind|maskPhone|redactPhone|replyForLog|repliesForLog)\(|^-?\d+(?:\.\d+)?$|^(?:true|false|null|undefined)$|^Date\.now\(\)/;
 
 export interface Exemptions {
   /** Whole calls left as they are, by exact source text: [file suffix, exact argument text]. */
