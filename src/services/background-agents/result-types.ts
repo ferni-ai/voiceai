@@ -87,6 +87,15 @@ export const BackgroundResultSchema = z.object({
   // Follow-up info
   requiresCallback: z.boolean().default(false),
   callbackTime: z.string().optional(),
+  // A call's own follow-up fields (its CallOutcome's), read through callback-meaning.ts: the
+  // writer's flag fixes requiresCallback, so a reader derives the ask from these (#4468).
+  callFollowUp: z
+    .object({
+      status: z.string().optional(),
+      callbackRequired: z.boolean().optional(),
+      retryOffered: z.boolean().optional(),
+    })
+    .optional(),
   actionItems: z.array(z.string()).default([]),
 
   // Delivery tracking

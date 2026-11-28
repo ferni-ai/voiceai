@@ -2,8 +2,10 @@
  * PREEMPTIVE_TTS=on asks the SDK to synthesize preemptive replies early; off
  * leaves the session options exactly as before.
  */
-import { voice } from '@livekit/agents';
+import { log as sdkLog, voice } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { endpointingDelays } from '../../shared/turn-patience.js';
+import { interruptionOverrides } from '../interruption-config.js';
 import { preemptiveGenerationOverrides } from '../preemptive-tts.js';
 
 const sessions: Array<{ opts: Record<string, unknown> }> = [];
@@ -86,29 +88,91 @@ describe('PREEMPTIVE_TTS', () => {
 
   it('leaves the session options unchanged when off', async () => {
     const off = await build();
-    expect(Object.keys(off.turnHandling as object)).toEqual(['interruption']);
+    expect(Object.keys(off.turnHandling as object)).toEqual([
+      'interruption',
+      'endpointing',
+      'preemptiveGeneration',
+    ]);
     const sdk = sdkTurnHandling(off).turnHandling.preemptiveGeneration;
     expect(sdk.enabled).toBe(true); // LLM-only preemption, as before
     expect(sdk.preemptiveTts).toBe(false);
-    process.env.PREEMPTIVE_TTS = 'on';
-    const on = await build();
-    expect(on.voiceOptions).toEqual(off.voiceOptions);
   });
 
-  // Why voiceOptions stays: turnHandling has no endpointing, so the SDK takes
-  // the turn-patience delays from voiceOptions. Dropping it would fall back to
-  // the SDK's own delays.
-  it('still takes the endpointing delays from voiceOptions', async () => {
+  it('takes the endpointing delays from turnHandling, not the SDK defaults', async () => {
+    const { minEndpointingDelay, maxEndpointingDelay } = endpointingDelays();
+    const { endpointing } = sdkTurnHandling(await build()).turnHandling;
+    expect(endpoint(endpointing)).toEqual([minEndpointingDelay, maxEndpointingDelay]);
+    const { turnHandling: _th, ...without } = await build();
+    const bare = sdkTurnHandling(without).turnHandling.endpointing;
+    expect(endpoint(bare)).not.toEqual([minEndpointingDelay, maxEndpointingDelay]);
+  });
+});
+
+const endpoint = (e: { minDelay: number; maxDelay: number }): number[] => [e.minDelay, e.maxDelay];
+
+/** The options as they were: `voiceOptions` carrying the delays, interruption values and the flag. */
+function legacyShape(opts: Record<string, unknown>): Record<string, unknown> {
+  const { turnHandling: _current, ...rest } = opts;
+  return {
+    ...rest,
+    turnHandling: {
+      interruption: interruptionOverrides(process.env, {}),
+      ...preemptiveGenerationOverrides(),
+    },
+    voiceOptions: {
+      allowInterruptions: true,
+      ...endpointingDelays(),
+      minInterruptionWords: 1,
+      minInterruptionDuration: 150,
+      preemptiveGeneration: true,
+    },
+  };
+}
+
+describe('turnHandling replaces the deprecated voiceOptions (SDK 1.9.3)', () => {
+  beforeEach(() => {
+    process.env.DISABLE_VAD = 'true';
+    sessions.length = 0;
+  });
+  afterEach(() => {
+    for (const name of ['PREEMPTIVE_TTS', 'INTERRUPTION_MODE', 'BARGE_IN_GUARD', 'NEVER_SILENT'])
+      delete process.env[name];
+  });
+
+  const envs: Array<[string, Record<string, string>]> = [
+    ['defaults', {}],
+    ['PREEMPTIVE_TTS=on', { PREEMPTIVE_TTS: 'on' }],
+    ['INTERRUPTION_MODE=vad', { INTERRUPTION_MODE: 'vad' }],
+    ['BARGE_IN_GUARD=on', { BARGE_IN_GUARD: 'on', NEVER_SILENT: 'on' }],
+  ];
+
+  it.each(envs)('%s: the SDK resolves the same turn handling as before', async (_name, env) => {
+    Object.assign(process.env, env);
     const opts = await build();
-    const vo = opts.voiceOptions as { minEndpointingDelay: number; maxEndpointingDelay: number };
-    const withVo = sdkTurnHandling(opts).turnHandling.endpointing;
-    expect(withVo.minDelay).toBe(vo.minEndpointingDelay);
-    expect(withVo.maxDelay).toBe(vo.maxEndpointingDelay);
-    const { voiceOptions: _vo, ...without } = opts;
-    const withoutVo = sdkTurnHandling(without).turnHandling.endpointing;
-    expect([withoutVo.minDelay, withoutVo.maxDelay]).not.toEqual([
-      withVo.minDelay,
-      withVo.maxDelay,
+
+    expect(sdkTurnHandling(opts).turnHandling).toEqual(
+      sdkTurnHandling(legacyShape(opts)).turnHandling
+    );
+  });
+
+  it('sets neither voiceOptions nor a top-level preemptiveGeneration', async () => {
+    const opts = await build();
+
+    expect(opts).not.toHaveProperty('voiceOptions');
+    expect(opts).not.toHaveProperty('preemptiveGeneration');
+  });
+
+  it('the SDK logs no deprecation warning for the new shape, and does for the old one', async () => {
+    const warn = vi.spyOn(sdkLog(), 'warn');
+    const opts = await build();
+
+    sdkTurnHandling(opts);
+    expect(warn).not.toHaveBeenCalled();
+
+    sdkTurnHandling(legacyShape(opts));
+    expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
+      expect.stringContaining('voiceOptions is deprecated'),
+      expect.stringContaining('preemptiveGeneration as a top-level option is deprecated'),
     ]);
   });
 });

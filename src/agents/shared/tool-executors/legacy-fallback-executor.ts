@@ -1679,7 +1679,7 @@ export async function executeLegacyFallback(
   // ========================================
   if (fnLower === 'calculatetip') {
     const amount = args.amount as number;
-    const percentage = (args.percentage as number) || 20;
+    const percentage = (args.percentage as number | undefined) ?? 20;
     const split = (args.split as number) || 1;
 
     if (!amount || amount <= 0) {
@@ -2138,7 +2138,7 @@ export async function executeLegacyFallback(
       split?: number;
     };
     if (!amount) return 'What was the bill amount?';
-    const tipPercent = percentage || 20;
+    const tipPercent = percentage ?? 20;
     const tip = amount * (tipPercent / 100);
     const total = amount + tip;
     log.info({ amount, tipPercent, split }, '💰 Calculate tip');

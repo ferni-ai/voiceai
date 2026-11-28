@@ -38,6 +38,7 @@ import { getClientIp } from '../utils/ddos-protection.js';
 import { rateLimitUid } from './rate-limit-identity.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
+import { logUnauthorized } from './known-probe-log.js';
 import { authCheckUnavailable, verifyTokenOnce } from './verify-token-once.js';
 import { isAuthCheckUnavailable } from '../services/identity/token-revocation.js';
 
@@ -289,9 +290,8 @@ export async function requireAuth(
 
   // No auth found (a token that couldn't be checked is a 503, never a 401)
   if (!auth) {
-    if (authCheckUnavailable(req, res)) return null;
-    if (optional) return null;
-    log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
+    if (authCheckUnavailable(req, res) || optional) return null;
+    logUnauthorized(req);
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }

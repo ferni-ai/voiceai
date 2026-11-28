@@ -18,7 +18,7 @@ import {
   parseLabRequest,
   type LabCommand,
   type LabMoment,
-} from '../../src/avatar-lab/lab-protocol.js';
+} from '../../src/ui/avatar-lab-protocol.js';
 import { holdCrisisFace, releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 import { EMOTIONAL_EXPRESSIONS } from '../../src/ui/ferni-expressions.ui.js';
 

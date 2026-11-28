@@ -8,6 +8,7 @@
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { isFerniSpelling, nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
+import { accountNameHeld, callOnlyNote } from '../../../utils/guest-names-owner.js';
 import { z } from 'zod';
 // Import directly from types to avoid circular dependency through services/index
 import type { SessionServices } from '../../../services/types.js';
@@ -86,9 +87,8 @@ export function createConversationTools() {
 
         // Store in session memory
         userData.name = name;
-
-        // CRITICAL: Persist to user profile AND save to Firestore!
-        if (userData.services?.userProfile) {
+        const held = accountNameHeld(userData); // NAME_GUEST_NAMES_OWNER: this call only
+        if (userData.services?.userProfile && !held) {
           userData.services.userProfile.name = name;
           userData.services.userProfile.preferredName = name;
 
@@ -107,7 +107,7 @@ export function createConversationTools() {
           }
         }
 
-        // Return is for internal confirmation only - Jack should respond naturally, not read this
+        if (held) return callOnlyNote(name); // never "stored" when the account wasn't written
         return `[INTERNAL: Name "${name}" stored. Respond naturally - do NOT read this message aloud.]`;
       },
     }),

@@ -9,7 +9,7 @@
 import type { Env } from '../../config/env-flag.js';
 import { FLAG_MANIFEST, type FlagName } from '../../config/flag-manifest.js';
 import { flagModeOf, flagOn } from '../../config/env-flag.js';
-import { emitEvent } from './bq-events.js';
+import { emitEvent, MAX_LIST } from './bq-events.js';
 import type { CallSession } from './call-quality-monitor.js';
 
 /** Sent with endCall from the call's process, where conversation state lives. */
@@ -43,6 +43,11 @@ export function adoptCallerId(session: CallSession, userId?: string, env: Env = 
   if (!session.userId && userId && flagOn('BQ_CALL_USER_HASH', env)) session.userId = userId;
 }
 
+/** BQ_FLAGS_COLUMN_CAP: the first MAX_LIST sorted names, so more flags on than the column holds never refuses the row. */
+function fitColumn(names: string[], env: Env): string[] {
+  return flagOn('BQ_FLAGS_COLUMN_CAP', env) ? [...names].sort().slice(0, MAX_LIST) : names;
+}
+
 export function emitCallEnd(
   session: CallSession,
   summary?: CallSummary,
@@ -60,7 +65,7 @@ export function emitCallEnd(
       turns: typeof summary?.turns === 'number' ? summary.turns : null,
       first_response_ms: session.firstResponseTimeMs ?? null,
       interruptions: session.interruptionCount,
-      flags: Array.isArray(summary?.flags) ? summary.flags : onExperimentFlags(env),
+      flags: fitColumn(Array.isArray(summary?.flags) ? summary.flags : onExperimentFlags(env), env),
     },
     { userId: session.userId, sessionId: session.callId },
     typeof summary?.bq === 'boolean' ? { ...env, BQ_EVENTS: summary.bq ? 'on' : 'off' } : env

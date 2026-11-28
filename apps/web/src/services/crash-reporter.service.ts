@@ -23,7 +23,6 @@ interface CrashContext {
   personaId?: string;
   connectionState?: 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
   turnCount?: number;
-  lastUserMessage?: string;
   customData?: Record<string, unknown>;
   sessionStartTime?: number;
 }
@@ -39,7 +38,6 @@ interface CrashReport {
   connectionState?: string;
   lastActivity?: string;
   turnCount?: number;
-  lastUserMessage?: string;
   userAgent?: string;
   url?: string;
   timestamp?: string;
@@ -58,7 +56,6 @@ let currentContext: CrashContext = {};
 let isInitialized = false;
 let lastActivity = new Date().toISOString();
 let turnCount = 0;
-let lastUserMessage = '';
 
 // Queue for offline crashes
 const crashQueue: CrashReport[] = [];
@@ -77,21 +74,11 @@ export function updateCrashContext(context: Partial<CrashContext>): void {
 }
 
 /**
- * Record a user message (for crash context)
- */
-export function recordUserMessage(message: string): void {
-  lastUserMessage = message.slice(0, 200); // Truncate for privacy
-  turnCount++;
-  lastActivity = new Date().toISOString();
-}
-
-/**
  * Reset context (on session end)
  */
 export function resetCrashContext(): void {
   currentContext = {};
   turnCount = 0;
-  lastUserMessage = '';
 }
 
 // ============================================================================
@@ -155,7 +142,6 @@ export async function reportCrash(
     ...additionalContext,
     lastActivity,
     turnCount,
-    lastUserMessage,
     userAgent: navigator.userAgent,
     url: reportableUrl(),
     timestamp: new Date().toISOString(),
@@ -211,7 +197,6 @@ export function reportConnectionDrop(
     wasGraceful,
     sessionDurationMs,
     turnCount: currentContext.turnCount,
-    lastUserMessage: currentContext.lastUserMessage,
     connectionState: currentContext.connectionState,
     ...additionalContext,
   };
@@ -231,7 +216,6 @@ export function reportConnectionDrop(
       wasGraceful,
       sessionDurationMs,
       turnCount: currentContext.turnCount,
-      lastUserMessage: currentContext.lastUserMessage,
       ...additionalContext,
     },
   });
@@ -348,6 +332,5 @@ export const crashReporter = {
   report: reportCrash,
   reportConnectionDrop,
   updateContext: updateCrashContext,
-  recordMessage: recordUserMessage,
   resetContext: resetCrashContext,
 };

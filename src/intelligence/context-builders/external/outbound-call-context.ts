@@ -24,6 +24,7 @@ import {
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { outboundOpener, partiesOf } from '../../../services/outreach/opening-line.js';
+import type { RelationGroup } from '../../../memory/domain/index.js';
 import { isCallOpeningAmdEnabled } from '../../../config/call-opening-flag.js';
 import { flagOn } from '../../../config/env-flag.js';
 
@@ -33,7 +34,22 @@ const log = createLogger({ module: 'context:outbound-call' });
 // TYPES
 // ============================================================================
 
-interface OutboundCallContext {
+/**
+ * ON_BEHALF_FULL_CONTEXT, set once per call by the agent job from the signed
+ * dispatch (agents/voice-agent-entry/on-behalf-full-context.ts). The prompt
+ * reads only these, never the flag: absent, the prompt is main's.
+ */
+export interface FullCallContext {
+  fullContext: true;
+  /** The canonical relation (person-key.ts relationOf: "mom" → "mother"); never a bare group. */
+  relationship?: string;
+  /** The relationship's group, or "family" when the contact store saved only that. */
+  relationshipGroup?: RelationGroup;
+  /** What the requester said about the call: one line, capped. */
+  background?: string;
+}
+
+interface OutboundCallContext extends Partial<FullCallContext> {
   callId: string;
   recipientName: string;
   recipientPhone: string;
@@ -266,17 +282,69 @@ Say it about ${who}, in the third person ("${who} asked me to..."). Their "I" me
 yourself as ${who} or speak as if you were them.`;
 }
 
+/**
+ * ON_BEHALF_FULL_CONTEXT: a contact saved only as a relation ("my mom", or
+ * "Sam's mom" on Sam's call) says who they are to the user, not their name.
+ * partiesOf owns that reading, as it does for the opener.
+ */
+function relationOnly(context: OutboundCallContext): string | undefined {
+  if (!context.fullContext) return undefined;
+  const { recipientName, relation } = partiesOf(context);
+  return recipientName ? undefined : relation;
+}
+
+/** Who Ferni is calling, as the prompt names them: never a bare "mom" to say back to them. */
+function calledAs(context: OutboundCallContext): string {
+  const relation = relationOnly(context);
+  if (!relation) return context.recipientName;
+  const family = context.relationshipGroup === 'family' && context.relationship;
+  return `${context.userName}'s ${family || relation}`;
+}
+
+/** Who they are to the user, the way you'd brief someone making the call for you. */
+function relationshipLine(context: OutboundCallContext): string | undefined {
+  const { relationship, relationshipGroup: group, userName: who } = context;
+  if (group === 'professional' && relationship) {
+    return `This is ${who}'s ${relationship}'s office, and the front desk may answer. Keep it professional and say who you're calling for.`;
+  }
+  const close = group === 'family' || group === 'friend';
+  const warm = close ? ` Be warm, like a friend of ${who}'s they'd be glad to hear from.` : '';
+  if (!relationship) {
+    return group === 'family' ? `This is someone in ${who}'s family.${warm}` : undefined;
+  }
+  const { recipientName } = partiesOf(context);
+  const whoTheyAre = recipientName
+    ? `${recipientName} is ${who}'s ${relationship}.`
+    : `This is ${who}'s ${relationship}.`;
+  return `${whoTheyAre}${warm}`;
+}
+
+/**
+ * Who the person is to the user and what the user said about the call, both
+ * from a signed dispatch. The background is for Ferni to know, not a second
+ * message: "don't tell her about the party" must never be passed on.
+ */
+function backgroundLines(context: OutboundCallContext): string {
+  const who = context.userName;
+  const lines = [
+    relationshipLine(context),
+    context.background &&
+      `What ${who} told you about this call (background for you, not a message to pass on unless it says to): "${context.background}"`,
+  ].filter(Boolean);
+  return lines.length ? `\n\n${lines.join('\n')}` : '';
+}
+
 function buildPurposeInjection(context: OutboundCallContext): string {
   return `
 OUTBOUND CALL ON BEHALF OF USER
 
 You are making a phone call ON BEHALF of ${context.userName}.
-You are calling: ${context.recipientName}
+You are calling: ${calledAs(context)}
 Call type: ${context.callType}
 
 PRIMARY OBJECTIVE: ${context.objective}
 
-${purposeLine(context)}
+${purposeLine(context)}${backgroundLines(context)}
 
 TALK THE WAY PEOPLE DO ON THE PHONE:
 ${firstReplyRule(context)}- After they respond, say why you're calling in one or two sentences. Don't open with small
@@ -289,7 +357,7 @@ ${firstReplyRule(context)}- After they respond, say why you're calling in one or
 - When they give a date, time, number or address, let them finish, then read it back.
 - Never pretend to be ${context.userName}, and don't promise things for ${context.userName}; say
   you'll pass it on.
-${earlierCallRule(context)}- If someone else answers, ask for ${context.recipientName} warmly and keep the reason to yourself.
+${earlierCallRule(context)}- If someone else answers, ask for ${calledAs(context)} warmly and keep the reason to yourself.
 - On a family call, if they want to chat a little, follow their lead, then gently come back.
 
 CRITICAL REMINDERS:
@@ -323,7 +391,7 @@ When the reason for the call is done, or they say they need to go:
 2. Leave room once: "Anything you'd like me to pass along to ${context.userName}?" If they bring
    up something new, that's normal: follow it, then wind down again.
 3. Recap in one sentence what you'll tell ${context.userName}.
-4. "Thanks, ${context.recipientName}. Bye!" Wait for their goodbye, then call the endCall tool.
+4. "Thanks${relationOnly(context) ? '' : `, ${context.recipientName}`}. Bye!" Wait for their goodbye, then call the endCall tool.
 If they're rushed or frustrated, skip to a one-line recap and goodbye. If they say bye first,
 say bye back and call endCall.
 

@@ -41,7 +41,7 @@ import {
   followThroughOpenerEnabled,
   followThroughReplyListeners,
 } from './follow-through-opener.js';
-import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
+import { guestOnCall } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installSelfVoiceGate, logSelfVoiceShadow } from './self-voice-gate/session-gate.js';
 import {
@@ -319,8 +319,8 @@ function confirmNote(session: { currentAgent: unknown }, sessionId: string) {
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
 export function speakerIsAccountOwner(sessionId: string): boolean {
-  // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
-  if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
+  // ROOM_GUESTS or NAME_GUEST_NAMES_OWNER: a guest is on the line, so the yes may be theirs.
+  if (guestOnCall(sessionId)) return false;
   return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 

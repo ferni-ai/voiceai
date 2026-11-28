@@ -12,7 +12,7 @@
 import { createMindNote, type MindNoteDeps } from '../../intelligence/theory-of-mind/note.js';
 import { firestoreMindStore } from '../../memory/storage/mind-store.js';
 import { forgottenFilter } from './forgotten-filter.js';
-import { addRecallNote, type RecallAgent } from './memory-recall-hook.js';
+import { addRecallNotes, callerMemoryNote, type RecallAgent } from './recall-note.js';
 
 export { theoryOfMindMode } from '../../intelligence/theory-of-mind/after-call.js';
 
@@ -35,7 +35,7 @@ export function attachMindNote(
   const onTranscript = (event: unknown) => {
     const transcript = (event as { transcript?: string }).transcript;
     const note = transcript ? mind.noteFor(transcript) : null;
-    if (note) addRecallNote(agent, note, transcript);
+    if (note) addRecallNotes(agent, [callerMemoryNote(note)], transcript); // CRISIS_NO_MEMORY_RECALL
   };
   const onAgentState = (event: unknown) => {
     if ((event as { newState?: string }).newState === 'speaking') mind.newTurn();

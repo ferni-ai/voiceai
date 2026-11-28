@@ -19,7 +19,7 @@ import {
   unknownRequestId,
   type LabReply,
   type LabRequest,
-} from './lab-protocol.js';
+} from '../ui/avatar-lab-protocol.js';
 
 const log = createLogger('AvatarLabBridge');
 

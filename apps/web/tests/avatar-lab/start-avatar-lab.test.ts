@@ -72,7 +72,7 @@ import { initializeTheme } from '../../src/app/app-theme.js';
 import { startAvatarLab } from '../../src/avatar-lab/index.js';
 import { startLabBridge } from '../../src/avatar-lab/lab-bridge.js';
 import type { LabDeps } from '../../src/avatar-lab/lab-commands.js';
-import { LAB_MESSAGE_TYPE } from '../../src/avatar-lab/lab-protocol.js';
+import { LAB_MESSAGE_TYPE } from '../../src/ui/avatar-lab-protocol.js';
 import { playNameLift } from '../../src/ui/avatar-motion/name-lift.js';
 import { holdCrisisFace, releaseCrisisFace } from '../../src/ui/face/crisis-face-hold.js';
 import { bootAvatarNow, scheduleAvatar } from '../../src/ui/avatar-boot.js';
