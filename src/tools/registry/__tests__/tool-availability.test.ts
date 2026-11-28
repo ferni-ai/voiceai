@@ -6,9 +6,15 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const logs = vi.hoisted(() => ({ info: vi.fn() }));
+const logs = vi.hoisted(() => ({ info: vi.fn(), debug: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => {
-  const l = { debug: vi.fn(), info: logs.info, warn: vi.fn(), error: vi.fn(), child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) };
+  const l = {
+    debug: logs.debug,
+    info: logs.info,
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  };
   return { getLogger: () => l, createLogger: () => l, safeLog: () => l };
 });
 
@@ -58,6 +64,7 @@ describe('requiresEnv availability', () => {
     for (const k of KEYS) vi.stubEnv(k, '');
     resetToolAvailabilityLog();
     logs.info.mockClear();
+    logs.debug.mockClear();
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -83,6 +90,57 @@ describe('requiresEnv availability', () => {
       domain: 'information',
       missingEnv: ['FAKE_TOOL_KEY'],
     });
+  });
+
+  it('the nine Sonos tools make one info line a boot, not nine; each tool is still named at debug', () => {
+    registered(entertainmentDefs);
+    const skip = (calls: unknown[][]) =>
+      calls.filter((c) => String(c[1]).startsWith('TOOL_UNAVAILABLE')).map((c) => c[0]);
+
+    const info = skip(logs.info.mock.calls) as Array<{ toolId: string; missingEnv: string[] }>;
+    expect(info).toHaveLength(1);
+    expect(SONOS).toContain(info[0].toolId);
+    expect(info[0].missingEnv).toEqual(['SONOS_CLIENT_ID', 'SONOS_CLIENT_SECRET']);
+    const named = [...info, ...(skip(logs.debug.mock.calls) as typeof info)].map((e) => e.toolId);
+    expect(named.sort()).toEqual([...SONOS].sort());
+  });
+
+  it('a second domain gets its own info line', () => {
+    registered([...entertainmentDefs, ...videoDefs]);
+    const info = logs.info.mock.calls
+      .filter((c) => String(c[1]).startsWith('TOOL_UNAVAILABLE'))
+      .map((c) => `${c[0].domain}:${c[0].missingEnv.join('+')}`);
+
+    expect(info.sort()).toEqual([
+      'entertainment:SONOS_CLIENT_ID+SONOS_CLIENT_SECRET',
+      'video:TMDB_API_KEY',
+    ]);
+    registered([...entertainmentDefs, ...videoDefs]); // the same boot: nothing more
+    expect(
+      logs.info.mock.calls.filter((c) => String(c[1]).startsWith('TOOL_UNAVAILABLE'))
+    ).toHaveLength(2);
+  });
+
+  it('the same domain missing a different key gets its own info line', () => {
+    const tool = (id: string, key: string): ToolDefinition => ({ ...fake([key]), id });
+
+    registered([tool('toolA', 'KEY_A'), tool('toolB', 'KEY_B'), tool('toolC', 'KEY_A')]);
+
+    const info = logs.info.mock.calls.filter((c) => String(c[1]).startsWith('TOOL_UNAVAILABLE'));
+    expect(info.map((c) => c[0].toolId)).toEqual(['toolA', 'toolB']);
+  });
+
+  it('two domains missing the same key each get an info line', () => {
+    const tool = (id: string, domain: ToolDefinition['domain']): ToolDefinition => ({
+      ...fake(['KEY_A']),
+      id,
+      domain,
+    });
+
+    registered([tool('toolA', 'information'), tool('toolB', 'entertainment')]);
+
+    const info = logs.info.mock.calls.filter((c) => String(c[1]).startsWith('TOOL_UNAVAILABLE'));
+    expect(info.map((c) => c[0].domain)).toEqual(['information', 'entertainment']);
   });
 
   it('TOOL_REQUIRES_ENV=off registers it anyway, as before', () => {

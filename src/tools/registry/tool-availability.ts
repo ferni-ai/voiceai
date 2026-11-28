@@ -8,9 +8,10 @@
  * dead ends. The always-on fetcher (orchestrator/tool-fetchers.ts) creates
  * every tool of a domain without checking `requiredServices`, so a definition
  * names the env vars it needs in `requiresEnv`, and the registry refuses to
- * register it while any is missing: no path can offer it. Each skipped tool is
- * logged once per process. With the key set the tool is registered as before.
- * TOOL_REQUIRES_ENV=off registers every tool, as before.
+ * register it while any is missing: no path can offer it. Skipped tools are logged
+ * once per process for each domain and set of missing vars at info (the nine Sonos
+ * tools were nine lines a boot), and each tool once at debug. With the key set the
+ * tool is registered as before. TOOL_REQUIRES_ENV=off registers every tool, as before.
  *
  * @module tools/registry/tool-availability
  */
@@ -32,8 +33,9 @@ export function missingEnv(
 }
 
 const logged = new Set<string>();
+const loggedGroups = new Set<string>();
 
-/** True when the tool may be registered; logs a skipped tool once per process. */
+/** True when the tool may be registered; logs what is skipped once per process (see the module note). */
 export function toolAvailable(
   def: Pick<ToolDefinition, 'id' | 'domain' | 'requiresEnv' | 'availableWhen'>,
   env: Env = process.env
@@ -44,7 +46,10 @@ export function toolAvailable(
   if (missing.length === 0) return true;
   if (!logged.has(def.id)) {
     logged.add(def.id);
-    getLogger().info(
+    const group = `${def.domain}|${missing.join(',')}`;
+    const level = loggedGroups.has(group) ? 'debug' : 'info';
+    loggedGroups.add(group);
+    getLogger()[level](
       { toolId: def.id, domain: def.domain, missingEnv: missing },
       'TOOL_UNAVAILABLE: required env not set, tool not offered'
     );
@@ -60,4 +65,5 @@ export function requiringEnv(names: readonly string[], defs: ToolDefinition[]): 
 /** Tests: forget which tools were logged. */
 export function resetToolAvailabilityLog(): void {
   logged.clear();
+  loggedGroups.clear();
 }
