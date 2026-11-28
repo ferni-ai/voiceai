@@ -42,7 +42,13 @@ vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
     return { success: true, messageSid: 'SM1' };
   }),
 }));
-vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
+// Every name the code path imports from llm-utils; the two callers are reached by dynamic
+// imports (session, memory) and return '' when callLLM gives null, as the real ones do.
+vi.mock('../../../llm-utils.js', () => ({
+  callLLM: vi.fn(async () => null),
+  createEmotionLLMCaller: () => async () => '',
+  createSummarizationLLMCaller: () => async () => '',
+}));
 
 const { handleDeliverScheduledActions, worldDue } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
