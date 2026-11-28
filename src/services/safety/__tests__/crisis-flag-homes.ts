@@ -300,6 +300,16 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'the flag on leaves the request the model gets as it came: an open call logs, a guided one is quiet',
     ],
   },
+  // An outbound call confirmed before a crisis line never dials later (crisis-dial-hold.ts). It
+  // touches no reply: the cancel runs after the risk note returns. What it writes is a user
+  // cancel's two fields, with no crisis words and no reason.
+  CRISIS_DIAL_HOLD: {
+    file: 'src/services/outreach/__tests__/crisis-dial-hold.test.ts',
+    rows: [
+      'the risk note returns before the cancel writes: the turn never waits on it',
+      "the cancel writes only a user cancel's status and time: nothing of the line, no reason",
+    ],
+  },
   // One spoken check-in before a quiet multi-agent call's idle end (phases/idle-checkin.ts). It
   // makes no reply and keeps nothing; on a call with any crisis signal, a read still holding the
   // reply included, it says nothing and the call ends as with the flag off.

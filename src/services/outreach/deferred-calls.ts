@@ -30,6 +30,7 @@ import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-c
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
 import { watchCallResult } from './call-result-watch.js';
+import { heldAtDial, noteDialJobCall, settleDeferral, watchDeferral } from './crisis-dial-hold.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -126,6 +127,7 @@ export async function deferCall(
   decision: CallHoursDecision,
   { lateNow, quietAllDay }: DeferOptions = {}
 ): Promise<Deferral> {
+  watchDeferral(userId, held, decision.at.getTime() + LATE_AFTER_MS); // CRISIS_DIAL_HOLD
   const id = `deferred_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   // Stored without the call-now ask: when it's picked up, the hours alone decide.
   const call: DeferredCall =
@@ -165,6 +167,7 @@ export async function deferCall(
         ...(quietAllDay && { quietAllDay }),
       })
     );
+  await settleDeferral(db, userId, id, held); // CRISIS_DIAL_HOLD: risk noted mid-write
   recent.set(id, deferral);
   if (recent.size > 100) recent.delete(recent.keys().next().value as string);
   log.info(
@@ -402,11 +405,9 @@ async function place(userId: string, call: DeferredCall): Promise<string | undef
   if (call.kind === 'on_behalf') {
     const { getOnBehalfCallOrchestrator } = await import('./on-behalf-call-orchestrator.js');
     const userName = await requesterNameNow(userId, call.request.userName);
-    const callId = await getOnBehalfCallOrchestrator().initiateCall({
-      ...call.request,
-      userId,
-      userName,
-    });
+    const request = { ...call.request, userId, userName };
+    noteDialJobCall(request); // held again, it isn't a new deferral (CRISIS_DIAL_HOLD)
+    const callId = await getOnBehalfCallOrchestrator().initiateCall(request);
     return callId.startsWith('deferred_') ? callId : undefined;
   }
   const { scheduleProactiveCall } = await import('./conversational-calls.js');
@@ -450,6 +451,7 @@ export async function executeDueDeferredCalls(
     logPromiseOutcome('deferred-call', deferredCallOutcome('missed'), { userId: item.userId });
   }
   for (const item of claim.claimed) {
+    if (await heldAtDial(db, item)) continue; // CRISIS_DIAL_HOLD: no origin, or its call noted risk
     const call = item.data as unknown as DeferredCall;
     let status: 'placed' | 'rescheduled' | 'failed' | 'quiet-all-day' = 'placed';
     let heldAs: string | undefined;
