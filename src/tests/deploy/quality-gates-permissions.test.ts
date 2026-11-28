@@ -6,7 +6,8 @@
  *   error, so a dropped scope would quietly fail every TBD flag from 2027-01-15.
  * - pull-requests + actions: the gate files guard reads the PR's label events and this
  *   run's start time (scripts/ci/gate-files-guard.sh, the two `gh api` calls).
- * Nothing else in the job gets the token; cache restore uses the runner's own.
+ * Nothing else in the job gets the token; cache restore uses the runner's own. The checkout
+ * doesn't persist it in .git/config either, or every later step could read it from there.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -40,5 +41,13 @@ describe('ci.yml quality-gates token', () => {
     const withToken = steps.filter((s) => /github\.token|GITHUB_TOKEN|GH_TOKEN/.test(s));
     expect(withToken.map((s) => s.split('\n')[0])).toEqual(['Gate files guard', 'Flag expiry']);
     for (const step of withToken) expect(step).toContain('GH_TOKEN: ${{ github.token }}');
+  });
+
+  it('checks out without leaving the token in git config for later steps', () => {
+    const checkouts = job
+      .split('\n      - name: ')
+      .filter((s) => s.includes('uses: actions/checkout@'));
+    expect(checkouts).toHaveLength(1);
+    expect(checkouts[0]).toMatch(/\n {10}persist-credentials: false\n/);
   });
 });
