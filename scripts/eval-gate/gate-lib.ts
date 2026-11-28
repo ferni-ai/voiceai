@@ -10,6 +10,8 @@ export interface BaselineMetric {
   value: number;
   maxDrop?: number;
   maxRise?: number;
+  /** Each run's value, when `value` is the mean of several runs. */
+  runs?: number[];
 }
 
 export interface Baseline {
@@ -17,6 +19,8 @@ export interface Baseline {
   /** The command that rewrites this file, shown when a metric improves. */
   update: string;
   measuredOn: string;
+  /** How many runs each value is the mean of (absent: one). */
+  runs?: number;
   metrics: Record<string, BaselineMetric>;
 }
 
@@ -115,7 +119,7 @@ export function rebaseline(
 /** One metric per line, so a re-baseline reads as a short diff. */
 export function serialize(b: Baseline): string {
   const head = JSON.stringify(
-    { suite: b.suite, update: b.update, measuredOn: b.measuredOn },
+    { suite: b.suite, update: b.update, measuredOn: b.measuredOn, runs: b.runs },
     null,
     2
   );
