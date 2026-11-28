@@ -7,7 +7,13 @@
 
 import { voice } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { coordinatedSay } from '../../../speech/coordination/index.js';
+import {
+  coordinatedSay,
+  coordinatedSayId,
+  dropQueuedSpeech,
+  SpeechPriority,
+} from '../../../speech/coordination/index.js';
+import { flagOn } from '../../../config/env-flag.js';
 import {
   RECONNECT_DELAY_MS,
   RECONNECT_TIMEOUT_MS,
@@ -220,11 +226,15 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
   log.warn({ sessionId, goodbyeLen: goodbye.length }, '👋 [GATEWAY] Speaking graceful exit');
 
   try {
-    await coordinatedSay(sessionId, goodbye, { allowInterruptions: false });
+    const goodbyeId = await coordinatedSayId(sessionId, goodbye, { allowInterruptions: false });
 
     await new Promise((resolve) => setTimeout(resolve, GRACEFUL_EXIT_TTS_WAIT_MS));
 
-    if (await holdStepAwayForCrisis(sessionId, 'before_signal')) return stayOnTheLine(sessionId);
+    if (await holdStepAwayForCrisis(sessionId, 'before_signal')) {
+      // Still queued, the goodbye is false by now (a line playing is left to finish)
+      if (goodbyeId && flagOn('CRISIS_LINE_NEVER_DROP')) dropQueuedSpeech(goodbyeId);
+      return stayOnTheLine(sessionId);
+    }
     const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
     await sendFrontendSignal(
       'conversation_end',
@@ -245,12 +255,22 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
   }
 }
 
+/**
+ * Queued ahead of every other line and never expired, so a stuck line cannot make it vanish
+ * (a RESPONSE line expires after 10 s). Priority never interrupts a line being spoken: the
+ * coordinator starts the next line only when it is idle, so the caller is not cut off mid-word.
+ */
+const neverDrop = () => ({ priority: SpeechPriority.CRISIS, maxAge: Number.POSITIVE_INFINITY });
+
 /** The step-away exit was held: Ferni stays, saying STILL_HERE_LINE once per call. */
 function stayOnTheLine(sessionId: string): void {
   if (stillHereSaid.has(sessionId)) return;
   stillHereSaid.add(sessionId);
   try {
-    coordinatedSay(sessionId, STILL_HERE_LINE, { allowInterruptions: true });
+    coordinatedSay(sessionId, STILL_HERE_LINE, {
+      allowInterruptions: true,
+      ...(flagOn('CRISIS_LINE_NEVER_DROP') && neverDrop()),
+    });
   } catch (err) {
     log.error({ error: String(err), sessionId }, '👋 [GATEWAY] Still-here line failed');
   }

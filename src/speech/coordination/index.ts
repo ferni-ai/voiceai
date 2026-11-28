@@ -88,6 +88,8 @@ export {
   getCoordinatorStats,
   getSessionForCoordination,
   coordinatedSay,
+  coordinatedSayId,
+  dropQueuedSpeech,
   type SpeechCoordinationContext,
   type SpeakOptions,
 } from './session-integration.js';

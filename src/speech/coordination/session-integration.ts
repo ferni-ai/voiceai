@@ -70,6 +70,8 @@ export interface SpeakOptions {
   priority?: SpeechPriority;
   /** Allow user to interrupt */
   allowInterruptions?: boolean;
+  /** How long it may wait in the queue before it expires (ms; defaults by priority) */
+  maxAge?: number;
   /** Source of the speech request */
   source?: SpeechRequest['source'];
   /** Tool ID if this is a tool result */
@@ -188,6 +190,7 @@ export async function routeSpeech(
     priority,
     source: options.source ?? 'direct',
     allowInterruptions: options.allowInterruptions ?? true,
+    maxAge: options.maxAge,
     onStart: options.onStart,
     onEnd: options.onEnd,
   });
@@ -355,22 +358,33 @@ export function getSessionForCoordination(sessionId: string): voice.AgentSession
   return state?.session ?? null;
 }
 
+type SayOptions = { allowInterruptions?: boolean; priority?: SpeechPriority; maxAge?: number };
+
 /**
  * Wrapper for session.say() that routes through coordinator.
  * Drop-in replacement for direct session.say() calls.
  *
  * @deprecated Prefer routeSpeech() for new code
  */
-export function coordinatedSay(
+export function coordinatedSay(sessionId: string, text: string, options?: SayOptions): void {
+  void coordinatedSayId(sessionId, text, options); // fire and forget, as session.say()
+}
+
+/** As coordinatedSay, resolving to the line's request id so it can be dropped while queued. */
+export async function coordinatedSayId(
   sessionId: string,
   text: string,
-  options?: { allowInterruptions?: boolean }
-): void {
-  // Fire and forget - matches session.say() signature
-  void routeSpeech(sessionId, text, {
-    allowInterruptions: options?.allowInterruptions,
-    source: 'direct',
-  }).catch((err) => {
+  options?: SayOptions
+): Promise<string | undefined> {
+  try {
+    return (await routeSpeech(sessionId, text, { ...options, source: 'direct' })).id;
+  } catch (err) {
     log.warn({ sessionId, error: String(err) }, 'Coordinated say failed');
-  });
+    return undefined;
+  }
+}
+
+/** Drop a line of this call that is still queued; one already being spoken plays on. */
+export function dropQueuedSpeech(id: string): void {
+  getSpeechCoordinator().dropQueued(id);
 }

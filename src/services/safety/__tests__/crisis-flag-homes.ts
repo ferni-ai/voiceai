@@ -446,6 +446,48 @@ export const GATE_FAILURE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
 };
 
 /**
+ * Crisis-lane flags that change when or how long the line the speech coordinator says to the
+ * caller waits, not the reply: when a hand-back line is queued and how long it lasts. The six
+ * readers and SHOWN_ON (the gate's reply) never see that step. This home is open only to a flag
+ * whose named rows run the real exit handler and the real coordinator (only the LiveKit session is
+ * a stub), flag off then on, and assert that with it on the line is still spoken, only earlier or
+ * kept longer, with nothing added or cut off, never cutting in on a line being spoken, and never
+ * outliving the call. A flag that removes speech does not belong here, except the step-away
+ * goodbye the exit itself made false (dropped only while still queued), never a crisis or safety line.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const HAND_BACK_LINE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // STILL_HERE_LINE, said when a step-away exit is held for a caller at risk (#4447).
+  CRISIS_LINE_NEVER_DROP: [
+    {
+      file: 'src/agents/shared/gateway/__tests__/still-here-line-never-drop.test.ts',
+      rows: [
+        'on: survives a line that is slow to end, where it expired before',
+        'off: expires in the queue after 10 s, as on main',
+        'on: is spoken before a line that was queued earlier',
+        'off: waits its turn behind a line queued earlier, as on main',
+        'on: a call that ends while the line is queued discards it; nothing is said on a closed session',
+        'on: a call that attaches 30 s later does not hear it',
+        'on: a call that attaches 3 s later does not hear it',
+        'on: the same call attaching again (a hand-off) still hears it, once',
+      ],
+    },
+    {
+      // The step-away goodbye, false once the exit is held: dropped only while still queued.
+      file: 'src/agents/shared/gateway/__tests__/step-away-goodbye-dropped.test.ts',
+      rows: [
+        'on: a goodbye still queued is dropped; the still-here line is said once, and the call is not ended',
+        'on: a goodbye already being spoken finishes, and the still-here line follows it once',
+        'off: a goodbye still queued is said, then the still-here line, as on main',
+        'on: with no crisis read in the wait, the goodbye is said and the call ends, as on main',
+      ],
+    },
+  ],
+};
+
+/**
  * Crisis-lane flags that remove a sound or line said beside a turn, not the reply: a filler or
  * clip that is not crisis or safety speech. The six readers and SHOWN_ON (the gate's reply) never
  * see that step. This home is open only to a flag that removes nothing but such a sound, and whose
