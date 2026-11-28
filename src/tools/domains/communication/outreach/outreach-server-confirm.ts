@@ -22,6 +22,7 @@ import {
   failedNote,
   familyOf,
   isKin,
+  notSentYetReply,
   resultNote,
   SERVER_CONFIRM_SETTLE_MS,
   stillWaitingReply,
@@ -205,8 +206,5 @@ export async function gateInFamily(c: FamilyCall): Promise<unknown> {
     ownerVerified: gate.ownerKnown(c.session),
   });
   log.info({ toolId: c.toolId }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
-  return (
-    `NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: ` +
-    `${readBack}. Call ${c.toolId} again only after the caller says yes.`
-  );
+  return notSentYetReply(c.toolId, readBack, prepared.aside);
 }

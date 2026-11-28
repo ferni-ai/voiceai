@@ -102,6 +102,14 @@ export function isKin(
   return related && sameTarget(kin.target, target);
 }
 
+/** What the model gets when a read-back is stored; `aside` follows it and is never read out. */
+export function notSentYetReply(toolId: string, readBack: string, aside?: string): string {
+  return (
+    `NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: ` +
+    `${readBack}. Call ${toolId} again only after the caller says yes.${aside ? ` ${aside}` : ''}`
+  );
+}
+
 /** What a sibling call gets while the stored read-back still waits on the caller. */
 export function stillWaitingReply(readBack: string, toolId: string): string {
   return (
