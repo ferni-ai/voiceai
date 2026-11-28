@@ -35,11 +35,11 @@ export interface SeenCall {
   readonly at: number;
 }
 export interface RecalledCall {
-  readonly state: 'awaiting_yes' | 'set' | 'in_progress' | 'done' | 'failed' | 'which';
+  readonly state: 'awaiting_yes' | 'set' | 'in_progress' | 'done' | 'unconfirmed' | 'failed' | 'which'; // prettier-ignore
   /** 'which': the places whose calls the purpose words fit, each with what it was about. */
   readonly name: string;
   readonly at: number;
-  /** 'set': when it rings, their time. 'done': how it went. 'failed': why. */
+  /** 'set': when it rings, their time. 'done': how it went. 'failed': why. 'unconfirmed': it rang, no word since. */
   readonly detail?: string;
   /** Screened: what they said or a summary of it; reported speech only. */
   readonly said?: string;

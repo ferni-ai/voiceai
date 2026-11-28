@@ -126,6 +126,7 @@ export function callStatusOf(
     .sort((a, b) => time(b.capturedAt) - time(a.capturedAt))[0];
   if (result) {
     const status = (result.outcome as { status?: unknown } | undefined)?.status;
+    if (status === 'unconfirmed') return { state: 'unknown' }; // no word on how it went
     return { state: status === 'completed' ? 'completed' : 'failed' };
   }
   const last = calls.sort((a, b) => time(b.createdAt) - time(a.createdAt))[0];

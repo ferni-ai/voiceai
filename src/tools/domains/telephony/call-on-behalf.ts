@@ -462,13 +462,13 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         }
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
         const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
-        const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
+        const { callId, held, others = '', promise } = await placeOrHold(request, initiateOnBehalfCall); // prettier-ignore
         if (held) return held;
         log.info({ callId }, 'Call initiated successfully'); // never the name or the purpose
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
-          `Got it! ${callingLead(request.callingPersonaId)} ${contact.name}${callTypeLabel} now to ${purpose}. ` +
-          `I'll let you know how it goes once the call is complete.${others}`
+          `Got it! ${callingLead(request.callingPersonaId)} ${contact.name}${callTypeLabel} now to ${purpose}.` +
+          `${promise === '' ? '' : ` ${promise ?? "I'll let you know how it goes once the call is complete."}`}${others}` // prettier-ignore
         );
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to initiate call'); // never who or why

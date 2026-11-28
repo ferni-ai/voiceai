@@ -60,6 +60,9 @@ export interface OnBehalfDispatch {
 
 export type OnBehalfDispatchInput = Omit<OnBehalfDispatch, 'type' | 'session_id'>;
 
+/** The LiveKit room an on-behalf call is dispatched to and runs in. */
+export const onBehalfRoom = (callId: string): string => `onbehalf-${callId}`;
+
 export function buildOnBehalfDispatch(input: OnBehalfDispatchInput): OnBehalfDispatch {
   return { type: 'on_behalf_call', session_id: `onbehalf:${input.callId}`, ...input };
 }

@@ -51,7 +51,8 @@ export const OUTCOME_REASONS = [
 export type OutcomeReason = (typeof OUTCOME_REASONS)[number];
 
 /** CallOutcome['status'] (tools/domains/telephony/types.ts), without importing a tool's types. */
-export type CallStatus = 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+export type CallStatus =
+  'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | 'unconfirmed';
 
 export interface PromiseOutcome {
   outcome: OutcomeState;
@@ -173,6 +174,7 @@ const CALL: Record<CallStatus, PromiseOutcome> = {
   no_answer: failed('no-answer'),
   busy: failed('busy'),
   failed: failed('provider-error'),
+  unconfirmed: { outcome: 'done', reason: 'unknown' }, // it rang; how it went never reported
 };
 export const callResultOutcome = (
   status: CallStatus,

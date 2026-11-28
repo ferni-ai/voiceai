@@ -288,9 +288,11 @@ function callText(call: PendingCallResult): string {
         ? 'No answer'
         : call.status === 'busy'
           ? 'Line busy'
-          : call.status === 'completed' && callbackMeansAskedOn() // they answered (#4468)
-            ? 'Picked up'
-            : "Couldn't connect";
+          : call.status === 'unconfirmed'
+            ? "Couldn't confirm how it went"
+            : call.status === 'completed' && callbackMeansAskedOn() // they answered (#4468)
+              ? 'Picked up'
+              : "Couldn't connect";
   const callback = call.callbackRequired ? 'They want a callback from the user.' : call.retryOffer;
   return reported(
     call.contactName,

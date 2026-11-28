@@ -116,7 +116,8 @@ export interface OnBehalfCallRequest {
 
 export interface CallOutcome {
   callId: string;
-  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+  /** 'unconfirmed': the call never reported in time, so how it went is unknown (call-result-watchdog.ts). */
+  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | 'unconfirmed';
 
   // What happened
   objectiveAchieved: boolean;

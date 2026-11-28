@@ -23,6 +23,7 @@ import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telep
 import { voicemailWords } from './voicemail-outcome.js';
 import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
 import { callResultExpireAt } from './call-result-expiry.js';
+import { writeCallResult } from './call-result-watchdog.js';
 import { callbackEventFor } from './callback-calendar-event.js';
 import { userTimezone } from './call-hours-guard.js';
 import {
@@ -74,8 +75,8 @@ interface FollowUpAction {
 // In-memory store for development/testing
 const callResultStore = new Map<string, StoredCallResult>();
 
-/** Store a call result in Firestore (with in-memory fallback) */
-async function storeCallResult(result: StoredCallResult): Promise<void> {
+/** Store a call result in Firestore (with in-memory fallback); false: a no-report lost to a real result */
+async function storeCallResult(result: StoredCallResult): Promise<boolean> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,
@@ -86,13 +87,9 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
     if (db) {
       // A Date, not an ISO string: Firestore's TTL (call-result-expiry.ts) reads only a Timestamp.
       const clean = { ...cleanForFirestore(result), expireAt: callResultExpireAt() };
-      await db
-        .collection('bogle_users')
-        .doc(result.userId)
-        .collection('on_behalf_calls')
-        .doc(result.callId)
-        // Only the result's own fields: told.* (call-result-once.ts) and delivered survive a second capture.
-        .set(clean, { mergeFields: Object.keys(clean) });
+      const ref = db.collection('bogle_users').doc(result.userId).collection('on_behalf_calls').doc(result.callId); // prettier-ignore
+      // Only the result's own fields: told.* (call-result-once.ts) and delivered survive a second capture.
+      if (!(await writeCallResult(db, ref, clean))) return false; // CALL_RESULT_WATCHDOG
 
       void onCallResultChange(
         result.userId,
@@ -101,10 +98,7 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
           callId: result.callId,
           contactName: result.request.contactName || result.request.contactQuery,
           purpose: result.request.purpose,
-          outcome:
-            result.outcome.status === 'completed'
-              ? 'answered'
-              : (result.outcome.status as 'voicemail' | 'busy' | 'no_answer' | 'failed'),
+          outcome: result.outcome.status === 'completed' ? 'answered' : result.outcome.status, // 'unconfirmed' stays: never indexed as failed
           summary: result.outcome.transcriptSummary || result.outcome.outcome,
           nextSteps: result.outcome.actionItems?.join('; '),
           capturedAt: result.capturedAt,
@@ -124,6 +118,7 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
       'Firestore unavailable, stored in memory'
     );
   }
+  return true;
 }
 
 /** Get a stored call result */
@@ -355,7 +350,7 @@ export async function captureCallResult(
     };
 
     // 2. Store the result, 3. follow-up actions (keyed by callId, so a second capture rewrites them)
-    await storeCallResult(result);
+    if (!(await storeCallResult(result))) return; // the call already reported (call-result-watchdog.ts)
     createFollowUpActions(request.userId, callId, outcome, request);
 
     // 4. Tell the owner, each channel once per call (call-result-once.ts): live (CALL_RESULT_LIVE_REPORT),

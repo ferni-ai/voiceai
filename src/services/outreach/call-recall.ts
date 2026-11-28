@@ -101,6 +101,7 @@ const HOW: Readonly<Record<string, string>> = {
 function fromResult(doc: Doc): RecalledCall {
   const o = (doc.outcome ?? {}) as Doc;
   const [name, at, status] = [nameOf(doc), time(doc.capturedAt), String(o.status)];
+  if (status === 'unconfirmed') return { state: 'unconfirmed', name, at }; // never "didn't connect"
   if (!HOW[status]) return { state: 'failed', name, at, detail: "the call didn't connect" };
   const left =
     status === 'voicemail' && o.voicemailLeft === true ? ' and Ferni left a message' : '';
@@ -268,7 +269,10 @@ export async function recallCall(
 /** Whether a new read-back should wait for this status to be told first. */
 export function blocksNewCall(call: RecalledCall, now: number): boolean {
   const told =
-    call.state === 'awaiting_yes' || call.state === 'in_progress' || call.state === 'done';
+    call.state === 'awaiting_yes' ||
+    call.state === 'in_progress' ||
+    call.state === 'done' ||
+    call.state === 'unconfirmed';
   return told && now - call.at <= RECENT_CALL_MS;
 }
 
@@ -304,6 +308,8 @@ export function recallLine(
     return `The call to ${name} went out ${when}, and there's no word yet on how it went. Say it's under way; don't offer a new call or guess how it went.`;
   if (call.state === 'failed')
     return `Ferni tried to call ${name} ${when}, but ${call.detail ?? "it didn't go through"}. Say so honestly, once.`;
+  if (call.state === 'unconfirmed')
+    return `Ferni called ${name} ${when}, but couldn't confirm how it went: no report came back. Say just that, once, and don't guess how it went.`;
   const head = `Ferni called ${name} ${when}, and ${call.detail ?? 'it went through'}. Answer from this; don't offer a new call unless the caller asks for one.`;
   if (!call.said) return head;
   return [head, CALLER_TEXT_GUARD, ...reportedFromCall(name, [call.said])].join('\n');
@@ -337,6 +343,7 @@ function placeStatus(call: RecalledCall, now: number): string {
   if (call.state === 'set') return `It hasn't happened yet: it is set for ${call.detail ?? 'later'} their time.`; // prettier-ignore
   if (call.state === 'in_progress') return `It went out ${when}, with no word yet on how it went.`;
   if (call.state === 'failed') return `It was tried ${when}, but ${call.detail ?? "it didn't go through"}.`; // prettier-ignore
+  if (call.state === 'unconfirmed') return `It was placed ${when}, but no report came back, so how it went isn't known.`; // prettier-ignore
   return `It went through ${when}: ${call.detail ?? 'it was answered'}.`;
 }
 

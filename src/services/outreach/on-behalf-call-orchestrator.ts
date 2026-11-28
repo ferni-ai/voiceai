@@ -24,7 +24,7 @@ import {
 import { callOpeningDialOptions } from '../../config/call-opening-flag.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
 import { noteDialled } from './dial-marker.js';
-import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
+import { onBehalfDispatchFor, onBehalfRoom, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { assertNotOptedOut } from './first-dial-opt-out.js';
 import { awaitAgent, endCallWithNoAgent, isAgentNotJoined } from './agent-join.js';
@@ -287,7 +287,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     request: OnBehalfCallRequest,
     script: string
   ): Promise<string> {
-    const roomName = `onbehalf-${callId}`;
+    const roomName = onBehalfRoom(callId);
 
     // Store rich metadata for the agent
     const metadata = JSON.stringify({
