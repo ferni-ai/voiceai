@@ -59,6 +59,7 @@
         "src/agents/shared/gateway/reconnection.ts",
         "src/agents/shared/goodbye-read.ts",
         "src/agents/shared/phone-goodbye.ts",
+        "src/agents/shared/phone-step-up.ts",
         "src/agents/shared/tts-wrapper.ts",
         "src/agents/shared/wrap-up-window.ts",
         "src/agents/voice-agent/phases/idle-checkin.ts",
@@ -266,7 +267,8 @@
         "CRISIS_QUIET_DAYS",
         "getCrisisResources",
         "getGroundingExercise",
-        "lastFerniLine"
+        "lastFerniLine",
+        "phoneStepUpNote"
       ],
       "unscreened": []
     },

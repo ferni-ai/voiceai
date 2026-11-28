@@ -9,6 +9,7 @@
 
 import { worldNowNote as raw_worldNowNote } from '../shared/world-now.js';
 import { confirmedActionNote as raw_confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
+import { phoneStepUpNote as raw_phoneStepUpNote } from './phone-step-up-note.js';
 import { tuneTurnNote as raw_tuneTurnNote } from './named-tune-note.js';
 import { minorCareNote as raw_minorCareNote } from '../../utils/minor-care.js';
 import { sexualBoundaryNote as raw_sexualBoundaryNote } from './sexual-boundary.js';
@@ -60,6 +61,7 @@ export const confirmedActionNote = guarded(
   '',
   IDENTITY
 );
+export const phoneStepUpNote = guarded('phoneStepUp', raw_phoneStepUpNote, '', IDENTITY);
 export const tuneTurnNote = guarded('namedTune', raw_tuneTurnNote, '', IDENTITY);
 export const minorCareNote = guarded('minorCare', raw_minorCareNote, '', IDENTITY_SAFE);
 export const sexualBoundaryNote = guarded(

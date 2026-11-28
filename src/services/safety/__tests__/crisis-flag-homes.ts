@@ -373,9 +373,10 @@ export const READ_CACHE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow
  * Crisis-lane flags that act on the turn's tool routing, before the reply gate runs: a tool a
  * router runs on its own, and the direct tool reply that skips the reply model. The six readers
  * and SHOWN_ON (the gate's reply) never see that step. This home is open only to a flag whose
- * named rows drive the real turn path (processTurn, the real crisis reads, a stubbed classifier
- * model) on a fictional line, flag off then on, and assert that with it on a crisis turn runs no
- * tool and is never answered by a tool in place of the reply model, a failed read included.
+ * named rows drive the real turn path (processTurn or gatedReply (the turn-routing path), the real
+ * crisis reads, a stubbed classifier model) on a fictional line, flag off then on, and assert that
+ * with it on a crisis turn runs no tool, is offered no tool step, and is never answered by a tool
+ * in place of the reply model, a failed read included.
  *
  * The census checks that each named file exists and holds each title as an it() or test() call,
  * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
@@ -412,6 +413,20 @@ export const TURN_ROUTING_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyR
       rows: [
         'flag on, FTIS on: a crisis only the classifier reads runs no tool through the transcript handler',
         'flag on, FTIS on: no crisis read of the turn starts, so no tool runs (fail closed)',
+      ],
+    },
+  ],
+  PHONE_STEP_UP: [
+    {
+      // gatedReply with the claim guard as in production: no step-up offer on a call with crisis
+      // risk, and never on a claim that offers a crisis line.
+      file: 'src/agents/personas/__tests__/phone-step-up-crisis.test.ts',
+      rows: [
+        'the guided crisis turn: a call claim keeps the honest line, no offer',
+        'the guided crisis turn: a text claim keeps the honest line, no offer',
+        'the guided crisis turn: a claim to call 988 keeps the honest line, no offer',
+        'a later turn of a call with a crisis: no note and no offer',
+        'a claim to call 988 with no crisis read keeps the honest line',
       ],
     },
   ],

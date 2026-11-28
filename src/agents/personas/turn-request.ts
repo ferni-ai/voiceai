@@ -187,8 +187,8 @@ function buildTurnReminder(
     safe.heardTeammateNote(words, safe.aliasNoteFor(view, session, chatCtx, crisis)),
     notes,
     corrected,
-    // The caller said yes to a read-back: the call or text goes only when the tool is called now.
-    safe.confirmedActionNote(session),
+    safe.confirmedActionNote(session), // a yes to a read-back: it goes only by a tool call now
+    safe.phoneStepUpNote(sessionId, chatCtx, crisis), // PHONE_STEP_UP: why calls wait, and how
     options.closeLoop === false || held
       ? ''
       : attempt('closeLoop', () => closeLoopNote(session, words), ''),

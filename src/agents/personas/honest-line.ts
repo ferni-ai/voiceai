@@ -19,9 +19,21 @@ export type SeenActions = {
  * 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547).
  * 'promised': "I'll text him" with the tool open, and none called yet in this reply (action-promises.ts).
  * 'emergency': he said he called emergency services or help, which he can't (emergency-claim.ts).
+ * 'step_up': no tool to call or text, on a phone-in call a texted code can open (phone-step-up.ts).
  */
 export type MissReason =
-  'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere' | 'promised' | 'emergency';
+  | 'no_tool'
+  | 'failed'
+  | 'awaiting'
+  | 'held'
+  | 'uncalled'
+  | 'elsewhere'
+  | 'promised'
+  | 'emergency'
+  | 'step_up';
+
+/** PHONE_STEP_UP: the way forward, asked as a yes/no so the code goes only on their yes. */
+export const STEP_UP_OFFER = 'I can do that once I text you a code; want me to?';
 
 const DID_NOT_GO: Record<ClaimKind, string> = {
   call: "That call didn't go through, so nothing's been dialed.",
@@ -71,6 +83,12 @@ const INSTEAD: Record<ClaimKind, string> = {
   lookup: '',
 };
 const REMIND = ' Want me to remind you to do it?';
+/** Reasons whose line is the same whatever the claim. */
+const FIXED: Partial<Record<MissReason, string>> = {
+  emergency: EMERGENCY_LINE,
+  step_up: STEP_UP_OFFER,
+  elsewhere: "It's saved to Ferni's own list, not your calendar.",
+};
 
 /**
  * A held claim's line read naturally where the claim was, with the words held
@@ -95,8 +113,8 @@ export function honestLine(
   canRemind: boolean,
   when?: string
 ): string {
-  if (reason === 'emergency') return EMERGENCY_LINE;
-  if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
+  const fixed = FIXED[reason];
+  if (fixed) return fixed;
   if (reason === 'awaiting' || reason === 'uncalled' || reason === 'promised') return NOT_YET[kind];
   if (reason === 'held') {
     return kind === 'call' && when
