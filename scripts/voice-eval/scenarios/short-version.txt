@@ -1,0 +1,15 @@
+# Regression for #4383, tests SHORT_ASK (off by default): with it on, the reply to "short version"
+# should be one sentence, not 37-75 words. From the humanness red team, rt-1124-short-version.
+# Hypothesis: a caller who asks for "the short version" twice gets a list or a mini-lecture anyway,
+# and the second "shorter" gets an apology paragraph instead of a genuinely shorter answer.
+# Human friend: "Ask for the raise in writing first." Then, when pushed: "Email her. Today."
+# Failure: numbered steps, "there are a few things", a 40+ word reply after "short version", "great question".
+#@avoid list-shape \b(first(ly)?|second(ly)?|third(ly)?)\b,|\bthere are (a few|several|three|two)\b|\bhere's the thing\b
+#@avoid great-q \bgreat question\b|\bgood question\b
+#@avoid sorry-long \b(sorry|apologi[sz]e)\b.{0,40}\b(long|ramble|rambling|wordy)\b
+#@avoid help-offer \bhappy to help\b|\bi'?m here (for you|to help)\b|\blet me know if\b
+So I think I'm gonna ask my boss for a raise this week and I have no idea how to even start that.
+Okay, short version though, I've got like two minutes before a meeting.
+Shorter. Like one sentence.
+Ha, okay. Email or in person?
+Cool. Okay that's actually helpful. Gotta run.
