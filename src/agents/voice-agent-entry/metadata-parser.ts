@@ -11,6 +11,7 @@ import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 import {
   dispatchVerifySecrets,
+  keepPreferencesForRetry,
   parseOnBehalfDispatch,
   verifyOnBehalfDispatch,
 } from '../../services/outreach/on-behalf-dispatch.js';
@@ -327,6 +328,7 @@ export async function setupCallTypeContexts(
       const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
       if (call && trusted) {
         await beginOnBehalfCall(sessionId, call);
+        keepPreferencesForRetry(call.callId, rawJobMetadata); // signed only; for its retry (#4466)
         const { registerOnBehalfCallRoom } = await import('../outbound-call/call-control.js');
         registerOnBehalfCallRoom(sessionId, call.callId, roomNameForContext);
       }

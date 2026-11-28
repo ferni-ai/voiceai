@@ -34,6 +34,7 @@ import {
   sendBatchConfirm,
 } from '../domains/communication/outreach/outreach-confirm-specs.js';
 import { callConfirm } from '../domains/telephony/call-confirm.js';
+import { retryCallConfirm } from '../domains/telephony/call-retry-tool.js';
 import { webhookConfirm } from '../domains/webhooks/webhook-confirm.js';
 import type { Tool, ToolContext, ToolDefinition } from './types.js';
 
@@ -41,6 +42,8 @@ import type { Tool, ToolContext, ToolDefinition } from './types.js';
 export const OUTBOUND_TOOLS: Readonly<Record<string, ConfirmSpec>> = {
   callOnBehalf: callConfirm,
   callAndConverse: callConfirm,
+  // CALL_RETRY_ASKS_FIRST: one more try at a missed call, only on the owner's yes (owner 2026-11-26)
+  retryMissedCall: retryCallConfirm,
   reachOut: reachOutConfirm,
   multiOutreach: multiOutreachConfirm,
   sendBatchMessages: sendBatchConfirm,

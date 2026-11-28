@@ -25,7 +25,12 @@ export interface ActionFacts {
   owner: string[];
   /** The gate's own ask-once line (consent-loop.ts): always a read-back. */
   askOnce: string;
+  /** retryMissedCall only (consent-action.ts isRetry): its read-back. Its own time ("tomorrow
+   * around 10 AM"), errand and "try … again" never make Ferni's re-reading of it "another time". */
+  own?: string;
 }
+/** A retry's question asks to go ahead when it says "try … again" (owner 2026-11-26). */
+const RETRY_WORDS = /\b(try|again)\b/;
 
 // Another time, line or number is never this action now.
 const ELSEWHERE = new Set([
@@ -89,7 +94,13 @@ const NOT_NAMES = new Set(
   )
 );
 function namesSomeoneElse(text: string, facts: ActionFacts): boolean {
-  const known = new Set([...facts.target, ...facts.owner, ...FERNI, ...NOT_NAMES]);
+  const known = new Set([
+    ...facts.target,
+    ...facts.owner,
+    ...FERNI,
+    ...NOT_NAMES,
+    ...words(facts.own ?? ''),
+  ]);
   const other = (w: string): boolean => NAME.test(w) && !known.has(w.toLowerCase());
   return sentences(text).some((s) => {
     const [first = '', ...rest] = s
@@ -108,16 +119,23 @@ export function vetoed(text: string, facts: ActionFacts): boolean {
   const line = said.join(' ');
   const pronoun = pronounOf(facts.target);
   const wrong = pronoun ? { him: SHE, her: HE }[pronoun] : new Set<string>();
+  const own = new Set(words(facts.own ?? ''));
   const odd = (w: string): boolean =>
-    ELSEWHERE.has(w) || wrong.has(w) || someoneElse(w, facts.target);
+    !own.has(w) && (ELSEWHERE.has(w) || wrong.has(w) || someoneElse(w, facts.target));
+  // A retry's "10 AM" is its own time, not a number: only digit runs its read-back said pass.
+  const ownRuns = facts.own ? digitRuns(facts.own) : [];
+  const asksGo = (q: string): boolean =>
+    CHANNEL_WORDS[facts.channel].test(q) || TAG.test(q) || (!!facts.own && RETRY_WORDS.test(q));
   return (
     said.some(odd) ||
     /\bhold off\b/.test(line) ||
     OTHER_NUMBER.test(line) ||
     OTHER_CHANNEL[facts.channel].test(line) ||
-    digitRuns(text).some((r) => r.length < 4 || !facts.digits.endsWith(r)) ||
+    digitRuns(text).some(
+      (r) => !ownRuns.includes(r) && (r.length < 4 || !facts.digits.endsWith(r))
+    ) ||
     namesSomeoneElse(text, facts) ||
-    questions(text).some((q) => !CHANNEL_WORDS[facts.channel].test(q) && !TAG.test(q))
+    questions(text).some((q) => !asksGo(q))
   );
 }
 
@@ -157,7 +175,9 @@ export function readBackUserText(facts: ActionFacts, text: string): string {
       /\b((zero|oh|one|two|three|four|five|six|seven|eight|nine)\b[\s,.-]*){4,}/gi,
       '[number] '
     );
-  return `Ready: ${WHAT[facts.channel]} to ${who}${four}, now.\nFerni's turn: ${JSON.stringify(masked)}`;
+  // A retry is tomorrow by design: its time is the action's, not "another time".
+  const when = facts.own ? ' tomorrow (one more try at a missed call)' : ', now';
+  return `Ready: ${WHAT[facts.channel]} to ${who}${four}${when}.\nFerni's turn: ${JSON.stringify(masked)}`;
 }
 
 async function classify(facts: ActionFacts, text: string): Promise<FerniTurn> {

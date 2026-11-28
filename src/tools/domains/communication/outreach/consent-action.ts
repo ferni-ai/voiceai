@@ -10,7 +10,19 @@ import { familyOf } from './outreach-confirm-family.js';
 import type { PendingAction } from './outreach-confirm.js';
 
 export type Channel = ConsentInput['channel'];
-const PLACES_A_CALL = new Set(['callOnBehalf', 'callAndConverse', 'callUser']);
+/**
+ * CALL_RETRY_ASKS_FIRST (owner 2026-11-26): one more try at a missed call, set for tomorrow where
+ * the callee is. A call, but not now: its read-back ("one more try at Rosa tomorrow around 10 AM
+ * where Rosa is, to …", services/outreach/call-retry-offer.ts) names its own time, so that time
+ * is this action, never "another time".
+ */
+const RETRY = 'retryMissedCall';
+export const isRetry = (pending: Pick<PendingAction, 'toolId'>): boolean =>
+  pending.toolId === RETRY;
+/** The action's own time: "tomorrow" said to a retry agrees with it, never defers it. */
+export const ownTime = (pending: Pick<PendingAction, 'toolId'>): ReadonlySet<string> =>
+  new Set(isRetry(pending) ? ['tomorrow'] : []);
+const PLACES_A_CALL = new Set(['callOnBehalf', 'callAndConverse', 'callUser', RETRY]);
 export function channelOf(pending: Pick<PendingAction, 'toolId' | 'args'>): Channel {
   const family = familyOf(pending.toolId, pending.args);
   if (PLACES_A_CALL.has(pending.toolId) || family === 'call') return 'call';
@@ -25,8 +37,13 @@ export function targetWords(pending: PendingAction): string[] {
 }
 
 /** The person in the read-back ("a call to Dad at 555…" → "Dad"), else the name asked for. */
-export function personOf(pending: Pick<PendingAction, 'readBack' | 'args'>): string {
-  const named = / to (.+?)(?: at |, |$)/.exec(pending.readBack)?.[1]?.trim();
+export function personOf(
+  pending: Pick<PendingAction, 'readBack' | 'args'> & { toolId?: string }
+): string {
+  // A retry's errand may hold " to " ("…, to ask whether she can…"): its person comes first.
+  const shape =
+    pending.toolId === RETRY ? /^one more try at (.+?) tomorrow\b/ : / to (.+?)(?: at |, |$)/;
+  const named = shape.exec(pending.readBack)?.[1]?.trim();
   const asked = NAME_KEYS.map((k) => pending.args[k]).find(
     (a) => typeof a === 'string' && a.trim()
   );
@@ -38,9 +55,16 @@ export const numberOf = (pending: Pick<PendingAction, 'args'>): string => {
   return String(raw.find((v) => typeof v === 'string') ?? '').replace(/\D/g, '');
 };
 export const STOP = new Set(words('my the a your his her their'));
-export const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
+const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
 
 /** The one question the gate has Ferni ask when an answer isn't a plain yes (consent-loop.ts). */
 export function askOnceLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
+  if (isRetry(pending)) return `Just to be sure: try ${personOf(pending)} again tomorrow?`;
   return `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;
+}
+
+/** What Ferni says when it won't go ahead (consent-loop.ts): "Okay, I won't call Dad." */
+export function wontLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
+  if (isRetry(pending)) return `Okay, I won't try ${personOf(pending)} again.`;
+  return `Okay, I won't ${VERB[channelOf(pending)]} ${personOf(pending)}.`;
 }

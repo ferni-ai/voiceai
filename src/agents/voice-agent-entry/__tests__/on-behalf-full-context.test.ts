@@ -30,6 +30,7 @@ const {
   onBehalfDispatchFor,
   parseOnBehalfDispatch,
   signOnBehalfDispatch,
+  takePreferencesForRetry,
   verifyOnBehalfDispatch,
 } = await import('../../../services/outreach/on-behalf-dispatch.js');
 const { buildCallScript, selectScript } =
@@ -332,5 +333,24 @@ describe('the signed dispatch and the script', () => {
     expect(count(off.prompt, REASON)).toBe(1);
     expect(off.prompt).toContain('### Additional Context (from Sam');
     expect(off.prompt).not.toContain(BACKGROUND);
+  });
+});
+
+// CALL_RETRY_ASKS_FIRST (owner 2026-11-26): a missed call's retry carries the first call's
+// words. The job keeps them, read from the dispatch it verified, never from the parse (#4497).
+describe('CALL_RETRY_ASKS_FIRST: the words reach the retry from the signed dispatch only', () => {
+  it('row 13: kept for its retry with the flag on; never with it off, never unsigned', async () => {
+    vi.stubEnv('CALL_FOLLOWTHROUGH', 'on');
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'off');
+    await promptFor(signed(call({ callId: 'call-retry-off' })));
+    expect(takePreferencesForRetry('call-retry-off')).toEqual({});
+
+    vi.stubEnv('CALL_RETRY_ASKS_FIRST', 'on');
+    await promptFor(signed(call({ callId: 'call-retry-on' })));
+    expect(takePreferencesForRetry('call-retry-on')).toEqual({ additionalContext: REASON });
+
+    const altered = { ...JSON.parse(signed(call({ callId: 'call-retry-altered' }))), purpose: 'x' };
+    await promptFor(JSON.stringify(altered));
+    expect(takePreferencesForRetry('call-retry-altered')).toEqual({});
   });
 });

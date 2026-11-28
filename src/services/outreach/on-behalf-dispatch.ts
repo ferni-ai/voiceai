@@ -18,6 +18,7 @@
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { flagOn } from '../../config/env-flag.js';
 import type {
   CallObjective,
   CallType,
@@ -270,6 +271,9 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
+const strings = (v: unknown): string[] | undefined =>
+  Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : undefined;
+
 /**
  * Read a dispatch payload. Returns null when it can't be reported back to a
  * requester. Also accepts the older shape with a top-level userId/userName, so
@@ -322,16 +326,86 @@ interface CallBackground {
  * dispatch does not start holding the user's words. Non-strings are ignored.
  */
 export function callBackgroundOf(rawJobMetadata: string): CallBackground {
-  let signed: Record<string, unknown>;
-  try {
-    signed = asObject(JSON.parse(rawJobMetadata));
-  } catch {
-    return {};
-  }
+  const signed = signedObjectOf(rawJobMetadata);
   const relationship = str(asObject(signed.contact).relationship);
-  const additionalContext = str(asObject(signed.userPreferences).additionalContext);
+  const { additionalContext } = preferencesIn(signed);
   return {
     ...(relationship ? { relationship } : {}),
     ...(additionalContext ? { additionalContext } : {}),
   };
+}
+
+const signedObjectOf = (raw: string): Record<string, unknown> => {
+  try {
+    return asObject(JSON.parse(raw));
+  } catch {
+    return {};
+  }
+};
+
+/** What the requester said about the call (call-on-behalf-schema.ts userPreferences), as signed. */
+export interface CallPreferences {
+  additionalContext?: string;
+  preferredTimes?: string[];
+  constraints?: string[];
+}
+
+/** The ONE reader of a signed dispatch's userPreferences (callBackgroundOf, callPreferencesOf). */
+function preferencesIn(signed: Record<string, unknown>): CallPreferences {
+  const said = asObject(signed.userPreferences);
+  const additionalContext = str(said.additionalContext);
+  const preferredTimes = strings(said.preferredTimes);
+  const constraints = strings(said.constraints);
+  return {
+    ...(additionalContext ? { additionalContext } : {}),
+    ...(preferredTimes?.length ? { preferredTimes } : {}),
+    ...(constraints?.length ? { constraints } : {}),
+  };
+}
+
+/**
+ * The requester's own words about the call, from a dispatch exactly as signed, for its retry
+ * (CALL_RETRY_ASKS_FIRST, owner 2026-11-26: the retry carries the first call's whole reason).
+ * The caller checks the signature first. Like callBackgroundOf, read here and never kept by
+ * parseOnBehalfDispatch (#4497). Non-strings are ignored.
+ */
+export function callPreferencesOf(rawJobMetadata: string): CallPreferences {
+  return preferencesIn(signedObjectOf(rawJobMetadata));
+}
+
+/** How long this process keeps a verified call: call-retry.ts's dispatches, and its words below. */
+export const VERIFIED_CALL_TTL_MS = 24 * 60 * 60 * 1000;
+
+// The verified first call's preferences, by callId, from job start until its retry decision
+// (call-retry.ts takes them, once). The parsed call state never holds them; this keeps only
+// them, only with the retry asking first, for at most VERIFIED_CALL_TTL_MS and at most
+// MAX_KEPT_CALLS calls (the oldest goes first).
+const retryPreferences = new Map<string, { said: CallPreferences; at: number }>();
+const MAX_KEPT_CALLS = 100;
+
+/**
+ * Keep a verified call's preferences for its retry (metadata-parser.ts, after the signature
+ * checked out). Nothing is kept unless CALL_FOLLOWTHROUGH and CALL_RETRY_ASKS_FIRST are on.
+ */
+export function keepPreferencesForRetry(callId: string, signedRaw: string | undefined): void {
+  if (!signedRaw || !flagOn('CALL_FOLLOWTHROUGH') || !flagOn('CALL_RETRY_ASKS_FIRST')) return;
+  const now = Date.now();
+  for (const [id, kept] of retryPreferences) {
+    if (now - kept.at > VERIFIED_CALL_TTL_MS) retryPreferences.delete(id);
+  }
+  retryPreferences.delete(callId);
+  const said = callPreferencesOf(signedRaw);
+  if (Object.keys(said).length === 0) return;
+  if (retryPreferences.size >= MAX_KEPT_CALLS) {
+    const oldest = retryPreferences.keys().next().value;
+    if (oldest !== undefined) retryPreferences.delete(oldest);
+  }
+  retryPreferences.set(callId, { said, at: now });
+}
+
+/** Take the preferences kept for this call's retry: they are gone after. Empty when none. */
+export function takePreferencesForRetry(callId: string): CallPreferences {
+  const kept = retryPreferences.get(callId);
+  retryPreferences.delete(callId);
+  return kept && Date.now() - kept.at <= VERIFIED_CALL_TTL_MS ? kept.said : {};
 }
