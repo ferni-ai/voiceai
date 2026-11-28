@@ -580,6 +580,9 @@ jobs:
           # vitest shards the files --changed selected, so the four shards of a big
           # affected set are disjoint and together run all of it.
           if [ "$AFFECTED_SHARDED" = true ]; then args+=("--shard=$SHARD/4"); fi
+          # The run's JSON report, read by the "Unit tests ran" step. Naming a reporter
+          # replaces the defaults, so default and github-actions are named too.
+          args+=(--reporter=default --reporter=github-actions --reporter=json "--outputFile.json=$RUNNER_TEMP/unit-report.json")
           pnpm exec vitest run "${args[@]}"
         env:
           NODE_ENV: test
@@ -588,12 +591,24 @@ jobs:
 
       # No `--`: pnpm passes it through and vitest ignores every flag after it, so the
       # old `-- --reporter=verbose` here never took effect (the default reporter ran).
+      # The reporters are named as in the affected run above (JSON report for "Unit tests ran").
       - name: Run unit tests with coverage
         id: full-unit
         if: env.FULL_SUITE == 'true'
-        run: pnpm test:unit:coverage --shard=${{ matrix.shard }}/4
+        run: pnpm test:unit:coverage --shard=${{ matrix.shard }}/4 --reporter=default --reporter=github-actions --reporter=json "--outputFile.json=$RUNNER_TEMP/unit-report.json"
         env:
           NODE_ENV: test
+
+      # vitest passes a run that selected nothing (#4550). A full run and each shard of a
+      # big affected set always select tests, so an empty one fails. A small affected set
+      # can be empty by design: a change no unit test imports.
+      - name: Unit tests ran
+        if: env.FULL_SUITE == 'true' || env.AFFECTED_SHARDED == 'true'
+        run: node scripts/ci/assert-tests-ran.mjs "$RUNNER_TEMP/unit-report.json"
+
+      - name: Unit tests ran (an empty affected set is allowed)
+        if: env.FULL_SUITE != 'true' && env.AFFECTED_SHARDED != 'true'
+        run: node scripts/ci/assert-tests-ran.mjs "$RUNNER_TEMP/unit-report.json" --allow-empty "no unit test imports a file this pull request changed (vitest --changed HEAD^1)"
 
       # Each shard uploads its part under the one `unit` flag and Codecov merges the
       # uploads for a commit. vitest.config.unit.ts sets no coverage thresholds, so
@@ -668,6 +683,15 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     steps:
+      # Every other step skips on a pull request, and the check still turns green in
+      # seconds: verifiers read that as a pass (#4550). Say so on the check instead.
+      - name: Not run on pull requests
+        if: github.event_name == 'pull_request'
+        run: |
+          msg="Not run on pull requests: the merge queue runs the integration suite. Related Integration Tests and Deploy & CI Config Tests are the PR-side checks."
+          echo "::notice title=Integration Tests::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         uses: actions/checkout@v7
@@ -753,7 +777,7 @@ jobs:
       - name: Run integration tests
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
-        run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
+        run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose --reporter=json "--outputFile.json=$RUNNER_TEMP/integration-report.json"
         env:
           NODE_ENV: test
           # No GOOGLE_API_KEY: the secret is invalid ("API key not valid"), so the
@@ -766,6 +790,11 @@ jobs:
           # the project id alone (Vertex embeddings, firebase-admin) fails here, so
           # the tests choose their fakes explicitly instead of relying on the env.
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+
+      # Each shard of the whole suite selects tests, so an empty one fails (#4550).
+      - name: Integration tests ran
+        if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
+        run: node scripts/ci/assert-tests-ran.mjs "$RUNNER_TEMP/integration-report.json"
 
       - name: Check coverage threshold
         if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
@@ -888,7 +917,7 @@ jobs:
         # word-split, since a file name comes from the PR.
         run: |
           mapfile -t files < "$RUNNER_TEMP/changed-src.txt"
-          pnpm exec vitest related --run --config vitest.config.integration.ts --passWithNoTests --reporter=verbose "${files[@]}"
+          pnpm exec vitest related --run --config vitest.config.integration.ts --passWithNoTests --reporter=verbose --reporter=json "--outputFile.json=$RUNNER_TEMP/related-report.json" "${files[@]}"
         env:
           NODE_ENV: test
           # Same env as Integration Tests (no GOOGLE_API_KEY, see there).
@@ -897,6 +926,12 @@ jobs:
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+
+      # Most changed src files have no integration test importing them, so an empty
+      # run is allowed, and the check says it ran nothing (#4550).
+      - name: Related integration tests ran
+        if: steps.changed.outputs.count != '0'
+        run: node scripts/ci/assert-tests-ran.mjs "$RUNNER_TEMP/related-report.json" --allow-empty "no integration test imports a src file this pull request changed (vitest related)"
 
   # ============================================================================
   # DEPLOY & CI CONFIG TESTS (pull requests that change files those tests read)
@@ -946,9 +981,14 @@ jobs:
 
       # No `--` (see Integration Tests).
       - name: Run src/tests/deploy and src/tests/ci
-        run: pnpm exec vitest run --config vitest.config.integration.ts src/tests/deploy/ src/tests/ci/ --reporter=verbose
+        run: pnpm exec vitest run --config vitest.config.integration.ts src/tests/deploy/ src/tests/ci/ --reporter=verbose --reporter=json "--outputFile.json=$RUNNER_TEMP/deploy-report.json"
         env:
           NODE_ENV: test
+
+      # Both directories must run: a config include or exclude that drops one leaves the
+      # run green without it (#4550).
+      - name: Deploy and CI config tests ran
+        run: node scripts/ci/assert-tests-ran.mjs "$RUNNER_TEMP/deploy-report.json" --expect src/tests/deploy/ src/tests/ci/
 
   # ============================================================================
   # AGI FEATURE TESTS

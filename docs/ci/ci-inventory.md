@@ -30,7 +30,12 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 - `lint` - TypeScript type check + ESLint
 - `test-unit-shard` - Unit tests with coverage, four vitest shards ("Unit Tests (n/4)")
 - `test-unit` - The required "Unit Tests" check: passes only when every shard passed
-- `test-integration` - Integration tests
+- `test-integration` - Integration tests, three shards ("Integration Tests (n/3)"). On a pull
+  request every step skips and the check carries a "Not run on pull requests" notice
+- `test-integration-related` - "Related Integration Tests": the integration tests that import
+  a PR's changed src files (an empty selection passes, with a notice saying so)
+- `test-deploy` - "Deploy & CI Config Tests": src/tests/deploy and src/tests/ci on a PR that
+  changes a file they read; fails unless both directories ran
 - `test-agi-features` - AGI feature tests
 - `build` - Backend + design system + frontend
 - `security` - Dependency audit + secret scan
@@ -59,6 +64,11 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 - The "Unit Tests" check fails when the number of shards that ran is not the number the
   run called for (4, or 1 for a small affected set). The matrix condition, `FULL_SUITE`
   and `AFFECTED_SHARDED` are pinned together by `src/tests/deploy/merge-queue-jobs.test.ts`.
+- Every unit, integration, related and deploy test run writes a vitest JSON report, and
+  `scripts/ci/assert-tests-ran.mjs` fails the job when it ran no tests. Only the runs
+  narrowed to the change (a small affected set, `vitest related`) may be empty, with
+  `--allow-empty "<why>"`, printed as a notice. Pinned by
+  `src/tests/deploy/tests-ran-checks.test.ts`.
 
 **Optimizations Applied:**
 - Path filters (70% reduction in unnecessary runs)
