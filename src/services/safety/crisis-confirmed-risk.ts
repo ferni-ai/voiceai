@@ -18,7 +18,7 @@
  * - any risk, or no verdict: the decision stands (risk also confirms the call).
  *
  * Never eases: an unknown call; the alarm turn itself; a call where anything
- * confirmed risk (a pattern on any turn or in any earlier caller line, two reads
+ * confirmed risk (a pattern on any turn or in any earlier caller line, two readers
  * of one turn agreeing on risk, an after-check read finding risk); a caller who
  * may be a minor; a turn the patterns flagged. Shadow runs the read off the
  * reply path and only logs. Logs carry decisions, never words.
@@ -47,6 +47,7 @@ import {
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
+import { readerTally } from './crisis-one-reader.js';
 
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
@@ -141,15 +142,59 @@ function noteKept(lone: LoneRead, env: Env): void {
   const { call, input } = lone;
   if (!call) return;
   entry(call, Date.now()).alarms.add(turnOf(input.latest));
-  void agreed(call, input)
+  void agreed(call, input, 'kept')
     .then((yes) => yes && noteConfirmedRisk(call, env))
     .catch(() => undefined);
 }
 
-/** Two or more reads of this turn agree on risk. */
-async function agreed(call: string, input: CrisisClassifierInput): Promise<boolean> {
-  const verdicts = await turnVerdicts(call, input);
-  return verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2;
+/** A failed count of readers confirms the call: nothing eases on a crash (fails closed). */
+function readersFailed(source: string): true {
+  log.warn({ outcome: 'confirmed', why: 'readers_failed', source }, 'CRISIS_CONFIRMED');
+  return true;
+}
+
+/**
+ * Two or more readers agree on risk. Logs the counts when two or more reads are risk, so a
+ * same-input pair shows as readers 1 with sharedReader: counts and booleans, never words.
+ */
+function readersAgreeOn(verdicts: ReadonlyArray<CrisisVerdict | null>, source: string): boolean {
+  const { riskReads, readers, sharedReader } = readerTally(verdicts);
+  if (riskReads >= 2) {
+    log.info({ riskReads, readers, sharedReader, source }, 'CRISIS_READERS');
+  }
+  return readers >= 2;
+}
+
+/**
+ * Two or more READERS of this turn agree on risk. Runs that saw the same input with the same
+ * prompt and model are one reader (crisis-one-reader.ts); the patterns and the after-check
+ * confirm on their own (noteConfirmedRisk).
+ */
+async function agreed(
+  call: string,
+  input: CrisisClassifierInput,
+  source: string
+): Promise<boolean> {
+  try {
+    return readersAgreeOn(await turnVerdicts(call, input), source);
+  } catch {
+    return readersFailed(source);
+  }
+}
+
+/**
+ * Whether two or more readers agree on risk, from the reads the reply gate or the turn
+ * pipeline already holds: no wait on the reply path. True on a crash (fails closed).
+ */
+export function readersAgree(
+  verdicts: ReadonlyArray<CrisisVerdict | null>,
+  source: LoneRead['source']
+): boolean {
+  try {
+    return readersAgreeOn(verdicts, source);
+  } catch {
+    return readersFailed(source);
+  }
 }
 
 /** A classifier-escalated turn, as the reply gate and the turn pipeline see it. */
@@ -198,7 +243,7 @@ async function ineligible(args: LoneRead, call: string): Promise<string | null> 
     return 'earlier_pattern';
   }
   // Reads of this turn that agree on risk confirm the call, whichever path noted them first.
-  if (await agreed(call, input)) {
+  if (await agreed(call, input, args.source)) {
     kept.confirmed = true;
     return 'confirmed';
   }
