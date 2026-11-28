@@ -41,7 +41,11 @@ import {
   startSessionCleanup as startCleanup,
   stopSessionCleanup as stopCleanup,
 } from './cleanup.js';
-import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
+import {
+  EMPTY_CALL_MAX_SECONDS,
+  MAX_HUMANIZING_UPDATES,
+  SUMMARIZE_TIMEOUT_MS,
+} from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
@@ -1586,10 +1590,21 @@ export async function createSessionServices(
           // FIX BUG #session-20: Handle empty turns gracefully
           // Still finalize learning even if no turns (may have session-level insights)
           if (turns.length === 0) {
-            getLogger().warn(
-              { sessionId, userId: validatedUserId },
-              '⚠️ No conversation turns to summarize - this means addTurn() was never called'
-            );
+            const durationSec = historyTracker.getDurationSeconds();
+            if (durationSec < EMPTY_CALL_MAX_SECONDS) {
+              // Caller left before either side spoke (prod: 2 of 308 call ends in 3 days, both
+              // under a minute). Not a wiring fault, so not a warning.
+              getLogger().info(
+                { sessionId, userId: validatedUserId, durationSec },
+                'Session ended before any turn; nothing to summarize'
+              );
+            } else {
+              // A call that ran this long with no turn at all: addTurn() was likely never reached.
+              getLogger().warn(
+                { sessionId, userId: validatedUserId, durationSec },
+                '⚠️ No conversation turns to summarize after a call that ran for a while - addTurn() was likely never called'
+              );
+            }
           }
 
           let summary = null;
