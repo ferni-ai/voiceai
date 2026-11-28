@@ -169,6 +169,7 @@ describe('design-system ESLint ratchet', () => {
     const file = {
       designEslint: { r: 1 },
       webEslint: { w: 2 },
+      webTestsEslint: { t: 3 },
       bundle: { totalKB: 1, initialKB: 1, maxChunkKB: 1 },
     };
     expect(otherModes(file)).toEqual(file);
@@ -177,7 +178,7 @@ describe('design-system ESLint ratchet', () => {
   it('fails on an unknown baseline name', () => {
     const wrong = run(baseline, 'nope');
     expect(wrong.status).toBe(1);
-    expect(wrong.stderr).toContain('--as must be one of webEslint, designEslint');
+    expect(wrong.stderr).toContain('--as must be one of webEslint, webTestsEslint, designEslint');
   });
 });
 
