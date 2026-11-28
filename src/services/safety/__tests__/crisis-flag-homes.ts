@@ -313,6 +313,31 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
 };
 
 /**
+ * Crisis-lane flags that change only whether a reply already names a crisis line (names988,
+ * says988), read where a "no" adds the line: the 988 floor, the timeout check-in and the SMS
+ * lifeline tail. Such a flag can only add a line, but the six readers and SHOWN_ON never see a
+ * reply holding a form it changes. This home is open only to a flag whose named rows show, old
+ * vs new over every written form, that each form of the line reads the same at every reader
+ * (offersCrisisLine and reachesHelp included) and that only forms which are not the line change,
+ * toward adding it.
+ *
+ * The census checks that each named file exists and holds each title as an it() or test() call,
+ * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
+ */
+export const PRESENCE_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  CRISIS_988_STRICT_PRESENCE: [
+    {
+      file: 'src/services/safety/__tests__/crisis-988-strict-presence.test.ts',
+      rows: [
+        'every form of the line reads the same at every reader with the flag on',
+        'a form that is not the line: only names988 and says988 change, toward adding it',
+        'the SMS lifeline tail is added after "988 dollars" only with the flag on',
+      ],
+    },
+  ],
+};
+
+/**
  * Crisis-lane flags that act on a text channel (SMS or typed chat), where the six readers and
  * SHOWN_ON (voice calls) cannot see them. Voice flags use SHOWN_ON. This home is open only to a
  * flag whose named rows drive its real text path with a fictional crisis text, flag off then on,
