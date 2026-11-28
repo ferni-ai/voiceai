@@ -300,6 +300,16 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       'the flag on leaves the request the model gets as it came: an open call logs, a guided one is quiet',
     ],
   },
+  // The voice turn handler's memory writers also hold on a turn only the reply gate read as a
+  // crisis, or whose gate read did not settle (fail closed). The gate only notes that it read the
+  // turn, so the reply is unchanged; the flag only ever keeps less.
+  CRISIS_HOLD_FOLLOWS_REPLY: {
+    file: 'src/agents/voice-agent/__tests__/turn-handler-crisis-hold-follows-reply.test.ts',
+    rows: [
+      'on a crisis-guided turn and a held turn, the reply gate decides as with the flag off',
+      "what the handler keeps holds none of the caller's words, on a guided turn and a held turn",
+    ],
+  },
   // One spoken check-in before a quiet multi-agent call's idle end (phases/idle-checkin.ts). It
   // makes no reply and keeps nothing; on a call with any crisis signal, a read still holding the
   // reply included, it says nothing and the call ends as with the flag off.

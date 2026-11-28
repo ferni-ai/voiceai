@@ -40,10 +40,19 @@ export function callerTurnFor(sessionId: string, turnKey: string | undefined): n
   return seen.turn;
 }
 
-/** userData carrying the caller turn; the turn hook sets it, the crisis note's readers take it. */
-export type WithCallerTurn = { callerTurn?: number };
+/**
+ * userData carrying the caller turn; the turn hook sets it, the crisis note's readers take it.
+ * `callerTurnKey` is the turn's name itself: the crisis memory hold's turn
+ * (CRISIS_HOLD_FOLLOWS_REPLY, voice-agent/crisis-turn-memory.ts).
+ */
+export type WithCallerTurn = { callerTurn?: number; callerTurnKey?: string };
 
 /** The caller turn the hook handed this turn's builders, if it did. */
 export function callerTurnOf(userData: object): number | undefined {
   return (userData as WithCallerTurn).callerTurn;
+}
+
+/** The name of the caller turn the hook handed this turn's builders (CALLER_TURN_KEY), if it did. */
+export function callerTurnKeyOf(userData: object): string | undefined {
+  return (userData as WithCallerTurn).callerTurnKey;
 }
