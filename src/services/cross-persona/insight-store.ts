@@ -19,6 +19,7 @@
  */
 
 import type { DocumentReference, Firestore } from '@google-cloud/firestore';
+import { flagOn } from '../../config/env-flag.js';
 import { retry, type RetryOptions } from '../../utils/async.js';
 import { isErasedOrErasing } from '../../utils/erasing-mark.js';
 import { userHeld } from '../../utils/minor-care.js';
@@ -109,6 +110,29 @@ export async function readStoredInsights(
 
 const inFlight = new Set<Promise<unknown>>();
 
+/** Each user's latest write in this process, settled: the next one waits for it. */
+const lastWrite = new Map<string, Promise<void>>();
+
+/**
+ * Starts `write` once this user's previous write in this process has landed or failed.
+ * A scan fires up to 17 changes at once, and each concurrent transaction on the same
+ * document aborted the others (FIRESTORE_ERROR ABORTED). Every change is applied to
+ * the list as stored, so running them in turn keeps all of them; the transaction still
+ * guards against another process.
+ */
+async function afterPreviousWrite<T>(userId: string, write: () => Promise<T>): Promise<T> {
+  const run = (lastWrite.get(userId) ?? Promise.resolve()).then(write);
+  const settled = run.then(
+    () => undefined,
+    () => undefined
+  );
+  lastWrite.set(userId, settled);
+  void settled.then(() => {
+    if (lastWrite.get(userId) === settled) lastWrite.delete(userId);
+  });
+  return run;
+}
+
 /** gRPC codes worth another try: DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED, ABORTED, INTERNAL, UNAVAILABLE */
 const TRANSIENT = new Set([4, 8, 10, 13, 14]);
 const grpcCode = (error: unknown): number | undefined => {
@@ -139,6 +163,7 @@ export const BACKGROUND_RETRY: RetryOptions = {
  * the document: a write that read the record before the mark either lands first (and is
  * erased with the rest) or conflicts with the mark, and its retry finds it. Other writers
  * gated on the record (ponder-job.ts reads only whether it exists) don't see the mark yet.
+ * TEAM_INSIGHT_WRITE_QUEUE on: a user's writes in this process run one at a time.
  * `background`: retried with BACKGROUND_RETRY. Rejects when the write fails; the failure
  * is logged once, by its code, never with the insight's words.
  */
@@ -166,7 +191,10 @@ export async function changeStoredInsights(
       return true;
     });
   };
-  const write = (options.background ? retry(once, BACKGROUND_RETRY) : once()).then((written) => {
+  const attempt = async (): Promise<boolean> =>
+    options.background ? retry(once, BACKGROUND_RETRY) : once();
+  const queued = flagOn('TEAM_INSIGHT_WRITE_QUEUE');
+  const write = (queued ? afterPreviousWrite(userId, attempt) : attempt()).then((written) => {
     if (!written) log.info({ userId }, 'Team insight write dropped: no user record');
   });
   const settled = write.catch((error: unknown) => {
