@@ -33,6 +33,14 @@ export function callMeVocativeEnabled(env: Env = process.env): boolean {
   return flagOn('CALL_ME_VOCATIVE', env);
 }
 
+/**
+ * A name said on a call renames the account only after their yes (name-confirm.ts,
+ * remember-name.ts): CALL_ME_VOCATIVE=on, or NAME_SAVE_NEEDS_YES=on without its ringing.
+ */
+export function nameNeedsYes(env: Env = process.env): boolean {
+  return callMeVocativeEnabled(env) || flagOn('NAME_SAVE_NEEDS_YES', env);
+}
+
 export function editDistance(a: string, b: string): number {
   let row = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {

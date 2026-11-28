@@ -17,6 +17,7 @@ import {
 } from '../../memory/storage/profile-read-failure.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { logNameSaved, writeAccountName } from '../identity/account-name.js';
 
 export async function loadSessionProfile(
   store: Pick<MemoryStore, 'getProfileForWrite' | 'saveProfile'>,
@@ -41,6 +42,7 @@ export async function loadSessionProfile(
     const { createUserProfile } = await import('../../types/user-profile.js');
     // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
     profile = createUserProfile(userId, userName);
+    if (userName) logNameSaved({ source: 'onboarding', sessionKind: 'call', hadName: false });
     await store.saveProfile(profile).catch(warnUnsaved);
     void cacheProfile(userId, profile);
     getLogger().info(
@@ -49,7 +51,11 @@ export async function loadSessionProfile(
     );
   } else if (!profile.name && userName) {
     // Existing profile without a name, but we now have one - update it!
-    profile.name = userName;
+    writeAccountName(profile, userName, {
+      source: 'onboarding',
+      sessionKind: 'call',
+      fields: ['name'],
+    });
     await store.saveProfile(profile).catch(warnUnsaved);
     void invalidateProfile(userId);
     getLogger().info(

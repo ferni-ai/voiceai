@@ -23,6 +23,7 @@ import * as contact from './user-contact.js';
 import { panelView, savePanelQuietHours } from './messaging-prefs-route.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { SETTINGS_PREFERRED_NAME, writeAccountName } from '../services/identity/account-name.js';
 
 const log = getLogger().child({ module: 'user-routes' });
 
@@ -226,8 +227,7 @@ export async function handleUserRoutes(
 
       // Update name if provided and profile doesn't have one (or if provided is better)
       if (body?.name && (!profile.name || profile.name === 'User')) {
-        profile.name = body.name;
-        profile.preferredName = body.name;
+        writeAccountName(profile, body.name, { source: 'onboarding', sessionKind: 'api' });
         log.info({ userId, name: body.name }, '✨ Name set from onboarding');
       }
 
@@ -340,8 +340,7 @@ export async function handleUserRoutes(
 
       // Update name if provided
       if (body.userName && (!profile.name || profile.name === 'User')) {
-        profile.name = body.userName;
-        profile.preferredName = body.userName;
+        writeAccountName(profile, body.userName, { source: 'onboarding', sessionKind: 'api' });
         onboarding.userName = body.userName;
         log.info({ userId, name: body.userName }, '✨ Name set from onboarding step');
       }
@@ -716,7 +715,7 @@ export async function handleUserRoutes(
 
       // Update preferred name if provided
       if (body?.preferredName) {
-        profile.preferredName = body.preferredName;
+        writeAccountName(profile, body.preferredName, SETTINGS_PREFERRED_NAME);
       }
 
       // If timezone provided, also update timing preferences
