@@ -98,6 +98,7 @@ export {
   withMinorAbuseRead,
 } from './minor-abuse-disclosure.js';
 export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
+export { requestIsEveryday } from './crisis-everyday-request.js';
 
 // ============================================================================
 // CRISIS RESPONSE
