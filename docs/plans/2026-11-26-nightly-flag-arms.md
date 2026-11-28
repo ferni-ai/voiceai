@@ -74,7 +74,8 @@ Two arms, chosen per flag by how it can be set.
 
 1. Sweep appends the parity report to its comment (small), and flags any flag
    on in prod but off in dev as a FAIL of the sweep's own setup.
-2. Scorecard takes two arms and prints per-capability deltas and the verdict.
+2. Scorecard takes two arms and prints per-capability deltas and the verdict
+   (`scripts/voice-eval/nightly/arm-verdict.mjs`, done 2026-11-27).
 3. `NIGHTLY_AGENT_FLAGS` (whole-agent arm), since it covers all 221 flags.
 4. `NIGHTLY_ARM_FLAGS` (cohort arm) for same-night comparisons.
 5. A queue file (`scripts/voice-eval/nightly/arm-queue.txt`): which batch runs
