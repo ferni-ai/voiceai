@@ -38,7 +38,7 @@ import {
   getPlayfulMusicIntro,
   shouldReactToMusic,
 } from '../../../speech/music-reactions.js';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { getLogger, replyForLog } from '../../../utils/safe-logger.js';
 import { startWithin } from './music-start.js';
 import { listeningUnavailable, NOT_YOUR_SPOTIFY, notLinkedReply } from './music-honesty.js';
 import { noteMusicRequest, playAmbientMusic, resetAmbientSession } from './ambient-play.js';
@@ -110,7 +110,7 @@ export function detectMusicIntent(query: string): MusicIntent {
   for (const pattern of listeningPatterns) {
     if (pattern.test(q)) {
       getLogger().debug(
-        { query, pattern: pattern.source },
+        { query: replyForLog(query), pattern: pattern.source },
         '🎵 Detected LISTENING intent (explicit Spotify/device request)'
       );
       return 'listening';
@@ -124,7 +124,7 @@ export function detectMusicIntent(query: string): MusicIntent {
   // - "play me something chill" → ambient
   // - "I want to hear music" → ambient (not specific enough for Spotify)
   // - "play Taylor Swift" → ambient (previews, user can say "on Spotify" if they want full)
-  getLogger().debug({ query }, '🎵 AMBIENT intent (default - in-call iTunes previews)');
+  getLogger().debug({ query: replyForLog(query) }, '🎵 AMBIENT intent (default: iTunes previews)');
   return 'ambient';
 }
 
@@ -202,7 +202,7 @@ export async function playMusicUnified(query: string): Promise<string> {
 
   log.info(
     {
-      query,
+      query: replyForLog(query),
       intent,
       explicitSonos,
       roomName,
@@ -215,7 +215,7 @@ export async function playMusicUnified(query: string): Promise<string> {
   // Note: The LLM should route Sonos requests to playSonosMusic tool instead
   if (explicitSonos || roomName) {
     log.info(
-      { query, roomName, explicitSonos },
+      { query: replyForLog(query), roomName, explicitSonos },
       '🎵 Sonos mentioned - LLM should use playSonosMusic'
     );
     // Return helpful message - this shouldn't happen if tools are configured correctly
@@ -228,7 +228,7 @@ export async function playMusicUnified(query: string): Promise<string> {
   const musicAvailability = isMusicAvailable();
   if (!musicAvailability.available) {
     log.warn(
-      { query, reason: musicAvailability.reason },
+      { query: replyForLog(query), reason: musicAvailability.reason },
       '🎵 Music playback NOT available for this session'
     );
     // Return a clear message that tells the LLM music isn't working (not just one track)
@@ -237,18 +237,18 @@ export async function playMusicUnified(query: string): Promise<string> {
 
   // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
   if (intent === 'ambient') {
-    log.info({ query }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
+    log.info({ query: replyForLog(query) }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
     return playAmbientMusic(query, musicConfig.spotifyLinked);
   }
 
   // LISTENING INTENT: Try Spotify first, graceful fallback
   if (musicConfig.spotifyLinked) {
-    log.info({ query }, '🎵 LISTENING mode: Trying Spotify...');
+    log.info({ query: replyForLog(query) }, '🎵 LISTENING mode: Trying Spotify...');
     const result = await playViaSpotify(query);
 
     // Check if Spotify failed due to device issue
     if (result.includes("can't play it yet") || result.includes('no active device')) {
-      log.info({ query }, '🎵 Spotify device unavailable, falling back to iTunes preview');
+      log.info({ query: replyForLog(query) }, '🎵 Spotify device unavailable, iTunes preview');
       return playViaItunesWithListeningFallback(query);
     }
 
@@ -256,7 +256,7 @@ export async function playMusicUnified(query: string): Promise<string> {
   }
 
   // No Spotify: say so (MUSIC_HONEST_WHEN_UNLINKED) or use iTunes with "listening" framing
-  log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
+  log.info({ query: replyForLog(query) }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
   return (await listeningUnavailable()) ?? playViaItunesWithListeningFallback(query);
 }
 
@@ -300,7 +300,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
   log.info(
     {
       timestamp: new Date().toISOString(),
-      query,
+      query: replyForLog(query),
       personaId,
       musicPlayerInitialized: musicPlayer.isInitialized(),
       musicPlayerSessionId: musicPlayer.getSessionId(),
@@ -313,13 +313,13 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
   // This provides a clear error message instead of "audio system isn't ready"
   if (!isMusicEnabled()) {
     log.warn(
-      { query, elapsed: Date.now() - startTime },
+      { query: replyForLog(query), elapsed: Date.now() - startTime },
       '🎵 [DIAG] Music feature is disabled (MUSIC_ENABLED=false)'
     );
     return `I'd love to play "${query}" for you, but music playback is currently disabled. Let's keep chatting instead!`;
   }
 
-  log.info({ query }, '🎵 [iTunes] Starting search...');
+  log.info({ query: replyForLog(query) }, '🎵 [iTunes] Starting search...');
 
   try {
     // Step 1: Search iTunes
@@ -329,11 +329,14 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       found: result.found,
       trackName: result.track?.name,
       hasPreviewUrl: !!result.track?.previewUrl,
-      error: result.error,
+      error: replyForLog(result.error),
     });
 
     if (!result.found || !result.track) {
-      log.warn({ query, error: result.error }, '🎵 [iTunes] Track not found');
+      log.warn(
+        { query: replyForLog(query), error: replyForLog(result.error) },
+        '🎵 [iTunes] Track not found'
+      );
       // 🎯 IMPROVED: More helpful suggestions
       const suggestions = [
         `Couldn't find "${query}". Try the artist name, or a different spelling?`,
@@ -397,7 +400,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       log.warn(
         {
           timestamp: new Date().toISOString(),
-          query,
+          query: replyForLog(query),
           sessionId: currentMusicPlayer.getSessionId(),
           elapsed: Date.now() - startTime,
         },
@@ -413,7 +416,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
         log.error(
           {
             timestamp: new Date().toISOString(),
-            query,
+            query: replyForLog(query),
             trackName: track.name,
             playerState,
             sessionId,
@@ -587,7 +590,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
 
     return `${intro}Here's "${track.name}" by ${track.artist}!${outro}`;
   } catch (error) {
-    getLogger().error({ error, query }, '🎵 [iTunes] EXCEPTION in playViaItunes');
+    log.error({ error, query: replyForLog(query) }, '🎵 [iTunes] EXCEPTION in playViaItunes');
     return 'I had trouble finding that song. Try a different one?';
   }
 }
@@ -597,7 +600,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
  * Dynamically imports Spotify module to avoid loading if not needed.
  */
 async function playViaSpotify(query: string): Promise<string> {
-  getLogger().info({ query }, '🎵 Playing via Spotify (full track)');
+  getLogger().info({ query: replyForLog(query) }, '🎵 Playing via Spotify (full track)');
 
   try {
     // Dynamically import Spotify to avoid circular deps
@@ -734,15 +737,11 @@ export function createMusicTools() {
         query: z.string().describe(getParameterDescription('playMusic', 'query')),
       }),
       execute: async ({ query }) => {
-        const log = getLogger();
+        const log = getLogger().child({ query: replyForLog(query) });
 
         // 🔍 DIAGNOSTIC: Log at INFO level at the VERY START to confirm LLM is calling this
         log.info(
-          {
-            timestamp: new Date().toISOString(),
-            query,
-            toolName: 'playMusic',
-          },
+          { timestamp: new Date().toISOString(), toolName: 'playMusic' },
           '🎵 [DIAG] ========== playMusic TOOL INVOKED BY LLM =========='
         );
 
@@ -750,7 +749,6 @@ export function createMusicTools() {
         const musicAvailability = isMusicAvailable();
         log.info(
           {
-            query,
             available: musicAvailability.available,
             reason: musicAvailability.reason,
             spotifyLinked: musicConfig.spotifyLinked,
@@ -763,8 +761,7 @@ export function createMusicTools() {
           const result = await playMusicUnified(query);
           log.info(
             {
-              query,
-              resultPreview: result.slice(0, 150),
+              resultPreview: replyForLog(result, 150),
               success: !result.includes("isn't available") && !result.includes("couldn't"),
             },
             '🎵 [DIAG] playMusic completed - check if music actually played'
@@ -772,7 +769,7 @@ export function createMusicTools() {
           return result;
         } catch (error) {
           log.error(
-            { query, error: String(error), stack: (error as Error).stack?.slice(0, 300) },
+            { error: String(error), stack: (error as Error).stack?.slice(0, 300) },
             '🎵 [DIAG] playMusic EXCEPTION'
           );
           // 🚨 IMPROVED: Clear error that helps LLM understand the issue

@@ -8,7 +8,7 @@
  */
 
 import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, replyForLog } from '../../utils/safe-logger.js';
 import { getSlidingWindowLimiter } from '../../utils/rate-limiter.js';
 
 const log = createLogger({ module: 'GoogleBooks' });
@@ -192,14 +192,14 @@ export async function searchBooks(
   } = options;
 
   if (!booksCircuitBreaker.canRequest()) {
-    log.warn({ query }, 'Google Books circuit breaker is OPEN');
+    log.warn({ query: replyForLog(query) }, 'Google Books circuit breaker is OPEN');
     return { found: false, books: [], error: 'Service temporarily unavailable' };
   }
 
   // Check rate limiter
   if (!booksRateLimiter.tryRequest()) {
     const waitTime = booksRateLimiter.getResetTime();
-    log.warn({ query, waitTimeMs: waitTime }, 'Google Books rate limit exceeded');
+    log.warn({ query: replyForLog(query), waitTimeMs: waitTime }, 'Google Books rate limited');
     return { found: false, books: [], error: 'Rate limit exceeded. Please try again shortly.' };
   }
 
@@ -222,7 +222,7 @@ export async function searchBooks(
 
   const url = `${GOOGLE_BOOKS_API_BASE}/volumes?${params}`;
 
-  log.info({ query, limit }, 'Searching books');
+  log.info({ query: replyForLog(query), limit }, 'Searching books');
 
   try {
     const data = await booksCircuitBreaker.execute(async () => {
@@ -252,7 +252,7 @@ export async function searchBooks(
     const books = data.items.map(transformToBook);
 
     log.info(
-      { query, resultCount: books.length, totalItems: data.totalItems },
+      { query: replyForLog(query), resultCount: books.length, totalItems: data.totalItems },
       'Book search complete'
     );
     return {
@@ -264,7 +264,7 @@ export async function searchBooks(
     if (error instanceof CircuitOpenError) {
       return { found: false, books: [], error: 'Service temporarily unavailable' };
     }
-    log.error({ error, query }, 'Book search failed');
+    log.error({ error, query: replyForLog(query) }, 'Book search failed');
     return { found: false, books: [], error: 'Search failed' };
   }
 }
