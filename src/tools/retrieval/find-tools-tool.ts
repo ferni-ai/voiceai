@@ -23,14 +23,28 @@ export const FIND_TOOLS = 'findTools';
 
 export type FoundTool = { name: string; description: string };
 
-/** Adds the named tools to the session's agent; returns the ones it now has. `need` is for the audit log. */
-export type ToolPinner = (names: readonly string[], need: string) => Promise<FoundTool[]>;
+/**
+ * Adds the named tools to the session's agent; returns the ones it now has. `need` is for the
+ * audit log; `persona` is the persona's own findable domains (FINDABLE_PERSONA_DOMAINS).
+ */
+export type ToolPinner = (
+  names: readonly string[],
+  need: string,
+  persona?: ReadonlySet<string>
+) => Promise<FoundTool[]>;
+
+/** The domains the persona on the call now may also find (empty with the flag off). */
+export type PersonaFindable = () => Promise<ReadonlySet<string>>;
 
 // Keyed by the AgentSession, like the retrieval itself.
-const pinners = new WeakMap<object, ToolPinner>();
+const pinners = new WeakMap<object, { pin: ToolPinner; persona?: PersonaFindable }>();
 
-export function setToolPinner(session: object, pinner: ToolPinner | null): void {
-  if (pinner) pinners.set(session, pinner);
+export function setToolPinner(
+  session: object,
+  pinner: ToolPinner | null,
+  persona?: PersonaFindable
+): void {
+  if (pinner) pinners.set(session, { pin: pinner, persona });
   else pinners.delete(session);
 }
 
@@ -49,14 +63,16 @@ export function createFindToolsTool() {
       if (!retrieval) return UNAVAILABLE;
       let found: FoundTool[];
       if (staticCoreToolsEnabled()) {
-        const pin = pinners.get(ctx.session);
-        if (!pin) return UNAVAILABLE;
-        const matches = await retrieval.find(need, 5, { anyTool: true });
+        const pinner = pinners.get(ctx.session);
+        if (!pinner) return UNAVAILABLE;
+        const persona = await pinner.persona?.();
+        const matches = await retrieval.find(need, 5, { anyTool: true, persona });
         found =
           matches.length > 0
-            ? await pin(
+            ? await pinner.pin(
                 matches.map((m) => m.name),
-                need
+                need,
+                persona
               )
             : [];
       } else {

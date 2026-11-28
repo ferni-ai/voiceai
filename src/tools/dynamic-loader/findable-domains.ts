@@ -45,7 +45,30 @@ export const NEVER_PIN_TOOLS: readonly string[] = [
   'sendMessageNow',
 ];
 
-/** A tool findTools may offer and pin: a findable domain, and not one that contacts people. */
-export function isFindableTool(name: string, domain: string | undefined): boolean {
-  return isFindableDomain(domain) && !NEVER_PIN_TOOLS.includes(name);
+/**
+ * FINDABLE_PERSONA_DOMAINS: the only domains a persona's manifest can add to what
+ * findTools reaches, and only for a persona whose manifest lists them. An
+ * allowlist on purpose: manifests also list domains that call, text, post or
+ * share for the caller (proactive, marketing, family), and the vibe tools in home
+ * set the thermostat as any session id. Like NEVER_PIN_TOOLS, only the caller's
+ * own words should load those, and a new one must never leak in by default.
+ */
+export const PERSONA_FINDABLE_DOMAINS: readonly string[] = ['decisions', 'life-thesis'];
+
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * A tool findTools may offer and pin: a findable domain, or a domain of `persona`
+ * (the persona's manifest domains) on PERSONA_FINDABLE_DOMAINS, and not one that
+ * contacts people.
+ */
+export function isFindableTool(
+  name: string,
+  domain: string | undefined,
+  persona: ReadonlySet<string> = NONE
+): boolean {
+  if (NEVER_PIN_TOOLS.includes(name) || domain === undefined) return false;
+  return (
+    isFindableDomain(domain) || (persona.has(domain) && PERSONA_FINDABLE_DOMAINS.includes(domain))
+  );
 }

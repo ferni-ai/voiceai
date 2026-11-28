@@ -106,12 +106,12 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { withAlwaysOnTools, withCaptureConsentTool } from './everyday-basics.js';
 import { withCallJournalTools } from './call-journal-tools.js';
+import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
 import {
-  createFindToolsTool,
-  FIND_TOOLS,
-  setToolPinner,
-} from '../../tools/retrieval/find-tools-tool.js';
-import { createToolPinner, staticCoreTools } from '../shared/static-core-tools.js';
+  createToolPinner,
+  installToolPinner,
+  staticCoreTools,
+} from '../shared/static-core-tools.js';
 import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
@@ -1796,9 +1796,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           phone: config.phoneCaller,
         });
         if (staticCoreToolsEnabled()) {
-          // findTools appends what it finds to the agent on the call now.
-          setToolPinner(session, createToolPinner(agentNow, coreCtx));
-          cleanupFunctions.push(() => setToolPinner(session, null));
+          const pinner = createToolPinner(agentNow, coreCtx); // findTools pins to the agent
+          cleanupFunctions.push(installToolPinner(session, pinner, userData, persona));
         }
         await installDirectorNotes({
           session,

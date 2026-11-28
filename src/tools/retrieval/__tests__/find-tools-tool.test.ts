@@ -53,7 +53,11 @@ describe('findTools with TOOL_CORE_STATIC', () => {
 
     const reply = await run(session, 'a table for two tonight');
     expect(retrieval.find).toHaveBeenCalledWith('a table for two tonight', 5, { anyTool: true });
-    expect(pin).toHaveBeenCalledWith(['bookTable', 'noLongerExists'], 'a table for two tonight');
+    expect(pin).toHaveBeenCalledWith(
+      ['bookTable', 'noLongerExists'],
+      'a table for two tonight',
+      undefined
+    );
     expect(reply).toBe(
       'These tools are now available; call the one that fits: bookTable (Book a restaurant table.)'
     );

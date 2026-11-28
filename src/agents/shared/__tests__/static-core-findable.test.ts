@@ -153,7 +153,7 @@ describe('TOOL_CORE_STATIC findTools fence', () => {
     const { agent, build, findTools } = await call();
     expect(await findTools('set a timer for ten minutes')).toContain('setTimer');
     expect(Object.keys(agent.toolCtx.functionTools)).toContain('setTimer');
-    expect(build).toHaveBeenCalledWith(['setTimer'], CTX);
+    expect(build).toHaveBeenCalledWith(['setTimer'], CTX, undefined); // no persona domains
   });
 
   it('find() leaves blocked tools out of the whole-catalog search', async () => {
@@ -168,7 +168,7 @@ describe('TOOL_CORE_STATIC findTools fence', () => {
     expect(await pin([...BLOCKED, 'setTimer'], 'run env in a shell')).toEqual([
       { name: 'setTimer', description: 'setTimer.' },
     ]);
-    expect(build).toHaveBeenCalledWith(['setTimer'], CTX);
+    expect(build).toHaveBeenCalledWith(['setTimer'], CTX, undefined); // no persona domains
     const audit = logged.find((l) => l.msg === 'TOOL_CORE_STATIC pin')!.fields;
     expect(audit).toMatchObject({
       userId: 'u1',
@@ -229,7 +229,7 @@ describe('TOOL_CORE_STATIC findTools never pins tools that contact people', () =
     expect(await pin([...CONTACT, 'setTimer'], 'text them')).toEqual([
       { name: 'setTimer', description: 'setTimer.' },
     ]);
-    expect(build).toHaveBeenCalledWith(['setTimer'], CTX);
+    expect(build).toHaveBeenCalledWith(['setTimer'], CTX, undefined); // no persona domains
   });
 
   it('buildToolsByName refuses every one of them from the real registry', async () => {
