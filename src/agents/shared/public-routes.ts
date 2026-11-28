@@ -30,6 +30,9 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   // No caller in the repo.
   '/health/warmup',
   '/api/warmup',
+  // The LiveKit platform's worker status poll (worker-status.ts). Eight keys about the worker, no
+  // user, room or job.
+  '/worker',
 ]);
 
 /** The URL answers without an admin. Exact match only: no prefixes. */

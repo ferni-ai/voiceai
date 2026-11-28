@@ -31,6 +31,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isPublicRoute } from './public-routes.js';
+import { sendWorkerStatus } from './worker-status.js';
 import {
   getReadinessState,
   markHealthServerReady,
@@ -794,6 +795,12 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
             timestamp: new Date().toISOString(),
           })
         );
+        return;
+      }
+
+      // The LiveKit platform's worker status poll
+      if (url === '/worker') {
+        sendWorkerStatus(res);
         return;
       }
 
