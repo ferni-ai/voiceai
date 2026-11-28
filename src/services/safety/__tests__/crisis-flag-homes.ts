@@ -244,6 +244,16 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
       "what it keeps holds none of the caller's words, on a guided turn and a held turn",
     ],
   },
+  // processTurn's pipeline memory writers (first site: the cross-session reflection moment) run
+  // in the background and only on a turn whose crisis read settled clean, for a caller no hold
+  // covers. Nothing they do reaches the reply; a crisis or held turn keeps no moment.
+  CRISIS_HOLD_PIPELINE_WRITERS: {
+    file: 'src/agents/processors/turn-processor/__tests__/pipeline-crisis-hold.test.ts',
+    rows: [
+      'on a crisis-guided turn and a held turn, processTurn hands the reply what it does with the flag off',
+      'on a crisis-guided turn and a held turn, the flag on keeps no reflection moment',
+    ],
+  },
   TURN_PATH_SINGLE_CAPTURE: {
     file: 'src/agents/voice-agent/__tests__/turn-path-single-capture.test.ts',
     rows: [
