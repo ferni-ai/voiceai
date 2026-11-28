@@ -323,6 +323,17 @@ export const MEMORY_ONLY: Readonly<Record<string, MemoryOnlyRow>> = {
  * as for MEMORY_ONLY. What a row asserts is a reviewer's check.
  */
 export const TEXT_SHOWN_ON: Readonly<Record<string, readonly MemoryOnlyRow[]>> = {
+  // An on-behalf call's report (push, email, calendar, the next session's prompt): there the
+  // crisis line is Ferni's crisisCallerLine, not 988. On, the screen may withhold more of their
+  // words, never that line.
+  SCREEN_SPELLED_PII: [
+    {
+      file: 'src/services/outreach/__tests__/caller-text-spelled.test.ts',
+      rows: [
+        'SCREEN_SPELLED_PII off then on: a crisis line with a spelled number keeps crisisCallerLine',
+      ],
+    },
+  ],
   SMS_REPLY: [
     {
       file: 'src/api/__tests__/outreach-sms-crisis-survives.test.ts',

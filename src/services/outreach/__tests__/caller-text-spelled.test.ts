@@ -1,0 +1,227 @@
+/**
+ * SCREEN_SPELLED_PII (#3346): the caller-text screen also reads a match-only fold of the text,
+ * so a number, link or credential word spelled to slip past it is withheld like the written
+ * form. The quoted words, the crisis read and crisisCallerLine are never changed by it.
+ * All lines are invented; "Casey" is the fictional contact.
+ */
+import { afterEach, describe, expect, it } from 'vitest';
+
+import {
+  crisisCallerLine,
+  crisisRead,
+  isRiskyCallerText,
+  riskyCallerLine,
+  screenCallerParts,
+  screenedCallerText,
+} from '../caller-text.js';
+import { foldForScreen } from '../caller-text-fold.js';
+
+const NAME = 'Casey';
+const CYRILLIC_A = String.fromCharCode(0x430);
+const GREEK_O = String.fromCharCode(0x3bf);
+
+/** Shapes the written-text screen misses today, by what slips past it. */
+const SPELLED: Array<[string, string]> = [
+  ['spelled digits with a comma', 'she said call five five five, zero one four two after six'],
+  ['spelled digits in one run', 'her number is five five five zero one four two three'],
+  ['digits joined by the word dash', 'reach her at 555 dash 0142 tonight'],
+  ['digits joined by an en dash', 'reach her at 555 \u2013 0142 tonight'],
+  ['digits joined by an em dash', 'her number is 555\u20140142'],
+  ['digits joined by slashes', 'the number is 555/014/2777'],
+  ['a capital O for zero', 'the line is 555-O142 if you need it'],
+  ['a small L for one', 'call 555-0l42 about it'],
+  ['oh for zero among spelled digits', 'it is five five five oh one four two'],
+  ['a code to pass on', 'send me the code she gets on her phone'],
+  ['a code to share', 'share the code she gets with me'],
+  ['a code to say', 'say the code they texted you'],
+  ['a code to repeat', 'repeat the code from the text back to me'],
+  // A run dressed as a date (security review on #4155).
+  ['an eight-digit number written date-shaped, day 34', 'the number is 12/34/5678'],
+  ['a date with look-alike letters', 'the code is 1l/19/2O26'],
+  ['a date in spelled digits', 'the number is one one/one nine/2026'],
+  ['a date touching another run', 'the number is 11/19/2026 , , 555'],
+  // A code someone received, asked for with a compound the plain rule spares.
+  ['a promo code someone texted', 'read me the promo code they texted you'],
+  ['a code word sent to a phone', "what's the code word they sent to your phone"],
+  ['a link said aloud', 'go to example dot com for the form'],
+  ['a link with a path said aloud', 'it is at example dot com slash help'],
+  ['a Cyrillic letter in a credential word', `her p${CYRILLIC_A}ssword is the dog's name`],
+  ['a Greek letter in a credential word', `the l${GREEK_O}gin is on the fridge`],
+];
+
+/** Ordinary lines that pass today and must keep passing with the fold on. */
+const ORDINARY = [
+  'I have two kids and a dog',
+  'call me at five',
+  'we met at seven thirty, then again at nine',
+  'she is ninety one this year',
+  'tell her the dress code is casual',
+  'what is the zip code there',
+  'oh one more thing, she turns 45 on Friday',
+  'room 2O1 is on the left',
+  'it cost five dollars at the fair', // a sum in words, as the written screen reads it today
+  'Ivan said Москва was cold', // a whole Cyrillic word stays as is
+  'one two three, she counted the steps',
+  // A code that is not one to pass on (#4155 verify).
+  'she read the code of conduct to the class',
+  'I sent the code review this morning',
+  'they send the code to production on fridays',
+  'text him that the code word is pineapple',
+  'give me a promo code for the cafe',
+  'he said the code compiles now', // "said" reports; it isn't in the verb list
+  // A slash or dash between numbers that is not a number to withhold.
+  'her appointment is 11/19/2026',
+  'see you on 3/4 then',
+  'they are open 9\u20135 on weekdays',
+];
+
+/**
+ * Ordinary lines the fold still withholds, flag on: known over-reads, pinned so a change to
+ * them is seen. "dot com" folds to a link; seven spelled digits in a row read as a number.
+ */
+const KNOWN_OVER_READS = [
+  'that was the dot com era',
+  'she can count one two three four five six seven now',
+];
+
+/** What the fold makes of a slashed run: a real date stays as written, anything else is digits. */
+const FOLDS: Array<[string, string]> = [
+  ['the code is 12/34', 'the code is 1234'], // day 34
+  ['the code is 13/12', 'the code is 1312'], // month 13
+  ['the code is 0/12', 'the code is 012'], // month 0
+  ['the code is 11 / 19', 'the code is 1119'], // a slash with spaces
+  ['the code is one/nine/26', 'the code is 1926'], // spelled digits
+  ['the code is 1l/19', 'the code is 1119'], // a look-alike letter
+  ['the code is 11/19/202', 'the code is 1119202'], // a three-digit year
+  ['the code is 11/19/2026/5', 'the code is 111920265'], // four groups
+  ['the number is 11/19/2026 , , 555', 'the number is 11192026555'], // touching runs
+  ['her appointment is 11/19/2026', 'her appointment is 11/19/2026'],
+  ['see you on 3/4 then', 'see you on 3/4 then'],
+  ['due 12/31/99', 'due 12/31/99'],
+  ['on 11/19/2026 then 555 0142', 'on 11/19/2026 then 5550142'], // not touching: a word between
+];
+
+/** Digits of other scripts were already caught (NFKC, \p{Nd}): pinned, not changed. */
+const ALREADY_CAUGHT = [
+  'call ٥٥٥٠١٤٢', // Arabic-Indic
+  'call ５５５０１４２', // full-width
+];
+
+const setFlag = (value: 'on' | 'off'): void => {
+  process.env.SCREEN_SPELLED_PII = value;
+};
+
+afterEach(() => {
+  delete process.env.SCREEN_SPELLED_PII;
+});
+
+describe('SCREEN_SPELLED_PII off', () => {
+  it.each(SPELLED)('%s: passes the screen exactly as today', (_shape, line) => {
+    setFlag('off');
+    expect(isRiskyCallerText(line, NAME)).toBe(false);
+    expect(screenedCallerText(line, NAME)).toBe(line);
+  });
+
+  it('is the default', () => {
+    for (const [, line] of SPELLED) expect(isRiskyCallerText(line, NAME)).toBe(false);
+  });
+});
+
+describe('SCREEN_SPELLED_PII on', () => {
+  it.each(SPELLED)('%s: withheld behind the fixed line', (_shape, line) => {
+    setFlag('on');
+    expect(isRiskyCallerText(line, NAME)).toBe(true);
+    expect(screenedCallerText(line, NAME)).toBe(riskyCallerLine(NAME));
+  });
+
+  it.each(ORDINARY)('an ordinary line stays quoted word for word: %s', (line) => {
+    setFlag('off');
+    const off = screenCallerParts(line, NAME);
+    setFlag('on');
+    expect(isRiskyCallerText(line, NAME)).toBe(false);
+    expect(screenCallerParts(line, NAME)).toEqual(off);
+    expect(off).toEqual({ said: line, risky: false, safety: false });
+  });
+
+  it.each(ALREADY_CAUGHT)('a digit run in another script is still caught: %s', (line) => {
+    for (const value of ['off', 'on'] as const) {
+      setFlag(value);
+      expect(isRiskyCallerText(line, NAME)).toBe(true);
+    }
+  });
+
+  it.each(KNOWN_OVER_READS)('a known over-read, withheld with the flag on only: %s', (line) => {
+    setFlag('off');
+    expect(isRiskyCallerText(line, NAME)).toBe(false);
+    setFlag('on');
+    expect(isRiskyCallerText(line, NAME)).toBe(true);
+  });
+
+  it.each(FOLDS)('folds %s for matching as %s', (line, folded) => {
+    expect(foldForScreen(line)).toBe(folded);
+  });
+
+  it('withholds a number beside a date, flag off and on', () => {
+    for (const value of ['off', 'on'] as const) {
+      setFlag(value);
+      expect(isRiskyCallerText('her appointment is 11/19/2026 then 555 0142', NAME)).toBe(true);
+    }
+  });
+
+  it('still spares the known name, and reads around it', () => {
+    setFlag('on');
+    expect(isRiskyCallerText('Casey says hi', NAME)).toBe(false);
+    expect(isRiskyCallerText('Casey said five five five zero one four two', NAME)).toBe(true);
+  });
+
+  it('withholds a run that a joined field forms, as the written screen does', () => {
+    setFlag('on');
+    const parts = screenCallerParts('her number is five five five zero one four two', NAME);
+    expect(parts).toEqual({ said: '', risky: true, safety: false });
+  });
+
+  it('reads 20k characters of unpunctuated text in under 50 ms, whatever its shape', () => {
+    setFlag('on');
+    const shapes = [
+      'five '.repeat(4_000),
+      '5'.repeat(20_000),
+      'a'.repeat(20_000),
+      'word dot '.repeat(2_223),
+      'send me the '.repeat(1_667),
+      'O1'.repeat(10_000),
+      `p${CYRILLIC_A}ss `.repeat(4_000),
+      'five dash '.repeat(2_000),
+      '5 \u2013 '.repeat(5_000),
+      '5/'.repeat(10_000),
+      '11/19/'.repeat(3_334),
+      'share the '.repeat(2_000),
+      '12/34/'.repeat(3_334),
+      '11/19/2026 , , '.repeat(1_334),
+      'what is the code '.repeat(1_177),
+      'promo code texted '.repeat(1_112),
+    ];
+    for (const text of shapes) {
+      expect(text.length).toBeGreaterThanOrEqual(20_000);
+      const start = performance.now();
+      isRiskyCallerText(text, NAME);
+      expect(performance.now() - start, text.slice(0, 12)).toBeLessThan(50);
+    }
+  });
+});
+
+describe('SCREEN_SPELLED_PII never lowers a crisis line', () => {
+  const CRISIS = 'I want to kill myself, call me at five five five zero one four two';
+
+  it('SCREEN_SPELLED_PII off then on: a crisis line with a spelled number keeps crisisCallerLine', () => {
+    setFlag('off');
+    const off = screenedCallerText(CRISIS, NAME);
+    setFlag('on');
+    const on = screenedCallerText(CRISIS, NAME);
+    expect(crisisRead(CRISIS)).toBe(true);
+    // Off: their words carry the crisis. On: the number withholds the words, and Ferni's
+    // crisis line carries it instead, ahead of the risky line.
+    expect(off).toBe(CRISIS);
+    expect(on).toBe(`${crisisCallerLine(NAME)} ${riskyCallerLine(NAME)}`);
+    expect(screenCallerParts(CRISIS, NAME).safety).toBe(true);
+  });
+});

@@ -127,6 +127,7 @@
 /src/services/outreach/call-result-live.ts @sethdford
 /src/services/outreach/conversational-calls.ts @sethdford
 /src/services/outreach/caller-text.ts @sethdford
+/src/services/outreach/caller-text-fold.ts @sethdford
 /src/services/outreach/decision-engine.ts @sethdford
 /src/services/outreach/session-integration.ts @sethdford
 /src/services/outreach/trigger-publisher.ts @sethdford

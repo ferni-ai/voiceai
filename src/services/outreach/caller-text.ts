@@ -10,7 +10,10 @@
  * @module services/outreach/caller-text
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { CRISIS_SEVERITY, detectCrisis } from '../safety/crisis-guard.js';
+
+import { foldForScreen, receivedCodeAsk, RELAYED_CODE } from './caller-text-fold.js';
 
 /**
  * Phrases aimed at an AI rather than at the user; dropped from caller text.
@@ -184,18 +187,34 @@ function matchesOutside(rule: RegExp, text: string, spans: readonly Span[]): boo
  */
 export function isRiskyCallerText(text: string, knownName?: string): boolean {
   const normalized = callerText(text, 10_000);
+  if (readsRisky(normalized, knownName, RISKY)) return true;
+  if (!flagOn('SCREEN_SPELLED_PII')) return false;
+  const name = knownName === undefined ? undefined : foldForScreen(callerText(knownName, 200));
+  const folded = foldForScreen(normalized);
+  return readsRisky(folded, name, SPELLED_RISKY) || receivedCodeAsk(folded);
+}
+
+/** `rules` read over normalized text, sparing the known name's mentions as described above. */
+function readsRisky(
+  normalized: string,
+  knownName: string | undefined,
+  rules: readonly RegExp[]
+): boolean {
   const spans = nameSpans(normalized, knownName);
   let blanked = normalized;
   for (const [from, to] of spans) {
     blanked = blanked.slice(0, from) + ' '.repeat(to - from) + blanked.slice(to);
   }
-  return RISKY.some((rule) =>
+  return rules.some((rule) =>
     OBJECT_RULES.includes(rule)
       ? rule.test(blanked)
       : matchesOutside(rule, normalized, spans) ||
         (SENTENCE_RULES.includes(rule) && rule.test(blanked))
   );
 }
+
+/** SCREEN_SPELLED_PII: the rules read over the folded text. */
+const SPELLED_RISKY: readonly RegExp[] = [...RISKY, RELAYED_CODE];
 
 /**
  * A real crisis read by the crisis guard (services/safety/crisis-guard.ts) on
