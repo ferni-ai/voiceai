@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { judgeModel } from '../lib/judge-model.mjs';
 import { askGemini, verdictFile } from './judge.mjs';
-import { mixParts, partsOf, wavBytes } from './mix-tracks.mjs';
+import { MIX_RATE, mixParts, partsOf, wavBytes } from './mix-tracks.mjs';
 
 /** What the listener scores. Every one is about the sound, never the words. */
 export const AUDIO_DIMENSIONS = {
@@ -73,7 +73,34 @@ export function mergeVerdict(verdict, listened, model) {
   };
 }
 
-/** The stereo WAV a run's recording makes, or null when it has none. */
+/**
+ * What the listener is sent: 16 kHz stereo, the first LISTEN_SECONDS at most. Vertex caps an
+ * inline request near 20 MB, and base64 of 24 kHz stereo is about 128 KB a second, so a call
+ * past two and a half minutes would fail; 180 s at 16 kHz is about 15 MB.
+ */
+export const LISTEN_RATE = 16000;
+export const LISTEN_SECONDS = 180;
+
+/** Interleaved PCM resampled by linear interpolation, cut to maxFrames frames. */
+export function resample(pcm, channels, from, to, maxFrames = Infinity) {
+  const inFrames = Math.floor(pcm.length / channels);
+  const frames = Math.min(Math.floor((inFrames * to) / from), maxFrames);
+  const out = new Int16Array(frames * channels);
+  for (let i = 0; i < frames; i++) {
+    const x = (i * from) / to;
+    const j = Math.floor(x);
+    const k = Math.min(j + 1, inFrames - 1);
+    const f = x - j;
+    for (let c = 0; c < channels; c++) {
+      out[i * channels + c] = Math.round(
+        pcm[j * channels + c] * (1 - f) + pcm[k * channels + c] * f
+      );
+    }
+  }
+  return out;
+}
+
+/** { wav, seconds, clipped } for a run's recording (caller left, agent right), or null. */
 export function stereoOf(run) {
   if (!run?.mic?.file || !existsSync(run.mic.file)) return null;
   const parts = partsOf({
@@ -81,24 +108,31 @@ export function stereoOf(run) {
     tracks: (run.tracks ?? []).filter((t) => t.file && existsSync(t.file)),
   });
   if (!parts.some((p) => p.side === 'agent')) return null;
-  const { pcm, channels } = mixParts(parts, { stereo: true });
-  return wavBytes(pcm, { channels });
+  const { pcm, channels, seconds } = mixParts(parts, { stereo: true });
+  const out = resample(pcm, channels, MIX_RATE, LISTEN_RATE, LISTEN_SECONDS * LISTEN_RATE);
+  return {
+    wav: wavBytes(out, { channels, rate: LISTEN_RATE }),
+    seconds,
+    clipped: seconds > LISTEN_SECONDS,
+  };
 }
 
 async function judgeOne(file, ctx) {
   const vfile = verdictFile(file, 'gemini');
   if (!existsSync(vfile))
     return `${file}: skipped, no transcript verdict yet (run judge.mjs first)`;
-  const wav = stereoOf(JSON.parse(readFileSync(file, 'utf8')));
-  if (!wav) return `${file}: skipped, no recording`;
+  const heard = stereoOf(JSON.parse(readFileSync(file, 'utf8')));
+  if (!heard) return `${file}: skipped, no recording`;
   const listened = await askGemini(
     [
-      { inlineData: { mimeType: 'audio/wav', data: wav.toString('base64') } },
+      { inlineData: { mimeType: 'audio/wav', data: heard.wav.toString('base64') } },
       { text: audioPrompt() },
     ],
     ctx
   );
   const merged = mergeVerdict(JSON.parse(readFileSync(vfile, 'utf8')), listened, ctx.model);
+  // How much of the call the listener heard (a long call is cut at LISTEN_SECONDS).
+  merged.audio.heard = { seconds: Math.min(heard.seconds, LISTEN_SECONDS), of: heard.seconds };
   writeFileSync(vfile, `${JSON.stringify(merged, null, 2)}\n`);
   return `${file}: ${JSON.stringify(cleanScores(listened.scores))}`;
 }

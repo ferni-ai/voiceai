@@ -8,6 +8,9 @@ import {
   cleanScores,
   mergeVerdict,
   stereoOf,
+  resample,
+  LISTEN_RATE,
+  LISTEN_SECONDS,
 } from '../audio-judge.mjs';
 import { mixParts, wavBytes } from '../mix-tracks.mjs';
 
@@ -71,6 +74,25 @@ describe('audioPrompt', () => {
   });
 });
 
+describe('resample (what fits in one inline request)', () => {
+  it('takes 24 kHz stereo to 16 kHz, channels kept apart', () => {
+    const left = 1000;
+    const right = -1000;
+    const pcm = Int16Array.from({ length: 2 * 2400 }, (_, i) => (i % 2 ? right : left));
+    const out = resample(pcm, 2, 24000, 16000);
+    expect(out.length).toBe(2 * 1600);
+    expect(out[0]).toBe(left);
+    expect(out[1]).toBe(right);
+    expect(out[out.length - 2]).toBe(left);
+  });
+
+  it('cuts to the frame cap, and a long call is under the inline limit', () => {
+    expect(resample(new Int16Array(2 * 24000), 2, 24000, 16000, 100).length).toBe(200);
+    // Base64 of LISTEN_SECONDS of 16 kHz stereo 16-bit, plus the header, under 20 MB.
+    expect(((LISTEN_SECONDS * LISTEN_RATE * 4 + 44) * 4) / 3).toBeLessThan(20e6);
+  });
+});
+
 describe('stereoOf', () => {
   it('builds a stereo WAV from the run files, and null without an agent track', () => {
     const dir = mkdtempSync(join(tmpdir(), 'audio-judge-'));
@@ -78,8 +100,10 @@ describe('stereoOf', () => {
     const agent = join(dir, 'r.agent.wav');
     writeFileSync(mic, wavBytes(Int16Array.from([1, 2, 3, 4]), { rate: 24000 }));
     writeFileSync(agent, wavBytes(Int16Array.from([5, 6]), { rate: 24000 }));
-    const wav = stereoOf({ mic: { file: mic, startT: 0 }, tracks: [{ file: agent, startT: 0 }] });
-    expect(wav.readUInt16LE(22)).toBe(2);
+    const heard = stereoOf({ mic: { file: mic, startT: 0 }, tracks: [{ file: agent, startT: 0 }] });
+    expect(heard.wav.readUInt16LE(22)).toBe(2);
+    expect(heard.wav.readUInt32LE(24)).toBe(LISTEN_RATE);
+    expect(heard.clipped).toBe(false);
     expect(stereoOf({ mic: { file: mic, startT: 0 }, tracks: [] })).toBeNull();
     expect(stereoOf({})).toBeNull();
   });
