@@ -171,12 +171,12 @@ export class FastLaneLLM extends llm.LLM {
   }
 }
 
-/** Passes the chosen model's chunks through, so metrics are this LLM's. */
-class LaneStream extends llm.LLMStream {
+/** Passes the chosen model's chunks through, so metrics are this LLM's (fast lane, trial lane). */
+export class LaneStream extends llm.LLMStream {
   private child?: llm.LLMStream;
 
   constructor(
-    owner: FastLaneLLM,
+    owner: llm.LLM,
     private readonly opts: ChatOptions,
     private readonly target: llm.LLM
   ) {

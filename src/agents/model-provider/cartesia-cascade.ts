@@ -34,7 +34,8 @@ import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js'
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
-import { HedgedLLM } from './hedged-llm.js';
+import { HedgedLLM, hedgedBy } from './hedged-llm.js';
+import { withTrialLane } from './trial-lane.js';
 import { afterToolHedgeMs } from './after-tool-hedge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
 import { watchSttStream } from './stt-audio-diagnostics.js';
@@ -413,17 +414,16 @@ export class CartesiaCascadeProvider implements ModelProvider {
         labels
       );
     };
-    const primary = gemini(opts);
-    const main = hedge
-      ? new HedgedLLM(
-          primary,
-          gemini({ ...hedge.backup, temperature: config.temperature }),
-          hedge.hedgeAfterMs,
-          hedge.afterToolHedgeMs
-        )
-      : primary;
+    // Today's model, or a dev trial's (CASCADE_TRIAL_MODEL, trial-lane.ts): hedged alike.
+    const hedged = (o: CascadeLLMOptions): HedgedLLM | google.LLM =>
+      hedge
+        ? hedgedBy(gemini(o), gemini({ ...hedge.backup, temperature: config.temperature }), hedge)
+        : gemini(o);
+    const main = hedged(opts);
     const fast = buildFastLane(process.env, opts);
-    if (!fast) return main;
+    const trial = (model: string) =>
+      hedged({ ...opts, model, thinkingConfig: cascadeThinking(model) });
+    if (!fast) return withTrialLane(main, trial);
     log.info(fast, 'Cascade fast lane on');
     // A slow or failed fast model hands the turn to the main one.
     return new FastLaneLLM(new HedgedLLM(gemini(fast.options), main, fast.hedgeAfterMs), main);

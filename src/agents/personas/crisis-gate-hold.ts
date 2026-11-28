@@ -12,18 +12,25 @@ import { escalationFailsClosed } from './crisis-gate-failure.js';
 
 const log = createLogger({ module: 'CrisisGate' }); // the gate's own log lines, as before
 
+/** How the hold ends: see holdUntilCleared. */
+interface HoldOptions<C> {
+  failClosed?: boolean;
+  unreleased?: () => Promise<ReadableStream<C> | null> | null;
+}
+
 /**
  * Hold the model's reply until the escalation settles. No escalation: release
  * what was held and pass the rest through. An escalation: drop the reply and
  * stream the replacement instead. A rejected escalation counts as none, unless
  * `failClosed` (CRISIS_GATE_FAIL_CLOSED): then the reply is dropped, never
- * released, and the stream errors.
+ * released, and the stream errors. `unreleased`, asked when the escalation settles with no
+ * decision: null releases the reply; a stream replaces it (the dev model trial's unclean read).
  */
 export function holdUntilCleared<C, D>(
   reply: ReadableStream<C>,
   escalation: Promise<D | null>,
   replacement: (decision: D) => Promise<ReadableStream<C> | null>,
-  { failClosed = false }: { failClosed?: boolean } = {}
+  { failClosed = false, unreleased }: HoldOptions<C> = {}
 ): ReadableStream<C> {
   const reader = reply.getReader();
   let dropped = false;
@@ -51,7 +58,8 @@ export function holdUntilCleared<C, D>(
 
       try {
         const decision = await escalation.catch(failClosed ? dropReply : () => null);
-        if (!decision) {
+        const instead = decision ? null : unreleased?.();
+        if (!decision && !instead) {
           released = true;
           // How long a ready reply waited on the classifier: the latency this gate adds.
           log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
@@ -64,7 +72,7 @@ export function holdUntilCleared<C, D>(
         }
         dropped = true;
         await reader.cancel().catch(() => undefined);
-        const next = await replacement(decision);
+        const next = await (decision ? replacement(decision) : instead);
         if (next)
           for await (const chunk of next as unknown as AsyncIterable<C>) controller.enqueue(chunk);
         controller.close();
@@ -79,9 +87,20 @@ export function holdUntilCleared<C, D>(
   });
 }
 
-/** The hold for this env: CRISIS_GATE_FAIL_CLOSED's never releases a reply on a rejection. */
-export function holdFor(env: Record<string, string | undefined>): typeof holdUntilCleared {
-  if (!escalationFailsClosed(env)) return holdUntilCleared;
-  return (reply, escalation, replacement) =>
-    holdUntilCleared(reply, escalation, replacement, { failClosed: true });
+/**
+ * The hold for this env: CRISIS_GATE_FAIL_CLOSED's never releases a reply on a rejection.
+ * `unreleased`: see holdUntilCleared.
+ */
+export function holdFor(
+  env: Record<string, string | undefined>,
+  { unreleased }: Pick<HoldOptions<unknown>, 'unreleased'> = {}
+): typeof holdUntilCleared {
+  const failClosed = escalationFailsClosed(env);
+  if (!failClosed && !unreleased) return holdUntilCleared;
+  return (reply, escalation, replacement, options) =>
+    holdUntilCleared(reply, escalation, replacement, {
+      ...options,
+      failClosed,
+      unreleased: unreleased as HoldOptions<never>['unreleased'],
+    });
 }

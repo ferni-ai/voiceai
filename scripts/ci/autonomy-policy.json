@@ -142,6 +142,7 @@
         "src/agents/personas/phrase-loops-safety.generated.ts",
         "src/agents/personas/repair-check.ts",
         "src/agents/personas/turn-request.ts",
+        "src/agents/model-provider/trial-lane.ts",
         "src/agents/processors/live-superhuman-injections.ts",
         "src/agents/processors/live-superhuman-writes.ts",
         "src/agents/processors/turn-processor/process-turn.ts",

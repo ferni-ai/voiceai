@@ -79,6 +79,15 @@ export class HedgedLLM extends llm.LLM {
   }
 }
 
+/** `primary`, hedged by `backup` on `hedge`'s delays (buildCascadeHedge, cartesia-cascade.ts). */
+export function hedgedBy(
+  primary: llm.LLM,
+  backup: llm.LLM,
+  hedge: { hedgeAfterMs: number; afterToolHedgeMs?: number }
+): HedgedLLM {
+  return new HedgedLLM(primary, backup, hedge.hedgeAfterMs, hedge.afterToolHedgeMs);
+}
+
 interface Candidate {
   name: 'primary' | 'backup';
   stream: llm.LLMStream;
