@@ -46,6 +46,7 @@ import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.j
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
 import { loadSessionProfile, savable } from './load-session-profile.js';
+import { keepCallName } from './call-name-on-end.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -1727,7 +1728,6 @@ export async function createSessionServices(
           const beforeKeyMoments = userProfile.keyMoments?.length || 0;
           const beforeEmotionalPatterns = userProfile.emotionalPatterns?.length || 0;
 
-          // Apply learning to profile
           let updatedProfile = UserLearningEngine.applyLearningToProfile(userProfile, learningData);
 
           // Memory pipeline diagnostics - log what was applied
@@ -1994,7 +1994,7 @@ export async function createSessionServices(
           // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt are all
           // handled by updateProfileFromSession() inside saveProfile(). Never increment here.
 
-          services.userProfile = updatedProfile;
+          services.userProfile = keepCallName(updatedProfile, services.userProfile);
 
           // Memory pipeline diagnostics - profile save attempt
           diagnosticProfileSaveAttempt(sessionId, validatedUserId || 'unknown');
