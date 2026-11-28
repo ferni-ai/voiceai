@@ -129,7 +129,7 @@ export const crisisWordsLanguage = (line: string): 'en' | 'es' =>
   [...wordsOf(line).matchAll(ES)].length ? 'es' : 'en';
 
 /** The check-in, as the reply's crisis guidance: the last thing the model reads. */
-const TIMEOUT_CHECKIN = `[SAFETY - CHECK-IN]
+export const TIMEOUT_CHECKIN = `[SAFETY - CHECK-IN]
 A safety read of the caller's last words could not be made, and their words touch on their own safety.
 1. Check in once, plainly and warmly: are you safe right now?
 2. Say they can call or text 988, the Suicide & Crisis Lifeline, any time

@@ -74,7 +74,12 @@ describe('the holds, measured in place', () => {
     });
     noteCrisisVerdictPending(session, escalation);
     const src = source();
-    const reader = holdUntilCleared(src.stream as never, escalation, async () => null).getReader();
+    const reader = holdUntilCleared(
+      src.stream as never,
+      escalation,
+      { sessionId: SID, turn: null },
+      async () => null
+    ).getReader();
     src.push('Hey there.');
     await vi.advanceTimersByTimeAsync(220);
     clear(null);

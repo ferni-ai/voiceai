@@ -42,6 +42,8 @@ import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js
 import { keepLlm, replyRequest, tokensField, type RequestView } from './turn-receipt-llm.js';
 import { receiptBuild } from './turn-receipt-flags.js';
 import { laneFields, type LaneShadow } from './turn-receipt-lane.js';
+import type { TurnHandling, TurnReceiptOptions } from './turn-receipt-options.js';
+import * as crisis from './turn-receipt-crisis.js';
 import { PendingPreemptive, type PreemptiveCause } from './preemptive-cause.js';
 import { latencyArmFor } from '../../services/platform/latency-arm.js';
 import { sentenceCount, userKindOf, type UserKind } from './turn-receipt-caller.js';
@@ -107,28 +109,10 @@ interface OpenTurn {
   handling: TurnHandling | null;
   att: timed.TurnAttribution; // holds and first audio (turn-receipt-timing.ts)
   steps: steps.ToolSteps; // requests, tool runs, answer audio (turn-receipt-tool-timing.ts)
+  crisis: crisis.TurnCrisisNotes; // crisis decisions and lines named (turn-receipt-crisis.ts)
 }
 
-/** How turns end and how barge-in works on the session, read at the commit. */
-export interface TurnHandling {
-  turnDetection: string;
-  interruptionMode: string;
-}
-
-export interface TurnReceiptOptions {
-  sessionId: string;
-  userId: string | undefined;
-  /** The persona on the call now (follows handoffs). */
-  persona: () => string | null | undefined;
-  /** A phone (SIP) caller; undefined when the call path is not known. */
-  phoneCaller?: boolean;
-  /** The session's turn handling now (attachTurnReceipts reads LiveKit's activity). */
-  handling?: () => TurnHandling;
-  emit?: (receipt: TurnReceipt) => void;
-  now?: () => number;
-  env?: Record<string, string | undefined>;
-}
-
+export type { TurnHandling, TurnReceiptOptions } from './turn-receipt-options.js';
 export type TurnReceipt = ReturnType<TurnReceiptRecorder['build']>;
 export type EndedBy = 'listening' | 'superseded' | 'session_end';
 
@@ -184,6 +168,7 @@ export class TurnReceiptRecorder {
       handling: null,
       att: timed.newAttribution(),
       steps: steps.newToolSteps(),
+      crisis: crisis.newTurnCrisisNotes(),
     };
     return this.turn;
   }
@@ -222,6 +207,11 @@ export class TurnReceiptRecorder {
     else if (steps.isStepKind(kind)) steps.noteStep(this.open().steps, kind, heldMs, this.now);
     else timed.noteTiming(this.open(), kind, heldMs, this.now());
   }
+
+  /** The number the open turn's receipt will carry (call-turn.ts joins other lines to it). */
+  currentTurn = (): number => this.count + 1;
+  /** A crisis note on the open turn (turn-receipt-crisis.ts). */
+  onCrisis = (note: crisis.CrisisTurnNote): void => crisis.addCrisisNote(this.open().crisis, note);
 
   /** Ferni was stopped for the caller; the first decision that did it counts. */
   onBargeIn(source: BargeInSource): void {
@@ -295,6 +285,7 @@ export class TurnReceiptRecorder {
     reply.sentences += sentenceCount(text);
     reply.interrupted ||= interrupted;
     reply.repeatsPrevious ||= repeats;
+    crisis.addReplyText(owner.crisis, text);
     this.voice.heard(owner, item);
     owner.replied = true;
     if (owner === this.heldCut?.turn) this.releaseCut();
@@ -491,6 +482,7 @@ export class TurnReceiptRecorder {
       turnDetection: turn.handling?.turnDetection ?? 'unknown',
       interruptionMode: turn.handling?.interruptionMode ?? 'unknown',
       bargeInSource: turn.bargeInSource ?? (turn.reply.interrupted ? 'other' : null),
+      crisis: crisis.crisisField(turn.crisis, turn.reply),
       ...eotReceiptField(turn.eot),
       ...this.voice.fields(turn, turn.reply.interrupted || turn.bargeInSource !== null),
       ...timed.attributionFields(turn),

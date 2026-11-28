@@ -53,7 +53,7 @@ export {
 // A crisis pattern holds the call's memory before capture (transcript-handler.ts).
 export { holdOnCrisisPattern } from './crisis-pattern-hold.js';
 // The one reader of a line a reply names, in every written form (crisis-line-speech.ts).
-export { names911, offersCrisisLine, says988 } from './crisis-line-speech.js';
+export { names911, names988, offersCrisisLine, says988 } from './crisis-line-speech.js';
 // What Ferni never dials (911, 988, N11 in any spelling), for callers outside the safety layer.
 export { emergencyDialRefusal } from '../../utils/dialable-number.js';
 // A turn whose crisis read the provider blocked (CRISIS_CLASSIFIER_BLOCKED_SIGNAL, turn-crisis.ts).
@@ -98,6 +98,13 @@ export {
   withMinorAbuseRead,
 } from './minor-abuse-disclosure.js';
 export { SOFT_CRISIS_CHECK } from './crisis-agreement.js';
+// Words-free crisis turn notes and the override line (agents/safety/crisis-turn-note.ts).
+export { logCrisisOverride } from './crisis-guard.js';
+export { GROUNDED_LIGHT_TOUCH } from './crisis-grounded-release.js';
+export { SCREEN_GENTLE_OFFER } from './crisis-grounded-screen.js';
+export { replacesReply } from './crisis-severity.js';
+export { TIMEOUT_CHECKIN } from './crisis-timeout-checkin.js';
+export type { PatternOutcome } from './crisis-classifier.js';
 
 // ============================================================================
 // CRISIS RESPONSE

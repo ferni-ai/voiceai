@@ -39,9 +39,13 @@ import {
 import { watchBlocked } from './crisis-classifier-blocked.js';
 import { createGeminiCrisisGenerate } from './crisis-classifier-gemini.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
+import { verdictOutcome, type PatternOutcome } from './crisis-verdict-outcome.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { noteTurnRead } from './crisis-turn-read-arrival.js';
 import { stripSSML } from '../../utils/text-utils.js';
+import { callTurnOf } from '../../utils/call-turn.js';
+
+export { verdictOutcome, type PatternOutcome } from './crisis-verdict-outcome.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -231,9 +235,6 @@ export async function classifyCrisis(
   }
 }
 
-/** What the pattern guard decided for the same turn. */
-export type PatternOutcome = 'block' | 'crisis' | 'none';
-
 export interface CrisisClassifierRun {
   mode: 'shadow' | 'live';
   verdict: Promise<CrisisVerdict | null>;
@@ -393,11 +394,6 @@ export function resetCrisisClassifierCache(): void {
   resetLostReads();
 }
 
-export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
-  if (verdict.risk === 'none') return 'none';
-  return verdict.risk === 'imminent' && verdict.subject === 'self' ? 'block' : 'crisis';
-}
-
 /**
  * One turn's classifier run; null when off, or live on a turn the patterns block unless asked to
  * read it (readBlocked). Every completed run logs one CRISIS_CLASSIFIER record (verdict, pattern).
@@ -413,6 +409,7 @@ export function startCrisisClassifier(
     return notePatternBlock(options.call, env);
 
   const startedAt = Date.now();
+  const readOnTurn = callTurnOf(options.call); // the TURN_RECEIPT turn read, not one it settles on
   // CRISIS_CLASSIFIER_RUN_PER_CALL (#4005): runs shared within one call only, never with no call
   // id, a failed run never reused, and a run joined only while it has time left to answer.
   const on = perCallReads(env);
@@ -462,6 +459,8 @@ export function startCrisisClassifier(
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
       {
+        sessionId: options.call ?? null, // with `turn`, each read joins its turn exactly
+        turn: readOnTurn,
         mode,
         risk: v?.risk ?? null,
         subject: v?.subject ?? null,
