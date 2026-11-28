@@ -86,6 +86,8 @@ beforeEach(() => {
   rows = [];
   for (const k of Object.keys(docs)) delete docs[k];
   vi.clearAllMocks();
+  // Rows below set their own zone; clearAllMocks keeps that, mockReset puts New York back.
+  contactInfo.mockReset();
   vi.useFakeTimers({ toFake: ['Date'] });
   process.env.CALL_HOURS_GUARD = 'on';
 });

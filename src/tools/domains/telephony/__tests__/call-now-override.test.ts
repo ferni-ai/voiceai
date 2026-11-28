@@ -145,6 +145,8 @@ beforeEach(() => {
   docs = [];
   afterNextRead = undefined;
   vi.clearAllMocks();
+  // A row below unsets the zone; clearAllMocks keeps that, mockReset puts New York back.
+  getUserContactInfo.mockReset();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(AT_8_43_DENVER);
   vi.stubEnv('CALL_HOURS_GUARD', 'on');
