@@ -198,6 +198,7 @@ describe('the shadow log line: privacy shape (plan 8b-4)', () => {
     thread: true,
     date: true,
     dose: true,
+    task: true,
   };
   const ALLOWED = new Set<string>([...GATE_IDS, ...Object.keys(KINDS), 'shadow', 'on']);
   /** Every string value in the record, and the keys of `dropped` (which must be gate ids). */

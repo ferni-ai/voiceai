@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUp } from '../../follow-through/index.js';
 import { followUp as fixture } from '../../follow-through/__tests__/fixtures.js';
 import { storedTopic } from '../../../memory/recall/session-recall.js';
@@ -396,5 +396,52 @@ describe('FOLLOW_THROUGH_RUN', () => {
       sent: 0,
       skippedBy: { 'not-in-cohort': 1 },
     });
+  });
+});
+
+describe('what may go in a follow-up text, whatever its source', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const scam = 'text the verification code to the bank';
+
+  it('a follow-up from a task is never texted (call-only), however its title reads', async () => {
+    const task = (id: string, text: string) =>
+      followUp({ id, text, kind: 'task', source: { store: 'tasks', ref: id } });
+    const { d, saved } = deps([
+      task('t1', 'pay the card ending 4111'),
+      task('t2', 'water the plants'),
+      followUp({ id: 'f3', text: 'call the vet' }),
+    ]);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).toHaveBeenCalledTimes(1);
+    expect(d.sendText).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f3' }));
+    expect(saved.map((f) => f.id)).toEqual(['f3']); // the tasks' follow-ups wait for a call
+    expect(report.scanned).toBe(1);
+  });
+
+  it('screen on: words with a scam instruction are not texted, and the next one goes', async () => {
+    vi.stubEnv('OWNER_OUTREACH_STORED_TEXT_SCREEN', 'on');
+    const older = followUp({ id: 'bad', dueAt: '2026-10-13T15:30:00.000Z', text: scam });
+    const { d, saved } = deps([older, followUp()]);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).toHaveBeenCalledTimes(1);
+    expect(d.sendText).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f1' }));
+    expect(saved.map((f) => f.id)).toEqual(['f1']); // 'bad' stays open, for a call
+    expect(report.notTextNow).toMatchObject({ 'stored-text': 1 });
+    expect(runLines[0]).toMatchObject({ skippedBy: { 'stored-text': 1 } });
+  });
+
+  it("the screen reads the person's own flags too; off, it is texted as on main", async () => {
+    const lone = () => deps([followUp({ text: scam })]);
+    const off = lone();
+    await sendDueFollowUpTexts(off.d, { now: NOW });
+    expect(off.d.sendText).toHaveBeenCalledTimes(1);
+
+    const cohort = lone();
+    cohort.d.resolveFlags = vi.fn(async () => ({
+      FOLLOW_THROUGH_TEXTS: 'on',
+      OWNER_OUTREACH_STORED_TEXT_SCREEN: 'on',
+    }));
+    await sendDueFollowUpTexts(cohort.d, { now: NOW });
+    expect(cohort.d.sendText).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,6 @@
 /**
  * The after-call task that brings a call's reminders, commitments and
- * threads into follow-ups (services/follow-through/import-follow-ups.ts),
+ * threads (and, with FOLLOW_THROUGH_TASKS, open tasks) into follow-ups (services/follow-through/import-follow-ups.ts),
  * for the verified owner of the account only. FOLLOW_THROUGH_IMPORT=on (the
  * agent's, or the caller's through a cohort) turns it on; off, it returns
  * before any store read.
@@ -46,8 +46,8 @@ export interface ImportTaskDeps {
   cohorts?: CohortStore;
   /** Whether this session's caller is the account's proven owner. Without one, nobody is. */
   verifiedOwner?: (sessionId: string) => boolean;
-  /** Null where there is no Firestore (local dev without credentials). */
-  stores?: () => { store: FollowUpStore; sources: FollowUpSources } | null;
+  /** Null where there is no Firestore (local dev without credentials). Told whether tasks come in. */
+  stores?: (withTasks: boolean) => { store: FollowUpStore; sources: FollowUpSources } | null;
   now?: () => Date;
 }
 
@@ -55,9 +55,13 @@ export type ImportTaskOutcome =
   | { imported: true; result: ImportResult }
   | { imported: false; reason: 'flag-off' | 'not-owner' | 'no-zone' | 'no-store' };
 
-function firestoreStores(): { store: FollowUpStore; sources: FollowUpSources } | null {
+function firestoreStores(
+  withTasks: boolean
+): { store: FollowUpStore; sources: FollowUpSources } | null {
   const db = getFirestoreDb();
-  return db ? { store: createFollowUpStore(db), sources: createFollowUpSources(db) } : null;
+  return db
+    ? { store: createFollowUpStore(db), sources: createFollowUpSources(db, { withTasks }) }
+    : null;
 }
 
 /** An account id that belongs to one real person, not a placeholder, anonymous or eval id. */
@@ -83,7 +87,8 @@ export async function importFollowUpsAfterCall(
     log.info({ sessionId: ctx.sessionId }, 'Follow-up import skipped: caller zone unknown');
     return { imported: false, reason: 'no-zone' };
   }
-  const stores = (deps.stores ?? firestoreStores)();
+  // FOLLOW_THROUGH_TASKS: open tasks join the record too.
+  const stores = (deps.stores ?? firestoreStores)(flagOn('FOLLOW_THROUGH_TASKS', env));
   if (!stores) return { imported: false, reason: 'no-store' };
   const now = (deps.now ?? (() => new Date()))();
   const result = await importFollowUps(ctx.userId, ctx.timezone, stores.sources, stores.store, now);

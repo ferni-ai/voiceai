@@ -43,6 +43,7 @@ const KINDS: ReadonlySet<string> = new Set([
   'thread',
   'date',
   'dose',
+  'task',
 ]);
 const STATUSES: ReadonlySet<string> = new Set(['open', 'surfaced', 'done', 'released', 'expired']);
 const LIVE: FollowUpStatus[] = ['open', 'surfaced'];

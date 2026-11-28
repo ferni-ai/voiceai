@@ -13,6 +13,7 @@ const ASKABLE: ReadonlySet<FollowUpKind> = new Set([
   'thread',
   'date',
   'dose',
+  'task',
 ]);
 
 /** The caller's own thing: not one of Ferni's promises, and not an action read back to them. */

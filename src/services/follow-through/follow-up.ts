@@ -17,7 +17,8 @@
 import { failure, success, type Result } from '../../types/result.js';
 import { wallTimeIn, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 
-export type FollowUpKind = 'reminder' | 'commitment' | 'promise' | 'thread' | 'date' | 'dose';
+export type FollowUpKind =
+  'reminder' | 'commitment' | 'promise' | 'thread' | 'date' | 'dose' | 'task';
 export type FollowUpStatus = 'open' | 'surfaced' | 'done' | 'released' | 'expired';
 export type SurfacedVia = 'opener' | 'in-call' | 'text';
 
