@@ -102,3 +102,19 @@ export function gateEscalation(read: Promise<Read>, turn: GateTurn): Decided {
   };
   return loggedEscalation(read, escalation, escalationFailsClosed(turn.env) ? settle : undefined);
 }
+
+/**
+ * Whether a pattern-guided reply still gets the check-in's ending (checkin.ends). With
+ * CRISIS_GATE_FAIL_CLOSED on, a read that rejects is a failed read, as gateEscalation settles it:
+ * the check-in on for this turn only, even with CRISIS_TIMEOUT_CHECKIN off.
+ */
+export function gateEnds(read: Promise<Read>, turn: GateTurn, logged: Decided): Promise<boolean> {
+  if (!escalationFailsClosed(turn.env)) return checkin.ends(read, turn.checkin, logged);
+  return read.then(
+    () => checkin.ends(read, turn.checkin, logged),
+    () => {
+      const env = { ...turn.env, CRISIS_TIMEOUT_CHECKIN: 'on' };
+      return checkin.ends(Promise.resolve(null), { ...turn.checkin, env }, logged);
+    }
+  );
+}

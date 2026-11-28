@@ -48,12 +48,16 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { TALK_TO_988 } from '../../../services/safety/crisis-guard-replies.js';
-import { gatedReply, startCrisisGate } from '../crisis-gate.js';
+import { detectCrisis } from '../../../services/safety/crisis-guard.js';
+import { gateEnds } from '../crisis-gate-failure.js';
+import { decisionFor, gatedReply, startCrisisGate } from '../crisis-gate.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const FAIL_CLOSED = { ...LIVE, CRISIS_GATE_FAIL_CLOSED: 'on' };
 // Safety words the patterns read as nothing: only a read, or a failed one, can act on them.
-const UNSAFE = 'i feel unsafe with myself tonight';
+const UNSAFE = "i'm scared of what i might do tonight";
+// Safety words the patterns guide (#3789): the read can only raise them.
+const GUIDED = 'i feel unsafe with myself tonight';
 const CRISIS = '{"risk":"crisis","subject":"self"}';
 const MISSED = 'im parked on the bridge, engine off, just sitting here deciding';
 const ORDINARY = 'what should I cook tonight?';
@@ -293,6 +297,29 @@ describe('CRISIS_GATE_FAIL_CLOSED on: a rejected escalation fails closed', () =>
     expect(spoken).toContain(`~${REPLACEMENT}`);
     expect(spoken).toContain('Are you safe right now?');
     expect(spoken).toContain(TALK_TO_988);
+  });
+
+  it('(b) on a line the patterns guide: a rejected read still gets the check-in ending', async () => {
+    const detection = detectCrisis(GUIDED);
+    const decision = decisionFor(detection);
+    expect(decision.action).toBe('guide'); // pre: the patterns guide it, so no check-in turn
+    const turnFor = (env: Record<string, string>) => ({
+      detection,
+      decision,
+      gentle: false,
+      latest: GUIDED,
+      checkin: { decision, latest: GUIDED, env },
+      escalate: async () => null,
+      call: undefined,
+      env,
+    });
+    const ends = (env: Record<string, string>) => {
+      const read = Promise.reject(new RangeError(SENTINEL));
+      return gateEnds(read, turnFor(env), Promise.resolve(null));
+    };
+    expect(await ends(FAIL_CLOSED)).toBe(true); // a failed read, its check-in on for this turn
+    expect(await ends(LIVE)).toBe(false); // fail-closed off: as before, no ending
+    expect(FAIL_CLOSED).not.toHaveProperty('CRISIS_TIMEOUT_CHECKIN'); // nothing written
   });
 
   it('a rejection before the verdict on an ordinary line: the timeout path, its reply released', async () => {

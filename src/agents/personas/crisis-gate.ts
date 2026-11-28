@@ -100,7 +100,7 @@ import {
   type CrisisGateDecision,
   type GuideDecision,
 } from './crisis-gate-decision.js';
-import { gateEscalation } from './crisis-gate-failure.js';
+import { gateEnds, gateEscalation } from './crisis-gate-failure.js';
 import { holdFor } from './crisis-gate-hold.js';
 import { callerWords, callTranscript, crisisScriptFor, sessionScope } from './crisis-gate-words.js';
 import { gateTurnReadsOn, withTurnReads } from './crisis-gate-turn-reads.js';
@@ -128,6 +128,7 @@ export interface CrisisGateTurn {
   /** The caller went quiet after a release: this reply asks the direct question again. */
   reask?: boolean;
   read?: Promise<ScriptRead>; // CRISIS_SCRIPT_IMMINENT_READ: a scripted turn's read
+  ends?: Promise<boolean>; // CRISIS_TIMEOUT_CHECKIN: a guided reply still gets the check-in's end
 }
 
 type Chunk = llm.ChatChunk | string | object;
@@ -309,8 +310,9 @@ export function startCrisisGate(
   };
   const checkinTurn = { decision, reask, ...said, priorRisk, env }; // crisis-timeout-checkin.ts
   const acted = turnReads ? withTurnReads(verdictRead, readScope, turn, env) : verdictRead;
-  const logged = gateEscalation(acted, { ...raise, checkin: checkinTurn, escalate, call, env });
-  return { decision, escalation: logged, reask };
+  const escalating = { ...raise, checkin: checkinTurn, escalate, call, env };
+  const logged = gateEscalation(acted, escalating);
+  return { decision, escalation: logged, reask, ends: gateEnds(acted, escalating, logged) };
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -446,7 +448,7 @@ export async function gatedReply(
   );
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
-  return holdFor(env)(reply ?? textReply(''), gate.escalation, async (decision) => {
+  const held = holdFor(env)(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(script(decision.script));
     if (decision.action === 'pass') return null;
@@ -459,4 +461,5 @@ export async function gatedReply(
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
+  return checkin.guided(held, gate.ends, callerWords(chatCtx));
 }

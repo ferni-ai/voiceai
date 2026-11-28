@@ -40,6 +40,8 @@ const ANSWER = {
 const PILLS = 'i have a bottle of pills and i want to take them all';
 const FRIEND = 'my friend told me she wants to kill herself';
 const UNSAFE = 'i feel unsafe with myself tonight';
+// A check-in line the patterns read as nothing (#3789 guides UNSAFE).
+const SCARED = "i'm scared of what i might do tonight";
 const ORDINARY = 'what should I cook tonight?';
 const CHAT = 'Sounds good.';
 
@@ -179,10 +181,19 @@ describe('CRISIS_GUIDED_LINE_FLOOR: every reply without a crisis guide is unchan
 
   it('the timeout check-in keeps its own ending: the floor adds nothing to it', async () => {
     const checkin = { CRISIS_TIMEOUT_CHECKIN: 'on' };
-    const off = await turn(UNSAFE, { ...OFF, ...checkin }, ANSWER.throws);
-    const on = await turn(UNSAFE, { ...ON, ...checkin }, ANSWER.throws);
+    const off = await turn(SCARED, { ...OFF, ...checkin }, ANSWER.throws);
+    const on = await turn(SCARED, { ...ON, ...checkin }, ANSWER.throws);
     expect(off.spoken).toContain('988'); // the check-in's own 988, said once
     expect(on.spoken).toBe(off.spoken);
+  });
+
+  it('a guided line whose read failed (#3789): the floor and the check-in ending say 988 once', async () => {
+    const checkin = { CRISIS_TIMEOUT_CHECKIN: 'on' };
+    for (const env of [OFF, ON]) {
+      const { spoken } = await turn(UNSAFE, { ...env, ...checkin }, ANSWER.throws);
+      expect(spoken.match(/988/g)).toHaveLength(1);
+      expect(spoken.match(/safe right now\?/g)).toHaveLength(1);
+    }
   });
 
   it('a turn the patterns replace with a script is the script, flag on or off', async () => {

@@ -77,8 +77,11 @@ const COOK = 'what should I cook tomorrow?';
 const CRISIS_LINE = "I hope I don't wake up tomorrow";
 /** No crisis words the patterns know; the classifier stub reads it as risk. */
 const CLASSIFIER_ONLY = 'I just want all of it to stop for good';
-/** A safety word the patterns read as nothing (crisis-timeout-checkin.ts). */
-const UNSAFE = 'i feel unsafe with myself tonight';
+/**
+ * A safety word the patterns read as nothing (crisis-timeout-checkin.ts). Not "unsafe with
+ * myself": CRISIS_MEANS forms read that as suicidal, so it is guided at once, never checked in.
+ */
+const UNSAFE = "i'm scared of what i might do tonight";
 
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const CLASSIFIER_LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };

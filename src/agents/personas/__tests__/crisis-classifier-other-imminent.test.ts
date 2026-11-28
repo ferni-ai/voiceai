@@ -66,6 +66,10 @@ function merge(
 }
 
 const blocks = (c: CrisisDetectionResult) => guardFromDetection(c).shouldBlock;
+/** Main's for-them reply, as a line only the classifier reads gets it (#3789). */
+const forThemReply = () => merge(GARAGE, OTHER_IMMINENT, 'off').suggestedResponse ?? '';
+/** The patterns read the caller, the classifier someone else: the for-them reply, then main's. */
+const bothWays = (main: string) => forThemFirst(`${forThemReply()}\n\n${main}`);
 const at = (text: string, n: string) => (text.includes(n) ? text.indexOf(n) : Infinity);
 
 describe('CRISIS_CLASSIFIER_OTHER_IMMINENT_911 at the merge', () => {
@@ -94,13 +98,13 @@ describe('CRISIS_CLASSIFIER_OTHER_IMMINENT_911 at the merge', () => {
     expect(off.indicators).not.toContain('third_party_emergency');
   });
 
-  it('both the caller and someone else: 911 for them, then the caller’s own script whole', () => {
+  it('both the caller and someone else: 911 for them, the for-them reply, then the caller’s own script whole', () => {
     const on = merge(BOTH, OTHER_IMMINENT, 'on');
     const off = merge(BOTH, OTHER_IMMINENT, 'off');
     expect(off.subject).toBe('self');
     expect(on.subject).toBe('self');
     expect(on.severity).toBe(off.severity);
-    expect(on.suggestedResponse).toBe(forThemFirst(off.suggestedResponse!));
+    expect(on.suggestedResponse).toBe(bothWays(off.suggestedResponse!));
     expect(on.suggestedResponse!.startsWith(CALL_911_FOR_THEM)).toBe(true);
     expect(on.suggestedResponse).toContain('988');
     expect(on.indicators).toEqual(expect.arrayContaining(off.indicators));
@@ -172,11 +176,11 @@ describe('CRISIS_CLASSIFIER_OTHER_IMMINENT_911 through gatedReply', () => {
     expect(off.text).toBe(NON_COMPLIANT);
   });
 
-  it('both the caller and someone else: 911 for them, then the caller’s own script whole', async () => {
+  it('both the caller and someone else: 911 for them, the for-them reply, then the caller’s own script whole', async () => {
     const on = await gate(BOTH_SOFT, 'on');
     const off = await gate(BOTH_SOFT, 'off');
     expect(off.text).toBe(merge(BOTH_SOFT, OTHER_IMMINENT, 'off').suggestedResponse);
-    expect(on.text).toBe(forThemFirst(off.text));
+    expect(on.text).toBe(bothWays(off.text));
     expect(on.text).toContain('988');
   });
 });

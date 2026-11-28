@@ -298,7 +298,7 @@ export const WORDING_NOT_READ: {
   atDefaults: { scripted: number; guided: number; unguided: number };
   onlyWithFlag: Readonly<Record<string, { sentences: number; says: readonly string[] }>>;
 } = {
-  atDefaults: { scripted: 83, guided: 23, unguided: 34 },
+  atDefaults: { scripted: 84, guided: 25, unguided: 31 },
   onlyWithFlag: {
     CRISIS_CLASSIFIER_OTHER_IMMINENT_911: { sentences: 8, says: ['911', '988'] },
     CRISIS_GATE_TURN_READS: { sentences: 6, says: ['911', '988'] },

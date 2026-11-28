@@ -241,27 +241,27 @@ const isAbort = (error: unknown): boolean =>
 
 /**
  * A reply stream with the words code says after it: ending(said) gets the model's whole text and
- * returns what to add, or '' for nothing (the grounded screen, the timeout check-in).
+ * returns what to add, or '' for nothing (the grounded screen, the timeout check-in); it may wait.
  * `endOnError`: a model stream that fails part-way still gets its ending, after what was said,
- * and then ends cleanly; an abort still fails as before.
+ * and then ends cleanly; an abort still fails as before. A promise: only once it settles true.
  */
 function withReplyEnding<T>(
   reply: ReadableStream<T>,
-  ending: (said: string) => string,
-  endOnError = false
+  ending: (said: string) => string | Promise<string>,
+  endOnError: boolean | Promise<boolean> = false
 ): ReadableStream<T | string> {
   let said = '';
-  if (endOnError) {
+  if (endOnError !== false) {
     const reader = reply.getReader();
     return new ReadableStream<T | string>({
       async pull(controller) {
-        const next = await reader.read().catch((error: unknown) => {
-          if (isAbort(error)) throw error;
+        const next = await reader.read().catch(async (error: unknown) => {
+          if (isAbort(error) || !(await endOnError)) throw error;
           log.error({ chars: said.length }, 'Safety reply stream failed; its ending is said'); // counts, never words
           return null;
         });
         if (!next || next.done) {
-          const words = ending(said);
+          const words = await ending(said);
           if (words) controller.enqueue(words);
           return controller.close();
         }
@@ -277,8 +277,8 @@ function withReplyEnding<T>(
         said += chunkText(chunk);
         controller.enqueue(chunk);
       },
-      flush(controller) {
-        const words = ending(said);
+      async flush(controller) {
+        const words = await ending(said);
         if (words) controller.enqueue(words);
       },
     })
@@ -295,16 +295,19 @@ export interface ReplyPart {
  * A safety reply with each part it lacks said after it, in order (the timeout check-in, the 988
  * floor). No reply: every part's words alone. A presence test that throws counts as missing, and
  * a model stream that fails part-way gets the parts it lacks after what it said, so a failure
- * adds words and never drops them.
+ * adds words and never drops them. With `ends`, the parts (and that failure rule) apply only once
+ * it settles true; settled false, the reply is as it was, its failure included.
  */
 export function withMissingEnding<T>(
   reply: ReadableStream<T> | null,
-  parts: readonly ReplyPart[]
+  parts: readonly ReplyPart[],
+  ends: Promise<boolean> | true = true
 ): ReadableStream<T | string> {
   const empty = new ReadableStream<T>({ start: (controller) => controller.close() });
   return withReplyEnding(
     reply ?? empty,
-    (said) => {
+    async (said) => {
+      if (!(await ends)) return '';
       const missing = parts.filter((part) => {
         try {
           return !part.present(said);
@@ -315,7 +318,7 @@ export function withMissingEnding<T>(
       if (!missing.length) return '';
       return `${said.trim() ? ' ' : ''}${missing.map((part) => part.words).join(' ')}`;
     },
-    true
+    ends
   );
 }
 

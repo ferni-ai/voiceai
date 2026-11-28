@@ -84,19 +84,22 @@ function readsSomeoneElseInDanger(
 /**
  * 911 for them first, then everything main's merge says, whole. The 911 for them is the line the
  * pattern path leads a reply with when someone is down beside the caller's own words
- * (forThemFirst). What follows is main's reply: the caller's own script for a read about the
- * caller, the for-them 988 reply (with the caller's 988 line where the patterns asked for a
- * caller check) for a read about someone else. A classifier read does not say whether the danger
- * is a collapse or a suicide attempt, so the 988 for them stays (never-lower grid, 'for them').
+ * (forThemFirst). What follows is main's reply: the for-them 988 reply (with the caller's 988 line
+ * where the patterns asked for a caller check) for a read about someone else. A classifier read
+ * does not say whether the danger is a collapse or a suicide attempt, so the 988 for them stays
+ * (never-lower grid, 'for them'). Where the patterns read the caller and the classifier someone
+ * else, who is at risk is unsure: the for-them reply, then the caller's own script whole (#3789).
  */
 function raiseForSomeoneDown(merged: CrisisDetectionResult): CrisisDetectionResult {
   const own = merged.subject === 'self';
   const severity = Math.max(merged.severity, SEVERITY.explicit);
   const tags = ['classifier_imminent', 'third_party_emergency', 'imminent_danger'];
   if (!own) tags.push('third_party_risk');
-  const said =
+  const main =
     merged.suggestedResponse ??
     getCrisisResponse(severity, merged.subject ?? 'self', merged.language, own);
+  const forThem = getCrisisResponse(severity, 'third_party', merged.language, false);
+  const said = own ? `${forThem}\n\n${main}` : main;
   return {
     ...merged,
     isCrisis: true,
