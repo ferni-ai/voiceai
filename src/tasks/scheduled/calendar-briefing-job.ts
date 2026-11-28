@@ -44,7 +44,7 @@ export interface BriefingClaimStore {
   release(userId: string, dateKey: string, kind?: BriefingKind): Promise<void>;
 }
 
-const claimDocId = (dateKey: string, kind: BriefingKind = 'calendar-morning'): string =>
+export const claimDocId = (dateKey: string, kind: BriefingKind = 'calendar-morning'): string =>
   kind === 'calendar-morning' ? dateKey : `${dateKey}-${kind}`;
 
 let nowProvider: () => Date = () => new Date();

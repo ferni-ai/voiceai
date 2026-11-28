@@ -40,6 +40,10 @@ export interface BriefRef extends SourceRef {
   readonly version?: string;
   /** Each type field the store set on it (kind, type, category); any safety one: never dropped. */
   readonly kinds?: readonly string[];
+  /** When it is due, ISO: a reminder's time, a task's due date (MORNING_BRIEF_WRITER's facts). */
+  readonly dueAt?: string;
+  /** Asked about too often with no answer (#4390): the brief asks to keep it, in its own words. */
+  readonly keepAsk?: boolean;
 }
 
 const BRIEF_LISTS = ['reminders', 'tasks', 'commitments'] as const;

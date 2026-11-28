@@ -29,13 +29,16 @@ import { forgetCheckOrClosed, forgottenCheck, remembered } from '../../../memory
 import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 import { judgedRowText, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
-import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
+import { claimDocId, resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
+import { hadCrisisWithin } from '../../human-transfer/crisis-signals.js';
+import { callLLM } from '../../llm-utils.js';
 import { pushUnlessFocusHeld } from '../focus-send-hold.js';
 import { firestoreTextStore, sendGuardedText } from '../guarded-text.js';
 import { firestoreFollowUpStore } from '../../stores/follow-through-store.js';
 import { firestoreItemMentionStore } from '../../stores/item-mentions.js';
 import type { BriefEvent } from './compose.js';
 import type { DayItems, MorningBriefDeps } from './brief-job.js';
+import type { BriefWriterDeps } from './brief-writer.js';
 import { keyOf, type BriefRef, type FreshnessReads } from './freshness.js';
 
 const log = createLogger({ module: 'MorningBriefDeps' });
@@ -114,9 +117,19 @@ async function pendingReminderItems(userId: string): Promise<BriefItem[] | null>
     .map(({ r, kinds }) => ({
       text: r.message,
       dueAt: r.scheduledFor,
-      ref: { store: 'reminders', ref: r.id, version: r.scheduledFor.toISOString(), ...kinds },
+      ref: {
+        store: 'reminders',
+        ref: r.id,
+        version: r.scheduledFor.toISOString(),
+        ...kinds,
+        dueAt: r.scheduledFor.toISOString(),
+      },
     }));
 }
+
+/** A task's due date, when it parses. */
+const dueOf = (t: Record<string, unknown>): { dueAt?: string } =>
+  typeof t.dueDate === 'string' && !Number.isNaN(Date.parse(t.dueDate)) ? { dueAt: t.dueDate } : {};
 
 /** Open tasks, soonest due first, undated last. */
 function openTaskItems(user: Record<string, unknown>): BriefItem[] {
@@ -133,7 +146,13 @@ function openTaskItems(user: Record<string, unknown>): BriefItem[] {
     .sort((a, b) => due(a) - due(b))
     .map((t) => ({
       text: t.title as string,
-      ref: { store: 'tasks', ref: String(t.id), version: str(t.updatedAt) ?? '', ...kindsOf(t) },
+      ref: {
+        store: 'tasks',
+        ref: String(t.id),
+        version: str(t.updatedAt) ?? '',
+        ...kindsOf(t),
+        ...dueOf(t),
+      },
     }));
 }
 
@@ -260,6 +279,34 @@ function freshnessReads(): FreshnessReads {
   };
 }
 
+/** MORNING_BRIEF_WRITER's model, crisis read and opener store (brief-writer.ts). */
+function writerDeps(): BriefWriterDeps {
+  const brief = (userId: string, dateKey: string) =>
+    getFirestoreDb()
+      ?.collection('bogle_users')
+      .doc(userId)
+      .collection('briefings')
+      .doc(claimDocId(dateKey, 'morning-brief'));
+  return {
+    generate: (prompt) => callLLM(prompt, { maxTokens: 200, temperature: 0.7, timeout: 8000 }),
+    // No store reads as a crisis (hadCrisisWithin fails closed too): the template goes.
+    recentCrisis: async (userId, now) => {
+      const db = getFirestoreDb();
+      return db ? hadCrisisWithin(db, userId, 1, now) : true;
+    },
+    openers: {
+      get: async (userId, dateKey) => {
+        const hash = (await brief(userId, dateKey)?.get())?.data()?.openerHash;
+        return typeof hash === 'string' ? hash : null;
+      },
+      // The day's claim doc exists once its brief went; update never makes one.
+      set: async (userId, dateKey, openerHash) => {
+        await brief(userId, dateKey)?.update({ openerHash });
+      },
+    },
+  };
+}
+
 export async function defaultMorningBriefDeps(): Promise<MorningBriefDeps> {
   return {
     env: process.env,
@@ -268,6 +315,7 @@ export async function defaultMorningBriefDeps(): Promise<MorningBriefDeps> {
     readDay,
     claims: await resolveClaimStore(),
     freshness: freshnessReads(),
+    writer: writerDeps(),
     sendText: (t) => sendGuardedText(t),
     // Ferni's own: waits out a Focus hold (focus-send-hold.ts), as the text does.
     sendPush: (userId, push) => pushUnlessFocusHeld(userId, { ...push, type: 'general' }, 'ferni'),

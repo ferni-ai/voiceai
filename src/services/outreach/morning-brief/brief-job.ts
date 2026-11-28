@@ -27,6 +27,7 @@ import { isUserQuiet, quietEndsAt, savedQuietHours, type QuietHoursUser } from '
 import { composeMorningBriefSegments, joinSegments, type MorningBriefInput } from './compose.js';
 import { storedTextForOwner } from '../../../tools/domains/proactive/outreach/index.js';
 import { freshDay, type DayRefs, type DropReason, type FreshnessReads } from './freshness.js';
+import { writtenBrief, type BriefWriterDeps } from './brief-writer.js';
 
 const log = createLogger({ module: 'MorningBrief' });
 
@@ -56,6 +57,8 @@ export interface MorningBriefDeps {
   claims: BriefingClaimStore | null;
   /** MORNING_BRIEF_FRESHNESS (default on): drops todos already dealt with (freshness.ts). */
   freshness?: FreshnessReads;
+  /** MORNING_BRIEF_WRITER (default off): Alex writes the brief from its facts (brief-writer.ts). */
+  writer?: BriefWriterDeps;
   sendText: (t: GuardedText) => Promise<TextOutcome>;
   sendPush: (
     userId: string,
@@ -249,27 +252,31 @@ export async function runMorningBriefs(
         deps.freshness?.consume(userId, fresh.spent).catch((e: unknown) => {
           log.warn({ error: String(e) }, 'Morning brief mentions not spent');
         });
-      const body = briefToSend({ ...day, timeZone: zone, name: firstName(user) }, userId, deps.env);
+      const name = firstName(user);
+      const body = briefToSend({ ...day, timeZone: zone, name }, userId, deps.env);
       if (!body) {
         // Everything left was already dealt with: no text today, never an empty one.
         if (Object.keys(fresh.dropped).length) await spend();
         await release(Object.keys(fresh.dropped).length ? 'all-stale' : 'nothing-today');
         continue;
       }
+      const writing = { userId, day, zone, name, now, dateKey, template: body, env: deps.env };
+      const written = deps.writer ? await writtenBrief(writing, deps.writer) : null;
+      const settle = async () => Promise.all([spend(), written?.sent()]);
       composed++;
       report.segments.events += day.events.length;
       report.segments.due += day.reminders.length;
       report.segments.open += day.tasks.length + day.commitments.length;
       const text = await deps.sendText({
         userId,
-        body,
+        body: written?.text ?? body,
         kind: 'morning-brief',
         refId: `morning-brief:${dateKey}`,
         minGapMs: MORNING_BRIEF_GAP_MS,
       });
       if (text.sent) {
         report.sent++;
-        await spend();
+        await settle();
         continue;
       }
       // Already texted this morning (a lost claim): a push now would be a second
@@ -280,7 +287,7 @@ export async function runMorningBriefs(
       }
       const pushed = await deps.sendPush(userId, {
         title: 'Morning from Alex',
-        body,
+        body: written?.text ?? body,
         personaId: ALEX,
         data: { action: 'morning_brief' },
       });
@@ -289,7 +296,7 @@ export async function runMorningBriefs(
         continue;
       }
       report.sent++;
-      await spend();
+      await settle();
       count(report.pushedInstead, text.reason);
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Morning brief failed');

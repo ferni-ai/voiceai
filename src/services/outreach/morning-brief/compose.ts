@@ -83,7 +83,7 @@ export function cleanItem(raw: string): string {
 }
 
 /** "10am", "2:30pm" in the zone. */
-function clock(at: Date, timeZone: string): string {
+export function clock(at: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hour: 'numeric',
