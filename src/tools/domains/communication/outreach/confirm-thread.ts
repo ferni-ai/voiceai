@@ -33,6 +33,7 @@ import {
   type FollowUpStore,
 } from '../../../../services/follow-through/index.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { NO_AGENT_REPLY } from '../../telephony/call-not-placed.js';
 
 const log = createLogger({ module: 'confirm-thread' });
 
@@ -224,10 +225,15 @@ export function dropConfirmThread(pending: object): void {
   closeThread(pending, 'dropped');
 }
 
-/** What a confirmed send's result says happened. Tool results are mostly free text. */
+/**
+ * What a confirmed send's result says happened. Tool results are mostly free text. A call that
+ * never rang answers with NO_AGENT_REPLY as its text under ON_BEHALF_JOIN_WAIT: still failed.
+ */
 export function outcomeOf(result: unknown): NonNullable<FollowUpAction['outcome']> {
   if (typeof result === 'string')
-    return /^nothing was\b/i.test(result.trim()) ? 'failed' : 'unknown';
+    return /^nothing was\b/i.test(result.trim()) || result === NO_AGENT_REPLY
+      ? 'failed'
+      : 'unknown';
   const success = (result as { success?: unknown } | null)?.success;
   return success === true ? 'sent' : success === false ? 'failed' : 'unknown';
 }

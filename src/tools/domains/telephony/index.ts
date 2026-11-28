@@ -220,7 +220,7 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 
 export { getTelephonyToolDefinitions, callStatusReply };
 export { setCallRecallPort } from './call-status-tool.js';
-export { AGENT_NOT_JOINED, isAgentNotJoined } from './call-not-placed.js';
+export { AGENT_NOT_JOINED, isAgentNotJoined, setStillConnectingPort } from './call-not-placed.js';
 export type { CallOutcome, OnBehalfCallRequest } from './types.js';
 export type { CallQuery, CallRecallPort, RecalledCall, SeenCall } from './call-status-tool.js';
 

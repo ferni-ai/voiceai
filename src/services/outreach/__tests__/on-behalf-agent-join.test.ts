@@ -6,6 +6,9 @@
  * result was captured either, so the owner was never told. These run the real
  * orchestrator against a fake LiveKit: the room shows an agent participant from
  * `agentJoinsAfterMs` after the dispatch, or never.
+ *
+ * ON_BEHALF_JOIN_WAIT (#4391): a cold worker takes about 26 s to join, so with the flag on
+ * the wait is 30 s; still nothing is dialled without an agent.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ParticipantInfo_Kind } from '@livekit/protocol';
@@ -39,6 +42,18 @@ const createSipParticipant = vi.hoisted(() =>
   })
 );
 const captureCallResult = vi.hoisted(() => vi.fn(async () => undefined));
+const logged = vi.hoisted(() => [] as Array<{ fields: unknown; message: unknown }>);
+
+vi.mock('../../../utils/safe-logger.js', () => {
+  const logger = (): Record<string, unknown> => ({
+    debug: () => undefined,
+    info: (fields: unknown, message: unknown) => logged.push({ fields, message }),
+    warn: () => undefined,
+    error: () => undefined,
+    child: () => logger(),
+  });
+  return { getLogger: logger, createLogger: logger };
+});
 
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
@@ -65,6 +80,8 @@ vi.stubEnv('SIP_TRUNK_ID', 'ST_test');
 
 const { getOnBehalfCallOrchestrator } = await import('../on-behalf-call-orchestrator.js');
 const { AGENT_JOIN_WAIT_MS, isAgentNotJoined } = await import('../agent-join.js');
+/** The wait with ON_BEHALF_JOIN_WAIT on (agent-join.ts COLD_START_JOIN_WAIT_MS). */
+const COLD_START_JOIN_WAIT_MS = 30_000;
 
 const request = () =>
   ({
@@ -77,15 +94,15 @@ const request = () =>
     resolvedContact: { name: 'Ana', phone: '+12135550100' },
   }) as never;
 
-/** Start the call, run the fake clock past the longest wait, then settle it. */
-async function place(): Promise<{ callId?: string; error?: unknown }> {
+/** Start the call, run the fake clock past the wait (`waitMs`), then settle it. */
+async function place(waitMs = AGENT_JOIN_WAIT_MS): Promise<{ callId?: string; error?: unknown }> {
   const settled = getOnBehalfCallOrchestrator()
     .initiateCall(request())
     .then(
       (callId) => ({ callId }),
       (error: unknown) => ({ error })
     );
-  await vi.advanceTimersByTimeAsync(AGENT_JOIN_WAIT_MS + 1_000);
+  await vi.advanceTimersByTimeAsync(waitMs + 1_000);
   return settled;
 }
 
@@ -94,10 +111,12 @@ beforeEach(() => {
   lk.agentJoinsAfterMs = 0;
   lk.failReads = false;
   lk.order = [];
+  logged.length = 0;
 });
 afterEach(() => {
   vi.useRealTimers();
   vi.clearAllMocks();
+  delete process.env.ON_BEHALF_JOIN_WAIT;
 });
 
 describe('an on-behalf call and its agent', () => {
@@ -187,5 +206,74 @@ describe('an on-behalf call and its agent', () => {
 
     expect(isAgentNotJoined(error)).toBe(true);
     expect(createSipParticipant).not.toHaveBeenCalled();
+  });
+});
+
+describe('ON_BEHALF_JOIN_WAIT: the wait covers a cold worker (#4391)', () => {
+  const waitLogs = () => logged.filter((l) => l.message === 'ON_BEHALF_JOIN_WAIT');
+  /** Flag on: place the call, running the clock past the 30 s wait. */
+  const placeOn = () => {
+    process.env.ON_BEHALF_JOIN_WAIT = 'on';
+    return place(COLD_START_JOIN_WAIT_MS);
+  };
+
+  it('a warm agent at 0.5 s: dials at once and logs the join', async () => {
+    lk.agentJoinsAfterMs = 500;
+    const { callId } = await placeOn();
+
+    expect(callId).toMatch(/^onbehalf_/);
+    expect(lk.order).toEqual(['dispatch', 'dial']);
+    expect(waitLogs()).toEqual([
+      {
+        fields: { callId: expect.any(String), waitedMs: expect.any(Number), outcome: 'joined' },
+        message: 'ON_BEHALF_JOIN_WAIT',
+      },
+    ]);
+    const { waitedMs } = waitLogs()[0]!.fields as { waitedMs: number };
+    expect(waitedMs).toBeGreaterThanOrEqual(500);
+    expect(waitedMs).toBeLessThan(1_000);
+  });
+
+  it('a cold agent at 15 s: dials (5 s gave up on it)', async () => {
+    lk.agentJoinsAfterMs = 15_000;
+    const { callId, error } = await placeOn();
+
+    expect(error).toBeUndefined();
+    expect(callId).toMatch(/^onbehalf_/);
+    expect(lk.order).toEqual(['dispatch', 'dial']);
+    expect(captureCallResult).not.toHaveBeenCalled();
+  });
+
+  it('no agent in 30 s: no dial, room closed, call recorded failed, gave_up logged', async () => {
+    lk.agentJoinsAfterMs = null;
+    const { error } = await placeOn();
+
+    expect(isAgentNotJoined(error)).toBe(true);
+    expect((error as Error).message).toContain('30000 ms');
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(lk.order).toEqual(['dispatch']);
+    expect(deleteRoom).toHaveBeenCalledOnce();
+    expect(captureCallResult).toHaveBeenCalledOnce();
+    const [only] = waitLogs();
+    expect(only?.fields).toMatchObject({ outcome: 'gave_up' });
+    expect((only?.fields as { waitedMs: number }).waitedMs).toBeGreaterThanOrEqual(30_000);
+  });
+
+  it('an agent at 30.5 s is too late even then: no dial', async () => {
+    lk.agentJoinsAfterMs = 30_500;
+    const { error } = await placeOn();
+
+    expect(isAgentNotJoined(error)).toBe(true);
+    expect(createSipParticipant).not.toHaveBeenCalled();
+  });
+
+  it('off: an agent at 15 s is too late, with no wait log (as on main)', async () => {
+    lk.agentJoinsAfterMs = 15_000;
+    const { error } = await place(COLD_START_JOIN_WAIT_MS);
+
+    expect(isAgentNotJoined(error)).toBe(true);
+    expect((error as Error).message).toContain('5000 ms');
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(waitLogs()).toEqual([]);
   });
 });

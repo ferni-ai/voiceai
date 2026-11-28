@@ -76,6 +76,7 @@
 /src/agents/multi-agent/family-table.ts @sethdford
 /src/agents/multi-agent/handoff-failed-say-so.ts @sethdford
 /src/agents/multi-agent/recall-note.ts @sethdford
+/src/agents/multi-agent/still-connecting.ts @sethdford
 /src/agents/multi-agent/turn-intelligence.ts @sethdford
 /src/agents/personas/action-claim-guard.ts @sethdford
 /src/agents/personas/action-claims.ts @sethdford

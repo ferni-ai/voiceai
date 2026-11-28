@@ -88,6 +88,8 @@ process.env.SIP_TRUNK_ID = 'ST_test';
 const { createCallOnBehalfTool } = await import('../call-on-behalf.js');
 const { callConfirm } = await import('../call-confirm.js');
 const { pendingCallTo } = await import('../../../../services/outreach/deferred-calls.js');
+const { NO_AGENT_REPLY } = await import('../call-not-placed.js');
+const { outcomeOf } = await import('../../communication/outreach/confirm-thread.js');
 
 const AT_8_42_DENVER = new Date('2026-10-17T14:42:27Z'); // the prod call, 8:42 AM in Denver
 const NINE_DENVER = '2026-10-17T15:00:00.000Z';
@@ -157,12 +159,19 @@ describe('a call to the same number while one waits', () => {
 });
 
 describe('a call no agent joins (prod 2026-11-05)', () => {
+  // The join wait's clock starts at its first room read. Before that the call path loads modules,
+  // which is real I/O (slow when a row runs first in a shuffled run), and fake time moved earlier
+  // is lost to the wait. So each row waits for that read before moving time.
+  const untilRoomRead = () =>
+    vi.waitFor(() => expect(listParticipants).toHaveBeenCalled(), { timeout: 10_000 });
+
   it('rings nothing and says so, with no "calling now" and no "I\'ll let you know"', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-17T18:00:00Z')); // noon in Denver: inside call hours
     listParticipants.mockResolvedValue([]); // the dispatch is accepted; no worker takes the job
 
     const replying = callMom();
+    await untilRoomRead();
     await vi.advanceTimersByTimeAsync(10_000);
     const reply = (await replying) as unknown as { success: boolean; error: string };
     listParticipants.mockResolvedValue([{ kind: 4 }]);
@@ -174,6 +183,36 @@ describe('a call no agent joins (prod 2026-11-05)', () => {
         "I couldn't place that call just now, so it didn't ring. Want me to try again in a minute?",
     });
     expect(JSON.stringify(reply)).not.toMatch(/calling \w+ now|let you know/i);
+  });
+
+  it('ON_BEHALF_JOIN_WAIT: after the 30 s wait the reply text the model gets is NO_AGENT_REPLY', async () => {
+    process.env.ON_BEHALF_JOIN_WAIT = 'on';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-17T18:00:00Z'));
+    listParticipants.mockResolvedValue([]);
+    const replying = callMom();
+    let settled = false;
+    const markSettled = () => (settled = true);
+    void replying.then(markSettled, markSettled);
+    try {
+      await untilRoomRead(); // the 30 s wait starts here
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(settled).toBe(false); // still waiting at 20 s, nothing rung
+      await vi.advanceTimersByTimeAsync(11_000);
+      const reply = await replying;
+
+      expect(reply).toBe(NO_AGENT_REPLY); // the sentence itself, not an error to explain
+      expect(createSipParticipant).not.toHaveBeenCalled();
+      expect(outcomeOf(reply)).toBe('failed'); // a confirmed call that didn't ring
+    } finally {
+      // A call still waiting after a failure gets its agent and ends here, not in the next row.
+      listParticipants.mockResolvedValue([{ kind: 4 }]);
+      if (!settled) {
+        const ended = () => expect(settled).toBe(true);
+        await vi.waitFor(ended, { timeout: 5_000 }).catch(() => undefined);
+      }
+      delete process.env.ON_BEHALF_JOIN_WAIT;
+    }
   });
 });
 

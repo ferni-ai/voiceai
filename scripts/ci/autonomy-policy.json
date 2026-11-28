@@ -32,6 +32,7 @@
         "src/agents/multi-agent/family-table.ts",
         "src/agents/multi-agent/handoff-failed-say-so.ts",
         "src/agents/multi-agent/recall-note.ts",
+        "src/agents/multi-agent/still-connecting.ts",
         "src/agents/multi-agent/turn-intelligence.ts",
         "src/agents/personas/action-claim-guard.ts",
         "src/agents/personas/action-claims.ts",

@@ -14,9 +14,16 @@
  * then closes the room and records the call as failed, with the outcome the
  * Twilio path records when its dispatch fails (twilio-call-status.ts).
  *
+ * ON_BEHALF_JOIN_WAIT (off): 5 s covers a warm worker only. A worker takes one call
+ * at a time (gce/cpu-load.ts maxJobsPerWorker), so with the member's own call on the
+ * only warm worker the job waits for a cold one (prod 11-24: no agent at 5 s, new
+ * workers ready at +21 s). With the flag on the wait is COLD_START_JOIN_WAIT_MS and
+ * each wait logs ON_BEHALF_JOIN_WAIT { callId, waitedMs, outcome }.
+ *
  * @module services/outreach/agent-join
  */
 import { ParticipantInfo_Kind } from '@livekit/protocol';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { retryOffer } from '../background-agents/call-follow-up/index.js';
 import {
@@ -32,14 +39,22 @@ const log = getLogger().child({ service: 'agent-join' });
 
 /** Longest an on-behalf call waits for its agent before it gives up and dials nothing. */
 export const AGENT_JOIN_WAIT_MS = 5_000;
+/**
+ * The wait with ON_BEHALF_JOIN_WAIT on: long enough for a cold worker. Prod agent, 14 days to
+ * 2026-11-24, 93 boots: a worker's first log line to "Worker ready to accept jobs" p50 10.7 s,
+ * p95 13.6 s, max 15.1 s. About 11 s comes before that first line (scheduling and image start;
+ * one incident) and about 1 s after it to join. So about 26 s from dispatch to a cold agent in
+ * the room, and 30 s with margin.
+ */
+const COLD_START_JOIN_WAIT_MS = 30_000;
 /** How often the room is read while waiting. */
 const AGENT_JOIN_POLL_MS = 250;
 
 /** No agent joined the call's room in time, so nothing was dialled. */
 class AgentNotJoinedError extends Error {
   readonly code = AGENT_NOT_JOINED;
-  constructor() {
-    super(`No agent joined the call room within ${AGENT_JOIN_WAIT_MS} ms; nothing was dialled`);
+  constructor(waitedMs = AGENT_JOIN_WAIT_MS) {
+    super(`No agent joined the call room within ${waitedMs} ms; nothing was dialled`);
     this.name = 'AgentNotJoinedError';
   }
 }
@@ -95,12 +110,19 @@ async function waitForAgentJoin(
 /** Resolves once the agent is in `room`; rejects with AgentNotJoinedError if it never comes. */
 export async function awaitAgent(keys: LiveKitKeys, room: string, callId: string): Promise<void> {
   const started = Date.now();
-  if (await waitForAgentJoin(await roomService(keys), room)) {
+  const long = flagOn('ON_BEHALF_JOIN_WAIT');
+  const waitMs = long ? COLD_START_JOIN_WAIT_MS : AGENT_JOIN_WAIT_MS;
+  const joined = await waitForAgentJoin(await roomService(keys), room, waitMs);
+  if (long) {
+    const outcome = joined ? 'joined' : 'gave_up';
+    log.info({ callId, waitedMs: Date.now() - started, outcome }, 'ON_BEHALF_JOIN_WAIT');
+  }
+  if (joined) {
     log.info({ callId, joinMs: Date.now() - started }, 'ON_BEHALF_AGENT_JOINED');
     return;
   }
   log.error({ callId }, 'ON_BEHALF_NO_AGENT: no agent joined; the call was not dialled');
-  throw new AgentNotJoinedError();
+  throw new AgentNotJoinedError(waitMs);
 }
 
 /** The failed result recorded when Ferni's agent never joined the call. */
