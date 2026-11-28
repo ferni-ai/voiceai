@@ -10455,6 +10455,7 @@
         "other": "J'ai le recul de {count} entrées de journal à partager."
       }
     },
+    "appNote": "Voici ton « moi » du passé, tiré de ton journal et de ton profil. Dis bonjour quand tu veux.",
     "error": "Ça n'est pas passé. C'est de mon côté, pas du tien. Essaie de l'envoyer à nouveau."
   },
   "mood": {

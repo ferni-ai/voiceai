@@ -10482,6 +10482,7 @@
       "philosophy": "Remember what we believe: \"{philosophy}\"",
       "prompt": "What would you like to talk about?"
     },
+    "appNote": "This is your past self, written from your journals and profile. Say hi when you're ready.",
     "error": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "mood": {

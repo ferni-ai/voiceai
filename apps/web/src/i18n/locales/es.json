@@ -10455,6 +10455,7 @@
         "other": "Tengo la perspectiva de {count} entradas de diario para compartir contigo."
       }
     },
+    "appNote": "Este es tu yo del pasado, escrito a partir de tus diarios y tu perfil. Salúdalo cuando quieras.",
     "error": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "mood": {
